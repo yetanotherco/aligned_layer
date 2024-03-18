@@ -1,0 +1,21 @@
+[package]
+name = "kimchi-verifier-ffi"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "kimchi-ecadd-proof-generator"
+path = "src/ec_add_proof_generator/main.rs"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
+
+[dependencies]
+kimchi = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations"}
+o1-utils = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations"}
+ark-ff = { version = "0.3.0", features = ["parallel", "asm"] }
+ark-ec = { version = "0.3.0", features = ["parallel"] }
+ark-poly = { version = "0.3.0", features = ["parallel"] }
+serde = "1.0.197"
+rmp-serde = "1.1.2"
+ark-serialize = "0.3.0"

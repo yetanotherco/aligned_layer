@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/signer"
@@ -92,9 +93,10 @@ func taskSenderMain(ctx *cli.Context) error {
 	}
 
 	var pubInput []byte
-	// When we have a PLONK proof, we should check for the public inputs.
+	// When we have a PLONK or Kimchi proof, we should check for the public inputs.
 	// Cairo proofs have public inputs embedded, so no need to check for this CLI input for the moment.
-	if verifierId == common.GnarkPlonkBls12_381 {
+	// This should be done for every proving system.
+	if verifierId == common.GnarkPlonkBls12_381 || verifierId == common.Kimchi {
 		pubInputFilePath := ctx.GlobalString(PubInputIdFlag.Name)
 		pubInput, err = os.ReadFile(pubInputFilePath)
 		if err != nil {
@@ -113,15 +115,22 @@ func taskSenderMain(ctx *cli.Context) error {
 }
 
 func parseVerifierId(verifierIdStr string) (common.VerifierId, error) {
-	if verifierIdStr == "cairo" {
+	// standard whitespace trimming
+	verifierIdStr = strings.TrimSpace(verifierIdStr)
+	switch verifierIdStr {
+	case "cairo":
 		return common.LambdaworksCairo, nil
-	} else if verifierIdStr == "plonk" {
+	case "plonk":
 		return common.GnarkPlonkBls12_381, nil
+	case "kimchi":
+		return common.Kimchi, nil
+	case "sp1":
+		return common.Sp1BabyBearBlake3, nil
+	default:
+		// returning this just to return something, the error should be handled
+		// by the caller.
+		return common.LambdaworksCairo, errors.New("could not parse verifier ID")
 	}
-
-	// returning this just to return something, the error should be handled
-	// by the caller.
-	return common.LambdaworksCairo, errors.New("could not parse verifier ID")
 }
 
 // This function is almost identical to NewConfig, but with hardcoded values.

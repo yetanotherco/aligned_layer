@@ -20,6 +20,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/metrics"
 	"github.com/yetanotherco/aligned_layer/operator/cairo_platinum"
+	"github.com/yetanotherco/aligned_layer/operator/kimchi"
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
 	"github.com/yetanotherco/aligned_layer/types"
 
@@ -38,7 +39,7 @@ import (
 	sdktypes "github.com/Layr-Labs/eigensdk-go/types"
 )
 
-const AVS_NAME = "incredible-squaring"
+const AVS_NAME = "aligned-layer"
 const SEM_VER = "0.0.1"
 
 type Operator struct {
@@ -335,9 +336,10 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *cstaskmanager.Con
 	o.logger.Debug("Received new task", "task", newTaskCreatedLog)
 
 	proof := newTaskCreatedLog.Task.Proof
-	verifierId := newTaskCreatedLog.Task.VerifierId
-	pubInput := newTaskCreatedLog.Task.PubInput
 	proofLen := (uint)(len(proof))
+	pubInput := newTaskCreatedLog.Task.PubInput
+	pubInputLen := (uint)(len(pubInput))
+	verifierId := newTaskCreatedLog.Task.VerifierId
 
 	o.logger.Info("Received new task with proof to verify",
 		"proofLen", proofLen,
@@ -349,7 +351,8 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *cstaskmanager.Con
 		"QuorumThresholdPercentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
 	)
 
-	if verifierId == uint16(common.LambdaworksCairo) {
+	switch verifierId {
+	case uint16(common.LambdaworksCairo):
 		proofBuffer := make([]byte, cairo_platinum.MAX_PROOF_SIZE)
 		copy(proofBuffer, proof)
 
@@ -361,7 +364,8 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *cstaskmanager.Con
 			ProofIsCorrect:     VerificationResult,
 		}
 		return taskResponse
-	} else if verifierId == uint16(common.GnarkPlonkBls12_381) {
+
+	case uint16(common.GnarkPlonkBls12_381):
 		VerificationResult := o.VerifyPlonkProof(proof, pubInput)
 
 		o.logger.Infof("PLONK proof verification result: %t", VerificationResult)
@@ -370,7 +374,8 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *cstaskmanager.Con
 			ProofIsCorrect:     VerificationResult,
 		}
 		return taskResponse
-	} else {
+
+	case uint16(common.Sp1BabyBearBlake3):
 		proofBuffer := make([]byte, sp1.MAX_PROOF_SIZE)
 		copy(proofBuffer, proof)
 		VerificationResult := sp1.VerifySp1Proof(([sp1.MAX_PROOF_SIZE]byte)(proofBuffer), (uint)(proofLen))
@@ -380,6 +385,24 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *cstaskmanager.Con
 			ProofIsCorrect:     VerificationResult,
 		}
 		return taskResponse
+
+	case uint16(common.Kimchi):
+		proofBuffer := make([]byte, kimchi.MAX_PROOF_SIZE)
+		copy(proofBuffer, proof)
+		pubInputBuffer := make([]byte, kimchi.MAX_PUB_INPUT_SIZE)
+		copy(pubInputBuffer, pubInput)
+
+		VerificationResult := kimchi.VerifyKimchiProof(([kimchi.MAX_PROOF_SIZE]byte)(proofBuffer), (uint)(proofLen), ([kimchi.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		o.logger.Infof("Kimchi proof verification result: %t", VerificationResult)
+		taskResponse := &cstaskmanager.IAlignedLayerTaskManagerTaskResponse{
+			ReferenceTaskIndex: newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect:     VerificationResult,
+		}
+		return taskResponse
+
+	default:
+		o.logger.Error("Unrecognized verifier id")
+		return nil
 	}
 }
 
@@ -400,7 +423,7 @@ func (o *Operator) SignTaskResponse(taskResponse *cstaskmanager.IAlignedLayerTas
 	return signedTaskResponse, nil
 }
 
-// Load the PLONK proof and verification key disk and verify it using
+// Load the PLONK verification key from disk and verify it using
 // the Gnark PLONK verifier
 func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte) bool {
 	vkFile, err := os.Open("tests/testing_data/plonk_verification_key")

@@ -75,8 +75,8 @@ func (tg *TaskGenerator) Start(ctx context.Context) error {
 			taskNum++
 
 			// Randomly creates tasks to verify correct and incorrect proofs
-			// These proofs can be either Cairo, Plonk, Sp1 or a randomly generated one
-			switch r.Intn(4) {
+			// These proofs can be either Cairo, Plonk, Sp1, Kimchi or a randomly generated one
+			switch r.Intn(5) {
 			case 0:
 				proof, pubInput = generateCairoProof()
 				err := tg.SendNewTask(proof, pubInput, common.LambdaworksCairo)
@@ -96,6 +96,12 @@ func (tg *TaskGenerator) Start(ctx context.Context) error {
 					continue
 				}
 			case 3:
+				proof, pubInput = generateKimchiProof()
+				err := tg.SendNewTask(proof, pubInput, common.Kimchi)
+				if err != nil {
+					continue
+				}
+			case 4:
 				proof, pubInput = generateRandomProof(r)
 				verifierId := r.Intn(3)
 				err := tg.SendNewTask(proof, pubInput, common.VerifierId(verifierId))
@@ -153,6 +159,20 @@ func generateSp1Proof() ([]byte, []byte) {
 	}
 
 	var pubInputBytes []byte
+
+	return proofBytes, pubInputBytes
+}
+
+func generateKimchiProof() ([]byte, []byte) {
+	proofBytes, err := os.ReadFile("tests/testing_data/kimchi/kimchi_ec_add.proof")
+	if err != nil {
+		panic("Could not read Kimchi proof file")
+	}
+
+	pubInputBytes, err := os.ReadFile("tests/testing_data/kimchi/kimchi_verifier_index.bin")
+	if err != nil {
+		panic("Could not read Kimchi public input file")
+	}
 
 	return proofBytes, pubInputBytes
 }

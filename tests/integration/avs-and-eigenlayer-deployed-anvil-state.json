@@ -275,7 +275,7 @@
     },
     "0xa0ee7a142d267c1f36714e4a8f75612f20a79720": {
       "nonce": 1,
-      "balance": "0x21d8f196643484c56d0",
+      "balance": "0x21d8f196af38e8a9af8",
       "code": "0x",
       "storage": {}
     },
@@ -400,7 +400,7 @@
     },
     "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": {
       "nonce": 49,
-      "balance": "0x21e174defdffbd9315e",
+      "balance": "0x21e176fed364a4b1874",
       "code": "0x",
       "storage": {}
     },
@@ -412,5 +412,6 @@
         "0x0": "0xff"
       }
     }
-  }
+  },
+  "best_block_number": "0x12"
 }
