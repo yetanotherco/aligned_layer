@@ -1,4 +1,5 @@
 deps:
+	git submodule update --init --recursive
 	make -C contracts deps
 	go install github.com/maoueh/zap-pretty@latest
 
