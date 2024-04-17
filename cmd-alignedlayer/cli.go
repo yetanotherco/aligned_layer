@@ -54,16 +54,16 @@ func runCLI() {
 						cli.ShowCommandHelp(c, "send-task")
 						return nil
 					}
-					if c.Args().Get(0) != "plonk" || c.Args().Get(0) != "groth16" {
-						fmt.Println("Error: Unknown proving system")
-						cli.ShowCommandHelp(c, "send-task")
-						return nil
-					}
 
 					system := c.Args().Get(0)
 					executableDir, err := os.Executable()
 					if err != nil {
 						return fmt.Errorf("error getting executable path: %v", err)
+					}
+					validSystems := map[string]bool{"plonk": true, "groth16": true}
+					if !validSystems[system] {
+						fmt.Printf("Error: '%s' is not a supported proof system. Supported systems are plonk and groth16\n", system)
+						return nil
 					}
 					proofPath := filepath.Join(filepath.Dir(executableDir), c.Args().Get(1))
 					publicInputPath := filepath.Join(filepath.Dir(executableDir), c.Args().Get(2))
