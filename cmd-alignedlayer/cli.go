@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -11,36 +12,26 @@ import (
 func runCLI() {
 	app := &cli.App{
 		Name:      "Aligned Layer Verifier",
-		UsageText: "\n" + "verify plonk proof.txt public_input_file.txt " + "verification_key.txt"
-		+ "\n"  + "verify groth16 proof.txt public_input_file.txt " + "verification_key.txt"
+		UsageText: "\n" + "verify plonk proof.txt public_input_file.txt " + "verification_key.txt" + "\n" + "verify groth16 proof.txt public_input_file.txt " + "verification_key.txt",
+		Commands: []*cli.Command{
+			{
+				Name:  "verify",
+				Usage: "verify a proof using a specified proof system",
+				Action: func(c *cli.Context) error {
+					if c.NArg() < 4 {
+						fmt.Println("Insufficient arguments")
+						cli.ShowCommandHelp(c, "verify")
+						return nil
+					}
 
-		Action: func(c *cli.Context) error {
-			if c.NArg() < 5 || c.Args().Get(0) != "verify" {
-				return cli.ShowAppHelp(c)
-			}
+					system := c.Args().Get(0)
+					proofPath := c.Args().Get(1)
+					publicInputPath := c.Args().Get(2)
+					verificationKeyPath := c.Args().Get(3)
 
-			system := c.Args().Get(1)
-			proof := c.Args().Get(2)
-			publicInput := c.Args().Get(3)
-			verificationKey := c.Args().Get(4)
-
-			switch system {
-			case "groth16":
-				err := verify("groth16", proof, publicInput, verificationKey)
-				if err != nil {
-					return err
-				}
-			case "plonk":
-				err := verify("plonk", proof, publicInput, verificationKey)
-				if err != nil {
-					return err
-				}
-			default:
-				fmt.Println("Unsupported proof system:", system)
-				return nil
-			}
-
-			return nil
+					return verify(system, proofPath, publicInputPath, verificationKeyPath)
+				},
+			},
 		},
 	}
 
@@ -50,10 +41,32 @@ func runCLI() {
 	}
 }
 
-func verify(system, proof, publicInput, verificationKey string) error {
+func verify(system, proofPath, publicInputPath, verificationKeyPath string) error {
+	proof, err := readFile(proofPath)
+	if err != nil {
+		return fmt.Errorf("error reading proof file: %v", err)
+	}
+	publicInput, err := readFile(publicInputPath)
+	if err != nil {
+		return fmt.Errorf("error reading public input file: %v", err)
+	}
+	verificationKey, err := readFile(verificationKeyPath)
+	if err != nil {
+		return fmt.Errorf("error reading verification key file: %v", err)
+	}
+
 	fmt.Printf("Verifying using %s...\n", system)
-	fmt.Println("Proof:", proof)
-	fmt.Println("Public Input:", publicInput)
-	fmt.Println("Verification Key:", verificationKey)
+	fmt.Println("Proof:", string(proof))
+	fmt.Println("Public Input:", string(publicInput))
+	fmt.Println("Verification Key:", string(verificationKey))
+
 	return nil
+}
+
+func readFile(filePath string) ([]byte, error) {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
