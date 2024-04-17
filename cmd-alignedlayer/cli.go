@@ -43,7 +43,7 @@ func readFile(filePath string) ([]byte, error) {
 func runCLI() {
 	app := &cli.App{
 		Name:      "Aligned Layer Verifier",
-		UsageText: "\n" + "send-task plonk proof.txt public_input_file.txt " + "verification_key.txt" + "\n" + "send-task groth16 proof.txt public_input_file.txt " + "verification_key.txt",
+		UsageText: "\n" + "send-task plonk proof.txt public_input_file " + "verification_key_file" + "\n" + "send-task groth16 proof.txt public_input_file " + "verification_key_file",
 		Commands: []*cli.Command{
 			{
 				Name:  "send-task",
@@ -51,10 +51,12 @@ func runCLI() {
 				Action: func(c *cli.Context) error {
 					if c.NArg() < 4 {
 						fmt.Println("Error: Insufficient arguments")
-						err := cli.ShowCommandHelp(c, "send-task")
-						if err != nil {
-							return err
-						}
+						cli.ShowCommandHelp(c, "send-task")
+						return nil
+					}
+					if c.Args().Get(0) != "plonk" || c.Args().Get(0) != "groth16" {
+						fmt.Println("Error: Unknown proving system")
+						cli.ShowCommandHelp(c, "send-task")
 						return nil
 					}
 
@@ -69,7 +71,7 @@ func runCLI() {
 
 					return verify(system, proofPath, publicInputPath, verificationKeyPath)
 				},
-				UsageText:   "send-task [SYSTEM] [PROOF_FILE] [PUBLIC_INPUT_FILE] [VERIFICATION_KEY_FILE]",
+				UsageText:   "send-task plonk proof_file public_input_file verification_key",
 				Description: "Verifies a proof using a specified proof system. Provide the name of the proof system (e.g., plonk or groth16) along with the paths to the proof file, public input file, and verification key file.",
 			},
 		},
