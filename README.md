@@ -11,7 +11,18 @@ Aligned Layer works with EigenLayer to leverage ethereum consensus mechanism for
 
 Full documentation and examples will be added soon
 
+
 ## Dependencies
+
+Eigenlayer middleware was installed as a submodule with:
+
+```
+mkdir contracts
+cd contacts
+forge init . --no-commit
+forge install Layr-Labs/eigenlayer-middleware@mainnet
+```
+
 You will need [go](https://go.dev/doc/install) [foundry](https://book.getfoundry.sh/getting-started/installation) and [zap-pretty](https://github.com/maoueh/zap-pretty) to run the examples below.
 
 To install
