@@ -14,6 +14,15 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
+You will need [go](https://go.dev/doc/install) [foundry](https://book.getfoundry.sh/getting-started/installation) and [zap-pretty](https://github.com/maoueh/zap-pretty) to run the examples below.
+
+To install
+```bash
+make deps
+```
+
+## Notes on project creation
+
 Eigenlayer middleware was installed as a submodule with:
 
 ```
@@ -23,12 +32,13 @@ forge init . --no-commit
 forge install Layr-Labs/eigenlayer-middleware@mainnet
 ```
 
-You will need [go](https://go.dev/doc/install) [foundry](https://book.getfoundry.sh/getting-started/installation) and [zap-pretty](https://github.com/maoueh/zap-pretty) to run the examples below.
+Then to solve the issue https://github.com/Layr-Labs/eigenlayer-middleware/issues/229, we changed it to:
 
-To install
-```bash
-make deps
-```
+```forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit```
+
+As soon as it gets fixed in mainnet we can revert it.
+
+Base version of middleware used is ```7229f2b```
 
 ## Run using make
 
