@@ -16,7 +16,17 @@ anvil-deploy-eigen-contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
+anvil-deploy-aligned-contracts:
+	@echo "Deploying Aligned Contracts..."
+	. contracts/scripts/anvil/deploy_aligned_contracts.sh
+
+anvil-deploy-all:
+	@echo "Deploying Eigen Contracts..."
+	. contracts/scripts/anvil/deploy_eigen_contracts.sh
+	@echo "Deploying Aligned Contracts..."
+	. contracts/scripts/anvil/deploy_aligned_contracts.sh
+
 anvil-start:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/eigenlayer-deployed-anvil-state.json 
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
 
