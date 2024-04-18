@@ -5,12 +5,16 @@ help:
 
 deps: ## Install deps
 	git submodule update --init --recursive
-	make -C contracts deps
 	go install github.com/maoueh/zap-pretty@latest
+	curl -L https://foundry.paradigm.xyz | bash
+	foundryup
 
-anvil-deploy-eigen-contracts: ## Deploy Eigen Layer contracts and dump to json file
-	make -C contracts anvil-deploy-eigen-contracts
 
-anvil-start: ## Start anvil
-	make -C contracts anvil-start
+anvil-deploy-eigen-contracts:
+	@echo "Deploying Eigen Contracts..."
+	. contracts/scripts/anvil/deploy_eigen_contracts.sh
+
+anvil-start:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/eigenlayer-deployed-anvil-state.json 
 

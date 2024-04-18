@@ -11,7 +11,6 @@ Aligned Layer works with EigenLayer to leverage ethereum consensus mechanism for
 
 Full documentation and examples will be added soon
 
-
 ## Dependencies
 
 You will need [go](https://go.dev/doc/install) [foundry](https://book.getfoundry.sh/getting-started/installation) and [zap-pretty](https://github.com/maoueh/zap-pretty) to run the examples below.
@@ -21,7 +20,27 @@ To install
 make deps
 ```
 
-## Notes on project creation
+## Run using make
+
+Start anvil with every relevant contract deployed with:
+
+```bash
+make anvil-start
+```
+
+The above command starts a local anvil chain from a [saved state](./tests/integration/eigenlayer-and-shared-avs-contracts-deployed-anvil-state.json) with EigenLayer and Aligned Layer contracts already deployed (but no operator registered).
+
+
+## Dev notes
+
+When changing contracts, the anvil state needs to be updated with:
+
+
+```bash
+make anvil-deploy-eigen-contracts
+```
+
+## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
 
@@ -40,16 +59,9 @@ As soon as it gets fixed in mainnet we can revert it.
 
 Base version of middleware used is ```7229f2b```
 
-## Run using make
+The script to initialize the devnet can be found on  ```contracts/scripts/anvil```
 
-To deploy EigenLayer contracts to local anvil testnet and save state
-```bash
-make anvil-deploy-eigen-contracts
-```
+The addresses of the relevant contracts after running the anvil script is dumped on ```contracts/script/output/devnet```.
 
-Start anvil with saved state in a separate terminal:
-```bash
-make anvil-start
-```
+The state is backuped on ```contracts/scripts/anvil/state```
 
-The above command starts a local anvil chain from a [saved state](./tests/integration/eigenlayer-and-shared-avs-contracts-deployed-anvil-state.json) with EigenLayer and Aligned Layer contracts already deployed (but no operator registered).
