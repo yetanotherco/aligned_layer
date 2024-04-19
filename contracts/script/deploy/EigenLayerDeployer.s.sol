@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.12;
 
+// The original script used as the base of this one is:
+// https://github.com/Layr-Labs/eigenlayer-contracts/blob/7229f2b426b6f2a24c7795b1a4687a010eac8ef2/script/deploy/devnet/M2_Deploy_From_Scratch.s.sol
+
+// Delegation has been renamed to DelegationManager
+// The following addresses has been added to serialization: beaconOracle, pauserMultisig
+// The following additional data has been added: numStrategies
+
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -194,6 +201,8 @@ contract EigenLayerDeployer is Script, Test {
         eigenPodBeacon = new UpgradeableBeacon(address(eigenPodImplementation));
 
         // Second, deploy the *implementation* contracts, using the *proxy contracts* as inputs
+
+        // AlignedLayerSpecific:  Delegation has been renamed to DelegationManager
         delegationImplementation = new DelegationManager(strategyManager, slasher, eigenPodManager);
         strategyManagerImplementation = new StrategyManager(delegation, eigenPodManager, slasher);
         avsDirectoryImplementation = new AVSDirectory(delegation);
@@ -369,7 +378,8 @@ contract EigenLayerDeployer is Script, Test {
         vm.serializeAddress(deployed_addresses, "eigenPodImplementation", address(eigenPodImplementation));
         vm.serializeAddress(deployed_addresses, "baseStrategyImplementation", address(baseStrategyImplementation));
         vm.serializeAddress(deployed_addresses, "emptyContract", address(emptyContract));
-        vm.serializeAddress(deployed_addresses, "beaconOracle", address(0));
+
+
         string memory deployed_addresses_output = vm.serializeString(
             deployed_addresses,
             "strategies",
@@ -378,19 +388,23 @@ contract EigenLayerDeployer is Script, Test {
 
         string memory parameters = "parameters";
         vm.serializeAddress(parameters, "executorMultisig", executorMultisig);
-        vm.serializeAddress(parameters, "pauserMultisig", pauserMultisig);
+
         string memory parameters_output = vm.serializeAddress(parameters, "operationsMultisig", operationsMultisig);
 
         string memory chain_info = "chainInfo";
         vm.serializeUint(chain_info, "deploymentBlock", block.number);
         string memory chain_info_output = vm.serializeUint(chain_info, "chainId", chainId);
 
-        vm.serializeUint(parent_object, "numStrategies", strategyConfigs.length);
-
         // serialize all the data
         vm.serializeString(parent_object, deployed_addresses, deployed_addresses_output);
         vm.serializeString(parent_object, chain_info, chain_info_output);
         string memory finalJson = vm.serializeString(parent_object, parameters, parameters_output);
+
+        // AlignedLayerSpecific: This addresses weren't in the original deployer serialization of EigenLayerContracts. But we needed to use them
+        vm.serializeAddress(deployed_addresses, "beaconOracle", address(0));
+        vm.serializeAddress(parameters, "pauserMultisig", pauserMultisig);
+        vm.serializeUint(parent_object, "numStrategies", strategyConfigs.length);
+
         // TODO: should output to different file depending on configFile passed to run()
         //       so that we don't override mainnet output by deploying to goerli for eg.
         vm.writeJson(finalJson, "script/output/devnet/eigenlayer_deployment_output.json");
