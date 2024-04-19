@@ -390,16 +390,15 @@ contract EigenLayerDeployer is Script, Test {
 
         // AlignedLayerSpecific: This addresses weren't in the original deployer serialization of EigenLayerContracts. But we needed to use them
         vm.serializeAddress(deployed_addresses, "beaconOracle", address(0));
+        string memory parameters_output = vm.serializeAddress(parameters, "pauserMultisig", pauserMultisig);
+        vm.serializeUint(parent_object, "numStrategies", strategyConfigs.length);
 
+        // ALignedLayerSpecific: Now the rest of the final serialization steps continues
         string memory deployed_addresses_output = vm.serializeString(
             deployed_addresses,
             "strategies",
             deployed_strategies_output
         );
-
-
-        string memory parameters_output = vm.serializeAddress(parameters, "pauserMultisig", pauserMultisig);
-        vm.serializeUint(parent_object, "numStrategies", strategyConfigs.length);
 
         // serialize all the data
         vm.serializeString(parent_object, deployed_addresses, deployed_addresses_output);
