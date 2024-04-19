@@ -8,7 +8,6 @@ import {ServiceManagerBase, IAVSDirectory} from "eigenlayer-middleware/ServiceMa
 import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
-import {IAlignedLayerServiceManager} from "src/interfaces/IAlignedLayerServiceManager.sol";
 
 /**
  * @title Primary entrypoint for procuring services from EigenDA.
