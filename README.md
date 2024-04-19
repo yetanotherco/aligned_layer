@@ -35,16 +35,26 @@ Start anvil with every relevant contract deployed with:
 make anvil-start
 ```
 
-The above command starts a local anvil chain from a [saved state](./tests/integration/eigenlayer-and-shared-avs-contracts-deployed-anvil-state.json) with EigenLayer and Aligned Layer contracts already deployed (but no operator registered).
+The above command starts a local anvil chain from a [saved state](./tests/integration/eigenlayer-and-shared-avs-contracts-deployed-anvil-state.json) with EigenLayer and AlignedLayer contracts already deployed (but no operator registered).
 
 
 ## Dev notes
 
-When changing contracts, the anvil state needs to be updated with:
-
+When changing EigenLayer contracts, the anvil state needs to be updated with:
 
 ```bash
 make anvil-deploy-eigen-contracts
+```
+
+When changing AlignedLayer contracts, the anvil state needs to be updated with:
+
+```bash
+make anvil-deploy-aligned-contracts
+```
+
+To redeploy all contracts, run:
+```bash
+make anvil-deploy-all
 ```
 
 ## Notes on project creation / devnet deployment
@@ -72,3 +82,4 @@ The addresses of the relevant contracts after running the anvil script is dumped
 
 The state is backuped on ```contracts/scripts/anvil/state```
 
+Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
