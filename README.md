@@ -82,3 +82,4 @@ The addresses of the relevant contracts after running the anvil script is dumped
 
 The state is backuped on ```contracts/scripts/anvil/state```
 
+Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
