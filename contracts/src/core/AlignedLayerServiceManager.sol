@@ -10,7 +10,7 @@ import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCo
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 
 /**
- * @title Primary entrypoint for procuring services from EigenDA.
+ * @title Primary entrypoint for procuring services from AlignedLayer.
  * @author Layr Labs, Inc.
  * @notice This contract is used for:
  * - confirming the data store by the disperser with inferred aggregated signatures of the quorum
@@ -25,7 +25,11 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         IStakeRegistry __stakeRegistry
     )
         BLSSignatureChecker(__registryCoordinator)
-        ServiceManagerBase(__avsDirectory, __registryCoordinator, __stakeRegistry)
+        ServiceManagerBase(
+            __avsDirectory,
+            __registryCoordinator,
+            __stakeRegistry
+        )
     {
         _disableInitializers();
     }
@@ -33,10 +37,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function initialize(
         address _initialOwner,
         address _aggregator
-    )
-        public
-        initializer
-    {
+    ) public initializer {
         _transferOwnership(_initialOwner);
         _setAggregator(_aggregator);
     }
@@ -48,5 +49,4 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function isAggregator(address _aggregator) public view returns (bool) {
         return aggregator == _aggregator;
     }
-
 }
