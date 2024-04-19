@@ -40,16 +40,16 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             bytes("./script/output/devnet/alignedlayer_deployment_output.json")
         );
 
-    ProxyAdmin public eigenDAProxyAdmin;
-    address public eigenDAOwner;
-    address public eigenDAUpgrader;
+    ProxyAdmin public alignedLayerProxyAdmin;
+    address public alignedLayerOwner;
+    address public alignedLayerUpgrader;
     address public aggregator;
     address public pauser;
     uint256 public initalPausedStatus;
     address public deployer;
 
     BLSApkRegistry public apkRegistry;
-    AlignedLayerServiceManager public eigenDAServiceManager;
+    AlignedLayerServiceManager public alignedLayerServiceManager;
     RegistryCoordinator public registryCoordinator;
     IndexRegistry public indexRegistry;
     StakeRegistry public stakeRegistry;
@@ -57,7 +57,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
     ServiceManagerRouter public serviceManagerRouter;
 
     BLSApkRegistry public apkRegistryImplementation;
-    AlignedLayerServiceManager public eigenDAServiceManagerImplementation;
+    AlignedLayerServiceManager public alignedLayerServiceManagerImplementation;
     RegistryCoordinator public registryCoordinatorImplementation;
     IndexRegistry public indexRegistryImplementation;
     StakeRegistry public stakeRegistryImplementation;
@@ -82,8 +82,8 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         // parse the addresses of permissioned roles
-        eigenDAOwner = stdJson.readAddress(config_data, ".permissions.owner");
-        eigenDAUpgrader = stdJson.readAddress(
+        alignedLayerOwner = stdJson.readAddress(config_data, ".permissions.owner");
+        alignedLayerUpgrader = stdJson.readAddress(
             config_data,
             ".permissions.upgrader"
         );
@@ -108,7 +108,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         vm.startBroadcast();
 
         // deploy proxy admin for ability to upgrade proxy contracts
-        eigenDAProxyAdmin = new ProxyAdmin();
+        alignedLayerProxyAdmin = new ProxyAdmin();
 
         //deploy service manager router
         serviceManagerRouter = new ServiceManagerRouter();
@@ -117,11 +117,11 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
          * First, deploy upgradeable proxy contracts that **will point** to the implementations. Since the implementation contracts are
          * not yet deployed, we give these proxies an empty contract as the initial implementation, to act as if they have no code.
          */
-        eigenDAServiceManager = AlignedLayerServiceManager(
+        alignedLayerServiceManager = AlignedLayerServiceManager(
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -130,7 +130,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -139,7 +139,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -148,7 +148,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -157,7 +157,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -167,7 +167,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         indexRegistryImplementation = new IndexRegistry(registryCoordinator);
 
         //upgrade index registry proxy to implementation
-        eigenDAProxyAdmin.upgrade(
+        alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(indexRegistry))),
             address(indexRegistryImplementation)
         );
@@ -179,7 +179,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         //upgrade stake registry proxy to implementation
-        eigenDAProxyAdmin.upgrade(
+        alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(stakeRegistry))),
             address(stakeRegistryImplementation)
         );
@@ -188,14 +188,14 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         apkRegistryImplementation = new BLSApkRegistry(registryCoordinator);
 
         //upgrade apk registry proxy to implementation
-        eigenDAProxyAdmin.upgrade(
+        alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(apkRegistry))),
             address(apkRegistryImplementation)
         );
 
         //deploy the registry coordinator implementation.
         registryCoordinatorImplementation = new RegistryCoordinator(
-            IServiceManager(address(eigenDAServiceManager)),
+            IServiceManager(address(alignedLayerServiceManager)),
             stakeRegistry,
             apkRegistry,
             indexRegistry
@@ -216,14 +216,14 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             ) = _parseRegistryCoordinatorParams(config_data);
 
             //upgrade the registry coordinator proxy to implementation
-            eigenDAProxyAdmin.upgradeAndCall(
+            alignedLayerProxyAdmin.upgradeAndCall(
                 TransparentUpgradeableProxy(
                     payable(address(registryCoordinator))
                 ),
                 address(registryCoordinatorImplementation),
                 abi.encodeWithSelector(
                     RegistryCoordinator.initialize.selector,
-                    eigenDAOwner,
+                    alignedLayerOwner,
                     churner,
                     ejector,
                     IPauserRegistry(pauser),
@@ -235,19 +235,19 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             );
         }
 
-        //deploy the eigenDA service manager implementation
-        eigenDAServiceManagerImplementation = new AlignedLayerServiceManager(
+        //deploy the alignedLayer service manager implementation
+        alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
             avsDirectory,
             registryCoordinator,
             stakeRegistry
         );
 
-        //upgrade the eigenDA service manager proxy to implementation
-        eigenDAProxyAdmin.upgradeAndCall(
+        //upgrade the alignedLayer service manager proxy to implementation
+        alignedLayerProxyAdmin.upgradeAndCall(
             TransparentUpgradeableProxy(
-                payable(address(eigenDAServiceManager))
+                payable(address(alignedLayerServiceManager))
             ),
-            address(eigenDAServiceManagerImplementation),
+            address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
                 deployer,
@@ -256,21 +256,21 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         string memory metadataURI = stdJson.readString(config_data, ".uri");
-        eigenDAServiceManager.updateAVSMetadataURI(metadataURI);
-        eigenDAServiceManager.transferOwnership(eigenDAOwner);
+        alignedLayerServiceManager.updateAVSMetadataURI(metadataURI);
+        alignedLayerServiceManager.transferOwnership(alignedLayerOwner);
 
         //deploy the operator state retriever
         operatorStateRetriever = new OperatorStateRetriever();
 
         // transfer ownership of proxy admin to upgrader
-        eigenDAProxyAdmin.transferOwnership(eigenDAUpgrader);
+        alignedLayerProxyAdmin.transferOwnership(alignedLayerUpgrader);
 
         vm.stopBroadcast();
 
         // sanity checks
         __verifyContractPointers(
             apkRegistry,
-            eigenDAServiceManager,
+            alignedLayerServiceManager,
             registryCoordinator,
             indexRegistry,
             stakeRegistry
@@ -278,7 +278,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
 
         __verifyContractPointers(
             apkRegistryImplementation,
-            eigenDAServiceManagerImplementation,
+            alignedLayerServiceManagerImplementation,
             registryCoordinatorImplementation,
             indexRegistryImplementation,
             stakeRegistryImplementation
@@ -311,8 +311,8 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         // parse the addresses of permissioned roles
-        eigenDAOwner = stdJson.readAddress(config_data, ".permissions.owner");
-        eigenDAUpgrader = stdJson.readAddress(
+        alignedLayerOwner = stdJson.readAddress(config_data, ".permissions.owner");
+        alignedLayerUpgrader = stdJson.readAddress(
             config_data,
             ".permissions.upgrader"
         );
@@ -331,7 +331,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         vm.startPrank(deployer);
 
         // deploy proxy admin for ability to upgrade proxy contracts
-        eigenDAProxyAdmin = new ProxyAdmin();
+        alignedLayerProxyAdmin = new ProxyAdmin();
 
         //deploy service manager router
         serviceManagerRouter = new ServiceManagerRouter();
@@ -340,11 +340,11 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
          * First, deploy upgradeable proxy contracts that **will point** to the implementations. Since the implementation contracts are
          * not yet deployed, we give these proxies an empty contract as the initial implementation, to act as if they have no code.
          */
-        eigenDAServiceManager = AlignedLayerServiceManager(
+        alignedLayerServiceManager = AlignedLayerServiceManager(
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -353,7 +353,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -362,7 +362,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -371,7 +371,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -380,7 +380,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(eigenDAProxyAdmin),
+                    address(alignedLayerProxyAdmin),
                     ""
                 )
             )
@@ -390,7 +390,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         indexRegistryImplementation = new IndexRegistry(registryCoordinator);
 
         //upgrade index registry proxy to implementation
-        eigenDAProxyAdmin.upgrade(
+        alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(indexRegistry))),
             address(indexRegistryImplementation)
         );
@@ -402,7 +402,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         //upgrade stake registry proxy to implementation
-        eigenDAProxyAdmin.upgrade(
+        alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(stakeRegistry))),
             address(stakeRegistryImplementation)
         );
@@ -411,14 +411,14 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         apkRegistryImplementation = new BLSApkRegistry(registryCoordinator);
 
         //upgrade apk registry proxy to implementation
-        eigenDAProxyAdmin.upgrade(
+        alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(apkRegistry))),
             address(apkRegistryImplementation)
         );
 
         //deploy the registry coordinator implementation.
         registryCoordinatorImplementation = new RegistryCoordinator(
-            IServiceManager(address(eigenDAServiceManager)),
+            IServiceManager(address(alignedLayerServiceManager)),
             stakeRegistry,
             apkRegistry,
             indexRegistry
@@ -439,14 +439,14 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             ) = _parseRegistryCoordinatorParams(config_data);
 
             //upgrade the registry coordinator proxy to implementation
-            eigenDAProxyAdmin.upgradeAndCall(
+            alignedLayerProxyAdmin.upgradeAndCall(
                 TransparentUpgradeableProxy(
                     payable(address(registryCoordinator))
                 ),
                 address(registryCoordinatorImplementation),
                 abi.encodeWithSelector(
                     RegistryCoordinator.initialize.selector,
-                    eigenDAOwner,
+                    alignedLayerOwner,
                     churner,
                     ejector,
                     IPauserRegistry(pauser),
@@ -458,19 +458,19 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             );
         }
 
-        //deploy the eigenDA service manager implementation
-        eigenDAServiceManagerImplementation = new AlignedLayerServiceManager(
+        //deploy the alignedLayer service manager implementation
+        alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
             avsDirectory,
             registryCoordinator,
             stakeRegistry
         );
 
-        //upgrade the eigenDA service manager proxy to implementation
-        eigenDAProxyAdmin.upgradeAndCall(
+        //upgrade the alignedLayer service manager proxy to implementation
+        alignedLayerProxyAdmin.upgradeAndCall(
             TransparentUpgradeableProxy(
-                payable(address(eigenDAServiceManager))
+                payable(address(alignedLayerServiceManager))
             ),
-            address(eigenDAServiceManagerImplementation),
+            address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
                 deployer,
@@ -479,21 +479,21 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         string memory metadataURI = stdJson.readString(config_data, ".uri");
-        eigenDAServiceManager.updateAVSMetadataURI(metadataURI);
-        eigenDAServiceManager.transferOwnership(eigenDAOwner);
+        alignedLayerServiceManager.updateAVSMetadataURI(metadataURI);
+        alignedLayerServiceManager.transferOwnership(alignedLayerOwner);
 
         //deploy the operator state retriever
         operatorStateRetriever = new OperatorStateRetriever();
 
         // transfer ownership of proxy admin to upgrader
-        eigenDAProxyAdmin.transferOwnership(eigenDAUpgrader);
+        alignedLayerProxyAdmin.transferOwnership(alignedLayerUpgrader);
 
         vm.stopPrank();
 
         // sanity checks
         __verifyContractPointers(
             apkRegistry,
-            eigenDAServiceManager,
+            alignedLayerServiceManager,
             registryCoordinator,
             indexRegistry,
             stakeRegistry
@@ -501,7 +501,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
 
         __verifyContractPointers(
             apkRegistryImplementation,
-            eigenDAServiceManagerImplementation,
+            alignedLayerServiceManagerImplementation,
             registryCoordinatorImplementation,
             indexRegistryImplementation,
             stakeRegistryImplementation
@@ -513,7 +513,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
 
     function __verifyContractPointers(
         BLSApkRegistry _apkRegistry,
-        AlignedLayerServiceManager _eigenDAServiceManager,
+        AlignedLayerServiceManager _alignedLayerServiceManager,
         RegistryCoordinator _registryCoordinator,
         IndexRegistry _indexRegistry,
         StakeRegistry _stakeRegistry
@@ -541,25 +541,25 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         require(
-            address(_eigenDAServiceManager.registryCoordinator()) ==
+            address(_alignedLayerServiceManager.registryCoordinator()) ==
                 address(registryCoordinator),
-            "eigenDAServiceManager.registryCoordinator() != registryCoordinator"
+            "alignedLayerServiceManager.registryCoordinator() != registryCoordinator"
         );
         require(
-            address(_eigenDAServiceManager.stakeRegistry()) ==
+            address(_alignedLayerServiceManager.stakeRegistry()) ==
                 address(stakeRegistry),
-            "eigenDAServiceManager.stakeRegistry() != stakeRegistry"
+            "alignedLayerServiceManager.stakeRegistry() != stakeRegistry"
         );
         require(
-            address(_eigenDAServiceManager.avsDirectory()) ==
+            address(_alignedLayerServiceManager.avsDirectory()) ==
                 address(avsDirectory),
-            "eigenDAServiceManager.avsDirectory() != avsDirectory"
+            "alignedLayerServiceManager.avsDirectory() != avsDirectory"
         );
 
         require(
             address(_registryCoordinator.serviceManager()) ==
-                address(eigenDAServiceManager),
-            "registryCoordinator.eigenDAServiceManager() != eigenDAServiceManager"
+                address(alignedLayerServiceManager),
+            "registryCoordinator.alignedLayerServiceManager() != alignedLayerServiceManager"
         );
         require(
             address(_registryCoordinator.stakeRegistry()) ==
@@ -580,15 +580,15 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
 
     function __verifyImplementations() internal view {
         require(
-            eigenDAProxyAdmin.getProxyImplementation(
+            alignedLayerProxyAdmin.getProxyImplementation(
                 TransparentUpgradeableProxy(
-                    payable(address(eigenDAServiceManager))
+                    payable(address(alignedLayerServiceManager))
                 )
-            ) == address(eigenDAServiceManagerImplementation),
-            "eigenDAServiceManager: implementation set incorrectly"
+            ) == address(alignedLayerServiceManagerImplementation),
+            "alignedLayerServiceManager: implementation set incorrectly"
         );
         require(
-            eigenDAProxyAdmin.getProxyImplementation(
+            alignedLayerProxyAdmin.getProxyImplementation(
                 TransparentUpgradeableProxy(
                     payable(address(registryCoordinator))
                 )
@@ -596,19 +596,19 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             "registryCoordinator: implementation set incorrectly"
         );
         require(
-            eigenDAProxyAdmin.getProxyImplementation(
+            alignedLayerProxyAdmin.getProxyImplementation(
                 TransparentUpgradeableProxy(payable(address(apkRegistry)))
             ) == address(apkRegistryImplementation),
             "blsApkRegistry: implementation set incorrectly"
         );
         require(
-            eigenDAProxyAdmin.getProxyImplementation(
+            alignedLayerProxyAdmin.getProxyImplementation(
                 TransparentUpgradeableProxy(payable(address(indexRegistry)))
             ) == address(indexRegistryImplementation),
             "indexRegistry: implementation set incorrectly"
         );
         require(
-            eigenDAProxyAdmin.getProxyImplementation(
+            alignedLayerProxyAdmin.getProxyImplementation(
                 TransparentUpgradeableProxy(payable(address(stakeRegistry)))
             ) == address(stakeRegistryImplementation),
             "stakeRegistry: implementation set incorrectly"
@@ -628,19 +628,19 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         ) = _parseRegistryCoordinatorParams(config_data);
 
         require(
-            eigenDAServiceManager.owner() == eigenDAOwner,
-            "eigenDAServiceManager.owner() != eigenDAOwner"
+            alignedLayerServiceManager.owner() == alignedLayerOwner,
+            "alignedLayerServiceManager.owner() != alignedLayerOwner"
         );
-        // require(eigenDAServiceManager.pauserRegistry() == IPauserRegistry(pauser), "eigenDAServiceManager: pauser registry not set correctly");
+        // require(alignedLayerServiceManager.pauserRegistry() == IPauserRegistry(pauser), "alignedLayerServiceManager: pauser registry not set correctly");
         require(
-            eigenDAServiceManager.isAggregator(aggregator) == true,
-            "eigenDAServiceManager.aggregator() != aggregator"
+            alignedLayerServiceManager.isAggregator(aggregator) == true,
+            "alignedLayerServiceManager.aggregator() != aggregator"
         );
-        // require(eigenDAServiceManager.paused() == initalPausedStatus, "eigenDAServiceManager: init paused status set incorrectly");
+        // require(alignedLayerServiceManager.paused() == initalPausedStatus, "alignedLayerServiceManager: init paused status set incorrectly");
 
         require(
-            registryCoordinator.owner() == eigenDAOwner,
-            "registryCoordinator.owner() != eigenDAOwner"
+            registryCoordinator.owner() == alignedLayerOwner,
+            "registryCoordinator.owner() != alignedLayerOwner"
         );
         require(
             registryCoordinator.churnApprover() == churner,
@@ -714,8 +714,8 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         string memory deployed_addresses = "addresses";
         vm.serializeAddress(
             deployed_addresses,
-            "eigenDAProxyAdmin",
-            address(eigenDAProxyAdmin)
+            "alignedLayerProxyAdmin",
+            address(alignedLayerProxyAdmin)
         );
         vm.serializeAddress(
             deployed_addresses,
@@ -724,13 +724,13 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
         vm.serializeAddress(
             deployed_addresses,
-            "eigenDAServiceManager",
-            address(eigenDAServiceManager)
+            "alignedLayerServiceManager",
+            address(alignedLayerServiceManager)
         );
         vm.serializeAddress(
             deployed_addresses,
-            "eigenDAServiceManagerImplementation",
-            address(eigenDAServiceManagerImplementation)
+            "alignedLayerServiceManagerImplementation",
+            address(alignedLayerServiceManagerImplementation)
         );
         vm.serializeAddress(
             deployed_addresses,
@@ -800,14 +800,14 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             ".permissions.ejector"
         );
         string memory permissions = "permissions";
-        vm.serializeAddress(permissions, "eigenDAOwner", eigenDAOwner);
-        vm.serializeAddress(permissions, "eigenDAUpgrader", eigenDAUpgrader);
-        vm.serializeAddress(permissions, "eigenDAChurner", churner);
+        vm.serializeAddress(permissions, "alignedLayerOwner", alignedLayerOwner);
+        vm.serializeAddress(permissions, "alignedLayerUpgrader", alignedLayerUpgrader);
+        vm.serializeAddress(permissions, "alignedLayerChurner", churner);
         vm.serializeAddress(permissions, "alignedLayerAggregator", aggregator);
         vm.serializeAddress(permissions, "pauserRegistry", pauser);
         string memory permissions_output = vm.serializeAddress(
             permissions,
-            "eigenDAEjector",
+            "alignedLayerEjector",
             ejector
         );
 
