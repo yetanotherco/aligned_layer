@@ -379,6 +379,17 @@ contract EigenLayerDeployer is Script, Test {
         vm.serializeAddress(deployed_addresses, "baseStrategyImplementation", address(baseStrategyImplementation));
         vm.serializeAddress(deployed_addresses, "emptyContract", address(emptyContract));
 
+        string memory parameters = "parameters";
+        vm.serializeAddress(parameters, "executorMultisig", executorMultisig);
+
+        vm.serializeAddress(parameters, "operationsMultisig", operationsMultisig);
+
+        string memory chain_info = "chainInfo";
+        vm.serializeUint(chain_info, "deploymentBlock", block.number);
+        string memory chain_info_output = vm.serializeUint(chain_info, "chainId", chainId);
+
+        // AlignedLayerSpecific: This addresses weren't in the original deployer serialization of EigenLayerContracts. But we needed to use them
+        vm.serializeAddress(deployed_addresses, "beaconOracle", address(0));
 
         string memory deployed_addresses_output = vm.serializeString(
             deployed_addresses,
@@ -386,24 +397,15 @@ contract EigenLayerDeployer is Script, Test {
             deployed_strategies_output
         );
 
-        string memory parameters = "parameters";
-        vm.serializeAddress(parameters, "executorMultisig", executorMultisig);
 
-        string memory parameters_output = vm.serializeAddress(parameters, "operationsMultisig", operationsMultisig);
-
-        string memory chain_info = "chainInfo";
-        vm.serializeUint(chain_info, "deploymentBlock", block.number);
-        string memory chain_info_output = vm.serializeUint(chain_info, "chainId", chainId);
+        string memory parameters_output = vm.serializeAddress(parameters, "pauserMultisig", pauserMultisig);
+        vm.serializeUint(parent_object, "numStrategies", strategyConfigs.length);
 
         // serialize all the data
         vm.serializeString(parent_object, deployed_addresses, deployed_addresses_output);
         vm.serializeString(parent_object, chain_info, chain_info_output);
-        string memory finalJson = vm.serializeString(parent_object, parameters, parameters_output);
 
-        // AlignedLayerSpecific: This addresses weren't in the original deployer serialization of EigenLayerContracts. But we needed to use them
-        vm.serializeAddress(deployed_addresses, "beaconOracle", address(0));
-        vm.serializeAddress(parameters, "pauserMultisig", pauserMultisig);
-        vm.serializeUint(parent_object, "numStrategies", strategyConfigs.length);
+        string memory finalJson = vm.serializeString(parent_object, parameters, parameters_output);
 
         // TODO: should output to different file depending on configFile passed to run()
         //       so that we don't override mainnet output by deploying to goerli for eg.
