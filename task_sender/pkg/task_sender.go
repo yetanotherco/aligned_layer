@@ -2,34 +2,28 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/urfave/cli/v2"
 	"log"
 )
 
-func SendTask(c *cli.Context) error {
+type Task struct {
+	proof           []byte
+	publicInput     []byte
+	verificationKey []byte
+}
+
+func NewTask(proof []byte, publicInput []byte, verificationKey []byte) *Task {
+	return &Task{
+		proof:           proof,
+		publicInput:     publicInput,
+		verificationKey: verificationKey,
+	}
+}
+
+func SendTask(task *Task) error {
 	log.Println("Sending task...")
-
-	// TODO get system
-	proof, err := loadProofFile(c.String("proof"))
-	if err != nil {
-		return fmt.Errorf("error loading proof file: %v", err)
-	}
-	log.Println("Proof:", string(proof))
-
-	publicInput, err := loadPublicInputFile(c.String("public-input"))
-	if err != nil {
-		return fmt.Errorf("error loading public input file: %v", err)
-	}
-	log.Println("Public Input:", string(publicInput))
-
-	if len(c.String("verification-key")) > 0 {
-		verificationKey, err := loadVerificationKeyFile(c.String("verification-key"))
-		if err != nil {
-			return fmt.Errorf("error loading verification key file: %v", err)
-		}
-		log.Println("Verification Key:", string(verificationKey))
-	}
-
+	log.Println("Proof:", task.proof)
+	log.Println("Public input:", task.publicInput)
+	log.Println("Verification key:", task.verificationKey)
 	return nil
 }
 
@@ -60,15 +54,3 @@ func validateSystem(system string) error {
 	return nil
 }
 */
-
-func loadProofFile(proofPath string) ([]byte, error) {
-	return readFile(proofPath)
-}
-
-func loadPublicInputFile(publicInputPath string) ([]byte, error) {
-	return readFile(publicInputPath)
-}
-
-func loadVerificationKeyFile(verificationKeyPath string) ([]byte, error) {
-	return readFile(verificationKeyPath)
-}

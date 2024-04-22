@@ -19,19 +19,19 @@ var (
 		Name:     "proof",
 		Aliases:  []string{"p"},
 		Required: true,
-		Usage:    "path to the proof `FILE`",
+		Usage:    "path to the `PROOF FILE`",
 	}
 	publicInputFlag = &cli.PathFlag{
 		Name:     "public-input",
 		Aliases:  []string{"i"},
 		Required: true,
-		Usage:    "path to the public input `FILE`",
+		Usage:    "path to the `PUBLIC INPUT FILE`",
 	}
 	verificationKeyFlag = &cli.PathFlag{
 		Name:     "verification-key",
 		Aliases:  []string{"v"},
 		Required: false,
-		Usage:    "path to the verification key `FILE`",
+		Usage:    "path to the `VERIFICATION KEY FILE`",
 	}
 )
 
@@ -43,17 +43,45 @@ var flags = []cli.Flag{
 }
 
 func main() {
-	fmt.Println("Task sender")
 	app := &cli.App{
 		Name:        "Aligned Layer Task Sender",
 		Usage:       "Send a task to the verifier",
 		Description: "Service that sends proofs to verify by operator nodes.",
 		Flags:       flags,
-		Action:      pkg.SendTask,
+		Action:      sendTask,
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatalln("Task sender application failed.", "Message:", err)
 	}
+}
+
+func sendTask(c *cli.Context) error {
+	// TODO get system
+
+	proofFile, err := os.ReadFile(c.String(proofFlag.Name))
+	if err != nil {
+		return fmt.Errorf("error loading proofFile file: %v", err)
+	}
+
+	publicInputFile, err := os.ReadFile(c.String(publicInputFlag.Name))
+	if err != nil {
+		return fmt.Errorf("error loading public input file: %v", err)
+	}
+
+	var verificationKeyFile []byte
+	if len(c.String("verification-key")) > 0 {
+		verificationKeyFile, err = os.ReadFile(c.String(verificationKeyFlag.Name))
+		if err != nil {
+			return fmt.Errorf("error loading verification key file: %v", err)
+		}
+	}
+
+	err = pkg.SendTask(pkg.NewTask(proofFile, publicInputFile, verificationKeyFile))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
