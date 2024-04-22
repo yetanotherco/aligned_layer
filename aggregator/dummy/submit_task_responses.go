@@ -1,0 +1,60 @@
+package main
+
+import (
+	"aligned_layer/common/pkg/types"
+	"log"
+	"net/rpc"
+
+	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
+)
+
+// TODO: Remove this method in prod
+// Should be removed once we have a functioning operator
+
+func main() {
+	// Address to this variable will be sent to the RPC server
+	// Type of reply should be same as that specified on server
+
+	log.Println("Booting operator ...")
+
+	log.Println("Sending valid task response to aggregator, expecting response 0")
+	var reply uint8
+	args := types.SignedTaskResponse{
+		TaskResponse: "TaskResponse",
+		BlsSignature: *bls.NewZeroSignature(),
+		OperatorId:   eigentypes.Bytes32{},
+	}
+
+	// DialHTTP connects to an HTTP RPC server at the specified network
+	client, err := rpc.DialHTTP("tcp", "localhost"+":1234")
+	if err != nil {
+		log.Fatal("Client connection error: ", err)
+	}
+
+	// Sending the arguments and reply variable address to the server as well
+	err = client.Call("Aggregator.SubmitTaskResponse", args, &reply)
+	if err != nil {
+		log.Fatal("Client invocation error: ", err)
+	}
+
+	// Print the reply from the server
+	log.Printf("response: %d", reply)
+
+	log.Println("Sending invalid task response to aggregator, expecting response 1")
+	args = types.SignedTaskResponse{
+		TaskResponse: "",
+		BlsSignature: *bls.NewZeroSignature(),
+		OperatorId:   eigentypes.Bytes32{},
+	}
+
+	// Sending the arguments and reply variable address to the server as well
+	err = client.Call("Aggregator.SubmitTaskResponse", args, &reply)
+	if err != nil {
+		log.Fatal("Client invocation error: ", err)
+	}
+
+	// Print the reply from the server
+	log.Printf("response: %d", reply)
+
+}

@@ -26,3 +26,14 @@ anvil-start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
 
+aggregator-start:
+	@echo "Starting Aggregator..."
+	cd aggregator && go run cmd/aggregator.go
+
+aggregator-test:
+	@echo "Testing Aggregator..."
+	cd aggregator && go test ./...
+
+aggregator-send-dummy-responses:
+	@echo "Sending dummy responses to Aggregator..."
+	cd aggregator && go run dummy/submit_task_responses.go

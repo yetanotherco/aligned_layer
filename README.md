@@ -57,6 +57,21 @@ To redeploy all contracts, run:
 make anvil-deploy-all
 ```
 
+To start the aggregator, run:
+```bash
+make aggregator-start
+```
+
+To run aggregator tests, run:
+```bash
+make aggregator-test
+```
+
+To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
+```bash
+make aggregator-send-dummy-responses
+```
+
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
@@ -83,3 +98,9 @@ The addresses of the relevant contracts after running the anvil script is dumped
 The state is backuped on ```contracts/scripts/anvil/state```
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
+
+### Aggregator
+
+Current aggregator implementation is WIP. The RPC method `Aggregator.SubmitTaskResponse` expects a `SignedTaskResponse` as body and returns 0 if args.TaskResponse is not empty, and 1 otherwise.
+
+Check `common/types/signed_task_response.go` for specification on `SignedTaskResponse`.
