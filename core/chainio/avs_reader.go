@@ -17,7 +17,6 @@ type AvsReader struct {
 }
 
 func NewAvsReaderFromConfig(c *config.Config) (*AvsReader, error) {
-
 	avsContractBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.BlsOperatorStateRetrieverAddr, c.EthHttpClient, c.Logger)
 	if err != nil {
 		return nil, err
@@ -26,6 +25,8 @@ func NewAvsReaderFromConfig(c *config.Config) (*AvsReader, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// NOTE(marian): Still not sure if we need these, we should check and remove them if necessary.
 	// stakeRegistryAddr, err := avsContractBindings.ServiceManager.StakeRegistry(&bind.CallOpts{})
 	// if err != nil {
 	// 	return nil, err
@@ -34,6 +35,7 @@ func NewAvsReaderFromConfig(c *config.Config) (*AvsReader, error) {
 	// if err != nil {
 	// 	return nil, err
 	// }
+
 	ethClient, err := eth.NewClient(c.EthRpcUrl)
 	if err != nil {
 		return nil, err
@@ -44,15 +46,16 @@ func NewAvsReaderFromConfig(c *config.Config) (*AvsReader, error) {
 		return nil, err
 	}
 
+	// NOTE(marian): Same as the above commented code.
 	// avsRegistryContractClient, err := sdkclients.NewAvsRegistryContractsChainClient(blsRegistryCoordinatorAddr, c.BlsOperatorStateRetrieverAddr, stakeRegistryAddr, blsPubkeyRegistryAddr, ethClient, c.Logger)
 	// if err != nil {
 	// 	return nil, err
 	// }
-
 	// avsRegistryReader, err := sdkavsregistry.NewAvsRegistryReader(avsRegistryContractClient, c.Logger, ethClient)
 	// if err != nil {
 	// 	return nil, err
 	// }
+
 	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.BlsOperatorStateRetrieverAddr, c.EthHttpClient, c.Logger)
 	if err != nil {
 		return nil, err
