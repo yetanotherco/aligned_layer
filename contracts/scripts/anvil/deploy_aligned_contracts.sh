@@ -6,14 +6,14 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
 # Start an empty anvil chain in the background and dump its state to a json file upon exit
-anvil --dump-state state/eigenlayer-deployed-anvil-state.json &
+anvil --load-state state/eigenlayer-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
 
 cd ../../
 
 sleep 1
 
 # Deploy the contracts
-forge script script/deploy/EigenLayerDeployer.s.sol --rpc-url "http://localhost:8545" --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" --broadcast --sig "run(string memory configFile)" -- eigen.devnet.config.json
+forge script script/deploy/AlignedLayerDeployer.s.sol --rpc-url "http://localhost:8545" --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" --broadcast
 
 # Kill the anvil process to save state
 pkill anvil
