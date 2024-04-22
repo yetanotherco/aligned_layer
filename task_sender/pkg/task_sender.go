@@ -6,21 +6,24 @@ import (
 )
 
 type Task struct {
-	proof           []byte
-	publicInput     []byte
-	verificationKey []byte
+	verificationSystem string
+	proof              []byte
+	publicInput        []byte
+	verificationKey    []byte
 }
 
-func NewTask(proof []byte, publicInput []byte, verificationKey []byte) *Task {
+func NewTask(verificationSystem string, proof []byte, publicInput []byte, verificationKey []byte) *Task {
 	return &Task{
-		proof:           proof,
-		publicInput:     publicInput,
-		verificationKey: verificationKey,
+		verificationSystem: verificationSystem,
+		proof:              proof,
+		publicInput:        publicInput,
+		verificationKey:    verificationKey,
 	}
 }
 
 func SendTask(task *Task) error {
 	log.Println("Sending task...")
+	log.Println("Verification system:", task.verificationSystem)
 	log.Println("Proof:", task.proof)
 	log.Println("Public input:", task.publicInput)
 	log.Println("Verification key:", task.verificationKey)
@@ -28,7 +31,7 @@ func SendTask(task *Task) error {
 }
 
 // TODO Change to VerificationSystem instead of String
-func getVerificationSystem(system string) (string, error) {
+func GetVerificationSystem(system string) (string, error) {
 	switch system {
 	case "plonk":
 		return "plonk", nil
@@ -38,19 +41,3 @@ func getVerificationSystem(system string) (string, error) {
 		return "", fmt.Errorf("unsupported proof system: %s", system)
 	}
 }
-
-func validateVerificationSystem(system string) error {
-	// TODO
-	return nil
-}
-
-/*
-NOTE may be useful
-func validateSystem(system string) error {
-	validSystems := map[string]bool{"plonk": true, "groth16": true}
-	if !validSystems[system] {
-		return fmt.Errorf("error: '%s' is not a supported proof system. Supported systems are plonk and groth16", system)
-	}
-	return nil
-}
-*/

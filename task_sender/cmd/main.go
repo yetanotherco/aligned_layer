@@ -58,7 +58,10 @@ func main() {
 }
 
 func sendTask(c *cli.Context) error {
-	// TODO get system
+	verificationSystem, err := pkg.GetVerificationSystem(c.String(systemFlag.Name))
+	if err != nil {
+		return fmt.Errorf("error getting verification system: %v", err)
+	}
 
 	proofFile, err := os.ReadFile(c.String(proofFlag.Name))
 	if err != nil {
@@ -78,7 +81,7 @@ func sendTask(c *cli.Context) error {
 		}
 	}
 
-	err = pkg.SendTask(pkg.NewTask(proofFile, publicInputFile, verificationKeyFile))
+	err = pkg.SendTask(pkg.NewTask(verificationSystem, proofFile, publicInputFile, verificationKeyFile))
 	if err != nil {
 		return err
 	}
