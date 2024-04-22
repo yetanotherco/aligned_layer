@@ -1,16 +1,18 @@
 package chainio
 
 import (
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	gethcommon "github.com/ethereum/go-ethereum/common"
+	"fmt"
+	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+
+	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
-	"github.com/Layr-Labs/eigensdk-go/chainio/txmgr"
-	logging "github.com/Layr-Labs/eigensdk-go/logging"
+	"github.com/Layr-Labs/eigensdk-go/logging"
+	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
-
-	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
 type AvsWriter struct {
@@ -21,48 +23,65 @@ type AvsWriter struct {
 	client              eth.Client
 }
 
-func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
-	return NewAvsWriter(c.Signer, c.AlignedLayerServiceManagerAddr, c.BlsOperatorStateRetrieverAddr, c.EthHttpClient, c.Logger)
-}
+// NOTE(marian): The initialization of the AVS writer is hardcoded, but should be loaded from a
+// configuration file.
+// The hardcoded values are:
+//   - logger
+//   - EthHttpUrl
+//   - EthWsUrl
+//   - RegistryCoordinatorAddr
+//   - OperatorStateRetrieverAddr
+//   - alignedLayerServiceManagerAddr
+//   - ecdsaPrivateKey
+//   - chainId
 
-func NewAvsWriter(signer signer.Signer, txMgr txmgr.TxManager, serviceManagerAddr, blsOperatorStateRetrieverAddr gethcommon.Address, ethHttpClient eth.Client, logger logging.Logger) (*AvsWriter, error) {
-	avsServiceBindings, err := NewAvsServiceBindings(serviceManagerAddr, blsOperatorStateRetrieverAddr, ethHttpClient, logger)
+// The following function signature was the one in the aligned_layer_testnet repo:
+// func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
+func NewAvsWriterFromConfig() (*AvsWriter, error) {
+	logger, err := sdklogging.NewZapLogger("development")
 	if err != nil {
-		logger.Error("Failed to create contract bindings", "err", err)
+		fmt.Println("Could not initialize logger")
+	}
+	buildAllConfig := clients.BuildAllConfig{
+		EthHttpUrl:                 "http://localhost:8545",
+		EthWsUrl:                   "ws://localhost:8545",
+		RegistryCoordinatorAddr:    "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+		OperatorStateRetrieverAddr: "0x9d4454B023096f34B160D6B654540c56A1F81688",
+		AvsName:                    "AlignedLayer",
+		PromMetricsIpPortAddress:   ":9090",
+	}
+	ecdsaPrivateKeyString := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+	ecdsaPrivateKey, err := crypto.HexToECDSA(ecdsaPrivateKeyString)
+	if err != nil {
+		logger.Errorf("Cannot parse ecdsa private key", "err", err)
+	}
+
+	clients, err := clients.BuildAll(buildAllConfig, ecdsaPrivateKey, logger)
+	alignedLayerServiceManagerAddr := common.HexToAddress("0xc5a5C42992dECbae36851359345FE25997F5C42d")
+
+	ethHttpClient, err := eth.NewClient(buildAllConfig.EthHttpUrl)
+	if err != nil {
+		panic(err)
+	}
+
+	operatorStateRetrieverAddr := common.HexToAddress(buildAllConfig.OperatorStateRetrieverAddr)
+	avsServiceBindings, err := NewAvsServiceBindings(alignedLayerServiceManagerAddr, operatorStateRetrieverAddr, ethHttpClient, logger)
+
+	chainId := big.NewInt(31337)
+
+	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaPrivateKey, chainId)
+	if err != nil {
+		logger.Error("Cannot create signer", "err", err)
 		return nil, err
 	}
 
-	blsRegistryCoordinatorAddr, err := avsServiceBindings.ServiceManager.RegistryCoordinator(&bind.CallOpts{})
-	if err != nil {
-		return nil, err
-	}
-	// stakeRegistryAddr, err := avsServiceBindings.ServiceManager.StakeRegistry(&bind.CallOpts{})
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	avsRegistryWriter, err := avsregistry.BuildAvsRegistryChainWriter(blsRegistryCoordinatorAddr, blsOperatorStateRetrieverAddr, logger, ethHttpClient)
-
-	// blsPubkeyRegistryAddr, err := avsServiceBindings.ServiceManager.BlsPubkeyRegistry(&bind.CallOpts{})
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// avsRegistryContractClient, err := sdkclients.NewAvsRegistryContractsChainClient(
-	// 	blsRegistryCoordinatorAddr, blsOperatorStateRetrieverAddr, stakeRegistryAddr, blsPubkeyRegistryAddr, ethHttpClient, logger,
-	// )
-	// if err != nil {
-	// 	return nil, err
-	// }
-	avsRegistryWriter, err := avsregistry.NewAvsRegistryWriter(avsRegistryContractClient, logger, signer, ethHttpClient)
-	if err != nil {
-		return nil, err
-	}
+	avsRegistryWriter := clients.AvsRegistryChainWriter
 
 	return &AvsWriter{
 		AvsRegistryWriter:   avsRegistryWriter,
 		AvsContractBindings: avsServiceBindings,
 		logger:              logger,
-		Signer:              signer,
+		Signer:              privateKeySigner,
 		client:              ethHttpClient,
 	}, nil
 }
