@@ -13,25 +13,25 @@ var (
 		Name:     "system",
 		Aliases:  []string{"s"},
 		Required: true,
-		Usage:    "the proof system to use (e.g., plonk, groth16)",
+		Usage:    "the proof `SYSTEM` to use (e.g., plonk, groth16)",
 	}
 	proofFlag = &cli.PathFlag{
 		Name:     "proof",
 		Aliases:  []string{"p"},
 		Required: true,
-		Usage:    "path to the proof file",
+		Usage:    "path to the proof `FILE`",
 	}
 	publicInputFlag = &cli.PathFlag{
 		Name:     "public-input",
 		Aliases:  []string{"i"},
 		Required: true,
-		Usage:    "path to the public input file",
+		Usage:    "path to the public input `FILE`",
 	}
 	verificationKeyFlag = &cli.PathFlag{
 		Name:     "verification-key",
 		Aliases:  []string{"v"},
 		Required: false,
-		Usage:    "path to the verification key file",
+		Usage:    "path to the verification key `FILE`",
 	}
 )
 
