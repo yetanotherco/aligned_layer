@@ -9,6 +9,7 @@ import (
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 )
 
+// NOTE(marian): Leaving this commented code here as it may be useful in the short term.
 // type AvsSubscriberer interface {
 // 	SubscribeToNewTasks(newTaskCreatedChan chan *cstaskmanager.ContractAlignedLayerTaskManagerNewTaskCreated) event.Subscription
 // 	SubscribeToTaskResponses(taskResponseLogs chan *cstaskmanager.ContractAlignedLayerTaskManagerTaskResponded) event.Subscription
@@ -24,6 +25,15 @@ type AvsSubscriber struct {
 	logger              sdklogging.Logger
 }
 
+// NOTE(marian): The initialization of the AVS subscriber is hardcoded, but should be loaded from a
+// configuration file.
+// The hardcoded values are:
+//   - logger
+//   - EthWsUrl
+//   - OperatorStateRetrieverAddr
+//   - alignedLayerServiceManagerAddr
+
+// The following function signature was the one in the aligned_layer_testnet repo:
 // func NewAvsSubscriberFromConfig(config *config.Config) (*AvsSubscriber, error) {
 func NewAvsSubscriberFromConfig() (*AvsSubscriber, error) {
 	logger, err := sdklogging.NewZapLogger("development")
@@ -50,6 +60,7 @@ func NewAvsSubscriberFromConfig() (*AvsSubscriber, error) {
 	}, nil
 }
 
+// NOTE(marian): Leaving this commented code here as it may be useful in the short term.
 // func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *cstaskmanager.ContractAlignedLayerTaskManagerNewTaskCreated) event.Subscription {
 // 	sub, err := s.AvsContractBindings.TaskManager.WatchNewTaskCreated(
 // 		&bind.WatchOpts{}, newTaskCreatedChan, nil,

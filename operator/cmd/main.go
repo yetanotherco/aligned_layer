@@ -21,8 +21,14 @@ func main() {
 		panic(err)
 	}
 
+	AvsSubscriber, err := chainio.NewAvsSubscriberFromConfig()
+	if err != nil {
+		panic(err)
+	}
+
 	readerMeaning, _ := avsReader.AvsServiceBindings.ServiceManager.GetMeaning(&bind.CallOpts{})
 	writerMeaning, _ := avsWriter.AvsContractBindings.ServiceManager.GetMeaning(&bind.CallOpts{})
+	subscriberMeaning, _ := AvsSubscriber.AvsContractBindings.ServiceManager.GetMeaning(&bind.CallOpts{})
 
 	if err != nil {
 		fmt.Println(err)
@@ -31,4 +37,5 @@ func main() {
 
 	fmt.Println("THE MEANING (READER) IS: ", readerMeaning)
 	fmt.Println("THE MEANING (WRITER) IS: ", writerMeaning)
+	fmt.Println("THE MEANING (SUBSCRIBER) IS: ", subscriberMeaning)
 }
