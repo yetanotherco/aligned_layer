@@ -4,6 +4,8 @@ import (
 	"aligned_layer/aggregator/internal/rpc_server/aggregator"
 	"aligned_layer/common/pkg/config"
 	"aligned_layer/common/pkg/types"
+	"log"
+	"os"
 	"testing"
 )
 
@@ -14,14 +16,19 @@ import (
 // Expected output: nil, 0
 
 func TestSubmitTaskResponse(testing *testing.T) {
-	config := config.New()
-	server := aggregator.New(*config)
+	err := os.Setenv("AGGREGATOR_ADDRESS", "localhost:1234")
+	if err != nil {
+		log.Fatal("Error setting AGGREGATOR_ADDRESS")
+	}
+
+	aggregatorConfig := config.New()
+	server := aggregator.New(*aggregatorConfig)
 	taskResponse := &types.SignedTaskResponse{
 		TaskResponse: "TaskResponse",
 	}
 
 	var reply uint8
-	err := server.SubmitTaskResponse(taskResponse, &reply)
+	err = server.SubmitTaskResponse(taskResponse, &reply)
 	if err != nil {
 		testing.Errorf("Expected nil, got %v", err)
 	}

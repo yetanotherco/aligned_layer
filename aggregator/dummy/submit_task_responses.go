@@ -2,21 +2,26 @@ package main
 
 import (
 	"aligned_layer/common/pkg/types"
+	"github.com/joho/godotenv"
 	"log"
 	"net/rpc"
+	"os"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 )
 
-// TODO: Remove this method in prod
-// Should be removed once we have a functioning operator
+// TODO: Remove this once we have a functioning operator
 
 func main() {
 	// Address to this variable will be sent to the RPC server
 	// Type of reply should be same as that specified on server
+	log.Println("Booting dummy operator ...")
 
-	log.Println("Booting operator ...")
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	log.Println("Sending valid task response to aggregator, expecting response 0")
 	var reply uint8
@@ -26,8 +31,14 @@ func main() {
 		OperatorId:   eigentypes.Bytes32{},
 	}
 
+	aggregatorAddress := os.Getenv("AGGREGATOR_ADDRESS")
+	if aggregatorAddress == "" {
+		log.Println("AGGREGATOR_ADDRESS environment variable not set, using default")
+		aggregatorAddress = "localhost:1234"
+	}
+
 	// DialHTTP connects to an HTTP RPC server at the specified network
-	client, err := rpc.DialHTTP("tcp", "localhost"+":1234")
+	client, err := rpc.DialHTTP("tcp", aggregatorAddress)
 	if err != nil {
 		log.Fatal("Client connection error: ", err)
 	}

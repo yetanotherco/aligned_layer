@@ -57,6 +57,12 @@ To redeploy all contracts, run:
 make anvil-deploy-all
 ```
 
+### Aggregator specific commands
+First you need to create a `.env` file inside the `aggregator` folder.
+A template is provided on file `aggregator/.env.example`
+
+Make sure to set AGGREGATOR_ADDRESS to correct value (e.g: `localhost:3000`)
+
 To start the aggregator, run:
 ```bash
 make aggregator-start
@@ -71,6 +77,7 @@ To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
 ```bash
 make aggregator-send-dummy-responses
 ```
+Make sure to have aggregator running on another terminal.
 
 ## Notes on project creation / devnet deployment
 

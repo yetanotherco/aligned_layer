@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
+	"os"
 )
 
 // Config is a struct that holds the configuration for the application
@@ -18,8 +19,13 @@ func New() *Config {
 		panic(err)
 	}
 
+	aggregatorAddress := os.Getenv("AGGREGATOR_ADDRESS")
+	if aggregatorAddress == "" {
+		logger.Fatal("AGGREGATOR_ADDRESS environment variable not set")
+	}
+
 	return &Config{
 		Logger:            logger,
-		AggregatorAddress: "localhost:1234", // TODO: Read from env or config file
+		AggregatorAddress: aggregatorAddress, // TODO: Read from env or config file
 	}
 }
