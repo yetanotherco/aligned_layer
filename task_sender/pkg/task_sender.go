@@ -1,18 +1,19 @@
 package pkg
 
 import (
+	"aligned_layer/common"
 	"fmt"
 	"log"
 )
 
 type Task struct {
-	verificationSystem string
+	verificationSystem common.SystemVerificationId
 	proof              []byte
 	publicInput        []byte
 	verificationKey    []byte
 }
 
-func NewTask(verificationSystem string, proof []byte, publicInput []byte, verificationKey []byte) *Task {
+func NewTask(verificationSystem common.SystemVerificationId, proof []byte, publicInput []byte, verificationKey []byte) *Task {
 	return &Task{
 		verificationSystem: verificationSystem,
 		proof:              proof,
@@ -30,14 +31,19 @@ func SendTask(task *Task) error {
 	return nil
 }
 
-// TODO Change to VerificationSystem instead of String
-func GetVerificationSystem(system string) (string, error) {
+// TODO Set corrects verification systems
+func GetVerificationSystem(system string) (common.SystemVerificationId, error) {
+	var unknownValue common.SystemVerificationId
 	switch system {
+	case "cairo":
+		return common.LambdaworksCairo, nil
 	case "plonk":
-		return "plonk", nil
-	case "groth16":
-		return "groth16", nil
+		return common.GnarkPlonkBls12_381, nil
+	case "kimchi":
+		return common.Kimchi, nil
+	case "sp1":
+		return common.Sp1BabyBearBlake3, nil
 	default:
-		return "", fmt.Errorf("unsupported proof system: %s", system)
+		return unknownValue, fmt.Errorf("unsupported proof system: %s", system)
 	}
 }
