@@ -11,7 +11,6 @@ deps: ## Install deps
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
-
 anvil-deploy-eigen-contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
@@ -26,3 +25,5 @@ anvil-start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
 
+bindings: 
+	cd contracts && ./generate-go-bindings.sh
