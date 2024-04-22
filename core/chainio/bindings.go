@@ -18,25 +18,13 @@ type AvsServiceBindings struct {
 func NewAvsServiceBindings(serviceManagerAddr, blsOperatorStateRetrieverAddr gethcommon.Address, ethclient eth.Client, logger logging.Logger) (*AvsServiceBindings, error) {
 	contractServiceManager, err := csservicemanager.NewContractAlignedLayerServiceManager(serviceManagerAddr, ethclient)
 	if err != nil {
-		logger.Error("Failed to fetch IServiceManager contract", "err", err)
+		logger.Error("Failed to fetch AlignedLayerServiceManager contract", "err", err)
 		return nil, err
 	}
 
-	// taskManagerAddr, err := contractServiceManager.AlignedLayerTaskManager(&bind.CallOpts{})
-	// if err != nil {
-	// 	logger.Error("Failed to fetch TaskManager address", "err", err)
-	// 	return nil, err
-	// }
-	// contractTaskManager, err := cstaskmanager.NewContractAlignedLayerTaskManager(taskManagerAddr, ethclient)
-	// if err != nil {
-	// 	logger.Error("Failed to fetch IAlignedLayerTaskManager contract", "err", err)
-	// 	return nil, err
-	// }
-
 	return &AvsServiceBindings{
 		ServiceManager: contractServiceManager,
-		// TaskManager:    contractTaskManager,
-		ethClient: ethclient,
-		logger:    logger,
+		ethClient:      ethclient,
+		logger:         logger,
 	}, nil
 }
