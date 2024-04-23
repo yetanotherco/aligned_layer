@@ -40,6 +40,7 @@ The above command starts a local anvil chain from a [saved state](./tests/integr
 
 ## Dev notes
 
+### Development workflow
 When changing EigenLayer contracts, the anvil state needs to be updated with:
 
 ```bash
@@ -55,6 +56,11 @@ make anvil-deploy-aligned-contracts
 To redeploy all contracts, run:
 ```bash
 make anvil-deploy-all
+```
+
+Also make sure to re-generate the Go smart contract bindings:
+```bash
+make bindings
 ```
 
 ## Notes on project creation / devnet deployment

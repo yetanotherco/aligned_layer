@@ -82,7 +82,10 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         // parse the addresses of permissioned roles
-        alignedLayerOwner = stdJson.readAddress(config_data, ".permissions.owner");
+        alignedLayerOwner = stdJson.readAddress(
+            config_data,
+            ".permissions.owner"
+        );
         alignedLayerUpgrader = stdJson.readAddress(
             config_data,
             ".permissions.upgrader"
@@ -311,7 +314,10 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         // parse the addresses of permissioned roles
-        alignedLayerOwner = stdJson.readAddress(config_data, ".permissions.owner");
+        alignedLayerOwner = stdJson.readAddress(
+            config_data,
+            ".permissions.owner"
+        );
         alignedLayerUpgrader = stdJson.readAddress(
             config_data,
             ".permissions.upgrader"
@@ -800,8 +806,16 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             ".permissions.ejector"
         );
         string memory permissions = "permissions";
-        vm.serializeAddress(permissions, "alignedLayerOwner", alignedLayerOwner);
-        vm.serializeAddress(permissions, "alignedLayerUpgrader", alignedLayerUpgrader);
+        vm.serializeAddress(
+            permissions,
+            "alignedLayerOwner",
+            alignedLayerOwner
+        );
+        vm.serializeAddress(
+            permissions,
+            "alignedLayerUpgrader",
+            alignedLayerUpgrader
+        );
         vm.serializeAddress(permissions, "alignedLayerChurner", churner);
         vm.serializeAddress(permissions, "alignedLayerAggregator", aggregator);
         vm.serializeAddress(permissions, "pauserRegistry", pauser);
