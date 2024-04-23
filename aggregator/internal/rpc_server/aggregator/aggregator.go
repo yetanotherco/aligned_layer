@@ -1,8 +1,8 @@
 package aggregator
 
 import (
-	"aligned_layer/common/pkg/config"
-	"aligned_layer/common/pkg/types"
+	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/types"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
 )
@@ -41,7 +41,7 @@ func (a *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse, 
 
 // Dummy method to check if the server is running
 // TODO: Remove this method in prod
-func (a *Aggregator) ServerRunning(args *struct{}, reply *int64) error {
+func (a *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	*reply = 1
 	return nil
 }

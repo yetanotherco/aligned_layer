@@ -1,8 +1,7 @@
 package main
 
 import (
-	"aligned_layer/common/pkg/types"
-	"github.com/joho/godotenv"
+	"github.com/yetanotherco/aligned_layer/core/types"
 	"log"
 	"net/rpc"
 	"os"
@@ -18,11 +17,6 @@ func main() {
 	// Type of reply should be same as that specified on server
 	log.Println("Booting dummy operator ...")
 
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	log.Println("Sending valid task response to aggregator, expecting response 0")
 	var reply uint8
 	args := types.SignedTaskResponse{
@@ -34,7 +28,7 @@ func main() {
 	aggregatorAddress := os.Getenv("AGGREGATOR_ADDRESS")
 	if aggregatorAddress == "" {
 		log.Println("AGGREGATOR_ADDRESS environment variable not set, using default")
-		aggregatorAddress = "localhost:1234"
+		aggregatorAddress = "localhost:8090"
 	}
 
 	// DialHTTP connects to an HTTP RPC server at the specified network

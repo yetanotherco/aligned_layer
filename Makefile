@@ -11,7 +11,6 @@ deps: ## Install deps
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
-
 anvil-deploy-eigen-contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
@@ -26,14 +25,26 @@ anvil-start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
 
+# TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	cd aggregator && go run cmd/aggregator.go
-
-aggregator-test:
-	@echo "Testing Aggregator..."
-	cd aggregator && go test ./...
+	go run aggregator/cmd/aggregator.go --config aggregator/config/config.yaml \
+		--aligned-layer-deployment contracts/script/output/devnet/alignedlayer_deployment_output.json \
+		--ecdsa-private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 aggregator-send-dummy-responses:
 	@echo "Sending dummy responses to Aggregator..."
 	cd aggregator && go run dummy/submit_task_responses.go
+
+bindings:
+	cd contracts && ./generate-go-bindings.sh
+
+test:
+	go test ./...
+
+__TASK_SENDERS__:
+send-plonk-proof: ## Send a PLONK proof using the task sender
+	go run task_sender/cmd/main.go \
+		--system plonk \
+		--proof task_sender/test-examples/proof.base64 \
+		--public-input task_sender/test-examples/public_inputs.base64

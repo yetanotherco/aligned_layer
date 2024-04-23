@@ -1,27 +1,19 @@
 package rpc_server
 
 import (
-	"aligned_layer/aggregator/internal/rpc_server/aggregator"
-	"aligned_layer/common/pkg/config"
-	"github.com/joho/godotenv"
-	"log"
+	"github.com/yetanotherco/aligned_layer/aggregator/internal/rpc_server/aggregator"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"net/http"
 	"net/rpc"
 )
 
 // Serve starts the rpc server
-func Serve() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	aggregatorConfig := config.New()
+func Serve(aggregatorConfig *config.Config) error {
 	server := aggregator.New(*aggregatorConfig)
 	// Registers a new RPC server
-	err = rpc.Register(server)
+	err := rpc.Register(server)
 	if err != nil {
-		aggregatorConfig.Logger.Fatal("Error registering aggregator server ", "err", err)
+		return err
 	}
 
 	// Registers an HTTP handler for RPC messages
@@ -31,9 +23,11 @@ func Serve() {
 	// Serve accepts incoming HTTP connections on the listener, creating
 	// a new service goroutine for each. The service goroutines read requests
 	// and then call handler to reply to them
-	aggregatorConfig.Logger.Info("Starting RPC server on address", "address", aggregatorConfig.AggregatorAddress)
-	err = http.ListenAndServe(aggregatorConfig.AggregatorAddress, nil)
+	aggregatorConfig.Logger.Info("Starting RPC server on address", "address", aggregatorConfig.AggregatorServerIpPortAddr)
+	err = http.ListenAndServe(aggregatorConfig.AggregatorServerIpPortAddr, nil)
 	if err != nil {
-		aggregatorConfig.Logger.Fatal("Error on ListenAndServe", "err", err)
+		return err
 	}
+
+	return nil
 }
