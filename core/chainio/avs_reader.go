@@ -16,8 +16,8 @@ import (
 
 type AvsReader struct {
 	sdkavsregistry.AvsRegistryReader
-	AvsServiceBindings *AvsServiceBindings
-	logger             logging.Logger
+	AvsContractBindings *AvsServiceBindings
+	logger              logging.Logger
 }
 
 // NOTE(marian): The initialization of the AVS reader is hardcoded, but should be loaded from a
@@ -72,8 +72,8 @@ func NewAvsReaderFromConfig() (*AvsReader, error) {
 	}
 
 	return &AvsReader{
-		AvsRegistryReader:  avsRegistryReader,
-		AvsServiceBindings: avsServiceBindings,
-		logger:             logger,
+		AvsRegistryReader:   avsRegistryReader,
+		AvsContractBindings: avsServiceBindings,
+		logger:              logger,
 	}, nil
 }
