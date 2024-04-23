@@ -27,3 +27,6 @@ anvil-start:
 
 bindings: 
 	cd contracts && ./generate-go-bindings.sh
+
+test:
+	go test ./...

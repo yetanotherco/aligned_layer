@@ -40,6 +40,7 @@ The above command starts a local anvil chain from a [saved state](./tests/integr
 
 ## Dev notes
 
+### Development workflow
 When changing EigenLayer contracts, the anvil state needs to be updated with:
 
 ```bash
