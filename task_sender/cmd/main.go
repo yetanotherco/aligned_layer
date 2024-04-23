@@ -1,9 +1,9 @@
 package main
 
 import (
-	"aligned_layer/task_sender/pkg"
 	"fmt"
 	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 	"log"
 	"os"
 )

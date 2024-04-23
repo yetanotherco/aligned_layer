@@ -1,8 +1,8 @@
 package pkg
 
 import (
-	"aligned_layer/common"
 	"fmt"
+	"github.com/yetanotherco/aligned_layer/common"
 	"log"
 )
 
