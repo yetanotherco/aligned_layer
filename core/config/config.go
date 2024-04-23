@@ -50,6 +50,7 @@ type Config struct {
 // These are read from ConfigFileFlag
 type ConfigRaw struct {
 	Environment                sdklogging.LogLevel `yaml:"environment"`
+	EigenMetricsIpPortAddress  string              `yaml:"eigen_metrics_ip_port_address"`
 	EthRpcUrl                  string              `yaml:"eth_rpc_url"`
 	EthWsUrl                   string              `yaml:"eth_ws_url"`
 	AggregatorServerIpPortAddr string              `yaml:"aggregator_server_ip_port_address"`
@@ -169,7 +170,7 @@ func NewConfig(ctx *cli.Context) (*Config, error) {
 		EcdsaPrivateKey: ecdsaPrivateKey,
 		//BlsPrivateKey: 						blsPrivateKey
 		Logger:                                 logger,
-		EigenMetricsIpPortAddress:              configRaw.AggregatorServerIpPortAddr,
+		EigenMetricsIpPortAddress:              configRaw.EigenMetricsIpPortAddress,
 		EthRpcUrl:                              configRaw.EthRpcUrl,
 		EthWsUrl:                               configRaw.EthWsUrl,
 		EthHttpClient:                          ethRpcClient,
