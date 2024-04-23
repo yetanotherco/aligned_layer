@@ -1,6 +1,7 @@
 package chainio_test
 
 import (
+	"github.com/yetanotherco/aligned_layer/core/chainio/mocks"
 	"math/big"
 	"reflect"
 	"testing"
@@ -14,7 +15,10 @@ import (
 // loaded state for running the tests.
 
 func TestAvsReader(t *testing.T) {
-	avsReader, err := chainio.NewAvsReaderFromConfig()
+
+	mockConfig := mocks.NewMockConfig()
+
+	avsReader, err := chainio.NewAvsReaderFromConfig(mockConfig)
 	if err != nil {
 		t.Errorf("could not create AVS reader")
 	}
@@ -30,7 +34,9 @@ func TestAvsReader(t *testing.T) {
 }
 
 func TestAvsWriter(t *testing.T) {
-	avsWriter, err := chainio.NewAvsWriterFromConfig()
+	mockConfig := mocks.NewMockConfig()
+
+	avsWriter, err := chainio.NewAvsWriterFromConfig(mockConfig)
 	if err != nil {
 		t.Errorf("could not create AVS reader")
 	}
@@ -46,7 +52,8 @@ func TestAvsWriter(t *testing.T) {
 }
 
 func TestAvsSubscriber(t *testing.T) {
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig()
+	mockConfig := mocks.NewMockConfig()
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(mockConfig)
 	if err != nil {
 		t.Errorf("could not create AVS reader")
 	}
