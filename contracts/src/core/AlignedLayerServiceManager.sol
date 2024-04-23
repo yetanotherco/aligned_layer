@@ -49,4 +49,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function isAggregator(address _aggregator) public view returns (bool) {
         return aggregator == _aggregator;
     }
+
+    // NOTE(marian): Dummy function for testing contract integration
+    function getMeaning() external view returns (uint) {
+        return 42;
+    }
 }
