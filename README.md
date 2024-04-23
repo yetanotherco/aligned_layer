@@ -47,7 +47,7 @@ When changing EigenLayer contracts, the anvil state needs to be updated with:
 make anvil-deploy-eigen-contracts
 ```
 
-When changing AlignedLayer contracts the anvil state needs to be updated with:
+When changing AlignedLayer contracts, the anvil state needs to be updated with:
 
 ```bash
 make anvil-deploy-aligned-contracts
