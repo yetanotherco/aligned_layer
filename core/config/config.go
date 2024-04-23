@@ -71,20 +71,10 @@ type AlignedLayerContractsRaw struct {
 	AlignedLayerOperatorStateRetrieverAddr string `json:"operatorStateRetriever"`
 }
 
-// BlsOperatorStateRetriever and BlsPublicKeyCompendium are deployed separately, since they are
-// shared avs contracts (not part of eigenlayer core contracts).
-// the blspubkeycompendium we can get from serviceManager->registryCoordinator->blsregistry->blspubkeycompendium
-// so we don't need it here. The blsOperatorStateRetriever however is an independent contract not pointing to
-// or pointed to from any other contract, so we need its address
-//type SharedAvsContractsRaw struct {
-//	BlsOperatorStateRetrieverAddr string `json:"blsOperatorStateRetriever"`
-//}
-
 // NewConfig parses config file to read from flags or environment variables
 // Note: This config is shared by challenger and aggregator, so we put in the core.
 // Operator has a different config and is meant to be used by the operator CLI.
 func NewConfig(ctx *cli.Context) (*Config, error) {
-
 	var configRaw ConfigRaw
 
 	configFilePath := ctx.GlobalString(ConfigFileFlag.Name)
@@ -111,20 +101,6 @@ func NewConfig(ctx *cli.Context) (*Config, error) {
 		logger.Errorf("Cannot read aligned layer deployment file", "err", err)
 		return nil, err
 	}
-
-	// Commented out because we don't need this for now, we are getting the OperatorStateRetrieverAddr
-	// from the alignedLayerDeploymentRaw
-
-	//var sharedAvsContractsDeploymentRaw SharedAvsContractsRaw
-	//sharedAvsContractsDeploymentFilePath := ctx.GlobalString(SharedAvsContractsDeploymentFileFlag.Name)
-	//if _, err := os.Stat(sharedAvsContractsDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
-	//	panic("Path " + sharedAvsContractsDeploymentFilePath + " does not exist")
-	//}
-	//err = sdkutils.ReadJsonConfig(sharedAvsContractsDeploymentFilePath, &sharedAvsContractsDeploymentRaw)
-	//if err != nil {
-	//	logger.Errorf("Cannot read shared avs contracts deployment file", "err", err)
-	//	return nil, err
-	//}
 
 	ethRpcClient, err := eth.NewClient(configRaw.EthRpcUrl)
 	if err != nil {
@@ -218,11 +194,6 @@ var (
 		Required: true,
 		Usage:    "Load credible squaring contract addresses from `FILE`",
 	}
-	//SharedAvsContractsDeploymentFileFlag = cli.StringFlag{
-	//	Name:     "shared-avs-contracts-deployment",
-	//	Required: true,
-	//	Usage:    "Load shared avs contract addresses from `FILE`",
-	//}
 	EcdsaPrivateKeyFlag = cli.StringFlag{
 		Name:     "ecdsa-private-key",
 		Usage:    "Ethereum private key",
@@ -235,7 +206,6 @@ var (
 var requiredFlags = []cli.Flag{
 	ConfigFileFlag,
 	AlignedLayerDeploymentFileFlag,
-	//SharedAvsContractsDeploymentFileFlag,
 	EcdsaPrivateKeyFlag,
 }
 
