@@ -1,8 +1,11 @@
 package chainio
 
 import (
+	"context"
 	"fmt"
+	common2 "github.com/yetanotherco/aligned_layer/common"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -13,6 +16,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 )
 
 type AvsWriter struct {
@@ -20,7 +24,7 @@ type AvsWriter struct {
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 	Signer              signer.Signer
-	client              eth.Client
+	Client              eth.Client
 }
 
 // NOTE(marian): The initialization of the AVS writer is hardcoded, but should be loaded from a
@@ -82,26 +86,58 @@ func NewAvsWriterFromConfig() (*AvsWriter, error) {
 		AvsContractBindings: avsServiceBindings,
 		logger:              logger,
 		Signer:              privateKeySigner,
-		client:              ethHttpClient,
+		Client:              ethHttpClient,
 	}, nil
 }
 
+func (w *AvsWriter) SendTask(context context.Context, verificationSystemId common2.SystemVerificationId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint32, error) {
+	txOpts := w.Signer.GetTxOpts()
+	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
+		txOpts,
+		uint16(verificationSystemId),
+		proof,
+		publicInput,
+	)
+	if err != nil {
+		w.logger.Error("Error assembling CreateNewTask tx", "err", err)
+		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+	}
+	// TODO wait for transaction receipt. ethClient does not have this method
+	// EigenSDK has a method called WaitForTransactionReceipt in InstrumentedEthClient
+	// But is needs telemetry to work
+	// https://github.com/Layr-Labs/eigensdk-go/blob/master/chainio/clients/eth/instrumented_client.go
+	//receipt := avsWriter.Client.WaitForTransactionReceipt(context.Background(), tx.Hash())
+	time.Sleep(2 * time.Second)
+
+	receipt, err := w.Client.TransactionReceipt(context, tx.Hash())
+	if err != nil {
+		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+	}
+	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
+	if err != nil {
+		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+
+	}
+	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
+}
+
 // returns the tx receipt, as well as the task index (which it gets from parsing the tx receipt logs)
-// func (w *AvsWriter) SendNewTaskVerifyProof(ctx context.Context, proof []byte, pubInput []byte, verifierId common.VerifierId, quorumThresholdPercentage uint32, quorumNumbers []byte) (cstaskmanager.IAlignedLayerTaskManagerTask, uint32, error) {
-// 	txOpts := w.Signer.GetTxOpts()
-// 	tx, err := w.AvsContractBindings.TaskManager.CreateNewTask(txOpts, proof, pubInput, uint16(verifierId), quorumThresholdPercentage, quorumNumbers)
-// 	if err != nil {
-// 		w.logger.Errorf("Error assembling CreateNewTask tx")
-// 		return cstaskmanager.IAlignedLayerTaskManagerTask{}, 0, err
-// 	}
-// 	receipt := w.client.WaitForTransactionReceipt(ctx, tx.Hash())
-// 	newTaskCreatedEvent, err := w.AvsContractBindings.TaskManager.ContractAlignedLayerTaskManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
-// 	if err != nil {
-// 		w.logger.Error("Aggregator failed to parse new task created event", "err", err)
-// 		return cstaskmanager.IAlignedLayerTaskManagerTask{}, 0, err
-// 	}
-// 	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
-// }
+//
+//	func (w *AvsWriter) SendNewTaskVerifyProof(ctx context.Context, proof []byte, pubInput []byte, verifierId common.VerifierId, quorumThresholdPercentage uint32, quorumNumbers []byte) (cstaskmanager.IAlignedLayerTaskManagerTask, uint32, error) {
+//		txOpts := w.Signer.GetTxOpts()
+//		tx, err := w.AvsContractBindings.TaskManager.CreateNewTask(txOpts, proof, pubInput, uint16(verifierId), quorumThresholdPercentage, quorumNumbers)
+//		if err != nil {
+//			w.logger.Errorf("Error assembling CreateNewTask tx")
+//			return cstaskmanager.IAlignedLayerTaskManagerTask{}, 0, err
+//		}
+//		receipt := w.client.WaitForTransactionReceipt(ctx, tx.Hash())
+//		newTaskCreatedEvent, err := w.AvsContractBindings.TaskManager.ContractAlignedLayerTaskManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
+//		if err != nil {
+//			w.logger.Error("Aggregator failed to parse new task created event", "err", err)
+//			return cstaskmanager.IAlignedLayerTaskManagerTask{}, 0, err
+//		}
+//		return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
+//	}
 
 // func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task cstaskmanager.IAlignedLayerTaskManagerTask, taskResponse cstaskmanager.IAlignedLayerTaskManagerTaskResponse, nonSignerStakesAndSignature cstaskmanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Receipt, error) {
 // 	txOpts := w.Signer.GetTxOpts()

@@ -1,8 +1,10 @@
 package pkg
 
 import (
+	"context"
 	"fmt"
 	"github.com/yetanotherco/aligned_layer/common"
+	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"log"
 )
 
@@ -24,10 +26,21 @@ func NewTask(verificationSystem common.SystemVerificationId, proof []byte, publi
 
 func SendTask(task *Task) error {
 	log.Println("Sending task...")
-	log.Println("Verification system:", task.verificationSystem)
-	log.Println("Proof:", task.proof)
-	log.Println("Public input:", task.publicInput)
-	log.Println("Verification key:", task.verificationKey)
+	avsWriter, err := chainio.NewAvsWriterFromConfig()
+	if err != nil {
+		return err
+	}
+
+	_, index, err := avsWriter.SendTask(
+		context.Background(),
+		task.verificationSystem,
+		task.proof,
+		task.publicInput,
+	)
+	if err != nil {
+		return err
+	}
+	log.Println("Task sent successfully. Task index:", index)
 	return nil
 }
 

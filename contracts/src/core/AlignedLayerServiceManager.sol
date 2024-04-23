@@ -19,6 +19,21 @@ import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.so
 contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
 
+    // EVENTS
+    event NewTaskCreated(uint32 indexed taskIndex, Task task);
+
+    // STRUCTS
+    struct Task {
+        uint16 verificationSystemId;
+        bytes proof;
+        bytes pubInput;
+        uint32 taskCreatedBlock;
+    }
+
+    /* STORAGE */
+    // The latest task index
+    uint32 public latestTaskNum;
+
     constructor(
         IAVSDirectory __avsDirectory,
         IRegistryCoordinator __registryCoordinator,
@@ -54,4 +69,21 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function getMeaning() external view returns (uint) {
         return 42;
     }
+
+    function createNewTask(
+        uint16 verificationSystemId,
+        bytes calldata proof,
+        bytes calldata pubInput        
+    ) external {
+                // create a new task struct
+        Task memory newTask;
+        newTask.verificationSystemId = verificationSystemId;
+        newTask.proof = proof;
+        newTask.pubInput = pubInput;
+        newTask.taskCreatedBlock = uint32(block.number);
+
+        emit NewTaskCreated(latestTaskNum, newTask);
+        latestTaskNum = latestTaskNum + 1;
+    }
+
 }
