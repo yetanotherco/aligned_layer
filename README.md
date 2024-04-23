@@ -78,6 +78,27 @@ make aggregator-send-dummy-responses
 ```
 Make sure to have aggregator running on another terminal.
 
+### Operator Specific Commands
+
+To register operator with EigenLayer, run:
+```bash
+make operator-register-with-eigenlayer
+```
+Before running the above command, make sure to set correct values at `operator/config/devnet/operator.yaml`
+
+You can get delegationManager by running:
+```bash
+make get-delegation-manager-address
+```
+
+You can get devnet Ether for gas by running:
+```bash
+make operator-get-eth:
+```
+
+Make sure to set `OPERATOR_ADDRESS` enviroment variable to your own address before running command.
+This will send 1eth to that address
+
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:

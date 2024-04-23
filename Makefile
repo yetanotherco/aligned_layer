@@ -1,6 +1,5 @@
 .PHONY: help tests
 
-
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
@@ -41,6 +40,17 @@ bindings:
 
 test:
 	go test ./...
+
+
+get-delegation-manager-address:
+	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
+
+operator-get-eth:
+	@echo "Sending funds to operator address on devnet"
+	@. ./scripts/fund_operator_devnet.sh
+
+operator-register-with-eigenlayer:
+	@eigenlayer operator register operator/config/devnet/operator.yaml
 
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
