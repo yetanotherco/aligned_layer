@@ -35,14 +35,8 @@ func SendTask(task *Task) error {
 func GetVerificationSystem(system string) (common.SystemVerificationId, error) {
 	var unknownValue common.SystemVerificationId
 	switch system {
-	case "cairo":
-		return common.LambdaworksCairo, nil
 	case "plonk":
 		return common.GnarkPlonkBls12_381, nil
-	case "kimchi":
-		return common.Kimchi, nil
-	case "sp1":
-		return common.Sp1BabyBearBlake3, nil
 	default:
 		return unknownValue, fmt.Errorf("unsupported proof system: %s", system)
 	}
