@@ -25,7 +25,18 @@ anvil-start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
 
-bindings: 
+# TODO: Allow enviroment variables / different configuration files
+aggregator-start:
+	@echo "Starting Aggregator..."
+	go run aggregator/cmd/main.go --config aggregator/config/config.yaml \
+		--aligned-layer-deployment contracts/script/output/devnet/alignedlayer_deployment_output.json \
+		--ecdsa-private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+aggregator-send-dummy-responses:
+	@echo "Sending dummy responses to Aggregator..."
+	cd aggregator && go run dummy/submit_task_responses.go
+
+bindings:
 	cd contracts && ./generate-go-bindings.sh
 
 test:

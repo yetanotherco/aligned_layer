@@ -2,10 +2,15 @@ module github.com/yetanotherco/aligned_layer
 
 go 1.22.2
 
-require github.com/urfave/cli/v2 v2.27.1
+require (
+	github.com/Layr-Labs/eigensdk-go v0.1.6
+	github.com/ethereum/go-ethereum v1.13.15
+	github.com/joho/godotenv v1.5.1
+	github.com/urfave/cli v1.22.14
+	github.com/urfave/cli/v2 v2.27.1
+)
 
 require (
-	github.com/Layr-Labs/eigensdk-go v0.1.6 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -19,7 +24,6 @@ require (
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/ethereum/c-kzg-4844 v0.4.0 // indirect
-	github.com/ethereum/go-ethereum v1.13.15 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect

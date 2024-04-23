@@ -1,7 +1,45 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/urfave/cli"
+	"github.com/yetanotherco/aligned_layer/aggregator/internal/rpc_server"
+	"github.com/yetanotherco/aligned_layer/core/config"
+	"log"
+	"os"
+)
+
+var (
+	// Version is the version of the binary.
+	Version   string
+	GitCommit string
+	GitDate   string
+)
 
 func main() {
-	fmt.Println("Booting aggregator ...")
+	app := cli.NewApp()
+
+	app.Flags = config.Flags
+	app.Version = fmt.Sprintf("%s-%s-%s", Version, GitCommit, GitDate)
+	app.Name = "aligned-layer-aggregator"
+	app.Usage = "Aligned Layer Aggregator"
+	app.Description = "Service that aggregates signed responses from operator nodes."
+	app.Action = aggregatorMain
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatalln("Application failed.", "Message:", err)
+	}
+}
+
+func aggregatorMain(context *cli.Context) {
+	log.Println("Starting aggregator...")
+	aggregatorConfig, err := config.NewConfig(context)
+	if err != nil {
+		log.Fatal("Error reading aggregator config: ", err)
+	}
+	err = rpc_server.Serve(aggregatorConfig)
+	if err != nil {
+		log.Fatal("Error starting aggregator server: ", err)
+	}
 }
