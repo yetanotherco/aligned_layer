@@ -36,6 +36,10 @@ aggregator-send-dummy-responses:
 	@echo "Sending dummy responses to Aggregator..."
 	cd aggregator && go run dummy/submit_task_responses.go
 
+operator-start:
+	@echo "Starting Operator..."
+	go run operator/cmd/main.go --config operator/config/config.yaml
+
 bindings:
 	cd contracts && ./generate-go-bindings.sh
 

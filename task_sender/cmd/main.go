@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
@@ -50,7 +51,7 @@ var flags = []cli.Flag{
 func main() {
 	app := &cli.App{
 		Name:        "Aligned Layer Task Sender",
-		Usage:       "Send a task to the verifier",
+		Usage:       "Send a task to verifier",
 		Description: "Service that sends proofs to verify by operator nodes.",
 		Flags:       flags,
 		Action:      taskSenderMain,
@@ -63,7 +64,7 @@ func main() {
 }
 
 func taskSenderMain(c *cli.Context) error {
-	verificationSystem, err := GetVerificationSystem(c.String(systemFlag.Name))
+	verificationSystem, err := parseProvingSystem(c.String(systemFlag.Name))
 	if err != nil {
 		return fmt.Errorf("error getting verification system: %v", err)
 	}
@@ -114,13 +115,13 @@ func SendTask(task *types.Task) error {
 	return nil
 }
 
-// TODO Set corrects verification systems
-func GetVerificationSystem(system string) (common.ProvingSystemId, error) {
-	var unknownValue common.ProvingSystemId
-	switch system {
+func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
+	provingSystemStr = strings.TrimSpace(provingSystemStr)
+	switch provingSystemStr {
 	case "plonk":
 		return common.GnarkPlonkBls12_381, nil
 	default:
-		return unknownValue, fmt.Errorf("unsupported proof system: %s", system)
+		var unknownValue common.ProvingSystemId
+		return unknownValue, fmt.Errorf("unsupported proof system: %s", provingSystemStr)
 	}
 }
