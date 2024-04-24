@@ -2,12 +2,13 @@ package mocks
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"math/big"
 )
 
 func NewMockConfig(ecdsaPrivateKeyStr, alignedLayerOperatorStateRetrieverAddrStr, alignedLayerServiceManagerAddrStr string) *config.Config {
@@ -62,4 +63,12 @@ func NewMockConfig(ecdsaPrivateKeyStr, alignedLayerOperatorStateRetrieverAddrStr
 		AVSServiceManagerAddress:               avsServiceManagerAddress,
 		EnableMetrics:                          true,
 	}
+}
+
+func NewDevnetConfig() *config.Config {
+	ecdsaPrivateKey := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+	operatorStateRetrieverAddr := "0x9d4454b023096f34b160d6b654540c56a1f81688"
+	serviceManagerAddr := "0xc5a5c42992decbae36851359345fe25997f5c42d"
+	mockConfig := NewMockConfig(ecdsaPrivateKey, operatorStateRetrieverAddr, serviceManagerAddr)
+	return mockConfig
 }
