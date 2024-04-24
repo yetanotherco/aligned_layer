@@ -1,12 +1,12 @@
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+name: Build-Go
 
-name: build
+on:
+  merge_group:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["*"]
+
 jobs:
   build-and-lint:
     runs-on: ubuntu-latest
