@@ -121,24 +121,6 @@ func (w *AvsWriter) SendTask(context context.Context, verificationSystemId commo
 	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
 }
 
-// returns the tx receipt, as well as the task index (which it gets from parsing the tx receipt logs)
-//
-//	func (w *AvsWriter) SendNewTaskVerifyProof(ctx context.Context, proof []byte, pubInput []byte, verifierId common.VerifierId, quorumThresholdPercentage uint32, quorumNumbers []byte) (cstaskmanager.IAlignedLayerTaskManagerTask, uint32, error) {
-//		txOpts := w.Signer.GetTxOpts()
-//		tx, err := w.AvsContractBindings.TaskManager.CreateNewTask(txOpts, proof, pubInput, uint16(verifierId), quorumThresholdPercentage, quorumNumbers)
-//		if err != nil {
-//			w.logger.Errorf("Error assembling CreateNewTask tx")
-//			return cstaskmanager.IAlignedLayerTaskManagerTask{}, 0, err
-//		}
-//		receipt := w.client.WaitForTransactionReceipt(ctx, tx.Hash())
-//		newTaskCreatedEvent, err := w.AvsContractBindings.TaskManager.ContractAlignedLayerTaskManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
-//		if err != nil {
-//			w.logger.Error("Aggregator failed to parse new task created event", "err", err)
-//			return cstaskmanager.IAlignedLayerTaskManagerTask{}, 0, err
-//		}
-//		return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
-//	}
-
 // func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task cstaskmanager.IAlignedLayerTaskManagerTask, taskResponse cstaskmanager.IAlignedLayerTaskManagerTaskResponse, nonSignerStakesAndSignature cstaskmanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Receipt, error) {
 // 	txOpts := w.Signer.GetTxOpts()
 // 	tx, err := w.AvsContractBindings.TaskManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
