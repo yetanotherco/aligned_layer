@@ -1,10 +1,11 @@
-package tests_test
+package chainio_test
 
 import (
-	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/yetanotherco/aligned_layer/core/chainio"

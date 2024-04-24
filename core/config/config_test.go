@@ -1,9 +1,10 @@
-package tests
+package config_test
 
 import (
 	"errors"
-	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 	"testing"
+
+	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 )
 
 func TestConfigValidate(t *testing.T) {
