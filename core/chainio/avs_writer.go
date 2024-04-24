@@ -3,11 +3,12 @@ package chainio
 import (
 	"context"
 	"fmt"
-	common2 "github.com/yetanotherco/aligned_layer/common"
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/yetanotherco/aligned_layer/common"
+
+	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -61,14 +62,14 @@ func NewAvsWriterFromConfig() (*AvsWriter, error) {
 	}
 
 	clients, err := clients.BuildAll(buildAllConfig, ecdsaPrivateKey, logger)
-	alignedLayerServiceManagerAddr := common.HexToAddress("0xc5a5C42992dECbae36851359345FE25997F5C42d")
+	alignedLayerServiceManagerAddr := gethcommon.HexToAddress("0xc5a5C42992dECbae36851359345FE25997F5C42d")
 
 	ethHttpClient, err := eth.NewClient(buildAllConfig.EthHttpUrl)
 	if err != nil {
 		panic(err)
 	}
 
-	operatorStateRetrieverAddr := common.HexToAddress(buildAllConfig.OperatorStateRetrieverAddr)
+	operatorStateRetrieverAddr := gethcommon.HexToAddress(buildAllConfig.OperatorStateRetrieverAddr)
 	avsServiceBindings, err := NewAvsServiceBindings(alignedLayerServiceManagerAddr, operatorStateRetrieverAddr, ethHttpClient, logger)
 
 	chainId := big.NewInt(31337)
@@ -90,7 +91,7 @@ func NewAvsWriterFromConfig() (*AvsWriter, error) {
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, verificationSystemId common2.SystemVerificationId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint32, error) {
+func (w *AvsWriter) SendTask(context context.Context, verificationSystemId common.SystemVerificationId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint32, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
