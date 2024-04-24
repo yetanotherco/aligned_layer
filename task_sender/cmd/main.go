@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 	"log"
 	"os"
+
+	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 )
 
 var (
