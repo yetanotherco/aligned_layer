@@ -11,8 +11,19 @@
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
       "initalPausedStatus": 0
     },
-    "minimumStakes": [],  
-    "strategyWeights": [],
-    "operatorSetParams": [],
+    "minimumStakes": [1],
+    "strategyWeights": [[
+      {
+        "0_strategy": "0x09635F643e140090A9A8Dcd712eD6285858ceBef",
+        "1_multiplier": 1000000000000000000
+      }
+    ]],
+    "operatorSetParams": [
+      {
+        "0_maxOperatorCount": 200,
+        "1_kickBIPsOfOperatorStake": 11000,
+        "2_kickBIPsOfTotalStake": 50
+      }
+    ],
     "uri": ""
   }

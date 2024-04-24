@@ -19,14 +19,19 @@ import (
 	"time"
 )
 
+var (
+	OperatorConfigFileFlag = cli.StringFlag{
+		Name:     "operator-config",
+		Required: true,
+		Usage:    "Load operator configuration from `FILE`",
+	}
+)
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "aligned_layer"
 	app.Usage = "Tool for registering operator to AlignedLayer AVS"
-	app.Flags = []cli.Flag{
-		config.ConfigFileFlag,
-	}
-
+	app.Flags = append(config.Flags, OperatorConfigFileFlag)
 	app.Action = registerWithAlignedLayer
 
 	err := app.Run(os.Args)
@@ -36,9 +41,14 @@ func main() {
 }
 
 func registerWithAlignedLayer(ctx *cli.Context) error {
-	configPath := ctx.GlobalString(config.ConfigFileFlag.Name)
+	configuration, err := config.NewConfig(ctx)
+	if err != nil {
+		return err
+	}
+
+	configPath := ctx.GlobalString(OperatorConfigFileFlag.Name)
 	nodeConfig := clitypes.OperatorConfig{}
-	err := sdkutils.ReadYamlConfig(configPath, &nodeConfig)
+	err = sdkutils.ReadYamlConfig(configPath, &nodeConfig)
 	if err != nil {
 		return err
 	}
@@ -98,7 +108,8 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 	socket := "Not Needed"
 
 	//expiry := big.NewInt((time.Now().Add(10 * time.Minute)).Unix())
-	err = RegisterOperator(context.Background(), blsKeyPair, socket, quorumNumbersArr, privateKey, salt, expiry)
+	err = RegisterOperator(context.Background(), configuration,
+		blsKeyPair, socket, quorumNumbersArr, privateKey, salt, expiry)
 	if err != nil {
 		return err
 	}
@@ -112,6 +123,7 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 // will be returned.
 func RegisterOperator(
 	ctx context.Context,
+	configuration *config.Config,
 	keypair *bls.KeyPair,
 	socket string,
 	quorumNumbers types.QuorumNums,
@@ -119,7 +131,7 @@ func RegisterOperator(
 	operatorToAvsRegistrationSigSalt [32]byte,
 	operatorToAvsRegistrationSigExpiry *big.Int,
 ) error {
-	writer, err := chainio.NewAvsWriterFromConfig()
+	writer, err := chainio.NewAvsWriterFromConfig(configuration)
 	if err != nil {
 		return err
 	}

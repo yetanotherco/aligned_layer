@@ -1,0 +1,11 @@
+# 'production' only prints info and above. 'development' also prints debug
+environment: production
+eth_rpc_url: http://localhost:8545
+eth_ws_url: ws://localhost:8545
+
+# address which the aggregator listens on for operator signed messages
+aggregator_server_ip_port_address: localhost:8090
+bls_public_key_compendium_address: 0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44
+avs_service_manager_address: 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690
+enable_metrics: true
+eigen_metrics_ip_port_address: http://localhost:9010

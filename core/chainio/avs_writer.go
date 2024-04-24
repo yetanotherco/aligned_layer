@@ -29,8 +29,16 @@ func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
 	}
 
 	clients, err := clients.BuildAll(buildAllConfig, c.EcdsaPrivateKey, c.Logger)
+	if err != nil {
+		c.Logger.Error("Cannot create clients", "err", err)
+		return nil, err
+	}
 
 	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.AlignedLayerOperatorStateRetrieverAddr, c.EthHttpClient, c.Logger)
+	if err != nil {
+		c.Logger.Error("Cannot create avsServiceBindings", "err", err)
+		return nil, err
+	}
 
 	privateKeySigner, err := signer.NewPrivateKeySigner(c.EcdsaPrivateKey, c.ChainId)
 
