@@ -1,7 +1,7 @@
-package chainio_test
+package tests_test
 
 import (
-	"github.com/yetanotherco/aligned_layer/core/chainio/mocks"
+	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 	"math/big"
 	"reflect"
 	"testing"
@@ -16,7 +16,7 @@ import (
 
 func TestAvsReader(t *testing.T) {
 
-	mockConfig := mocks.NewMockConfig()
+	mockConfig := mocks.NewMockConfig("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x9d4454b023096f34b160d6b654540c56a1f81688", "0xc5a5c42992decbae36851359345fe25997f5c42d")
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(mockConfig)
 	if err != nil {
@@ -34,7 +34,7 @@ func TestAvsReader(t *testing.T) {
 }
 
 func TestAvsWriter(t *testing.T) {
-	mockConfig := mocks.NewMockConfig()
+	mockConfig := mocks.NewMockConfig("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x9d4454b023096f34b160d6b654540c56a1f81688", "0xc5a5c42992decbae36851359345fe25997f5c42d")
 
 	avsWriter, err := chainio.NewAvsWriterFromConfig(mockConfig)
 	if err != nil {
@@ -52,7 +52,8 @@ func TestAvsWriter(t *testing.T) {
 }
 
 func TestAvsSubscriber(t *testing.T) {
-	mockConfig := mocks.NewMockConfig()
+	mockConfig := mocks.NewMockConfig("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x9d4454b023096f34b160d6b654540c56a1f81688", "0xc5a5c42992decbae36851359345fe25997f5c42d")
+
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(mockConfig)
 	if err != nil {
 		t.Errorf("could not create AVS reader")

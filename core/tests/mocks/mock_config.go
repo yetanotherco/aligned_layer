@@ -10,12 +10,12 @@ import (
 	"math/big"
 )
 
-func NewMockConfig() *config.Config {
+func NewMockConfig(ecdsaPrivateKeyStr, alignedLayerOperatorStateRetrieverAddrStr, alignedLayerServiceManagerAddrStr string) *config.Config {
 	etcRpcUrl := "http://localhost:8545"
 	ethWsUrl := "ws://localhost:8545"
 	eigenMetricsIpPortAddress := "localhost:9090"
-	alignedLayerOperatorStateRetrieverAddr := common.HexToAddress("0x9d4454b023096f34b160d6b654540c56a1f81688")
-	alignedLayerServiceManagerAddr := common.HexToAddress("0xc5a5c42992decbae36851359345fe25997f5c42d")
+	alignedLayerOperatorStateRetrieverAddr := common.HexToAddress(alignedLayerOperatorStateRetrieverAddrStr)
+	alignedLayerServiceManagerAddr := common.HexToAddress(alignedLayerServiceManagerAddrStr)
 	alignedLayerRegistryCoordinatorAddr := common.HexToAddress("0x67d269191c92caf3cd7723f116c85e6e9bf55933")
 	chainId := big.NewInt(31337)
 	blsPublicKeyCompendiumAddress := common.HexToAddress("0x322813fd9a801c5507c9de605d63cea4f2ce6c44")
@@ -28,8 +28,7 @@ func NewMockConfig() *config.Config {
 		fmt.Println("Could not initialize logger")
 	}
 
-	ecdsaPrivateKeyString := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-	ecdsaPrivateKey, err := crypto.HexToECDSA(ecdsaPrivateKeyString)
+	ecdsaPrivateKey, err := crypto.HexToECDSA(ecdsaPrivateKeyStr)
 	if err != nil {
 		logger.Errorf("Cannot parse ecdsa private key", "err", err)
 	}
