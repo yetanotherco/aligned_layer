@@ -1,8 +1,12 @@
 package pkg
 
 import (
+	"context"
 	"fmt"
 	"github.com/yetanotherco/aligned_layer/common"
+	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 	"log"
 )
 
@@ -24,10 +28,21 @@ func NewTask(verificationSystem common.SystemVerificationId, proof []byte, publi
 
 func SendTask(task *Task) error {
 	log.Println("Sending task...")
-	log.Println("Verification system:", task.verificationSystem)
-	log.Println("Proof:", task.proof)
-	log.Println("Public input:", task.publicInput)
-	log.Println("Verification key:", task.verificationKey)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(newDevnetConfig())
+	if err != nil {
+		return err
+	}
+
+	_, index, err := avsWriter.SendTask(
+		context.Background(),
+		task.verificationSystem,
+		task.proof,
+		task.publicInput,
+	)
+	if err != nil {
+		return err
+	}
+	log.Println("Task sent successfully. Task index:", index)
 	return nil
 }
 
@@ -40,4 +55,12 @@ func GetVerificationSystem(system string) (common.SystemVerificationId, error) {
 	default:
 		return unknownValue, fmt.Errorf("unsupported proof system: %s", system)
 	}
+}
+
+func newDevnetConfig() *config.Config {
+	ecdsaPrivateKey := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+	operatorStateRetrieverAddr := "0x9d4454b023096f34b160d6b654540c56a1f81688"
+	serviceManagerAddr := "0xc5a5c42992decbae36851359345fe25997f5c42d"
+	mockConfig := mocks.NewMockConfig(ecdsaPrivateKey, operatorStateRetrieverAddr, serviceManagerAddr)
+	return mockConfig
 }
