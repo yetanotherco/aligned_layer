@@ -28,7 +28,7 @@ func NewTask(verificationSystem common.SystemVerificationId, proof []byte, publi
 
 func SendTask(task *Task) error {
 	log.Println("Sending task...")
-	avsWriter, err := chainio.NewAvsWriterFromConfig(newDummyConfig())
+	avsWriter, err := chainio.NewAvsWriterFromConfig(newDevnetConfig())
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func GetVerificationSystem(system string) (common.SystemVerificationId, error) {
 	}
 }
 
-func newDummyConfig() *config.Config {
+func newDevnetConfig() *config.Config {
 	ecdsaPrivateKey := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 	operatorStateRetrieverAddr := "0x9d4454b023096f34b160d6b654540c56a1f81688"
 	serviceManagerAddr := "0xc5a5c42992decbae36851359345fe25997f5c42d"
