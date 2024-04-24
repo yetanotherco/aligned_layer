@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"os"
 
@@ -20,8 +21,6 @@ import (
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 )
 
-// Config contains all the configuration information for a credible squaring aggregators and challengers.
-// Operators use a separate config. (see config-files/operator.anvil.yaml)
 type Config struct {
 	EcdsaPrivateKey           *ecdsa.PrivateKey
 	BlsPrivateKey             *bls.PrivateKey
@@ -48,7 +47,7 @@ type Config struct {
 }
 
 // These are read from ConfigFileFlag
-type ConfigRaw struct {
+type ConfigFromYaml struct {
 	Environment                sdklogging.LogLevel `yaml:"environment"`
 	EigenMetricsIpPortAddress  string              `yaml:"eigen_metrics_ip_port_address"`
 	EthRpcUrl                  string              `yaml:"eth_rpc_url"`
@@ -71,127 +70,25 @@ type AlignedLayerContractsRaw struct {
 	AlignedLayerOperatorStateRetrieverAddr string `json:"operatorStateRetriever"`
 }
 
-// NewConfig parses config file to read from flags or environment variables
-// Note: This config is shared by challenger and aggregator, so we put in the core.
-// Operator has a different config and is meant to be used by the operator CLI.
-func NewConfig(ctx *cli.Context) (*Config, error) {
-	var configRaw ConfigRaw
-
-	configFilePath := ctx.GlobalString(ConfigFileFlag.Name)
-	if configFilePath != "" {
-		err := sdkutils.ReadYamlConfig(configFilePath, &configRaw)
-		if err != nil {
-			fmt.Println("Could not read yaml config file")
-			return nil, err
-		}
-	}
-
-	logger, err := sdklogging.NewZapLogger(configRaw.Environment)
-	if err != nil {
-		fmt.Println("Could not initialize logger")
-	}
-
-	var alignedLayerDeploymentRaw AlignedLayerDeploymentRaw
-	alignedLayerDeploymentFilePath := ctx.GlobalString(AlignedLayerDeploymentFileFlag.Name)
-	if _, err := os.Stat(alignedLayerDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
-		logger.Errorf("Path does not exist", "path", alignedLayerDeploymentFilePath)
-		return nil, err
-	}
-	err = sdkutils.ReadJsonConfig(alignedLayerDeploymentFilePath, &alignedLayerDeploymentRaw)
-	if err != nil {
-		logger.Errorf("Cannot read aligned layer deployment file", "err", err)
-		return nil, err
-	}
-
-	ethRpcClient, err := eth.NewClient(configRaw.EthRpcUrl)
-	if err != nil {
-		logger.Errorf("Cannot create http ethclient", "err", err)
-		return nil, err
-	}
-
-	ethWsClient, err := eth.NewClient(configRaw.EthWsUrl)
-	if err != nil {
-		logger.Errorf("Cannot create ws ethclient", "err", err)
-		return nil, err
-	}
-
-	ecdsaPrivateKeyString := ctx.GlobalString(EcdsaPrivateKeyFlag.Name)
-	if ecdsaPrivateKeyString[:2] == "0x" {
-		ecdsaPrivateKeyString = ecdsaPrivateKeyString[2:]
-	}
-	ecdsaPrivateKey, err := crypto.HexToECDSA(ecdsaPrivateKeyString)
-	if err != nil {
-		logger.Errorf("Cannot parse ecdsa private key", "err", err)
-		return nil, err
-	}
-
-	operatorAddr, err := sdkutils.EcdsaPrivateKeyToAddress(ecdsaPrivateKey)
-	if err != nil {
-		logger.Error("Cannot get operator address", "err", err)
-		return nil, err
-	}
-
-	chainId, err := ethRpcClient.ChainID(context.Background())
-	if err != nil {
-		logger.Error("Cannot get chainId", "err", err)
-		return nil, err
-	}
-
-	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaPrivateKey, chainId)
-	if err != nil {
-		logger.Error("Cannot create signer", "err", err)
-		return nil, err
-	}
-
-	config := &Config{
-		EcdsaPrivateKey: ecdsaPrivateKey,
-		//BlsPrivateKey: 						blsPrivateKey
-		Logger:                                 logger,
-		EigenMetricsIpPortAddress:              configRaw.EigenMetricsIpPortAddress,
-		EthRpcUrl:                              configRaw.EthRpcUrl,
-		EthWsUrl:                               configRaw.EthWsUrl,
-		EthHttpClient:                          ethRpcClient,
-		EthWsClient:                            ethWsClient,
-		AlignedLayerOperatorStateRetrieverAddr: common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerOperatorStateRetrieverAddr),
-		AlignedLayerServiceManagerAddr:         common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerServiceManagerAddr),
-		AlignedLayerRegistryCoordinatorAddr:    common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerRegistryCoordinatorAddr),
-		ChainId:                                chainId,
-		BlsPublicKeyCompendiumAddress:          common.HexToAddress(configRaw.BLSPubkeyCompendiumAddr),
-		SlasherAddr:                            common.HexToAddress(""),
-		AggregatorServerIpPortAddr:             configRaw.AggregatorServerIpPortAddr,
-		RegisterOperatorOnStartup:              configRaw.RegisterOperatorOnStartup,
-		Signer:                                 privateKeySigner,
-		OperatorAddress:                        operatorAddr,
-		AVSServiceManagerAddress:               common.HexToAddress(configRaw.AvsServiceManagerAddress),
-		EnableMetrics:                          configRaw.EnableMetrics,
-	}
-
-	err = config.Validate()
-
-	if err != nil {
-		return nil, err
-	}
-
-	return config, nil
+type BaseConfig struct {
+	Logger       sdklogging.Logger
+	EthRpcClient eth.Client
+	EthWsClient  eth.Client
 }
 
-func (c *Config) Validate() error {
-	// TODO: make sure every pointer is non-nil
-	if c.EcdsaPrivateKey == nil {
-		return errors.New("Config: EcdsaPrivateKey is required")
-	}
-
-	if c.AlignedLayerOperatorStateRetrieverAddr == common.HexToAddress("") {
-		return errors.New("Config: AlignedLayerOperatorStateRetrieverAddr is required")
-	}
-	if c.AlignedLayerServiceManagerAddr == common.HexToAddress("") {
-		return errors.New("Config: AlignedLayerServiceManagerAddr is required")
-	}
-	return nil
+type BaseConfigFromYaml struct {
+	Environment string `yaml:"environment"`
+	EthRpcUrl   string `yaml:"eth_rpc_url"`
+	EthWsUrl    string `yaml:"eth_ws_url"`
 }
 
 var (
 	// Required Flags
+	SetupConfigFileFlag = cli.StringFlag{
+		Name:     "setup-config",
+		Required: true,
+		Usage:    "Load configuration from `FILE`",
+	}
 	ConfigFileFlag = cli.StringFlag{
 		Name:     "config",
 		Required: true,
@@ -211,7 +108,155 @@ var (
 	// Optional Flags
 )
 
+// NewConfig parses config file to read from flags or environment variables
+func NewConfig(
+	configFilePath string, alignedLayerDeploymentFilePath string, ecdsaPrivateKeyString string,
+	logger sdklogging.Logger, ethRpcClient eth.Client, ethWsClient eth.Client) (*Config, error) {
+
+	if configFilePath == "" {
+		return nil, errors.New("Config file path is required")
+	}
+
+	if alignedLayerDeploymentFilePath == "" {
+		return nil, errors.New("Aligned layer deployment file path is required")
+	}
+
+	if ecdsaPrivateKeyString == "" {
+		return nil, errors.New("ECDSA private key is required")
+	}
+
+	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
+		logger.Errorf("Config file path does not exist", "path", alignedLayerDeploymentFilePath)
+		return nil, err
+	}
+
+	if _, err := os.Stat(alignedLayerDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
+		logger.Errorf("Aligned Layer deployment file path does not exist", "path", alignedLayerDeploymentFilePath)
+		return nil, err
+	}
+
+	if logger == nil {
+		return nil, errors.New("Logger is required")
+	}
+
+	if ethRpcClient == nil {
+		return nil, errors.New("EthRpcClient is required")
+	}
+
+	if ethWsClient == nil {
+		return nil, errors.New("EthWsClient is required")
+	}
+
+	var configFromYaml ConfigFromYaml
+
+	err := sdkutils.ReadYamlConfig(configFilePath, &configFromYaml)
+
+	if err != nil {
+		fmt.Println("Cannot read config file")
+		return nil, err
+	}
+
+	var alignedLayerDeploymentRaw AlignedLayerDeploymentRaw
+
+	err = sdkutils.ReadJsonConfig(alignedLayerDeploymentFilePath, &alignedLayerDeploymentRaw)
+
+	if err != nil {
+		logger.Errorf("Cannot read aligned layer deployment file", "err", err)
+		return nil, err
+	}
+
+	if ecdsaPrivateKeyString[:2] == "0x" {
+		ecdsaPrivateKeyString = ecdsaPrivateKeyString[2:]
+	}
+
+	ecdsaPrivateKey, err := crypto.HexToECDSA(ecdsaPrivateKeyString)
+
+	if err != nil {
+		logger.Errorf("Cannot parse ecdsa private key", "err", err)
+		return nil, err
+	}
+
+	operatorAddr, err := sdkutils.EcdsaPrivateKeyToAddress(ecdsaPrivateKey)
+
+	if err != nil {
+		logger.Error("Cannot get operator address from ecdsa private key", "err", err)
+		return nil, err
+	}
+
+	chainId, err := ethRpcClient.ChainID(context.Background())
+
+	if err != nil {
+		logger.Error("Cannot get chainId from eth rpc client", "err", err)
+		return nil, err
+	}
+
+	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaPrivateKey, chainId)
+
+	if err != nil {
+		logger.Error("Cannot create private key signer from ecdsa private key and chain id", "err", err)
+		return nil, err
+	}
+
+	config := &Config{
+		EcdsaPrivateKey: ecdsaPrivateKey,
+		//BlsPrivateKey: 							blsPrivateKey
+		Logger:                                 logger,
+		EigenMetricsIpPortAddress:              configFromYaml.EigenMetricsIpPortAddress,
+		EthRpcUrl:                              configFromYaml.EthRpcUrl,
+		EthWsUrl:                               configFromYaml.EthWsUrl,
+		EthHttpClient:                          ethRpcClient,
+		EthWsClient:                            ethWsClient,
+		AlignedLayerOperatorStateRetrieverAddr: common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerOperatorStateRetrieverAddr),
+		AlignedLayerServiceManagerAddr:         common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerServiceManagerAddr),
+		AlignedLayerRegistryCoordinatorAddr:    common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerRegistryCoordinatorAddr),
+		ChainId:                                chainId,
+		BlsPublicKeyCompendiumAddress:          common.HexToAddress(configFromYaml.BLSPubkeyCompendiumAddr),
+		SlasherAddr:                            common.HexToAddress(""),
+		AggregatorServerIpPortAddr:             configFromYaml.AggregatorServerIpPortAddr,
+		RegisterOperatorOnStartup:              configFromYaml.RegisterOperatorOnStartup,
+		Signer:                                 privateKeySigner,
+		OperatorAddress:                        operatorAddr,
+		AVSServiceManagerAddress:               common.HexToAddress(configFromYaml.AvsServiceManagerAddress),
+		EnableMetrics:                          configFromYaml.EnableMetrics,
+	}
+
+	return config, nil
+}
+
+func NewBaseConfig(setupConfigFilePath string) (*BaseConfig, error) {
+	var baseConfigFromYaml BaseConfigFromYaml
+	err := sdkutils.ReadYamlConfig(setupConfigFilePath, &baseConfigFromYaml)
+	if err != nil {
+		log.Fatal("Error reading setup config: ", err)
+	}
+
+	logger, err := NewLogger(baseConfigFromYaml.Environment)
+
+	if err != nil {
+		log.Fatal("Error initializing logger: ", err)
+	}
+
+	ethRpcClient, err := eth.NewClient(baseConfigFromYaml.EthRpcUrl)
+
+	if err != nil {
+		log.Fatal("Error initializing eth rpc client: ", err)
+	}
+
+	ethWsClient, err := eth.NewClient(baseConfigFromYaml.EthWsUrl)
+
+	if err != nil {
+		log.Fatal("Error initializing eth ws client: ", err)
+	}
+
+	return &BaseConfig{
+		Logger:       logger,
+		EthRpcClient: ethRpcClient,
+		EthWsClient:  ethWsClient,
+	}, nil
+}
+
 var requiredFlags = []cli.Flag{
+	SetupConfigFileFlag,
 	ConfigFileFlag,
 	AlignedLayerDeploymentFileFlag,
 	EcdsaPrivateKeyFlag,
