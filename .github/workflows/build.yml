@@ -1,4 +1,4 @@
-name: Build-Go
+name: build-go
 
 on:
   merge_group:
