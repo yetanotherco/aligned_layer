@@ -1,16 +1,8 @@
 package types
 
-import (
-	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
-	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
-	"github.com/ethereum/go-ethereum/common"
-)
-
 type NodeConfig struct {
-	EthRpcUrl                      string
-	EthHttpClient                  eth.Client
-	EthWsClient                    eth.Client
-	BlsOperatorStateRetrieverAddr  common.Address
-	AlignedLayerServiceManagerAddr common.Address
-	Logger                         sdklogging.Logger
+	EthRpcUrl                      string `yaml:"eth_rpc_url"`
+	EthWsUrl                       string `yaml:"eth_ws_url"`
+	OperatorStateRetrieverAddr     string `yaml:"operator_state_retriever_address"`
+	AlignedLayerServiceManagerAddr string `yaml:"avs_service_manager_address"`
 }

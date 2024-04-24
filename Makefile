@@ -49,6 +49,6 @@ test:
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
 	go run task_sender/cmd/main.go \
-		--system plonk \
+		--proving-system plonk \
 		--proof task_sender/test_examples/proof.base64 \
 		--public-input task_sender/test_examples/public_inputs.base64

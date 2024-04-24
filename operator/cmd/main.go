@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
+	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
+	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -42,30 +44,30 @@ func main() {
 }
 
 func operatorMain(ctx *cli.Context) error {
-	configPath := ctx.GlobalString(config.ConfigFileFlag.Name)
-	nodeConfig := types.NodeConfig{}
-	err := sdkutils.ReadYamlConfig(configPath, &nodeConfig)
+
+	logger, err := sdklogging.NewZapLogger("development")
 	if err != nil {
 		return err
 	}
 
-	// configFile, err := config.NewConfig(ctx)
-	// if err != nil {
-	// 	return fmt.Errorf("could not load Operator configuration file: %v", err)
-	// }
+	configPath := ctx.GlobalString(config.ConfigFileFlag.Name)
+	nodeConfig := types.NodeConfig{}
+	err = sdkutils.ReadYamlConfig(configPath, &nodeConfig)
+	if err != nil {
+		return err
+	}
 
-	fmt.Println("NODE CONFIG: ", nodeConfig)
-
-	serviceManagerAddr := nodeConfig.AlignedLayerServiceManagerAddr
-	operatorStateRetrieverAddr := nodeConfig.BlsOperatorStateRetrieverAddr
-	ethWsClient := nodeConfig.EthWsClient
-	logger := nodeConfig.Logger
+	serviceManagerAddr := common.HexToAddress(nodeConfig.AlignedLayerServiceManagerAddr)
+	operatorStateRetrieverAddr := common.HexToAddress(nodeConfig.OperatorStateRetrieverAddr)
+	ethWsClient, err := eth.NewClient(nodeConfig.EthWsUrl)
+	if err != nil {
+		log.Fatalf("Cannot create ws ethclient", "err", err)
+		return err
+	}
 
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(serviceManagerAddr, operatorStateRetrieverAddr, ethWsClient, logger)
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
-	fmt.Println("ANTES")
 	sub := avsSubscriber.SubscribeToNewTasks(newTaskCreatedChan)
-	fmt.Println("DESPUES")
 
 	for {
 		select {
