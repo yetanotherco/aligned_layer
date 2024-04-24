@@ -78,6 +78,17 @@ make aggregator-send-dummy-responses
 ```
 Make sure to have aggregator running on another terminal.
 
+### Task Sender commands
+
+To send a task to the ServiceManager using the TaskSender CLI, run:
+```bash
+make send-plonk-proof
+```
+
+This will send a dummy task to the ServiceManager. Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
+
+The plonk proof is located at `task_sender/test_examples`.
+
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
