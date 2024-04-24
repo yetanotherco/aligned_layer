@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+	"github.com/yetanotherco/aligned_layer/common"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
