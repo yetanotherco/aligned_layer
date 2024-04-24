@@ -1,22 +1,22 @@
 {
   "addresses": {
-    "alignedLayerProxyAdmin": "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
-    "alignedLayerServiceManager": "0xc5a5C42992dECbae36851359345FE25997F5C42d",
-    "alignedLayerServiceManagerImplementation": "0x4826533B4897376654Bb4d4AD88B7faFD0C98528",
-    "blsApkRegistry": "0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB",
-    "blsApkRegistryImplementation": "0xf5059a5D33d5853360D16C683c16e67980206f36",
-    "indexRegistry": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
-    "indexRegistryImplementation": "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
-    "operatorStateRetriever": "0x9d4454B023096f34B160D6B654540c56A1F81688",
-    "registryCoordinator": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
-    "registryCoordinatorImplementation": "0x998abeb3E57409262aE5b751f60747921B33613E",
-    "serviceManagerRouter": "0x09635F643e140090A9A8Dcd712eD6285858ceBef",
-    "stakeRegistry": "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
-    "stakeRegistryImplementation": "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
+    "alignedLayerProxyAdmin": "0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575",
+    "alignedLayerServiceManager": "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
+    "alignedLayerServiceManagerImplementation": "0xdbC43Ba45381e02825b14322cDdd15eC4B3164E6",
+    "blsApkRegistry": "0xc351628EB244ec633d5f21fBD6621e1a683B1181",
+    "blsApkRegistryImplementation": "0x162A433068F51e18b7d13932F27e66a3f99E6890",
+    "indexRegistry": "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+    "indexRegistryImplementation": "0xFD471836031dc5108809D173A067e8486B9047A3",
+    "operatorStateRetriever": "0x2E2Ed0Cfd3AD2f1d34481277b3204d807Ca2F8c2",
+    "registryCoordinator": "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
+    "registryCoordinatorImplementation": "0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f",
+    "serviceManagerRouter": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90",
+    "stakeRegistry": "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
+    "stakeRegistryImplementation": "0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f"
   },
   "chainInfo": {
     "chainId": 31337,
-    "deploymentBlock": 0
+    "deploymentBlock": 25
   },
   "permissions": {
     "alignedLayerAggregator": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
