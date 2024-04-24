@@ -1,18 +1,12 @@
 package chainio
 
 import (
-	"fmt"
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
-	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
+	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
 type AvsWriter struct {
@@ -23,55 +17,25 @@ type AvsWriter struct {
 	client              eth.Client
 }
 
-// NOTE(marian): The initialization of the AVS writer is hardcoded, but should be loaded from a
-// configuration file.
-// The hardcoded values are:
-//   - logger
-//   - EthHttpUrl
-//   - EthWsUrl
-//   - RegistryCoordinatorAddr
-//   - OperatorStateRetrieverAddr
-//   - alignedLayerServiceManagerAddr
-//   - ecdsaPrivateKey
-//   - chainId
+func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
 
-// The following function signature was the one in the aligned_layer_testnet repo:
-// func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
-func NewAvsWriterFromConfig() (*AvsWriter, error) {
-	logger, err := sdklogging.NewZapLogger("development")
-	if err != nil {
-		fmt.Println("Could not initialize logger")
-	}
 	buildAllConfig := clients.BuildAllConfig{
-		EthHttpUrl:                 "http://localhost:8545",
-		EthWsUrl:                   "ws://localhost:8545",
-		RegistryCoordinatorAddr:    "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
-		OperatorStateRetrieverAddr: "0x9d4454B023096f34B160D6B654540c56A1F81688",
+		EthHttpUrl:                 c.EthRpcUrl,
+		EthWsUrl:                   c.EthWsUrl,
+		RegistryCoordinatorAddr:    c.AlignedLayerRegistryCoordinatorAddr.String(),
+		OperatorStateRetrieverAddr: c.AlignedLayerOperatorStateRetrieverAddr.String(),
 		AvsName:                    "AlignedLayer",
-		PromMetricsIpPortAddress:   ":9090",
-	}
-	ecdsaPrivateKeyString := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-	ecdsaPrivateKey, err := crypto.HexToECDSA(ecdsaPrivateKeyString)
-	if err != nil {
-		logger.Errorf("Cannot parse ecdsa private key", "err", err)
+		PromMetricsIpPortAddress:   c.EigenMetricsIpPortAddress,
 	}
 
-	clients, err := clients.BuildAll(buildAllConfig, ecdsaPrivateKey, logger)
-	alignedLayerServiceManagerAddr := common.HexToAddress("0xc5a5C42992dECbae36851359345FE25997F5C42d")
+	clients, err := clients.BuildAll(buildAllConfig, c.EcdsaPrivateKey, c.Logger)
 
-	ethHttpClient, err := eth.NewClient(buildAllConfig.EthHttpUrl)
+	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.AlignedLayerOperatorStateRetrieverAddr, c.EthHttpClient, c.Logger)
+
+	privateKeySigner, err := signer.NewPrivateKeySigner(c.EcdsaPrivateKey, c.ChainId)
+
 	if err != nil {
-		panic(err)
-	}
-
-	operatorStateRetrieverAddr := common.HexToAddress(buildAllConfig.OperatorStateRetrieverAddr)
-	avsServiceBindings, err := NewAvsServiceBindings(alignedLayerServiceManagerAddr, operatorStateRetrieverAddr, ethHttpClient, logger)
-
-	chainId := big.NewInt(31337)
-
-	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaPrivateKey, chainId)
-	if err != nil {
-		logger.Error("Cannot create signer", "err", err)
+		c.Logger.Error("Cannot create signer", "err", err)
 		return nil, err
 	}
 
@@ -80,9 +44,9 @@ func NewAvsWriterFromConfig() (*AvsWriter, error) {
 	return &AvsWriter{
 		AvsRegistryWriter:   avsRegistryWriter,
 		AvsContractBindings: avsServiceBindings,
-		logger:              logger,
+		logger:              c.Logger,
 		Signer:              privateKeySigner,
-		client:              ethHttpClient,
+		client:              c.EthHttpClient,
 	}, nil
 }
 
