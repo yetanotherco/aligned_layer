@@ -13,7 +13,7 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation) and [zap-pretty](https://github.com/maoueh/zap-pretty) to run the examples below.
+You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git) to run the examples below.
 
 To install
 ```bash
@@ -27,6 +27,10 @@ make install-foundry
 Then follow the command line instructions
 Make sure to run `foundryup`
 
+To install eigenlayer-cli
+```bash
+make install-eigenlayer-cli
+```
 ## Run using make
 
 Start anvil with every relevant contract deployed with:
@@ -80,24 +84,7 @@ Make sure to have aggregator running on another terminal.
 
 ### Operator Specific Commands
 
-To register operator with EigenLayer, run:
-```bash
-make operator-register-with-eigenlayer
-```
-Before running the above command, make sure to set correct values at `operator/config/devnet/operator.yaml`
-
-You can get delegationManager by running:
-```bash
-make get-delegation-manager-address
-```
-
-You can get devnet Ether for gas by running:
-```bash
-make operator-get-eth:
-```
-
-Make sure to set `OPERATOR_ADDRESS` enviroment variable to your own address before running command.
-This will send 1eth to that address
+TODO
 
 ## Notes on project creation / devnet deployment
 
@@ -131,6 +118,46 @@ Eigenlayer contract deployment is almost the same as the EigenLayer contract dep
 Current aggregator implementation is WIP. The RPC method `Aggregator.SubmitTaskResponse` expects a `SignedTaskResponse` as body and returns 0 if args.TaskResponse is not empty, and 1 otherwise.
 
 Check `common/types/signed_task_response.go` for specification on `SignedTaskResponse`.
+
+### Operator
+
+The following section is instructions on how to create an operator from scratch. 
+
+To generate the operator keys, run:
+```bash
+make operator-generate-keys
+```
+This will output key paths & address, make sure to store them for following steps.
+
+To generate a new operator config, run the command
+```bash
+make operator-generate-config
+```
+Then follow the instructions to populate the file
+
+You will then need to populate two additional values, which are _metadata_url_ and _el_delegation_manager_address_
+
+To get the Delegation Manager Address of the last devnet deployment you can run:
+```bash
+make get-delegation-manager-address
+```
+
+For the metadata URL you can either use our example URL: 
+`https://srosati.github.io/operator_metadata/metadata.json` # TODO: REPLACE WITH YAC repo
+
+Or Deploy your metadata to your own sever (can be GitHub Pages)
+
+You can get devnet Ether for gas by running:
+```bash
+make operator-get-eth
+```
+Make sure to set `OPERATOR_ADDRESS` enviroment variable to your own address before running command.
+This will send 1 eth to that address
+
+Then you can register with EigenLayer by running:
+```bash
+make operator-register-with-eigenlayer
+```
 
 ## FAQ
 

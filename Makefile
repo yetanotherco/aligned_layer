@@ -10,6 +10,9 @@ deps: ## Install deps
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
+install-eigenlayer-cli:
+	@go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
+
 anvil-deploy-eigen-contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
@@ -44,6 +47,17 @@ test:
 
 get-delegation-manager-address:
 	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
+
+operator-generate-keys:
+	@echo "Generating BLS keys"
+	eigenlayer operator keys create --key-type bls --insecure operator
+	@echo "Genrating ecdsa keys"
+	eigenlayer operator keys create --key-type ecdsa --insecure operator
+
+
+operator-generate-config:
+	@echo "Generating operator config"
+	eigenlayer operator config create
 
 operator-get-eth:
 	@echo "Sending funds to operator address on devnet"

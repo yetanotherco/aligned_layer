@@ -6,10 +6,10 @@ if [[ "$OPERATOR_ADDRESS" -eq "" ]]; then
   exit 1
 fi;
 
-# Ethereum sender address
+# Ethereum sender address - anvil address 1
 sender_address="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 
-# Ethereum sender private key
+# Ethereum sender private key - anvil private key 1
 sender_private_key="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 # Recipient address
