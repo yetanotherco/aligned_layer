@@ -94,7 +94,8 @@ func NewConfig(ctx *cli.Context) (*Config, error) {
 	var alignedLayerDeploymentRaw AlignedLayerDeploymentRaw
 	alignedLayerDeploymentFilePath := ctx.GlobalString(AlignedLayerDeploymentFileFlag.Name)
 	if _, err := os.Stat(alignedLayerDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
-		panic("Path " + alignedLayerDeploymentFilePath + " does not exist")
+		logger.Errorf("Path does not exist", "path", alignedLayerDeploymentFilePath)
+		return nil, err
 	}
 	err = sdkutils.ReadJsonConfig(alignedLayerDeploymentFilePath, &alignedLayerDeploymentRaw)
 	if err != nil {
@@ -164,22 +165,29 @@ func NewConfig(ctx *cli.Context) (*Config, error) {
 		AVSServiceManagerAddress:               common.HexToAddress(configRaw.AvsServiceManagerAddress),
 		EnableMetrics:                          configRaw.EnableMetrics,
 	}
-	config.Validate()
+
+	err = config.Validate()
+
+	if err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
-func (c *Config) Validate() {
+func (c *Config) Validate() error {
 	// TODO: make sure every pointer is non-nil
 	if c.EcdsaPrivateKey == nil {
-		panic("Config: EcdsaPrivateKey is required")
+		return errors.New("Config: EcdsaPrivateKey is required")
 	}
 
 	if c.AlignedLayerOperatorStateRetrieverAddr == common.HexToAddress("") {
-		panic("Config: AlignedLayerOperatorStateRetrieverAddr is required")
+		return errors.New("Config: AlignedLayerOperatorStateRetrieverAddr is required")
 	}
 	if c.AlignedLayerServiceManagerAddr == common.HexToAddress("") {
-		panic("Config: AlignedLayerServiceManagerAddr is required")
+		return errors.New("Config: AlignedLayerServiceManagerAddr is required")
 	}
+	return nil
 }
 
 var (
