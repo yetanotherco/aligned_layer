@@ -20,7 +20,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
 
     // EVENTS
-    event NewTaskCreated(uint32 indexed taskIndex, Task task);
+    event NewTaskCreated(uint64 indexed taskIndex, Task task);
 
     // STRUCTS
     struct Task {
@@ -32,7 +32,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     /* STORAGE */
     // The latest task index
-    uint32 public latestTaskNum;
+    uint64 public latestTaskNum;
 
     constructor(
         IAVSDirectory __avsDirectory,

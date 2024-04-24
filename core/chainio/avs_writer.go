@@ -91,7 +91,7 @@ func NewAvsWriterFromConfig() (*AvsWriter, error) {
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, verificationSystemId common.SystemVerificationId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint32, error) {
+func (w *AvsWriter) SendTask(context context.Context, verificationSystemId common.SystemVerificationId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
