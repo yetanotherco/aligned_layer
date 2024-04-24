@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
+	"fmt"
+	"math/big"
 	"os"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -18,7 +20,7 @@ import (
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 )
 
-// Config contains all of the configuration information for a credible squaring aggregators and challengers.
+// Config contains all the configuration information for a credible squaring aggregators and challengers.
 // Operators use a separate config. (see config-files/operator.anvil.yaml)
 type Config struct {
 	EcdsaPrivateKey           *ecdsa.PrivateKey
@@ -27,23 +29,28 @@ type Config struct {
 	EigenMetricsIpPortAddress string
 	// we need the url for the eigensdk currently... eventually standardize api so as to
 	// only take an ethclient or an rpcUrl (and build the ethclient at each constructor site)
-	EthRpcUrl                      string
-	EthHttpClient                  eth.Client
-	EthWsClient                    eth.Client
-	AlignedLayerServiceManagerAddr common.Address
-	BlsPublicKeyCompendiumAddress  common.Address
-	SlasherAddr                    common.Address
-	AggregatorServerIpPortAddr     string
-	RegisterOperatorOnStartup      bool
-	Signer                         signer.Signer
-	OperatorAddress                common.Address
-	AVSServiceManagerAddress       common.Address
-	EnableMetrics                  bool
+	EthRpcUrl                              string
+	EthWsUrl                               string
+	EthHttpClient                          eth.Client
+	EthWsClient                            eth.Client
+	AlignedLayerOperatorStateRetrieverAddr common.Address
+	AlignedLayerServiceManagerAddr         common.Address
+	AlignedLayerRegistryCoordinatorAddr    common.Address
+	ChainId                                *big.Int
+	BlsPublicKeyCompendiumAddress          common.Address
+	SlasherAddr                            common.Address
+	AggregatorServerIpPortAddr             string
+	RegisterOperatorOnStartup              bool
+	Signer                                 signer.Signer
+	OperatorAddress                        common.Address
+	AVSServiceManagerAddress               common.Address
+	EnableMetrics                          bool
 }
 
 // These are read from ConfigFileFlag
 type ConfigRaw struct {
 	Environment                sdklogging.LogLevel `yaml:"environment"`
+	EigenMetricsIpPortAddress  string              `yaml:"eigen_metrics_ip_port_address"`
 	EthRpcUrl                  string              `yaml:"eth_rpc_url"`
 	EthWsUrl                   string              `yaml:"eth_ws_url"`
 	AggregatorServerIpPortAddr string              `yaml:"aggregator_server_ip_port_address"`
@@ -57,32 +64,42 @@ type ConfigRaw struct {
 type AlignedLayerDeploymentRaw struct {
 	Addresses AlignedLayerContractsRaw `json:"addresses"`
 }
+
 type AlignedLayerContractsRaw struct {
-	AlignedLayerServiceManagerAddr string `json:"alignedLayerServiceManager"`
+	AlignedLayerServiceManagerAddr         string `json:"alignedLayerServiceManager"`
+	AlignedLayerRegistryCoordinatorAddr    string `json:"registryCoordinator"`
+	AlignedLayerOperatorStateRetrieverAddr string `json:"operatorStateRetriever"`
 }
 
 // NewConfig parses config file to read from flags or environment variables
-// Note: This config is shared by challenger and aggregator and so we put in the core.
+// Note: This config is shared by challenger and aggregator, so we put in the core.
 // Operator has a different config and is meant to be used by the operator CLI.
 func NewConfig(ctx *cli.Context) (*Config, error) {
 	var configRaw ConfigRaw
+
 	configFilePath := ctx.GlobalString(ConfigFileFlag.Name)
 	if configFilePath != "" {
-		sdkutils.ReadYamlConfig(configFilePath, &configRaw)
+		err := sdkutils.ReadYamlConfig(configFilePath, &configRaw)
+		if err != nil {
+			fmt.Println("Could not read yaml config file")
+			return nil, err
+		}
+	}
+
+	logger, err := sdklogging.NewZapLogger(configRaw.Environment)
+	if err != nil {
+		fmt.Println("Could not initialize logger")
 	}
 
 	var alignedLayerDeploymentRaw AlignedLayerDeploymentRaw
 	alignedLayerDeploymentFilePath := ctx.GlobalString(AlignedLayerDeploymentFileFlag.Name)
 	if _, err := os.Stat(alignedLayerDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
-		panic("Path " + alignedLayerDeploymentFilePath + " does not exist")
-	}
-	err := sdkutils.ReadJsonConfig(alignedLayerDeploymentFilePath, &alignedLayerDeploymentRaw)
-	if err != nil {
+		logger.Errorf("Path does not exist", "path", alignedLayerDeploymentFilePath)
 		return nil, err
 	}
-
-	logger, err := sdklogging.NewZapLogger(configRaw.Environment)
+	err = sdkutils.ReadJsonConfig(alignedLayerDeploymentFilePath, &alignedLayerDeploymentRaw)
 	if err != nil {
+		logger.Errorf("Cannot read aligned layer deployment file", "err", err)
 		return nil, err
 	}
 
@@ -127,30 +144,50 @@ func NewConfig(ctx *cli.Context) (*Config, error) {
 	}
 
 	config := &Config{
-		EcdsaPrivateKey:                ecdsaPrivateKey,
-		Logger:                         logger,
-		EthRpcUrl:                      configRaw.EthRpcUrl,
-		EthHttpClient:                  ethRpcClient,
-		EthWsClient:                    ethWsClient,
-		AlignedLayerServiceManagerAddr: common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerServiceManagerAddr),
-		SlasherAddr:                    common.HexToAddress(""),
-		AggregatorServerIpPortAddr:     configRaw.AggregatorServerIpPortAddr,
-		RegisterOperatorOnStartup:      configRaw.RegisterOperatorOnStartup,
-		Signer:                         privateKeySigner,
-		OperatorAddress:                operatorAddr,
-		BlsPublicKeyCompendiumAddress:  common.HexToAddress(configRaw.BLSPubkeyCompendiumAddr),
-		AVSServiceManagerAddress:       common.HexToAddress(configRaw.AvsServiceManagerAddress),
-		EnableMetrics:                  configRaw.EnableMetrics,
+		EcdsaPrivateKey: ecdsaPrivateKey,
+		//BlsPrivateKey: 						blsPrivateKey
+		Logger:                                 logger,
+		EigenMetricsIpPortAddress:              configRaw.EigenMetricsIpPortAddress,
+		EthRpcUrl:                              configRaw.EthRpcUrl,
+		EthWsUrl:                               configRaw.EthWsUrl,
+		EthHttpClient:                          ethRpcClient,
+		EthWsClient:                            ethWsClient,
+		AlignedLayerOperatorStateRetrieverAddr: common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerOperatorStateRetrieverAddr),
+		AlignedLayerServiceManagerAddr:         common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerServiceManagerAddr),
+		AlignedLayerRegistryCoordinatorAddr:    common.HexToAddress(alignedLayerDeploymentRaw.Addresses.AlignedLayerRegistryCoordinatorAddr),
+		ChainId:                                chainId,
+		BlsPublicKeyCompendiumAddress:          common.HexToAddress(configRaw.BLSPubkeyCompendiumAddr),
+		SlasherAddr:                            common.HexToAddress(""),
+		AggregatorServerIpPortAddr:             configRaw.AggregatorServerIpPortAddr,
+		RegisterOperatorOnStartup:              configRaw.RegisterOperatorOnStartup,
+		Signer:                                 privateKeySigner,
+		OperatorAddress:                        operatorAddr,
+		AVSServiceManagerAddress:               common.HexToAddress(configRaw.AvsServiceManagerAddress),
+		EnableMetrics:                          configRaw.EnableMetrics,
 	}
-	config.Validate()
+
+	err = config.Validate()
+
+	if err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
-func (c *Config) Validate() {
+func (c *Config) Validate() error {
 	// TODO: make sure every pointer is non-nil
-	if c.AlignedLayerServiceManagerAddr == common.HexToAddress("") {
-		panic("Config: AlignedLayerServiceManagerAddr is required")
+	if c.EcdsaPrivateKey == nil {
+		return errors.New("Config: EcdsaPrivateKey is required")
 	}
+
+	if c.AlignedLayerOperatorStateRetrieverAddr == common.HexToAddress("") {
+		return errors.New("Config: AlignedLayerOperatorStateRetrieverAddr is required")
+	}
+	if c.AlignedLayerServiceManagerAddr == common.HexToAddress("") {
+		return errors.New("Config: AlignedLayerServiceManagerAddr is required")
+	}
+	return nil
 }
 
 var (
@@ -180,11 +217,11 @@ var requiredFlags = []cli.Flag{
 	EcdsaPrivateKeyFlag,
 }
 
-var optionalFlags = []cli.Flag{}
+var optionalFlags []cli.Flag
+
+// Flags contains the list of configuration options available to the binary.
+var Flags []cli.Flag
 
 func init() {
 	Flags = append(requiredFlags, optionalFlags...)
 }
-
-// Flags contains the list of configuration options available to the binary.
-var Flags []cli.Flag

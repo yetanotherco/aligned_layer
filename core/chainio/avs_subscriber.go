@@ -1,11 +1,8 @@
 package chainio
 
 import (
-	"fmt"
+	"github.com/yetanotherco/aligned_layer/core/config"
 
-	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 )
 
@@ -25,38 +22,17 @@ type AvsSubscriber struct {
 	logger              sdklogging.Logger
 }
 
-// NOTE(marian): The initialization of the AVS subscriber is hardcoded, but should be loaded from a
-// configuration file.
-// The hardcoded values are:
-//   - logger
-//   - EthWsUrl
-//   - OperatorStateRetrieverAddr
-//   - alignedLayerServiceManagerAddr
+func NewAvsSubscriberFromConfig(c *config.Config) (*AvsSubscriber, error) {
+	avsContractBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.AlignedLayerOperatorStateRetrieverAddr, c.EthWsClient, c.Logger)
 
-// The following function signature was the one in the aligned_layer_testnet repo:
-// func NewAvsSubscriberFromConfig(config *config.Config) (*AvsSubscriber, error) {
-func NewAvsSubscriberFromConfig() (*AvsSubscriber, error) {
-	logger, err := sdklogging.NewZapLogger("development")
 	if err != nil {
-		fmt.Println("Could not initialize logger")
-	}
-	alignedLayerServiceManagerAddr := common.HexToAddress("0xc5a5C42992dECbae36851359345FE25997F5C42d")
-	operatorStateRetrieverAddr := common.HexToAddress("0x9d4454B023096f34B160D6B654540c56A1F81688")
-
-	ethWsClient, err := eth.NewClient("ws://localhost:8545")
-	if err != nil {
-		panic(err)
-	}
-
-	avsContractBindings, err := NewAvsServiceBindings(alignedLayerServiceManagerAddr, operatorStateRetrieverAddr, ethWsClient, logger)
-	if err != nil {
-		logger.Errorf("Failed to create contract bindings", "err", err)
+		c.Logger.Errorf("Failed to create contract bindings", "err", err)
 		return nil, err
 	}
 
 	return &AvsSubscriber{
 		AvsContractBindings: avsContractBindings,
-		logger:              logger,
+		logger:              c.Logger,
 	}, nil
 }
 
