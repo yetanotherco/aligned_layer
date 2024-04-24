@@ -1,0 +1,7 @@
+output:
+  formats:
+    - format: colored-line-number
+      path: stderr
+    - format: github-actions
+      path: stderr
+
