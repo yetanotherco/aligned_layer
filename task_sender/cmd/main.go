@@ -48,7 +48,7 @@ func main() {
 		Usage:       "Send a task to the verifier",
 		Description: "Service that sends proofs to verify by operator nodes.",
 		Flags:       flags,
-		Action:      sendTaskAction,
+		Action:      taskSenderMain,
 	}
 
 	err := app.Run(os.Args)
@@ -57,7 +57,7 @@ func main() {
 	}
 }
 
-func sendTaskAction(c *cli.Context) error {
+func taskSenderMain(c *cli.Context) error {
 	verificationSystem, err := pkg.GetVerificationSystem(c.String(systemFlag.Name))
 	if err != nil {
 		return fmt.Errorf("error getting verification system: %v", err)
