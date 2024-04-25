@@ -8,7 +8,6 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/metrics"
 	"github.com/Layr-Labs/eigensdk-go/signerv2"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -25,12 +24,22 @@ var (
 		Value:    100,
 		Required: true,
 	}
+	StrategyDeploymentOutputFlag = cli.StringFlag{
+		Name:     "strategy-deployment-output",
+		Usage:    "Path to strategy deployment output file",
+		Required: true,
+	}
+	EigenLayerDeploymentOutputFlag = cli.StringFlag{
+		Name:     "eigenlayer-deployment-output",
+		Usage:    "Path to eigenlayer deployment output file",
+		Required: true,
+	}
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "Operator deposit into strategy"
-	app.Flags = append(config.Flags, AmountFlag)
+	app.Flags = append(config.Flags, AmountFlag, StrategyDeploymentOutputFlag, EigenLayerDeploymentOutputFlag)
 	app.Action = depositIntoStrategy
 
 	err := app.Run(os.Args)
@@ -41,20 +50,38 @@ func main() {
 }
 
 func depositIntoStrategy(ctx *cli.Context) error {
+	amount := big.NewInt(int64(ctx.Int(AmountFlag.Name)))
+	if amount.Cmp(big.NewInt(0)) <= 0 {
+		log.Println("Amount must be greater than 0")
+		return nil
+	}
+
 	configuration, err := config.NewConfig(ctx)
 	if err != nil {
+		log.Println("Failed to read configuration", "err", err)
 		return err
 	}
 
-	// TODO: read values from output
-	delegationManagerAddr := common.HexToAddress("0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9")
-	avsDirectoryAddr := common.HexToAddress("0x5FC8d32690cc91D4c39d9d3abcBD16989F875707")
-	strategyAddr := common.HexToAddress("0x09635F643e140090A9A8Dcd712eD6285858ceBef")
-	amount := big.NewInt(int64(ctx.Int("amount")))
+	eigenLayerContracts, err := config.ReadEigenLayerContracts(ctx.String(EigenLayerDeploymentOutputFlag.Name))
+	if err != nil {
+		configuration.Logger.Error("Failed to read eigenlayer contracts", "err", err)
+		return err
+	}
+
+	strategyContracts, err := config.ReadStrategyContracts(ctx.String(StrategyDeploymentOutputFlag.Name))
+	if err != nil {
+		configuration.Logger.Error("Failed to read strategy contracts", "err", err)
+		return err
+	}
+
+	delegationManagerAddr := eigenLayerContracts.Addresses.DelegationManagerAddr
+	avsDirectoryAddr := eigenLayerContracts.Addresses.AVSDirectoryAddr
+	strategyAddr := strategyContracts.StrategyAddr
 
 	eigenLayerReader, err := elcontracts.BuildELChainReader(delegationManagerAddr, avsDirectoryAddr,
 		configuration.EthHttpClient, configuration.Logger)
 	if err != nil {
+		configuration.Logger.Error("Failed to build ELChainReader", "err", err)
 		return err
 	}
 
@@ -85,18 +112,13 @@ func depositIntoStrategy(ctx *cli.Context) error {
 		return err
 	}
 
-	// TODO: actually wait
+	// TODO: actually wait, need instrumented client
 	//configuration.EthHttpClient.WaitForTransactionReceipt(context.Background(), tx.Hash())
 	// sleep
 	time.Sleep(2 * time.Second)
-	//
-	//signerFn, err := signerv2.PrivateKeySignerFn(configuration.EcdsaPrivateKey, configuration.ChainId)
-	//if err != nil {
-	//	return err
-	//}
+
 	signerConfig := signerv2.Config{
 		PrivateKey: configuration.EcdsaPrivateKey,
-		Password:   "",
 	}
 	signerFn, _, err := signerv2.SignerFromConfig(signerConfig, configuration.ChainId)
 	if err != nil {

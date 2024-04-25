@@ -71,6 +71,36 @@ type AlignedLayerContractsRaw struct {
 	AlignedLayerOperatorStateRetrieverAddr string `json:"operatorStateRetriever"`
 }
 
+type EigenLayerContractsRaw struct {
+	Addresses struct {
+		DelegationManagerAddr common.Address `json:"delegationManager"`
+		AVSDirectoryAddr      common.Address `json:"avsDirectory"`
+	} `json:"addresses"`
+}
+
+type StrategyContractsRaw struct {
+	ERC20Addr    common.Address `json:"erc20Mock"`
+	StrategyAddr common.Address `json:"erc20MockStrategy"`
+}
+
+func ReadEigenLayerContracts(filePath string) (*EigenLayerContractsRaw, error) {
+	var raw EigenLayerContractsRaw
+	err := sdkutils.ReadJsonConfig(filePath, &raw)
+	if err != nil {
+		return nil, err
+	}
+	return &raw, nil
+}
+
+func ReadStrategyContracts(filePath string) (*StrategyContractsRaw, error) {
+	var raw StrategyContractsRaw
+	err := sdkutils.ReadJsonConfig(filePath, &raw)
+	if err != nil {
+		return nil, err
+	}
+	return &raw, nil
+}
+
 // NewConfig parses config file to read from flags or environment variables
 // Note: This config is shared by challenger and aggregator, so we put in the core.
 // Operator has a different config and is meant to be used by the operator CLI.

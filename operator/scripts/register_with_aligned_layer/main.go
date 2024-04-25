@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/json"
+	"encoding/hex"
 	clitypes "github.com/Layr-Labs/eigenlayer-cli/pkg/types"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
@@ -53,12 +53,6 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 		return err
 	}
 
-	configJson, err := json.MarshalIndent(nodeConfig, "", "  ")
-	if err != nil {
-		return err
-	}
-	log.Println("Config:", string(configJson))
-
 	ecdsaPrivateKeyPassword := os.Getenv("ECDSA_PRIVATE_KEY_PASSWORD")
 	if ecdsaPrivateKeyPassword == "" {
 		log.Println("ECDSA_PRIVATE_KEY_PASSWORD environment variable not set, using empty string")
@@ -68,6 +62,8 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	configuration.Logger.Info("Registering operator", "private_key", hex.EncodeToString(privateKey.D.Bytes()))
 
 	blsPrivateKeyPassword := os.Getenv("BLS_PRIVATE_KEY_PASSWORD")
 	if blsPrivateKeyPassword == "" {
@@ -82,35 +78,19 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 	quorumNumbers := []byte{0}
 
 	// Generate salt and expiry
-
 	privateKeyBytes := []byte(blsKeyPair.PrivKey.String())
 	salt := [32]byte{}
 
 	copy(salt[:], crypto.Keccak256([]byte("churn"), []byte(time.Now().String()), quorumNumbers, privateKeyBytes))
 
-	//ethClient, err := ethclient.Dial("http://localhost:8545")
-	//if err != nil {
-	//	return err
-	//}
-	//curBlockNum, err := ethClient.BlockNumber(context.Background())
-	//if err != nil {
-	//	return err
-	//}
-	//curBlock, err := ethClient.BlockByNumber(context.Background(), big.NewInt(int64(curBlockNum)))
-	//if err != nil {
-	//	return err
-	//}
-
-	//salt := [32]byte{123}
-
 	expiry := big.NewInt(time.Now().Add(10 * time.Minute).Unix())
 	quorumNumbersArr := types.QuorumNums{0}
 	socket := "Not Needed"
 
-	//expiry := big.NewInt((time.Now().Add(10 * time.Minute)).Unix())
 	err = RegisterOperator(context.Background(), configuration,
 		blsKeyPair, socket, quorumNumbersArr, privateKey, salt, expiry)
 	if err != nil {
+		configuration.Logger.Error("Failed to register operator", "err", err)
 		return err
 	}
 
@@ -133,6 +113,7 @@ func RegisterOperator(
 ) error {
 	writer, err := chainio.NewAvsWriterFromConfig(configuration)
 	if err != nil {
+		configuration.Logger.Error("Failed to create AVS writer", "err", err)
 		return err
 	}
 
@@ -141,6 +122,7 @@ func RegisterOperator(
 		quorumNumbers, socket)
 
 	if err != nil {
+		configuration.Logger.Error("Failed to register operator", "err", err)
 		return err
 	}
 

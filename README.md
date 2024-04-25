@@ -84,7 +84,34 @@ Make sure to have aggregator running on another terminal.
 
 ### Operator Specific Commands
 
-TODO
+Note that you need to be registered with EigenLayer before registering 
+with AlignedLayer or depositing into strategy.
+See the Operator section below for more information.
+
+To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
+```bash
+make operator-full-registration
+```
+
+To get devnet Ether for gas by running:
+```bash
+make operator-get-eth
+```
+
+To deposit into strategy, and register with AlignedLayer, run:
+```bash
+make operator-deposit-and-register
+```
+
+To just deposit into the strategy, run:
+```bash
+make operator-deposit-into-strategy
+```
+
+To just register an operator with AlignedLayer, run:
+```bash
+make operator-register-with-aligned-layer
+```
 
 ## Notes on project creation / devnet deployment
 
@@ -122,6 +149,9 @@ Check `common/types/signed_task_response.go` for specification on `SignedTaskRes
 ### Operator
 
 The following section is instructions on how to create an operator from scratch. 
+You can find more details on the [EigenLayer documentation](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#create-and-list-keys).
+
+To create an operator, you will need to generate keys, generate a config, and register with EigenLayer.
 
 To generate the operator keys, run:
 ```bash

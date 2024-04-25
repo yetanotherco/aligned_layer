@@ -54,7 +54,6 @@ operator-generate-keys:
 	@echo "Genrating ecdsa keys"
 	eigenlayer operator keys create --key-type ecdsa --insecure operator
 
-
 operator-generate-config:
 	@echo "Generating operator config"
 	eigenlayer operator config create
@@ -63,8 +62,31 @@ operator-get-eth:
 	@echo "Sending funds to operator address on devnet"
 	@. ./scripts/fund_operator_devnet.sh
 
-operator-register-with-eigenlayer:
+operator-register-with-eigen-layer:
+	@echo "Registering operator with EigenLayer"
 	@eigenlayer operator register operator/config/devnet/operator.yaml
+
+operator-deposit-into-strategy:
+	@echo "Depositing into strategy"
+	@go run operator/scripts/deposit_into_strategy/main.go \
+		--config operator/config/devnet/config.yaml \
+		--aligned-layer-deployment contracts/script/output/devnet/alignedlayer_deployment_output.json \
+		--eigenlayer-deployment-output contracts/script/output/devnet/eigenlayer_deployment_output.json \
+		--strategy-deployment-output contracts/script/output/devnet/strategy_deployment_output.json \
+		--ecdsa-private-key 0xa912f3a909c689629d8ef202ebd71ea3779b8c4c538a70d1daf421dfb6e25bd0 \
+		--amount 1000
+
+operator-register-with-aligned-layer:
+	@echo "Registering operator with AlignedLayer"
+	@go run operator/scripts/register_with_aligned_layer/main.go \
+		--config operator/config/devnet/config.yaml \
+		--aligned-layer-deployment contracts/script/output/devnet/alignedlayer_deployment_output.json \
+		--operator-config operator/config/devnet/operator.yaml \
+		--ecdsa-private-key 0xa912f3a909c689629d8ef202ebd71ea3779b8c4c538a70d1daf421dfb6e25bd0
+
+operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
+
+operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-deposit-into-strategy operator-register-with-aligned-layer
 
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
