@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
@@ -39,22 +40,48 @@ var (
 		Required: false,
 		Usage:    "path to the `VERIFICATION KEY FILE`",
 	}
+	intervalFlag = &cli.IntFlag{
+		Name:    "interval",
+		Aliases: []string{"t"},
+		Value:   1,
+		Usage:   "the `INTERVAL` in seconds to send tasks",
+	}
 )
 
-var flags = []cli.Flag{
+var sendTaskFlags = []cli.Flag{
 	systemFlag,
 	proofFlag,
 	publicInputFlag,
 	verificationKeyFlag,
 }
 
+var loopTasksFlags = []cli.Flag{
+	systemFlag,
+	proofFlag,
+	publicInputFlag,
+	verificationKeyFlag,
+	intervalFlag,
+}
+
 func main() {
 	app := &cli.App{
-		Name:        "Aligned Layer Task Sender",
-		Usage:       "Send a task to verifier",
-		Description: "Service that sends proofs to verify by operator nodes.",
-		Flags:       flags,
-		Action:      taskSenderMain,
+		Name: "Aligned Layer Task Sender",
+		Commands: []*cli.Command{
+			{
+				Name:        "send-task",
+				Usage:       "Send a single task to the verifier",
+				Description: "Service that sends proofs to verify by operator nodes.",
+				Flags:       sendTaskFlags,
+				Action:      taskSenderMain,
+			},
+			{
+				Name:        "loop-tasks",
+				Usage:       "Send a task every `INTERVAL` seconds",
+				Description: "Service that sends proofs to verify by operator nodes.",
+				Flags:       loopTasksFlags,
+				Action:      taskSenderLoopMain,
+			},
+		},
 	}
 
 	err := app.Run(os.Args)
@@ -93,6 +120,22 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func taskSenderLoopMain(c *cli.Context) error {
+	interval := c.Int(intervalFlag.Name)
+
+	if interval < 1 {
+		return fmt.Errorf("interval must be greater than 0")
+	}
+
+	for {
+		err := taskSenderMain(c)
+		if err != nil {
+			return err
+		}
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
 }
 
 func SendTask(task *types.Task) error {

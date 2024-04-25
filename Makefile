@@ -52,4 +52,14 @@ send-plonk-proof: ## Send a PLONK proof using the task sender
 	go run task_sender/cmd/main.go \
 		--proving-system plonk \
 		--proof task_sender/test_examples/proof.base64 \
-		--public-input task_sender/test_examples/public_inputs.base64
+		--public-input task_sender/test_examples/public_inputs.base64 \
+		2>&1 | zap-pretty
+
+send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seconds
+	go run task_sender/cmd/main.go loop-tasks \
+		--system plonk \
+		--proof task_sender/test_examples/proof.base64 \
+		--public-input task_sender/test_examples/public_inputs.base64 \
+		--interval 10 \
+		2>&1 | zap-pretty
+
