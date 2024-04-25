@@ -85,7 +85,7 @@ make aggregator-send-dummy-responses
 ```
 Make sure to have aggregator running on another terminal.
 
-### Operator Specific Commands
+### Operator Specific Commands for Devnet (local network)
 
 Note that you need to be registered with EigenLayer before registering 
 with AlignedLayer or depositing into strategy.
