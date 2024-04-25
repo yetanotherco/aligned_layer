@@ -48,3 +48,9 @@ send-plonk-proof: ## Send a PLONK proof using the task sender
 		--system plonk \
 		--proof task_sender/test_examples/proof.base64 \
 		--public-input task_sender/test_examples/public_inputs.base64
+
+
+__DEPLOYMENT__:
+deploy-aligned-contracts: ## Deploy Aligned Contracts
+	@echo "Deploying Aligned Contracts..."
+	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh

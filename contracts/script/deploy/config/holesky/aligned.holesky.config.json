@@ -1,0 +1,18 @@
+{
+    "chainInfo": {
+      "chainId": 17000
+    },
+    "permissions" : {
+      "owner": "<owner_address>",
+      "aggregator": "<aggregator_address>",
+      "upgrader": "<upgrader_address>",
+      "churner": "<churner_address>",
+      "ejector": "<ejector_address>",
+      "deployer": "<deployer_address>",
+      "initalPausedStatus": 0
+    },
+    "minimumStakes": [],  
+    "strategyWeights": [],
+    "operatorSetParams": [],
+    "uri": ""
+  }
