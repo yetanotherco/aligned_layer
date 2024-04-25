@@ -13,7 +13,14 @@ cd ../../
 sleep 1
 
 # Deploy the contracts
-forge script script/deploy/AlignedLayerDeployer.s.sol --rpc-url "http://localhost:8545" --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" --broadcast
+forge script script/deploy/AlignedLayerDeployer.s.sol \
+    ./script/output/devnet/eigenlayer_deployment_output.json \
+    ./script/deploy/config/devnet/aligned.devnet.config.json \
+    ./script/output/devnet/alignedlayer_deployment_output.json \
+    --rpc-url "http://localhost:8545" \
+    --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+    --broadcast \
+    --sig "run(string memory existingDeploymentInfoPath, string memory deployConfigPath, string memory outputPath)"
 
 # Kill the anvil process to save state
 pkill anvil

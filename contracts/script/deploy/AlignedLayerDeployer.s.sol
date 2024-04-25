@@ -28,17 +28,6 @@ import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 
 contract AlignedLayerDeployer is ExistingDeploymentParser {
-    // TODO: take paths as input
-    string public existingDeploymentInfoPath =
-        string(
-            bytes("./script/output/devnet/eigenlayer_deployment_output.json")
-        );
-    string public deployConfigPath =
-        string(bytes("./script/deploy/devnet/aligned.devnet.config.json"));
-    string public outputPath =
-        string(
-            bytes("./script/output/devnet/alignedlayer_deployment_output.json")
-        );
 
     ProxyAdmin public alignedLayerProxyAdmin;
     address public alignedLayerOwner;
@@ -62,7 +51,11 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
     IndexRegistry public indexRegistryImplementation;
     StakeRegistry public stakeRegistryImplementation;
 
-    function run() external {
+    function run(
+        string memory existingDeploymentInfoPath,
+        string memory deployConfigPath,
+        string memory outputPath
+    ) external {
         // get info on all the already-deployed contracts
         _parseDeployedContracts(existingDeploymentInfoPath);
 
@@ -291,10 +284,13 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         __verifyInitalizations(config_data);
 
         //write output
-        _writeOutput(config_data);
+        _writeOutput(config_data, outputPath);
     }
 
-    function xtest() external {
+    function xtest(
+        string memory existingDeploymentInfoPath,
+        string memory deployConfigPath
+    ) external {
         // get info on all the already-deployed contracts
         _parseDeployedContracts(existingDeploymentInfoPath);
 
@@ -714,7 +710,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
     }
 
-    function _writeOutput(string memory config_data) internal {
+    function _writeOutput(string memory config_data, string memory outputPath) internal {
         string memory parent_object = "parent object";
 
         string memory deployed_addresses = "addresses";

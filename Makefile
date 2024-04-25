@@ -32,9 +32,9 @@ anvil-start:
 # TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	go run aggregator/cmd/main.go --config aggregator/config/config.yaml \
-		--aligned-layer-deployment contracts/script/output/devnet/alignedlayer_deployment_output.json \
-		--ecdsa-private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+	go run aggregator/cmd/main.go --base-config-file config-files/config.yaml \
+		--aggregator-config-file aggregator/config/config.yaml \
+		--operator-config-file operator/config.yaml \
 
 aggregator-send-dummy-responses:
 	@echo "Sending dummy responses to Aggregator..."
@@ -71,20 +71,16 @@ operator-register-with-eigen-layer:
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
 	@go run operator/scripts/deposit_into_strategy/main.go \
-		--config operator/config/devnet/config.yaml \
-		--aligned-layer-deployment contracts/script/output/devnet/alignedlayer_deployment_output.json \
-		--eigenlayer-deployment-output contracts/script/output/devnet/eigenlayer_deployment_output.json \
+		--base-config-file operator/config/devnet/config.yaml \
+		--operator-config-file operator/config/devnet/operator.yaml \
 		--strategy-deployment-output contracts/script/output/devnet/strategy_deployment_output.json \
-		--ecdsa-private-key 0xa912f3a909c689629d8ef202ebd71ea3779b8c4c538a70d1daf421dfb6e25bd0 \
 		--amount 1000
 
 operator-register-with-aligned-layer:
 	@echo "Registering operator with AlignedLayer"
 	@go run operator/scripts/register_with_aligned_layer/main.go \
-		--config operator/config/devnet/config.yaml \
-		--aligned-layer-deployment contracts/script/output/devnet/alignedlayer_deployment_output.json \
-		--operator-config operator/config/devnet/operator.yaml \
-		--ecdsa-private-key 0xa912f3a909c689629d8ef202ebd71ea3779b8c4c538a70d1daf421dfb6e25bd0
+		--base-config-file operator/config/devnet/config.yaml \
+		--operator-config-file operator/config/devnet/operator.yaml
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
 
@@ -104,3 +100,7 @@ send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seco
 		--public-input task_sender/test_examples/public_inputs.base64 \
 		--interval 10
 
+__DEPLOYMENT__:
+deploy-aligned-contracts: ## Deploy Aligned Contracts
+	@echo "Deploying Aligned Contracts..."
+	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh

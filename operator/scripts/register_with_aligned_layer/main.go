@@ -19,19 +19,11 @@ import (
 	"time"
 )
 
-var (
-	OperatorConfigFileFlag = cli.StringFlag{
-		Name:     "operator-config",
-		Required: true,
-		Usage:    "Load operator configuration from `FILE`",
-	}
-)
-
 func main() {
 	app := cli.NewApp()
 	app.Name = "aligned_layer"
 	app.Usage = "Tool for registering operator to AlignedLayer AVS"
-	app.Flags = append(config.Flags, OperatorConfigFileFlag)
+	app.Flags = config.Flags
 	app.Action = registerWithAlignedLayer
 
 	err := app.Run(os.Args)
@@ -41,14 +33,12 @@ func main() {
 }
 
 func registerWithAlignedLayer(ctx *cli.Context) error {
-	configuration, err := config.NewConfig(ctx)
-	if err != nil {
-		return err
-	}
+	configuration := config.NewOperatorConfig(ctx.String(config.BaseConfigFileFlag.Name),
+		ctx.String(config.OperatorConfigFileFlag.Name))
 
-	configPath := ctx.GlobalString(OperatorConfigFileFlag.Name)
+	configPath := ctx.GlobalString(config.OperatorConfigFileFlag.Name)
 	nodeConfig := clitypes.OperatorConfig{}
-	err = sdkutils.ReadYamlConfig(configPath, &nodeConfig)
+	err := sdkutils.ReadYamlConfig(configPath, &nodeConfig)
 	if err != nil {
 		return err
 	}
@@ -63,7 +53,7 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 		return err
 	}
 
-	configuration.Logger.Info("Registering operator", "private_key", hex.EncodeToString(privateKey.D.Bytes()))
+	configuration.BaseConfig.Logger.Info("Registering operator", "private_key", hex.EncodeToString(privateKey.D.Bytes()))
 
 	blsPrivateKeyPassword := os.Getenv("BLS_PRIVATE_KEY_PASSWORD")
 	if blsPrivateKeyPassword == "" {
@@ -87,10 +77,10 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 	quorumNumbersArr := types.QuorumNums{0}
 	socket := "Not Needed"
 
-	err = RegisterOperator(context.Background(), configuration,
+	err = RegisterOperator(context.Background(), configuration.BaseConfig,
 		blsKeyPair, socket, quorumNumbersArr, privateKey, salt, expiry)
 	if err != nil {
-		configuration.Logger.Error("Failed to register operator", "err", err)
+		configuration.BaseConfig.Logger.Error("Failed to register operator", "err", err)
 		return err
 	}
 
@@ -103,7 +93,7 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 // will be returned.
 func RegisterOperator(
 	ctx context.Context,
-	configuration *config.Config,
+	configuration *config.BaseConfig,
 	keypair *bls.KeyPair,
 	socket string,
 	quorumNumbers types.QuorumNums,

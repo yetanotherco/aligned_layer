@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/elcontracts"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/wallet"
 	"github.com/Layr-Labs/eigensdk-go/chainio/txmgr"
 	"github.com/Layr-Labs/eigensdk-go/metrics"
 	"github.com/Layr-Labs/eigensdk-go/signerv2"
+	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -29,17 +32,12 @@ var (
 		Usage:    "Path to strategy deployment output file",
 		Required: true,
 	}
-	EigenLayerDeploymentOutputFlag = cli.StringFlag{
-		Name:     "eigenlayer-deployment-output",
-		Usage:    "Path to eigenlayer deployment output file",
-		Required: true,
-	}
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "Operator deposit into strategy"
-	app.Flags = append(config.Flags, AmountFlag, StrategyDeploymentOutputFlag, EigenLayerDeploymentOutputFlag)
+	app.Flags = append(config.Flags, AmountFlag, StrategyDeploymentOutputFlag)
 	app.Action = depositIntoStrategy
 
 	err := app.Run(os.Args)
@@ -56,59 +54,46 @@ func depositIntoStrategy(ctx *cli.Context) error {
 		return nil
 	}
 
-	configuration, err := config.NewConfig(ctx)
-	if err != nil {
-		log.Println("Failed to read configuration", "err", err)
-		return err
-	}
+	configuration := config.NewOperatorConfig(ctx.String(config.BaseConfigFileFlag.Name),
+		ctx.String(config.OperatorConfigFileFlag.Name))
 
-	eigenLayerContracts, err := config.ReadEigenLayerContracts(ctx.String(EigenLayerDeploymentOutputFlag.Name))
-	if err != nil {
-		configuration.Logger.Error("Failed to read eigenlayer contracts", "err", err)
-		return err
-	}
+	strategyContracts := newStrategyDeploymentConfig(ctx.String(StrategyDeploymentOutputFlag.Name))
 
-	strategyContracts, err := config.ReadStrategyContracts(ctx.String(StrategyDeploymentOutputFlag.Name))
-	if err != nil {
-		configuration.Logger.Error("Failed to read strategy contracts", "err", err)
-		return err
-	}
-
-	delegationManagerAddr := eigenLayerContracts.Addresses.DelegationManagerAddr
-	avsDirectoryAddr := eigenLayerContracts.Addresses.AVSDirectoryAddr
+	delegationManagerAddr := configuration.BaseConfig.EigenLayerDeploymentConfig.DelegationManagerAddr
+	avsDirectoryAddr := configuration.BaseConfig.EigenLayerDeploymentConfig.AVSDirectoryAddr
 	strategyAddr := strategyContracts.StrategyAddr
 
 	eigenLayerReader, err := elcontracts.BuildELChainReader(delegationManagerAddr, avsDirectoryAddr,
-		configuration.EthHttpClient, configuration.Logger)
+		configuration.BaseConfig.EthRpcClient, configuration.BaseConfig.Logger)
 	if err != nil {
-		configuration.Logger.Error("Failed to build ELChainReader", "err", err)
+		configuration.BaseConfig.Logger.Error("Failed to build ELChainReader", "err", err)
 		return err
 	}
 
 	_, tokenAddr, err := eigenLayerReader.GetStrategyAndUnderlyingToken(&bind.CallOpts{}, strategyAddr)
 	if err != nil {
-		configuration.Logger.Error("Failed to fetch strategy contract", "err", err)
+		configuration.BaseConfig.Logger.Error("Failed to fetch strategy contract", "err", err)
 		return err
 	}
 
-	avsReader, err := chainio.NewAvsReaderFromConfig(configuration)
+	avsReader, err := chainio.NewAvsReaderFromConfig(configuration.BaseConfig)
 	if err != nil {
 		return err
 	}
 	contractErc20Mock, err := avsReader.GetErc20Mock(tokenAddr)
 	if err != nil {
-		configuration.Logger.Error("Failed to fetch ERC20Mock contract", "err", err)
+		configuration.BaseConfig.Logger.Error("Failed to fetch ERC20Mock contract", "err", err)
 		return err
 	}
 
-	avsWriter, err := chainio.NewAvsWriterFromConfig(configuration)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(configuration.BaseConfig)
 	if err != nil {
 		return err
 	}
 	txOpts := avsWriter.Signer.GetTxOpts()
-	_, err = contractErc20Mock.Mint(txOpts, configuration.OperatorAddress, amount)
+	_, err = contractErc20Mock.Mint(txOpts, configuration.Operator.Address, amount)
 	if err != nil {
-		configuration.Logger.Errorf("Error assembling Mint tx")
+		configuration.BaseConfig.Logger.Errorf("Error assembling Mint tx")
 		return err
 	}
 
@@ -118,28 +103,61 @@ func depositIntoStrategy(ctx *cli.Context) error {
 	time.Sleep(2 * time.Second)
 
 	signerConfig := signerv2.Config{
-		PrivateKey: configuration.EcdsaPrivateKey,
+		PrivateKey: configuration.BaseConfig.EcdsaPrivateKey,
 	}
-	signerFn, _, err := signerv2.SignerFromConfig(signerConfig, configuration.ChainId)
+	signerFn, _, err := signerv2.SignerFromConfig(signerConfig, configuration.BaseConfig.ChainId)
 	if err != nil {
 		return err
 	}
-	w, err := wallet.NewPrivateKeyWallet(configuration.EthHttpClient, signerFn, configuration.OperatorAddress, configuration.Logger)
+	w, err := wallet.NewPrivateKeyWallet(configuration.BaseConfig.EthRpcClient, signerFn,
+		configuration.Operator.Address, configuration.BaseConfig.Logger)
+
 	if err != nil {
 		return err
 	}
-	txMgr := txmgr.NewSimpleTxManager(w, configuration.EthHttpClient, configuration.Logger, configuration.OperatorAddress)
+
+	txMgr := txmgr.NewSimpleTxManager(w, configuration.BaseConfig.EthRpcClient, configuration.BaseConfig.Logger,
+		configuration.Operator.Address)
 	eigenMetrics := metrics.NewNoopMetrics()
 	eigenLayerWriter, err := elcontracts.BuildELChainWriter(delegationManagerAddr, avsDirectoryAddr,
-		configuration.EthHttpClient, configuration.Logger, eigenMetrics, txMgr)
+		configuration.BaseConfig.EthRpcClient, configuration.BaseConfig.Logger, eigenMetrics, txMgr)
 	if err != nil {
 		return err
 	}
 
 	_, err = eigenLayerWriter.DepositERC20IntoStrategy(context.Background(), strategyAddr, amount)
 	if err != nil {
-		configuration.Logger.Errorf("Error depositing into strategy")
+		configuration.BaseConfig.Logger.Errorf("Error depositing into strategy")
 		return err
 	}
 	return nil
+}
+
+type StrategyDeploymentConfig struct {
+	ERC20Mock    common.Address `json:"erc20Mock"`
+	StrategyAddr common.Address `json:"erc20MockStrategy"`
+}
+
+func newStrategyDeploymentConfig(strategyDeploymentFilePath string) *StrategyDeploymentConfig {
+	if _, err := os.Stat(strategyDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Setup eigen layer deployment file does not exist")
+	}
+
+	var strategyDeploymentConfig StrategyDeploymentConfig
+	err := sdkutils.ReadJsonConfig(strategyDeploymentFilePath, &strategyDeploymentConfig)
+
+	if err != nil {
+		log.Fatal("Error reading eigen layer deployment config: ", err)
+	}
+
+	if strategyDeploymentConfig.ERC20Mock == common.HexToAddress("0x0") {
+		log.Fatal("ERC20Mock address not found in strategy deployment config")
+	}
+
+	if strategyDeploymentConfig.StrategyAddr == common.HexToAddress("0x0") {
+		log.Fatal("Strategy address not found in strategy deployment config")
+	}
+
+	return &strategyDeploymentConfig
+
 }
