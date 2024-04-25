@@ -114,10 +114,9 @@ var (
 		Required: true,
 		Usage:    "Load operator configurations from `FILE`",
 	}
-	// Optional Flags
 )
 
-func NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath string) (*AggregatorConfig, error) {
+func NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath string) *AggregatorConfig {
 
 	if _, err := os.Stat(baseConfigFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup base config file does not exist")
@@ -127,14 +126,14 @@ func NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath string) (*
 		log.Fatal("Setup aggregator config file does not exist")
 	}
 
-	baseConfig, err := newBaseConfig(baseConfigFilePath)
+	baseConfig := newBaseConfig(baseConfigFilePath)
 
-	if err != nil {
-		log.Fatal("Error reading base config: ", err)
+	if baseConfig == nil {
+		log.Fatal("Error reading base config: ")
 	}
 
 	var aggregatorConfigFromYaml AggregatorConfig
-	err = sdkutils.ReadYamlConfig(aggregatorConfigFilePath, &aggregatorConfigFromYaml)
+	err := sdkutils.ReadYamlConfig(aggregatorConfigFilePath, &aggregatorConfigFromYaml)
 
 	if err != nil {
 		log.Fatal("Error reading aggregator config: ", err)
@@ -143,11 +142,11 @@ func NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath string) (*
 	return &AggregatorConfig{
 		BaseConfig: baseConfig,
 		Aggregator: aggregatorConfigFromYaml.Aggregator,
-	}, nil
+	}
 
 }
 
-func NewOperatorConfig(baseConfigFilePath, operatorConfigFilePath string) (*OperatorConfig, error) {
+func NewOperatorConfig(baseConfigFilePath, operatorConfigFilePath string) *OperatorConfig {
 
 	if _, err := os.Stat(baseConfigFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup base config file does not exist")
@@ -157,14 +156,14 @@ func NewOperatorConfig(baseConfigFilePath, operatorConfigFilePath string) (*Oper
 		log.Fatal("Setup operator config file does not exist")
 	}
 
-	baseConfig, err := newBaseConfig(baseConfigFilePath)
+	baseConfig := newBaseConfig(baseConfigFilePath)
 
-	if err != nil {
-		log.Fatal("Error reading base config: ", err)
+	if baseConfig == nil {
+		log.Fatal("Error reading base config: ")
 	}
 
 	var operatorConfigFromYaml OperatorConfig
-	err = sdkutils.ReadYamlConfig(operatorConfigFilePath, &operatorConfigFromYaml)
+	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &operatorConfigFromYaml)
 
 	if err != nil {
 		log.Fatal("Error reading operator config: ", err)
@@ -173,11 +172,11 @@ func NewOperatorConfig(baseConfigFilePath, operatorConfigFilePath string) (*Oper
 	return &OperatorConfig{
 		BaseConfig: baseConfig,
 		Operator:   operatorConfigFromYaml.Operator,
-	}, nil
+	}
 
 }
 
-func newBaseConfig(baseConfigFilePath string) (*BaseConfig, error) {
+func newBaseConfig(baseConfigFilePath string) *BaseConfig {
 
 	if _, err := os.Stat(baseConfigFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup base config file does not exist")
@@ -201,9 +200,9 @@ func newBaseConfig(baseConfigFilePath string) (*BaseConfig, error) {
 		log.Fatal("Setup aligned layer deployment file does not exist")
 	}
 
-	alignedLayerDeploymentConfig, err := newAlignedLayerDeploymentConfig(alignedLayerDeploymentConfigFilePath)
+	alignedLayerDeploymentConfig := newAlignedLayerDeploymentConfig(alignedLayerDeploymentConfigFilePath)
 
-	if err != nil {
+	if alignedLayerDeploymentConfig == nil {
 		log.Fatal("Error reading aligned layer deployment config: ", err)
 	}
 
@@ -217,9 +216,9 @@ func newBaseConfig(baseConfigFilePath string) (*BaseConfig, error) {
 		log.Fatal("Setup eigen layer deployment file does not exist")
 	}
 
-	eigenLayerDeploymentConfig, err := newEigenLayerDeploymentConfig(baseConfigFromYaml.EigenLayerDeploymentConfigFilePath)
+	eigenLayerDeploymentConfig := newEigenLayerDeploymentConfig(baseConfigFromYaml.EigenLayerDeploymentConfigFilePath)
 
-	if err != nil {
+	if eigenLayerDeploymentConfig == nil {
 		log.Fatal("Error reading eigen layer deployment config: ", err)
 	}
 
@@ -273,14 +272,14 @@ func newBaseConfig(baseConfigFilePath string) (*BaseConfig, error) {
 
 	if err != nil {
 		logger.Error("Cannot get chainId from eth rpc client", "err", err)
-		return nil, err
+		return nil
 	}
 
 	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaPrivateKey, chainId)
 
 	if err != nil {
 		logger.Error("Cannot create private key signer from ecdsa private key and chain id", "err", err)
-		return nil, err
+		return nil
 	}
 
 	if baseConfigFromYaml.EigenMetricsIpPortAddress == "" {
@@ -300,10 +299,10 @@ func newBaseConfig(baseConfigFilePath string) (*BaseConfig, error) {
 		EigenMetricsIpPortAddress:    baseConfigFromYaml.EigenMetricsIpPortAddress,
 		ChainId:                      chainId,
 		Signer:                       privateKeySigner,
-	}, nil
+	}
 }
 
-func newAlignedLayerDeploymentConfig(alignedLayerDeploymentFilePath string) (*AlignedLayerDeploymentConfig, error) {
+func newAlignedLayerDeploymentConfig(alignedLayerDeploymentFilePath string) *AlignedLayerDeploymentConfig {
 
 	if _, err := os.Stat(alignedLayerDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup aligned layer deployment file does not exist")
@@ -332,10 +331,10 @@ func newAlignedLayerDeploymentConfig(alignedLayerDeploymentFilePath string) (*Al
 		AlignedLayerServiceManagerAddr:         alignedLayerDeploymentConfigFromJson.Addresses.AlignedLayerServiceManagerAddr,
 		AlignedLayerRegistryCoordinatorAddr:    alignedLayerDeploymentConfigFromJson.Addresses.AlignedLayerRegistryCoordinatorAddr,
 		AlignedLayerOperatorStateRetrieverAddr: alignedLayerDeploymentConfigFromJson.Addresses.AlignedLayerOperatorStateRetrieverAddr,
-	}, nil
+	}
 }
 
-func newEigenLayerDeploymentConfig(eigenLayerDeploymentFilePath string) (*EigenLayerDeploymentConfig, error) {
+func newEigenLayerDeploymentConfig(eigenLayerDeploymentFilePath string) *EigenLayerDeploymentConfig {
 
 	if _, err := os.Stat(eigenLayerDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup eigen layer deployment file does not exist")
@@ -364,7 +363,7 @@ func newEigenLayerDeploymentConfig(eigenLayerDeploymentFilePath string) (*EigenL
 		DelegationManagerAddr: eigenLayerDeploymentConfigFromJson.Addresses.DelegationManagerAddr,
 		AVSDirectoryAddr:      eigenLayerDeploymentConfigFromJson.Addresses.AVSDirectoryAddr,
 		SlasherAddr:           eigenLayerDeploymentConfigFromJson.Addresses.SlasherAddr,
-	}, nil
+	}
 }
 
 var requiredFlags = []cli.Flag{

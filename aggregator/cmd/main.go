@@ -38,13 +38,13 @@ func aggregatorMain(context *cli.Context) {
 	baseConfigFilePath := context.String("base-config-file")
 	aggregatorConfigFilePath := context.String("aggregator-config-file")
 
-	aggregatorConfig, err := config.NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath)
+	aggregatorConfig := config.NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath)
 
-	if err != nil {
-		log.Fatal("Error creating aggregator config: ", err)
+	if aggregatorConfig == nil {
+		log.Fatal("Error creating aggregator config: ")
 	}
 
-	err = rpc_server.Serve(aggregatorConfig)
+	err := rpc_server.Serve(aggregatorConfig)
 
 	if err != nil {
 		log.Fatal("Error starting aggregator server: ", err)
