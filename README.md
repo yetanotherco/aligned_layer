@@ -89,6 +89,29 @@ This will send a dummy task to the ServiceManager. Make sure to have the Service
 
 The plonk proof is located at `task_sender/test_examples`.
 
+## Deployment
+
+To deploy the contracts to Testnet/Mainnet, you will need to set environment variables
+in a .env file in the same directory as the deployment script (`contracts/scripts/`). 
+The variables are as follows:
+
+| Variable                      | Description                                                           |
+|-------------------------------|-----------------------------------------------------------------------|
+| RPC_URL                       | The RPC URL of the network you want to deploy to.                     |
+| PRIVATE_KEY                   | The private key of the account you want to deploy the contracts with. |
+| EXISTING_DEPLOYMENT_INFO_PATH | The path to the file containing the deployment info about EigenLayer. |
+| DEPLOY_CONFIG_PATH            | The path to the deployment config file.                               |
+| OUTPUT_PATH                   | The path to the file where the deployment info will be saved.         |
+
+Then run the following command:
+
+```bash 
+make deploy-aligned-contracts
+```
+
+To get the existing deployment info about EigenLayer, you can download it
+from [EigenLayer repo](https://github.com/Layr-Labs/eigenlayer-contracts/tree/dev/script/configs).
+
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
