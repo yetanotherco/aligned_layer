@@ -40,10 +40,6 @@ func aggregatorMain(context *cli.Context) {
 
 	aggregatorConfig := config.NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath)
 
-	if aggregatorConfig == nil {
-		log.Fatal("Error creating aggregator config: ")
-	}
-
 	err := rpc_server.Serve(aggregatorConfig)
 
 	if err != nil {
