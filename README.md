@@ -193,7 +193,7 @@ make get-delegation-manager-address
 ```
 
 For the metadata URL you can either use our example URL: 
-`https://srosati.github.io/operator_metadata/metadata.json` # TODO: REPLACE WITH YAC repo
+`https://yetanotherco.github.io/operator_metadata/`
 
 Or Deploy your metadata to your own sever (can be GitHub Pages)
 
