@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	systemFlag = &cli.StringFlag{
+	provingSystemFlag = &cli.StringFlag{
 		Name:     "proving-system",
 		Aliases:  []string{"s"},
 		Required: true,
@@ -49,14 +49,14 @@ var (
 )
 
 var sendTaskFlags = []cli.Flag{
-	systemFlag,
+	provingSystemFlag,
 	proofFlag,
 	publicInputFlag,
 	verificationKeyFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
-	systemFlag,
+	provingSystemFlag,
 	proofFlag,
 	publicInputFlag,
 	verificationKeyFlag,
@@ -91,14 +91,14 @@ func main() {
 }
 
 func taskSenderMain(c *cli.Context) error {
-	verificationSystem, err := parseProvingSystem(c.String(systemFlag.Name))
+	provingSystem, err := parseProvingSystem(c.String(provingSystemFlag.Name))
 	if err != nil {
 		return fmt.Errorf("error getting verification system: %v", err)
 	}
 
 	proofFile, err := os.ReadFile(c.String(proofFlag.Name))
 	if err != nil {
-		return fmt.Errorf("error loading proofFile file: %v", err)
+		return fmt.Errorf("error loading proof file: %v", err)
 	}
 
 	publicInputFile, err := os.ReadFile(c.String(publicInputFlag.Name))
@@ -114,7 +114,7 @@ func taskSenderMain(c *cli.Context) error {
 		}
 	}
 
-	err = SendTask(types.NewTask(verificationSystem, proofFile, publicInputFile, verificationKeyFile))
+	err = SendTask(types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile))
 	if err != nil {
 		return err
 	}
@@ -165,6 +165,6 @@ func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 		return common.GnarkPlonkBls12_381, nil
 	default:
 		var unknownValue common.ProvingSystemId
-		return unknownValue, fmt.Errorf("unsupported proof system: %s", provingSystemStr)
+		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)
 	}
 }
