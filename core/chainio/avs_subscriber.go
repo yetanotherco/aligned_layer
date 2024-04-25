@@ -22,8 +22,8 @@ type AvsSubscriber struct {
 	logger              sdklogging.Logger
 }
 
-func NewAvsSubscriberFromConfig(c *config.Config) (*AvsSubscriber, error) {
-	avsContractBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.AlignedLayerOperatorStateRetrieverAddr, c.EthWsClient, c.Logger)
+func NewAvsSubscriberFromConfig(c *config.BaseConfig) (*AvsSubscriber, error) {
+	avsContractBindings, err := NewAvsServiceBindings(c.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.EthWsClient, c.Logger)
 
 	if err != nil {
 		c.Logger.Errorf("Failed to create contract bindings", "err", err)

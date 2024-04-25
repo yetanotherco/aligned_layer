@@ -11,9 +11,9 @@ type Aggregator struct {
 	logger logging.Logger
 }
 
-func New(config config.Config) *Aggregator {
+func New(config config.AggregatorConfig) *Aggregator {
 	return &Aggregator{
-		logger: config.Logger,
+		logger: config.BaseConfig.Logger,
 	}
 }
 

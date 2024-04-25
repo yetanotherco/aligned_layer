@@ -22,13 +22,13 @@ type AvsWriter struct {
 	Client              eth.Client
 }
 
-func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
+func NewAvsWriterFromConfig(c *config.BaseConfig) (*AvsWriter, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
 		EthHttpUrl:                 c.EthRpcUrl,
 		EthWsUrl:                   c.EthWsUrl,
-		RegistryCoordinatorAddr:    c.AlignedLayerRegistryCoordinatorAddr.String(),
-		OperatorStateRetrieverAddr: c.AlignedLayerOperatorStateRetrieverAddr.String(),
+		RegistryCoordinatorAddr:    c.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
+		OperatorStateRetrieverAddr: c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
 		AvsName:                    "AlignedLayer",
 		PromMetricsIpPortAddress:   c.EigenMetricsIpPortAddress,
 	}
@@ -40,7 +40,7 @@ func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
 		return nil, err
 	}
 
-	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.AlignedLayerOperatorStateRetrieverAddr, c.EthHttpClient, c.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.EthRpcClient, c.Logger)
 
 	if err != nil {
 		c.Logger.Error("Cannot create avs service bindings", "err", err)
@@ -61,7 +61,7 @@ func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
 		AvsContractBindings: avsServiceBindings,
 		logger:              c.Logger,
 		Signer:              privateKeySigner,
-		Client:              c.EthHttpClient,
+		Client:              c.EthRpcClient,
 	}, nil
 }
 

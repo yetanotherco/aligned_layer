@@ -35,21 +35,13 @@ func main() {
 func aggregatorMain(context *cli.Context) {
 	log.Println("Starting aggregator...")
 
-	setupConfigFilePath := context.String("setup-config")
-	baseConfig, err := config.NewBaseConfig(setupConfigFilePath)
+	baseConfigFilePath := context.String("base-config-file")
+	aggregatorConfigFilePath := context.String("aggregator-config-file")
+
+	aggregatorConfig, err := config.NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath)
 
 	if err != nil {
-		log.Fatal("Error reading base config: ", err)
-	}
-
-	configFilePath := context.String("config")
-	alignedLayerDeploymentFilePath := context.String("aligned-layer-deployment")
-	ecdsaPrivateKeyString := context.String("ecdsa-private-key")
-
-	aggregatorConfig, err := config.NewConfig(configFilePath, alignedLayerDeploymentFilePath, ecdsaPrivateKeyString, baseConfig.Logger, baseConfig.EthRpcClient, baseConfig.EthWsClient)
-
-	if err != nil {
-		log.Fatal("Error reading aggregator config: ", err)
+		log.Fatal("Error creating aggregator config: ", err)
 	}
 
 	err = rpc_server.Serve(aggregatorConfig)
