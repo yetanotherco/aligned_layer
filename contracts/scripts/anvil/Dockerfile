@@ -1,17 +1,14 @@
-# WIP: This Dockerfile is a work in progress and is not yet functional
-
 FROM alpine:latest
+
+RUN apk add --no-cache curl bash
+
+RUN curl -L https://foundry.paradigm.xyz | bash
+
+ENV PATH="/root/.foundry/bin:$PATH"
 
 WORKDIR /app
 
-COPY . /app/
+COPY contracts/ /app/contracts/scripts/anvil/state
 
-RUN ls -la /app/
 
-RUN chmod +x /app/anvil/deploy_aligned_contracts.sh /app/anvil/deploy_eigen_contracts.sh
-
-RUN ls -la /app/anvil/
-
-RUN sh /app/anvil/deploy_aligned_contracts.sh
-
-CMD ["sh", "-c", "sudo /app/anvil/deploy_aligned_contracts.sh && /app/anvil/deploy_eigen_contracts.sh"]
+CMD ["make", "anvil-start"]
