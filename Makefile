@@ -92,7 +92,15 @@ operator-full-registration: operator-get-eth operator-register-with-eigen-layer 
 
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
-	go run task_sender/cmd/main.go \
+	go run task_sender/cmd/main.go send-task \
 		--system plonk \
-		--proof task_sender/test-examples/proof.base64 \
-		--public-input task_sender/test-examples/public_inputs.base64
+		--proof task_sender/test_examples/proof.base64 \
+		--public-input task_sender/test_examples/public_inputs.base64
+
+send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seconds
+	go run task_sender/cmd/main.go loop-tasks \
+		--system plonk \
+		--proof task_sender/test_examples/proof.base64 \
+		--public-input task_sender/test_examples/public_inputs.base64 \
+		--interval 10
+
