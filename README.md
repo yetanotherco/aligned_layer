@@ -112,6 +112,31 @@ make deploy-aligned-contracts
 To get the existing deployment info about EigenLayer, you can download it
 from [EigenLayer repo](https://github.com/Layr-Labs/eigenlayer-contracts/tree/dev/script/configs).
 
+You need to complete the `DEPLOY_CONFIG_PATH` file with the following information:
+
+```json
+{
+    "chainInfo": {
+      "chainId": "<chain_id>"
+    },
+    "permissions" : {
+      "owner": "<owner_address>",
+      "aggregator": "<aggregator_address>",
+      "upgrader": "<upgrader_address>",
+      "churner": "<churner_address>",
+      "ejector": "<ejector_address>",
+      "deployer": "<deployer_address>",
+      "initalPausedStatus": 0
+    },
+    "minimumStakes": [],  
+    "strategyWeights": [],
+    "operatorSetParams": [],
+    "uri": ""
+  }
+```
+
+You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
+
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
