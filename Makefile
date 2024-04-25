@@ -28,9 +28,9 @@ anvil-start:
 # TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	go run aggregator/cmd/main.go --config aggregator/config/config.yaml \
-		--aligned-layer-deployment contracts/script/output/devnet/alignedlayer_deployment_output.json \
-		--ecdsa-private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+	go run aggregator/cmd/main.go --base-config-file config-files/config.yaml \
+		--aggregator-config-file aggregator/config/config.yaml \
+		--operator-config-file operator/config.yaml \
 
 aggregator-send-dummy-responses:
 	@echo "Sending dummy responses to Aggregator..."

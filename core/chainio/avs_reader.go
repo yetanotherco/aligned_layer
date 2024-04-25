@@ -14,13 +14,13 @@ type AvsReader struct {
 	logger              logging.Logger
 }
 
-func NewAvsReaderFromConfig(c *config.Config) (*AvsReader, error) {
+func NewAvsReaderFromConfig(c *config.BaseConfig) (*AvsReader, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
 		EthHttpUrl:                 c.EthRpcUrl,
 		EthWsUrl:                   c.EthWsUrl,
-		RegistryCoordinatorAddr:    c.AlignedLayerRegistryCoordinatorAddr.String(),
-		OperatorStateRetrieverAddr: c.AlignedLayerOperatorStateRetrieverAddr.String(),
+		RegistryCoordinatorAddr:    c.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
+		OperatorStateRetrieverAddr: c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
 		AvsName:                    "AlignedLayer",
 		PromMetricsIpPortAddress:   c.EigenMetricsIpPortAddress,
 	}
@@ -29,7 +29,7 @@ func NewAvsReaderFromConfig(c *config.Config) (*AvsReader, error) {
 
 	avsRegistryReader := clients.AvsRegistryChainReader
 
-	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.AlignedLayerOperatorStateRetrieverAddr, c.EthHttpClient, c.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.EthRpcClient, c.Logger)
 	if err != nil {
 		return nil, err
 	}
