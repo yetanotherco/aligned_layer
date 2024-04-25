@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.12;
+pragma solidity =0.8.12;
 
 import "eigenlayer-core/contracts/permissions/PauserRegistry.sol";
 import "eigenlayer-core/contracts/strategies/StrategyBase.sol";
