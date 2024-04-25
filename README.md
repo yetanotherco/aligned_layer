@@ -89,6 +89,54 @@ This will send a dummy task to the ServiceManager. Make sure to have the Service
 
 The plonk proof is located at `task_sender/test_examples`.
 
+## Deployment
+
+To deploy the contracts to Testnet/Mainnet, you will need to set environment variables
+in a .env file in the same directory as the deployment script (`contracts/scripts/`). 
+The variables are as follows:
+
+| Variable                      | Description                                                           |
+|-------------------------------|-----------------------------------------------------------------------|
+| RPC_URL                       | The RPC URL of the network you want to deploy to.                     |
+| PRIVATE_KEY                   | The private key of the account you want to deploy the contracts with. |
+| EXISTING_DEPLOYMENT_INFO_PATH | The path to the file containing the deployment info about EigenLayer. |
+| DEPLOY_CONFIG_PATH            | The path to the deployment config file.                               |
+| OUTPUT_PATH                   | The path to the file where the deployment info will be saved.         |
+
+Then run the following command:
+
+```bash 
+make deploy-aligned-contracts
+```
+
+To get the existing deployment info about EigenLayer, you can download it
+from [EigenLayer repo](https://github.com/Layr-Labs/eigenlayer-contracts/tree/dev/script/configs).
+
+You need to complete the `DEPLOY_CONFIG_PATH` file with the following information:
+
+```json
+{
+    "chainInfo": {
+      "chainId": "<chain_id>"
+    },
+    "permissions" : {
+      "owner": "<owner_address>",
+      "aggregator": "<aggregator_address>",
+      "upgrader": "<upgrader_address>",
+      "churner": "<churner_address>",
+      "ejector": "<ejector_address>",
+      "deployer": "<deployer_address>",
+      "initalPausedStatus": 0
+    },
+    "minimumStakes": [],  
+    "strategyWeights": [],
+    "operatorSetParams": [],
+    "uri": ""
+  }
+```
+
+You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
+
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
