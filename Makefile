@@ -44,11 +44,17 @@ test:
 
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
-	go run task_sender/cmd/main.go \
+	go run task_sender/cmd/main.go send-task \
 		--system plonk \
 		--proof task_sender/test_examples/proof.base64 \
 		--public-input task_sender/test_examples/public_inputs.base64
 
+send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seconds
+	go run task_sender/cmd/main.go loop-tasks \
+		--system plonk \
+		--proof task_sender/test_examples/proof.base64 \
+		--public-input task_sender/test_examples/public_inputs.base64 \
+		--interval 10
 
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
