@@ -44,8 +44,7 @@ func main() {
 }
 
 func operatorMain(ctx *cli.Context) error {
-
-	logger, err := sdklogging.NewZapLogger("development")
+	logger, err := sdklogging.NewZapLogger("production")
 	if err != nil {
 		return err
 	}
@@ -80,7 +79,7 @@ func operatorMain(ctx *cli.Context) error {
 			sub = avsSubscriber.SubscribeToNewTasks(newTaskCreatedChan)
 		case newTaskCreatedLog := <-newTaskCreatedChan:
 
-			log.Println("The received task's index is: %d", newTaskCreatedLog.TaskIndex)
+			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
 
 			// taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
 			// signedTaskResponse, err := o.SignTaskResponse(taskResponse)

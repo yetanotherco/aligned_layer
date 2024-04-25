@@ -24,7 +24,6 @@ type AvsWriter struct {
 }
 
 func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
-
 	buildAllConfig := clients.BuildAllConfig{
 		EthHttpUrl:                 c.EthRpcUrl,
 		EthWsUrl:                   c.EthWsUrl,
@@ -39,7 +38,6 @@ func NewAvsWriterFromConfig(c *config.Config) (*AvsWriter, error) {
 	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerServiceManagerAddr, c.AlignedLayerOperatorStateRetrieverAddr, c.EthHttpClient, c.Logger)
 
 	privateKeySigner, err := signer.NewPrivateKeySigner(c.EcdsaPrivateKey, c.ChainId)
-
 	if err != nil {
 		c.Logger.Error("Cannot create signer", "err", err)
 		return nil, err
@@ -82,7 +80,6 @@ func (w *AvsWriter) SendTask(context context.Context, verificationSystemId commo
 	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
 	if err != nil {
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
-
 	}
 	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
 }

@@ -38,7 +38,8 @@ aggregator-send-dummy-responses:
 
 operator-start:
 	@echo "Starting Operator..."
-	go run operator/cmd/main.go --config operator/config/config.yaml
+	go run operator/cmd/main.go --config operator/config/config.yaml \
+	2>&1 | zap-pretty
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh
