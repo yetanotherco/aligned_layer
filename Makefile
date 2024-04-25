@@ -53,7 +53,7 @@ get-delegation-manager-address:
 operator-generate-keys:
 	@echo "Generating BLS keys"
 	eigenlayer operator keys create --key-type bls --insecure operator
-	@echo "Genrating ecdsa keys"
+	@echo "Generating ECDSA keys"
 	eigenlayer operator keys create --key-type ecdsa --insecure operator
 
 operator-generate-config:
