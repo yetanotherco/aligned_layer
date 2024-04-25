@@ -51,15 +51,18 @@ When changing EigenLayer contracts, the anvil state needs to be updated with:
 make anvil-deploy-eigen-contracts
 ```
 
+You will also need to redeploy the MockStrategy & MockERC20 contracts:
+
+```bash
+make anvil-deploy-mock-strategy
+```
+
+Then make sure to change the `0_strategy` in the `script/deploy/devnet/aligned.devnet.config.json` file to the new address.
+
 When changing AlignedLayer contracts, the anvil state needs to be updated with:
 
 ```bash
 make anvil-deploy-aligned-contracts
-```
-
-To redeploy all contracts, run:
-```bash
-make anvil-deploy-all
 ```
 
 Also make sure to re-generate the Go smart contract bindings:
@@ -139,6 +142,12 @@ The addresses of the relevant contracts after running the anvil script is dumped
 The state is backuped on ```contracts/scripts/anvil/state```
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
+
+### Strategies
+
+The strategy contract is a contract where operators deposit restaked tokens.
+For test purposes, we have a dummy strategy contract that takes a Mock ERC20 token.
+
 
 ### Aggregator
 

@@ -17,11 +17,13 @@ anvil-deploy-eigen-contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
+anvil-deploy-mock-strategy:
+	@echo "Deploying Mock Strategy..."
+	. contracts/scripts/anvil/deploy_mock_strategy.sh
+
 anvil-deploy-aligned-contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
-
-anvil-deploy-all: anvil-deploy-eigen-contracts anvil-deploy-aligned-contracts
 
 anvil-start:
 	@echo "Starting Anvil..."
