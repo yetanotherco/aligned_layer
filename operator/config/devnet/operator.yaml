@@ -1,12 +1,12 @@
 operator:
-    address: 0x7656302c27ec57d6b177a606614257808f63821e
-    earnings_receiver_address: 0x7656302c27ec57d6b177a606614257808f63821e
+    address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+    earnings_receiver_address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
     delegation_approver_address: "0x0000000000000000000000000000000000000000"
     staker_opt_out_window_blocks: 0
     metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
 el_delegation_manager_address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
 eth_rpc_url: http://localhost:8545
-private_key_store_path: ./operator/config/devnet/keys/operator.ecdsa.key.json
-bls_private_key_store_path: ./operator/config/devnet/keys/operator.bls.key.json
+private_key_store_path: ./operator/config/devnet/keys/anvil.ecdsa.key.json
+bls_private_key_store_path: ./operator/config/devnet/keys/anvil.bls.key.json
 signer_type: local_keystore
 chain_id: 31337
