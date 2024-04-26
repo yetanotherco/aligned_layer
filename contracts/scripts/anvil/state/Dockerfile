@@ -23,4 +23,4 @@ RUN curl -L https://foundry.paradigm.xyz | bash
 
 RUN /home/aligned-layer/.foundry/bin/foundryup
 
-CMD    ["/home/aligned-layer/.foundry/bin/anvil",  "--load-state", "/app/alignedlayer-deployed-anvil-state.json"]
+CMD ["/home/aligned-layer/.foundry/bin/anvil", "--load-state", "/app/alignedlayer-deployed-anvil-state.json"]
