@@ -32,4 +32,15 @@ defmodule Explorer.Application do
     ExplorerWeb.Endpoint.config_change(changed, removed)
     :ok
   end
+
+end
+
+defmodule MyERC20Token do
+  use Ethers.Contract,
+    abi_file: "lib/abi/UriCoin.json",
+    default_address: "0x206f772c702D4B249F153853a4c94b071f98AA58"
+
+  def get_erc20_name do
+    MyERC20Token.name() |> Ethers.call()
+  end
 end

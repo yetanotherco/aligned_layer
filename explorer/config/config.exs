@@ -60,6 +60,19 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Configures Ethers, to interact with Ethereum contracts
+config :ethers,
+  rpc_client: Ethereumex.HttpClient, # Defaults to: Ethereumex.HttpClient
+  keccak_module: ExKeccak, # Defaults to: ExKeccak
+  json_module: Jason, # Defaults to: Jason
+  secp256k1_module: ExSecp256k1, # Defaults to: ExSecp256k1
+  default_signer: nil, # Defaults to: nil, see Ethers.Signer for more info
+  default_signer_opts: [] # Defaults to: []
+
+# Using Ethereumex, you can specify a default JSON-RPC server url here for all requests.
+config :ethereumex,
+  url: "https://eth-sepolia.g.alchemy.com/v2/_vb8phUYNf2WDwohwjqxMlL5AwsYIXaK"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

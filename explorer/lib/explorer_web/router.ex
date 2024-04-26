@@ -18,6 +18,8 @@ defmodule ExplorerWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    get "/test", TestController, :test
   end
 
   # Other scopes may use custom stacks.
