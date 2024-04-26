@@ -47,7 +47,7 @@ func aggregatorMain(context *cli.Context) error {
 		return err
 	}
 
-	// Listen for tasks in a separate goroutine
+	// Listen for new task created in the ServiceManager contract in a separate goroutine
 	go func() {
 		listenErr := aggregator.SubscribeToNewTasks()
 		if listenErr != nil {
@@ -56,8 +56,8 @@ func aggregatorMain(context *cli.Context) error {
 		}
 	}()
 
-	// Serve the aggregator in the main goroutine
-	err = aggregator.Serve()
+	// Listens for task responses signed by operators
+	err = aggregator.ServeOperators()
 	if err != nil {
 		aggregatorConfig.BaseConfig.Logger.Error("Error serving aggregator", "err", err)
 		return err

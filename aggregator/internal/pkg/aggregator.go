@@ -47,13 +47,14 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
+	// Subscriber to Ethereum serviceManager task events
 	taskSubscriber, err := avsSubscriber.AvsContractBindings.ServiceManager.WatchNewTaskCreated(&bind.WatchOpts{},
 		newTaskCreatedChan, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	aggregatorConfig.BaseConfig.Logger.Info("Listening for new tasks...")
+	aggregatorConfig.BaseConfig.Logger.Info("Created subscriber for task creation events")
 
 	tasks := make(map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask)
 	taskResponses := make(map[uint64]*TaskResponsesWithStatus, 0)

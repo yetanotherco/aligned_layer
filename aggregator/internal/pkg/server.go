@@ -7,7 +7,7 @@ import (
 	"net/rpc"
 )
 
-func (agg *Aggregator) Serve() error {
+func (agg *Aggregator) ServeOperators() error {
 	// Registers a new RPC server
 	err := rpc.Register(agg)
 	if err != nil {
@@ -18,7 +18,7 @@ func (agg *Aggregator) Serve() error {
 	rpc.HandleHTTP()
 
 	// Start listening for requests on aggregator address
-	// Serve accepts incoming HTTP connections on the listener, creating
+	// ServeOperators accepts incoming HTTP connections on the listener, creating
 	// a new service goroutine for each. The service goroutines read requests
 	// and then call handler to reply to them
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Starting RPC server on address", "address",
