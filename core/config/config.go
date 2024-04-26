@@ -255,7 +255,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 		log.Fatal("Error reading base config: ")
 	}
 
-	ecdsaConfig := newEcdsaConfig(configFilePath, baseConfig.ChainId)
+	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
 	if ecdsaConfig == nil {
 		log.Fatal("Error reading ecdsa config: ")
 	}
@@ -294,7 +294,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		log.Fatal("Error reading base config: ")
 	}
 
-	ecdsaConfig := newEcdsaConfig(configFilePath, baseConfig.ChainId)
+	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
 	if ecdsaConfig == nil {
 		log.Fatal("Error reading ecdsa config: ")
 	}
@@ -336,7 +336,7 @@ func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
 		log.Fatal("Error reading base config: ")
 	}
 
-	ecdsaConfig := newEcdsaConfig(configFilePath, baseConfig.ChainId)
+	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
 	if ecdsaConfig == nil {
 		log.Fatal("Error reading ecdsa config: ")
 	}
@@ -347,7 +347,7 @@ func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
 	}
 }
 
-func newEcdsaConfig(ecdsaConfigFilePath string, chainId *big.Int) *EcdsaConfig {
+func NewEcdsaConfig(ecdsaConfigFilePath string, chainId *big.Int) *EcdsaConfig {
 	if _, err := os.Stat(ecdsaConfigFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup ecdsa config file does not exist")
 	}

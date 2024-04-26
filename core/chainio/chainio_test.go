@@ -16,9 +16,10 @@ import (
 const ConfigPath = "../../config-files/config-test.yaml"
 
 func TestAvsReader(t *testing.T) {
-	mockConfig := config.NewAvsConfig(ConfigPath)
+	baseConfig := config.NewBaseConfig(ConfigPath)
+	ecdsaConfig := config.NewEcdsaConfig(ConfigPath, baseConfig.ChainId)
 
-	avsReader, err := chainio.NewAvsReaderFromConfig(mockConfig)
+	avsReader, err := chainio.NewAvsReaderFromConfig(baseConfig, ecdsaConfig)
 	if err != nil {
 		t.Errorf("could not create AVS reader")
 	}
@@ -34,9 +35,10 @@ func TestAvsReader(t *testing.T) {
 }
 
 func TestAvsWriter(t *testing.T) {
-	mockConfig := config.NewAvsConfig(ConfigPath)
+	baseConfig := config.NewBaseConfig(ConfigPath)
+	ecdsaConfig := config.NewEcdsaConfig(ConfigPath, baseConfig.ChainId)
 
-	avsWriter, err := chainio.NewAvsWriterFromConfig(mockConfig)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(baseConfig, ecdsaConfig)
 	if err != nil {
 		t.Errorf("could not create AVS reader")
 	}
@@ -52,9 +54,9 @@ func TestAvsWriter(t *testing.T) {
 }
 
 func TestAvsSubscriber(t *testing.T) {
-	mockConfig := config.NewAvsConfig(ConfigPath)
+	baseConfig := config.NewBaseConfig(ConfigPath)
 
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(mockConfig)
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(baseConfig)
 	if err != nil {
 		t.Errorf("could not create AVS reader")
 	}
