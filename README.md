@@ -45,7 +45,7 @@ The above command starts a local anvil chain from a [saved state](./tests/integr
 
 ### Start aggregator
 
-Make sure to set config file variables to correct value at `aggregator/config/config.yaml`.
+Make sure to set config file variables to correct value at `config-files/config.yaml`.
 
 To start the aggregator, run:
 ```bash
@@ -129,7 +129,6 @@ Update the config in:
 
 To register with EigenLayer, run:
 ```bash
-
 make operator-register-with-eigen-layer
 ```
 
@@ -279,6 +278,11 @@ Then you can register with EigenLayer by running:
 ```bash
 make operator-register-with-eigen-layer
 ```
+
+### Config File
+In `config-files/config.yaml` you can find the configuration file for the project.
+
+There is a section for operator, aggregator, and keys. Also, there are common variables for the project.
 
 ## FAQ
 

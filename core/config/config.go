@@ -6,7 +6,7 @@ import (
 	"errors"
 	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"log"
 	"math/big"
 	"os"
@@ -27,11 +27,8 @@ type BaseConfig struct {
 	EthWsUrl                     string
 	EthRpcClient                 eth.Client
 	EthWsClient                  eth.Client
-	EcdsaPrivateKey              *ecdsa.PrivateKey
-	BlsPrivateKey                *bls.PrivateKey
 	EigenMetricsIpPortAddress    string
 	ChainId                      *big.Int
-	Signer                       signer.Signer
 }
 
 type BaseConfigFromYaml struct {
@@ -40,11 +37,30 @@ type BaseConfigFromYaml struct {
 	Environment                          sdklogging.LogLevel `yaml:"environment"`
 	EthRpcUrl                            string              `yaml:"eth_rpc_url"`
 	EthWsUrl                             string              `yaml:"eth_ws_url"`
-	EcdsaPrivateKeyStorePath             string              `yaml:"ecdsa_private_key_store_path"`
-	EcdsaPrivateKeyStorePassword         string              `yaml:"ecdsa_private_key_store_password"`
-	BlsPrivateKeyStorePath               string              `yaml:"bls_private_key_store_path"`
-	BlsPrivateKeyStorePassword           string              `yaml:"bls_private_key_store_password"`
 	EigenMetricsIpPortAddress            string              `yaml:"eigen_metrics_ip_port_address"`
+}
+
+type EcdsaConfig struct {
+	PrivateKey *ecdsa.PrivateKey
+	Signer     signer.Signer
+}
+
+type EcdsaConfigFromYaml struct {
+	Ecdsa struct {
+		PrivateKeyStorePath     string `yaml:"private_key_store_path"`
+		PrivateKeyStorePassword string `yaml:"private_key_store_password"`
+	} `yaml:"ecdsa"`
+}
+
+type BlsConfig struct {
+	KeyPair *bls.KeyPair
+}
+
+type BlsConfigFromYaml struct {
+	Bls struct {
+		PrivateKeyStorePath     string `yaml:"private_key_store_path"`
+		PrivateKeyStorePassword string `yaml:"private_key_store_password"`
+	} `yaml:"bls"`
 }
 
 type AlignedLayerDeploymentConfig struct {
@@ -76,9 +92,20 @@ type EigenLayerDeploymentConfigFromJson struct {
 }
 
 type AggregatorConfig struct {
-	BaseConfig *BaseConfig
+	BaseConfig  *BaseConfig
+	EcdsaConfig *EcdsaConfig
+	BlsConfig   *BlsConfig
+	Aggregator  struct {
+		ServerIpPortAddress           string
+		BlsPublicKeyCompendiumAddress common.Address
+		AvsServiceManagerAddress      common.Address
+		EnableMetrics                 bool
+	}
+}
+
+type AggregatorConfigFromYaml struct {
 	Aggregator struct {
-		AggregatorServerIpPortAddress string         `yaml:"aggregator_server_ip_port_address"`
+		ServerIpPortAddress           string         `yaml:"server_ip_port_address"`
 		BlsPublicKeyCompendiumAddress common.Address `yaml:"bls_public_key_compendium_address"`
 		AvsServiceManagerAddress      common.Address `yaml:"avs_service_manager_address"`
 		EnableMetrics                 bool           `yaml:"enable_metrics"`
@@ -86,8 +113,21 @@ type AggregatorConfig struct {
 }
 
 type OperatorConfig struct {
-	BaseConfig *BaseConfig
-	Operator   struct {
+	BaseConfig  *BaseConfig
+	EcdsaConfig *EcdsaConfig
+	BlsConfig   *BlsConfig
+	Operator    struct {
+		Address                   common.Address
+		EarningsReceiverAddress   common.Address
+		DelegationApproverAddress common.Address
+		StakerOptOutWindowBlocks  int
+		MetadataUrl               string
+		RegisterOperatorOnStartup bool
+	}
+}
+
+type OperatorConfigFromYaml struct {
+	Operator struct {
 		Address                   common.Address `yaml:"address"`
 		EarningsReceiverAddress   common.Address `yaml:"earnings_receiver_address"`
 		DelegationApproverAddress common.Address `yaml:"delegation_approver_address"`
@@ -95,104 +135,41 @@ type OperatorConfig struct {
 		MetadataUrl               string         `yaml:"metadata_url"`
 		RegisterOperatorOnStartup bool           `yaml:"register_operator_on_startup"`
 	} `yaml:"operator"`
+	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
+	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
+}
+
+type TaskSenderConfig struct {
+	BaseConfig  *BaseConfig
+	EcdsaConfig *EcdsaConfig
+}
+
+type TaskSenderConfigFromYaml struct {
+	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 }
 
 var (
-	// Required Flags
-	BaseConfigFileFlag = cli.StringFlag{
-		Name:     "base-config-file",
+	ConfigFileFlag = &cli.StringFlag{
+		Name:     "config",
 		Required: true,
 		Usage:    "Load base configurations from `FILE`",
 	}
-	// Optional Flags
-	AggregatorConfigFileFlag = cli.StringFlag{
-		Name:     "aggregator-config-file",
-		Required: false,
-		Usage:    "Load aggregator configurations from `FILE`",
-	}
-	OperatorConfigFileFlag = cli.StringFlag{
-		Name:     "operator-config-file",
-		Required: false,
-		Usage:    "Load operator configurations from `FILE`",
-	}
 )
 
-func NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath string) *AggregatorConfig {
+func NewBaseConfig(configFilePath string) *BaseConfig {
 
-	if _, err := os.Stat(baseConfigFilePath); errors.Is(err, os.ErrNotExist) {
-		log.Fatal("Setup base config file does not exist")
-	}
-
-	if _, err := os.Stat(aggregatorConfigFilePath); errors.Is(err, os.ErrNotExist) {
-		log.Fatal("Setup aggregator config file does not exist")
-	}
-
-	baseConfig := newBaseConfig(baseConfigFilePath)
-
-	if baseConfig == nil {
-		log.Fatal("Error reading base config: ")
-	}
-
-	var aggregatorConfigFromYaml AggregatorConfig
-	err := sdkutils.ReadYamlConfig(aggregatorConfigFilePath, &aggregatorConfigFromYaml)
-
-	if err != nil {
-		log.Fatal("Error reading aggregator config: ", err)
-	}
-
-	return &AggregatorConfig{
-		BaseConfig: baseConfig,
-		Aggregator: aggregatorConfigFromYaml.Aggregator,
-	}
-
-}
-
-func NewOperatorConfig(baseConfigFilePath, operatorConfigFilePath string) *OperatorConfig {
-
-	if _, err := os.Stat(baseConfigFilePath); errors.Is(err, os.ErrNotExist) {
-		log.Fatal("Setup base config file does not exist")
-	}
-
-	if _, err := os.Stat(operatorConfigFilePath); errors.Is(err, os.ErrNotExist) {
-		log.Fatal("Setup operator config file does not exist")
-	}
-
-	baseConfig := newBaseConfig(baseConfigFilePath)
-
-	if baseConfig == nil {
-		log.Fatal("Error reading base config: ")
-	}
-
-	var operatorConfigFromYaml OperatorConfig
-	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &operatorConfigFromYaml)
-
-	if err != nil {
-		log.Fatal("Error reading operator config: ", err)
-	}
-
-	return &OperatorConfig{
-		BaseConfig: baseConfig,
-		Operator:   operatorConfigFromYaml.Operator,
-	}
-
-}
-
-func newBaseConfig(baseConfigFilePath string) *BaseConfig {
-
-	if _, err := os.Stat(baseConfigFilePath); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup base config file does not exist")
 	}
 
 	var baseConfigFromYaml BaseConfigFromYaml
 
-	err := sdkutils.ReadYamlConfig(baseConfigFilePath, &baseConfigFromYaml)
-
+	err := sdkutils.ReadYamlConfig(configFilePath, &baseConfigFromYaml)
 	if err != nil {
 		log.Fatal("Error reading setup config: ", err)
 	}
 
 	alignedLayerDeploymentConfigFilePath := baseConfigFromYaml.AlignedLayerDeploymentConfigFilePath
-
 	if alignedLayerDeploymentConfigFilePath == "" {
 		log.Fatal("Aligned layer deployment config file path is empty")
 	}
@@ -202,13 +179,11 @@ func newBaseConfig(baseConfigFilePath string) *BaseConfig {
 	}
 
 	alignedLayerDeploymentConfig := newAlignedLayerDeploymentConfig(alignedLayerDeploymentConfigFilePath)
-
 	if alignedLayerDeploymentConfig == nil {
 		log.Fatal("Error reading aligned layer deployment config: ", err)
 	}
 
 	eigenLayerDeploymentConfigFilePath := baseConfigFromYaml.EigenLayerDeploymentConfigFilePath
-
 	if eigenLayerDeploymentConfigFilePath == "" {
 		log.Fatal("Eigen layer deployment config file path is empty")
 	}
@@ -216,13 +191,11 @@ func newBaseConfig(baseConfigFilePath string) *BaseConfig {
 	if _, err := os.Stat(eigenLayerDeploymentConfigFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup eigen layer deployment file does not exist")
 	}
-
 	eigenLayerDeploymentConfig := newEigenLayerDeploymentConfig(baseConfigFromYaml.EigenLayerDeploymentConfigFilePath)
 
 	if eigenLayerDeploymentConfig == nil {
 		log.Fatal("Error reading eigen layer deployment config: ", err)
 	}
-
 	logger, err := NewLogger(baseConfigFromYaml.Environment)
 
 	if err != nil {
@@ -239,47 +212,18 @@ func newBaseConfig(baseConfigFilePath string) *BaseConfig {
 		log.Fatal("Error initializing eth ws client: ", err)
 	}
 
-	if baseConfigFromYaml.BlsPrivateKeyStorePath == "" {
-		log.Fatal("Bls private key store path is empty")
-	}
-
-	blsKeyPair, err := bls.ReadPrivateKeyFromFile(baseConfigFromYaml.BlsPrivateKeyStorePath, baseConfigFromYaml.BlsPrivateKeyStorePassword)
-
-	if err != nil {
-		log.Fatal("Error reading ecdsa private key from file: ", err)
-	}
-
-	if baseConfigFromYaml.EcdsaPrivateKeyStorePath == "" {
-		log.Fatal("Ecdsa private key store path is empty")
-	}
-
-	ecdsaPrivateKey, err := ecdsa2.ReadKey(baseConfigFromYaml.EcdsaPrivateKeyStorePath, baseConfigFromYaml.EcdsaPrivateKeyStorePassword)
-
-	if err != nil {
-		log.Fatal("Error reading ecdsa private key from file: ", err)
-	}
-
 	if baseConfigFromYaml.EthRpcUrl == "" {
 		log.Fatal("Eth rpc url is empty")
 	}
 
 	ethRpcClient, err := eth.NewClient(baseConfigFromYaml.EthRpcUrl)
-
 	if err != nil {
 		log.Fatal("Error initializing eth rpc client: ", err)
 	}
 
 	chainId, err := ethRpcClient.ChainID(context.Background())
-
 	if err != nil {
 		logger.Error("Cannot get chainId from eth rpc client", "err", err)
-		return nil
-	}
-
-	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaPrivateKey, chainId)
-
-	if err != nil {
-		logger.Error("Cannot create private key signer from ecdsa private key and chain id", "err", err)
 		return nil
 	}
 
@@ -295,11 +239,167 @@ func newBaseConfig(baseConfigFilePath string) *BaseConfig {
 		EthWsUrl:                     baseConfigFromYaml.EthWsUrl,
 		EthRpcClient:                 ethRpcClient,
 		EthWsClient:                  ethWsClient,
-		EcdsaPrivateKey:              ecdsaPrivateKey,
-		BlsPrivateKey:                blsKeyPair.PrivKey,
 		EigenMetricsIpPortAddress:    baseConfigFromYaml.EigenMetricsIpPortAddress,
 		ChainId:                      chainId,
-		Signer:                       privateKeySigner,
+	}
+}
+
+func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
+
+	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Setup config file does not exist")
+	}
+
+	baseConfig := NewBaseConfig(configFilePath)
+	if baseConfig == nil {
+		log.Fatal("Error reading base config: ")
+	}
+
+	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
+	if ecdsaConfig == nil {
+		log.Fatal("Error reading ecdsa config: ")
+	}
+
+	blsConfig := newBlsConfig(configFilePath)
+	if blsConfig == nil {
+		log.Fatal("Error reading bls config: ")
+	}
+
+	var aggregatorConfigFromYaml AggregatorConfigFromYaml
+	err := sdkutils.ReadYamlConfig(configFilePath, &aggregatorConfigFromYaml)
+	if err != nil {
+		log.Fatal("Error reading aggregator config: ", err)
+	}
+
+	return &AggregatorConfig{
+		BaseConfig:  baseConfig,
+		EcdsaConfig: ecdsaConfig,
+		BlsConfig:   blsConfig,
+		Aggregator: struct {
+			ServerIpPortAddress           string
+			BlsPublicKeyCompendiumAddress common.Address
+			AvsServiceManagerAddress      common.Address
+			EnableMetrics                 bool
+		}(aggregatorConfigFromYaml.Aggregator),
+	}
+}
+
+func NewOperatorConfig(configFilePath string) *OperatorConfig {
+	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Setup config file does not exist")
+	}
+
+	baseConfig := NewBaseConfig(configFilePath)
+	if baseConfig == nil {
+		log.Fatal("Error reading base config: ")
+	}
+
+	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
+	if ecdsaConfig == nil {
+		log.Fatal("Error reading ecdsa config: ")
+	}
+
+	blsConfig := newBlsConfig(configFilePath)
+	if blsConfig == nil {
+		log.Fatal("Error reading bls config: ")
+	}
+
+	var operatorConfigFromYaml OperatorConfigFromYaml
+	err := sdkutils.ReadYamlConfig(configFilePath, &operatorConfigFromYaml)
+
+	if err != nil {
+		log.Fatal("Error reading operator config: ", err)
+	}
+
+	return &OperatorConfig{
+		BaseConfig:  baseConfig,
+		EcdsaConfig: ecdsaConfig,
+		BlsConfig:   blsConfig,
+		Operator: struct {
+			Address                   common.Address
+			EarningsReceiverAddress   common.Address
+			DelegationApproverAddress common.Address
+			StakerOptOutWindowBlocks  int
+			MetadataUrl               string
+			RegisterOperatorOnStartup bool
+		}(operatorConfigFromYaml.Operator),
+	}
+}
+
+func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
+	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Setup config file does not exist")
+	}
+
+	baseConfig := NewBaseConfig(configFilePath)
+	if baseConfig == nil {
+		log.Fatal("Error reading base config: ")
+	}
+
+	ecdsaConfig := NewEcdsaConfig(configFilePath, baseConfig.ChainId)
+	if ecdsaConfig == nil {
+		log.Fatal("Error reading ecdsa config: ")
+	}
+
+	return &TaskSenderConfig{
+		BaseConfig:  baseConfig,
+		EcdsaConfig: ecdsaConfig,
+	}
+}
+
+func NewEcdsaConfig(ecdsaConfigFilePath string, chainId *big.Int) *EcdsaConfig {
+	if _, err := os.Stat(ecdsaConfigFilePath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Setup ecdsa config file does not exist")
+	}
+
+	var ecdsaConfigFromYaml EcdsaConfigFromYaml
+	err := sdkutils.ReadYamlConfig(ecdsaConfigFilePath, &ecdsaConfigFromYaml)
+	if err != nil {
+		log.Fatal("Error reading ecdsa config: ", err)
+	}
+
+	if ecdsaConfigFromYaml.Ecdsa.PrivateKeyStorePath == "" {
+		log.Fatal("Ecdsa private key store path is empty")
+	}
+
+	ecdsaKeyPair, err := ecdsa2.ReadKey(ecdsaConfigFromYaml.Ecdsa.PrivateKeyStorePath, ecdsaConfigFromYaml.Ecdsa.PrivateKeyStorePassword)
+	if err != nil {
+		log.Fatal("Error reading ecdsa private key from file: ", err)
+	}
+
+	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaKeyPair, chainId)
+	if err != nil {
+		log.Fatal("Error creating private key signer: ", err)
+	}
+
+	return &EcdsaConfig{
+		PrivateKey: ecdsaKeyPair,
+		Signer:     privateKeySigner,
+	}
+}
+
+func newBlsConfig(blsConfigFilePath string) *BlsConfig {
+	if _, err := os.Stat(blsConfigFilePath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Setup bls config file does not exist")
+	}
+
+	var blsConfigFromYaml BlsConfigFromYaml
+	err := sdkutils.ReadYamlConfig(blsConfigFilePath, &blsConfigFromYaml)
+	if err != nil {
+		log.Fatal("Error reading bls config: ", err)
+	}
+
+	if blsConfigFromYaml.Bls.PrivateKeyStorePath == "" {
+		log.Fatal("Bls private key store path is empty")
+	}
+
+	blsKeyPair, err := bls.ReadPrivateKeyFromFile(blsConfigFromYaml.Bls.PrivateKeyStorePath, blsConfigFromYaml.Bls.PrivateKeyStorePassword)
+	if err != nil {
+		log.Fatal("Error reading bls private key from file: ", err)
+	}
+
+	return &BlsConfig{
+		KeyPair: blsKeyPair,
 	}
 }
 
@@ -365,19 +465,4 @@ func newEigenLayerDeploymentConfig(eigenLayerDeploymentFilePath string) *EigenLa
 		AVSDirectoryAddr:      eigenLayerDeploymentConfigFromJson.Addresses.AVSDirectoryAddr,
 		SlasherAddr:           eigenLayerDeploymentConfigFromJson.Addresses.SlasherAddr,
 	}
-}
-
-var requiredFlags = []cli.Flag{
-	BaseConfigFileFlag,
-	AggregatorConfigFileFlag,
-	OperatorConfigFileFlag,
-}
-
-var optionalFlags []cli.Flag
-
-// Flags contains the list of configuration options available to the binary.
-var Flags []cli.Flag
-
-func init() {
-	Flags = append(requiredFlags, optionalFlags...)
 }

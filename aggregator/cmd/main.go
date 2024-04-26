@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
@@ -16,10 +16,14 @@ var (
 	GitDate   string
 )
 
+var flags = []cli.Flag{
+	config.ConfigFileFlag,
+}
+
 func main() {
 	app := cli.NewApp()
 
-	app.Flags = config.Flags
+	app.Flags = flags
 	app.Version = fmt.Sprintf("%s-%s-%s", Version, GitCommit, GitDate)
 	app.Name = "aligned-layer-aggregator"
 	app.Usage = "Aligned Layer Aggregator"
@@ -35,10 +39,8 @@ func main() {
 func aggregatorMain(context *cli.Context) error {
 	log.Println("Starting aggregator...")
 
-	baseConfigFilePath := context.String(config.BaseConfigFileFlag.Name)
-	aggregatorConfigFilePath := context.String(config.AggregatorConfigFileFlag.Name)
-
-	aggregatorConfig := config.NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath)
+	configFilePath := context.String(config.ConfigFileFlag.Name)
+	aggregatorConfig := config.NewAggregatorConfig(configFilePath)
 
 	aggregator, err := pkg.NewAggregator(*aggregatorConfig)
 	if err != nil {

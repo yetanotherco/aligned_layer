@@ -41,7 +41,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
 		return nil, err
 	}

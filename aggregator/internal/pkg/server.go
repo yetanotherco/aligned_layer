@@ -22,8 +22,8 @@ func (agg *Aggregator) Serve() error {
 	// a new service goroutine for each. The service goroutines read requests
 	// and then call handler to reply to them
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Starting RPC server on address", "address",
-		agg.AggregatorConfig.Aggregator.AggregatorServerIpPortAddress)
-	err = http.ListenAndServe(agg.AggregatorConfig.Aggregator.AggregatorServerIpPortAddress, nil)
+		agg.AggregatorConfig.Aggregator.ServerIpPortAddress)
+	err = http.ListenAndServe(agg.AggregatorConfig.Aggregator.ServerIpPortAddress, nil)
 	if err != nil {
 		return err
 	}
