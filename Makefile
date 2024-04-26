@@ -1,6 +1,5 @@
 .PHONY: help tests
 
-
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
@@ -11,15 +10,20 @@ deps: ## Install deps
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
+install-eigenlayer-cli:
+	@go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
+
 anvil-deploy-eigen-contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
+anvil-deploy-mock-strategy:
+	@echo "Deploying Mock Strategy..."
+	. contracts/scripts/anvil/deploy_mock_strategy.sh
+
 anvil-deploy-aligned-contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
-
-anvil-deploy-all: anvil-deploy-eigen-contracts anvil-deploy-aligned-contracts
 
 anvil-start:
 	@echo "Starting Anvil..."
@@ -39,6 +43,46 @@ bindings:
 
 test:
 	go test ./...
+
+
+get-delegation-manager-address:
+	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
+
+operator-generate-keys:
+	@echo "Generating BLS keys"
+	eigenlayer operator keys create --key-type bls --insecure operator
+	@echo "Generating ECDSA keys"
+	eigenlayer operator keys create --key-type ecdsa --insecure operator
+
+operator-generate-config:
+	@echo "Generating operator config"
+	eigenlayer operator config create
+
+operator-get-eth:
+	@echo "Sending funds to operator address on devnet"
+	@. ./scripts/fund_operator_devnet.sh
+
+operator-register-with-eigen-layer:
+	@echo "Registering operator with EigenLayer"
+	@echo "" | eigenlayer operator register operator/config/devnet/operator.yaml
+
+operator-deposit-into-strategy:
+	@echo "Depositing into strategy"
+	@go run operator/scripts/deposit_into_strategy/main.go \
+		--base-config-file operator/config/devnet/config.yaml \
+		--operator-config-file operator/config/devnet/operator.yaml \
+		--strategy-deployment-output contracts/script/output/devnet/strategy_deployment_output.json \
+		--amount 1000
+
+operator-register-with-aligned-layer:
+	@echo "Registering operator with AlignedLayer"
+	@go run operator/scripts/register_with_aligned_layer/main.go \
+		--base-config-file operator/config/devnet/config.yaml \
+		--operator-config-file operator/config/devnet/operator.yaml
+
+operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
+
+operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-deposit-into-strategy operator-register-with-aligned-layer
 
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender

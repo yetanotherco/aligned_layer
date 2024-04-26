@@ -3,6 +3,7 @@ module github.com/yetanotherco/aligned_layer
 go 1.22.2
 
 require (
+	github.com/Layr-Labs/eigenlayer-cli v0.7.3
 	github.com/Layr-Labs/eigensdk-go v0.1.6
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/urfave/cli/v2 v2.27.1
