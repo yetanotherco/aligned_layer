@@ -59,6 +59,7 @@ var loopTasksFlags = []cli.Flag{
 	publicInputFlag,
 	verificationKeyFlag,
 	intervalFlag,
+	config.ConfigFileFlag,
 }
 
 func main() {
