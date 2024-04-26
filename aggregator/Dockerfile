@@ -22,7 +22,7 @@ RUN /home/aligned-layer/.foundry/bin/foundryup
 COPY ../Makefile .
 COPY contracts/ ../contracts/
 COPY operator/ ../operator/
-
+COPY config-files/ ../config-files/
 
 
 CMD ["make", "aggregator-start"]
