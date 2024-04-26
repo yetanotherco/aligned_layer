@@ -69,16 +69,14 @@ operator-register-with-eigen-layer:
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
 	@go run operator/scripts/deposit_into_strategy/main.go \
-		--base-config-file operator/config/devnet/config.yaml \
-		--operator-config-file operator/config/devnet/operator.yaml \
+		--config config-files/config.yaml \
 		--strategy-deployment-output contracts/script/output/devnet/strategy_deployment_output.json \
 		--amount 1000
 
 operator-register-with-aligned-layer:
 	@echo "Registering operator with AlignedLayer"
 	@go run operator/scripts/register_with_aligned_layer/main.go \
-		--base-config-file operator/config/devnet/config.yaml \
-		--operator-config-file operator/config/devnet/operator.yaml
+		--config config-files/config.yaml
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
 

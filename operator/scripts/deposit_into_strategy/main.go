@@ -11,7 +11,7 @@ import (
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
@@ -21,23 +21,29 @@ import (
 )
 
 var (
-	AmountFlag = cli.IntFlag{
+	AmountFlag = &cli.IntFlag{
 		Name:     "amount",
 		Usage:    "Amount to deposit",
 		Value:    100,
 		Required: true,
 	}
-	StrategyDeploymentOutputFlag = cli.StringFlag{
+	StrategyDeploymentOutputFlag = &cli.StringFlag{
 		Name:     "strategy-deployment-output",
 		Usage:    "Path to strategy deployment output file",
 		Required: true,
 	}
 )
 
+var flags = []cli.Flag{
+	AmountFlag,
+	StrategyDeploymentOutputFlag,
+	config.ConfigFileFlag,
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "Operator deposit into strategy"
-	app.Flags = append(config.Flags, AmountFlag, StrategyDeploymentOutputFlag)
+	app.Flags = flags
 	app.Action = depositIntoStrategy
 
 	err := app.Run(os.Args)
@@ -54,8 +60,7 @@ func depositIntoStrategy(ctx *cli.Context) error {
 		return nil
 	}
 
-	configuration := config.NewOperatorConfig(ctx.String(config.BaseConfigFileFlag.Name),
-		ctx.String(config.OperatorConfigFileFlag.Name))
+	configuration := config.NewOperatorConfig(ctx.String(config.ConfigFileFlag.Name))
 
 	strategyContracts := newStrategyDeploymentConfig(ctx.String(StrategyDeploymentOutputFlag.Name))
 
@@ -76,7 +81,7 @@ func depositIntoStrategy(ctx *cli.Context) error {
 		return err
 	}
 
-	avsReader, err := chainio.NewAvsReaderFromConfig(configuration.BaseConfig)
+	avsReader, err := chainio.NewAvsReaderFromConfig(configuration.BaseConfig, configuration.EcdsaConfig)
 	if err != nil {
 		return err
 	}
@@ -86,7 +91,7 @@ func depositIntoStrategy(ctx *cli.Context) error {
 		return err
 	}
 
-	avsWriter, err := chainio.NewAvsWriterFromConfig(configuration.BaseConfig)
+	avsWriter, err := chainio.NewAvsWriterFromConfig(configuration.BaseConfig, configuration.EcdsaConfig)
 	if err != nil {
 		return err
 	}
@@ -103,7 +108,7 @@ func depositIntoStrategy(ctx *cli.Context) error {
 	time.Sleep(2 * time.Second)
 
 	signerConfig := signerv2.Config{
-		PrivateKey: configuration.BaseConfig.EcdsaPrivateKey,
+		PrivateKey: configuration.EcdsaConfig.PrivateKey,
 	}
 	signerFn, _, err := signerv2.SignerFromConfig(signerConfig, configuration.BaseConfig.ChainId)
 	if err != nil {

@@ -112,8 +112,8 @@ func taskSenderMain(c *cli.Context) error {
 		}
 	}
 
-	avsConfig := config.NewAvsConfig(c.String(config.ConfigFileFlag.Name))
-	avsWriter, err := chainio.NewAvsWriterFromConfig(avsConfig)
+	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
+	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
 	if err != nil {
 		return err
 	}

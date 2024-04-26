@@ -53,7 +53,7 @@ type EcdsaConfigFromYaml struct {
 }
 
 type BlsConfig struct {
-	PrivateKey *bls.PrivateKey
+	KeyPair *bls.KeyPair
 }
 
 type BlsConfigFromYaml struct {
@@ -139,12 +139,12 @@ type OperatorConfigFromYaml struct {
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
 }
 
-type AvsConfig struct {
+type TaskSenderConfig struct {
 	BaseConfig  *BaseConfig
 	EcdsaConfig *EcdsaConfig
 }
 
-type AvsConfigFromYaml struct {
+type TaskSenderConfigFromYaml struct {
 	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 }
 
@@ -326,7 +326,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 	}
 }
 
-func NewAvsConfig(configFilePath string) *AvsConfig {
+func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
 	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup config file does not exist")
 	}
@@ -341,7 +341,7 @@ func NewAvsConfig(configFilePath string) *AvsConfig {
 		log.Fatal("Error reading ecdsa config: ")
 	}
 
-	return &AvsConfig{
+	return &TaskSenderConfig{
 		BaseConfig:  baseConfig,
 		EcdsaConfig: ecdsaConfig,
 	}
@@ -399,7 +399,7 @@ func newBlsConfig(blsConfigFilePath string) *BlsConfig {
 	}
 
 	return &BlsConfig{
-		PrivateKey: blsKeyPair.PrivKey,
+		KeyPair: blsKeyPair,
 	}
 }
 

@@ -16,25 +16,25 @@ type AvsReader struct {
 	logger              logging.Logger
 }
 
-func NewAvsReaderFromConfig(c *config.AvsConfig) (*AvsReader, error) {
+func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsReader, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
-		EthHttpUrl:                 c.BaseConfig.EthRpcUrl,
-		EthWsUrl:                   c.BaseConfig.EthWsUrl,
-		RegistryCoordinatorAddr:    c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
-		OperatorStateRetrieverAddr: c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
+		EthHttpUrl:                 baseConfig.EthRpcUrl,
+		EthWsUrl:                   baseConfig.EthWsUrl,
+		RegistryCoordinatorAddr:    baseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
+		OperatorStateRetrieverAddr: baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
 		AvsName:                    "AlignedLayer",
-		PromMetricsIpPortAddress:   c.BaseConfig.EigenMetricsIpPortAddress,
+		PromMetricsIpPortAddress:   baseConfig.EigenMetricsIpPortAddress,
 	}
 
-	clients, err := clients.BuildAll(buildAllConfig, c.EcdsaConfig.PrivateKey, c.BaseConfig.Logger)
+	clients, err := clients.BuildAll(buildAllConfig, ecdsaConfig.PrivateKey, baseConfig.Logger)
 	if err != nil {
 		return nil, err
 	}
 
 	avsRegistryReader := clients.AvsRegistryChainReader
 
-	avsServiceBindings, err := NewAvsServiceBindings(c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.BaseConfig.EthRpcClient, c.BaseConfig.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func NewAvsReaderFromConfig(c *config.AvsConfig) (*AvsReader, error) {
 	return &AvsReader{
 		AvsRegistryReader:   avsRegistryReader,
 		AvsContractBindings: avsServiceBindings,
-		logger:              c.BaseConfig.Logger,
+		logger:              baseConfig.Logger,
 	}, nil
 }
 
