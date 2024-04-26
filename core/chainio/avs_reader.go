@@ -14,22 +14,22 @@ type AvsReader struct {
 	logger              logging.Logger
 }
 
-func NewAvsReaderFromConfig(c *config.BaseConfig) (*AvsReader, error) {
+func NewAvsReaderFromConfig(c *config.AvsConfig) (*AvsReader, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
-		EthHttpUrl:                 c.EthRpcUrl,
-		EthWsUrl:                   c.EthWsUrl,
-		RegistryCoordinatorAddr:    c.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
-		OperatorStateRetrieverAddr: c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
+		EthHttpUrl:                 c.BaseConfig.EthRpcUrl,
+		EthWsUrl:                   c.BaseConfig.EthWsUrl,
+		RegistryCoordinatorAddr:    c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
+		OperatorStateRetrieverAddr: c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
 		AvsName:                    "AlignedLayer",
-		PromMetricsIpPortAddress:   c.EigenMetricsIpPortAddress,
+		PromMetricsIpPortAddress:   c.BaseConfig.EigenMetricsIpPortAddress,
 	}
 
-	clients, _ := clients.BuildAll(buildAllConfig, c.EcdsaPrivateKey, c.Logger)
+	clients, _ := clients.BuildAll(buildAllConfig, c.EcdsaConfig.PrivateKey, c.BaseConfig.Logger)
 
 	avsRegistryReader := clients.AvsRegistryChainReader
 
-	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.EthRpcClient, c.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.BaseConfig.EthRpcClient, c.BaseConfig.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +37,6 @@ func NewAvsReaderFromConfig(c *config.BaseConfig) (*AvsReader, error) {
 	return &AvsReader{
 		AvsRegistryReader:   avsRegistryReader,
 		AvsContractBindings: avsServiceBindings,
-		logger:              c.Logger,
+		logger:              c.BaseConfig.Logger,
 	}, nil
 }

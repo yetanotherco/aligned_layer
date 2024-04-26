@@ -22,35 +22,35 @@ type AvsWriter struct {
 	Client              eth.Client
 }
 
-func NewAvsWriterFromConfig(c *config.BaseConfig) (*AvsWriter, error) {
+func NewAvsWriterFromConfig(c *config.AvsConfig) (*AvsWriter, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
-		EthHttpUrl:                 c.EthRpcUrl,
-		EthWsUrl:                   c.EthWsUrl,
-		RegistryCoordinatorAddr:    c.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
-		OperatorStateRetrieverAddr: c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
+		EthHttpUrl:                 c.BaseConfig.EthRpcUrl,
+		EthWsUrl:                   c.BaseConfig.EthWsUrl,
+		RegistryCoordinatorAddr:    c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
+		OperatorStateRetrieverAddr: c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
 		AvsName:                    "AlignedLayer",
-		PromMetricsIpPortAddress:   c.EigenMetricsIpPortAddress,
+		PromMetricsIpPortAddress:   c.BaseConfig.EigenMetricsIpPortAddress,
 	}
 
-	clients, err := clients.BuildAll(buildAllConfig, c.EcdsaPrivateKey, c.Logger)
+	clients, err := clients.BuildAll(buildAllConfig, c.EcdsaConfig.PrivateKey, c.BaseConfig.Logger)
 
 	if err != nil {
-		c.Logger.Error("Cannot build signer config", "err", err)
+		c.BaseConfig.Logger.Error("Cannot build signer config", "err", err)
 		return nil, err
 	}
 
-	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.EthRpcClient, c.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.BaseConfig.EthRpcClient, c.BaseConfig.Logger)
 
 	if err != nil {
-		c.Logger.Error("Cannot create avs service bindings", "err", err)
+		c.BaseConfig.Logger.Error("Cannot create avs service bindings", "err", err)
 		return nil, err
 	}
 
-	privateKeySigner, err := signer.NewPrivateKeySigner(c.EcdsaPrivateKey, c.ChainId)
+	privateKeySigner, err := signer.NewPrivateKeySigner(c.EcdsaConfig.PrivateKey, c.BaseConfig.ChainId)
 
 	if err != nil {
-		c.Logger.Error("Cannot create signer", "err", err)
+		c.BaseConfig.Logger.Error("Cannot create signer", "err", err)
 		return nil, err
 	}
 
@@ -59,9 +59,9 @@ func NewAvsWriterFromConfig(c *config.BaseConfig) (*AvsWriter, error) {
 	return &AvsWriter{
 		AvsRegistryWriter:   avsRegistryWriter,
 		AvsContractBindings: avsServiceBindings,
-		logger:              c.Logger,
+		logger:              c.BaseConfig.Logger,
 		Signer:              privateKeySigner,
-		Client:              c.EthRpcClient,
+		Client:              c.BaseConfig.EthRpcClient,
 	}, nil
 }
 

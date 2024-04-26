@@ -1,23 +1,22 @@
 package chainio_test
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"math/big"
 	"reflect"
 	"testing"
-
-	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
-
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/yetanotherco/aligned_layer/core/chainio"
 )
 
 // NOTE(marian): Just some dummy tests, should be reworked later
 // Make sure to have the anvil blockchain running in the background with the
 // loaded state for running the tests.
 
-func TestAvsReader(t *testing.T) {
+const ConfigPath = "../../config-files/config-test.yaml"
 
-	mockConfig := mocks.NewMockConfig()
+func TestAvsReader(t *testing.T) {
+	mockConfig := config.NewAvsConfig(ConfigPath)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(mockConfig)
 	if err != nil {
@@ -35,7 +34,7 @@ func TestAvsReader(t *testing.T) {
 }
 
 func TestAvsWriter(t *testing.T) {
-	mockConfig := mocks.NewMockConfig()
+	mockConfig := config.NewAvsConfig(ConfigPath)
 
 	avsWriter, err := chainio.NewAvsWriterFromConfig(mockConfig)
 	if err != nil {
@@ -53,7 +52,7 @@ func TestAvsWriter(t *testing.T) {
 }
 
 func TestAvsSubscriber(t *testing.T) {
-	mockConfig := mocks.NewMockConfig()
+	mockConfig := config.NewAvsConfig(ConfigPath)
 
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(mockConfig)
 	if err != nil {

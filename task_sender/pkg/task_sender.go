@@ -5,15 +5,24 @@ import (
 	"fmt"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 	"log"
 )
+
+type TaskSender struct {
+	avsWriter *chainio.AvsWriter
+}
 
 type Task struct {
 	verificationSystem common.SystemVerificationId
 	proof              []byte
 	publicInput        []byte
 	verificationKey    []byte
+}
+
+func NewTaskSender(avsWriter *chainio.AvsWriter) *TaskSender {
+	return &TaskSender{
+		avsWriter: avsWriter,
+	}
 }
 
 func NewTask(verificationSystem common.SystemVerificationId, proof []byte, publicInput []byte, verificationKey []byte) *Task {
@@ -25,14 +34,9 @@ func NewTask(verificationSystem common.SystemVerificationId, proof []byte, publi
 	}
 }
 
-func SendTask(task *Task) error {
+func (ts *TaskSender) SendTask(task *Task) error {
 	log.Println("Sending task...")
-	avsWriter, err := chainio.NewAvsWriterFromConfig(mocks.NewMockConfig())
-	if err != nil {
-		return err
-	}
-
-	_, index, err := avsWriter.SendTask(
+	_, index, err := ts.avsWriter.SendTask(
 		context.Background(),
 		task.verificationSystem,
 		task.proof,

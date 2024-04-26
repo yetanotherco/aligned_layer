@@ -1,4 +1,23 @@
 # 'production' only prints info and above. 'development' also prints debug
-environment: production
-eth_rpc_url: http://localhost:8545
-eth_ws_url: ws://localhost:8545
+environment: "development"
+aligned_layer_deployment_config_file_path: "./contracts/script/output/devnet/alignedlayer_deployment_output.json"
+eigen_layer_deployment_config_file_path: "./contracts/script/output/devnet/eigenlayer_deployment_output.json"
+eth_rpc_url: "http://localhost:8545"
+eth_ws_url: "ws://localhost:8545"
+eigen_metrics_ip_port_address: "localhost:9090"
+ecdsa:
+  private_key_store_path: "config-files/anvil.ecdsa.key.json"
+  private_key_store_password: ""
+bls:
+  private_key_store_path: "config-files/anvil.bls.key.json"
+  private_key_store_password: ""
+aggregator:
+  server_ip_port_address: localhost:8090
+  bls_public_key_compendium_address: 0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44
+  avs_service_manager_address: 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690
+  enable_metrics: true
+operator:
+  address: 0x7656302c27ec57d6b177a606614257808f63821e
+  earnings_receiver_address: 0x7656302c27ec57d6b177a606614257808f63821e
+  delegation_approver_address: "0x0000000000000000000000000000000000000000"
+  staker_opt_out_window_blocks: 0

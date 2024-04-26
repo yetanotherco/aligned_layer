@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
 	"os"
 	"time"
@@ -48,6 +50,7 @@ var sendTaskFlags = []cli.Flag{
 	proofFlag,
 	publicInputFlag,
 	verificationKeyFlag,
+	config.ConfigFileFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -109,7 +112,15 @@ func taskSenderMain(c *cli.Context) error {
 		}
 	}
 
-	err = pkg.SendTask(pkg.NewTask(verificationSystem, proofFile, publicInputFile, verificationKeyFile))
+	avsConfig := config.NewAvsConfig(c.String(config.ConfigFileFlag.Name))
+	avsWriter, err := chainio.NewAvsWriterFromConfig(avsConfig)
+	if err != nil {
+		return err
+	}
+
+	taskSender := pkg.NewTaskSender(avsWriter)
+
+	err = taskSender.SendTask(pkg.NewTask(verificationSystem, proofFile, publicInputFile, verificationKeyFile))
 	if err != nil {
 		return err
 	}
