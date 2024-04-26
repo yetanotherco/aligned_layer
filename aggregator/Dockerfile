@@ -23,7 +23,6 @@ COPY ../Makefile .
 COPY contracts/ ../contracts/
 COPY operator/ ../operator/
 
-# Set environment variable for Ethereum client URL using localhost
-ENV ETHEREUM_CLIENT_URL http://127.0.0.1:8545
+
 
 CMD ["make", "aggregator-start"]

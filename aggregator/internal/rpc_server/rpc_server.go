@@ -8,7 +8,7 @@ import (
 )
 
 // Serve starts the rpc server
-func Serve(aggregatorConfig *config.Config) error {
+func Serve(aggregatorConfig *config.AggregatorConfig) error {
 	server := aggregator.New(*aggregatorConfig)
 	// Registers a new RPC server
 	err := rpc.Register(server)
@@ -23,8 +23,8 @@ func Serve(aggregatorConfig *config.Config) error {
 	// Serve accepts incoming HTTP connections on the listener, creating
 	// a new service goroutine for each. The service goroutines read requests
 	// and then call handler to reply to them
-	aggregatorConfig.Logger.Info("Starting RPC server on address", "address", aggregatorConfig.AggregatorServerIpPortAddr)
-	err = http.ListenAndServe(aggregatorConfig.AggregatorServerIpPortAddr, nil)
+	aggregatorConfig.BaseConfig.Logger.Info("Starting RPC server on address", "address", aggregatorConfig.Aggregator.AggregatorServerIpPortAddress)
+	err = http.ListenAndServe(aggregatorConfig.Aggregator.AggregatorServerIpPortAddress, nil)
 	if err != nil {
 		return err
 	}
