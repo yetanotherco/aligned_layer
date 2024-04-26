@@ -96,9 +96,14 @@ To do the full process (register with EigenLayer, deposit into strategy and regi
 make operator-full-registration
 ```
 
-To get devnet Ether for gas by running:
+You can get devnet Ether for gas by running:
 ```bash
 make operator-get-eth
+```
+
+To register with EigenLayer, run:
+```bash
+make operator-register-with-eigen-layer
 ```
 
 To deposit into strategy, and register with AlignedLayer, run:
