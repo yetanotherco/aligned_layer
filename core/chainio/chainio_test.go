@@ -16,7 +16,8 @@ import (
 // loaded state for running the tests.
 
 func TestAvsReader(t *testing.T) {
-	mockConfig := mocks.NewMockConfig("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x9d4454b023096f34b160d6b654540c56a1f81688", "0xc5a5c42992decbae36851359345fe25997f5c42d")
+
+	mockConfig := mocks.NewMockConfig()
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(mockConfig)
 	if err != nil {
@@ -34,7 +35,7 @@ func TestAvsReader(t *testing.T) {
 }
 
 func TestAvsWriter(t *testing.T) {
-	mockConfig := mocks.NewMockConfig("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x9d4454b023096f34b160d6b654540c56a1f81688", "0xc5a5c42992decbae36851359345fe25997f5c42d")
+	mockConfig := mocks.NewMockConfig()
 
 	avsWriter, err := chainio.NewAvsWriterFromConfig(mockConfig)
 	if err != nil {
@@ -52,7 +53,7 @@ func TestAvsWriter(t *testing.T) {
 }
 
 func TestAvsSubscriber(t *testing.T) {
-	mockConfig := mocks.NewMockConfig("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x9d4454b023096f34b160d6b654540c56a1f81688", "0xc5a5c42992decbae36851359345fe25997f5c42d")
+	mockConfig := mocks.NewMockConfig()
 
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(mockConfig)
 	if err != nil {

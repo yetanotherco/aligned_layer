@@ -6,23 +6,30 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
 # Start an empty anvil chain in the background and dump its state to a json file upon exit
-anvil --load-state state/eigenlayer-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
+anvil --load-state state/strategy-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
 
 cd ../../
 
 sleep 1
 
 # Deploy the contracts
-forge script script/deploy/AlignedLayerDeployer.s.sol --rpc-url "http://localhost:8545" --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" --broadcast
+forge script script/deploy/AlignedLayerDeployer.s.sol \
+    ./script/output/devnet/eigenlayer_deployment_output.json \
+    ./script/deploy/config/devnet/aligned.devnet.config.json \
+    ./script/output/devnet/alignedlayer_deployment_output.json \
+    --rpc-url "http://localhost:8545" \
+    --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+    --broadcast \
+    --sig "run(string memory existingDeploymentInfoPath, string memory deployConfigPath, string memory outputPath)"
 
 # Kill the anvil process to save state
 pkill anvil
 
-# Anvil adds a block state, making the code to fail. We don't care about this, just the accounts and the deployed code
+# # Anvil adds a block state, making the code to fail. We don't care about this, just the accounts and the deployed code
 cd "$parent_path"
 
-jq 'del(.block)' state/eigenlayer-deployed-anvil-state.json > state/eigenlayer-deployed-anvil-state-tmp.json
+jq 'del(.block)' state/alignedlayer-deployed-anvil-state.json > state/alignedlayer-deployed-anvil-state-tmp.json
 
-cp -f state/eigenlayer-deployed-anvil-state-tmp.json state/eigenlayer-deployed-anvil-state.json
+cp -f state/alignedlayer-deployed-anvil-state-tmp.json state/alignedlayer-deployed-anvil-state.json
 
-rm state/eigenlayer-deployed-anvil-state-tmp.json
+rm state/alignedlayer-deployed-anvil-state-tmp.json

@@ -11,25 +11,23 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
-func NewMockConfig(ecdsaPrivateKeyStr, alignedLayerOperatorStateRetrieverAddrStr, alignedLayerServiceManagerAddrStr string) *config.Config {
+func NewMockConfig() *config.BaseConfig {
 	etcRpcUrl := "http://localhost:8545"
 	ethWsUrl := "ws://localhost:8545"
 	eigenMetricsIpPortAddress := "localhost:9090"
-	alignedLayerOperatorStateRetrieverAddr := common.HexToAddress(alignedLayerOperatorStateRetrieverAddrStr)
-	alignedLayerServiceManagerAddr := common.HexToAddress(alignedLayerServiceManagerAddrStr)
-	alignedLayerRegistryCoordinatorAddr := common.HexToAddress("0x67d269191c92caf3cd7723f116c85e6e9bf55933")
+	alignedLayerOperatorStateRetrieverAddr := common.HexToAddress("0x809d550fca64d94Bd9F66E60752A544199cfAC3D")
+	alignedLayerServiceManagerAddr := common.HexToAddress("0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690")
+	alignedLayerRegistryCoordinatorAddr := common.HexToAddress("0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB")
 	chainId := big.NewInt(31337)
-	blsPublicKeyCompendiumAddress := common.HexToAddress("0x322813fd9a801c5507c9de605d63cea4f2ce6c44")
 	slasherAddr := common.HexToAddress("0x")
-	operatorAddress := common.HexToAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266")
-	avsServiceManagerAddress := common.HexToAddress("0xc3e53f4d16ae77db1c982e75a937b9f60fe63690")
+	delegationManagerAddress := common.HexToAddress("0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9")
 
 	logger, err := sdklogging.NewZapLogger("development")
 	if err != nil {
 		fmt.Println("Could not initialize logger")
 	}
 
-	ecdsaPrivateKey, err := crypto.HexToECDSA(ecdsaPrivateKeyStr)
+	ecdsaPrivateKey, err := crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
 	if err != nil {
 		logger.Errorf("Cannot parse ecdsa private key", "err", err)
 	}
@@ -44,24 +42,26 @@ func NewMockConfig(ecdsaPrivateKeyStr, alignedLayerOperatorStateRetrieverAddrStr
 		logger.Errorf("Cannot create ws ethclient", "err", err)
 	}
 
-	return &config.Config{
-		EcdsaPrivateKey:                        ecdsaPrivateKey,
-		BlsPrivateKey:                          nil,
-		Logger:                                 logger,
-		EigenMetricsIpPortAddress:              eigenMetricsIpPortAddress,
-		EthRpcUrl:                              etcRpcUrl,
-		EthWsUrl:                               ethWsUrl,
-		EthHttpClient:                          ethRpcClient,
-		EthWsClient:                            ethWsClient,
-		AlignedLayerOperatorStateRetrieverAddr: alignedLayerOperatorStateRetrieverAddr,
-		AlignedLayerServiceManagerAddr:         alignedLayerServiceManagerAddr,
-		AlignedLayerRegistryCoordinatorAddr:    alignedLayerRegistryCoordinatorAddr,
-		ChainId:                                chainId,
-		BlsPublicKeyCompendiumAddress:          blsPublicKeyCompendiumAddress,
-		SlasherAddr:                            slasherAddr,
-		OperatorAddress:                        operatorAddress,
-		AVSServiceManagerAddress:               avsServiceManagerAddress,
-		EnableMetrics:                          true,
+	return &config.BaseConfig{
+		EcdsaPrivateKey:           ecdsaPrivateKey,
+		BlsPrivateKey:             nil,
+		Logger:                    logger,
+		EigenMetricsIpPortAddress: eigenMetricsIpPortAddress,
+		EthRpcUrl:                 etcRpcUrl,
+		EthWsUrl:                  ethWsUrl,
+		EthRpcClient:              ethRpcClient,
+		EthWsClient:               ethWsClient,
+		ChainId:                   chainId,
+		Signer:                    nil,
+		AlignedLayerDeploymentConfig: &config.AlignedLayerDeploymentConfig{
+			AlignedLayerOperatorStateRetrieverAddr: alignedLayerOperatorStateRetrieverAddr,
+			AlignedLayerServiceManagerAddr:         alignedLayerServiceManagerAddr,
+			AlignedLayerRegistryCoordinatorAddr:    alignedLayerRegistryCoordinatorAddr,
+		},
+		EigenLayerDeploymentConfig: &config.EigenLayerDeploymentConfig{
+			DelegationManagerAddr: delegationManagerAddress,
+			SlasherAddr:           slasherAddr,
+		},
 	}
 }
 
