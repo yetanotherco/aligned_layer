@@ -1,14 +1,15 @@
 package pkg
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"net/http"
 	"net/rpc"
 )
 
-func (aggregator *Aggregator) Serve() error {
+func (agg *Aggregator) Serve() error {
 	// Registers a new RPC server
-	err := rpc.Register(aggregator)
+	err := rpc.Register(agg)
 	if err != nil {
 		return err
 	}
@@ -20,9 +21,9 @@ func (aggregator *Aggregator) Serve() error {
 	// Serve accepts incoming HTTP connections on the listener, creating
 	// a new service goroutine for each. The service goroutines read requests
 	// and then call handler to reply to them
-	aggregator.AggregatorConfig.BaseConfig.Logger.Info("Starting RPC server on address", "address",
-		aggregator.AggregatorConfig.Aggregator.AggregatorServerIpPortAddress)
-	err = http.ListenAndServe(aggregator.AggregatorConfig.Aggregator.AggregatorServerIpPortAddress, nil)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Starting RPC server on address", "address",
+		agg.AggregatorConfig.Aggregator.AggregatorServerIpPortAddress)
+	err = http.ListenAndServe(agg.AggregatorConfig.Aggregator.AggregatorServerIpPortAddress, nil)
 	if err != nil {
 		return err
 	}
@@ -39,18 +40,35 @@ func (aggregator *Aggregator) Serve() error {
 // Returns:
 //   - 0: Success
 //   - 1: Error
-func (aggregator *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse, reply *uint8) error {
-	aggregator.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", taskResponse)
+func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse, reply *uint8) error {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", taskResponse)
 
 	// Check if the task exists. If not, return error
-	if _, ok := aggregator.taskResponses[taskResponse.TaskIndex]; !ok {
+	if _, ok := agg.taskResponses[taskResponse.TaskIndex]; !ok {
 		*reply = 1
 		return nil
 	}
 
+	// TODO: Check if the task response is valid
+
 	// TODO: Mutex?
-	aggregator.taskResponses[taskResponse.TaskIndex] = append(aggregator.taskResponses[taskResponse.TaskIndex],
+	agg.taskResponses[taskResponse.TaskIndex] = append(agg.taskResponses[taskResponse.TaskIndex],
 		*taskResponse)
+
+	// Submit the task response to the contract when the number of responses is 2
+	// TODO: Make this configurable (based on quorum %)
+	// TODO: Check if response has already been submitted
+	if len(agg.taskResponses[taskResponse.TaskIndex]) >= 2 {
+		agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
+			taskResponse.TaskIndex, "proofIsValid", true)
+
+		_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(&bind.TransactOpts{},
+			taskResponse.TaskIndex, true)
+		if err != nil {
+			*reply = 1
+			return err
+		}
+	}
 
 	*reply = 0
 
@@ -59,7 +77,7 @@ func (aggregator *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskR
 
 // Dummy method to check if the server is running
 // TODO: Remove this method in prod
-func (aggregator *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
+func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	*reply = 1
 	return nil
 }
