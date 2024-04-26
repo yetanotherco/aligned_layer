@@ -106,7 +106,7 @@ contract EigenLayerDeployer is Script, Test {
         emit log_named_uint("You are deploying on ChainID", chainId);
 
         // READ JSON CONFIG DATA
-        deployConfigPath = string(bytes(string.concat("script/deploy/devnet/", configFileName)));
+        deployConfigPath = string(bytes(string.concat("script/deploy/config/devnet/", configFileName)));
         string memory config_data = vm.readFile(deployConfigPath);
         // bytes memory parsedData = vm.parseJson(config_data);
 
