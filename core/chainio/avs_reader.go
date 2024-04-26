@@ -16,25 +16,25 @@ type AvsReader struct {
 	logger              logging.Logger
 }
 
-func NewAvsReaderFromConfig(c *config.BaseConfig) (*AvsReader, error) {
+func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsReader, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
-		EthHttpUrl:                 c.EthRpcUrl,
-		EthWsUrl:                   c.EthWsUrl,
-		RegistryCoordinatorAddr:    c.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
-		OperatorStateRetrieverAddr: c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
+		EthHttpUrl:                 baseConfig.EthRpcUrl,
+		EthWsUrl:                   baseConfig.EthWsUrl,
+		RegistryCoordinatorAddr:    baseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
+		OperatorStateRetrieverAddr: baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
 		AvsName:                    "AlignedLayer",
-		PromMetricsIpPortAddress:   c.EigenMetricsIpPortAddress,
+		PromMetricsIpPortAddress:   baseConfig.EigenMetricsIpPortAddress,
 	}
 
-	clients, err := clients.BuildAll(buildAllConfig, c.EcdsaPrivateKey, c.Logger)
+	clients, err := clients.BuildAll(buildAllConfig, ecdsaConfig.PrivateKey, baseConfig.Logger)
 	if err != nil {
 		return nil, err
 	}
 
 	avsRegistryReader := clients.AvsRegistryChainReader
 
-	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.EthRpcClient, c.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func NewAvsReaderFromConfig(c *config.BaseConfig) (*AvsReader, error) {
 	return &AvsReader{
 		AvsRegistryReader:   avsRegistryReader,
 		AvsContractBindings: avsServiceBindings,
-		logger:              c.Logger,
+		logger:              baseConfig.Logger,
 	}, nil
 }
 

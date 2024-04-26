@@ -32,9 +32,7 @@ anvil-start:
 # TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	go run aggregator/cmd/main.go --base-config-file config-files/config.yaml \
-		--aggregator-config-file aggregator/config/config.yaml \
-		--operator-config-file operator/config.yaml \
+	go run aggregator/cmd/main.go --config config-files/config.yaml
 
 aggregator-send-dummy-responses:
 	@echo "Sending dummy responses to Aggregator..."
@@ -66,21 +64,19 @@ operator-get-eth:
 
 operator-register-with-eigen-layer:
 	@echo "Registering operator with EigenLayer"
-	@echo "" | eigenlayer operator register operator/config/devnet/operator.yaml
+	@echo "" | eigenlayer operator register config-files/config.yaml
 
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
 	@go run operator/scripts/deposit_into_strategy/main.go \
-		--base-config-file operator/config/devnet/config.yaml \
-		--operator-config-file operator/config/devnet/operator.yaml \
+		--config config-files/config.yaml \
 		--strategy-deployment-output contracts/script/output/devnet/strategy_deployment_output.json \
 		--amount 1000
 
 operator-register-with-aligned-layer:
 	@echo "Registering operator with AlignedLayer"
 	@go run operator/scripts/register_with_aligned_layer/main.go \
-		--base-config-file operator/config/devnet/config.yaml \
-		--operator-config-file operator/config/devnet/operator.yaml
+		--config config-files/config.yaml
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
 
@@ -91,13 +87,15 @@ send-plonk-proof: ## Send a PLONK proof using the task sender
 	go run task_sender/cmd/main.go send-task \
 		--system plonk \
 		--proof task_sender/test_examples/proof.base64 \
-		--public-input task_sender/test_examples/public_inputs.base64
+		--public-input task_sender/test_examples/public_inputs.base64 \
+		--config config-files/config.yaml
 
 send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seconds
 	go run task_sender/cmd/main.go loop-tasks \
 		--system plonk \
 		--proof task_sender/test_examples/proof.base64 \
 		--public-input task_sender/test_examples/public_inputs.base64 \
+		--config config-files/config.yaml \
 		--interval 10
 
 __DEPLOYMENT__:

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/aggregator/internal/rpc_server"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
@@ -16,10 +16,14 @@ var (
 	GitDate   string
 )
 
+var flags = []cli.Flag{
+	config.ConfigFileFlag,
+}
+
 func main() {
 	app := cli.NewApp()
 
-	app.Flags = config.Flags
+	app.Flags = flags
 	app.Version = fmt.Sprintf("%s-%s-%s", Version, GitCommit, GitDate)
 	app.Name = "aligned-layer-aggregator"
 	app.Usage = "Aligned Layer Aggregator"
@@ -32,17 +36,17 @@ func main() {
 	}
 }
 
-func aggregatorMain(context *cli.Context) {
+func aggregatorMain(context *cli.Context) error {
 	log.Println("Starting aggregator...")
 
-	baseConfigFilePath := context.String("base-config-file")
-	aggregatorConfigFilePath := context.String("aggregator-config-file")
-
-	aggregatorConfig := config.NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath)
+	configFilePath := context.String(config.ConfigFileFlag.Name)
+	aggregatorConfig := config.NewAggregatorConfig(configFilePath)
 
 	err := rpc_server.Serve(aggregatorConfig)
 
 	if err != nil {
 		log.Fatal("Error starting aggregator server: ", err)
 	}
+
+	return nil
 }
