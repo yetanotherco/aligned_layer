@@ -42,12 +42,17 @@ func (aggregator *Aggregator) Serve() error {
 func (aggregator *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse, reply *uint8) error {
 	aggregator.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", taskResponse)
 
-	// dummy function body, returns 0 if task response string is not empty
-	if taskResponse.TaskResponse != "" {
-		*reply = 0
-	} else {
+	// Check if the task exists. If not, return error
+	if _, ok := aggregator.taskResponses[taskResponse.TaskIndex]; !ok {
 		*reply = 1
+		return nil
 	}
+
+	// TODO: Mutex?
+	aggregator.taskResponses[taskResponse.TaskIndex] = append(aggregator.taskResponses[taskResponse.TaskIndex],
+		*taskResponse)
+
+	*reply = 0
 
 	return nil
 }

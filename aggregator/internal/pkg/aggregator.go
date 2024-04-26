@@ -6,6 +6,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
 type Aggregator struct {
@@ -17,6 +18,8 @@ type Aggregator struct {
 	// Using map here instead of slice to allow for easy lookup of tasks, when aggregator is restarting,
 	// its easier to get the task from the map instead of filling the slice again
 	tasks map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask
+
+	taskResponses map[uint64][]types.SignedTaskResponse
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -33,6 +36,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	}
 
 	tasks := make(map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask)
+	taskResponses := make(map[uint64][]types.SignedTaskResponse)
 
 	aggregator := Aggregator{
 		AggregatorConfig:   &aggregatorConfig,
@@ -40,6 +44,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		taskSubscriber:     taskSubscriber,
 		NewTaskCreatedChan: newTaskCreatedChan,
 		tasks:              tasks,
+		taskResponses:      taskResponses,
 	}
 
 	// Return the Aggregator instance
@@ -56,6 +61,7 @@ func (aggregator *Aggregator) ListenForTasks() error {
 			aggregator.AggregatorConfig.BaseConfig.Logger.Info("New task created", "taskIndex", task.TaskIndex,
 				"task", task.Task)
 			aggregator.tasks[task.TaskIndex] = task.Task
+			aggregator.taskResponses[task.TaskIndex] = make([]types.SignedTaskResponse, 0)
 		}
 	}
 }

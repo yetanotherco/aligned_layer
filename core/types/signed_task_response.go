@@ -6,7 +6,8 @@ import (
 )
 
 type SignedTaskResponse struct {
-	TaskResponse string // TODO: Get Interface from contract bindings
+	TaskIndex uint64
+	// TODO: Might be better to include hash
 	BlsSignature bls.Signature
 	OperatorId   types.OperatorId
 }
