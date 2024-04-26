@@ -254,7 +254,7 @@ This will send 1 eth to that address
 
 Then you can register with EigenLayer by running:
 ```bash
-make operator-register-with-eigenlayer
+make operator-register-with-eigen-layer
 ```
 
 ## FAQ
