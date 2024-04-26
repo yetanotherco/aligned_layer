@@ -18,9 +18,9 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 			agg.tasksMutex.Unlock()
 
 			agg.taskResponsesMutex.Lock()
-			agg.taskResponses[task.TaskIndex] = &TaskResponses{
-				taskResponses: make([]types.SignedTaskResponse, 0),
-				responded:     false,
+			agg.taskResponses[task.TaskIndex] = &TaskResponsesWithStatus{
+				taskResponses:       make([]types.SignedTaskResponse, 0),
+				submittedToEthereum: false,
 			}
 			agg.taskResponsesMutex.Unlock()
 		}

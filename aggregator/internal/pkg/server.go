@@ -45,6 +45,7 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 
 	// Check if the task exists. If not, return error
 	if _, ok := agg.taskResponses[taskResponse.TaskIndex]; !ok {
+		// TODO: Check if the aggregator has missed the task
 		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskIndex)
 		*reply = 1
 		return nil
@@ -62,7 +63,7 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 
 	// Submit the task response to the contract when the number of responses is 2
 	// TODO: Make this configurable (based on quorum %)
-	if !taskResponses.responded && len(taskResponses.taskResponses) >= 2 {
+	if !taskResponses.submittedToEthereum && len(taskResponses.taskResponses) >= 2 {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
 			taskResponse.TaskIndex, "proofIsValid", true)
 
@@ -74,7 +75,7 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 			return err
 		}
 
-		taskResponses.responded = true
+		taskResponses.submittedToEthereum = true
 	}
 
 	agg.taskResponsesMutex.Unlock()

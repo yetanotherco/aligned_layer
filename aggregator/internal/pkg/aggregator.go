@@ -10,9 +10,10 @@ import (
 	"sync"
 )
 
-type TaskResponses struct {
-	taskResponses []types.SignedTaskResponse
-	responded     bool
+// Aggregator stores TaskResponse for a task here
+type TaskResponsesWithStatus struct {
+	taskResponses       []types.SignedTaskResponse
+	submittedToEthereum bool
 }
 
 type Aggregator struct {
@@ -28,7 +29,7 @@ type Aggregator struct {
 	// Mutex to protect the tasks map
 	tasksMutex *sync.Mutex
 
-	taskResponses map[uint64]*TaskResponses
+	taskResponses map[uint64]*TaskResponsesWithStatus
 	// Mutex to protect the taskResponses map
 	taskResponsesMutex *sync.Mutex
 }
@@ -55,7 +56,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	aggregatorConfig.BaseConfig.Logger.Info("Listening for new tasks...")
 
 	tasks := make(map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask)
-	taskResponses := make(map[uint64]*TaskResponses, 0)
+	taskResponses := make(map[uint64]*TaskResponsesWithStatus, 0)
 
 	aggregator := Aggregator{
 		AggregatorConfig:   &aggregatorConfig,
