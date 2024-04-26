@@ -7,7 +7,13 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/types"
+	"sync"
 )
+
+type TaskResponses struct {
+	taskResponses []types.SignedTaskResponse
+	responded     bool
+}
 
 type Aggregator struct {
 	AggregatorConfig   *config.AggregatorConfig
@@ -19,8 +25,12 @@ type Aggregator struct {
 	// Using map here instead of slice to allow for easy lookup of tasks, when aggregator is restarting,
 	// its easier to get the task from the map instead of filling the slice again
 	tasks map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask
+	// Mutex to protect the tasks map
+	tasksMutex *sync.Mutex
 
-	taskResponses map[uint64][]types.SignedTaskResponse
+	taskResponses map[uint64]*TaskResponses
+	// Mutex to protect the taskResponses map
+	taskResponsesMutex *sync.Mutex
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -43,7 +53,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	}
 
 	tasks := make(map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask)
-	taskResponses := make(map[uint64][]types.SignedTaskResponse)
+	taskResponses := make(map[uint64]*TaskResponses, 0)
 
 	aggregator := Aggregator{
 		AggregatorConfig:   &aggregatorConfig,
@@ -52,7 +62,9 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		taskSubscriber:     taskSubscriber,
 		NewTaskCreatedChan: newTaskCreatedChan,
 		tasks:              tasks,
+		tasksMutex:         &sync.Mutex{},
 		taskResponses:      taskResponses,
+		taskResponsesMutex: &sync.Mutex{},
 	}
 
 	// Return the Aggregator instance
@@ -68,8 +80,17 @@ func (agg *Aggregator) ListenForTasks() error {
 		case task := <-agg.NewTaskCreatedChan:
 			agg.AggregatorConfig.BaseConfig.Logger.Info("New task created", "taskIndex", task.TaskIndex,
 				"task", task.Task)
+
+			agg.tasksMutex.Lock()
 			agg.tasks[task.TaskIndex] = task.Task
-			agg.taskResponses[task.TaskIndex] = make([]types.SignedTaskResponse, 0)
+			agg.tasksMutex.Unlock()
+
+			agg.taskResponsesMutex.Lock()
+			agg.taskResponses[task.TaskIndex] = &TaskResponses{
+				taskResponses: make([]types.SignedTaskResponse, 0),
+				responded:     false,
+			}
+			agg.taskResponsesMutex.Unlock()
 		}
 	}
 }

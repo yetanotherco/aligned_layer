@@ -45,31 +45,39 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 
 	// Check if the task exists. If not, return error
 	if _, ok := agg.taskResponses[taskResponse.TaskIndex]; !ok {
+		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskIndex)
 		*reply = 1
 		return nil
 	}
 
 	// TODO: Check if the task response is valid
 
-	// TODO: Mutex?
-	agg.taskResponses[taskResponse.TaskIndex] = append(agg.taskResponses[taskResponse.TaskIndex],
+	agg.taskResponsesMutex.Lock()
+
+	taskResponses := agg.taskResponses[taskResponse.TaskIndex]
+
+	taskResponses.taskResponses = append(
+		agg.taskResponses[taskResponse.TaskIndex].taskResponses,
 		*taskResponse)
 
 	// Submit the task response to the contract when the number of responses is 2
 	// TODO: Make this configurable (based on quorum %)
-	// TODO: Check if response has already been submitted
-	if len(agg.taskResponses[taskResponse.TaskIndex]) >= 2 {
+	if !taskResponses.responded && len(taskResponses.taskResponses) >= 2 {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
 			taskResponse.TaskIndex, "proofIsValid", true)
 
 		_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(&bind.TransactOpts{},
 			taskResponse.TaskIndex, true)
 		if err != nil {
+			agg.taskResponsesMutex.Unlock()
 			*reply = 1
 			return err
 		}
+
+		taskResponses.responded = true
 	}
 
+	agg.taskResponsesMutex.Unlock()
 	*reply = 0
 
 	return nil
