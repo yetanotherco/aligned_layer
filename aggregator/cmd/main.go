@@ -48,7 +48,7 @@ func aggregatorMain(context *cli.Context) error {
 
 	// Listen for tasks in a separate goroutine
 	go func() {
-		listenErr := aggregator.ListenForTasks()
+		listenErr := aggregator.SubscribeToNewTasks()
 		if listenErr != nil {
 			// TODO: Retry listening for tasks
 			aggregatorConfig.BaseConfig.Logger.Error("Error listening for tasks", "err", listenErr)

@@ -32,13 +32,13 @@ anvil-start:
 # TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	go run aggregator/cmd/main.go --base-config-file config-files/config.yaml \
+	@go run aggregator/cmd/main.go --base-config-file config-files/config.yaml \
 		--aggregator-config-file aggregator/config/config.yaml \
 		--operator-config-file operator/config.yaml \
 
 aggregator-send-dummy-responses:
 	@echo "Sending dummy responses to Aggregator..."
-	cd aggregator && go run dummy/submit_task_responses.go
+	@cd aggregator && go run dummy/submit_task_responses.go
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh

@@ -52,6 +52,8 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
+	aggregatorConfig.BaseConfig.Logger.Info("Listening for new tasks...")
+
 	tasks := make(map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask)
 	taskResponses := make(map[uint64]*TaskResponses, 0)
 
@@ -69,28 +71,4 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	// Return the Aggregator instance
 	return &aggregator, nil
-}
-
-func (agg *Aggregator) ListenForTasks() error {
-	for {
-		select {
-		case err := <-agg.taskSubscriber.Err():
-			agg.AggregatorConfig.BaseConfig.Logger.Error("Error in subscription", "err", err)
-			return err
-		case task := <-agg.NewTaskCreatedChan:
-			agg.AggregatorConfig.BaseConfig.Logger.Info("New task created", "taskIndex", task.TaskIndex,
-				"task", task.Task)
-
-			agg.tasksMutex.Lock()
-			agg.tasks[task.TaskIndex] = task.Task
-			agg.tasksMutex.Unlock()
-
-			agg.taskResponsesMutex.Lock()
-			agg.taskResponses[task.TaskIndex] = &TaskResponses{
-				taskResponses: make([]types.SignedTaskResponse, 0),
-				responded:     false,
-			}
-			agg.taskResponsesMutex.Unlock()
-		}
-	}
 }
