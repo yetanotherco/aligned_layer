@@ -6,7 +6,7 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
 # Start an empty anvil chain in the background and dump its state to a json file upon exit
-anvil --load-state state/eigenlayer-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
+anvil --load-state state/strategy-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
 
 cd ../../
 
@@ -25,11 +25,11 @@ forge script script/deploy/AlignedLayerDeployer.s.sol \
 # Kill the anvil process to save state
 pkill anvil
 
-# Anvil adds a block state, making the code to fail. We don't care about this, just the accounts and the deployed code
+# # Anvil adds a block state, making the code to fail. We don't care about this, just the accounts and the deployed code
 cd "$parent_path"
 
-jq 'del(.block)' state/eigenlayer-deployed-anvil-state.json > state/eigenlayer-deployed-anvil-state-tmp.json
+jq 'del(.block)' state/alignedlayer-deployed-anvil-state.json > state/alignedlayer-deployed-anvil-state-tmp.json
 
-cp -f state/eigenlayer-deployed-anvil-state-tmp.json state/eigenlayer-deployed-anvil-state.json
+cp -f state/alignedlayer-deployed-anvil-state-tmp.json state/alignedlayer-deployed-anvil-state.json
 
-rm state/eigenlayer-deployed-anvil-state-tmp.json
+rm state/alignedlayer-deployed-anvil-state-tmp.json
