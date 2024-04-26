@@ -2,8 +2,8 @@
 
 # Check that OPERATOR_ADDRESS is not empty
 if [[ "$OPERATOR_ADDRESS" -eq "" ]]; then
-  echo "OPERATOR_ADDRESS is empty"
-  exit 1
+  echo "OPERATOR_ADDRESS is empty, using default value 0x7656302c27ec57d6b177a606614257808f63821e"
+  OPERATOR_ADDRESS="0x7656302c27ec57d6b177a606614257808f63821e"
 fi;
 
 # Ethereum sender address - anvil address 1
