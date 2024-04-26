@@ -10,7 +10,6 @@ import (
 
 func WaitForTransactionReceipt(client eth.Client, ctx context.Context, txHash common2.Hash) *types.Receipt {
 	for {
-		// verifying transaction receipt
 		receipt, err := client.TransactionReceipt(ctx, txHash)
 		if err != nil {
 			time.Sleep(2 * time.Second)
