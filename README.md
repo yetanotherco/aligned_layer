@@ -31,7 +31,9 @@ To install eigenlayer-cli
 ```bash
 make install-eigenlayer-cli
 ```
-## Run using make
+## How to use Devnet
+
+### Start anvil
 
 Start anvil with every relevant contract deployed with:
 
@@ -41,10 +43,48 @@ make anvil-start
 
 The above command starts a local anvil chain from a [saved state](./tests/integration/eigenlayer-and-shared-avs-contracts-deployed-anvil-state.json) with EigenLayer and AlignedLayer contracts already deployed (but no operator registered).
 
+### Start aggregator
 
-## Dev notes
+Make sure to set config file variables to correct value at `aggregator/config/config.yaml`.
 
-### Development workflow
+To start the aggregator, run:
+```bash
+make aggregator-start
+```
+
+To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
+
+```bash
+make aggregator-send-dummy-responses
+```
+Make sure to have aggregator running on another terminal.
+
+### Start operator
+
+To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
+
+```bash
+make operator-full-registration
+```
+
+Starting the operator is a WIP 
+
+### Send task
+
+To send a task to the ServiceManager using the TaskSender CLI, run:
+```bash
+make send-plonk-proof
+```
+
+This will send a dummy task to the ServiceManager. Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
+
+The plonk proof is located at `task_sender/test_examples`.
+
+## Developing workflows in testnet
+
+
+### Upgrade contracts
+
 When changing EigenLayer contracts, the anvil state needs to be updated with:
 
 ```bash
@@ -70,39 +110,22 @@ Also make sure to re-generate the Go smart contract bindings:
 make bindings
 ```
 
-### Aggregator specific commands
+### Operator registration step by step (WIP Guide)
 
-Make sure to set config file variables to correct value at `aggregator/config/config.yaml`.
+When not using the default address, get eth with:
 
-To start the aggregator, run:
-```bash
-make aggregator-start
-```
-
-To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
-```bash
-make aggregator-send-dummy-responses
-```
-Make sure to have aggregator running on another terminal.
-
-### Operator Specific Commands for Devnet (local network)
-
-Note that you need to be registered with EigenLayer before registering 
-with AlignedLayer or depositing into strategy.
-See the Operator section below for more information.
-
-To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
-```bash
-make operator-full-registration
-```
-
-You can get devnet Ether for gas by running:
 ```bash
 make operator-get-eth
 ```
 
+Update the config in:
+
+```operator/config/devnet/config.yaml```
+```operator/config/devnet/operator.yaml```
+
 To register with EigenLayer, run:
 ```bash
+
 make operator-register-with-eigen-layer
 ```
 
@@ -121,18 +144,8 @@ To just register an operator with AlignedLayer, run:
 make operator-register-with-aligned-layer
 ```
 
-### Task Sender commands
 
-To send a task to the ServiceManager using the TaskSender CLI, run:
-```bash
-make send-plonk-proof
-```
-
-This will send a dummy task to the ServiceManager. Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
-
-The plonk proof is located at `task_sender/test_examples`.
-
-## Deployment
+## Testnet/Mainnet Deployment
 
 To deploy the contracts to Testnet/Mainnet, you will need to set environment variables
 in a .env file in the same directory as the deployment script (`contracts/scripts/`). 
