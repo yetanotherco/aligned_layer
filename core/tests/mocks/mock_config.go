@@ -14,9 +14,9 @@ func NewMockConfig() *config.BaseConfig {
 	etcRpcUrl := "http://localhost:8545"
 	ethWsUrl := "ws://localhost:8545"
 	eigenMetricsIpPortAddress := "localhost:9090"
-	alignedLayerOperatorStateRetrieverAddr := common.HexToAddress("0x9d4454b023096f34b160d6b654540c56a1f81688")
-	alignedLayerServiceManagerAddr := common.HexToAddress("0xc5a5c42992decbae36851359345fe25997f5c42d")
-	alignedLayerRegistryCoordinatorAddr := common.HexToAddress("0x67d269191c92caf3cd7723f116c85e6e9bf55933")
+	alignedLayerOperatorStateRetrieverAddr := common.HexToAddress("0x809d550fca64d94Bd9F66E60752A544199cfAC3D")
+	alignedLayerServiceManagerAddr := common.HexToAddress("0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690")
+	alignedLayerRegistryCoordinatorAddr := common.HexToAddress("0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB")
 	chainId := big.NewInt(31337)
 	slasherAddr := common.HexToAddress("0x")
 	delegationManagerAddress := common.HexToAddress("0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9")

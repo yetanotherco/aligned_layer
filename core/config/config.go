@@ -104,14 +104,15 @@ var (
 		Required: true,
 		Usage:    "Load base configurations from `FILE`",
 	}
+	// Optional Flags
 	AggregatorConfigFileFlag = cli.StringFlag{
 		Name:     "aggregator-config-file",
-		Required: true,
+		Required: false,
 		Usage:    "Load aggregator configurations from `FILE`",
 	}
 	OperatorConfigFileFlag = cli.StringFlag{
 		Name:     "operator-config-file",
-		Required: true,
+		Required: false,
 		Usage:    "Load operator configurations from `FILE`",
 	}
 )
