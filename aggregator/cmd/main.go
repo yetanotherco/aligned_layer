@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/aggregator/internal/rpc_server"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
@@ -32,7 +32,7 @@ func main() {
 	}
 }
 
-func aggregatorMain(context *cli.Context) {
+func aggregatorMain(context *cli.Context) error {
 	log.Println("Starting aggregator...")
 
 	baseConfigFilePath := context.String("base-config-file")
@@ -45,4 +45,6 @@ func aggregatorMain(context *cli.Context) {
 	if err != nil {
 		log.Fatal("Error starting aggregator server: ", err)
 	}
+
+	return nil
 }

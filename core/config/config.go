@@ -6,7 +6,7 @@ import (
 	"errors"
 	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"log"
 	"math/big"
 	"os"
@@ -367,9 +367,9 @@ func newEigenLayerDeploymentConfig(eigenLayerDeploymentFilePath string) *EigenLa
 }
 
 var requiredFlags = []cli.Flag{
-	BaseConfigFileFlag,
-	AggregatorConfigFileFlag,
-	OperatorConfigFileFlag,
+	&BaseConfigFileFlag,
+	&AggregatorConfigFileFlag,
+	&OperatorConfigFileFlag,
 }
 
 var optionalFlags []cli.Flag
