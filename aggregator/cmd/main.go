@@ -37,7 +37,6 @@ func main() {
 }
 
 func aggregatorMain(context *cli.Context) error {
-	log.Println("Starting aggregator...")
 
 	configFilePath := context.String(config.ConfigFileFlag.Name)
 	aggregatorConfig := config.NewAggregatorConfig(configFilePath)
