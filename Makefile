@@ -66,7 +66,7 @@ operator-get-eth:
 
 operator-register-with-eigen-layer:
 	@echo "Registering operator with EigenLayer"
-	@eigenlayer operator register operator/config/devnet/operator.yaml
+	@echo "" | eigenlayer operator register operator/config/devnet/operator.yaml
 
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
