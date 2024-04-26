@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/urfave/cli"
-	"github.com/yetanotherco/aligned_layer/aggregator/internal/rpc_server"
+	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
 	"os"
@@ -32,17 +32,35 @@ func main() {
 	}
 }
 
-func aggregatorMain(context *cli.Context) {
+func aggregatorMain(context *cli.Context) error {
 	log.Println("Starting aggregator...")
 
-	baseConfigFilePath := context.String("base-config-file")
-	aggregatorConfigFilePath := context.String("aggregator-config-file")
+	baseConfigFilePath := context.String(config.BaseConfigFileFlag.Name)
+	aggregatorConfigFilePath := context.String(config.AggregatorConfigFileFlag.Name)
 
 	aggregatorConfig := config.NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath)
 
-	err := rpc_server.Serve(aggregatorConfig)
-
+	aggregator, err := pkg.NewAggregator(*aggregatorConfig)
 	if err != nil {
-		log.Fatal("Error starting aggregator server: ", err)
+		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
+		return err
 	}
+
+	// Listen for tasks in a separate goroutine
+	go func() {
+		listenErr := aggregator.ListenForTasks()
+		if listenErr != nil {
+			// TODO: Retry listening for tasks
+			aggregatorConfig.BaseConfig.Logger.Error("Error listening for tasks", "err", listenErr)
+		}
+	}()
+
+	// Serve the aggregator in the main goroutine
+	err = aggregator.Serve()
+	if err != nil {
+		aggregatorConfig.BaseConfig.Logger.Error("Error serving aggregator", "err", err)
+		return err
+	}
+
+	return nil
 }
