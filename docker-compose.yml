@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  devnet:
+    build:
+      context: ./contracts/scripts/anvil/state
+      dockerfile: Dockerfile
+    networks:
+      devnet_network:
+          ipv4_address: 127.0.0.1
+    ports:
+      - "8545:8545"  # Bind to localhost:8545
+
+
+  aggregator:
+    build:
+      context: ./
+      dockerfile: aggregator/Dockerfile
+    depends_on:
+      - devnet
+    environment:
+      - ETH_WS_URL=ws://devnet:8545
+      - ETH_RPC_URL=http://devnet:8545
+
+  operator:
+    build:
+      context: ./
+      dockerfile: operator/Dockerfile
+    networks:
+      - devnet_network
+
+networks:
+  devnet_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "127.0.0.1/32"
