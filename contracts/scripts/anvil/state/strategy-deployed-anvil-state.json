@@ -265,10 +265,10 @@
     },
     "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": {
       "nonce": 29,
-      "balance": "0x21e199f2eb6705876c3",
+      "balance": "0x21e19a30b1b1a99393f",
       "code": "0x",
       "storage": {}
     }
   },
-  "best_block_number": "0x3"
+  "best_block_number": "0x2"
 }

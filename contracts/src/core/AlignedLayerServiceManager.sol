@@ -28,6 +28,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint16 provingSystemId;
         bytes proof;
         bytes pubInput;
+        bytes verificationKey;
         uint32 taskCreatedBlock;
     }
 
@@ -80,13 +81,16 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function createNewTask(
         uint16 provingSystemId,
         bytes calldata proof,
-        bytes calldata pubInput
+        bytes calldata pubInput,
+        // This is only mandatory for KZG based proving systems
+        bytes calldata verificationKey
     ) external {
         // create a new task struct
         Task memory newTask;
         newTask.provingSystemId = provingSystemId;
         newTask.proof = proof;
         newTask.pubInput = pubInput;
+        newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);
 
         emit NewTaskCreated(latestTaskNum, newTask);

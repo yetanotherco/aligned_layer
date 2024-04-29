@@ -6,7 +6,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"log"
-	"os"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -80,7 +79,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			sub = o.SubscribeToNewTasks()
 		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
 			/* --------- OPERATOR MAIN LOGIC --------- */
-			// taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
+			taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
 			// signedTaskResponse, err := o.SignTaskResponse(taskResponse)
 			// if err != nil {
 			// 	continue
@@ -88,6 +87,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			// go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
 
 			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
+			log.Println("The task response is: ", taskResponse.ProofIsCorrect)
 		}
 	}
 }
@@ -95,7 +95,7 @@ func (o *Operator) Start(ctx context.Context) error {
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
 func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
-	o.Logger.Debug("Received new task", "task", newTaskCreatedLog)
+	// o.Logger.Debug("Received new task", "task", newTaskCreatedLog)
 
 	proof := newTaskCreatedLog.Task.Proof
 	proofLen := (uint)(len(proof))
@@ -117,7 +117,8 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 	switch verifierId {
 	case uint16(common.GnarkPlonkBls12_381):
-		VerificationResult := o.VerifyPlonkProof(proof, pubInput)
+		verificationKey := newTaskCreatedLog.Task.VerificationKey
+		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey)
 
 		o.Logger.Infof("PLONK proof verification result: %t", VerificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
@@ -134,16 +135,10 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 // Load the PLONK verification key from disk and verify it using
 // the Gnark PLONK verifier
-func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte) bool {
-	vkFile, err := os.Open("tests/testing_data/plonk_verification_key")
-	if err != nil {
-		panic("Could not open verification key file")
-	}
-	defer vkFile.Close()
-
+func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(ecc.BLS12_381)
-	_, err = proof.ReadFrom(proofReader)
+	_, err := proof.ReadFrom(proofReader)
 
 	// If the proof can't be deserialized from the bytes then it doesn't verifies
 	if err != nil {
@@ -159,14 +154,14 @@ func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte) boo
 	if err != nil {
 		panic("Could not read PLONK public input")
 	}
-
-	vk := plonk.NewVerifyingKey(ecc.BLS12_381)
-	_, err = vk.ReadFrom(vkFile)
+	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
+	verificationKey := plonk.NewVerifyingKey(ecc.BLS12_381)
+	_, err = verificationKey.ReadFrom(verificationKeyReader)
 	if err != nil {
-		panic("Could not read verifying key from file")
+		panic("Could not read PLONK verifying key from bytes")
 	}
 
-	err = plonk.Verify(proof, vk, pubInput)
+	err = plonk.Verify(proof, verificationKey, pubInput)
 	if err != nil {
 		return false
 	} else {
