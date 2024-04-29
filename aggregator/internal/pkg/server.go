@@ -66,12 +66,13 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
 			taskResponse.TaskIndex, "proofIsValid", true)
 
-		_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(agg.avsWriter.Signer.GetTxOpts(),
-			taskResponse.TaskIndex, true)
+		err := agg.RespondToTask(taskResponse.TaskIndex, true)
 		if err != nil {
 			agg.taskResponsesMutex.Unlock()
-			*reply = 1
-			return err
+
+			// Don't return error to the operator
+			*reply = 0
+			return nil
 		}
 
 		taskResponses.submittedToEthereum = true

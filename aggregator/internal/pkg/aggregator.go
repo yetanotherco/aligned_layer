@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -73,4 +74,45 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	// Return the Aggregator instance
 	return &aggregator, nil
+}
+
+func (agg *Aggregator) RespondToTask(taskIndex uint64, proofIsCorrect bool) error {
+	fullTask, ok := agg.tasks[taskIndex]
+	if !ok {
+		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskIndex)
+		return nil
+	}
+
+	txOpts := agg.avsWriter.Signer.GetTxOpts()
+
+	// Don't send the transaction, just estimate the gas
+	txOpts.NoSend = true
+
+	tx, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(
+		txOpts, taskIndex, proofIsCorrect)
+	if err != nil {
+		agg.AggregatorConfig.BaseConfig.Logger.Error("Error in responding to task", "err", err)
+		return err
+	}
+
+	if tx.Cost().Cmp(fullTask.Fee) > 0 {
+		agg.AggregatorConfig.BaseConfig.Logger.Error("Gas estimate is higher than the task fee", "gas", tx.Cost(), "fee", fullTask.Fee)
+
+		// return error
+		return errors.New("gas estimate is higher than the task fee")
+	}
+
+	txOpts.NoSend = false
+	txOpts.GasLimit = tx.Gas()
+	txOpts.GasPrice = tx.GasPrice()
+
+	_, err = agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(
+		txOpts, taskIndex, proofIsCorrect)
+	if err != nil {
+		return err
+	}
+
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Submitted task response to contract", "taskIndex", taskIndex, "proofIsValid", proofIsCorrect)
+
+	return nil
 }
