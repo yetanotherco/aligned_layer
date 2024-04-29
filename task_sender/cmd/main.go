@@ -149,26 +149,6 @@ func taskSenderLoopMain(c *cli.Context) error {
 	}
 }
 
-// func SendTask(task *types.Task) error {
-// 	log.Println("Sending task...")
-// 	avsWriter, err := chainio.NewAvsWriterFromConfig(mocks.NewMockConfig())
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	_, index, err := avsWriter.SendTask(
-// 		context.Background(),
-// 		task.ProvingSystem,
-// 		task.Proof,
-// 		task.PublicInput,
-// 	)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	log.Printf("Task sent successfully. Task index: %d\n", index)
-// 	return nil
-// }
-
 func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
 	provingSystemStr = strings.TrimSpace(provingSystemStr)
 	switch provingSystemStr {

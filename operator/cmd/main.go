@@ -24,8 +24,6 @@ var flags = []cli.Flag{
 }
 
 func main() {
-	log.Println("Booting operator ...")
-
 	app := &cli.App{
 		Name:   "Aligned Layer Operator",
 		Flags:  flags,
@@ -39,10 +37,7 @@ func main() {
 }
 
 func operatorMain(ctx *cli.Context) error {
-	// operatorConfigFilePath := ctx.String("operator-config-file")
 	operatorConfigFilePath := ctx.String("config")
-	// nodeConfig := types.NodeConfig{}
-
 	operatorConfig := config.NewOperatorConfig(operatorConfigFilePath)
 	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &operatorConfig)
 	if err != nil {
