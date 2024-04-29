@@ -1,36 +1,35 @@
 version: '3'
 
+
+
 services:
   devnet:
     build:
       context: ./contracts/scripts/anvil/state
       dockerfile: Dockerfile
-    ports:
-      - "8545:8545"  # Expose port 8545
     networks:
-      devnet_network:
-        aliases:
-          - devnet
+      - aligned-network
+    ports:
+      - "8545:8545"
 
   aggregator:
     build:
       context: ./
       dockerfile: aggregator/Dockerfile
+    depends_on:
+      - devnet
     networks:
-      devnet_network:
-        aliases:
-          - aggregator
+      - aligned-network
+    ports:
+      - "8090:8090"
 
   operator:
     build:
       context: ./
       dockerfile: operator/Dockerfile
     networks:
-      devnet_network:
-        aliases:
-          - operator
-
-
+      - aligned-network
+    depends_on:
+      - devnet
 networks:
-  devnet_network:
-    driver: bridge
+  aligned-network:

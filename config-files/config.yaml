@@ -3,8 +3,8 @@
 environment: "development"
 aligned_layer_deployment_config_file_path: "./contracts/script/output/devnet/alignedlayer_deployment_output.json"
 eigen_layer_deployment_config_file_path: "./contracts/script/output/devnet/eigenlayer_deployment_output.json"
-eth_rpc_url: "http://localhost:8545"
-eth_ws_url: "ws://localhost:8545"
+eth_rpc_url: "http://aligned-network:8545"  # Use the service name
+eth_ws_url: "ws://aligned-network:8545"
 eigen_metrics_ip_port_address: "localhost:9090"
 
 ## ECDSA Configurations
