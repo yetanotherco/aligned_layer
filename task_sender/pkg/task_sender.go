@@ -3,20 +3,21 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
-	"log"
 )
 
 type Task struct {
-	verificationSystem common.SystemVerificationId
+	verificationSystem common.ProvingSystemId
 	proof              []byte
 	publicInput        []byte
 	verificationKey    []byte
 }
 
-func NewTask(verificationSystem common.SystemVerificationId, proof []byte, publicInput []byte, verificationKey []byte) *Task {
+func NewTask(verificationSystem common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte) *Task {
 	return &Task{
 		verificationSystem: verificationSystem,
 		proof:              proof,
@@ -46,8 +47,8 @@ func SendTask(task *Task) error {
 }
 
 // TODO Set corrects verification systems
-func GetVerificationSystem(system string) (common.SystemVerificationId, error) {
-	var unknownValue common.SystemVerificationId
+func GetVerificationSystem(system string) (common.ProvingSystemId, error) {
+	var unknownValue common.ProvingSystemId
 	switch system {
 	case "plonk":
 		return common.GnarkPlonkBls12_381, nil

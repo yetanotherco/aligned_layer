@@ -5,15 +5,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
-	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli"
-	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
-	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/types"
+	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 )
 
 var (
@@ -33,7 +29,7 @@ func main() {
 
 	app := &cli.App{
 		Name:   "Aligned Layer Operator",
-		Flags:  flags,
+		Flags:  config.Flags,
 		Action: operatorMain,
 	}
 
@@ -44,49 +40,22 @@ func main() {
 }
 
 func operatorMain(ctx *cli.Context) error {
-	logger, err := sdklogging.NewZapLogger("production")
-	if err != nil {
-		return err
-	}
-
-	configPath := ctx.GlobalString(config.ConfigFileFlag.Name)
+	operatorConfigFilePath := ctx.String("operator-config-file")
 	nodeConfig := types.NodeConfig{}
-	err = sdkutils.ReadYamlConfig(configPath, &nodeConfig)
+	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &nodeConfig)
 	if err != nil {
 		return err
 	}
 
-	serviceManagerAddr := common.HexToAddress(nodeConfig.AlignedLayerServiceManagerAddr)
-	operatorStateRetrieverAddr := common.HexToAddress(nodeConfig.OperatorStateRetrieverAddr)
-	ethWsClient, err := eth.NewClient(nodeConfig.EthWsUrl)
+	operator, _ := operator.NewOperatorFromConfig(nodeConfig)
+
+	log.Println("Operator starting...")
+	err = operator.Start(context.Background())
 	if err != nil {
-		log.Fatalf("Cannot create ws ethclient", "err", err)
 		return err
 	}
 
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(serviceManagerAddr, operatorStateRetrieverAddr, ethWsClient, logger)
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
-	sub := avsSubscriber.SubscribeToNewTasks(newTaskCreatedChan)
+	log.Println("Operator started")
 
-	for {
-		select {
-		case <-context.Background().Done():
-			log.Println("Operator shutting down...")
-			return nil
-		case err := <-sub.Err():
-			log.Println("Error in websocket subscription", "err", err)
-			sub.Unsubscribe()
-			sub = avsSubscriber.SubscribeToNewTasks(newTaskCreatedChan)
-		case newTaskCreatedLog := <-newTaskCreatedChan:
-
-			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
-
-			// taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
-			// signedTaskResponse, err := o.SignTaskResponse(taskResponse)
-			// if err != nil {
-			// 	continue
-			// }
-			// go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
-		}
-	}
+	return nil
 }

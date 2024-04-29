@@ -65,11 +65,11 @@ func NewAvsWriterFromConfig(c *config.BaseConfig) (*AvsWriter, error) {
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, verificationSystemId common.ProvingSystemId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
+func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
-		uint16(verificationSystemId),
+		uint16(provingSystemId),
 		proof,
 		publicInput,
 	)

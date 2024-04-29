@@ -140,7 +140,7 @@ func taskSenderLoopMain(c *cli.Context) error {
 
 func SendTask(task *types.Task) error {
 	log.Println("Sending task...")
-	avsWriter, err := chainio.NewAvsWriterFromConfig(mocks.NewDevnetConfig())
+	avsWriter, err := chainio.NewAvsWriterFromConfig(mocks.NewMockConfig())
 	if err != nil {
 		return err
 	}
