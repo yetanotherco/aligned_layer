@@ -5,11 +5,13 @@ import (
 	"log"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/types"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -75,11 +77,10 @@ func (o *Operator) Start(ctx context.Context) error {
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
 		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
-
 			/* --------- OPERATOR MAIN LOGIC --------- */
 			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
 
-			// Here we should process a task, here we will pretend the proof is always true until adding that
+			// Here we should process a task, we will pretend the proof is always true until adding that
 			taskResponse := servicemanager.AlignedLayerServiceManagerTaskResponse{TaskIndex: newTaskCreatedLog.TaskIndex, ProofIsCorrect: true}
 			encodedResponseBytes, _ := AbiEncodeTaskResponse(taskResponse)
 			log.Println("Task response:", taskResponse)
@@ -93,6 +94,14 @@ func (o *Operator) Start(ctx context.Context) error {
 			log.Println("Encoded response hash len:", len(taskResponseDigest))
 			responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(taskResponseDigest)
 			log.Println("Signed hash:", responseSignature)
+
+			signedTaskResponse := types.SignedTaskResponse{
+				TaskResponse: taskResponse,
+				BlsSignature: responseSignature,
+				OperatorId:   eigentypes.Bytes32(make([]byte, 32)),
+			}
+
+			o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
 	}
 }
@@ -109,7 +118,6 @@ func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManage
 	*/
 
 	/*
-
 		This matches:
 
 		struct TaskResponse {

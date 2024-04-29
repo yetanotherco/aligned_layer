@@ -22,11 +22,12 @@ func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) 
 	return &AggregatorRpcClient{
 		rpcClient:            client,
 		aggregatorIpPortAddr: aggregatorIpPortAddr,
+		logger:               logger,
 	}, nil
 }
 
 func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskResponse *types.SignedTaskResponse) {
-	var reply bool
+	var reply uint8
 	err := c.rpcClient.Call("Aggregator.SubmitTaskResponse", signedTaskResponse, &reply)
 	if err != nil {
 		c.logger.Fatal("Received error from aggregator", "err", err)
