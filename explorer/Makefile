@@ -1,14 +1,14 @@
 .PHONY: help deps dev
 
 help:
-	@echo "deps - Install the dependencies"
-	@echo "dev - Start the development server"
+	@echo "deps - Installing Elixir code dependencies"
+	@echo "run - Starting the Elixir backend server"
 	@echo "help - Show this help"
 
 deps:
-	@echo "Installing dependencies"
+	@echo "Installing Elixir code dependencies"
 	@mix setup
 
-dev:
-	@echo "Starting development server"
+run:
+	@echo "Starting the Elixir backend server"
 	@mix phx.server
