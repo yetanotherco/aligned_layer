@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"log"
+	"math/big"
 
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/types"
@@ -18,13 +19,14 @@ func NewTaskSender(avsWriter *chainio.AvsWriter) *TaskSender {
 	}
 }
 
-func (ts *TaskSender) SendTask(task *types.Task) error {
+func (ts *TaskSender) SendTask(task *types.Task, fee *big.Int) error {
 	log.Println("Sending task...")
 	_, index, err := ts.avsWriter.SendTask(
 		context.Background(),
 		task.ProvingSystem,
 		task.Proof,
 		task.PublicInput,
+		fee,
 	)
 	if err != nil {
 		return err

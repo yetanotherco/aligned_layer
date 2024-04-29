@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -47,6 +48,12 @@ var (
 		Value:   1,
 		Usage:   "the `INTERVAL` in seconds to send tasks",
 	}
+	feeFlag = &cli.IntFlag{
+		Name:     "fee",
+		Required: false,
+		Value:    1,
+		Usage:    "the `FEE` in wei to send when sending a task",
+	}
 )
 
 var sendTaskFlags = []cli.Flag{
@@ -55,6 +62,7 @@ var sendTaskFlags = []cli.Flag{
 	publicInputFlag,
 	verificationKeyFlag,
 	config.ConfigFileFlag,
+	feeFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -64,6 +72,7 @@ var loopTasksFlags = []cli.Flag{
 	verificationKeyFlag,
 	config.ConfigFileFlag,
 	intervalFlag,
+	feeFlag,
 }
 
 func main() {
@@ -117,6 +126,8 @@ func taskSenderMain(c *cli.Context) error {
 		}
 	}
 
+	fee := big.NewInt(int64(c.Int(feeFlag.Name)))
+
 	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
 	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
 	if err != nil {
@@ -126,7 +137,7 @@ func taskSenderMain(c *cli.Context) error {
 	taskSender := pkg.NewTaskSender(avsWriter)
 	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile)
 
-	err = taskSender.SendTask(task)
+	err = taskSender.SendTask(task, fee)
 	if err != nil {
 		return err
 	}
