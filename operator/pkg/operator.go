@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -33,18 +32,7 @@ type Operator struct {
 func NewOperatorFromConfig(config config.OperatorConfig) (*Operator, error) {
 	logger := config.BaseConfig.Logger
 
-	deploymentConfig := config.AlignedLayerDeploymentConfig
-
-	serviceManagerAddr := deploymentConfig.AlignedLayerServiceManagerAddr
-	operatorStateRetrieverAddr := deploymentConfig.AlignedLayerOperatorStateRetrieverAddr
-	ethWsUrl := config.BaseConfig.EthWsUrl
-	ethWsClient, err := eth.NewClient(ethWsUrl)
-	if err != nil {
-		log.Fatalln("Cannot create websocket ethereum client", "err", err)
-		return nil, err
-	}
-
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(serviceManagerAddr, operatorStateRetrieverAddr, ethWsClient, logger)
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(config.BaseConfig)
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
