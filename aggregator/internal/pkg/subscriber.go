@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/yetanotherco/aligned_layer/core/types"
@@ -8,17 +9,23 @@ import (
 )
 
 const (
+	MaxRetries    = 20
 	RetryInterval = 10 * time.Second
 )
 
 func (agg *Aggregator) SubscribeToNewTasks() error {
-	var createErr error
-	createErr = agg.tryCreateTaskSubscriber()
-	if createErr == nil {
-		_ = agg.subscribeToNewTasks() // This will block until an error occurs
+	for retries := 0; retries < MaxRetries; retries++ {
+		err := agg.tryCreateTaskSubscriber()
+		if err == nil {
+			_ = agg.subscribeToNewTasks() // This will block until an error occurs
+		}
+
+		message := fmt.Sprintf("Failed to subscribe to new tasks. Retrying in %v", RetryInterval)
+		agg.AggregatorConfig.BaseConfig.Logger.Info(message)
+		time.Sleep(RetryInterval)
 	}
-	time.Sleep(RetryInterval)
-	return agg.SubscribeToNewTasks()
+
+	return errors.New("failed to subscribe to new tasks after max retries")
 }
 
 func (agg *Aggregator) subscribeToNewTasks() error {
