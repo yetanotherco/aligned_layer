@@ -80,9 +80,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function createNewTask(
         uint16 verificationSystemId,
         bytes calldata proof,
-        bytes calldata pubInput        
+        bytes calldata pubInput
     ) external {
-                // create a new task struct
+        // create a new task struct
         Task memory newTask;
         newTask.verificationSystemId = verificationSystemId;
         newTask.proof = proof;
@@ -95,11 +95,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     function respondToTask(
         uint64 taskIndex,
-        bool proofIsCorrect
-        // TODO: aggregated signature field
+        bool proofIsCorrect // TODO: aggregated signature field
     ) external {
         // TODO: actually do something with the aggregated signature
         emit TaskResponded(TaskResponse(taskIndex, proofIsCorrect));
     }
-
 }

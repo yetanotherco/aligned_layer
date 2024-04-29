@@ -71,7 +71,11 @@ To do the full process (register with EigenLayer, deposit into strategy and regi
 make operator-full-registration
 ```
 
-Starting the operator is a WIP 
+Once the registration process is done, start the operator with
+
+```bash
+make operator-start
+```
 
 ### Send task
 
@@ -80,12 +84,13 @@ To send a task to the ServiceManager using the TaskSender CLI, run:
 make send-plonk-proof
 ```
 
-This will send a dummy task to the ServiceManager. Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
+This will send a dummy task to the ServiceManager and an event will be emitted. 
+You should see logs from the operator with the received task's index.
+Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
 
 The plonk proof is located at `task_sender/test_examples`.
 
 ## Developing workflows in testnet
-
 
 ### Upgrade contracts
 

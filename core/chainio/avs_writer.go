@@ -2,8 +2,9 @@ package chainio
 
 import (
 	"context"
-	"github.com/yetanotherco/aligned_layer/common"
 	"time"
+
+	"github.com/yetanotherco/aligned_layer/common"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
@@ -65,11 +66,11 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, verificationSystemId common.SystemVerificationId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
+func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
-		uint16(verificationSystemId),
+		uint16(provingSystemId),
 		proof,
 		publicInput,
 	)
@@ -91,7 +92,6 @@ func (w *AvsWriter) SendTask(context context.Context, verificationSystemId commo
 	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
 	if err != nil {
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
-
 	}
 	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
 }
