@@ -60,8 +60,7 @@ func (agg *Aggregator) tryCreateTaskSubscriber() error {
 		agg.NewTaskCreatedChan, nil)
 
 	if err != nil {
-		message := fmt.Sprintf("Failed to create task subscriber")
-		agg.AggregatorConfig.BaseConfig.Logger.Info(message, "err", err)
+		agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to create task subscriber", "err", err)
 	}
 	return err
 }
