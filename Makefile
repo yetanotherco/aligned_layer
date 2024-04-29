@@ -40,9 +40,9 @@ aggregator-send-dummy-responses:
 
 operator-start:
 	@echo "Starting Operator..."
-	go run operator/cmd/main.go --base-config-file config-files/config.yaml \
-	--operator-config-file operator/config/config.yaml \
+	go run operator/cmd/main.go --config config-files/config.yaml \
 	2>&1 | zap-pretty
+	# --operator-config-file operator/config/config.yaml \
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh

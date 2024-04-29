@@ -6,9 +6,8 @@ import (
 	"os"
 
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"github.com/yetanotherco/aligned_layer/core/types"
 	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 )
 
@@ -21,7 +20,7 @@ var (
 )
 
 var flags = []cli.Flag{
-	configFlag,
+	config.ConfigFileFlag,
 }
 
 func main() {
@@ -29,7 +28,7 @@ func main() {
 
 	app := &cli.App{
 		Name:   "Aligned Layer Operator",
-		Flags:  config.Flags,
+		Flags:  flags,
 		Action: operatorMain,
 	}
 
@@ -40,14 +39,17 @@ func main() {
 }
 
 func operatorMain(ctx *cli.Context) error {
-	operatorConfigFilePath := ctx.String("operator-config-file")
-	nodeConfig := types.NodeConfig{}
-	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &nodeConfig)
+	// operatorConfigFilePath := ctx.String("operator-config-file")
+	operatorConfigFilePath := ctx.String("config")
+	// nodeConfig := types.NodeConfig{}
+
+	operatorConfig := config.NewOperatorConfig(operatorConfigFilePath)
+	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &operatorConfig)
 	if err != nil {
 		return err
 	}
 
-	operator, _ := operator.NewOperatorFromConfig(nodeConfig)
+	operator, _ := operator.NewOperatorFromConfig(*operatorConfig)
 
 	log.Println("Operator starting...")
 	err = operator.Start(context.Background())

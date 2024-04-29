@@ -14,11 +14,11 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
 type Operator struct {
-	Config             types.NodeConfig
+	Config             config.OperatorConfig
 	Address            common.Address
 	Socket             string
 	Timeout            time.Duration
@@ -30,16 +30,15 @@ type Operator struct {
 	Logger             logging.Logger
 }
 
-func NewOperatorFromConfig(config types.NodeConfig) (*Operator, error) {
-	logLevel := logging.LogLevel(config.Logger)
-	logger, err := logging.NewZapLogger(logLevel)
-	if err != nil {
-		return nil, err
-	}
+func NewOperatorFromConfig(config config.OperatorConfig) (*Operator, error) {
+	logger := config.BaseConfig.Logger
 
-	serviceManagerAddr := common.HexToAddress(config.AlignedLayerServiceManagerAddr)
-	operatorStateRetrieverAddr := common.HexToAddress(config.OperatorStateRetrieverAddr)
-	ethWsClient, err := eth.NewClient(config.EthWsUrl)
+	deploymentConfig := config.AlignedLayerDeploymentConfig
+
+	serviceManagerAddr := deploymentConfig.AlignedLayerServiceManagerAddr
+	operatorStateRetrieverAddr := deploymentConfig.AlignedLayerOperatorStateRetrieverAddr
+	ethWsUrl := config.BaseConfig.EthWsUrl
+	ethWsClient, err := eth.NewClient(ethWsUrl)
 	if err != nil {
 		log.Fatalln("Cannot create websocket ethereum client", "err", err)
 		return nil, err
@@ -51,8 +50,7 @@ func NewOperatorFromConfig(config types.NodeConfig) (*Operator, error) {
 	}
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
-	// FIXME(marian): This should be read from the config
-	address := common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
+	address := config.Operator.Address
 	operator := &Operator{
 		Config:             config,
 		Logger:             logger,
