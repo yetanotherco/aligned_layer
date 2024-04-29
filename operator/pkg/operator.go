@@ -2,6 +2,7 @@ package operator
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -41,7 +42,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	// FIXME(marian): We should not hardcode the aggregator IP:PORT address
 	rpcClient, err := NewAggregatorRpcClient("localhost:8090", logger)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
 	}
 
 	address := configuration.Operator.Address
