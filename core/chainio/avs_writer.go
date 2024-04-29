@@ -11,6 +11,7 @@ import (
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
+	"math/big"
 )
 
 type AvsWriter struct {
@@ -66,6 +67,8 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 
 func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
 	txOpts := w.Signer.GetTxOpts()
+
+	txOpts.Value = big.NewInt(1) // TODO: receive this as a parameter
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
 		uint16(provingSystemId),

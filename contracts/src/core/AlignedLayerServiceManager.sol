@@ -29,6 +29,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes proof;
         bytes pubInput;
         uint32 taskCreatedBlock;
+        uint256 fee;
     }
 
     struct TaskResponse {
@@ -81,13 +82,16 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint16 verificationSystemId,
         bytes calldata proof,
         bytes calldata pubInput
-    ) external {
+    ) external payable {
+        require(msg.value > 0, "fee must be greater than 0");
+
         // create a new task struct
         Task memory newTask;
         newTask.verificationSystemId = verificationSystemId;
         newTask.proof = proof;
         newTask.pubInput = pubInput;
         newTask.taskCreatedBlock = uint32(block.number);
+        newTask.fee = msg.value;
 
         emit NewTaskCreated(latestTaskNum, newTask);
         latestTaskNum = latestTaskNum + 1;
@@ -98,6 +102,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bool proofIsCorrect // TODO: aggregated signature field
     ) external {
         // TODO: actually do something with the aggregated signature
+
+        // TODO: pay the aggregator, might need to store fee
+
         emit TaskResponded(TaskResponse(taskIndex, proofIsCorrect));
     }
 }
