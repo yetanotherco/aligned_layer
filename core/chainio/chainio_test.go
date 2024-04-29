@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -55,7 +56,15 @@ func TestAvsWriter(t *testing.T) {
 func TestAvsSubscriber(t *testing.T) {
 	mockConfig := mocks.NewMockConfig()
 
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(mockConfig)
+	serviceManagerAddr := mockConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr
+	operatorStateRetrieverAddr := mockConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr
+	logger := mockConfig.Logger
+	ethWsClient, err := eth.NewClient(mockConfig.EthWsUrl)
+	if err != nil {
+		t.Errorf("could not create ethereum websocket client")
+	}
+
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(serviceManagerAddr, operatorStateRetrieverAddr, ethWsClient, logger)
 	if err != nil {
 		t.Errorf("could not create AVS reader")
 	}

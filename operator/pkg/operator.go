@@ -41,7 +41,7 @@ func NewOperatorFromConfig(config types.NodeConfig) (*Operator, error) {
 	operatorStateRetrieverAddr := common.HexToAddress(config.OperatorStateRetrieverAddr)
 	ethWsClient, err := eth.NewClient(config.EthWsUrl)
 	if err != nil {
-		log.Fatalf("Cannot create websocket ethereum client", "err", err)
+		log.Fatalln("Cannot create websocket ethereum client", "err", err)
 		return nil, err
 	}
 
@@ -86,15 +86,15 @@ func (o *Operator) Start(ctx context.Context) error {
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
 		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
-
-			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
-
+			/* --------- OPERATOR MAIN LOGIC --------- */
 			// taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
 			// signedTaskResponse, err := o.SignTaskResponse(taskResponse)
 			// if err != nil {
 			// 	continue
 			// }
 			// go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
+
+			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
 		}
 	}
 }

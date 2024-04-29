@@ -154,7 +154,7 @@ func SendTask(task *types.Task) error {
 	if err != nil {
 		return err
 	}
-	log.Println("Task sent successfully. Task index:", index)
+	log.Printf("Task sent successfully. Task index: %d\n", index)
 	return nil
 }
 
