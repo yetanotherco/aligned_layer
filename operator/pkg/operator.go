@@ -32,24 +32,24 @@ type Operator struct {
 	Logger             logging.Logger
 }
 
-func NewOperatorFromConfig(config config.OperatorConfig) (*Operator, error) {
-	logger := config.BaseConfig.Logger
+func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
+	logger := configuration.BaseConfig.Logger
 
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(config.BaseConfig)
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(configuration.BaseConfig)
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
-	address := config.Operator.Address
+	address := configuration.Operator.Address
 	operator := &Operator{
-		Config:             config,
+		Config:             configuration,
 		Logger:             logger,
 		avsSubscriber:      *avsSubscriber,
 		Address:            address,
 		NewTaskCreatedChan: newTaskCreatedChan,
-		// KeyPair
-		// PrivKey
+		KeyPair:            configuration.BlsConfig.KeyPair,
+		PrivKey:            configuration.EcdsaConfig.PrivateKey,
 		// Timeout
 		// OperatorId
 		// Socket
