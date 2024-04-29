@@ -7,7 +7,6 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
@@ -27,10 +26,10 @@ func NewMockConfig() *config.BaseConfig {
 		fmt.Println("Could not initialize logger")
 	}
 
-	ecdsaPrivateKey, err := crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
-	if err != nil {
-		logger.Errorf("Cannot parse ecdsa private key", "err", err)
-	}
+	// ecdsaPrivateKey, err := crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+	// if err != nil {
+	// 	logger.Errorf("Cannot parse ecdsa private key", "err", err)
+	// }
 
 	ethRpcClient, err := eth.NewClient(etcRpcUrl)
 	if err != nil {
@@ -43,8 +42,8 @@ func NewMockConfig() *config.BaseConfig {
 	}
 
 	return &config.BaseConfig{
-		EcdsaPrivateKey:           ecdsaPrivateKey,
-		BlsPrivateKey:             nil,
+		// EcdsaPrivateKey:           ecdsaPrivateKey,
+		// BlsPrivateKey:             nil,
 		Logger:                    logger,
 		EigenMetricsIpPortAddress: eigenMetricsIpPortAddress,
 		EthRpcUrl:                 etcRpcUrl,
@@ -52,7 +51,7 @@ func NewMockConfig() *config.BaseConfig {
 		EthRpcClient:              ethRpcClient,
 		EthWsClient:               ethWsClient,
 		ChainId:                   chainId,
-		Signer:                    nil,
+		// Signer:                    nil,
 		AlignedLayerDeploymentConfig: &config.AlignedLayerDeploymentConfig{
 			AlignedLayerOperatorStateRetrieverAddr: alignedLayerOperatorStateRetrieverAddr,
 			AlignedLayerServiceManagerAddr:         alignedLayerServiceManagerAddr,

@@ -1,17 +1,18 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
+
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
@@ -53,6 +54,7 @@ var sendTaskFlags = []cli.Flag{
 	proofFlag,
 	publicInputFlag,
 	verificationKeyFlag,
+	config.ConfigFileFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -114,7 +116,16 @@ func taskSenderMain(c *cli.Context) error {
 		}
 	}
 
-	err = SendTask(types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile))
+	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
+	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
+	if err != nil {
+		return err
+	}
+
+	taskSender := pkg.NewTaskSender(avsWriter)
+	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile)
+
+	err = taskSender.SendTask(task)
 	if err != nil {
 		return err
 	}
@@ -138,25 +149,25 @@ func taskSenderLoopMain(c *cli.Context) error {
 	}
 }
 
-func SendTask(task *types.Task) error {
-	log.Println("Sending task...")
-	avsWriter, err := chainio.NewAvsWriterFromConfig(mocks.NewMockConfig())
-	if err != nil {
-		return err
-	}
+// func SendTask(task *types.Task) error {
+// 	log.Println("Sending task...")
+// 	avsWriter, err := chainio.NewAvsWriterFromConfig(mocks.NewMockConfig())
+// 	if err != nil {
+// 		return err
+// 	}
 
-	_, index, err := avsWriter.SendTask(
-		context.Background(),
-		task.ProvingSystem,
-		task.Proof,
-		task.PublicInput,
-	)
-	if err != nil {
-		return err
-	}
-	log.Printf("Task sent successfully. Task index: %d\n", index)
-	return nil
-}
+// 	_, index, err := avsWriter.SendTask(
+// 		context.Background(),
+// 		task.ProvingSystem,
+// 		task.Proof,
+// 		task.PublicInput,
+// 	)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	log.Printf("Task sent successfully. Task index: %d\n", index)
+// 	return nil
+// }
 
 func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
 	provingSystemStr = strings.TrimSpace(provingSystemStr)
