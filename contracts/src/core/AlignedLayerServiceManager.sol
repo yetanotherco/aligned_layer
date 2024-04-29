@@ -21,7 +21,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     // EVENTS
     event NewTaskCreated(uint64 indexed taskIndex, Task task);
-    event TaskResponded(TaskResponse taskResponse);
+    event TaskResponded(uint64 indexed taskIndex, TaskResponse taskResponse);
 
     // STRUCTS
     struct Task {
@@ -100,6 +100,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bool proofIsCorrect // TODO: aggregated signature field
     ) external {
         // TODO: actually do something with the aggregated signature
-        emit TaskResponded(TaskResponse(taskIndex, proofIsCorrect));
+        emit TaskResponded(taskIndex, TaskResponse(taskIndex, proofIsCorrect));
     }
 }
