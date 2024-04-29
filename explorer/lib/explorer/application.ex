@@ -57,10 +57,13 @@ defmodule AlignedTask do
 end
 
 defmodule AlignedLayerServiceManager do
+  {:ok, json_string} = File.read("../contracts/script/output/devnet/alignedlayer_deployment_output.json")
+  alignedLayerServiceManagerAddress = Jason.decode!(json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
+
   use Ethers.Contract,
     abi_file: "lib/abi/AlignedLayerServiceManager.json",
     # default_address: "0x2fcE68A46aF645A00D0b94C2db48f627040766A7" #holesky
-    default_address: "0xc5a5C42992dECbae36851359345FE25997F5C42d" #devnet
+    default_address: alignedLayerServiceManagerAddress
 
   def get_task(task_id) do
     events = AlignedLayerServiceManager.EventFilters.new_task_created(task_id) |> Ethers.get_logs(fromBlock: 0)
@@ -78,5 +81,11 @@ defmodule AlignedLayerServiceManager do
     else
       {:error, "No task found"}
     end
+  end
+
+  def get_responded() do
+    events = AlignedLayerServiceManager.EventFilters.task_responded() |> Ethers.get_logs(fromBlock: 0)
+    events |> IO.puts()
+    "asd"
   end
 end
