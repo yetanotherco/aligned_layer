@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
-	"github.com/yetanotherco/aligned_layer/aggregator/internal/rpc_server"
+	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
 	"os"
@@ -16,10 +16,14 @@ var (
 	GitDate   string
 )
 
+var flags = []cli.Flag{
+	config.ConfigFileFlag,
+}
+
 func main() {
 	app := cli.NewApp()
 
-	app.Flags = config.Flags
+	app.Flags = flags
 	app.Version = fmt.Sprintf("%s-%s-%s", Version, GitCommit, GitDate)
 	app.Name = "aligned-layer-aggregator"
 	app.Usage = "Aligned Layer Aggregator"
@@ -32,17 +36,32 @@ func main() {
 	}
 }
 
-func aggregatorMain(context *cli.Context) {
-	log.Println("Starting aggregator...")
+func aggregatorMain(context *cli.Context) error {
 
-	baseConfigFilePath := context.String("base-config-file")
-	aggregatorConfigFilePath := context.String("aggregator-config-file")
+	configFilePath := context.String(config.ConfigFileFlag.Name)
+	aggregatorConfig := config.NewAggregatorConfig(configFilePath)
 
-	aggregatorConfig := config.NewAggregatorConfig(baseConfigFilePath, aggregatorConfigFilePath)
-
-	err := rpc_server.Serve(aggregatorConfig)
-
+	aggregator, err := pkg.NewAggregator(*aggregatorConfig)
 	if err != nil {
-		log.Fatal("Error starting aggregator server: ", err)
+		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
+		return err
 	}
+
+	// Listen for new task created in the ServiceManager contract in a separate goroutine
+	go func() {
+		listenErr := aggregator.SubscribeToNewTasks()
+		if listenErr != nil {
+			// TODO: Retry listening for tasks
+			aggregatorConfig.BaseConfig.Logger.Error("Error listening for tasks", "err", listenErr)
+		}
+	}()
+
+	// Listens for task responses signed by operators
+	err = aggregator.ServeOperators()
+	if err != nil {
+		aggregatorConfig.BaseConfig.Logger.Error("Error serving aggregator", "err", err)
+		return err
+	}
+
+	return nil
 }

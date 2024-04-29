@@ -2,56 +2,33 @@ package pkg
 
 import (
 	"context"
-	"fmt"
-	"github.com/yetanotherco/aligned_layer/common"
-	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/tests/mocks"
 	"log"
+
+	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
-type Task struct {
-	verificationSystem common.SystemVerificationId
-	proof              []byte
-	publicInput        []byte
-	verificationKey    []byte
+type TaskSender struct {
+	avsWriter *chainio.AvsWriter
 }
 
-func NewTask(verificationSystem common.SystemVerificationId, proof []byte, publicInput []byte, verificationKey []byte) *Task {
-	return &Task{
-		verificationSystem: verificationSystem,
-		proof:              proof,
-		publicInput:        publicInput,
-		verificationKey:    verificationKey,
+func NewTaskSender(avsWriter *chainio.AvsWriter) *TaskSender {
+	return &TaskSender{
+		avsWriter: avsWriter,
 	}
 }
 
-func SendTask(task *Task) error {
+func (ts *TaskSender) SendTask(task *types.Task) error {
 	log.Println("Sending task...")
-	avsWriter, err := chainio.NewAvsWriterFromConfig(mocks.NewMockConfig())
-	if err != nil {
-		return err
-	}
-
-	_, index, err := avsWriter.SendTask(
+	_, index, err := ts.avsWriter.SendTask(
 		context.Background(),
-		task.verificationSystem,
-		task.proof,
-		task.publicInput,
+		task.ProvingSystem,
+		task.Proof,
+		task.PublicInput,
 	)
 	if err != nil {
 		return err
 	}
 	log.Println("Task sent successfully. Task index:", index)
 	return nil
-}
-
-// TODO Set corrects verification systems
-func GetVerificationSystem(system string) (common.SystemVerificationId, error) {
-	var unknownValue common.SystemVerificationId
-	switch system {
-	case "plonk":
-		return common.GnarkPlonkBls12_381, nil
-	default:
-		return unknownValue, fmt.Errorf("unsupported proof system: %s", system)
-	}
 }

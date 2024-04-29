@@ -28,6 +28,4 @@ for contract in $avs_service_contracts; do
     create_binding . $contract ./bindings
 done
 
-# TODO(marian): These bindings have to be added once we support Operator registration and deposits into strategies.
-#create_binding . ERC20Mock ./bindings
-
+create_binding . ERC20Mock ./bindings

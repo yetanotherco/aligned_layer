@@ -4,18 +4,24 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
+
+	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/common"
+	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
 var (
-	systemFlag = &cli.StringFlag{
-		Name:     "system",
+	provingSystemFlag = &cli.StringFlag{
+		Name:     "proving-system",
 		Aliases:  []string{"s"},
 		Required: true,
-		Usage:    "the proof `SYSTEM` to use (e.g., plonk, groth16)",
+		Usage:    "the `PROVING SYSTEM` to use (e.g., plonk, groth16)",
 	}
 	proofFlag = &cli.PathFlag{
 		Name:     "proof",
@@ -44,17 +50,19 @@ var (
 )
 
 var sendTaskFlags = []cli.Flag{
-	systemFlag,
+	provingSystemFlag,
 	proofFlag,
 	publicInputFlag,
 	verificationKeyFlag,
+	config.ConfigFileFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
-	systemFlag,
+	provingSystemFlag,
 	proofFlag,
 	publicInputFlag,
 	verificationKeyFlag,
+	config.ConfigFileFlag,
 	intervalFlag,
 }
 
@@ -86,14 +94,14 @@ func main() {
 }
 
 func taskSenderMain(c *cli.Context) error {
-	verificationSystem, err := pkg.GetVerificationSystem(c.String(systemFlag.Name))
+	provingSystem, err := parseProvingSystem(c.String(provingSystemFlag.Name))
 	if err != nil {
 		return fmt.Errorf("error getting verification system: %v", err)
 	}
 
 	proofFile, err := os.ReadFile(c.String(proofFlag.Name))
 	if err != nil {
-		return fmt.Errorf("error loading proofFile file: %v", err)
+		return fmt.Errorf("error loading proof file: %v", err)
 	}
 
 	publicInputFile, err := os.ReadFile(c.String(publicInputFlag.Name))
@@ -109,7 +117,16 @@ func taskSenderMain(c *cli.Context) error {
 		}
 	}
 
-	err = pkg.SendTask(pkg.NewTask(verificationSystem, proofFile, publicInputFile, verificationKeyFile))
+	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
+	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
+	if err != nil {
+		return err
+	}
+
+	taskSender := pkg.NewTaskSender(avsWriter)
+	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile)
+
+	err = taskSender.SendTask(task)
 	if err != nil {
 		return err
 	}
@@ -130,5 +147,16 @@ func taskSenderLoopMain(c *cli.Context) error {
 			return err
 		}
 		time.Sleep(time.Duration(interval) * time.Second)
+	}
+}
+
+func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
+	provingSystemStr = strings.TrimSpace(provingSystemStr)
+	switch provingSystemStr {
+	case "plonk":
+		return common.GnarkPlonkBls12_381, nil
+	default:
+		var unknownValue common.ProvingSystemId
+		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)
 	}
 }

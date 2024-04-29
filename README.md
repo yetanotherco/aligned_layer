@@ -13,7 +13,7 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation) and [zap-pretty](https://github.com/maoueh/zap-pretty) to run the examples below.
+You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git) to run the examples below.
 
 To install
 ```bash
@@ -27,7 +27,13 @@ make install-foundry
 Then follow the command line instructions
 Make sure to run `foundryup`
 
-## Run using make
+To install eigenlayer-cli
+```bash
+make install-eigenlayer-cli
+```
+## How to use Devnet
+
+### Start anvil
 
 Start anvil with every relevant contract deployed with:
 
@@ -37,35 +43,9 @@ make anvil-start
 
 The above command starts a local anvil chain from a [saved state](./tests/integration/eigenlayer-and-shared-avs-contracts-deployed-anvil-state.json) with EigenLayer and AlignedLayer contracts already deployed (but no operator registered).
 
+### Start aggregator
 
-## Dev notes
-
-### Development workflow
-When changing EigenLayer contracts, the anvil state needs to be updated with:
-
-```bash
-make anvil-deploy-eigen-contracts
-```
-
-When changing AlignedLayer contracts, the anvil state needs to be updated with:
-
-```bash
-make anvil-deploy-aligned-contracts
-```
-
-To redeploy all contracts, run:
-```bash
-make anvil-deploy-all
-```
-
-Also make sure to re-generate the Go smart contract bindings:
-```bash
-make bindings
-```
-
-### Aggregator specific commands
-
-Make sure to set config file variables to correct value at `aggregator/config/config.yaml`.
+Make sure to set config file variables to correct value at `config-files/config.yaml`.
 
 To start the aggregator, run:
 ```bash
@@ -73,23 +53,107 @@ make aggregator-start
 ```
 
 To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
+
 ```bash
 make aggregator-send-dummy-responses
 ```
 Make sure to have aggregator running on another terminal.
+That command sends one dummy response to the aggregator with a task index of 0.
 
-### Task Sender commands
+If you use task sender to send a task, you will see response changes from 1 to 0,
+since the aggregator will have a task index of 0.
+
+### Start operator
+
+To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
+
+```bash
+make operator-full-registration
+```
+
+Once the registration process is done, start the operator with
+
+```bash
+make operator-start
+```
+
+### Send task
 
 To send a task to the ServiceManager using the TaskSender CLI, run:
 ```bash
 make send-plonk-proof
 ```
 
-This will send a dummy task to the ServiceManager. Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
+This will send a dummy task to the ServiceManager and an event will be emitted. 
+You should see logs from the operator with the received task's index.
+Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
 
 The plonk proof is located at `task_sender/test_examples`.
 
-## Deployment
+## Developing workflows in testnet
+
+### Upgrade contracts
+
+When changing EigenLayer contracts, the anvil state needs to be updated with:
+
+```bash
+make anvil-deploy-eigen-contracts
+```
+
+You will also need to redeploy the MockStrategy & MockERC20 contracts:
+
+```bash
+make anvil-deploy-mock-strategy
+```
+
+Then make sure to change the `0_strategy` in the `script/deploy/devnet/aligned.devnet.config.json` file to the new address.
+
+When changing AlignedLayer contracts, the anvil state needs to be updated with:
+
+```bash
+make anvil-deploy-aligned-contracts
+```
+
+Also make sure to re-generate the Go smart contract bindings:
+```bash
+make bindings
+```
+
+### Operator registration step by step (WIP Guide)
+
+When not using the default address, get eth with:
+
+```bash
+make operator-get-eth
+```
+
+Update the config in:
+
+```operator/config/devnet/config.yaml```
+```operator/config/devnet/operator.yaml```
+
+To register with EigenLayer, run:
+```bash
+make operator-register-with-eigen-layer
+```
+
+To deposit into strategy, and register with AlignedLayer, run:
+```bash
+make operator-deposit-and-register
+```
+
+To just deposit into the strategy, run:
+```bash
+make operator-deposit-into-strategy
+```
+
+To just register an operator with AlignedLayer, run:
+```bash
+make operator-register-with-aligned-layer
+```
+
+
+## Testnet/Mainnet Deployment
 
 To deploy the contracts to Testnet/Mainnet, you will need to set environment variables
 in a .env file in the same directory as the deployment script (`contracts/scripts/`). 
@@ -164,11 +228,66 @@ The state is backuped on ```contracts/scripts/anvil/state```
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
 
+### Strategies
+
+The strategy contract is a contract where operators deposit restaked tokens.
+For test purposes, we have a dummy strategy contract that takes a Mock ERC20 token.
+
+
 ### Aggregator
 
-Current aggregator implementation is WIP. The RPC method `Aggregator.SubmitTaskResponse` expects a `SignedTaskResponse` as body and returns 0 if args.TaskResponse is not empty, and 1 otherwise.
+Current aggregator implementation is WIP. The RPC method `Aggregator.SubmitTaskResponse` expects a `SignedTaskResponse` 
+as body and returns 0 if args.TaskIndex exists, and 1 otherwise.
 
 Check `common/types/signed_task_response.go` for specification on `SignedTaskResponse`.
+
+### Operator
+
+The following section is instructions on how to create an operator from scratch. 
+You can find more details on the [EigenLayer documentation](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#create-and-list-keys).
+
+To create an operator, you will need to generate keys, generate a config, and register with EigenLayer.
+
+To generate the operator keys, run:
+```bash
+make operator-generate-keys
+```
+This will output key paths & address, make sure to store them for following steps.
+
+To generate a new operator config, run the command
+```bash
+make operator-generate-config
+```
+Then follow the instructions to populate the file
+
+You will then need to populate two additional values, which are _metadata_url_ and _el_delegation_manager_address_
+
+To get the Delegation Manager Address of the last devnet deployment you can run:
+```bash
+make get-delegation-manager-address
+```
+
+For the metadata URL you can either use our example URL: 
+`https://yetanotherco.github.io/operator_metadata/`
+
+Or Deploy your metadata to your own sever (can be GitHub Pages)
+
+You can get devnet Ether for gas by running:
+```bash
+make operator-get-eth
+```
+Make sure to set `OPERATOR_ADDRESS` enviroment variable to your own address before running command.
+This will send 1 eth to that address
+
+Then you can register with EigenLayer by running:
+```bash
+make operator-register-with-eigen-layer
+```
+
+### Config File
+In `config-files/config.yaml` you can find the configuration file for the project.
+
+There is a section for operator, aggregator, and keys. Also, there are common variables for the project.
 
 ## FAQ
 

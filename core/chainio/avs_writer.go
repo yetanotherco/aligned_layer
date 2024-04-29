@@ -2,16 +2,15 @@ package chainio
 
 import (
 	"context"
-	"github.com/yetanotherco/aligned_layer/common"
-	"time"
-
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
+	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type AvsWriter struct {
@@ -22,35 +21,35 @@ type AvsWriter struct {
 	Client              eth.Client
 }
 
-func NewAvsWriterFromConfig(c *config.BaseConfig) (*AvsWriter, error) {
+func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsWriter, error) {
 
 	buildAllConfig := clients.BuildAllConfig{
-		EthHttpUrl:                 c.EthRpcUrl,
-		EthWsUrl:                   c.EthWsUrl,
-		RegistryCoordinatorAddr:    c.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
-		OperatorStateRetrieverAddr: c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
+		EthHttpUrl:                 baseConfig.EthRpcUrl,
+		EthWsUrl:                   baseConfig.EthWsUrl,
+		RegistryCoordinatorAddr:    baseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.String(),
+		OperatorStateRetrieverAddr: baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.String(),
 		AvsName:                    "AlignedLayer",
-		PromMetricsIpPortAddress:   c.EigenMetricsIpPortAddress,
+		PromMetricsIpPortAddress:   baseConfig.EigenMetricsIpPortAddress,
 	}
 
-	clients, err := clients.BuildAll(buildAllConfig, c.EcdsaPrivateKey, c.Logger)
+	clients, err := clients.BuildAll(buildAllConfig, ecdsaConfig.PrivateKey, baseConfig.Logger)
 
 	if err != nil {
-		c.Logger.Error("Cannot build signer config", "err", err)
+		baseConfig.Logger.Error("Cannot build signer config", "err", err)
 		return nil, err
 	}
 
-	avsServiceBindings, err := NewAvsServiceBindings(c.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, c.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, c.EthRpcClient, c.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.Logger)
 
 	if err != nil {
-		c.Logger.Error("Cannot create avs service bindings", "err", err)
+		baseConfig.Logger.Error("Cannot create avs service bindings", "err", err)
 		return nil, err
 	}
 
-	privateKeySigner, err := signer.NewPrivateKeySigner(c.EcdsaPrivateKey, c.ChainId)
+	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaConfig.PrivateKey, baseConfig.ChainId)
 
 	if err != nil {
-		c.Logger.Error("Cannot create signer", "err", err)
+		baseConfig.Logger.Error("Cannot create signer", "err", err)
 		return nil, err
 	}
 
@@ -59,17 +58,17 @@ func NewAvsWriterFromConfig(c *config.BaseConfig) (*AvsWriter, error) {
 	return &AvsWriter{
 		AvsRegistryWriter:   avsRegistryWriter,
 		AvsContractBindings: avsServiceBindings,
-		logger:              c.Logger,
+		logger:              baseConfig.Logger,
 		Signer:              privateKeySigner,
-		Client:              c.EthRpcClient,
+		Client:              baseConfig.EthRpcClient,
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, verificationSystemId common.SystemVerificationId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
+func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
-		uint16(verificationSystemId),
+		uint16(provingSystemId),
 		proof,
 		publicInput,
 	)
@@ -77,21 +76,13 @@ func (w *AvsWriter) SendTask(context context.Context, verificationSystemId commo
 		w.logger.Error("Error assembling CreateNewTask tx", "err", err)
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
 	}
-	// TODO wait for transaction receipt. ethClient does not have this method
-	// EigenSDK has a method called WaitForTransactionReceipt in InstrumentedEthClient
-	// But is needs telemetry to work
-	// https://github.com/Layr-Labs/eigensdk-go/blob/master/chainio/clients/eth/instrumented_client.go
-	//receipt := avsWriter.Client.WaitForTransactionReceipt(context.Background(), tx.Hash())
-	time.Sleep(2 * time.Second)
 
-	receipt, err := w.Client.TransactionReceipt(context, tx.Hash())
-	if err != nil {
-		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
-	}
+	receipt := utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
+
 	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
+
 	if err != nil {
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
-
 	}
 	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
 }
