@@ -25,7 +25,6 @@ USER aligned-layer
 RUN curl -L https://foundry.paradigm.xyz | bash
 RUN /home/aligned-layer/.foundry/bin/foundryup
 
-# Copy Makefile, contracts, operator, and config files
 COPY ../Makefile .
 COPY contracts/ ../contracts/
 COPY operator/ ../operator/
@@ -35,4 +34,3 @@ COPY config-files/ ../config-files/
 CMD ["go", "run", "aggregator/cmd/main.go", "--config", "config-files/config.yaml"]
 
 
-#CMD ["make", "aggregator-start"]

@@ -15,7 +15,23 @@ services:
       - devnet
     network_mode: host
 
-  operator:
+  operator-1:
+    build:
+      context: ./
+      dockerfile: operator/Dockerfile
+    depends_on:
+      - devnet
+    network_mode: host
+
+  operator-2:
+    build:
+      context: ./
+      dockerfile: operator/Dockerfile
+    depends_on:
+      - devnet
+    network_mode: host
+
+  operator-3:
     build:
       context: ./
       dockerfile: operator/Dockerfile
