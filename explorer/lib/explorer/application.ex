@@ -63,7 +63,7 @@ defmodule AlignedLayerServiceManager do
     default_address: "0xc5a5C42992dECbae36851359345FE25997F5C42d" #devnet
 
   def get_task(task_id) do
-    events = AlignedLayerServiceManager.EventFilters.new_task_created(task_id) |> Ethers.get_logs()
+    events = AlignedLayerServiceManager.EventFilters.new_task_created(task_id) |> Ethers.get_logs(fromBlock: 0)
 
     if not(events |> elem(1) |> Enum.empty?()) do
       address = events |> elem(1) |> List.first() |> Map.get(:address)
