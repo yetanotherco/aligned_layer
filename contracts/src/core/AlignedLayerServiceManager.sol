@@ -21,6 +21,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     // EVENTS
     event NewTaskCreated(uint64 indexed taskIndex, Task task);
+    event TaskResponded(TaskResponse taskResponse);
 
     // STRUCTS
     struct Task {
@@ -28,6 +29,12 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes proof;
         bytes pubInput;
         uint32 taskCreatedBlock;
+    }
+
+    struct TaskResponse {
+        uint64 taskIndex;
+        bool proofIsCorrect;
+        // TODO: aggregated signature field
     }
 
     /* STORAGE */
@@ -84,5 +91,13 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
         emit NewTaskCreated(latestTaskNum, newTask);
         latestTaskNum = latestTaskNum + 1;
+    }
+
+    function respondToTask(
+        uint64 taskIndex,
+        bool proofIsCorrect // TODO: aggregated signature field
+    ) external {
+        // TODO: actually do something with the aggregated signature
+        emit TaskResponded(TaskResponse(taskIndex, proofIsCorrect));
     }
 }
