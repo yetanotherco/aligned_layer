@@ -1,9 +1,10 @@
 package pkg
 
 import (
-	"github.com/yetanotherco/aligned_layer/core/types"
 	"net/http"
 	"net/rpc"
+
+	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
 func (agg *Aggregator) ServeOperators() error {

@@ -1,16 +1,23 @@
 package operator
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"log"
+	"os"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/plonk"
+	"github.com/consensys/gnark/backend/witness"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -18,7 +25,7 @@ import (
 
 type Operator struct {
 	Config             config.OperatorConfig
-	Address            common.Address
+	Address            ethcommon.Address
 	Socket             string
 	Timeout            time.Duration
 	PrivKey            *ecdsa.PrivateKey
@@ -82,5 +89,87 @@ func (o *Operator) Start(ctx context.Context) error {
 
 			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
 		}
+	}
+}
+
+// Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
+// The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
+func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
+	o.Logger.Debug("Received new task", "task", newTaskCreatedLog)
+
+	proof := newTaskCreatedLog.Task.Proof
+	proofLen := (uint)(len(proof))
+
+	pubInput := newTaskCreatedLog.Task.PubInput
+	// pubInputLen := (uint)(len(pubInput))
+
+	verifierId := newTaskCreatedLog.Task.ProvingSystemId
+
+	o.Logger.Info("Received new task with proof to verify",
+		"proof length", proofLen,
+		"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
+		"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
+		"task index", newTaskCreatedLog.TaskIndex,
+		"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
+		// "quorumNumbers", newTaskCreatedLog.Task.QuorumNumbers,
+		// "QuorumThresholdPercentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
+	)
+
+	switch verifierId {
+	case uint16(common.GnarkPlonkBls12_381):
+		VerificationResult := o.VerifyPlonkProof(proof, pubInput)
+
+		o.Logger.Infof("PLONK proof verification result: %t", VerificationResult)
+		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			TaskIndex:      newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect: VerificationResult,
+		}
+		return taskResponse
+
+	default:
+		o.Logger.Error("Unrecognized verifier id")
+		return nil
+	}
+}
+
+// Load the PLONK verification key from disk and verify it using
+// the Gnark PLONK verifier
+func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte) bool {
+	vkFile, err := os.Open("tests/testing_data/plonk_verification_key")
+	if err != nil {
+		panic("Could not open verification key file")
+	}
+	defer vkFile.Close()
+
+	proofReader := bytes.NewReader(proofBytes)
+	proof := plonk.NewProof(ecc.BLS12_381)
+	_, err = proof.ReadFrom(proofReader)
+
+	// If the proof can't be deserialized from the bytes then it doesn't verifies
+	if err != nil {
+		return false
+	}
+
+	pubInputReader := bytes.NewReader(pubInputBytes)
+	pubInput, err := witness.New(ecc.BLS12_381.ScalarField())
+	if err != nil {
+		panic("Error instantiating witness")
+	}
+	_, err = pubInput.ReadFrom(pubInputReader)
+	if err != nil {
+		panic("Could not read PLONK public input")
+	}
+
+	vk := plonk.NewVerifyingKey(ecc.BLS12_381)
+	_, err = vk.ReadFrom(vkFile)
+	if err != nil {
+		panic("Could not read verifying key from file")
+	}
+
+	err = plonk.Verify(proof, vk, pubInput)
+	if err != nil {
+		return false
+	} else {
+		return true
 	}
 }
