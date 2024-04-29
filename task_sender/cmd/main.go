@@ -62,6 +62,7 @@ var loopTasksFlags = []cli.Flag{
 	proofFlag,
 	publicInputFlag,
 	verificationKeyFlag,
+	config.ConfigFileFlag,
 	intervalFlag,
 }
 
