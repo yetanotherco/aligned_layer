@@ -11,14 +11,6 @@ import (
 	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 )
 
-var (
-	configFlag = &cli.StringFlag{
-		Name:     "config",
-		Required: true,
-		Usage:    "the path to the Operators `CONFIGURATION FILE`",
-	}
-)
-
 var flags = []cli.Flag{
 	config.ConfigFileFlag,
 }
