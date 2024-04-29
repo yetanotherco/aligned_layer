@@ -8,23 +8,17 @@ import (
 )
 
 const (
-	MaxRetries    = 5
 	RetryInterval = 10 * time.Second
 )
 
 func (agg *Aggregator) SubscribeToNewTasks() error {
-
-	var err error
-
-	for attempt := 0; attempt < MaxRetries; attempt++ {
-		if err != nil {
-			err = tryCreateTaskSubscriber(agg)
-		} else {
-			err = agg.subscribeToNewTasks()
-		}
+	var createErr error
+	createErr = agg.tryCreateTaskSubscriber()
+	if createErr == nil {
+		_ = agg.subscribeToNewTasks() // This will block until an error occurs
 	}
-
-	return err
+	time.Sleep(RetryInterval)
+	return agg.SubscribeToNewTasks()
 }
 
 func (agg *Aggregator) subscribeToNewTasks() error {
@@ -51,22 +45,16 @@ func (agg *Aggregator) subscribeToNewTasks() error {
 	}
 }
 
-func tryCreateTaskSubscriber(agg *Aggregator) error {
+func (agg *Aggregator) tryCreateTaskSubscriber() error {
 	var err error
 
-	for attempt := 0; attempt < MaxRetries; attempt++ {
-		agg.AggregatorConfig.BaseConfig.Logger.Info("Subscribing to Ethereum serviceManager task events")
-		agg.taskSubscriber, err = agg.avsSubscriber.AvsContractBindings.ServiceManager.WatchNewTaskCreated(&bind.WatchOpts{},
-			agg.NewTaskCreatedChan, nil)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Subscribing to Ethereum serviceManager task events")
+	agg.taskSubscriber, err = agg.avsSubscriber.AvsContractBindings.ServiceManager.WatchNewTaskCreated(&bind.WatchOpts{},
+		agg.NewTaskCreatedChan, nil)
 
-		if err != nil {
-			message := fmt.Sprintf("Failed to create task subscriber, waiting %d seconds before retrying", RetryInterval/time.Second)
-			agg.AggregatorConfig.BaseConfig.Logger.Info(message, "err", err)
-			time.Sleep(RetryInterval)
-		} else {
-			break
-		}
+	if err != nil {
+		message := fmt.Sprintf("Failed to create task subscriber")
+		agg.AggregatorConfig.BaseConfig.Logger.Info(message, "err", err)
 	}
-
 	return err
 }
