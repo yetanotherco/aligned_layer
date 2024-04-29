@@ -111,17 +111,14 @@ func taskSenderMain(c *cli.Context) error {
 
 	var verificationKeyFile []byte
 	if provingSystem == common.GnarkPlonkBls12_381 {
+		if len(c.String("verification-key")) == 0 {
+			return fmt.Errorf("the proving system needs a verification key but it is empty")
+		}
 		verificationKeyFile, err = os.ReadFile(c.String(verificationKeyFlag.Name))
 		if err != nil {
 			return fmt.Errorf("error loading verification key file: %v", err)
 		}
 	}
-	// if len(c.String("verification-key")) > 0 {
-	// 	verificationKeyFile, err = os.ReadFile(c.String(verificationKeyFlag.Name))
-	// 	if err != nil {
-	// 		return fmt.Errorf("error loading verification key file: %v", err)
-	// 	}
-	// }
 
 	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
 	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
