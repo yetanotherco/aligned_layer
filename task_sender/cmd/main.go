@@ -135,9 +135,9 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	taskSender := pkg.NewTaskSender(avsWriter)
-	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile)
+	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, fee)
 
-	err = taskSender.SendTask(task, fee)
+	err = taskSender.SendTask(task)
 	if err != nil {
 		return err
 	}
