@@ -21,16 +21,18 @@ defmodule ExplorerWeb.TaskController do
 
 
     #Returns AlignedLayer task content
-    newTaskEvent = AlignedLayerServiceManager.get_task(2)
+    newTaskEvent = AlignedLayerServiceManager.get_task(String.to_integer(id))
 
-    if newTaskEvent |> elem(0) == :ok do
+    ret = if newTaskEvent |> elem(0) == :ok do
       IO.puts("Task found")
-      newTaskEvent |> elem(1) |> IO.inspect()
+      # newTaskEvent |> elem(1) |> IO.inspect()
+      newTaskEvent |> elem(1)
     else
       IO.puts("No task found")
+      "No task found"
     end
 
 
-    render(conn, :task, message: ":)", id: id, task: newTaskEvent |> elem(1))
+    render(conn, :task, message: ":)", id: id, task: ret)
   end
 end

@@ -65,7 +65,7 @@ defmodule AlignedLayerServiceManager do
   def get_task(task_id) do
     events = AlignedLayerServiceManager.EventFilters.new_task_created(task_id) |> Ethers.get_logs()
 
-    if events |> elem(0) == :ok do
+    if not(events |> elem(1) |> Enum.empty?()) do
       address = events |> elem(1) |> List.first() |> Map.get(:address)
       block_hash = events |> elem(1) |> List.first() |> Map.get(:block_hash)
       block_number = events |> elem(1) |> List.first() |> Map.get(:block_number)
