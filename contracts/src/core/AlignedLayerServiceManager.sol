@@ -42,6 +42,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     // The latest task index
     uint64 public latestTaskNum;
 
+    // Map of task index to fee
+    mapping(uint64 => uint256) public taskFees;
+
     constructor(
         IAVSDirectory __avsDirectory,
         IRegistryCoordinator __registryCoordinator,
@@ -93,6 +96,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         newTask.taskCreatedBlock = uint32(block.number);
         newTask.fee = msg.value;
 
+        // store the fee
+        taskFees[latestTaskNum] = msg.value;
+
         emit NewTaskCreated(latestTaskNum, newTask);
         latestTaskNum = latestTaskNum + 1;
     }
@@ -103,7 +109,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     ) external {
         // TODO: actually do something with the aggregated signature
 
-        // TODO: pay the aggregator, might need to store fee
+        payable(aggregator).transfer(taskFees[taskIndex]);
 
         emit TaskResponded(TaskResponse(taskIndex, proofIsCorrect));
     }
