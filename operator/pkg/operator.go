@@ -133,8 +133,6 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	}
 }
 
-// Load the PLONK verification key from disk and verify it using
-// the Gnark PLONK verifier
 func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(ecc.BLS12_381)
