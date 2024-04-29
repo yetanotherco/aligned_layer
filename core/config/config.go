@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
-	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/urfave/cli/v2"
 	"log"
 	"math/big"
 	"os"
+
+	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/urfave/cli/v2"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -113,10 +114,11 @@ type AggregatorConfigFromYaml struct {
 }
 
 type OperatorConfig struct {
-	BaseConfig  *BaseConfig
-	EcdsaConfig *EcdsaConfig
-	BlsConfig   *BlsConfig
-	Operator    struct {
+	BaseConfig                   *BaseConfig
+	EcdsaConfig                  *EcdsaConfig
+	BlsConfig                    *BlsConfig
+	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
+	Operator                     struct {
 		Address                   common.Address
 		EarningsReceiverAddress   common.Address
 		DelegationApproverAddress common.Address
@@ -312,9 +314,10 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 	}
 
 	return &OperatorConfig{
-		BaseConfig:  baseConfig,
-		EcdsaConfig: ecdsaConfig,
-		BlsConfig:   blsConfig,
+		BaseConfig:                   baseConfig,
+		EcdsaConfig:                  ecdsaConfig,
+		BlsConfig:                    blsConfig,
+		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		Operator: struct {
 			Address                   common.Address
 			EarningsReceiverAddress   common.Address
