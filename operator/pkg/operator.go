@@ -2,6 +2,8 @@ package operator
 
 import (
 	"context"
+	"log"
+
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -9,7 +11,6 @@ import (
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"golang.org/x/crypto/sha3"
-	"log"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
@@ -66,29 +67,8 @@ func (o *Operator) Start(ctx context.Context) error {
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
 		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
+
 			/* --------- OPERATOR MAIN LOGIC --------- */
-			// taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
-			// signedTaskResponse, err := o.SignTaskResponse(taskResponse)
-			// if err != nil {
-			// 	continue
-			// }
-			// go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
-
-			/*
-				encodeTaskResponseByte, err := AbiEncodeTaskResponse(h)
-				if err != nil {
-					return [32]byte{}, err
-				}
-
-				var taskResponseDigest [32]byte
-				hasher := sha3.NewLegacyKeccak256()
-				hasher.Write(encodeTaskResponseByte)
-				copy(taskResponseDigest[:], hasher.Sum(nil)[:32])
-
-				return taskResponseDigest, nil
-
-				o.KeyPair.SignMessage()
-			*/
 			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
 
 			// Here we should process a task, here we will pretend the proof is always true until adding that
@@ -103,12 +83,8 @@ func (o *Operator) Start(ctx context.Context) error {
 			copy(taskResponseDigest[:], hasher.Sum(nil)[:32])
 			log.Println("Encoded response hash:", taskResponseDigest)
 			log.Println("Encoded response hash len:", len(taskResponseDigest))
-
-			log.Println("KeyPair: ", o.Config.BlsConfig.KeyPair)
 			responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(taskResponseDigest)
-
 			log.Println("Signed hash:", responseSignature)
-
 		}
 	}
 }
@@ -118,17 +94,20 @@ func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManage
 	// The order here has to match the field ordering of servicemanager.AlignedLayerServiceManagerTaskResponse
 
 	/* TODO: Solve this in a more generic way so it's less prone for errors. Name and types can be obtained with reflection
-		for i := 0; i < reflectedType.NumField(); i++ {
-			name := reflectedType.Field(i).Name
-			thisType := reflectedType.Field(i).Type
-		}
+	for i := 0; i < reflectedType.NumField(); i++ {
+		name := reflectedType.Field(i).Name
+		thisType := reflectedType.Field(i).Type
+	}
+	*/
+
+	/*
 
 		This matches:
 
 		struct TaskResponse {
-	        uint64 taskIndex;
-	        bool proofIsCorrect;
-	    }
+			uint64 taskIndex;
+			bool proofIsCorrect;
+		}
 	*/
 	taskResponseType, err := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
 		{
