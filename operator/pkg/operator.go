@@ -21,6 +21,7 @@ type Operator struct {
 	avsSubscriber      chainio.AvsSubscriber
 	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
 	Logger             logging.Logger
+	aggRpcClient       AggregatorRpcClient
 	//Socket  string
 	//Timeout time.Duration
 	//OperatorId         eigentypes.OperatorId
@@ -35,6 +36,12 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	}
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
+	// FIXME(marian): We should not hardcode the aggregator IP:PORT address
+	rpcClient, err := NewAggregatorRpcClient("localhost:8090", logger)
+	if err != nil {
+		return nil, err
+	}
+
 	address := configuration.Operator.Address
 	operator := &Operator{
 		Config:             configuration,
@@ -42,6 +49,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		avsSubscriber:      *avsSubscriber,
 		Address:            address,
 		NewTaskCreatedChan: newTaskCreatedChan,
+		aggRpcClient:       *rpcClient,
 		// Timeout
 		// OperatorId
 		// Socket
