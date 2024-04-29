@@ -14,10 +14,10 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 	"log"
 	"math/big"
 	"os"
-	"time"
 )
 
 var (
@@ -96,16 +96,13 @@ func depositIntoStrategy(ctx *cli.Context) error {
 		return err
 	}
 	txOpts := avsWriter.Signer.GetTxOpts()
-	_, err = contractErc20Mock.Mint(txOpts, configuration.Operator.Address, amount)
+	tx, err := contractErc20Mock.Mint(txOpts, configuration.Operator.Address, amount)
 	if err != nil {
 		configuration.BaseConfig.Logger.Errorf("Error assembling Mint tx")
 		return err
 	}
 
-	// TODO: actually wait, need instrumented client
-	//configuration.EthHttpClient.WaitForTransactionReceipt(context.Background(), tx.Hash())
-	// sleep
-	time.Sleep(2 * time.Second)
+	utils.WaitForTransactionReceipt(configuration.BaseConfig.EthRpcClient, context.Background(), tx.Hash())
 
 	signerConfig := signerv2.Config{
 		PrivateKey: configuration.EcdsaConfig.PrivateKey,
