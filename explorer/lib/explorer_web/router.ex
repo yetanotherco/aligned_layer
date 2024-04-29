@@ -19,7 +19,7 @@ defmodule ExplorerWeb.Router do
 
     get "/", PageController, :home
 
-    get "/test", TestController, :test
+    get "/task/:id", TaskController, :task
   end
 
   # Other scopes may use custom stacks.

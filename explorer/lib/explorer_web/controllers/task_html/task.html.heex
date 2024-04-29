@@ -1,0 +1,24 @@
+<div title="My div">
+  <p>Hello <%= @message %></p>
+</div>
+<div title="My div">
+  <p>Query param: <%= @id %></p>
+</div>
+
+<div title="Event">
+  <p>\n</p>
+  <p>address: <%= @task.address %></p>
+  <p>block_hash: <%= @task.block_hash %></p>
+  <p>block_number: <%= @task.block_number %></p>
+  <p>taskId: <%= @task.taskId %></p>
+  <p>transaction_hash: <%= @task.transaction_hash %></p>
+
+  <p>\n</p>
+  <div title="Aligned Task">
+    <p>verificationSystemId: <%= @task.aligned_task.verificationSystemId %></p>
+    <p>proof: <%= @task.aligned_task.proof %></p>
+    <p>pubInput: <%= @task.aligned_task.pubInput %></p>
+    <p>taskCreatedBlock: <%= @task.aligned_task.taskCreatedBlock %></p>
+  </div>
+</div>
+

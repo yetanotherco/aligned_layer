@@ -44,3 +44,39 @@ defmodule MyERC20Token do
     MyERC20Token.name() |> Ethers.call()
   end
 end
+
+
+defmodule NewTaskEvent do
+  @enforce_keys [:address, :block_hash, :block_number, :taskId, :transaction_hash, :aligned_task]
+  defstruct [:address, :block_hash, :block_number, :taskId, :transaction_hash, :aligned_task]
+end
+
+defmodule AlignedTask do
+  @enforce_keys [:verificationSystemId, :proof, :pubInput, :taskCreatedBlock]
+  defstruct [:verificationSystemId, :proof, :pubInput, :taskCreatedBlock]
+end
+
+defmodule AlignedLayerServiceManager do
+  use Ethers.Contract,
+    abi_file: "lib/abi/AlignedLayerServiceManager.json",
+    # default_address: "0x2fcE68A46aF645A00D0b94C2db48f627040766A7" #holesky
+    default_address: "0xc5a5C42992dECbae36851359345FE25997F5C42d" #devnet
+
+  def get_task(task_id) do
+    events = AlignedLayerServiceManager.EventFilters.new_task_created(task_id) |> Ethers.get_logs()
+
+    if events |> elem(0) == :ok do
+      address = events |> elem(1) |> List.first() |> Map.get(:address)
+      block_hash = events |> elem(1) |> List.first() |> Map.get(:block_hash)
+      block_number = events |> elem(1) |> List.first() |> Map.get(:block_number)
+      taskId = events |> elem(1) |> List.first() |> Map.get(:topics) |> Enum.at(1)
+      transaction_hash = events |> elem(1) |> List.first() |> Map.get(:transaction_hash)
+      {verificationSystemId, proof, pubInput, taskCreatedBlock} = events |> elem(1) |> List.first() |> Map.get(:data) |> List.first()
+      task = %AlignedTask{verificationSystemId: verificationSystemId, proof: proof, pubInput: pubInput, taskCreatedBlock: taskCreatedBlock}
+
+      {:ok, %NewTaskEvent{address: address, block_hash: block_hash, block_number: block_number, taskId: taskId, transaction_hash: transaction_hash, aligned_task: task}}
+    else
+      {:error, "No task found"}
+    end
+  end
+end
