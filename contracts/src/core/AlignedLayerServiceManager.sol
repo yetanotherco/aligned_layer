@@ -29,6 +29,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes proof;
         bytes pubInput;
         uint32 taskCreatedBlock;
+        uint8 quorumThresholdPercentage;
     }
 
     struct TaskResponse {
@@ -80,7 +81,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function createNewTask(
         uint16 verificationSystemId,
         bytes calldata proof,
-        bytes calldata pubInput
+        bytes calldata pubInput,
+        uint8 quorumThresholdPercentage
     ) external {
         // create a new task struct
         Task memory newTask;
@@ -88,6 +90,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         newTask.proof = proof;
         newTask.pubInput = pubInput;
         newTask.taskCreatedBlock = uint32(block.number);
+        newTask.quorumThresholdPercentage = quorumThresholdPercentage;
 
         emit NewTaskCreated(latestTaskNum, newTask);
         latestTaskNum = latestTaskNum + 1;
