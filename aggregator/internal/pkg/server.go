@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"net/http"
 	"net/rpc"
@@ -67,7 +66,7 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
 			taskResponse.TaskIndex, "proofIsValid", true)
 
-		_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(&bind.TransactOpts{},
+		_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(agg.avsWriter.Signer.GetTxOpts(),
 			taskResponse.TaskIndex, true)
 		if err != nil {
 			agg.taskResponsesMutex.Unlock()
