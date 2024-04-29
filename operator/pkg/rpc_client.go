@@ -7,6 +7,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
+// AggregatorRpcClient is the client to communicate with the aggregator via RPC
 type AggregatorRpcClient struct {
 	rpcClient            *rpc.Client
 	aggregatorIpPortAddr string
@@ -26,6 +27,8 @@ func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) 
 	}, nil
 }
 
+// SendSignedTaskResponseToAggregator is the method called by operators via RPC to send
+// their signed task response.
 func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskResponse *types.SignedTaskResponse) {
 	var reply uint8
 	err := c.rpcClient.Call("Aggregator.SubmitTaskResponse", signedTaskResponse, &reply)
