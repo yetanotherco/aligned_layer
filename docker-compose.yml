@@ -1,16 +1,11 @@
 version: '3'
 
-
-
 services:
   devnet:
     build:
       context: ./contracts/scripts/anvil/state
       dockerfile: Dockerfile
-    networks:
-      - aligned-network
-    ports:
-      - "8545:8545"
+    network_mode: host
 
   aggregator:
     build:
@@ -18,18 +13,12 @@ services:
       dockerfile: aggregator/Dockerfile
     depends_on:
       - devnet
-    networks:
-      - aligned-network
-    ports:
-      - "8090:8090"
+    network_mode: host
 
   operator:
     build:
       context: ./
       dockerfile: operator/Dockerfile
-    networks:
-      - aligned-network
     depends_on:
       - devnet
-networks:
-  aligned-network:
+    network_mode: host
