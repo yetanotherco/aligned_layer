@@ -2,19 +2,14 @@ package operator
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"log"
-	"time"
-
-	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
-	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"golang.org/x/crypto/sha3"
+	"log"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
@@ -22,14 +17,12 @@ import (
 type Operator struct {
 	Config             config.OperatorConfig
 	Address            common.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
 	avsSubscriber      chainio.AvsSubscriber
 	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
 	Logger             logging.Logger
+	//Socket  string
+	//Timeout time.Duration
+	//OperatorId         eigentypes.OperatorId
 }
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
@@ -48,8 +41,6 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		avsSubscriber:      *avsSubscriber,
 		Address:            address,
 		NewTaskCreatedChan: newTaskCreatedChan,
-		KeyPair:            configuration.BlsConfig.KeyPair,
-		PrivKey:            configuration.EcdsaConfig.PrivateKey,
 		// Timeout
 		// OperatorId
 		// Socket
@@ -113,8 +104,8 @@ func (o *Operator) Start(ctx context.Context) error {
 			log.Println("Encoded response hash:", taskResponseDigest)
 			log.Println("Encoded response hash len:", len(taskResponseDigest))
 
-			log.Println("KeyPair: ", o.KeyPair)
-			responseSignature := *o.KeyPair.SignMessage(taskResponseDigest)
+			log.Println("KeyPair: ", o.Config.BlsConfig.KeyPair)
+			responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(taskResponseDigest)
 
 			log.Println("Signed hash:", responseSignature)
 
