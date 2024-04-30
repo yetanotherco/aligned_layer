@@ -11,7 +11,7 @@ FROM ubuntu:latest
 # Install system dependencies
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y python3 python3-pip git nano curl iputils-ping redis-tools autossh nmap apt-utils supervisor jq
+    apt-get install -y python3 python3-pip git nano curl iputils-ping autossh nmap apt-utils supervisor jq
 
 # Create aligned-layer user and set Foundry installation accessible
 RUN useradd -u 5000 -m aligned-layer && \
@@ -38,10 +38,7 @@ COPY --from=builder /go/bin/eigenlayer /usr/local/bin/
 # Copy scripts and configuration files
 COPY scripts/fund_operator_devnet.sh /usr/local/bin/fund_operator_devnet.sh
 COPY config-files/ /config-files/
-# Ensure the script is executable
-RUN chmod +x /usr/local/bin/fund_operator_devnet.sh
 
-# Define environment variables
 ENV NETWORK="devnet"
 
 # Start the main application
