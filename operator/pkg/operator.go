@@ -75,37 +75,22 @@ func (o *Operator) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-context.Background().Done():
-			log.Println("Operator shutting down...")
+			o.Logger.Info("Operator shutting down...")
 			return nil
 		case err := <-sub.Err():
-			log.Println("Error in websocket subscription", "err", err)
+			o.Logger.Info("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
 		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
-			/* --------- OPERATOR MAIN LOGIC --------- */
+			o.Logger.Info("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
 			taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
-			// signedTaskResponse, err := o.SignTaskResponse(taskResponse)
-			// if err != nil {
-			// 	continue
-			// }
+			responseSignature, err := o.SignTaskResponse(taskResponse)
+			if err != nil {
+				o.Logger.Errorf("Could not sign task response", "err", err)
+			}
+
+			o.Logger.Info("Signed hash:", responseSignature)
 			// go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
-
-			/* --------- OPERATOR MAIN LOGIC --------- */
-			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
-
-			// Here we should process a task, here we will pretend the proof is always true until adding that
-			encodedResponseBytes, _ := AbiEncodeTaskResponse(*taskResponse)
-			log.Println("Task response:", taskResponse)
-			log.Println("ABI Encoded bytes:\n", encodedResponseBytes)
-
-			var taskResponseDigest [32]byte
-			hasher := sha3.NewLegacyKeccak256()
-			hasher.Write(encodedResponseBytes)
-			copy(taskResponseDigest[:], hasher.Sum(nil)[:32])
-			log.Println("Encoded response hash:", taskResponseDigest)
-			log.Println("Encoded response hash len:", len(taskResponseDigest))
-			responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(taskResponseDigest)
-			log.Println("Signed hash:", responseSignature)
 		}
 	}
 }
@@ -223,4 +208,21 @@ func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManage
 	}
 
 	return bytes, nil
+}
+
+func (o *Operator) SignTaskResponse(taskResponse *servicemanager.AlignedLayerServiceManagerTaskResponse) (*bls.Signature, error) {
+	encodedResponseBytes, err := AbiEncodeTaskResponse(*taskResponse)
+	if err != nil {
+		return nil, err
+	}
+	o.Logger.Info("Task response:", taskResponse)
+	o.Logger.Info("ABI Encoded bytes:\n", encodedResponseBytes)
+
+	var taskResponseDigest [32]byte
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write(encodedResponseBytes)
+	copy(taskResponseDigest[:], hasher.Sum(nil)[:32])
+
+	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(taskResponseDigest)
+	return &responseSignature, nil
 }
