@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/yetanotherco/aligned_layer/aggregator/pkg"
 	"log"
 	"os"
 
 	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
