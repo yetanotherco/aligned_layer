@@ -96,11 +96,11 @@ defmodule AlignedLayerServiceManager do
       address = events |> elem(1) |> List.first() |> Map.get(:address)
       block_hash = events |> elem(1) |> List.first() |> Map.get(:block_hash)
       block_number = events |> elem(1) |> List.first() |> Map.get(:block_number)
-      taskId = events |> elem(1) |> List.first() |> Map.get(:topics) |> Enum.at(1)
       transaction_hash = events |> elem(1) |> List.first() |> Map.get(:transaction_hash)
 
       {taskIndex, proofIsCorrect} = events |> elem(1) |> List.first() |> Map.get(:data) |> List.first()
-      {:ok, %AlignedTaskRespondedInfo{address: address, block_hash: block_hash, block_number: block_number, taskId: taskId, transaction_hash: transaction_hash, proofIsCorrect: proofIsCorrect}}
+
+      {:ok, %AlignedTaskRespondedInfo{address: address, block_hash: block_hash, block_number: block_number, taskId: taskIndex, transaction_hash: transaction_hash, proofIsCorrect: proofIsCorrect}}
     else
       {:empty, "No task response found"}
     end

@@ -43,7 +43,7 @@ defmodule ExplorerWeb.TaskController do
       :empty
     end
 
-    newRespondedEvent |> IO.inspect()
+    #TODO handle task == :empty || taskResponse == :empty
 
 
     render(conn, :task, id: id, task: task, taskResponse: taskResponse)
