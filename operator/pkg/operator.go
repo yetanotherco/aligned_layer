@@ -93,7 +93,6 @@ func (o *Operator) Start(ctx context.Context) error {
 			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
 
 			// Here we should process a task, here we will pretend the proof is always true until adding that
-			taskResponse := servicemanager.AlignedLayerServiceManagerTaskResponse{TaskIndex: newTaskCreatedLog.TaskIndex, ProofIsCorrect: true}
 			encodedResponseBytes, _ := AbiEncodeTaskResponse(taskResponse)
 			log.Println("Task response:", taskResponse)
 			log.Println("ABI Encoded bytes:\n", encodedResponseBytes)
