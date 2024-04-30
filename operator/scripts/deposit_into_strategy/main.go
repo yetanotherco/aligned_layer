@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/elcontracts"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/wallet"
 	"github.com/Layr-Labs/eigensdk-go/chainio/txmgr"
 	"github.com/Layr-Labs/eigensdk-go/metrics"
 	"github.com/Layr-Labs/eigensdk-go/signerv2"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -99,33 +97,4 @@ func depositIntoStrategy(ctx *cli.Context) error {
 		return err
 	}
 	return nil
-}
-
-type StrategyDeploymentConfig struct {
-	ERC20Mock    common.Address `json:"erc20Mock"`
-	StrategyAddr common.Address `json:"erc20MockStrategy"`
-}
-
-func newStrategyDeploymentConfig(strategyDeploymentFilePath string) *StrategyDeploymentConfig {
-	if _, err := os.Stat(strategyDeploymentFilePath); errors.Is(err, os.ErrNotExist) {
-		log.Fatal("Setup eigen layer deployment file does not exist")
-	}
-
-	var strategyDeploymentConfig StrategyDeploymentConfig
-	err := sdkutils.ReadJsonConfig(strategyDeploymentFilePath, &strategyDeploymentConfig)
-
-	if err != nil {
-		log.Fatal("Error reading eigen layer deployment config: ", err)
-	}
-
-	if strategyDeploymentConfig.ERC20Mock == common.HexToAddress("0x0") {
-		log.Fatal("ERC20Mock address not found in strategy deployment config")
-	}
-
-	if strategyDeploymentConfig.StrategyAddr == common.HexToAddress("0x0") {
-		log.Fatal("Strategy address not found in strategy deployment config")
-	}
-
-	return &strategyDeploymentConfig
-
 }
