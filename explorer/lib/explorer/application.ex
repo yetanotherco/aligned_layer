@@ -45,30 +45,36 @@ defmodule MyERC20Token do
   end
 end
 
-
-defmodule NewTaskEvent do
-  @enforce_keys [:address, :block_hash, :block_number, :taskId, :transaction_hash, :aligned_task]
-  defstruct [:address, :block_hash, :block_number, :taskId, :transaction_hash, :aligned_task]
-end
-
+#called AlignedTask since Task is a reserved word in Elixir
 defmodule AlignedTask do
   @enforce_keys [:verificationSystemId, :proof, :pubInput, :taskCreatedBlock]
   defstruct [:verificationSystemId, :proof, :pubInput, :taskCreatedBlock]
 end
 
+defmodule AlignedTaskCreatedInfo do
+  @enforce_keys [:address, :block_hash, :block_number, :taskId, :transaction_hash, :aligned_task]
+  defstruct [:address, :block_hash, :block_number, :taskId, :transaction_hash, :aligned_task]
+end
+
+defmodule AlignedTaskRespondedInfo do
+  @enforce_keys [:address, :block_hash, :block_number, :taskId, :transaction_hash, :proofIsCorrect]
+  defstruct [:address, :block_hash, :block_number, :taskId, :transaction_hash, :proofIsCorrect]
+end
+
 defmodule AlignedLayerServiceManager do
+  #read alignedLayerServiceManagerAddress from config file
   {:ok, json_string} = File.read("../contracts/script/output/devnet/alignedlayer_deployment_output.json")
   alignedLayerServiceManagerAddress = Jason.decode!(json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
 
   use Ethers.Contract,
     abi_file: "lib/abi/AlignedLayerServiceManager.json",
+    default_address: alignedLayerServiceManagerAddress #devnet
     # default_address: "0x2fcE68A46aF645A00D0b94C2db48f627040766A7" #holesky
-    default_address: alignedLayerServiceManagerAddress
 
-  def get_task(task_id) do
+  def get_task_created_event(task_id) do
     events = AlignedLayerServiceManager.EventFilters.new_task_created(task_id) |> Ethers.get_logs(fromBlock: 0)
 
-    if not(events |> elem(1) |> Enum.empty?()) do
+    if not(events |> elem(1) |> Enum.empty?()) do #extract relevant info from RPC response
       address = events |> elem(1) |> List.first() |> Map.get(:address)
       block_hash = events |> elem(1) |> List.first() |> Map.get(:block_hash)
       block_number = events |> elem(1) |> List.first() |> Map.get(:block_number)
@@ -77,15 +83,26 @@ defmodule AlignedLayerServiceManager do
       {verificationSystemId, proof, pubInput, taskCreatedBlock} = events |> elem(1) |> List.first() |> Map.get(:data) |> List.first()
       task = %AlignedTask{verificationSystemId: verificationSystemId, proof: proof, pubInput: pubInput, taskCreatedBlock: taskCreatedBlock}
 
-      {:ok, %NewTaskEvent{address: address, block_hash: block_hash, block_number: block_number, taskId: taskId, transaction_hash: transaction_hash, aligned_task: task}}
+      {:ok, %AlignedTaskCreatedInfo{address: address, block_hash: block_hash, block_number: block_number, taskId: taskId, transaction_hash: transaction_hash, aligned_task: task}}
     else
-      {:error, "No task found"}
+      {:empty, "No task found"}
     end
   end
 
-  def get_responded(task_id) do
+  def get_task_responded_event(task_id) do
     events = AlignedLayerServiceManager.EventFilters.task_responded(task_id) |> Ethers.get_logs(fromBlock: 0)
-    events |> IO.puts()
-    events
+
+    if not(events |> elem(1) |> Enum.empty?()) do #extract relevant info from RPC response
+      address = events |> elem(1) |> List.first() |> Map.get(:address)
+      block_hash = events |> elem(1) |> List.first() |> Map.get(:block_hash)
+      block_number = events |> elem(1) |> List.first() |> Map.get(:block_number)
+      taskId = events |> elem(1) |> List.first() |> Map.get(:topics) |> Enum.at(1)
+      transaction_hash = events |> elem(1) |> List.first() |> Map.get(:transaction_hash)
+
+      {taskIndex, proofIsCorrect} = events |> elem(1) |> List.first() |> Map.get(:data) |> List.first()
+      {:ok, %AlignedTaskRespondedInfo{address: address, block_hash: block_hash, block_number: block_number, taskId: taskId, transaction_hash: transaction_hash, proofIsCorrect: proofIsCorrect}}
+    else
+      {:empty, "No task response found"}
+    end
   end
 end

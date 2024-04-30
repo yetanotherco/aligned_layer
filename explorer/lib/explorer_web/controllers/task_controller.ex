@@ -20,20 +20,32 @@ defmodule ExplorerWeb.TaskController do
     # data = AlignedLayerServiceManager.is_aggregator("0x703E7dE5F528fA828f3BE726802B2092Ae7deb2F") |> Ethers.call()
 
     #Returns AlignedLayer task content
-    newTaskEvent = AlignedLayerServiceManager.get_task(String.to_integer(id))
+    newTaskEvent = AlignedLayerServiceManager.get_task_created_event(String.to_integer(id))
 
-    ret = if newTaskEvent |> elem(0) == :ok do
+    task = if newTaskEvent |> elem(0) == :ok do
       IO.puts("Task found")
       # newTaskEvent |> elem(1) |> IO.inspect()
       newTaskEvent |> elem(1)
     else
       IO.puts("No task found")
-      "No task found"
+      :empty
     end
 
-    newRespondedEvent = AlignedLayerServiceManager.get_responded(String.to_integer(id))
+    #Returns AlignedLayer task response content
+    newRespondedEvent = AlignedLayerServiceManager.get_task_responded_event(String.to_integer(id))
+
+    taskResponse = if newRespondedEvent |> elem(0) == :ok do
+      IO.puts("Task response found")
+      # newTaskEvent |> elem(1) |> IO.inspect()
+      newRespondedEvent |> elem(1)
+    else
+      IO.puts("No task response found")
+      :empty
+    end
+
+    newRespondedEvent |> IO.inspect()
 
 
-    render(conn, :task, message: ":)", id: id, task: ret)
+    render(conn, :task, id: id, task: task, taskResponse: taskResponse)
   end
 end

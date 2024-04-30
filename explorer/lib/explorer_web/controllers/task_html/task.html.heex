@@ -1,8 +1,5 @@
 <div title="My div">
-  <p>Hello <%= @message %></p>
-</div>
-<div title="My div">
-  <p>Query param: <%= @id %></p>
+  <p>Task ID: <%= @id %></p>
 </div>
 
 <div title="Event">
@@ -14,11 +11,23 @@
   <p>transaction_hash: <%= @task.transaction_hash %></p>
 
   <p>\n</p>
+  <p>Aligned Task</p>
   <div title="Aligned Task">
     <p>verificationSystemId: <%= @task.aligned_task.verificationSystemId %></p>
     <p>proof: <%= @task.aligned_task.proof %></p>
     <p>pubInput: <%= @task.aligned_task.pubInput %></p>
     <p>taskCreatedBlock: <%= @task.aligned_task.taskCreatedBlock %></p>
+  </div>
+
+  <p>\n</p>
+  <p>Aligned Task Response</p>
+  <div title="Aligned Task Response">
+    <p>address: <%= @taskResponse.address %></p>
+    <p>block_hash: <%= @taskResponse.block_hash %></p>
+    <p>block_number: <%= @taskResponse.block_number %></p>
+    <p>taskId: <%= @taskResponse.taskId %></p>
+    <p>transaction_hash: <%= @taskResponse.transaction_hash %></p>
+    <p>proofIsCorrect: <%= @taskResponse.proofIsCorrect %></p>
   </div>
 </div>
 
