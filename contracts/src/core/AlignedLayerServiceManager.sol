@@ -21,13 +21,14 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     // EVENTS
     event NewTaskCreated(uint64 indexed taskIndex, Task task);
-    event TaskResponded(TaskResponse taskResponse);
+    event TaskResponded(uint64 indexed taskIndex, TaskResponse taskResponse);
 
     // STRUCTS
     struct Task {
-        uint16 verificationSystemId;
+        uint16 provingSystemId;
         bytes proof;
         bytes pubInput;
+        bytes verificationKey;
         uint32 taskCreatedBlock;
         uint8 quorumThresholdPercentage;
     }
@@ -81,16 +82,19 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function createNewTask(
-        uint16 verificationSystemId,
+        uint16 provingSystemId,
         bytes calldata proof,
         bytes calldata pubInput,
+        // This is only mandatory for KZG based proving systems
+        bytes calldata verificationKey,
         uint8 quorumThresholdPercentage
     ) external {
         // create a new task struct
         Task memory newTask;
-        newTask.verificationSystemId = verificationSystemId;
+        newTask.provingSystemId = provingSystemId;
         newTask.proof = proof;
         newTask.pubInput = pubInput;
+        newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);
         newTask.quorumThresholdPercentage = quorumThresholdPercentage;
 
@@ -103,6 +107,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bool proofIsCorrect // TODO: aggregated signature field
     ) external {
         // TODO: actually do something with the aggregated signature
-        emit TaskResponded(TaskResponse(taskIndex, proofIsCorrect));
+        emit TaskResponded(taskIndex, TaskResponse(taskIndex, proofIsCorrect));
     }
 }

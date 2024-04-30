@@ -91,16 +91,18 @@ __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
 	go run task_sender/cmd/main.go send-task \
 		--proving-system plonk \
-		--proof task_sender/test_examples/proof.base64 \
-		--public-input task_sender/test_examples/public_inputs.base64 \
+		--proof task_sender/test_examples/plonk.proof \
+		--public-input task_sender/test_examples/plonk_pub_input.pub \
+		--verification-key task_sender/test_examples/plonk.vk \
 		--config config-files/config.yaml \
 		2>&1 | zap-pretty
 
 send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seconds
 	go run task_sender/cmd/main.go loop-tasks \
 		--proving-system plonk \
-		--proof task_sender/test_examples/proof.base64 \
-		--public-input task_sender/test_examples/public_inputs.base64 \
+		--proof task_sender/test_examples/plonk.proof \
+		--public-input task_sender/test_examples/plonk_pub_input.pub \
+		--verification-key task_sender/test_examples/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \ 
 		2>&1 | zap-pretty

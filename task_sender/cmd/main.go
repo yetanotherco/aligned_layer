@@ -110,7 +110,10 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	var verificationKeyFile []byte
-	if len(c.String("verification-key")) > 0 {
+	if provingSystem == common.GnarkPlonkBls12_381 {
+		if len(c.String("verification-key")) == 0 {
+			return fmt.Errorf("the proving system needs a verification key but it is empty")
+		}
 		verificationKeyFile, err = os.ReadFile(c.String(verificationKeyFlag.Name))
 		if err != nil {
 			return fmt.Errorf("error loading verification key file: %v", err)

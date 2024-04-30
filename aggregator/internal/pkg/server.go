@@ -52,7 +52,6 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 	}
 
 	// TODO: Check if the task response is valid
-
 	agg.taskResponsesMutex.Lock()
 
 	taskResponses := agg.taskResponses[taskResponse.TaskResponse.TaskIndex]
