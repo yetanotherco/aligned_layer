@@ -95,8 +95,6 @@ func (o *Operator) Start(ctx context.Context) error {
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
 func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
-	// o.Logger.Debug("Received new task", "task", newTaskCreatedLog)
-
 	proof := newTaskCreatedLog.Task.Proof
 	proofLen := (uint)(len(proof))
 
