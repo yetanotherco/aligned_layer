@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/yetanotherco/aligned_layer/core/types"
 	"time"
 )
 
@@ -35,19 +34,7 @@ func (agg *Aggregator) subscribeToNewTasks() error {
 			agg.AggregatorConfig.BaseConfig.Logger.Error("Error in subscription", "err", err)
 			return err
 		case task := <-agg.NewTaskCreatedChan:
-			agg.AggregatorConfig.BaseConfig.Logger.Info("New task created", "taskIndex", task.TaskIndex,
-				"task", task.Task)
-
-			agg.tasksMutex.Lock()
-			agg.tasks[task.TaskIndex] = task.Task
-			agg.tasksMutex.Unlock()
-
-			agg.taskResponsesMutex.Lock()
-			agg.taskResponses[task.TaskIndex] = &TaskResponsesWithStatus{
-				taskResponses:       make([]types.SignedTaskResponse, 0),
-				submittedToEthereum: false,
-			}
-			agg.taskResponsesMutex.Unlock()
+			agg.AddNewTask(task.TaskIndex, task.Task)
 		}
 	}
 }

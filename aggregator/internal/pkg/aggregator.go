@@ -18,6 +18,7 @@ type TaskResponsesWithStatus struct {
 type Aggregator struct {
 	AggregatorConfig   *config.AggregatorConfig
 	NewTaskCreatedChan chan *contractAlignedLayerServiceManager.ContractAlignedLayerServiceManagerNewTaskCreated
+	avsReader          *chainio.AvsReader
 	avsSubscriber      *chainio.AvsSubscriber
 	avsWriter          *chainio.AvsWriter
 	taskSubscriber     event.Subscription
@@ -36,6 +37,11 @@ type Aggregator struct {
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
 	newTaskCreatedChan := make(chan *contractAlignedLayerServiceManager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
 	if err != nil {
 		return nil, err
@@ -51,6 +57,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	aggregator := Aggregator{
 		AggregatorConfig:   &aggregatorConfig,
+		avsReader:          avsReader,
 		avsSubscriber:      avsSubscriber,
 		avsWriter:          avsWriter,
 		NewTaskCreatedChan: newTaskCreatedChan,
@@ -62,4 +69,17 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	// Return the Aggregator instance
 	return &aggregator, nil
+}
+
+func (agg *Aggregator) AddNewTask(index uint64, task contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask) {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "taskIndex", index, "task", task)
+	agg.tasksMutex.Lock()
+	agg.tasks[index] = task
+	agg.tasksMutex.Unlock()
+	agg.taskResponsesMutex.Lock()
+	agg.taskResponses[index] = &TaskResponsesWithStatus{
+		taskResponses:       make([]types.SignedTaskResponse, 0),
+		submittedToEthereum: false,
+	}
+	agg.taskResponsesMutex.Unlock()
 }

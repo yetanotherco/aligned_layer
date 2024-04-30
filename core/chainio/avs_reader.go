@@ -1,7 +1,11 @@
 package chainio
 
 import (
+	"context"
+	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethcommon "github.com/ethereum/go-ethereum/common"
+	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
@@ -15,6 +19,8 @@ type AvsReader struct {
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 }
+
+const blockRange = 100
 
 func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsReader, error) {
 
@@ -53,4 +59,32 @@ func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mo
 		return nil, err
 	}
 	return erc20Mock, nil
+}
+
+func (r *AvsReader) GetNewTaskCreated(taskIndex uint64) (*contractAlignedLayerServiceManager.ContractAlignedLayerServiceManagerNewTaskCreated, error) {
+	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
+	if err != nil {
+		r.logger.Error("Failed to get latest block number", "err", err)
+		return nil, err
+	}
+	startBlock := uint64(0)
+	if latestBlock > blockRange {
+		startBlock = latestBlock - blockRange
+	}
+	filterOpts := bind.FilterOpts{
+		Start: startBlock,
+	}
+
+	itr, err := r.AvsContractBindings.ServiceManager.FilterNewTaskCreated(&filterOpts, []uint64{taskIndex})
+	if err != nil {
+		return nil, err
+	}
+
+	for itr.Next() {
+		event := itr.Event
+		if event.TaskIndex == taskIndex {
+			return event, nil
+		}
+	}
+	return nil, fmt.Errorf("task index %d not found", taskIndex)
 }

@@ -43,21 +43,26 @@ func (agg *Aggregator) ServeOperators() error {
 func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse, reply *uint8) error {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", taskResponse)
 
-	// Check if the task exists. If not, return error
-	if _, ok := agg.taskResponses[taskResponse.TaskResponse.TaskIndex]; !ok {
-		// TODO: Check if the aggregator has missed the task
-		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskResponse.TaskIndex)
-		*reply = 1
-		return nil
+	taskIndex := taskResponse.TaskResponse.TaskIndex
+	// Check if the task exists. If not, get the task from the contract, and store it in the tasks map
+	// If the task does not exist, return an error
+	if _, ok := agg.taskResponses[taskIndex]; !ok {
+		task, err := agg.avsReader.GetNewTaskCreated(taskIndex)
+		if err != nil {
+			agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskResponse.TaskIndex)
+			*reply = 1
+			return nil
+		}
+		agg.AddNewTask(taskIndex, task.Task)
 	}
 
 	// TODO: Check if the task response is valid
 	agg.taskResponsesMutex.Lock()
 
-	taskResponses := agg.taskResponses[taskResponse.TaskResponse.TaskIndex]
+	taskResponses := agg.taskResponses[taskIndex]
 
 	taskResponses.taskResponses = append(
-		agg.taskResponses[taskResponse.TaskResponse.TaskIndex].taskResponses,
+		agg.taskResponses[taskIndex].taskResponses,
 		*taskResponse)
 
 	// Submit the task response to the contract when the number of responses is 2
