@@ -14,6 +14,7 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/yetanotherco/aligned_layer/common"
@@ -93,7 +94,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
 
 			// Here we should process a task, here we will pretend the proof is always true until adding that
-			encodedResponseBytes, _ := AbiEncodeTaskResponse(taskResponse)
+			encodedResponseBytes, _ := AbiEncodeTaskResponse(*taskResponse)
 			log.Println("Task response:", taskResponse)
 			log.Println("ABI Encoded bytes:\n", encodedResponseBytes)
 
@@ -118,7 +119,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	pubInput := newTaskCreatedLog.Task.PubInput
 	// pubInputLen := (uint)(len(pubInput))
 
-	verifierId := newTaskCreatedLog.Task.ProvingSystemId
+	provingSystemId := newTaskCreatedLog.Task.ProvingSystemId
 
 	o.Logger.Info("Received new task with proof to verify",
 		"proof length", proofLen,
@@ -127,10 +128,10 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		"task index", newTaskCreatedLog.TaskIndex,
 		"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
 		// "quorumNumbers", newTaskCreatedLog.Task.QuorumNumbers,
-		// "QuorumThresholdPercentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
+		"QuorumThresholdPercentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
 	)
 
-	switch verifierId {
+	switch provingSystemId {
 	case uint16(common.GnarkPlonkBls12_381):
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
 		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey)
@@ -143,7 +144,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		return taskResponse
 
 	default:
-		o.Logger.Error("Unrecognized verifier id")
+		o.Logger.Error("Unrecognized proving system ID")
 		return nil
 	}
 }
@@ -177,4 +178,49 @@ func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	err = plonk.Verify(proof, verificationKey, pubInput)
 
 	return err == nil
+}
+
+func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse) ([]byte, error) {
+	// The order here has to match the field ordering of servicemanager.AlignedLayerServiceManagerTaskResponse
+
+	/* TODO: Solve this in a more generic way so it's less prone for errors. Name and types can be obtained with reflection
+	for i := 0; i < reflectedType.NumField(); i++ {
+		name := reflectedType.Field(i).Name
+		thisType := reflectedType.Field(i).Type
+	}
+	*/
+
+	/*
+		This matches:
+
+		struct TaskResponse {
+			uint64 taskIndex;
+			bool proofIsCorrect;
+		}
+	*/
+	taskResponseType, err := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
+		{
+			Name: "taskIndex",
+			Type: "uint64",
+		},
+		{
+			Name: "proofIsCorrect",
+			Type: "bool",
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	arguments := abi.Arguments{
+		{
+			Type: taskResponseType,
+		},
+	}
+
+	bytes, err := arguments.Pack(taskResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
