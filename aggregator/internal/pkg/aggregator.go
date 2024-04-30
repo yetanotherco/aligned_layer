@@ -1,8 +1,14 @@
 package pkg
 
 import (
+	"context"
 	"sync"
 
+	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
+	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
+	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
+	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
+	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorpubkeys"
 	"github.com/ethereum/go-ethereum/event"
 	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -17,19 +23,20 @@ type TaskResponsesWithStatus struct {
 }
 
 type Aggregator struct {
-	AggregatorConfig   *config.AggregatorConfig
-	NewTaskCreatedChan chan *contractAlignedLayerServiceManager.ContractAlignedLayerServiceManagerNewTaskCreated
-	avsSubscriber      *chainio.AvsSubscriber
-	avsWriter          *chainio.AvsWriter
-	taskSubscriber     event.Subscription
+	AggregatorConfig      *config.AggregatorConfig
+	NewTaskCreatedChan    chan *contractAlignedLayerServiceManager.ContractAlignedLayerServiceManagerNewTaskCreated
+	avsSubscriber         *chainio.AvsSubscriber
+	avsWriter             *chainio.AvsWriter
+	taskSubscriber        event.Subscription
+	blsAggregationService blsagg.BlsAggregationService
 
 	// Using map here instead of slice to allow for easy lookup of tasks, when aggregator is restarting,
 	// its easier to get the task from the map instead of filling the slice again
-	tasks map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask
+	tasks map[uint32]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask
 	// Mutex to protect the tasks map
 	tasksMutex *sync.Mutex
 
-	taskResponses map[uint64]*TaskResponsesWithStatus
+	OperatorTaskResponses map[uint32]*TaskResponsesWithStatus
 	// Mutex to protect the taskResponses map
 	taskResponsesMutex *sync.Mutex
 }
@@ -47,18 +54,46 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	tasks := make(map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask)
-	taskResponses := make(map[uint64]*TaskResponsesWithStatus, 0)
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := make(map[uint32]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask)
+	operatorTaskResponses := make(map[uint32]*TaskResponsesWithStatus, 0)
+
+	chainioConfig := sdkclients.BuildAllConfig{
+		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
+		EthWsUrl:                   aggregatorConfig.BaseConfig.EthWsUrl,
+		RegistryCoordinatorAddr:    aggregatorConfig.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr.Hex(),
+		OperatorStateRetrieverAddr: aggregatorConfig.BaseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr.Hex(),
+		AvsName:                    "AlignedLayer",
+		PromMetricsIpPortAddress:   ":9090",
+	}
+
+	aggregatorPrivateKey := aggregatorConfig.EcdsaConfig.PrivateKey
+
+	logger := aggregatorConfig.BaseConfig.Logger
+	clients, err := clients.BuildAll(chainioConfig, aggregatorPrivateKey, logger)
+	if err != nil {
+		logger.Errorf("Cannot create sdk clients", "err", err)
+		return nil, err
+	}
+
+	operatorPubkeysService := oppubkeysserv.NewOperatorPubkeysServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, logger)
+	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader, operatorPubkeysService, logger)
+	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, logger)
 
 	aggregator := Aggregator{
-		AggregatorConfig:   &aggregatorConfig,
-		avsSubscriber:      avsSubscriber,
-		avsWriter:          avsWriter,
-		NewTaskCreatedChan: newTaskCreatedChan,
-		tasks:              tasks,
-		tasksMutex:         &sync.Mutex{},
-		taskResponses:      taskResponses,
-		taskResponsesMutex: &sync.Mutex{},
+		AggregatorConfig:      &aggregatorConfig,
+		avsSubscriber:         avsSubscriber,
+		avsWriter:             avsWriter,
+		NewTaskCreatedChan:    newTaskCreatedChan,
+		tasks:                 tasks,
+		tasksMutex:            &sync.Mutex{},
+		OperatorTaskResponses: operatorTaskResponses,
+		taskResponsesMutex:    &sync.Mutex{},
+		blsAggregationService: blsAggregationService,
 	}
 
 	// Return the Aggregator instance

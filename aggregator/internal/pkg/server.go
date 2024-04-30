@@ -1,10 +1,12 @@
 package pkg
 
 import (
+	"context"
 	"net/http"
 	"net/rpc"
 
 	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 func (agg *Aggregator) ServeOperators() error {
@@ -41,46 +43,54 @@ func (agg *Aggregator) ServeOperators() error {
 // Returns:
 //   - 0: Success
 //   - 1: Error
-func (agg *Aggregator) ProcessOperatorTaskResponse(taskResponse *types.SignedTaskResponse, reply *uint8) error {
+func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *types.SignedTaskResponse, reply *uint8) error {
 
-	agg.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", taskResponse)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", signedTaskResponse)
 
-	taskIndex := taskResponse.TaskResponse.TaskIndex
+	taskIndex := signedTaskResponse.TaskResponse.TaskIndex
 	// Check if the task exists. If not, return error
-	if _, ok := agg.taskResponses[taskIndex]; !ok {
+	if _, ok := agg.OperatorTaskResponses[taskIndex]; !ok {
 		// TODO: Check if the aggregator has missed the task
-		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskResponse.TaskIndex)
+		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", signedTaskResponse.TaskResponse.TaskIndex)
 		*reply = 1
 		return nil
 	}
 
 	// TODO: Check if the task response is valid
 	agg.taskResponsesMutex.Lock()
-
-	taskResponses := agg.taskResponses[taskIndex]
-
+	taskResponses := agg.OperatorTaskResponses[taskIndex]
 	taskResponses.taskResponses = append(
-		agg.taskResponses[taskResponse.TaskResponse.TaskIndex].taskResponses,
-		*taskResponse)
+		agg.OperatorTaskResponses[signedTaskResponse.TaskResponse.TaskIndex].taskResponses,
+		*signedTaskResponse)
+
+	taskResponseDigest, err := utils.TaskResponseDigest(&signedTaskResponse.TaskResponse)
+	if err != nil {
+		return err
+	}
+
+	err = agg.blsAggregationService.ProcessNewSignature(
+		context.Background(), taskIndex, taskResponseDigest,
+		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
+	)
 
 	// Submit the task response to the contract when the number of responses is 2
 	// TODO: Make this configurable (based on quorum %)
-	if !taskResponses.submittedToEthereum && len(taskResponses.taskResponses) >= 2 {
-		agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
-			taskResponse.TaskResponse, "proofIsValid", true)
+	// if !taskResponses.submittedToEthereum && len(taskResponses.taskResponses) >= 2 {
+	// 	agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
+	// 		signedTaskResponse.TaskResponse, "proofIsValid", true)
 
-		task := agg.tasks[taskIndex]
+	// 	task := agg.tasks[taskIndex]
 
-		_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(agg.avsWriter.Signer.GetTxOpts(),
-			task, taskResponse.TaskResponse)
-		if err != nil {
-			agg.taskResponsesMutex.Unlock()
-			*reply = 1
-			return err
-		}
+	// 	_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(agg.avsWriter.Signer.GetTxOpts(),
+	// 		task, signedTaskResponse.TaskResponse)
+	// 	if err != nil {
+	// 		agg.taskResponsesMutex.Unlock()
+	// 		*reply = 1
+	// 		return err
+	// 	}
 
-		taskResponses.submittedToEthereum = true
-	}
+	// 	taskResponses.submittedToEthereum = true
+	// }
 
 	agg.taskResponsesMutex.Unlock()
 	*reply = 0

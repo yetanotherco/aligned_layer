@@ -1,4 +1,4 @@
-package main
+package task_sender
 
 import (
 	"fmt"
@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 )
 
 var (
@@ -128,7 +127,7 @@ func taskSenderMain(c *cli.Context) error {
 
 	taskSender := pkg.NewTaskSender(avsWriter)
 	quorumThresholdPercentage := uint8(100) // TODO: add this to the configuration
-	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumThresholdPercentage)
+	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumThresholdPercentage)
 
 	err = taskSender.SendTask(task)
 	if err != nil {

@@ -20,8 +20,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
 
     // EVENTS
-    event NewTaskCreated(uint64 indexed taskIndex, Task task);
-    event TaskResponded(uint64 indexed taskIndex, TaskResponse taskResponse);
+    event NewTaskCreated(uint32 indexed taskIndex, Task task);
+    event TaskResponded(uint32 indexed taskIndex, TaskResponse taskResponse);
 
     // STRUCTS
     struct Task {
@@ -38,18 +38,17 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     // In case of changing this response, change AbiEncodeTaskResponse
     // since it won't be updated automatically
     struct TaskResponse {
-        uint64 taskIndex;
+        uint32 taskIndex;
         bool proofIsCorrect;
     }
 
     /* STORAGE */
-    uint64 public latestTaskIndexPlusOne;
+    uint32 public latestTaskIndexPlusOne;
 
-    mapping(uint64 => bytes32) public taskHashes;
+    mapping(uint32 => bytes32) public taskHashes;
 
     // mapping of task indices to hash of abi.encode(taskResponse, taskResponseMetadata)
-    mapping(uint64 => bytes32) public taskResponses;
-
+    mapping(uint32 => bytes32) public taskResponses;
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -111,8 +110,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function respondToTask(
         Task calldata task,
         TaskResponse calldata taskResponse,
-        NonSignerStakesAndSignature memory nonSignerStakesAndSignature
-        // TODO: aggregated signature field
+        NonSignerStakesAndSignature memory nonSignerStakesAndSignature // TODO: aggregated signature field
     ) external {
         //make sure that the quorumNumbers and signedStakeForQuorums are of the same length
 
@@ -124,7 +122,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         */
 
         // check the signature
-                /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // calculate message which operators signed
 
         uint32 taskCreatedBlock = task.taskCreatedBlock;
@@ -147,7 +145,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         */
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // calculate message which operators signed
-        
+
         bytes32 message = keccak256(abi.encode(taskResponse));
 
         // check the BLS signature
@@ -175,7 +173,10 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             );
         }
         */
-              
-        emit TaskResponded(taskResponse.taskIndex, TaskResponse(taskResponse.taskIndex, taskResponse.proofIsCorrect));
+
+        emit TaskResponded(
+            taskResponse.taskIndex,
+            TaskResponse(taskResponse.taskIndex, taskResponse.proofIsCorrect)
+        );
     }
 }
