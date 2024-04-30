@@ -3,9 +3,10 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/yetanotherco/aligned_layer/core/types"
-	"time"
 )
 
 const (
@@ -43,7 +44,7 @@ func (agg *Aggregator) subscribeToNewTasks() error {
 			agg.tasksMutex.Unlock()
 
 			agg.taskResponsesMutex.Lock()
-			agg.taskResponses[task.TaskIndex] = &TaskResponsesWithStatus{
+			agg.OperatorTaskResponses[task.TaskIndex] = &TaskResponsesWithStatus{
 				taskResponses:       make([]types.SignedTaskResponse, 0),
 				submittedToEthereum: false,
 			}

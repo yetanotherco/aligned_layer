@@ -1,4 +1,4 @@
-package task_sender
+package main
 
 import (
 	"fmt"
