@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	gethcommon "github.com/ethereum/go-ethereum/common"
@@ -21,5 +20,5 @@ func WaitForTransactionReceipt(client eth.Client, ctx context.Context, txHash ge
 			return receipt, nil
 		}
 	}
-	return nil, errors.New(fmt.Sprintf("Transaction receipt not found for txHash: %s", txHash.String()))
+	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
 }
