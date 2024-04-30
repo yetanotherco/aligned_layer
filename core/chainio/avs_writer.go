@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
@@ -64,7 +65,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
+func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte, quorumThresholdPercentage uint8) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
@@ -72,6 +73,7 @@ func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.Pro
 		proof,
 		publicInput,
 		verificationKey,
+		quorumThresholdPercentage,
 	)
 	if err != nil {
 		w.logger.Error("Error assembling CreateNewTask tx", "err", err)

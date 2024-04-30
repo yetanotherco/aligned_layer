@@ -19,6 +19,8 @@ import (
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"golang.org/x/crypto/sha3"
+
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
@@ -33,26 +35,27 @@ type Operator struct {
 	avsSubscriber      chainio.AvsSubscriber
 	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
 	Logger             logging.Logger
+	//Socket  string
+	//Timeout time.Duration
+	//OperatorId         eigentypes.OperatorId
 }
 
-func NewOperatorFromConfig(config config.OperatorConfig) (*Operator, error) {
-	logger := config.BaseConfig.Logger
+func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
+	logger := configuration.BaseConfig.Logger
 
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(config.BaseConfig)
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(configuration.BaseConfig)
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
-	address := config.Operator.Address
+	address := configuration.Operator.Address
 	operator := &Operator{
-		Config:             config,
+		Config:             configuration,
 		Logger:             logger,
 		avsSubscriber:      *avsSubscriber,
 		Address:            address,
 		NewTaskCreatedChan: newTaskCreatedChan,
-		// KeyPair
-		// PrivKey
 		// Timeout
 		// OperatorId
 		// Socket
@@ -86,8 +89,23 @@ func (o *Operator) Start(ctx context.Context) error {
 			// }
 			// go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
 
+			/* --------- OPERATOR MAIN LOGIC --------- */
 			log.Printf("The received task's index is: %d\n", newTaskCreatedLog.TaskIndex)
-			log.Println("The task response is: ", taskResponse.ProofIsCorrect)
+
+			// Here we should process a task, here we will pretend the proof is always true until adding that
+			taskResponse := servicemanager.AlignedLayerServiceManagerTaskResponse{TaskIndex: newTaskCreatedLog.TaskIndex, ProofIsCorrect: true}
+			encodedResponseBytes, _ := AbiEncodeTaskResponse(taskResponse)
+			log.Println("Task response:", taskResponse)
+			log.Println("ABI Encoded bytes:\n", encodedResponseBytes)
+
+			var taskResponseDigest [32]byte
+			hasher := sha3.NewLegacyKeccak256()
+			hasher.Write(encodedResponseBytes)
+			copy(taskResponseDigest[:], hasher.Sum(nil)[:32])
+			log.Println("Encoded response hash:", taskResponseDigest)
+			log.Println("Encoded response hash len:", len(taskResponseDigest))
+			responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(taskResponseDigest)
+			log.Println("Signed hash:", responseSignature)
 		}
 	}
 }

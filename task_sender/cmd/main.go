@@ -127,7 +127,8 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	taskSender := pkg.NewTaskSender(avsWriter)
-	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile)
+	quorumThresholdPercentage := uint8(100) // TODO: add this to the configuration
+	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumThresholdPercentage)
 
 	err = taskSender.SendTask(task)
 	if err != nil {

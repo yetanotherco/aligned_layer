@@ -26,6 +26,7 @@ func (ts *TaskSender) SendTask(task *types.Task) error {
 		task.Proof,
 		task.PublicInput,
 		task.VerificationKey,
+		task.QuorumThresholdPercentage,
 	)
 	if err != nil {
 		return err

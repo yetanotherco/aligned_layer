@@ -3,11 +3,11 @@ package types
 import (
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/types"
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 )
 
 type SignedTaskResponse struct {
-	TaskIndex uint64
-	// TODO: Might be better to include hash
+	TaskResponse servicemanager.AlignedLayerServiceManagerTaskResponse
 	BlsSignature bls.Signature
 	OperatorId   types.OperatorId
 }

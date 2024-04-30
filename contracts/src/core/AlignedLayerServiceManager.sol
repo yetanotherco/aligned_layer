@@ -30,12 +30,15 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes pubInput;
         bytes verificationKey;
         uint32 taskCreatedBlock;
+        uint8 quorumThresholdPercentage;
     }
 
+    // Task Response
+    // In case of changing this response, change AbiEncodeTaskResponse
+    // since it won't be updated automatically
     struct TaskResponse {
         uint64 taskIndex;
         bool proofIsCorrect;
-        // TODO: aggregated signature field
     }
 
     /* STORAGE */
@@ -83,7 +86,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes calldata proof,
         bytes calldata pubInput,
         // This is only mandatory for KZG based proving systems
-        bytes calldata verificationKey
+        bytes calldata verificationKey,
+        uint8 quorumThresholdPercentage
     ) external {
         // create a new task struct
         Task memory newTask;
@@ -92,6 +96,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         newTask.pubInput = pubInput;
         newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);
+        newTask.quorumThresholdPercentage = quorumThresholdPercentage;
 
         emit NewTaskCreated(latestTaskNum, newTask);
         latestTaskNum = latestTaskNum + 1;
