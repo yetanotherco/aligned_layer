@@ -106,8 +106,6 @@ You will also need to redeploy the MockStrategy & MockERC20 contracts:
 make anvil-deploy-mock-strategy
 ```
 
-Then make sure to change the `0_strategy` in the `script/deploy/devnet/aligned.devnet.config.json` file to the new address.
-
 When changing AlignedLayer contracts, the anvil state needs to be updated with:
 
 ```bash
