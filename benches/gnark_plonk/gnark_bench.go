@@ -61,39 +61,42 @@ func main() {
 		os.Exit(1)
 	}
 
-	var durations []time.Duration
-	for j := 0; j < 2; j++ {
-		start := time.Now()
-		for i := 0; i < 100; i++ {
+	numCycles := 10
+	numVerifications := 100
+	var verificationTimes []time.Duration
+
+	for j := 0; j < numCycles; j++ {
+		for i := 0; i < numVerifications; i++ {
+			startVerification := time.Now()
 			if !verifyPlonkProof(proofBytes, vkBytes, pubInputBytes) {
 				fmt.Println("The PLONK proof is invalid.")
 				os.Exit(1)
 			}
+			verificationTimes = append(verificationTimes, time.Since(startVerification))
 		}
-		durations = append(durations, time.Since(start))
 	}
 
 	// Compute statistics
 	totalTime := time.Duration(0)
-	for _, duration := range durations {
-		totalTime += duration
+	for _, verificationTime := range verificationTimes {
+		totalTime += verificationTime
 	}
-	averageTime := totalTime / time.Duration(len(durations))
+	averageTime := totalTime / time.Duration(len(verificationTimes))
 
-	sort.Slice(durations, func(i, j int) bool { return durations[i] < durations[j] })
-	medianTime := durations[len(durations)/2]
+	sort.Slice(verificationTimes, func(i, j int) bool { return verificationTimes[i] < verificationTimes[j] })
+	medianTime := verificationTimes[len(verificationTimes)/2]
 
 	var sumOfSquares time.Duration
-	for _, duration := range durations {
-		diff := duration - averageTime
+	for _, verificationTime := range verificationTimes {
+		diff := verificationTime - averageTime
 		sumOfSquares += diff * diff
 	}
-	variance := sumOfSquares / time.Duration(len(durations))
+	variance := sumOfSquares / time.Duration(len(verificationTimes))
 	stdDev := time.Duration(math.Sqrt(float64(variance)))
 
-	fmt.Printf("100 cycles of 1000 PLONK verifications completed.\n")
-	fmt.Printf("Total time: %s\n", totalTime)
-	fmt.Printf("Average time per cycle: %s\n", averageTime)
-	fmt.Printf("Median time per cycle: %s\n", medianTime)
-	fmt.Printf("Standard deviation: %s\n", stdDev)
+	fmt.Printf("%d verifications completed across %d cycles.\n", len(verificationTimes), numCycles)
+	fmt.Printf("Total time for all verifications: %s\n", totalTime)
+	fmt.Printf("Average time per verification: %s\n", averageTime)
+	fmt.Printf("Median time per verification: %s\n", medianTime)
+	fmt.Printf("Standard deviation of verification times: %s\n", stdDev)
 }
