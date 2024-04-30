@@ -102,7 +102,8 @@ func (o *Operator) Start(ctx context.Context) error {
 			signedTaskResponse := types.SignedTaskResponse{
 				TaskResponse: *taskResponse,
 				BlsSignature: *responseSignature,
-				OperatorId:   eigentypes.Bytes32(make([]byte, 32)),
+				// FIXME(marian): Dummy Operator ID, we should get the correct one.
+				OperatorId: eigentypes.Bytes32(make([]byte, 32)),
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
