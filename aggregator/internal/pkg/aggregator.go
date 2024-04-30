@@ -1,9 +1,8 @@
 package pkg
 
 import (
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/types"
@@ -47,15 +46,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	// Subscriber to Ethereum serviceManager task events
-	taskSubscriber, err := avsSubscriber.AvsContractBindings.ServiceManager.WatchNewTaskCreated(&bind.WatchOpts{},
-		newTaskCreatedChan, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	aggregatorConfig.BaseConfig.Logger.Info("Created subscriber for task creation events")
-
 	tasks := make(map[uint64]contractAlignedLayerServiceManager.AlignedLayerServiceManagerTask)
 	taskResponses := make(map[uint64]*TaskResponsesWithStatus, 0)
 
@@ -63,7 +53,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		AggregatorConfig:   &aggregatorConfig,
 		avsSubscriber:      avsSubscriber,
 		avsWriter:          avsWriter,
-		taskSubscriber:     taskSubscriber,
 		NewTaskCreatedChan: newTaskCreatedChan,
 		tasks:              tasks,
 		tasksMutex:         &sync.Mutex{},

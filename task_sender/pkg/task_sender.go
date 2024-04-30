@@ -2,9 +2,10 @@ package pkg
 
 import (
 	"context"
+	"log"
+
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/types"
-	"log"
 )
 
 type TaskSender struct {
@@ -24,6 +25,8 @@ func (ts *TaskSender) SendTask(task *types.Task) error {
 		task.ProvingSystem,
 		task.Proof,
 		task.PublicInput,
+		task.VerificationKey,
+		task.QuorumThresholdPercentage,
 		task.Fee,
 	)
 	if err != nil {

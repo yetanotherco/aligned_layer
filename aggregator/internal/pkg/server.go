@@ -1,9 +1,10 @@
 package pkg
 
 import (
-	"github.com/yetanotherco/aligned_layer/core/types"
 	"net/http"
 	"net/rpc"
+
+	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
 func (agg *Aggregator) ServeOperators() error {
@@ -43,31 +44,30 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", taskResponse)
 
 	// Check if the task exists. If not, return error
-	if _, ok := agg.taskResponses[taskResponse.TaskIndex]; !ok {
+	if _, ok := agg.taskResponses[taskResponse.TaskResponse.TaskIndex]; !ok {
 		// TODO: Check if the aggregator has missed the task
-		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskIndex)
+		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskResponse.TaskIndex)
 		*reply = 1
 		return nil
 	}
 
 	// TODO: Check if the task response is valid
-
 	agg.taskResponsesMutex.Lock()
 
-	taskResponses := agg.taskResponses[taskResponse.TaskIndex]
+	taskResponses := agg.taskResponses[taskResponse.TaskResponse.TaskIndex]
 
 	taskResponses.taskResponses = append(
-		agg.taskResponses[taskResponse.TaskIndex].taskResponses,
+		agg.taskResponses[taskResponse.TaskResponse.TaskIndex].taskResponses,
 		*taskResponse)
 
 	// Submit the task response to the contract when the number of responses is 2
 	// TODO: Make this configurable (based on quorum %)
 	if !taskResponses.submittedToEthereum && len(taskResponses.taskResponses) >= 2 {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
-			taskResponse.TaskIndex, "proofIsValid", true)
+			taskResponse.TaskResponse, "proofIsValid", true)
 
 		_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(agg.avsWriter.Signer.GetTxOpts(),
-			taskResponse.TaskIndex, true)
+			taskResponse.TaskResponse.TaskIndex, true)
 		if err != nil {
 			agg.taskResponsesMutex.Unlock()
 			*reply = 1
