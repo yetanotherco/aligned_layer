@@ -24,16 +24,17 @@ var (
 		Value:    100,
 		Required: true,
 	}
-	StrategyDeploymentOutputFlag = &cli.StringFlag{
-		Name:     "strategy-deployment-output",
-		Usage:    "Path to strategy deployment output file",
+	StrategyAddressFlag = &cli.StringFlag{
+		Name:     "strategy-address",
+		Usage:    "Address of the strategy contract",
 		Required: true,
+		EnvVars:  []string{"STRATEGY_ADDRESS"},
 	}
 )
 
 var flags = []cli.Flag{
 	AmountFlag,
-	StrategyDeploymentOutputFlag,
+	StrategyAddressFlag,
 	config.ConfigFileFlag,
 }
 
@@ -58,12 +59,16 @@ func depositIntoStrategy(ctx *cli.Context) error {
 	}
 
 	configuration := config.NewOperatorConfig(ctx.String(config.ConfigFileFlag.Name))
-
-	strategyContracts := newStrategyDeploymentConfig(ctx.String(StrategyDeploymentOutputFlag.Name))
+	strategyAddressStr := ctx.String(StrategyAddressFlag.Name)
+	if strategyAddressStr == "" {
+		log.Println("Strategy address is required")
+		return nil
+	}
+	log.Println("Depositing into strategy", strategyAddressStr)
+	strategyAddr := common.HexToAddress(strategyAddressStr)
 
 	delegationManagerAddr := configuration.BaseConfig.EigenLayerDeploymentConfig.DelegationManagerAddr
 	avsDirectoryAddr := configuration.BaseConfig.EigenLayerDeploymentConfig.AVSDirectoryAddr
-	strategyAddr := strategyContracts.StrategyAddr
 
 	signerConfig := signerv2.Config{
 		PrivateKey: configuration.EcdsaConfig.PrivateKey,
