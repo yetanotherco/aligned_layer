@@ -78,18 +78,18 @@ func (o *Operator) Start(ctx context.Context) error {
 			o.Logger.Info("Operator shutting down...")
 			return nil
 		case err := <-sub.Err():
-			o.Logger.Info("Error in websocket subscription", "err", err)
+			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
 		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
-			o.Logger.Info("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
+			o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
 			taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
 			responseSignature, err := o.SignTaskResponse(taskResponse)
 			if err != nil {
 				o.Logger.Errorf("Could not sign task response", "err", err)
 			}
 
-			o.Logger.Info("Signed hash:", responseSignature)
+			o.Logger.Infof("Signed hash: %+v", *responseSignature)
 			// go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
 		}
 	}
@@ -161,7 +161,6 @@ func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	}
 
 	err = plonk.Verify(proof, verificationKey, pubInput)
-
 	return err == nil
 }
 
@@ -215,8 +214,6 @@ func (o *Operator) SignTaskResponse(taskResponse *servicemanager.AlignedLayerSer
 	if err != nil {
 		return nil, err
 	}
-	o.Logger.Info("Task response:", taskResponse)
-	o.Logger.Info("ABI Encoded bytes:\n", encodedResponseBytes)
 
 	var taskResponseDigest [32]byte
 	hasher := sha3.NewLegacyKeccak256()
