@@ -30,10 +30,12 @@ var (
 
 // AlignedLayerServiceManagerTask is an auto generated low-level Go binding around an user-defined struct.
 type AlignedLayerServiceManagerTask struct {
-	VerificationSystemId uint16
-	Proof                []byte
-	PubInput             []byte
-	TaskCreatedBlock     uint32
+	ProvingSystemId           uint16
+	Proof                     []byte
+	PubInput                  []byte
+	VerificationKey           []byte
+	TaskCreatedBlock          uint32
+	QuorumThresholdPercentage uint8
 }
 
 // AlignedLayerServiceManagerTaskResponse is an auto generated low-level Go binding around an user-defined struct.
@@ -701,25 +703,25 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCal
 	return _ContractAlignedLayerServiceManager.Contract.TrySignatureAndApkVerification(&_ContractAlignedLayerServiceManager.CallOpts, msgHash, apk, apkG2, sigma)
 }
 
-// CreateNewTask is a paid mutator transaction binding the contract method 0x1e75e1a8.
+// CreateNewTask is a paid mutator transaction binding the contract method 0x6cab5f6c.
 //
-// Solidity: function createNewTask(uint16 verificationSystemId, bytes proof, bytes pubInput) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactor) CreateNewTask(opts *bind.TransactOpts, verificationSystemId uint16, proof []byte, pubInput []byte) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.contract.Transact(opts, "createNewTask", verificationSystemId, proof, pubInput)
+// Solidity: function createNewTask(uint16 provingSystemId, bytes proof, bytes pubInput, bytes verificationKey, uint8 quorumThresholdPercentage) returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactor) CreateNewTask(opts *bind.TransactOpts, provingSystemId uint16, proof []byte, pubInput []byte, verificationKey []byte, quorumThresholdPercentage uint8) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.contract.Transact(opts, "createNewTask", provingSystemId, proof, pubInput, verificationKey, quorumThresholdPercentage)
 }
 
-// CreateNewTask is a paid mutator transaction binding the contract method 0x1e75e1a8.
+// CreateNewTask is a paid mutator transaction binding the contract method 0x6cab5f6c.
 //
-// Solidity: function createNewTask(uint16 verificationSystemId, bytes proof, bytes pubInput) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) CreateNewTask(verificationSystemId uint16, proof []byte, pubInput []byte) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.Contract.CreateNewTask(&_ContractAlignedLayerServiceManager.TransactOpts, verificationSystemId, proof, pubInput)
+// Solidity: function createNewTask(uint16 provingSystemId, bytes proof, bytes pubInput, bytes verificationKey, uint8 quorumThresholdPercentage) returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) CreateNewTask(provingSystemId uint16, proof []byte, pubInput []byte, verificationKey []byte, quorumThresholdPercentage uint8) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.Contract.CreateNewTask(&_ContractAlignedLayerServiceManager.TransactOpts, provingSystemId, proof, pubInput, verificationKey, quorumThresholdPercentage)
 }
 
-// CreateNewTask is a paid mutator transaction binding the contract method 0x1e75e1a8.
+// CreateNewTask is a paid mutator transaction binding the contract method 0x6cab5f6c.
 //
-// Solidity: function createNewTask(uint16 verificationSystemId, bytes proof, bytes pubInput) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactorSession) CreateNewTask(verificationSystemId uint16, proof []byte, pubInput []byte) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.Contract.CreateNewTask(&_ContractAlignedLayerServiceManager.TransactOpts, verificationSystemId, proof, pubInput)
+// Solidity: function createNewTask(uint16 provingSystemId, bytes proof, bytes pubInput, bytes verificationKey, uint8 quorumThresholdPercentage) returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactorSession) CreateNewTask(provingSystemId uint16, proof []byte, pubInput []byte, verificationKey []byte, quorumThresholdPercentage uint8) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.Contract.CreateNewTask(&_ContractAlignedLayerServiceManager.TransactOpts, provingSystemId, proof, pubInput, verificationKey, quorumThresholdPercentage)
 }
 
 // DeregisterOperatorFromAVS is a paid mutator transaction binding the contract method 0xa364f4da.
@@ -1098,9 +1100,9 @@ type ContractAlignedLayerServiceManagerNewTaskCreated struct {
 	Raw       types.Log // Blockchain specific contextual infos
 }
 
-// FilterNewTaskCreated is a free log retrieval operation binding the contract event 0x2a025356c333070a4727559521f3cf53681906b533943b4ca04a6e5992a73e6c.
+// FilterNewTaskCreated is a free log retrieval operation binding the contract event 0x58cc63ea687436c73c0b685c25d5221cd558e37be7940aee1f58329c5e27e022.
 //
-// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,uint32) task)
+// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,bytes,uint32,uint8) task)
 func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) FilterNewTaskCreated(opts *bind.FilterOpts, taskIndex []uint64) (*ContractAlignedLayerServiceManagerNewTaskCreatedIterator, error) {
 
 	var taskIndexRule []interface{}
@@ -1115,9 +1117,9 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFil
 	return &ContractAlignedLayerServiceManagerNewTaskCreatedIterator{contract: _ContractAlignedLayerServiceManager.contract, event: "NewTaskCreated", logs: logs, sub: sub}, nil
 }
 
-// WatchNewTaskCreated is a free log subscription operation binding the contract event 0x2a025356c333070a4727559521f3cf53681906b533943b4ca04a6e5992a73e6c.
+// WatchNewTaskCreated is a free log subscription operation binding the contract event 0x58cc63ea687436c73c0b685c25d5221cd558e37be7940aee1f58329c5e27e022.
 //
-// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,uint32) task)
+// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,bytes,uint32,uint8) task)
 func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) WatchNewTaskCreated(opts *bind.WatchOpts, sink chan<- *ContractAlignedLayerServiceManagerNewTaskCreated, taskIndex []uint64) (event.Subscription, error) {
 
 	var taskIndexRule []interface{}
@@ -1157,9 +1159,9 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFil
 	}), nil
 }
 
-// ParseNewTaskCreated is a log parse operation binding the contract event 0x2a025356c333070a4727559521f3cf53681906b533943b4ca04a6e5992a73e6c.
+// ParseNewTaskCreated is a log parse operation binding the contract event 0x58cc63ea687436c73c0b685c25d5221cd558e37be7940aee1f58329c5e27e022.
 //
-// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,uint32) task)
+// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,bytes,uint32,uint8) task)
 func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) ParseNewTaskCreated(log types.Log) (*ContractAlignedLayerServiceManagerNewTaskCreated, error) {
 	event := new(ContractAlignedLayerServiceManagerNewTaskCreated)
 	if err := _ContractAlignedLayerServiceManager.contract.UnpackLog(event, "NewTaskCreated", log); err != nil {

@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"log"
-	"os"
 )
 
 var (
@@ -51,8 +52,7 @@ func aggregatorMain(context *cli.Context) error {
 	go func() {
 		listenErr := aggregator.SubscribeToNewTasks()
 		if listenErr != nil {
-			// TODO: Retry listening for tasks
-			aggregatorConfig.BaseConfig.Logger.Error("Error listening for tasks", "err", listenErr)
+			aggregatorConfig.BaseConfig.Logger.Fatal("Error listening for tasks", "err", listenErr)
 		}
 	}()
 
