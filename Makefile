@@ -71,6 +71,10 @@ operator-register-with-eigen-layer:
 	@echo "Registering operator with EigenLayer"
 	@echo "" | eigenlayer operator register config-files/config.yaml
 
+operator-mint-mock-tokens:
+	@echo "Minting tokens"
+	. ./scripts/mint_mock_token.sh 1000
+
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
 	@go run operator/scripts/deposit_into_strategy/main.go \
@@ -85,7 +89,7 @@ operator-register-with-aligned-layer:
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
 
-operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-deposit-into-strategy operator-register-with-aligned-layer
+operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-mint-mock-tokens operator-deposit-into-strategy operator-register-with-aligned-layer
 
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
