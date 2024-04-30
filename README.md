@@ -58,6 +58,10 @@ To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
 make aggregator-send-dummy-responses
 ```
 Make sure to have aggregator running on another terminal.
+That command sends one dummy response to the aggregator with a task index of 0.
+
+If you use task sender to send a task, you will see response changes from 1 to 0,
+since the aggregator will have a task index of 0.
 
 ### Start operator
 
@@ -101,8 +105,6 @@ You will also need to redeploy the MockStrategy & MockERC20 contracts:
 ```bash
 make anvil-deploy-mock-strategy
 ```
-
-Then make sure to change the `0_strategy` in the `script/deploy/devnet/aligned.devnet.config.json` file to the new address.
 
 When changing AlignedLayer contracts, the anvil state needs to be updated with:
 
@@ -232,7 +234,8 @@ For test purposes, we have a dummy strategy contract that takes a Mock ERC20 tok
 
 ### Aggregator
 
-Current aggregator implementation is WIP. The RPC method `Aggregator.SubmitTaskResponse` expects a `SignedTaskResponse` as body and returns 0 if args.TaskResponse is not empty, and 1 otherwise.
+Current aggregator implementation is WIP. The RPC method `Aggregator.SubmitTaskResponse` expects a `SignedTaskResponse` 
+as body and returns 0 if args.TaskIndex exists, and 1 otherwise.
 
 Check `common/types/signed_task_response.go` for specification on `SignedTaskResponse`.
 

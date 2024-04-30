@@ -21,13 +21,24 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     // EVENTS
     event NewTaskCreated(uint64 indexed taskIndex, Task task);
+    event TaskResponded(uint64 indexed taskIndex, TaskResponse taskResponse);
 
     // STRUCTS
     struct Task {
-        uint16 verificationSystemId;
+        uint16 provingSystemId;
         bytes proof;
         bytes pubInput;
+        bytes verificationKey;
         uint32 taskCreatedBlock;
+        uint8 quorumThresholdPercentage;
+    }
+
+    // Task Response
+    // In case of changing this response, change AbiEncodeTaskResponse
+    // since it won't be updated automatically
+    struct TaskResponse {
+        uint64 taskIndex;
+        bool proofIsCorrect;
     }
 
     /* STORAGE */
@@ -71,18 +82,31 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function createNewTask(
-        uint16 verificationSystemId,
+        uint16 provingSystemId,
         bytes calldata proof,
-        bytes calldata pubInput
+        bytes calldata pubInput,
+        // This is only mandatory for KZG based proving systems
+        bytes calldata verificationKey,
+        uint8 quorumThresholdPercentage
     ) external {
         // create a new task struct
         Task memory newTask;
-        newTask.verificationSystemId = verificationSystemId;
+        newTask.provingSystemId = provingSystemId;
         newTask.proof = proof;
         newTask.pubInput = pubInput;
+        newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);
+        newTask.quorumThresholdPercentage = quorumThresholdPercentage;
 
         emit NewTaskCreated(latestTaskNum, newTask);
         latestTaskNum = latestTaskNum + 1;
+    }
+
+    function respondToTask(
+        uint64 taskIndex,
+        bool proofIsCorrect // TODO: aggregated signature field
+    ) external {
+        // TODO: actually do something with the aggregated signature
+        emit TaskResponded(taskIndex, TaskResponse(taskIndex, proofIsCorrect));
     }
 }

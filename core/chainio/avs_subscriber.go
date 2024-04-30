@@ -2,11 +2,10 @@ package chainio
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	"github.com/yetanotherco/aligned_layer/core/config"
 
-	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 )
 
@@ -26,17 +25,20 @@ type AvsSubscriber struct {
 	logger              sdklogging.Logger
 }
 
-func NewAvsSubscriberFromConfig(serviceManagerAddr common.Address, operatorStateRetrieverAddr common.Address, ethWsClient eth.Client, logger sdklogging.Logger) (*AvsSubscriber, error) {
-	avsContractBindings, err := NewAvsServiceBindings(serviceManagerAddr, operatorStateRetrieverAddr, ethWsClient, logger)
+func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, error) {
+	avsContractBindings, err := NewAvsServiceBindings(
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
+		baseConfig.EthWsClient, baseConfig.Logger)
 
 	if err != nil {
-		logger.Errorf("Failed to create contract bindings", "err", err)
+		baseConfig.Logger.Errorf("Failed to create contract bindings", "err", err)
 		return nil, err
 	}
 
 	return &AvsSubscriber{
 		AvsContractBindings: avsContractBindings,
-		logger:              logger,
+		logger:              baseConfig.Logger,
 	}, nil
 }
 

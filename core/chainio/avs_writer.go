@@ -2,17 +2,16 @@ package chainio
 
 import (
 	"context"
-	"time"
-
-	"github.com/yetanotherco/aligned_layer/common"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
+	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type AvsWriter struct {
@@ -66,30 +65,25 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
+func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte, quorumThresholdPercentage uint8) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
 		uint16(provingSystemId),
 		proof,
 		publicInput,
+		verificationKey,
+		quorumThresholdPercentage,
 	)
 	if err != nil {
 		w.logger.Error("Error assembling CreateNewTask tx", "err", err)
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
 	}
-	// TODO wait for transaction receipt. ethClient does not have this method
-	// EigenSDK has a method called WaitForTransactionReceipt in InstrumentedEthClient
-	// But is needs telemetry to work
-	// https://github.com/Layr-Labs/eigensdk-go/blob/master/chainio/clients/eth/instrumented_client.go
-	//receipt := avsWriter.Client.WaitForTransactionReceipt(context.Background(), tx.Hash())
-	time.Sleep(2 * time.Second)
 
-	receipt, err := w.Client.TransactionReceipt(context, tx.Hash())
-	if err != nil {
-		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
-	}
+	receipt := utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
+
 	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
+
 	if err != nil {
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
 	}

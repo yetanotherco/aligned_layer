@@ -1,10 +1,13 @@
 package main
 
 import (
-	"github.com/yetanotherco/aligned_layer/core/types"
 	"log"
 	"net/rpc"
 	"os"
+
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+
+	"github.com/yetanotherco/aligned_layer/core/types"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -20,7 +23,7 @@ func main() {
 	log.Println("Sending valid task response to aggregator, expecting response 0")
 	var reply uint8
 	args := types.SignedTaskResponse{
-		TaskResponse: "TaskResponse",
+		TaskResponse: servicemanager.AlignedLayerServiceManagerTaskResponse{TaskIndex: 0, ProofIsCorrect: true},
 		BlsSignature: *bls.NewZeroSignature(),
 		OperatorId:   eigentypes.Bytes32{},
 	}
@@ -45,21 +48,4 @@ func main() {
 
 	// Print the reply from the server
 	log.Printf("response: %d", reply)
-
-	log.Println("Sending invalid task response to aggregator, expecting response 1")
-	args = types.SignedTaskResponse{
-		TaskResponse: "",
-		BlsSignature: *bls.NewZeroSignature(),
-		OperatorId:   eigentypes.Bytes32{},
-	}
-
-	// Sending the arguments and reply variable address to the server as well
-	err = client.Call("Aggregator.SubmitTaskResponse", args, &reply)
-	if err != nil {
-		log.Fatal("Client invocation error: ", err)
-	}
-
-	// Print the reply from the server
-	log.Printf("response: %d", reply)
-
 }
