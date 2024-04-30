@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/types"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -36,6 +38,7 @@ type Operator struct {
 	avsSubscriber      chainio.AvsSubscriber
 	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
 	Logger             logging.Logger
+	aggRpcClient       AggregatorRpcClient
 	//Socket  string
 	//Timeout time.Duration
 	//OperatorId         eigentypes.OperatorId
@@ -50,6 +53,12 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	}
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
+	// FIXME(marian): We should not hardcode the aggregator IP:PORT address
+	rpcClient, err := NewAggregatorRpcClient("localhost:8090", logger)
+	if err != nil {
+		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
+	}
+
 	address := configuration.Operator.Address
 	operator := &Operator{
 		Config:             configuration,
@@ -57,6 +66,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		avsSubscriber:      *avsSubscriber,
 		Address:            address,
 		NewTaskCreatedChan: newTaskCreatedChan,
+		aggRpcClient:       *rpcClient,
 		// Timeout
 		// OperatorId
 		// Socket
@@ -89,8 +99,15 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Errorf("Could not sign task response", "err", err)
 			}
 
+			signedTaskResponse := types.SignedTaskResponse{
+				TaskResponse: *taskResponse,
+				BlsSignature: *responseSignature,
+				// FIXME(marian): Dummy Operator ID, we should get the correct one.
+				OperatorId: eigentypes.Bytes32(make([]byte, 32)),
+			}
+
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
-			// go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
+			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
 	}
 }
