@@ -32,11 +32,16 @@ anvil-start:
 # TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	go run aggregator/cmd/main.go --config config-files/config.yaml
+	@go run aggregator/cmd/main.go --config config-files/config.yaml
 
 aggregator-send-dummy-responses:
 	@echo "Sending dummy responses to Aggregator..."
-	cd aggregator && go run dummy/submit_task_responses.go
+	@cd aggregator && go run dummy/submit_task_responses.go
+
+operator-start:
+	@echo "Starting Operator..."
+	go run operator/cmd/main.go --config config-files/config.yaml \
+	2>&1 | zap-pretty
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh
@@ -85,18 +90,22 @@ operator-full-registration: operator-get-eth operator-register-with-eigen-layer 
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
 	go run task_sender/cmd/main.go send-task \
-		--system plonk \
-		--proof task_sender/test_examples/proof.base64 \
-		--public-input task_sender/test_examples/public_inputs.base64 \
-		--config config-files/config.yaml
+		--proving-system plonk \
+		--proof task_sender/test_examples/plonk.proof \
+		--public-input task_sender/test_examples/plonk_pub_input.pub \
+		--verification-key task_sender/test_examples/plonk.vk \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
 
 send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seconds
 	go run task_sender/cmd/main.go loop-tasks \
-		--system plonk \
-		--proof task_sender/test_examples/proof.base64 \
-		--public-input task_sender/test_examples/public_inputs.base64 \
+		--proving-system plonk \
+		--proof task_sender/test_examples/plonk.proof \
+		--public-input task_sender/test_examples/plonk_pub_input.pub \
+		--verification-key task_sender/test_examples/plonk.vk \
 		--config config-files/config.yaml \
-		--interval 10
+		--interval 10 \ 
+		2>&1 | zap-pretty
 
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts

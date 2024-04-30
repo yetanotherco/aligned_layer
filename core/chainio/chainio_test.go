@@ -1,12 +1,13 @@
 package chainio_test
 
 import (
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/config"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
 // NOTE(marian): Just some dummy tests, should be reworked later

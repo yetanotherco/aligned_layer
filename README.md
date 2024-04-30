@@ -58,6 +58,10 @@ To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
 make aggregator-send-dummy-responses
 ```
 Make sure to have aggregator running on another terminal.
+That command sends one dummy response to the aggregator with a task index of 0.
+
+If you use task sender to send a task, you will see response changes from 1 to 0,
+since the aggregator will have a task index of 0.
 
 ### Start operator
 
@@ -67,7 +71,11 @@ To do the full process (register with EigenLayer, deposit into strategy and regi
 make operator-full-registration
 ```
 
-Starting the operator is a WIP 
+Once the registration process is done, start the operator with
+
+```bash
+make operator-start
+```
 
 ### Send task
 
@@ -76,12 +84,13 @@ To send a task to the ServiceManager using the TaskSender CLI, run:
 make send-plonk-proof
 ```
 
-This will send a dummy task to the ServiceManager. Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
+This will send a dummy task to the ServiceManager and an event will be emitted. 
+You should see logs from the operator with the received task's index.
+Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
 
 The plonk proof is located at `task_sender/test_examples`.
 
 ## Developing workflows in testnet
-
 
 ### Upgrade contracts
 
@@ -225,7 +234,8 @@ For test purposes, we have a dummy strategy contract that takes a Mock ERC20 tok
 
 ### Aggregator
 
-Current aggregator implementation is WIP. The RPC method `Aggregator.SubmitTaskResponse` expects a `SignedTaskResponse` as body and returns 0 if args.TaskResponse is not empty, and 1 otherwise.
+Current aggregator implementation is WIP. The RPC method `Aggregator.SubmitTaskResponse` expects a `SignedTaskResponse` 
+as body and returns 0 if args.TaskIndex exists, and 1 otherwise.
 
 Check `common/types/signed_task_response.go` for specification on `SignedTaskResponse`.
 

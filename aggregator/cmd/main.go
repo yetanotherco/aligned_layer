@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/aggregator/internal/rpc_server"
-	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
 	"os"
+
+	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
+	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
 var (
@@ -37,15 +38,29 @@ func main() {
 }
 
 func aggregatorMain(context *cli.Context) error {
-	log.Println("Starting aggregator...")
 
 	configFilePath := context.String(config.ConfigFileFlag.Name)
 	aggregatorConfig := config.NewAggregatorConfig(configFilePath)
 
-	err := rpc_server.Serve(aggregatorConfig)
-
+	aggregator, err := pkg.NewAggregator(*aggregatorConfig)
 	if err != nil {
-		log.Fatal("Error starting aggregator server: ", err)
+		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
+		return err
+	}
+
+	// Listen for new task created in the ServiceManager contract in a separate goroutine
+	go func() {
+		listenErr := aggregator.SubscribeToNewTasks()
+		if listenErr != nil {
+			aggregatorConfig.BaseConfig.Logger.Fatal("Error listening for tasks", "err", listenErr)
+		}
+	}()
+
+	// Listens for task responses signed by operators
+	err = aggregator.ServeOperators()
+	if err != nil {
+		aggregatorConfig.BaseConfig.Logger.Error("Error serving aggregator", "err", err)
+		return err
 	}
 
 	return nil

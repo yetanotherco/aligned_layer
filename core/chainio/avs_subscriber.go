@@ -1,6 +1,9 @@
 package chainio
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/event"
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
@@ -23,7 +26,10 @@ type AvsSubscriber struct {
 }
 
 func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, error) {
-	avsContractBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthWsClient, baseConfig.Logger)
+	avsContractBindings, err := NewAvsServiceBindings(
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
+		baseConfig.EthWsClient, baseConfig.Logger)
 
 	if err != nil {
 		baseConfig.Logger.Errorf("Failed to create contract bindings", "err", err)
@@ -36,17 +42,16 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 	}, nil
 }
 
-// NOTE(marian): Leaving this commented code here as it may be useful in the short term.
-// func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *cstaskmanager.ContractAlignedLayerTaskManagerNewTaskCreated) event.Subscription {
-// 	sub, err := s.AvsContractBindings.TaskManager.WatchNewTaskCreated(
-// 		&bind.WatchOpts{}, newTaskCreatedChan, nil,
-// 	)
-// 	if err != nil {
-// 		s.logger.Error("Failed to subscribe to new TaskManager tasks", "err", err)
-// 	}
-// 	s.logger.Infof("Subscribed to new TaskManager tasks")
-// 	return sub
-// }
+func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) event.Subscription {
+	sub, err := s.AvsContractBindings.ServiceManager.WatchNewTaskCreated(
+		&bind.WatchOpts{}, newTaskCreatedChan, nil,
+	)
+	if err != nil {
+		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
+	}
+	s.logger.Infof("Subscribed to new AlignedLayer tasks")
+	return sub
+}
 
 // func (s *AvsSubscriber) SubscribeToTaskResponses(taskResponseChan chan *cstaskmanager.ContractAlignedLayerTaskManagerTaskResponded) event.Subscription {
 // 	sub, err := s.AvsContractBindings.TaskManager.WatchTaskResponded(
