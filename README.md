@@ -135,14 +135,24 @@ To register with EigenLayer, run:
 make operator-register-with-eigen-layer
 ```
 
+To get mock tokens (DEVNET ONLY), run:
+```bash
+make operator-mint-mock-tokens
+```
+
 To deposit into strategy, and register with AlignedLayer, run:
 ```bash
 make operator-deposit-and-register
 ```
 
-To just deposit into the strategy, run:
+To just deposit into the strategy run:
 ```bash
-make operator-deposit-into-strategy
+export STRATEGY_ADDRESS=<strategy_address> && make operator-deposit-into-strategy
+```
+
+To deposit into mock strategy (DEVNET ONLY), run:
+```bash
+make operator-deposit-into-mock-strategy
 ```
 
 To just register an operator with AlignedLayer, run:
