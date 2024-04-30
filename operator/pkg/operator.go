@@ -160,9 +160,6 @@ func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	}
 
 	err = plonk.Verify(proof, verificationKey, pubInput)
-	if err != nil {
-		return false
-	} else {
-		return true
-	}
+
+	return err == nil
 }
