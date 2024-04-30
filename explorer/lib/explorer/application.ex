@@ -86,6 +86,6 @@ defmodule AlignedLayerServiceManager do
   def get_responded(task_id) do
     events = AlignedLayerServiceManager.EventFilters.task_responded(task_id) |> Ethers.get_logs(fromBlock: 0)
     events |> IO.puts()
-    "asd"
+    events
   end
 end
