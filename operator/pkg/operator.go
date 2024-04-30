@@ -145,36 +145,61 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		}
 		return taskResponse
 
+	case uint16(common.GnarkPlonkBn254):
+		verificationKey := newTaskCreatedLog.Task.VerificationKey
+		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey)
+
+		o.Logger.Infof("PLONK proof verification result: %t", VerificationResult)
+		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			TaskIndex:      newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect: VerificationResult,
+		}
+		return taskResponse
+
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		return nil
 	}
 }
 
-func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
-	proofReader := bytes.NewReader(proofBytes)
-	proof := plonk.NewProof(ecc.BLS12_381)
-	_, err := proof.ReadFrom(proofReader)
+func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, provingSystemId uint16) bool {
+	var curve ecc.ID
+	switch provingSystemId {
+	case uint16(common.GnarkPlonkBls12_381):
+		curve = ecc.BLS12_381
+	case uint16(common.GnarkPlonkBn254):
+		curve = ecc.BN254
+	default:
+		o.Logger.Error("Unsupported proving system ID")
+		return false
+	}
 
-	// If the proof can't be deserialized from the bytes then it doesn't verifies
+	proofReader := bytes.NewReader(proofBytes)
+	proof := plonk.NewProof(curve)
+	_, err := proof.ReadFrom(proofReader)
 	if err != nil {
+		o.Logger.Errorf("Could not deserialize proof", "err", err)
 		return false
 	}
 
 	pubInputReader := bytes.NewReader(pubInputBytes)
-	pubInput, err := witness.New(ecc.BLS12_381.ScalarField())
+	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
-		panic("Error instantiating witness")
+		o.Logger.Errorf("Error instantiating witness", "err", err)
+		return false
 	}
 	_, err = pubInput.ReadFrom(pubInputReader)
 	if err != nil {
-		panic("Could not read PLONK public input")
+		o.Logger.Errorf("Could not read PLONK public input", "err", err)
+		return false
 	}
+
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
-	verificationKey := plonk.NewVerifyingKey(ecc.BLS12_381)
+	verificationKey := plonk.NewVerifyingKey(curve)
 	_, err = verificationKey.ReadFrom(verificationKeyReader)
 	if err != nil {
-		panic("Could not read PLONK verifying key from bytes")
+		o.Logger.Errorf("Could not read PLONK verifying key from bytes", "err", err)
+		return false
 	}
 
 	err = plonk.Verify(proof, verificationKey, pubInput)
