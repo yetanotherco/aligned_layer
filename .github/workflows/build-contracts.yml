@@ -1,0 +1,17 @@
+name: Build contracts
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build AlignedServiceManager
+        run: make build-aligned-contracts

@@ -23,5 +23,3 @@ jobs:
         run: go build operator/cmd/main.go
       - name: Build task sender
         run: go build task_sender/cmd/main.go
-      - name: Build AlignedServiceManager
-        run: make build
