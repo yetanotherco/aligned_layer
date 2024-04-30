@@ -80,11 +80,16 @@ func (r *AvsReader) GetNewTaskCreated(taskIndex uint64) (*contractAlignedLayerSe
 		return nil, err
 	}
 
-	for itr.Next() {
-		event := itr.Event
-		if event.TaskIndex == taskIndex {
-			return event, nil
-		}
+	itr.Next()
+	event := itr.Event
+	err = itr.Close()
+	if err != nil {
+		return nil, err
 	}
+
+	if event != nil && event.TaskIndex == taskIndex {
+		return event, nil
+	}
+
 	return nil, fmt.Errorf("task index %d not found", taskIndex)
 }
