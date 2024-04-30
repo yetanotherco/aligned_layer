@@ -32,10 +32,12 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint8 quorumThresholdPercentage;
     }
 
+    // Task Response
+    // In case of changing this response, change AbiEncodeTaskResponse
+    // since it won't be updated automatically
     struct TaskResponse {
         uint64 taskIndex;
         bool proofIsCorrect;
-        // TODO: aggregated signature field
     }
 
     /* STORAGE */
