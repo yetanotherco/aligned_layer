@@ -19,6 +19,16 @@ Usage:
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/tasks/:id`.
 
+Remember you must send a Task to view it in the explorer:
+```
+make send-plonk-proof
+```
+
+You can also respond to a task as an operator, saying if the proof was true or false:
+```
+cast send 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690 --rpc-url "http://localhost:8545" "respondToTask(uint64, bool)()" <num_task_id> <boolean_is_proof_correct> --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
+
 ## Contributing
 
 We appreciate your interest in contributing to the Aligned Explorer! Your contributions can help make this project even better.
