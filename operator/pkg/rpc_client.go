@@ -33,7 +33,7 @@ func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskRespo
 	var reply uint8
 	err := c.rpcClient.Call("Aggregator.SubmitTaskResponse", signedTaskResponse, &reply)
 	if err != nil {
-		c.logger.Fatal("Received error from aggregator", "err", err)
+		c.logger.Error("Received error from aggregator", "err", err)
 	} else {
 		c.logger.Info("Signed task response header accepted by aggregator.", "reply", reply)
 	}
