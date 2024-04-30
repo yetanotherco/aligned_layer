@@ -23,7 +23,9 @@ func (agg *Aggregator) ServeOperators() error {
 	// and then call handler to reply to them
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Starting RPC server on address", "address",
 		agg.AggregatorConfig.Aggregator.ServerIpPortAddress)
+
 	err = http.ListenAndServe(agg.AggregatorConfig.Aggregator.ServerIpPortAddress, nil)
+
 	if err != nil {
 		return err
 	}
@@ -31,20 +33,21 @@ func (agg *Aggregator) ServeOperators() error {
 	return nil
 }
 
-/// Aggregator Methods
-/// This is the list of methods that the Aggregator exposes to the Operator
-/// The Operator can call these methods to interact with the Aggregator
-/// This methods are automatically registered by the RPC server
-
-// Receives a signed task response from an operator
+// / Aggregator Methods
+// / This is the list of methods that the Aggregator exposes to the Operator
+// / The Operator can call these methods to interact with the Aggregator
+// / This methods are automatically registered by the RPC server
+// / This takes a response an adds it to the internal. If reaching the quorum, it sends the aggregated signatures to ethereum
 // Returns:
 //   - 0: Success
 //   - 1: Error
-func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse, reply *uint8) error {
+func (agg *Aggregator) ProcessOperatorTaskResponse(taskResponse *types.SignedTaskResponse, reply *uint8) error {
+
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", taskResponse)
 
+	taskIndex := taskResponse.TaskResponse.TaskIndex
 	// Check if the task exists. If not, return error
-	if _, ok := agg.taskResponses[taskResponse.TaskResponse.TaskIndex]; !ok {
+	if _, ok := agg.taskResponses[taskIndex]; !ok {
 		// TODO: Check if the aggregator has missed the task
 		agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskResponse.TaskIndex)
 		*reply = 1
@@ -54,7 +57,7 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 	// TODO: Check if the task response is valid
 	agg.taskResponsesMutex.Lock()
 
-	taskResponses := agg.taskResponses[taskResponse.TaskResponse.TaskIndex]
+	taskResponses := agg.taskResponses[taskIndex]
 
 	taskResponses.taskResponses = append(
 		agg.taskResponses[taskResponse.TaskResponse.TaskIndex].taskResponses,
@@ -66,8 +69,10 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
 			taskResponse.TaskResponse, "proofIsValid", true)
 
+		task := agg.tasks[taskIndex]
+
 		_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(agg.avsWriter.Signer.GetTxOpts(),
-			taskResponse.TaskResponse.TaskIndex, true)
+			task, taskResponse.TaskResponse)
 		if err != nil {
 			agg.taskResponsesMutex.Unlock()
 			*reply = 1

@@ -30,6 +30,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes pubInput;
         bytes verificationKey;
         uint32 taskCreatedBlock;
+        bytes quorumNumbers;
         uint8 quorumThresholdPercentage;
     }
 
@@ -42,8 +43,13 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     /* STORAGE */
-    // The latest task index
-    uint64 public latestTaskNum;
+    uint64 public latestTaskIndexPlusOne;
+
+    mapping(uint64 => bytes32) public taskHashes;
+
+    // mapping of task indices to hash of abi.encode(taskResponse, taskResponseMetadata)
+    mapping(uint64 => bytes32) public taskResponses;
+
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -97,16 +103,79 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);
         newTask.quorumThresholdPercentage = quorumThresholdPercentage;
-
-        emit NewTaskCreated(latestTaskNum, newTask);
-        latestTaskNum = latestTaskNum + 1;
+        taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
+        emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
+        latestTaskIndexPlusOne = latestTaskIndexPlusOne + 1;
     }
 
     function respondToTask(
-        uint64 taskIndex,
-        bool proofIsCorrect // TODO: aggregated signature field
+        Task calldata task,
+        TaskResponse calldata taskResponse,
+        NonSignerStakesAndSignature memory nonSignerStakesAndSignature
+        // TODO: aggregated signature field
     ) external {
-        // TODO: actually do something with the aggregated signature
-        emit TaskResponded(taskIndex, TaskResponse(taskIndex, proofIsCorrect));
+        //make sure that the quorumNumbers and signedStakeForQuorums are of the same length
+
+        /*
+        require(
+            batchHeader.quorumNumbers.length == batchHeader.signedStakeForQuorums.length,
+            "EigenDAServiceManager.confirmBatch: quorumNumbers and signedStakeForQuorums must be of the same length"
+        );
+        */
+
+        // check the signature
+                /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        // calculate message which operators signed
+
+        uint32 taskCreatedBlock = task.taskCreatedBlock;
+        bytes calldata quorumNumbers = task.quorumNumbers;
+        uint32 quorumThresholdPercentage = task.quorumThresholdPercentage;
+
+        // check that the task is valid, hasn't been responsed yet, and is being responsed in time
+        /*
+        require(
+            keccak256(abi.encode(task)) ==
+                allTaskHashes[taskResponse.referenceTaskIndex],
+            "supplied task does not match the one recorded in the contract"
+        );
+
+        // some logical checks
+        require(
+            allTaskResponses[taskResponse.referenceTaskIndex] == bytes32(0),
+            "Aggregator has already responded to the task"
+        );
+        */
+        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        // calculate message which operators signed
+        
+        bytes32 message = keccak256(abi.encode(taskResponse));
+
+        // check the BLS signature
+        (
+            QuorumStakeTotals memory quorumStakeTotals,
+            bytes32 hashOfNonSigners
+        ) = checkSignatures(
+                message,
+                quorumNumbers,
+                taskCreatedBlock,
+                nonSignerStakesAndSignature
+            );
+
+        // check that signatories own at least a threshold percentage of each quourm
+        /*
+        for (uint i = 0; i < quorumNumbers.length; i++) {
+            // we don't check that the quorumThresholdPercentages are not >100 because a greater value would trivially fail the check, implying
+            // signed stake > total stake
+            require(
+                quorumStakeTotals.signedStakeForQuorum[i] *
+                    _THRESHOLD_DENOMINATOR >=
+                    quorumStakeTotals.totalStakeForQuorum[i] *
+                        uint8(quorumThresholdPercentage),
+                "Signatories do not own at least threshold percentage of a quorum"
+            );
+        }
+        */
+              
+        emit TaskResponded(taskResponse.taskIndex, TaskResponse(taskResponse.taskIndex, taskResponse.proofIsCorrect));
     }
 }

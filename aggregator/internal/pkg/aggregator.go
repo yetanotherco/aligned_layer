@@ -1,12 +1,13 @@
 package pkg
 
 import (
+	"sync"
+
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/types"
-	"sync"
 )
 
 // Aggregator stores TaskResponse for a task here
