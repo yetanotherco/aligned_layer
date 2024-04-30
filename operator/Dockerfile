@@ -1,17 +1,48 @@
 # Use the official Go image as a builder stage.
 FROM golang:1.22.2 as builder
-# Set the working directory inside the container.
 WORKDIR /app
-# Copy the entire project from the current directory to the working directory inside the container.
 COPY . .
-# Build the application binary.
-# You can specify the main package with the directory containing the 'main.go' file.
-RUN CGO_ENABLED=0 GOOS=linux go build -o operator-app ./operator/cmd
-
+# Install eigenlayer globally
 RUN go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
-# Start from a new stage to create a smaller image.
-FROM scratch
-# Copy the binary from the builder stage to the current stage.
-COPY --from=builder /app/operator-app /operator-app
-# Set the binary as the entrypoint of the container.
-ENTRYPOINT ["/operator-app"]
+
+# Use a base image that contains basic utilities.
+FROM ubuntu:latest
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y python3 python3-pip git nano curl iputils-ping redis-tools autossh nmap apt-utils supervisor jq
+
+# Create aligned-layer user and set Foundry installation accessible
+RUN useradd -u 5000 -m aligned-layer && \
+    chsh -s /bin/bash aligned-layer && \
+    curl -L https://foundry.paradigm.xyz | bash && \
+    mv /root/.foundry /home/aligned-layer/ && \
+    chown -R aligned-layer:aligned-layer /home/aligned-layer/.foundry
+
+USER aligned-layer
+WORKDIR /home/aligned-layer
+
+# Run foundry update as user
+RUN /home/aligned-layer/.foundry/bin/foundryup
+
+# Ensure PATH includes Foundry bin
+ENV PATH="/home/aligned-layer/.foundry/bin:${PATH}"
+
+# Debug: Check Foundry installation
+RUN ls -l /home/aligned-layer/.foundry/bin
+RUN cast --version
+
+# Copy the binary from the builder stage
+COPY --from=builder /go/bin/eigenlayer /usr/local/bin/
+# Copy scripts and configuration files
+COPY scripts/fund_operator_devnet.sh /usr/local/bin/fund_operator_devnet.sh
+COPY config-files/ /config-files/
+# Ensure the script is executable
+RUN chmod +x /usr/local/bin/fund_operator_devnet.sh
+
+# Define environment variables
+ENV NETWORK="devnet"
+
+# Start the main application
+CMD ["/bin/bash", "-c", "echo 'Sending funds to operator address on devnet' && . /usr/local/bin/fund_operator_devnet.sh && eigenlayer"]

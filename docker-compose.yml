@@ -21,6 +21,7 @@ services:
       dockerfile: operator/Dockerfile
     depends_on:
       - devnet
+      - aggregator
     network_mode: host
 
   operator-2:
@@ -29,6 +30,7 @@ services:
       dockerfile: operator/Dockerfile
     depends_on:
       - devnet
+      - aggregator
     network_mode: host
 
   operator-3:
@@ -37,4 +39,5 @@ services:
       dockerfile: operator/Dockerfile
     depends_on:
       - devnet
+      - aggregator
     network_mode: host
