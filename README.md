@@ -68,12 +68,21 @@ since the aggregator will have a task index of 0.
 To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
 
 ```bash
-make operator-full-registration
+make operator-full-registration CONFIG_FILE=<path_to_config_file>
 ```
 
 Once the registration process is done, start the operator with
 
 ```bash
+make operator-start CONFIG_FILE=<path_to_config_file>
+```
+
+If `CONFIG_FILE` is not provided, it will use the default config file at `config-files/config.yaml`.
+
+To use the default configuration file, just run:
+
+```bash
+make operator-full-registration
 make operator-start
 ```
 
