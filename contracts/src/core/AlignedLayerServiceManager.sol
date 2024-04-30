@@ -82,7 +82,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function createNewTask(
-        uin16 provingSystemId,
+        uint16 provingSystemId,
         bytes calldata proof,
         bytes calldata pubInput,
         // This is only mandatory for KZG based proving systems
