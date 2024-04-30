@@ -23,11 +23,10 @@ func (agg *Aggregator) ServeOperators() error {
 	// ServeOperators accepts incoming HTTP connections on the listener, creating
 	// a new service goroutine for each. The service goroutines read requests
 	// and then call handler to reply to them
-	agg.AggregatorConfig.BaseConfig.Logger.Info("Starting RPC server on address", "address",
+	agg.logger.Info("Starting RPC server on address", "address",
 		agg.AggregatorConfig.Aggregator.ServerIpPortAddress)
 
 	err = http.ListenAndServe(agg.AggregatorConfig.Aggregator.ServerIpPortAddress, nil)
-
 	if err != nil {
 		return err
 	}
@@ -72,6 +71,10 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		context.Background(), taskIndex, taskResponseDigest,
 		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 	)
+	if err != nil {
+		agg.logger.Errorf("BLS aggregation service error: %s", err)
+		return err
+	}
 
 	// Submit the task response to the contract when the number of responses is 2
 	// TODO: Make this configurable (based on quorum %)

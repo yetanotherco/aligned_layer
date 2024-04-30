@@ -31,7 +31,7 @@ func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) 
 // their signed task response.
 func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskResponse *types.SignedTaskResponse) {
 	var reply uint8
-	err := c.rpcClient.Call("Aggregator.ProcessTaskResponse", signedTaskResponse, &reply)
+	err := c.rpcClient.Call("Aggregator.ProcessOperatorSignedTaskResponse", signedTaskResponse, &reply)
 	if err != nil {
 		c.logger.Error("Received error from aggregator", "err", err)
 	} else {

@@ -202,7 +202,7 @@ func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManage
 	taskResponseType, err := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
 		{
 			Name: "taskIndex",
-			Type: "uint64",
+			Type: "uint32",
 		},
 		{
 			Name: "proofIsCorrect",

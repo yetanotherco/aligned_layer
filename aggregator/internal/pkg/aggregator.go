@@ -6,6 +6,7 @@ import (
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
+	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
 	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorpubkeys"
@@ -39,6 +40,7 @@ type Aggregator struct {
 	OperatorTaskResponses map[uint32]*TaskResponsesWithStatus
 	// Mutex to protect the taskResponses map
 	taskResponsesMutex *sync.Mutex
+	logger             logging.Logger
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -94,8 +96,29 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		OperatorTaskResponses: operatorTaskResponses,
 		taskResponsesMutex:    &sync.Mutex{},
 		blsAggregationService: blsAggregationService,
+		logger:                logger,
 	}
 
-	// Return the Aggregator instance
 	return &aggregator, nil
+}
+
+func (agg *Aggregator) Start(ctx context.Context) error {
+	agg.logger.Infof("Starting aggregator...")
+
+	go func() {
+		err := agg.ServeOperators()
+		if err != nil {
+			agg.logger.Fatal("Error listening for tasks", "err", err)
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case blsAggServiceResp := <-agg.blsAggregationService.GetResponseChannel():
+			agg.logger.Info("Received response from blsAggregationService", "blsAggServiceResp", blsAggServiceResp)
+			// agg.sendAggregatedResponseToContract(blsAggServiceResp)
+		}
+	}
 }

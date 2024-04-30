@@ -35,20 +35,21 @@ func (agg *Aggregator) subscribeToNewTasks() error {
 		case err := <-agg.taskSubscriber.Err():
 			agg.AggregatorConfig.BaseConfig.Logger.Error("Error in subscription", "err", err)
 			return err
-		case task := <-agg.NewTaskCreatedChan:
-			agg.AggregatorConfig.BaseConfig.Logger.Info("New task created", "taskIndex", task.TaskIndex,
-				"task", task.Task)
+		case newTask := <-agg.NewTaskCreatedChan:
+			agg.AggregatorConfig.BaseConfig.Logger.Info("New task created", "taskIndex", newTask.TaskIndex)
 
 			agg.tasksMutex.Lock()
-			agg.tasks[task.TaskIndex] = task.Task
+			agg.tasks[newTask.TaskIndex] = newTask.Task
 			agg.tasksMutex.Unlock()
 
 			agg.taskResponsesMutex.Lock()
-			agg.OperatorTaskResponses[task.TaskIndex] = &TaskResponsesWithStatus{
+			agg.OperatorTaskResponses[newTask.TaskIndex] = &TaskResponsesWithStatus{
 				taskResponses:       make([]types.SignedTaskResponse, 0),
 				submittedToEthereum: false,
 			}
 			agg.taskResponsesMutex.Unlock()
+
+			// agg.blsAggregationService.InitializeNewTask(taskIndex, newTask.TaskCreatedBlock, newTask.QuorumNumbers, quorumThresholdPercentages, taskTimeToExpiry)
 		}
 	}
 }
