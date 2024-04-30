@@ -31,7 +31,7 @@ defmodule ExplorerWeb.TaskController do
       "No task found"
     end
 
-    newRespondedEvent = AlignedLayerServiceManager.get_responded()
+    newRespondedEvent = AlignedLayerServiceManager.get_responded(String.to_integer(id))
 
 
     render(conn, :task, message: ":)", id: id, task: ret)
