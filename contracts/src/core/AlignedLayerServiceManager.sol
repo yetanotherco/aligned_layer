@@ -31,7 +31,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes verificationKey;
         uint32 taskCreatedBlock;
         bytes quorumNumbers;
-        uint8 quorumThresholdPercentage;
+        bytes quorumThresholdPercentages;
     }
 
     // Task Response
@@ -90,20 +90,24 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint16 provingSystemId,
         bytes calldata proof,
         bytes calldata pubInput,
-        // This is only mandatory for KZG based proving systems
+        // This parameter is only mandatory for KZG based proving systems
         bytes calldata verificationKey,
-        uint8 quorumThresholdPercentage
+        bytes calldata quorumNumbers,
+        bytes calldata quorumThresholdPercentages
     ) external {
-        // create a new task struct
         Task memory newTask;
+
         newTask.provingSystemId = provingSystemId;
         newTask.proof = proof;
         newTask.pubInput = pubInput;
         newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);
-        newTask.quorumThresholdPercentage = quorumThresholdPercentage;
+        newTask.quorumNumbers = quorumNumbers;
+        newTask.quorumThresholdPercentages = quorumThresholdPercentages;
         taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
+
         emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
+
         latestTaskIndexPlusOne = latestTaskIndexPlusOne + 1;
     }
 
@@ -127,7 +131,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
         uint32 taskCreatedBlock = task.taskCreatedBlock;
         bytes calldata quorumNumbers = task.quorumNumbers;
-        uint32 quorumThresholdPercentage = task.quorumThresholdPercentage;
+        bytes calldata quorumThresholdPercentages = task
+            .quorumThresholdPercentages;
 
         // check that the task is valid, hasn't been responsed yet, and is being responsed in time
         /*

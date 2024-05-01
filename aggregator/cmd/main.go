@@ -57,12 +57,6 @@ func aggregatorMain(ctx *cli.Context) error {
 		}
 	}()
 
-	// Listens for task responses signed by operators
-	// err = aggregator.ServeOperators()
-	// if err != nil {
-	// 	aggregatorConfig.BaseConfig.Logger.Error("Error serving aggregator", "err", err)
-	// 	return err
-	// }
 	err = aggregator.Start(context.Background())
 	if err != nil {
 		return err

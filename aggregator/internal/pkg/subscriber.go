@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 const (
@@ -50,15 +50,11 @@ func (agg *Aggregator) subscribeToNewTasks() error {
 			}
 			agg.taskResponsesMutex.Unlock()
 
-			// DUMMY VALUES TO MAKE IT WORK
-			q := make([]eigentypes.QuorumNum, 1)
-			q[0] = 0
-			qPorcentage := make([]eigentypes.QuorumThresholdPercentage, 1)
-			qPorcentage[0] = 100
-			// ----------------------------
+			quorumNums := utils.BytesToQuorumNumbers(newTask.Task.QuorumNumbers)
+			quorumThresholdPercentages := utils.BytesToQuorumThresholdPercentages(newTask.Task.QuorumThresholdPercentages)
 
-			// agg.blsAggregationService.InitializeNewTask(taskIndex, newTask.TaskCreatedBlock, newTask.Task.QuorumNumbers, quorumThresholdPercentages, taskTimeToExpiry)
-			agg.blsAggregationService.InitializeNewTask(newTask.TaskIndex, newTask.Task.TaskCreatedBlock, eigentypes.QuorumNums(q), qPorcentage, 100*time.Second)
+			// FIXME(marian): Hardcoded value of timeToExpiry to 100s. How should be get this value?
+			agg.blsAggregationService.InitializeNewTask(newTask.TaskIndex, newTask.Task.TaskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
 		}
 	}
 }

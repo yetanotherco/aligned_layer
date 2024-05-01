@@ -4,25 +4,28 @@ import (
 	"context"
 	"log"
 
+	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 )
 
 type Task struct {
-	ProvingSystem             common.ProvingSystemId
-	Proof                     []byte
-	PublicInput               []byte
-	VerificationKey           []byte
-	QuorumThresholdPercentage uint8
+	ProvingSystem              common.ProvingSystemId
+	Proof                      []byte
+	PublicInput                []byte
+	VerificationKey            []byte
+	QuorumNumbers              types.QuorumNums
+	QuorumThresholdPercentages types.QuorumThresholdPercentages
 }
 
-func NewTask(provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte, quorumThresholdPercentage uint8) *Task {
+func NewTask(provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages) *Task {
 	return &Task{
-		ProvingSystem:             provingSystemId,
-		Proof:                     proof,
-		PublicInput:               publicInput,
-		VerificationKey:           verificationKey,
-		QuorumThresholdPercentage: quorumThresholdPercentage,
+		ProvingSystem:              provingSystemId,
+		Proof:                      proof,
+		PublicInput:                publicInput,
+		VerificationKey:            verificationKey,
+		QuorumNumbers:              quorumNumbers,
+		QuorumThresholdPercentages: quorumThresholdPercentages,
 	}
 }
 
@@ -44,7 +47,8 @@ func (ts *TaskSender) SendTask(task *Task) error {
 		task.Proof,
 		task.PublicInput,
 		task.VerificationKey,
-		task.QuorumThresholdPercentage,
+		task.QuorumNumbers,
+		task.QuorumThresholdPercentages,
 	)
 	if err != nil {
 		return err

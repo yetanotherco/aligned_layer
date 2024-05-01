@@ -131,8 +131,6 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
 		"task index", newTaskCreatedLog.TaskIndex,
 		"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
-		// "quorumNumbers", newTaskCreatedLog.Task.QuorumNumbers,
-		"QuorumThresholdPercentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
 	)
 
 	switch provingSystemId {

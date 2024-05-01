@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
 	"github.com/urfave/cli/v2"
@@ -126,8 +127,12 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	taskSender := pkg.NewTaskSender(avsWriter)
-	quorumThresholdPercentage := uint8(100) // TODO: add this to the configuration
-	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumThresholdPercentage)
+
+	// Hardcoded values - should we get this information from another source? Maybe configuration or CLI parameters?
+	quorumNumbers := types.QuorumNums{0}
+	quorumThresholdPercentages := []types.QuorumThresholdPercentage{100}
+
+	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages)
 
 	err = taskSender.SendTask(task)
 	if err != nil {
