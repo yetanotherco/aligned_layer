@@ -41,7 +41,6 @@ type Operator struct {
 	aggRpcClient       AggregatorRpcClient
 	//Socket  string
 	//Timeout time.Duration
-	//OperatorId         eigentypes.OperatorId
 }
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
@@ -59,6 +58,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
 	}
 
+	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
 	address := configuration.Operator.Address
 	operator := &Operator{
 		Config:             configuration,
@@ -67,8 +67,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		Address:            address,
 		NewTaskCreatedChan: newTaskCreatedChan,
 		aggRpcClient:       *rpcClient,
+		OperatorId:         operatorId,
 		// Timeout
-		// OperatorId
 		// Socket
 	}
 
@@ -98,14 +98,11 @@ func (o *Operator) Start(ctx context.Context) error {
 			if err != nil {
 				o.Logger.Errorf("Could not sign task response", "err", err)
 			}
-			operatorId := [32]byte{106, 88, 180, 53, 14, 76, 181, 190, 66, 88, 101, 216, 105, 121, 58, 34, 89, 57, 190, 37, 128, 124, 194, 215, 224, 211, 24, 85, 57, 124, 155, 97}
 
 			signedTaskResponse := types.SignedTaskResponse{
 				TaskResponse: *taskResponse,
 				BlsSignature: *responseSignature,
-				// FIXME(marian): Dummy Operator ID, we should get the correct one.
-				// OperatorId: eigentypes.Bytes32(make([]byte, 32)),
-				OperatorId: operatorId,
+				OperatorId:   o.OperatorId,
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
