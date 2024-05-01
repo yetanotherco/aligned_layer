@@ -61,11 +61,11 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	taskResponses.taskResponses = append(
 		agg.OperatorTaskResponses[signedTaskResponse.TaskResponse.TaskIndex].taskResponses,
 		*signedTaskResponse)
-
 	taskResponseDigest, err := utils.TaskResponseDigest(&signedTaskResponse.TaskResponse)
 	if err != nil {
 		return err
 	}
+	agg.taskResponsesMutex.Unlock()
 
 	err = agg.blsAggregationService.ProcessNewSignature(
 		context.Background(), taskIndex, taskResponseDigest,
@@ -73,6 +73,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	)
 	if err != nil {
 		agg.logger.Errorf("BLS aggregation service error: %s", err)
+		*reply = 1
 		return err
 	}
 
@@ -94,8 +95,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 
 	// 	taskResponses.submittedToEthereum = true
 	// }
-
-	agg.taskResponsesMutex.Unlock()
 	*reply = 0
 
 	return nil
