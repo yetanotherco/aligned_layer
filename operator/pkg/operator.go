@@ -15,13 +15,13 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -98,12 +98,14 @@ func (o *Operator) Start(ctx context.Context) error {
 			if err != nil {
 				o.Logger.Errorf("Could not sign task response", "err", err)
 			}
+			operatorId := [32]byte{106, 88, 180, 53, 14, 76, 181, 190, 66, 88, 101, 216, 105, 121, 58, 34, 89, 57, 190, 37, 128, 124, 194, 215, 224, 211, 24, 85, 57, 124, 155, 97}
 
 			signedTaskResponse := types.SignedTaskResponse{
 				TaskResponse: *taskResponse,
 				BlsSignature: *responseSignature,
 				// FIXME(marian): Dummy Operator ID, we should get the correct one.
-				OperatorId: eigentypes.Bytes32(make([]byte, 32)),
+				// OperatorId: eigentypes.Bytes32(make([]byte, 32)),
+				OperatorId: operatorId,
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
@@ -156,7 +158,7 @@ func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	proof := plonk.NewProof(ecc.BLS12_381)
 	_, err := proof.ReadFrom(proofReader)
 
-	// If the proof can't be deserialized from the bytes then it doesn't verifies
+	// If the proof can't be deserialized from bytes then it doesn't verify
 	if err != nil {
 		return false
 	}
@@ -181,53 +183,8 @@ func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	return err == nil
 }
 
-func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse) ([]byte, error) {
-	// The order here has to match the field ordering of servicemanager.AlignedLayerServiceManagerTaskResponse
-
-	/* TODO: Solve this in a more generic way so it's less prone for errors. Name and types can be obtained with reflection
-	for i := 0; i < reflectedType.NumField(); i++ {
-		name := reflectedType.Field(i).Name
-		thisType := reflectedType.Field(i).Type
-	}
-	*/
-
-	/*
-		This matches:
-
-		struct TaskResponse {
-			uint64 taskIndex;
-			bool proofIsCorrect;
-		}
-	*/
-	taskResponseType, err := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
-		{
-			Name: "taskIndex",
-			Type: "uint32",
-		},
-		{
-			Name: "proofIsCorrect",
-			Type: "bool",
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	arguments := abi.Arguments{
-		{
-			Type: taskResponseType,
-		},
-	}
-
-	bytes, err := arguments.Pack(taskResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
-}
-
 func (o *Operator) SignTaskResponse(taskResponse *servicemanager.AlignedLayerServiceManagerTaskResponse) (*bls.Signature, error) {
-	encodedResponseBytes, err := AbiEncodeTaskResponse(*taskResponse)
+	encodedResponseBytes, err := utils.AbiEncodeTaskResponse(*taskResponse)
 	if err != nil {
 		return nil, err
 	}

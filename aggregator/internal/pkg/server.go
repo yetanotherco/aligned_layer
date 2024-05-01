@@ -44,7 +44,7 @@ func (agg *Aggregator) ServeOperators() error {
 //   - 1: Error
 func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *types.SignedTaskResponse, reply *uint8) error {
 
-	agg.AggregatorConfig.BaseConfig.Logger.Info("New Task response", "taskResponse", signedTaskResponse)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
 
 	taskIndex := signedTaskResponse.TaskResponse.TaskIndex
 	// Check if the task exists. If not, return error

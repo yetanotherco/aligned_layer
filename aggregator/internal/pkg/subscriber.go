@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
@@ -49,7 +50,15 @@ func (agg *Aggregator) subscribeToNewTasks() error {
 			}
 			agg.taskResponsesMutex.Unlock()
 
-			// agg.blsAggregationService.InitializeNewTask(taskIndex, newTask.TaskCreatedBlock, newTask.QuorumNumbers, quorumThresholdPercentages, taskTimeToExpiry)
+			// DUMMY VALUES TO MAKE IT WORK
+			q := make([]eigentypes.QuorumNum, 1)
+			q[0] = 0
+			qPorcentage := make([]eigentypes.QuorumThresholdPercentage, 1)
+			qPorcentage[0] = 100
+			// ----------------------------
+
+			// agg.blsAggregationService.InitializeNewTask(taskIndex, newTask.TaskCreatedBlock, newTask.Task.QuorumNumbers, quorumThresholdPercentages, taskTimeToExpiry)
+			agg.blsAggregationService.InitializeNewTask(newTask.TaskIndex, newTask.Task.TaskCreatedBlock, eigentypes.QuorumNums(q), qPorcentage, 100*time.Second)
 		}
 	}
 }
