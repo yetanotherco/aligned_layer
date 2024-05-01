@@ -77,24 +77,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		return err
 	}
 
-	// Submit the task response to the contract when the number of responses is 2
-	// TODO: Make this configurable (based on quorum %)
-	// if !taskResponses.submittedToEthereum && len(taskResponses.taskResponses) >= 2 {
-	// 	agg.AggregatorConfig.BaseConfig.Logger.Info("Submitting task response to contract", "taskIndex",
-	// 		signedTaskResponse.TaskResponse, "proofIsValid", true)
-
-	// 	task := agg.tasks[taskIndex]
-
-	// 	_, err := agg.avsWriter.AvsContractBindings.ServiceManager.RespondToTask(agg.avsWriter.Signer.GetTxOpts(),
-	// 		task, signedTaskResponse.TaskResponse)
-	// 	if err != nil {
-	// 		agg.taskResponsesMutex.Unlock()
-	// 		*reply = 1
-	// 		return err
-	// 	}
-
-	// 	taskResponses.submittedToEthereum = true
-	// }
 	*reply = 0
 
 	return nil

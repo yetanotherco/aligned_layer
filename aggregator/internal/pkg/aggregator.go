@@ -117,7 +117,7 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case blsAggServiceResp := <-agg.blsAggregationService.GetResponseChannel():
-			agg.logger.Info("Received response from blsAggregationService", "blsAggServiceResp", blsAggServiceResp)
+			agg.logger.Info("Received response from BLS aggregation service", "blsAggServiceResp", blsAggServiceResp)
 			// agg.sendAggregatedResponseToContract(blsAggServiceResp)
 		}
 	}
