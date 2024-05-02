@@ -13,7 +13,8 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git) to run the examples below.
+You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
+[jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
 To install
 ```bash
