@@ -92,16 +92,39 @@ func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.Pro
 	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
 }
 
-// func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task cstaskmanager.IAlignedLayerTaskManagerTask, taskResponse cstaskmanager.IAlignedLayerTaskManagerTaskResponse, nonSignerStakesAndSignature cstaskmanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Receipt, error) {
-// 	txOpts := w.Signer.GetTxOpts()
-// 	tx, err := w.AvsContractBindings.TaskManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
-// 	if err != nil {
-// 		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
-// 		return nil, err
-// 	}
-// 	receipt := w.client.WaitForTransactionReceipt(ctx, tx.Hash())
-// 	return receipt, nil
-// }
+func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemanager.AlignedLayerServiceManagerTask, taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) error {
+	txOpts := w.Signer.GetTxOpts()
+	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
+	if err != nil {
+		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
+		return err
+	}
+
+	// FIXME(marian): This is failing. I think we have do something similar to what incredible squaring is doing.
+	err = w.Client.SendTransaction(ctx, tx)
+	if err != nil {
+		w.logger.Errorf("Error submitting respondToTask tx")
+		return err
+	}
+	return nil
+
+	// txOpts, err := w.TxMgr.GetNoSendTxOpts()
+	// if err != nil {
+	// 	w.logger.Errorf("Error getting tx opts")
+	// 	return nil, err
+	// }
+	// tx, err := w.AvsContractBindings.TaskManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
+	// if err != nil {
+	// 	w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
+	// 	return nil, err
+	// }
+	// receipt, err := w.TxMgr.Send(ctx, tx)
+	// if err != nil {
+	// 	w.logger.Errorf("Error submitting respondToTask tx")
+	// 	return nil, err
+	// }
+	// return receipt, nil
+}
 
 // func (w *AvsWriter) RaiseChallenge(
 // 	ctx context.Context,
