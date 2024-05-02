@@ -102,7 +102,10 @@ func depositIntoStrategy(ctx *cli.Context) error {
 		return err
 	}
 
-	utils.WaitForTransactionReceipt(configuration.BaseConfig.EthRpcClient, context.Background(), tx.Hash())
+	_, err = utils.WaitForTransactionReceipt(configuration.BaseConfig.EthRpcClient, context.Background(), tx.Hash())
+	if err != nil {
+		return err
+	}
 
 	signerConfig := signerv2.Config{
 		PrivateKey: configuration.EcdsaConfig.PrivateKey,
