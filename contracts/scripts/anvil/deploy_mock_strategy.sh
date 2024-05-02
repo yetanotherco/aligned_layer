@@ -33,7 +33,7 @@ cd ../../
 erc20MockStrategy=$(jq -r '.erc20MockStrategy' "script/output/devnet/strategy_deployment_output.json")
 
 # Use the extracted value to replace the 0_strategy value in aligned.devnet.config.json and save it to a temporary file
-jq --arg erc20MockStrategy "$erc20MockStrategy" '.strategyWeights[0][0]."0_strategy" = $erc20MockStrategy' "script/deploy/config/devnet/aligned.devnet.config.json" > "script/deploy/config/devnet/aligned.devnet.config.temp.json"
+jq --arg erc20MockStrategy "$erc20MockStrategy" '.strategyWeights[0][0]."0_strategy" = $erc20MockStrategy' "script/deploy/config/devnet/aligned.devnet.config.json" | sed -r 's/1E\+([0-9]+)/1e+\1/g' > "script/deploy/config/devnet/aligned.devnet.config.temp.json"
 
 # Replace the original file with the temporary file
 mv "script/deploy/config/devnet/aligned.devnet.config.temp.json" "script/deploy/config/devnet/aligned.devnet.config.json"

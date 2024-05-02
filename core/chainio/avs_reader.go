@@ -1,6 +1,7 @@
 package chainio
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -53,4 +54,8 @@ func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mo
 		return nil, err
 	}
 	return erc20Mock, nil
+}
+
+func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, error) {
+	return r.AvsRegistryReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }
