@@ -93,7 +93,7 @@ make operator-start
 
 To send a task to the ServiceManager using the TaskSender CLI with a specific proving system, you can use one of the following commands depending on the proving system you wish to use:
 
-For BLS12_381: 
+For BLS12_381
 
 ```bash
   make send-plonk_bls12_381-proof
