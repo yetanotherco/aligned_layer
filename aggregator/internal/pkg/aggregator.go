@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -163,9 +162,8 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	// FIXME(marian): Not sure how this should be handled. Getting the first one for now
 	taskResponse := agg.OperatorTaskResponses[blsAggServiceResp.TaskIndex].taskResponses[0].TaskResponse
 	agg.taskResponsesMutex.Unlock()
-	err := agg.avsWriter.SendAggregatedResponse(context.Background(), task, taskResponse, nonSignerStakesAndSignature)
+	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), task, taskResponse, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.logger.Error("Aggregator failed to respond to task", "err", err)
 	}
-	fmt.Println("DALE NENAAA")
 }

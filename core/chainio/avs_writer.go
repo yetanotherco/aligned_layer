@@ -9,6 +9,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
 	"github.com/Layr-Labs/eigensdk-go/types"
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -16,7 +17,7 @@ import (
 )
 
 type AvsWriter struct {
-	avsregistry.AvsRegistryWriter
+	AvsRegistryWriter   avsregistry.AvsRegistryWriter
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 	Signer              signer.Signer
@@ -49,7 +50,6 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}
 
 	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaConfig.PrivateKey, baseConfig.ChainId)
-
 	if err != nil {
 		baseConfig.Logger.Error("Cannot create signer", "err", err)
 		return nil, err
@@ -83,47 +83,29 @@ func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.Pro
 	}
 
 	receipt := utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
-
 	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
-
 	if err != nil {
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
 	}
 	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemanager.AlignedLayerServiceManagerTask, taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) error {
+func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemanager.AlignedLayerServiceManagerTask, taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
 	if err != nil {
 		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
-		return err
+		return nil, err
 	}
 
-	// FIXME(marian): This is failing. I think we have do something similar to what incredible squaring is doing.
-	err = w.Client.SendTransaction(ctx, tx)
+	receipt := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
+	taskRespondedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseTaskResponded(*receipt.Logs[0])
 	if err != nil {
-		w.logger.Errorf("Error submitting respondToTask tx")
-		return err
+		return nil, err
 	}
-	return nil
-
-	// txOpts, err := w.TxMgr.GetNoSendTxOpts()
-	// if err != nil {
-	// 	w.logger.Errorf("Error getting tx opts")
-	// 	return nil, err
-	// }
-	// tx, err := w.AvsContractBindings.TaskManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
-	// if err != nil {
-	// 	w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
-	// 	return nil, err
-	// }
-	// receipt, err := w.TxMgr.Send(ctx, tx)
-	// if err != nil {
-	// 	w.logger.Errorf("Error submitting respondToTask tx")
-	// 	return nil, err
-	// }
-	// return receipt, nil
+	w.logger.Infof("TASK RESPONDED EVENT: %+v", taskRespondedEvent)
+	// w.AvsRegistryWriter.txMgr.Send(ctx, tx)
+	return receipt, nil
 }
 
 // func (w *AvsWriter) RaiseChallenge(
