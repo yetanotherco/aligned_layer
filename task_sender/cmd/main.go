@@ -7,13 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yetanotherco/aligned_layer/core/config"
-	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
-
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 )
 
 var (
@@ -110,7 +109,7 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	var verificationKeyFile []byte
-	if provingSystem == common.GnarkPlonkBls12_381 {
+	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 {
 		if len(c.String("verification-key")) == 0 {
 			return fmt.Errorf("the proving system needs a verification key but it is empty")
 		}
@@ -159,6 +158,8 @@ func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 	switch provingSystemStr {
 	case "plonk":
 		return common.GnarkPlonkBls12_381, nil
+	case "plonk_bn254":
+		return common.GnarkPlonkBn254, nil // Ensure this constant is defined in your common package
 	default:
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)

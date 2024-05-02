@@ -88,23 +88,27 @@ operator-deposit-and-register: operator-deposit-into-strategy operator-register-
 operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-deposit-into-strategy operator-register-with-aligned-layer
 
 __TASK_SENDERS__:
+ # TODO add a default proving system
+
 send-plonk-proof: ## Send a PLONK proof using the task sender
-	go run task_sender/cmd/main.go send-task \
+	@echo "Sending PLONK proof for $(PROVING_SYSTEM)"
+	@go run task_sender/cmd/main.go send-task \
 		--proving-system plonk \
-		--proof task_sender/test_examples/plonk.proof \
-		--public-input task_sender/test_examples/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/plonk.vk \
+		--proof task_sender/test_examples/$(PROVING_SYSTEM)/plonk.proof \
+		--public-input task_sender/test_examples/$(PROVING_SYSTEM)/plonk_pub_input.pub \
+		--verification-key task_sender/test_examples/$(PROVING_SYSTEM)/plonk.vk \
 		--config config-files/config.yaml \
 		2>&1 | zap-pretty
 
 send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seconds
-	go run task_sender/cmd/main.go loop-tasks \
+	@echo "Sending PLONK proof in a loop every 10 seconds for $(PROVING_SYSTEM)"
+	@go run task_sender/cmd/main.go loop-tasks \
 		--proving-system plonk \
-		--proof task_sender/test_examples/plonk.proof \
-		--public-input task_sender/test_examples/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/plonk.vk \
+		--proof task_sender/test_examples/$(PROVING_SYSTEM)/plonk.proof \
+		--public-input task_sender/test_examples/$(PROVING_SYSTEM)/plonk_pub_input.pub \
+		--verification-key task_sender/test_examples/$(PROVING_SYSTEM)/plonk.vk \
 		--config config-files/config.yaml \
-		--interval 10 \ 
+		--interval 10 \
 		2>&1 | zap-pretty
 
 __DEPLOYMENT__:
