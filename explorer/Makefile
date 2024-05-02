@@ -1,4 +1,4 @@
-.PHONY: help deps dev
+.PHONY: help deps run
 
 help:
 	@echo "deps - Installing Elixir code dependencies"
