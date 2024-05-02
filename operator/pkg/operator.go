@@ -136,7 +136,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	switch provingSystemId {
 	case uint16(common.GnarkPlonkBls12_381):
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey, provingSystemId)
+		VerificationResult := o.VerifyPlonkProofBLS12_381(proof, pubInput, verificationKey)
 
 		o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", VerificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
@@ -147,7 +147,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 	case uint16(common.GnarkPlonkBn254):
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey, provingSystemId)
+		VerificationResult := o.VerifyPlonkProofBN254(proof, pubInput, verificationKey)
 
 		o.Logger.Infof("PLONK BN254 proof verification result: %t", VerificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
@@ -162,43 +162,40 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	}
 }
 
-func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, provingSystemId uint16) bool {
-	var curve ecc.ID
-	switch provingSystemId {
-	case uint16(common.GnarkPlonkBls12_381):
-		curve = ecc.BLS12_381
-	case uint16(common.GnarkPlonkBn254):
-		curve = ecc.BN254
-	default:
-		o.Logger.Error("Unsupported proving system ID")
-		return false
-	}
+// VerifyPlonkProofBLS12_381 verifies a PLONK proof using BLS12-381 curve.
+func (o *Operator) VerifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BLS12_381)
+}
 
+// VerifyPlonkProofBN254 verifies a PLONK proof using BN254 curve.
+func (o *Operator) VerifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
+}
+
+// verifyPlonkProof contains the common proof verification logic.
+func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
-	_, err := proof.ReadFrom(proofReader)
-	if err != nil {
-		o.Logger.Errorf("Could not deserialize proof", "err", err)
+	if _, err := proof.ReadFrom(proofReader); err != nil {
+		o.Logger.Errorf("Could not deserialize proof: %v", err)
 		return false
 	}
 
 	pubInputReader := bytes.NewReader(pubInputBytes)
 	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
-		o.Logger.Errorf("Error instantiating witness", "err", err)
+		o.Logger.Errorf("Error instantiating witness: %v", err)
 		return false
 	}
-	_, err = pubInput.ReadFrom(pubInputReader)
-	if err != nil {
-		o.Logger.Errorf("Could not read PLONK public input", "err", err)
+	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
+		o.Logger.Errorf("Could not read PLONK public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := plonk.NewVerifyingKey(curve)
-	_, err = verificationKey.ReadFrom(verificationKeyReader)
-	if err != nil {
-		o.Logger.Errorf("Could not read PLONK verifying key from bytes", "err", err)
+	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
+		o.Logger.Errorf("Could not read PLONK verifying key from bytes: %v", err)
 		return false
 	}
 
