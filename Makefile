@@ -8,6 +8,7 @@ help:
 deps: ## Install deps
 	git submodule update --init --recursive
 	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
