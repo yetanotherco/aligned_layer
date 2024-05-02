@@ -83,7 +83,10 @@ func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.Pro
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
 	}
 
-	receipt := utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
+	receipt, err := utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
+	if err != nil {
+		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+	}
 
 	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
 
