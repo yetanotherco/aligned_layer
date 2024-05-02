@@ -23,11 +23,8 @@ defmodule ExplorerWeb.TaskController do
 
     task =
       if newTaskEvent |> elem(0) == :ok do
-        IO.puts("Task found")
-        # newTaskEvent |> elem(1) |> IO.inspect()
         newTaskEvent |> elem(1)
       else
-        IO.puts("No task found")
         :empty
       end
 
@@ -36,11 +33,8 @@ defmodule ExplorerWeb.TaskController do
 
     taskResponse =
       if newRespondedEvent |> elem(0) == :ok do
-        IO.puts("Task response found")
-        # newTaskEvent |> elem(1) |> IO.inspect()
         newRespondedEvent |> elem(1)
       else
-        IO.puts("No task response found")
         :empty
       end
 
