@@ -31,6 +31,7 @@ To install eigenlayer-cli
 ```bash
 make install-eigenlayer-cli
 ```
+
 ## How to use Devnet
 
 ### Start anvil
