@@ -51,9 +51,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     // mapping of task indices to hash of abi.encode(taskResponse, taskResponseMetadata)
     mapping(uint32 => bytes32) public taskResponses;
 
-    // Map of task index to fee
-    mapping(uint32 => uint256) public taskFees;
-
     constructor(
         IAVSDirectory __avsDirectory,
         IRegistryCoordinator __registryCoordinator,
@@ -114,9 +111,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
         taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
 
-        // store the fee
-        taskFees[latestTaskIndexPlusOne] = msg.value;
-
         emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
 
         latestTaskIndexPlusOne = latestTaskIndexPlusOne + 1;
@@ -125,8 +119,15 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function respondToTask(
         Task calldata task,
         TaskResponse calldata taskResponse,
-        NonSignerStakesAndSignature memory nonSignerStakesAndSignature // TODO: aggregated signature field
+        NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
+        // Check that received task matches the one stored in the contract
+        bytes32 taskHash = keccak256(abi.encode(task));
+        require(
+            taskHash == taskHashes[taskResponse.taskIndex],
+            "supplied task does not match the one recorded in the contract"
+        );
+
         //make sure that the quorumNumbers and signedStakeForQuorums are of the same length
 
         /*
@@ -190,8 +191,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         }
         */
 
-        payable(aggregator).transfer(taskFees[taskResponse.taskIndex]);
-
+        payable(aggregator).transfer(task.fee);
 
         emit TaskResponded(
             taskResponse.taskIndex,
