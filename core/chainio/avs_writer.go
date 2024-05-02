@@ -103,6 +103,8 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemana
 	if err != nil {
 		return nil, err
 	}
+
+	// FIXME(marian): Dummy log to check integration with the contract
 	w.logger.Infof("TASK RESPONDED EVENT: %+v", taskRespondedEvent)
 	return receipt, nil
 }
