@@ -45,7 +45,6 @@ defmodule ExplorerWeb.TaskController do
       end
 
     isTaskEmpty = task == :empty
-
     isTaskResponseEmpty = taskResponse == :empty
 
     render(conn, :task,

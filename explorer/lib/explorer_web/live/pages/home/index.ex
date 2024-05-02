@@ -3,14 +3,13 @@ defmodule ExplorerWeb.HomeLive.Index do
 
   def handle_event("search_task", %{"task" => task_params}, socket) do
     task_id = Map.get(task_params, "id")
-
     {:noreply, redirect(socket, to: "/task/#{task_id}")}
   end
 
   def render(assigns) do
     ~H"""
     <div class="flex flex-col items-center justify-center w-full">
-      <div class="text-center text-gray-500 dark:text-gray-400 mb-8">
+      <div class="text-center text-primary mb-8">
         <h1 class="text-3xl font-bold tracking-tighter">Aligned Explorer</h1>
       </div>
       <form phx-submit="search_task" class="flex items-center w-full max-w-md gap-2">

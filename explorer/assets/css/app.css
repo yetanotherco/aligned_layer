@@ -3,3 +3,50 @@
 @import "tailwindcss/utilities";
 
 /* This file is for your main application CSS */
+@layer base {
+    :root {
+      --background: 101 68% 98%;
+      --foreground: 101 57% 0%;
+      --muted: 281 12% 92%;
+      --muted-foreground: 281 0% 33%;
+      --popover: 101 68% 98%;
+      --popover-foreground: 101 57% 0%;
+      --card: 101 68% 97%;
+      --card-foreground: 0 0% 0%;
+      --border: 101 3% 90%;
+      --input: 101 3% 90%;
+      --primary: 101 78% 37%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 281 78% 37%;
+      --secondary-foreground: 281 78% 97%;
+      --accent: 281 78% 37%;
+      --accent-foreground: 281 78% 97%;
+      --destructive: 1 83% 34%;
+      --destructive-foreground: 1 83% 94%;
+      --ring: 101 78% 37%;
+      --radius: 0.5rem;
+    }
+  
+    .dark {
+      --background: 101 53% 0%;
+      --foreground: 101 22% 99%;
+      --muted: 281 12% 8%;
+      --muted-foreground: 281 0% 67%;
+      --popover: 101 53% 0%;
+      --popover-foreground: 101 22% 99%;
+      --card: 0 0% 1%;
+      --card-foreground: 0 0% 100%;
+      --border: 101 3% 12%;
+      --input: 101 3% 12%;
+      --primary: 87.76 100% 73.73%;
+      --primary-foreground: 0 0% 11.54%;
+      --secondary: 281 78% 37%;
+      --secondary-foreground: 281 78% 97%;
+      --accent: 281 78% 37%;
+      --accent-foreground: 281 78% 97%;
+      --destructive: 1 83% 50%;
+      --destructive-foreground: 0 0% 100%;
+      --ring: 101 78% 37%;
+    }
+  }
+  
