@@ -3,7 +3,12 @@ defmodule ExplorerWeb.HomeLive.Index do
 
   def handle_event("search_task", %{"task" => task_params}, socket) do
     task_id = Map.get(task_params, "id")
-    {:noreply, redirect(socket, to: "/task/#{task_id}")}
+    is_task_id_valid = String.match?(task_id, ~r/^\d+$/)
+    if not is_task_id_valid do
+      {:noreply, assign(socket, error: "Invalid task ID")}
+    else
+      {:noreply, redirect(socket, to: "/task/#{task_id}")}
+    end
   end
 
   def render(assigns) do
@@ -14,14 +19,14 @@ defmodule ExplorerWeb.HomeLive.Index do
       </div>
       <form phx-submit="search_task" class="flex items-center w-full max-w-md gap-2 z-10">
         <input
-          class="shadow-md flex h-10 w-full ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:ring-gray-300"
+          class="shadow-md flex h-10 w-full ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:ring-gray-300"
           type="search"
           placeholder="Search operator task..."
           name="task[id]"
         />
         <button
           type="submit"
-          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-card hover:text-accent-foreground h-10 w-10 rounded-full"
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-card hover:text-accent-foreground h-10 w-10 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-800 border border-foreground dark:border-gray-800"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -41,7 +46,11 @@ defmodule ExplorerWeb.HomeLive.Index do
           <span class="sr-only">Search</span>
         </button>
       </form>
-      <img class="absolute z-0 w-80 rounded-xl mx-auto blur-sm" alt="block not found" src={~p"/images/hero.jpeg"} />
+      <img
+        class="absolute z-0 w-80 rounded-xl mx-auto blur-sm"
+        alt="block not found"
+        src={~p"/images/hero.jpeg"}
+      />
     </div>
     """
   end
