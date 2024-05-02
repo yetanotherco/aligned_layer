@@ -49,9 +49,9 @@ bindings:
 test:
 	go test ./...
 
+# make anvil-start & #todo add this in CI, during dev its better to run anvil separately
 integration-test:
-	make anvil-start &
-	go test tests/integration_test.go
+	go test tests/integration_test.go -v
 
 
 get-delegation-manager-address:
