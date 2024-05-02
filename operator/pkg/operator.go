@@ -47,6 +47,20 @@ type Operator struct {
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
 	logger := configuration.BaseConfig.Logger
 
+	avsReader, err := chainio.NewAvsReaderFromConfig(configuration.BaseConfig, configuration.EcdsaConfig)
+	if err != nil {
+		log.Fatalf("Could not create AVS reader")
+	}
+
+	registered, err := avsReader.IsOperatorRegistered(configuration.Operator.Address)
+	if err != nil {
+		log.Fatalf("Could not check if operator is registered")
+	}
+
+	if !registered {
+		log.Fatalf("Operator is not registered with AlignedLayer AVS")
+	}
+
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(configuration.BaseConfig)
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
