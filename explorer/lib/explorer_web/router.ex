@@ -17,8 +17,7 @@ defmodule ExplorerWeb.Router do
   scope "/", ExplorerWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
-
+    live "/", HomeLive.Index
     get "/task/:id", TaskController, :task
   end
 
