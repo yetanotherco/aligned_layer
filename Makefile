@@ -1,11 +1,14 @@
 .PHONY: help tests
 
+CONFIG_FILE?=config-files/config.yaml
+
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 deps: ## Install deps
 	git submodule update --init --recursive
 	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
@@ -32,7 +35,8 @@ anvil-start:
 # TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	@go run aggregator/cmd/main.go --config config-files/config.yaml
+	@go run aggregator/cmd/main.go --config config-files/config.yaml \
+	2>&1 | zap-pretty
 
 aggregator-send-dummy-responses:
 	@echo "Sending dummy responses to Aggregator..."
@@ -40,7 +44,7 @@ aggregator-send-dummy-responses:
 
 operator-start:
 	@echo "Starting Operator..."
-	go run operator/cmd/main.go --config config-files/config.yaml \
+	go run operator/cmd/main.go --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 bindings:
@@ -73,23 +77,35 @@ operator-get-eth:
 
 operator-register-with-eigen-layer:
 	@echo "Registering operator with EigenLayer"
-	@echo "" | eigenlayer operator register config-files/config.yaml
+	@echo "" | eigenlayer operator register $(CONFIG_FILE)
+
+operator-mint-mock-tokens:
+	@echo "Minting tokens"
+	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
+
+operator-deposit-into-mock-strategy:
+	@echo "Depositing into strategy"
+	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
+
+	@go run operator/scripts/deposit_into_strategy/main.go \
+		--config $(CONFIG_FILE) \
+		--strategy-address $(STRATEGY_ADDRESS) \
+		--amount 1000
 
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
 	@go run operator/scripts/deposit_into_strategy/main.go \
-		--config config-files/config.yaml \
-		--strategy-deployment-output contracts/script/output/devnet/strategy_deployment_output.json \
+		--config $(CONFIG_FILE) \
 		--amount 1000
 
 operator-register-with-aligned-layer:
 	@echo "Registering operator with AlignedLayer"
 	@go run operator/scripts/register_with_aligned_layer/main.go \
-		--config config-files/config.yaml
+		--config $(CONFIG_FILE)
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
 
-operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-deposit-into-strategy operator-register-with-aligned-layer
+operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-mint-mock-tokens operator-deposit-into-mock-strategy operator-register-with-aligned-layer
 
 __TASK_SENDERS__:
 send-plonk-proof: ## Send a PLONK proof using the task sender
@@ -115,3 +131,6 @@ __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
+
+build-aligned-contracts:
+	@cd contracts/src/core && forge build

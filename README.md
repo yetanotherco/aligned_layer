@@ -13,9 +13,10 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git) to run the examples below.
+You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
+[jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
-To install
+To install zap-pretty and abigen
 ```bash
 make deps
 ```
@@ -31,6 +32,7 @@ To install eigenlayer-cli
 ```bash
 make install-eigenlayer-cli
 ```
+
 ## How to use Devnet
 
 ### Start anvil
@@ -68,12 +70,21 @@ since the aggregator will have a task index of 0.
 To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
 
 ```bash
-make operator-full-registration
+make operator-full-registration CONFIG_FILE=<path_to_config_file>
 ```
 
 Once the registration process is done, start the operator with
 
 ```bash
+make operator-start CONFIG_FILE=<path_to_config_file>
+```
+
+If `CONFIG_FILE` is not provided, it will use the default config file at `config-files/config.yaml`.
+
+To use the default configuration file, just run:
+
+```bash
+make operator-full-registration
 make operator-start
 ```
 
@@ -135,14 +146,24 @@ To register with EigenLayer, run:
 make operator-register-with-eigen-layer
 ```
 
+To get mock tokens (DEVNET ONLY), run:
+```bash
+make operator-mint-mock-tokens
+```
+
 To deposit into strategy, and register with AlignedLayer, run:
 ```bash
 make operator-deposit-and-register
 ```
 
-To just deposit into the strategy, run:
+To just deposit into the strategy run:
 ```bash
-make operator-deposit-into-strategy
+export STRATEGY_ADDRESS=<strategy_address> && make operator-deposit-into-strategy
+```
+
+To deposit into mock strategy (DEVNET ONLY), run:
+```bash
+make operator-deposit-into-mock-strategy
 ```
 
 To just register an operator with AlignedLayer, run:
@@ -286,6 +307,8 @@ make operator-register-with-eigen-layer
 In `config-files/config.yaml` you can find the configuration file for the project.
 
 There is a section for operator, aggregator, and keys. Also, there are common variables for the project.
+
+There are also three other configuration files in the `config-files` directory for operators. They have their own keys and addresses.
 
 ## FAQ
 
