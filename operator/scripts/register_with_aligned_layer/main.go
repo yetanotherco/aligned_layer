@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	"log"
+	"math/big"
+	"os"
+	"time"
+
 	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"log"
-	"math/big"
-	"os"
-	"time"
 )
 
 var flags = []cli.Flag{

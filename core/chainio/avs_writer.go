@@ -17,7 +17,7 @@ import (
 )
 
 type AvsWriter struct {
-	AvsRegistryWriter   avsregistry.AvsRegistryWriter
+	avsregistry.AvsRegistryWriter
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 	Signer              signer.Signer
@@ -104,7 +104,6 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemana
 		return nil, err
 	}
 	w.logger.Infof("TASK RESPONDED EVENT: %+v", taskRespondedEvent)
-	// w.AvsRegistryWriter.txMgr.Send(ctx, tx)
 	return receipt, nil
 }
 
