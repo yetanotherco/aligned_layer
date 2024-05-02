@@ -111,3 +111,6 @@ __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
+
+build-aligned-contracts:
+	@cd contracts/src/core && forge build
