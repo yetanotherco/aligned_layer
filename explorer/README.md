@@ -7,32 +7,50 @@
 
 ## Local development
 
+### Run the frontend
+
 To start your Phoenix server:
 
 ```makefile
-$ make
-Usage:
-    run   : Starts the Elixir backend server.
-    deps  : Installs Elixir code dependencies.
+cd explorer
+make <run | deps | help>
 ```
+
+| Command | Description |
+| --- | --- |
+| `make run` | Starts the Elixir backend server. |
+| `make deps` | Installs Elixir code dependencies. |
+| `make help` | Shows the help message. |
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/tasks/:id`.
 
-Once the frontend is running, you must run a local devnet with the deployed contracts:
+### Run a devnet
+
+Once the frontend is running, open another terminal and run a local devnet (see requirements [here](../README.md#Dependencies)) with the deployed contracts:
+
 ```bash
+cd ..
+make deps
 make anvil-start
 ```
 
 Then, you must send a Task to view it in the explorer:
+
 ```bash
 make send-plonk-proof
 ```
 
 You can also respond to a task as an operator, saying if the proof was true or false:
+
 ```bash
 cast send 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690 --rpc-url "http://localhost:8545" "respondToTask(uint64, bool)()" <num_task_id> <boolean_is_proof_correct> --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
+
+Where:
+
+- `num_task_id` is the task id you want to respond to.
+- `boolean_is_proof_correct` is a boolean that indicates if the proof was correct or not.
 
 ## Contributing
 
