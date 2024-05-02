@@ -136,7 +136,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	switch provingSystemId {
 	case uint16(common.GnarkPlonkBls12_381):
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey)
+		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey, provingSystemId)
 
 		o.Logger.Infof("PLONK proof verification result: %t", VerificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
@@ -147,7 +147,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 	case uint16(common.GnarkPlonkBn254):
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey)
+		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey, provingSystemId)
 
 		o.Logger.Infof("PLONK proof verification result: %t", VerificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
