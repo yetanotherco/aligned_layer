@@ -15,13 +15,13 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -41,7 +41,6 @@ type Operator struct {
 	aggRpcClient       AggregatorRpcClient
 	//Socket  string
 	//Timeout time.Duration
-	//OperatorId         eigentypes.OperatorId
 }
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
@@ -73,6 +72,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
 	}
 
+	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
 	address := configuration.Operator.Address
 	operator := &Operator{
 		Config:             configuration,
@@ -81,8 +81,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		Address:            address,
 		NewTaskCreatedChan: newTaskCreatedChan,
 		aggRpcClient:       *rpcClient,
+		OperatorId:         operatorId,
 		// Timeout
-		// OperatorId
 		// Socket
 	}
 
@@ -116,8 +116,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			signedTaskResponse := types.SignedTaskResponse{
 				TaskResponse: *taskResponse,
 				BlsSignature: *responseSignature,
-				// FIXME(marian): Dummy Operator ID, we should get the correct one.
-				OperatorId: eigentypes.Bytes32(make([]byte, 32)),
+				OperatorId:   o.OperatorId,
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
@@ -143,8 +142,6 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
 		"task index", newTaskCreatedLog.TaskIndex,
 		"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
-		// "quorumNumbers", newTaskCreatedLog.Task.QuorumNumbers,
-		"QuorumThresholdPercentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
 	)
 
 	switch provingSystemId {
@@ -170,7 +167,7 @@ func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	proof := plonk.NewProof(ecc.BLS12_381)
 	_, err := proof.ReadFrom(proofReader)
 
-	// If the proof can't be deserialized from the bytes then it doesn't verifies
+	// If the proof can't be deserialized from bytes then it doesn't verify
 	if err != nil {
 		return false
 	}
@@ -195,53 +192,8 @@ func (o *Operator) VerifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	return err == nil
 }
 
-func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse) ([]byte, error) {
-	// The order here has to match the field ordering of servicemanager.AlignedLayerServiceManagerTaskResponse
-
-	/* TODO: Solve this in a more generic way so it's less prone for errors. Name and types can be obtained with reflection
-	for i := 0; i < reflectedType.NumField(); i++ {
-		name := reflectedType.Field(i).Name
-		thisType := reflectedType.Field(i).Type
-	}
-	*/
-
-	/*
-		This matches:
-
-		struct TaskResponse {
-			uint64 taskIndex;
-			bool proofIsCorrect;
-		}
-	*/
-	taskResponseType, err := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
-		{
-			Name: "taskIndex",
-			Type: "uint64",
-		},
-		{
-			Name: "proofIsCorrect",
-			Type: "bool",
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	arguments := abi.Arguments{
-		{
-			Type: taskResponseType,
-		},
-	}
-
-	bytes, err := arguments.Pack(taskResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
-}
-
 func (o *Operator) SignTaskResponse(taskResponse *servicemanager.AlignedLayerServiceManagerTaskResponse) (*bls.Signature, error) {
-	encodedResponseBytes, err := AbiEncodeTaskResponse(*taskResponse)
+	encodedResponseBytes, err := utils.AbiEncodeTaskResponse(*taskResponse)
 	if err != nil {
 		return nil, err
 	}
