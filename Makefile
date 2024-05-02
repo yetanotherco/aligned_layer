@@ -49,6 +49,10 @@ bindings:
 test:
 	go test ./...
 
+integration-test:
+	make anvil-start &
+	go test tests/integration_test.go
+
 
 get-delegation-manager-address:
 	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
