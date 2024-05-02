@@ -1,4 +1,4 @@
-<div class="flex flex-col space-y-2 dark:text-white max-w-96 md:max-w-5xl mx-auto capitalize">
+<div class="flex flex-col space-y-2 bg-zinc-200 dark:bg-zinc-900 rounded-2xl p-5 dark:text-white max-w-96 md:max-w-5xl mx-auto capitalize">
   <h1 class="text-5xl font-bold">Task #<%= @id %></h1>
   <p class="font-semibold">
     address: <span class="break-all font-normal"><%= @task.address %></span>
@@ -11,14 +11,14 @@
     transaction hash: <span class="break-all font-normal"><%= @task.transaction_hash %></span>
   </p>
 
-  <div class="capitalize flex flex-col space-y-2">
-    <h2 class="text-4xl font-bold">Aligned Task</h2>
+  <div class="capitalize flex flex-col space-y-3">
+    <h2 class="text-3xl font-bold">Aligned Task</h2>
     <p class="font-semibold">
       verification system ID:
       <span class="break-all font-normal"><%= @task.aligned_task.verificationSystemId %></span>
     </p>
     <p class="font-semibold" class="break-all">
-      Proof: <span class="break-all font-normal"><%= @task.aligned_task.proof %></span>
+      Proof: <span class="break-all font-normal select-all"><%= @task.aligned_task.proof %></span>
     </p>
     <p class="font-semibold">
       pub Input: <span class="break-all font-normal"><%= @task.aligned_task.pubInput %></span>
@@ -29,8 +29,8 @@
     </p>
   </div>
 
-  <div class="capitalize flex flex-col space-y-2">
-    <h2 class="text-4xl font-bold">Aligned Task Response</h2>
+  <div class="capitalize flex flex-col space-y-3">
+    <h2 class="text-3xl font-bold">Aligned Task Response</h2>
     <p class="font-semibold">
       address: <span class="break-all font-normal"><%= @taskResponse.address %></span>
     </p>
