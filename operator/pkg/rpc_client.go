@@ -1,7 +1,9 @@
 package operator
 
 import (
+	"errors"
 	"net/rpc"
+	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/yetanotherco/aligned_layer/core/types"
@@ -13,6 +15,11 @@ type AggregatorRpcClient struct {
 	aggregatorIpPortAddr string
 	logger               logging.Logger
 }
+
+const (
+	MaxRetries    = 10
+	RetryInterval = 10 * time.Second
+)
 
 func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) (*AggregatorRpcClient, error) {
 	client, err := rpc.DialHTTP("tcp", aggregatorIpPortAddr)
@@ -31,10 +38,24 @@ func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) 
 // their signed task response.
 func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskResponse *types.SignedTaskResponse) {
 	var reply uint8
-	err := c.rpcClient.Call("Aggregator.ProcessOperatorSignedTaskResponse", signedTaskResponse, &reply)
-	if err != nil {
-		c.logger.Error("Received error from aggregator", "err", err)
-	} else {
-		c.logger.Info("Signed task response header accepted by aggregator.", "reply", reply)
+	for retries := 0; retries < MaxRetries; retries++ {
+		err := c.rpcClient.Call("Aggregator.ProcessOperatorSignedTaskResponse", signedTaskResponse, &reply)
+		if err != nil {
+			c.logger.Error("Received error from aggregator", "err", err)
+			if errors.Is(err, rpc.ErrShutdown) {
+				c.logger.Error("Aggregator is shutdown. Reconnecting...")
+				client, err := rpc.DialHTTP("tcp", c.aggregatorIpPortAddr)
+				if err != nil {
+					c.logger.Error("Could not reconnect to aggregator", "err", err)
+					time.Sleep(RetryInterval)
+				} else {
+					c.rpcClient = client
+					c.logger.Info("Reconnected to aggregator")
+				}
+			}
+		} else {
+			c.logger.Info("Signed task response header accepted by aggregator.", "reply", reply)
+			return
+		}
 	}
 }
