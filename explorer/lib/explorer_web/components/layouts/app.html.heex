@@ -1,21 +1,19 @@
-<nav class="px-4 sm:px-6 lg:px-8">
-  <div class="flex items-center justify-between border-b border-zinc-100 py-3 text-sm">
-    <div class="flex items-center gap-4">
-      <a href="/">
-        <img src={~p"/images/logo.svg"} width="36" />
-      </a>
-    </div>
-    <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-900">
-      <a href="https://twitter.com/alignedlayer" class="hover:text-zinc-700">
-        @alignedlayer
-      </a>
-      <a href="https://github.com/yetanotherco/aligned_layer" class="hover:text-zinc-700">
-        GitHub
-      </a>
-    </div>
+<nav class="px-4 sm:px-6 lg:px-8 fixed top-0 w-full inline-flex justify-between p-3 border-b border-zinc-100 dark:border-zinc-100/20 backdrop-blur">
+  <div class="flex items-center gap-4">
+    <a href="/">
+      <img src={~p"/images/logo.png"} class="w-20" />
+    </a>
+  </div>
+  <div class="flex items-center gap-4 font-semibold leading-6 text-gray-500 dark:text-gray-400">
+    <a href="https://x.com/alignedlayer">
+      @alignedlayer
+    </a>
+    <a href="https://github.com/yetanotherco/aligned_layer">
+      GitHub
+    </a>
   </div>
 </nav>
-<main class="min-h-screen">
+<main class="mt-24">
   <.flash_group flash={@flash} />
   <%= @inner_content %>
 </main>
