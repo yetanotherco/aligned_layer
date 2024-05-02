@@ -14,7 +14,7 @@ COPY . .
 # Install system dependencies
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y python3 python3-pip git nano curl iputils-ping redis-tools autossh nmap apt-utils supervisor
+    apt-get install -y python3 python3-pip git  curl iputils-ping apt-utils supervisor
 
 # Create aligned-layer user
 RUN useradd -u 5000 -m aligned-layer

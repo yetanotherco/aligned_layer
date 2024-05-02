@@ -23,3 +23,5 @@ services:
       - devnet
       - aggregator
     network_mode: host
+    stdin_open: true
+    tty: true
