@@ -65,7 +65,7 @@ func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, erro
 	return r.AvsRegistryReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }
 
-func (r *AvsReader) GetNewTaskCreated(taskIndex uint64) (*contractAlignedLayerServiceManager.ContractAlignedLayerServiceManagerNewTaskCreated, error) {
+func (r *AvsReader) GetNewTaskCreated(taskIndex uint32) (*contractAlignedLayerServiceManager.ContractAlignedLayerServiceManagerNewTaskCreated, error) {
 	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		r.logger.Error("Failed to get latest block number", "err", err)
@@ -79,7 +79,7 @@ func (r *AvsReader) GetNewTaskCreated(taskIndex uint64) (*contractAlignedLayerSe
 		Start: startBlock,
 	}
 
-	itr, err := r.AvsContractBindings.ServiceManager.FilterNewTaskCreated(&filterOpts, []uint64{taskIndex})
+	itr, err := r.AvsContractBindings.ServiceManager.FilterNewTaskCreated(&filterOpts, []uint32{taskIndex})
 	if err != nil {
 		return nil, err
 	}

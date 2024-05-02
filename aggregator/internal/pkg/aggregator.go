@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -59,11 +60,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	}
 
 	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -187,4 +183,14 @@ func (agg *Aggregator) AddNewTask(index uint32, task servicemanager.AlignedLayer
 		submittedToEthereum: false,
 	}
 	agg.taskResponsesMutex.Unlock()
+
+	quorumNums := utils.BytesToQuorumNumbers(task.QuorumNumbers)
+	quorumThresholdPercentages := utils.BytesToQuorumThresholdPercentages(task.QuorumThresholdPercentages)
+
+	// FIXME(marian): Hardcoded value of timeToExpiry to 100s. How should be get this value?
+	err := agg.blsAggregationService.InitializeNewTask(index, task.TaskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
+	if err != nil {
+		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
+	}
 }

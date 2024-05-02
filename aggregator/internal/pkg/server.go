@@ -53,7 +53,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	if _, ok := agg.OperatorTaskResponses[taskIndex]; !ok {
 		task, err := agg.avsReader.GetNewTaskCreated(taskIndex)
 		if err != nil {
-			agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskResponse.TaskIndex)
+			agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskIndex)
 			*reply = 1
 			return fmt.Errorf("task %d does not exist", taskIndex)
 		}
