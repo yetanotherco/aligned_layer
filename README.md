@@ -296,7 +296,7 @@ In `config-files/config.yaml` you can find the configuration file for the projec
 
 There is a section for operator, aggregator, and keys. Also, there are common variables for the project.
 
-There are also three other configuration files in the `config-files` directory for the operator. They have their own keys and addresses.
+There are also three other configuration files in the `config-files` directory for operators. They have their own keys and addresses.
 
 ## FAQ
 
