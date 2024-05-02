@@ -24,12 +24,3 @@ forge script script/deploy/AlignedLayerDeployer.s.sol \
 
 # Kill the anvil process to save state
 pkill anvil
-
-# # Anvil adds a block state, making the code to fail. We don't care about this, just the accounts and the deployed code
-cd "$parent_path"
-
-jq 'del(.block)' state/alignedlayer-deployed-anvil-state.json > state/alignedlayer-deployed-anvil-state-tmp.json
-
-cp -f state/alignedlayer-deployed-anvil-state-tmp.json state/alignedlayer-deployed-anvil-state.json
-
-rm state/alignedlayer-deployed-anvil-state-tmp.json
