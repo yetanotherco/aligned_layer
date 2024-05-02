@@ -138,7 +138,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
 		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey, provingSystemId)
 
-		o.Logger.Infof("PLONK proof verification result: %t", VerificationResult)
+		o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", VerificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
 			TaskIndex:      newTaskCreatedLog.TaskIndex,
 			ProofIsCorrect: VerificationResult,
@@ -149,7 +149,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
 		VerificationResult := o.VerifyPlonkProof(proof, pubInput, verificationKey, provingSystemId)
 
-		o.Logger.Infof("PLONK proof verification result: %t", VerificationResult)
+		o.Logger.Infof("PLONK BN254 proof verification result: %t", VerificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
 			TaskIndex:      newTaskCreatedLog.TaskIndex,
 			ProofIsCorrect: VerificationResult,
