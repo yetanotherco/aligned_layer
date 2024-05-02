@@ -34,11 +34,11 @@ func (agg *Aggregator) ServeOperators() error {
 	return nil
 }
 
-// / Aggregator Methods
-// / This is the list of methods that the Aggregator exposes to the Operator
-// / The Operator can call these methods to interact with the Aggregator
-// / This methods are automatically registered by the RPC server
-// / This takes a response an adds it to the internal. If reaching the quorum, it sends the aggregated signatures to ethereum
+// Aggregator Methods
+// This is the list of methods that the Aggregator exposes to the Operator
+// The Operator can call these methods to interact with the Aggregator
+// This methods are automatically registered by the RPC server
+// This takes a response an adds it to the internal. If reaching the quorum, it sends the aggregated signatures to ethereum
 // Returns:
 //   - 0: Success
 //   - 1: Error
