@@ -156,7 +156,7 @@ func taskSenderLoopMain(c *cli.Context) error {
 func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
 	provingSystemStr = strings.TrimSpace(provingSystemStr)
 	switch provingSystemStr {
-	case "plonk":
+	case "plonk_bls12_381":
 		return common.GnarkPlonkBls12_381, nil
 	case "plonk_bn254":
 		return common.GnarkPlonkBn254, nil
