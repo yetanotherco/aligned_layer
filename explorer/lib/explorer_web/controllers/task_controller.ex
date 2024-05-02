@@ -19,7 +19,11 @@ defmodule ExplorerWeb.TaskController do
     # data = AlignedLayerServiceManager.is_aggregator("0x703E7dE5F528fA828f3BE726802B2092Ae7deb2F") |> Ethers.call()
 
     # Returns AlignedLayer task content
-    newTaskEvent = AlignedLayerServiceManager.get_task_created_event(String.to_integer(id))
+    newTaskEvent =
+      case Integer.parse(id) do
+        {task_id, _} -> AlignedLayerServiceManager.get_task_created_event(task_id)
+        _ -> {:empty, "task_id must be an integer"}
+      end
 
     task =
       if newTaskEvent |> elem(0) == :ok do
@@ -29,7 +33,11 @@ defmodule ExplorerWeb.TaskController do
       end
 
     # Returns AlignedLayer task response content
-    newRespondedEvent = AlignedLayerServiceManager.get_task_responded_event(String.to_integer(id))
+    newRespondedEvent =
+      case Integer.parse(id) do
+        {task_id, _} -> AlignedLayerServiceManager.get_task_responded_event(task_id)
+        _ -> {:empty, "task_id must be an integer"}
+      end
 
     taskResponse =
       if newRespondedEvent |> elem(0) == :ok do
