@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 )
 
 var (
@@ -138,8 +138,12 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	taskSender := pkg.NewTaskSender(avsWriter)
-	quorumThresholdPercentage := uint8(100) // TODO: add this to the configuration
-	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumThresholdPercentage, fee)
+
+	// Hardcoded values - should we get this information from another source? Maybe configuration or CLI parameters?
+	quorumNumbers := types.QuorumNums{0}
+	quorumThresholdPercentages := []types.QuorumThresholdPercentage{100}
+
+	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
 
 	err = taskSender.SendTask(task)
 	if err != nil {

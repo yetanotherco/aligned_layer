@@ -8,6 +8,8 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
+	"github.com/Layr-Labs/eigensdk-go/types"
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -49,7 +51,6 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}
 
 	privateKeySigner, err := signer.NewPrivateKeySigner(ecdsaConfig.PrivateKey, baseConfig.ChainId)
-
 	if err != nil {
 		baseConfig.Logger.Error("Cannot create signer", "err", err)
 		return nil, err
@@ -66,17 +67,19 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte, quorumThresholdPercentage uint8, fee *big.Int) (servicemanager.AlignedLayerServiceManagerTask, uint64, error) {
+func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) (servicemanager.AlignedLayerServiceManagerTask, uint32, error) {
 	txOpts := w.Signer.GetTxOpts()
 
 	txOpts.Value = fee
+
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
 		uint16(provingSystemId),
 		proof,
 		publicInput,
 		verificationKey,
-		quorumThresholdPercentage,
+		quorumNumbers.UnderlyingType(),
+		quorumThresholdPercentages.UnderlyingType(),
 	)
 	if err != nil {
 		w.logger.Error("Error assembling CreateNewTask tx", "err", err)
@@ -89,23 +92,34 @@ func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.Pro
 	}
 
 	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
-
 	if err != nil {
 		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
 	}
 	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
 }
 
-// func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task cstaskmanager.IAlignedLayerTaskManagerTask, taskResponse cstaskmanager.IAlignedLayerTaskManagerTaskResponse, nonSignerStakesAndSignature cstaskmanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Receipt, error) {
-// 	txOpts := w.Signer.GetTxOpts()
-// 	tx, err := w.AvsContractBindings.TaskManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
-// 	if err != nil {
-// 		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
-// 		return nil, err
-// 	}
-// 	receipt := w.client.WaitForTransactionReceipt(ctx, tx.Hash())
-// 	return receipt, nil
-// }
+func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemanager.AlignedLayerServiceManagerTask, taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+	txOpts := w.Signer.GetTxOpts()
+	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
+	if err != nil {
+		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
+		return nil, err
+	}
+
+	receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
+	if err != nil {
+		return nil, err
+	}
+
+	taskRespondedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseTaskResponded(*receipt.Logs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME(marian): Dummy log to check integration with the contract
+	w.logger.Infof("TASK RESPONDED EVENT: %+v", taskRespondedEvent)
+	return receipt, nil
+}
 
 // func (w *AvsWriter) RaiseChallenge(
 // 	ctx context.Context,
