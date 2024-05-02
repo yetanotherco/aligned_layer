@@ -1,33 +1,55 @@
-<div title="My div">
-  <p>Task ID: <%= @id %></p>
-</div>
+<div class="flex flex-col space-y-2 dark:text-white max-w-96 md:max-w-5xl mx-auto capitalize">
+  <h1 class="text-5xl font-bold">Task #<%= @id %></h1>
+  <p class="font-semibold">
+    address: <span class="break-all font-normal"><%= @task.address %></span>
+  </p>
+  <p class="font-semibold">
+    block hash: <span class="break-all font-normal"><%= @task.block_hash %></span>
+  </p>
+  <p class="font-semibold">block number: <span><%= @task.block_number %></span></p>
+  <p class="font-semibold">
+    transaction hash: <span class="break-all font-normal"><%= @task.transaction_hash %></span>
+  </p>
 
-<div title="Event">
-  <p>\n</p>
-  <p>address: <%= @task.address %></p>
-  <p>block_hash: <%= @task.block_hash %></p>
-  <p>block_number: <%= @task.block_number %></p>
-  <p>taskId: <%= @task.taskId %></p>
-  <p>transaction_hash: <%= @task.transaction_hash %></p>
-
-  <p>\n</p>
-  <p>Aligned Task</p>
-  <div title="Aligned Task">
-    <p>verificationSystemId: <%= @task.aligned_task.verificationSystemId %></p>
-    <p>proof: <%= @task.aligned_task.proof %></p>
-    <p>pubInput: <%= @task.aligned_task.pubInput %></p>
-    <p>taskCreatedBlock: <%= @task.aligned_task.taskCreatedBlock %></p>
+  <div class="capitalize flex flex-col space-y-2">
+    <h2 class="text-4xl font-bold">Aligned Task</h2>
+    <p class="font-semibold">
+      verification system ID:
+      <span class="break-all font-normal"><%= @task.aligned_task.verificationSystemId %></span>
+    </p>
+    <p class="font-semibold" class="break-all">
+      Proof: <span class="break-all font-normal"><%= @task.aligned_task.proof %></span>
+    </p>
+    <p class="font-semibold">
+      pub Input: <span class="break-all font-normal"><%= @task.aligned_task.pubInput %></span>
+    </p>
+    <p class="font-semibold">
+      Task Created Block:
+      <span class="break-all font-normal"><%= @task.aligned_task.taskCreatedBlock %></span>
+    </p>
   </div>
 
-  <p>\n</p>
-  <p>Aligned Task Response</p>
-  <div title="Aligned Task Response">
-    <p>address: <%= @taskResponse.address %></p>
-    <p>block_hash: <%= @taskResponse.block_hash %></p>
-    <p>block_number: <%= @taskResponse.block_number %></p>
-    <p>taskId: <%= @taskResponse.taskId %></p>
-    <p>transaction_hash: <%= @taskResponse.transaction_hash %></p>
-    <p>proofIsCorrect: <%= @taskResponse.proofIsCorrect %></p>
+  <div class="capitalize flex flex-col space-y-2">
+    <h2 class="text-4xl font-bold">Aligned Task Response</h2>
+    <p class="font-semibold">
+      address: <span class="break-all font-normal"><%= @taskResponse.address %></span>
+    </p>
+    <p class="font-semibold">
+      block hash: <span class="break-all font-normal"><%= @taskResponse.block_hash %></span>
+    </p>
+    <p class="font-semibold">
+      block number: <span class="break-all font-normal"><%= @taskResponse.block_number %></span>
+    </p>
+    <p class="font-semibold">
+      task Id: <span class="break-all font-normal"><%= @taskResponse.taskId %></span>
+    </p>
+    <p class="font-semibold">
+      transaction hash:
+      <span class="break-all font-normal"><%= @taskResponse.transaction_hash %></span>
+    </p>
+    <p class="font-semibold">
+      Is the proof correct?
+      <span class="break-all font-normal"><%= @taskResponse.proofIsCorrect %></span>
+    </p>
   </div>
 </div>
-
