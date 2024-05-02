@@ -37,3 +37,7 @@ private_key_store_path: config-files/anvil.ecdsa.key.json
 bls_private_key_store_path: config-files/anvil.bls.key.json
 signer_type: local_keystore
 chain_id: 31337
+
+## Task Sender Configurations
+task_sender:
+  quorum_threshold_percentage: 92

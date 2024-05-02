@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"strings"
@@ -127,9 +129,12 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	taskSender := pkg.NewTaskSender(avsWriter)
-	quorumThresholdPercentage := uint8(100) // TODO: add this to the configuration
-	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumThresholdPercentage)
-
+	quorumThresholdPercentage, ok, err := getQuorumThresholdPercentage(c.String(config.ConfigFileFlag.Name)) // Read from config
+	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, uint8(quorumThresholdPercentage))
+	if !ok {
+		return errors.New("quorum threshold percentage not found or not an int in config file")
+	}
+	println(quorumThresholdPercentage)
 	err = taskSender.SendTask(task)
 	if err != nil {
 		return err
@@ -163,4 +168,23 @@ func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)
 	}
+}
+func getQuorumThresholdPercentage(configFile string) (int, bool, error) {
+	configData, err := os.ReadFile(configFile)
+	if err != nil {
+		return 100, false, fmt.Errorf("failed to read config file: %v", err)
+	}
+	var configMap map[string]interface{}
+	if err := yaml.Unmarshal(configData, &configMap); err != nil {
+		return 100, false, fmt.Errorf("failed to parse config file: %v", err)
+	}
+	taskSenderConfig, ok := configMap["task_sender"].(map[string]interface{})
+	if !ok {
+		return 100, false, errors.New("task_sender configuration not found in config file")
+	}
+	quorumThresholdPercentage, ok := taskSenderConfig["quorum_threshold_percentage"].(int)
+	if !ok {
+		return 100, false, errors.New("quorum_threshold_percentage not found or not an int in config file")
+	}
+	return quorumThresholdPercentage, true, nil
 }
