@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"fmt"
 	"net/http"
 	"net/rpc"
 
@@ -51,7 +52,7 @@ func (agg *Aggregator) SubmitTaskResponse(taskResponse *types.SignedTaskResponse
 		if err != nil {
 			agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskResponse.TaskResponse.TaskIndex)
 			*reply = 1
-			return nil
+			return fmt.Errorf("task %d does not exist", taskIndex)
 		}
 		agg.AddNewTask(taskIndex, task.Task)
 	}
