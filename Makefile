@@ -97,7 +97,7 @@ send-plonk-proof: ## Send a PLONK proof using the task sender
 		--public-input task_sender/test_examples/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/plonk.vk \
 		--config config-files/config.yaml \
-		--q 25 \
+		--quorum-threshold 98 \
 		2>&1 | zap-pretty
 
 send-plonk-proof-loop: ## Send a PLONK proof using the task sender every 10 seconds
