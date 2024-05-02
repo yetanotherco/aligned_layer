@@ -1,5 +1,7 @@
 .PHONY: help tests
 
+CONFIG_FILE?=config-files/config.yaml
+
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
@@ -40,7 +42,7 @@ aggregator-send-dummy-responses:
 
 operator-start:
 	@echo "Starting Operator..."
-	go run operator/cmd/main.go --config config-files/config.yaml \
+	go run operator/cmd/main.go --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 bindings:
@@ -69,7 +71,7 @@ operator-get-eth:
 
 operator-register-with-eigen-layer:
 	@echo "Registering operator with EigenLayer"
-	@echo "" | eigenlayer operator register config-files/config.yaml
+	@echo "" | eigenlayer operator register $(CONFIG_FILE)
 
 operator-mint-mock-tokens:
 	@echo "Minting tokens"
@@ -80,20 +82,20 @@ operator-deposit-into-mock-strategy:
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
 
 	@go run operator/scripts/deposit_into_strategy/main.go \
-		--config config-files/config.yaml \
+		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 1000
 
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
 	@go run operator/scripts/deposit_into_strategy/main.go \
-		--config config-files/config.yaml \
+		--config $(CONFIG_FILE) \
 		--amount 1000
 
 operator-register-with-aligned-layer:
 	@echo "Registering operator with AlignedLayer"
 	@go run operator/scripts/register_with_aligned_layer/main.go \
-		--config config-files/config.yaml
+		--config $(CONFIG_FILE)
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
 
