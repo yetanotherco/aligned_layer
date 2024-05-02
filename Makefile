@@ -73,11 +73,23 @@ operator-register-with-eigen-layer:
 	@echo "Registering operator with EigenLayer"
 	@echo "" | eigenlayer operator register $(CONFIG_FILE)
 
+operator-mint-mock-tokens:
+	@echo "Minting tokens"
+	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
+
+operator-deposit-into-mock-strategy:
+	@echo "Depositing into strategy"
+	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
+
+	@go run operator/scripts/deposit_into_strategy/main.go \
+		--config $(CONFIG_FILE) \
+		--strategy-address $(STRATEGY_ADDRESS) \
+		--amount 1000
+
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
 	@go run operator/scripts/deposit_into_strategy/main.go \
 		--config $(CONFIG_FILE) \
-		--strategy-deployment-output contracts/script/output/devnet/strategy_deployment_output.json \
 		--amount 1000
 
 operator-register-with-aligned-layer:
@@ -87,7 +99,7 @@ operator-register-with-aligned-layer:
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
 
-operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-deposit-into-strategy operator-register-with-aligned-layer
+operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-mint-mock-tokens operator-deposit-into-mock-strategy operator-register-with-aligned-layer
 
 __TASK_SENDERS__:
  # TODO add a default proving system
