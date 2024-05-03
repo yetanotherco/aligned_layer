@@ -15,7 +15,7 @@ echo starting operator
 make operator-start &> /dev/null &
 export OPERATOR_PID=$!
 
-sleep 3
+sleep 60
 
 echo sending task
 make send-plonk_bls12_381-proof &> /dev/null
