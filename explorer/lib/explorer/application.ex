@@ -70,7 +70,7 @@ end
 defmodule AlignedLayerServiceManager do
   # read alignedLayerServiceManagerAddress from config file
   {:ok, json_string} =
-    File.read("../contracts/script/output/devnet/alignedlayer_deployment_output.json")
+    File.read("../contracts/script/output/holesky/alignedlayer_deployment_output.json")
 
   alignedLayerServiceManagerAddress =
     Jason.decode!(json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
