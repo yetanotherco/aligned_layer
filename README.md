@@ -13,9 +13,10 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git) to run the examples below.
+You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
+[jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
-To install
+To install zap-pretty and abigen
 ```bash
 make deps
 ```
@@ -31,6 +32,7 @@ To install eigenlayer-cli
 ```bash
 make install-eigenlayer-cli
 ```
+
 ## How to use Devnet
 
 ### Start anvil
@@ -47,9 +49,14 @@ The above command starts a local anvil chain from a [saved state](./tests/integr
 
 Make sure to set config file variables to correct value at `config-files/config.yaml`.
 
-To start the aggregator, run:
+To start the aggregator with a default configuration, run:
 ```bash
 make aggregator-start
+```
+
+To use some custom configuration, set the `CONFIG_FILE` parameter with the path to your configuration file:
+```bash
+make aggregator-start CONFIG_FILE=<path_to_your_config> 
 ```
 
 To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
@@ -68,27 +75,47 @@ since the aggregator will have a task index of 0.
 To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
 
 ```bash
-make operator-full-registration
+make operator-full-registration CONFIG_FILE=<path_to_config_file>
 ```
 
 Once the registration process is done, start the operator with
 
 ```bash
+make operator-start CONFIG_FILE=<path_to_config_file>
+```
+
+If `CONFIG_FILE` is not provided, it will use the default config file at `config-files/config.yaml`.
+
+To use the default configuration file, just run:
+
+```bash
+make operator-full-registration
 make operator-start
 ```
 
 ### Send task
 
-To send a task to the ServiceManager using the TaskSender CLI, run:
+### Sending a Task Using the TaskSender CLI
+
+To send a task to the ServiceManager using the TaskSender CLI with a specific proving system, you can use one of the following commands depending on the proving system you wish to use:
+
+For BLS12_381
+
 ```bash
-make send-plonk-proof
+  make send-plonk_bls12_381-proof
+```
+
+For BN254
+
+```bash
+  make send-plonk_bn254-proof
 ```
 
 This will send a dummy task to the ServiceManager and an event will be emitted. 
 You should see logs from the operator with the received task's index.
 Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
 
-The plonk proof is located at `task_sender/test_examples`.
+The plonk proofs are located at `task_sender/test_examples`.
 
 ## Developing workflows in testnet
 
@@ -105,8 +132,6 @@ You will also need to redeploy the MockStrategy & MockERC20 contracts:
 ```bash
 make anvil-deploy-mock-strategy
 ```
-
-Then make sure to change the `0_strategy` in the `script/deploy/devnet/aligned.devnet.config.json` file to the new address.
 
 When changing AlignedLayer contracts, the anvil state needs to be updated with:
 
@@ -137,14 +162,24 @@ To register with EigenLayer, run:
 make operator-register-with-eigen-layer
 ```
 
+To get mock tokens (DEVNET ONLY), run:
+```bash
+make operator-mint-mock-tokens
+```
+
 To deposit into strategy, and register with AlignedLayer, run:
 ```bash
 make operator-deposit-and-register
 ```
 
-To just deposit into the strategy, run:
+To just deposit into the strategy run:
 ```bash
-make operator-deposit-into-strategy
+export STRATEGY_ADDRESS=<strategy_address> && make operator-deposit-into-strategy
+```
+
+To deposit into mock strategy (DEVNET ONLY), run:
+```bash
+make operator-deposit-into-mock-strategy
 ```
 
 To just register an operator with AlignedLayer, run:
@@ -288,6 +323,8 @@ make operator-register-with-eigen-layer
 In `config-files/config.yaml` you can find the configuration file for the project.
 
 There is a section for operator, aggregator, and keys. Also, there are common variables for the project.
+
+There are also three other configuration files in the `config-files` directory for operators. They have their own keys and addresses.
 
 ## FAQ
 

@@ -31,15 +31,19 @@ var (
 
 // AlignedLayerServiceManagerTask is an auto generated low-level Go binding around an user-defined struct.
 type AlignedLayerServiceManagerTask struct {
-	VerificationSystemId uint16
-	Proof                []byte
-	PubInput             []byte
-	TaskCreatedBlock     uint32
+	ProvingSystemId            uint16
+	Proof                      []byte
+	PubInput                   []byte
+	VerificationKey            []byte
+	TaskCreatedBlock           uint32
+	QuorumNumbers              []byte
+	QuorumThresholdPercentages []byte
+	Fee                        *big.Int
 }
 
 // AlignedLayerServiceManagerTaskResponse is an auto generated low-level Go binding around an user-defined struct.
 type AlignedLayerServiceManagerTaskResponse struct {
-	TaskIndex      uint64
+	TaskIndex      uint32
 	ProofIsCorrect bool
 }
 
@@ -502,35 +506,35 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCal
 	return _ContractAlignedLayerServiceManager.Contract.IsAggregator(&_ContractAlignedLayerServiceManager.CallOpts, _aggregator)
 }
 
-// LatestTaskNum is a free data retrieval call binding the contract method 0x8b00ce7c.
+// LatestTaskIndexPlusOne is a free data retrieval call binding the contract method 0x97ea533d.
 //
-// Solidity: function latestTaskNum() view returns(uint64)
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCaller) LatestTaskNum(opts *bind.CallOpts) (uint64, error) {
+// Solidity: function latestTaskIndexPlusOne() view returns(uint32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCaller) LatestTaskIndexPlusOne(opts *bind.CallOpts) (uint32, error) {
 	var out []interface{}
-	err := _ContractAlignedLayerServiceManager.contract.Call(opts, &out, "latestTaskNum")
+	err := _ContractAlignedLayerServiceManager.contract.Call(opts, &out, "latestTaskIndexPlusOne")
 
 	if err != nil {
-		return *new(uint64), err
+		return *new(uint32), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(uint64)).(*uint64)
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
 
 	return out0, err
 
 }
 
-// LatestTaskNum is a free data retrieval call binding the contract method 0x8b00ce7c.
+// LatestTaskIndexPlusOne is a free data retrieval call binding the contract method 0x97ea533d.
 //
-// Solidity: function latestTaskNum() view returns(uint64)
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) LatestTaskNum() (uint64, error) {
-	return _ContractAlignedLayerServiceManager.Contract.LatestTaskNum(&_ContractAlignedLayerServiceManager.CallOpts)
+// Solidity: function latestTaskIndexPlusOne() view returns(uint32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) LatestTaskIndexPlusOne() (uint32, error) {
+	return _ContractAlignedLayerServiceManager.Contract.LatestTaskIndexPlusOne(&_ContractAlignedLayerServiceManager.CallOpts)
 }
 
-// LatestTaskNum is a free data retrieval call binding the contract method 0x8b00ce7c.
+// LatestTaskIndexPlusOne is a free data retrieval call binding the contract method 0x97ea533d.
 //
-// Solidity: function latestTaskNum() view returns(uint64)
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCallerSession) LatestTaskNum() (uint64, error) {
-	return _ContractAlignedLayerServiceManager.Contract.LatestTaskNum(&_ContractAlignedLayerServiceManager.CallOpts)
+// Solidity: function latestTaskIndexPlusOne() view returns(uint32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCallerSession) LatestTaskIndexPlusOne() (uint32, error) {
+	return _ContractAlignedLayerServiceManager.Contract.LatestTaskIndexPlusOne(&_ContractAlignedLayerServiceManager.CallOpts)
 }
 
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
@@ -657,6 +661,68 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCal
 	return _ContractAlignedLayerServiceManager.Contract.StaleStakesForbidden(&_ContractAlignedLayerServiceManager.CallOpts)
 }
 
+// TaskHashes is a free data retrieval call binding the contract method 0x42b7b84a.
+//
+// Solidity: function taskHashes(uint32 ) view returns(bytes32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCaller) TaskHashes(opts *bind.CallOpts, arg0 uint32) ([32]byte, error) {
+	var out []interface{}
+	err := _ContractAlignedLayerServiceManager.contract.Call(opts, &out, "taskHashes", arg0)
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// TaskHashes is a free data retrieval call binding the contract method 0x42b7b84a.
+//
+// Solidity: function taskHashes(uint32 ) view returns(bytes32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) TaskHashes(arg0 uint32) ([32]byte, error) {
+	return _ContractAlignedLayerServiceManager.Contract.TaskHashes(&_ContractAlignedLayerServiceManager.CallOpts, arg0)
+}
+
+// TaskHashes is a free data retrieval call binding the contract method 0x42b7b84a.
+//
+// Solidity: function taskHashes(uint32 ) view returns(bytes32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCallerSession) TaskHashes(arg0 uint32) ([32]byte, error) {
+	return _ContractAlignedLayerServiceManager.Contract.TaskHashes(&_ContractAlignedLayerServiceManager.CallOpts, arg0)
+}
+
+// TaskResponses is a free data retrieval call binding the contract method 0x34f7c70a.
+//
+// Solidity: function taskResponses(uint32 ) view returns(bytes32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCaller) TaskResponses(opts *bind.CallOpts, arg0 uint32) ([32]byte, error) {
+	var out []interface{}
+	err := _ContractAlignedLayerServiceManager.contract.Call(opts, &out, "taskResponses", arg0)
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// TaskResponses is a free data retrieval call binding the contract method 0x34f7c70a.
+//
+// Solidity: function taskResponses(uint32 ) view returns(bytes32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) TaskResponses(arg0 uint32) ([32]byte, error) {
+	return _ContractAlignedLayerServiceManager.Contract.TaskResponses(&_ContractAlignedLayerServiceManager.CallOpts, arg0)
+}
+
+// TaskResponses is a free data retrieval call binding the contract method 0x34f7c70a.
+//
+// Solidity: function taskResponses(uint32 ) view returns(bytes32)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCallerSession) TaskResponses(arg0 uint32) ([32]byte, error) {
+	return _ContractAlignedLayerServiceManager.Contract.TaskResponses(&_ContractAlignedLayerServiceManager.CallOpts, arg0)
+}
+
 // TrySignatureAndApkVerification is a free data retrieval call binding the contract method 0x171f1d5b.
 //
 // Solidity: function trySignatureAndApkVerification(bytes32 msgHash, (uint256,uint256) apk, (uint256[2],uint256[2]) apkG2, (uint256,uint256) sigma) view returns(bool pairingSuccessful, bool siganatureIsValid)
@@ -702,25 +768,25 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerCal
 	return _ContractAlignedLayerServiceManager.Contract.TrySignatureAndApkVerification(&_ContractAlignedLayerServiceManager.CallOpts, msgHash, apk, apkG2, sigma)
 }
 
-// CreateNewTask is a paid mutator transaction binding the contract method 0x1e75e1a8.
+// CreateNewTask is a paid mutator transaction binding the contract method 0x33f89230.
 //
-// Solidity: function createNewTask(uint16 verificationSystemId, bytes proof, bytes pubInput) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactor) CreateNewTask(opts *bind.TransactOpts, verificationSystemId uint16, proof []byte, pubInput []byte) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.contract.Transact(opts, "createNewTask", verificationSystemId, proof, pubInput)
+// Solidity: function createNewTask(uint16 provingSystemId, bytes proof, bytes pubInput, bytes verificationKey, bytes quorumNumbers, bytes quorumThresholdPercentages) payable returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactor) CreateNewTask(opts *bind.TransactOpts, provingSystemId uint16, proof []byte, pubInput []byte, verificationKey []byte, quorumNumbers []byte, quorumThresholdPercentages []byte) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.contract.Transact(opts, "createNewTask", provingSystemId, proof, pubInput, verificationKey, quorumNumbers, quorumThresholdPercentages)
 }
 
-// CreateNewTask is a paid mutator transaction binding the contract method 0x1e75e1a8.
+// CreateNewTask is a paid mutator transaction binding the contract method 0x33f89230.
 //
-// Solidity: function createNewTask(uint16 verificationSystemId, bytes proof, bytes pubInput) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) CreateNewTask(verificationSystemId uint16, proof []byte, pubInput []byte) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.Contract.CreateNewTask(&_ContractAlignedLayerServiceManager.TransactOpts, verificationSystemId, proof, pubInput)
+// Solidity: function createNewTask(uint16 provingSystemId, bytes proof, bytes pubInput, bytes verificationKey, bytes quorumNumbers, bytes quorumThresholdPercentages) payable returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) CreateNewTask(provingSystemId uint16, proof []byte, pubInput []byte, verificationKey []byte, quorumNumbers []byte, quorumThresholdPercentages []byte) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.Contract.CreateNewTask(&_ContractAlignedLayerServiceManager.TransactOpts, provingSystemId, proof, pubInput, verificationKey, quorumNumbers, quorumThresholdPercentages)
 }
 
-// CreateNewTask is a paid mutator transaction binding the contract method 0x1e75e1a8.
+// CreateNewTask is a paid mutator transaction binding the contract method 0x33f89230.
 //
-// Solidity: function createNewTask(uint16 verificationSystemId, bytes proof, bytes pubInput) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactorSession) CreateNewTask(verificationSystemId uint16, proof []byte, pubInput []byte) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.Contract.CreateNewTask(&_ContractAlignedLayerServiceManager.TransactOpts, verificationSystemId, proof, pubInput)
+// Solidity: function createNewTask(uint16 provingSystemId, bytes proof, bytes pubInput, bytes verificationKey, bytes quorumNumbers, bytes quorumThresholdPercentages) payable returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactorSession) CreateNewTask(provingSystemId uint16, proof []byte, pubInput []byte, verificationKey []byte, quorumNumbers []byte, quorumThresholdPercentages []byte) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.Contract.CreateNewTask(&_ContractAlignedLayerServiceManager.TransactOpts, provingSystemId, proof, pubInput, verificationKey, quorumNumbers, quorumThresholdPercentages)
 }
 
 // DeregisterOperatorFromAVS is a paid mutator transaction binding the contract method 0xa364f4da.
@@ -807,25 +873,25 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTra
 	return _ContractAlignedLayerServiceManager.Contract.RenounceOwnership(&_ContractAlignedLayerServiceManager.TransactOpts)
 }
 
-// RespondToTask is a paid mutator transaction binding the contract method 0xfb3cb6fb.
+// RespondToTask is a paid mutator transaction binding the contract method 0x57074d6b.
 //
-// Solidity: function respondToTask(uint64 taskIndex, bool proofIsCorrect) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactor) RespondToTask(opts *bind.TransactOpts, taskIndex uint64, proofIsCorrect bool) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.contract.Transact(opts, "respondToTask", taskIndex, proofIsCorrect)
+// Solidity: function respondToTask((uint16,bytes,bytes,bytes,uint32,bytes,bytes,uint256) task, (uint32,bool) taskResponse, (uint32[],(uint256,uint256)[],(uint256,uint256)[],(uint256[2],uint256[2]),(uint256,uint256),uint32[],uint32[],uint32[][]) nonSignerStakesAndSignature) returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactor) RespondToTask(opts *bind.TransactOpts, task AlignedLayerServiceManagerTask, taskResponse AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.contract.Transact(opts, "respondToTask", task, taskResponse, nonSignerStakesAndSignature)
 }
 
-// RespondToTask is a paid mutator transaction binding the contract method 0xfb3cb6fb.
+// RespondToTask is a paid mutator transaction binding the contract method 0x57074d6b.
 //
-// Solidity: function respondToTask(uint64 taskIndex, bool proofIsCorrect) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) RespondToTask(taskIndex uint64, proofIsCorrect bool) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.Contract.RespondToTask(&_ContractAlignedLayerServiceManager.TransactOpts, taskIndex, proofIsCorrect)
+// Solidity: function respondToTask((uint16,bytes,bytes,bytes,uint32,bytes,bytes,uint256) task, (uint32,bool) taskResponse, (uint32[],(uint256,uint256)[],(uint256,uint256)[],(uint256[2],uint256[2]),(uint256,uint256),uint32[],uint32[],uint32[][]) nonSignerStakesAndSignature) returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerSession) RespondToTask(task AlignedLayerServiceManagerTask, taskResponse AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.Contract.RespondToTask(&_ContractAlignedLayerServiceManager.TransactOpts, task, taskResponse, nonSignerStakesAndSignature)
 }
 
-// RespondToTask is a paid mutator transaction binding the contract method 0xfb3cb6fb.
+// RespondToTask is a paid mutator transaction binding the contract method 0x57074d6b.
 //
-// Solidity: function respondToTask(uint64 taskIndex, bool proofIsCorrect) returns()
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactorSession) RespondToTask(taskIndex uint64, proofIsCorrect bool) (*types.Transaction, error) {
-	return _ContractAlignedLayerServiceManager.Contract.RespondToTask(&_ContractAlignedLayerServiceManager.TransactOpts, taskIndex, proofIsCorrect)
+// Solidity: function respondToTask((uint16,bytes,bytes,bytes,uint32,bytes,bytes,uint256) task, (uint32,bool) taskResponse, (uint32[],(uint256,uint256)[],(uint256,uint256)[],(uint256[2],uint256[2]),(uint256,uint256),uint32[],uint32[],uint32[][]) nonSignerStakesAndSignature) returns()
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerTransactorSession) RespondToTask(task AlignedLayerServiceManagerTask, taskResponse AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
+	return _ContractAlignedLayerServiceManager.Contract.RespondToTask(&_ContractAlignedLayerServiceManager.TransactOpts, task, taskResponse, nonSignerStakesAndSignature)
 }
 
 // SetStaleStakesForbidden is a paid mutator transaction binding the contract method 0x416c7e5e.
@@ -1094,15 +1160,15 @@ func (it *ContractAlignedLayerServiceManagerNewTaskCreatedIterator) Close() erro
 
 // ContractAlignedLayerServiceManagerNewTaskCreated represents a NewTaskCreated event raised by the ContractAlignedLayerServiceManager contract.
 type ContractAlignedLayerServiceManagerNewTaskCreated struct {
-	TaskIndex uint64
+	TaskIndex uint32
 	Task      AlignedLayerServiceManagerTask
 	Raw       types.Log // Blockchain specific contextual infos
 }
 
-// FilterNewTaskCreated is a free log retrieval operation binding the contract event 0x2a025356c333070a4727559521f3cf53681906b533943b4ca04a6e5992a73e6c.
+// FilterNewTaskCreated is a free log retrieval operation binding the contract event 0xc5f7fe445e9d6b5ced7a061dbf02398394d724e0056a07582087da164c6ae88d.
 //
-// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,uint32) task)
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) FilterNewTaskCreated(opts *bind.FilterOpts, taskIndex []uint64) (*ContractAlignedLayerServiceManagerNewTaskCreatedIterator, error) {
+// Solidity: event NewTaskCreated(uint32 indexed taskIndex, (uint16,bytes,bytes,bytes,uint32,bytes,bytes,uint256) task)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) FilterNewTaskCreated(opts *bind.FilterOpts, taskIndex []uint32) (*ContractAlignedLayerServiceManagerNewTaskCreatedIterator, error) {
 
 	var taskIndexRule []interface{}
 	for _, taskIndexItem := range taskIndex {
@@ -1116,10 +1182,10 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFil
 	return &ContractAlignedLayerServiceManagerNewTaskCreatedIterator{contract: _ContractAlignedLayerServiceManager.contract, event: "NewTaskCreated", logs: logs, sub: sub}, nil
 }
 
-// WatchNewTaskCreated is a free log subscription operation binding the contract event 0x2a025356c333070a4727559521f3cf53681906b533943b4ca04a6e5992a73e6c.
+// WatchNewTaskCreated is a free log subscription operation binding the contract event 0xc5f7fe445e9d6b5ced7a061dbf02398394d724e0056a07582087da164c6ae88d.
 //
-// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,uint32) task)
-func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) WatchNewTaskCreated(opts *bind.WatchOpts, sink chan<- *ContractAlignedLayerServiceManagerNewTaskCreated, taskIndex []uint64) (event.Subscription, error) {
+// Solidity: event NewTaskCreated(uint32 indexed taskIndex, (uint16,bytes,bytes,bytes,uint32,bytes,bytes,uint256) task)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) WatchNewTaskCreated(opts *bind.WatchOpts, sink chan<- *ContractAlignedLayerServiceManagerNewTaskCreated, taskIndex []uint32) (event.Subscription, error) {
 
 	var taskIndexRule []interface{}
 	for _, taskIndexItem := range taskIndex {
@@ -1158,9 +1224,9 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFil
 	}), nil
 }
 
-// ParseNewTaskCreated is a log parse operation binding the contract event 0x2a025356c333070a4727559521f3cf53681906b533943b4ca04a6e5992a73e6c.
+// ParseNewTaskCreated is a log parse operation binding the contract event 0xc5f7fe445e9d6b5ced7a061dbf02398394d724e0056a07582087da164c6ae88d.
 //
-// Solidity: event NewTaskCreated(uint64 indexed taskIndex, (uint16,bytes,bytes,uint32) task)
+// Solidity: event NewTaskCreated(uint32 indexed taskIndex, (uint16,bytes,bytes,bytes,uint32,bytes,bytes,uint256) task)
 func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) ParseNewTaskCreated(log types.Log) (*ContractAlignedLayerServiceManagerNewTaskCreated, error) {
 	event := new(ContractAlignedLayerServiceManagerNewTaskCreated)
 	if err := _ContractAlignedLayerServiceManager.contract.UnpackLog(event, "NewTaskCreated", log); err != nil {
@@ -1526,15 +1592,26 @@ func (it *ContractAlignedLayerServiceManagerTaskRespondedIterator) Close() error
 
 // ContractAlignedLayerServiceManagerTaskResponded represents a TaskResponded event raised by the ContractAlignedLayerServiceManager contract.
 type ContractAlignedLayerServiceManagerTaskResponded struct {
+<<<<<<< HEAD
 	TaskIndex    uint64
+=======
+	TaskIndex    uint32
+>>>>>>> main
 	TaskResponse AlignedLayerServiceManagerTaskResponse
 	Raw          types.Log // Blockchain specific contextual infos
 }
 
+<<<<<<< HEAD
 // FilterTaskResponded is a free log retrieval operation binding the contract event 0x71f53ebb046fc449a06d3319f5e84c3d0080f4fbcf7c959e1313789fc91b731f.
 //
 // Solidity: event TaskResponded(uint64 indexed taskIndex, (uint64,bool) taskResponse)
 func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) FilterTaskResponded(opts *bind.FilterOpts, taskIndex []uint64) (*ContractAlignedLayerServiceManagerTaskRespondedIterator, error) {
+=======
+// FilterTaskResponded is a free log retrieval operation binding the contract event 0x8093f568fedd692803418ecdd966ebda93313efa011b6af02d1e54625b17d728.
+//
+// Solidity: event TaskResponded(uint32 indexed taskIndex, (uint32,bool) taskResponse)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) FilterTaskResponded(opts *bind.FilterOpts, taskIndex []uint32) (*ContractAlignedLayerServiceManagerTaskRespondedIterator, error) {
+>>>>>>> main
 
 	var taskIndexRule []interface{}
 	for _, taskIndexItem := range taskIndex {
@@ -1548,10 +1625,17 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFil
 	return &ContractAlignedLayerServiceManagerTaskRespondedIterator{contract: _ContractAlignedLayerServiceManager.contract, event: "TaskResponded", logs: logs, sub: sub}, nil
 }
 
+<<<<<<< HEAD
 // WatchTaskResponded is a free log subscription operation binding the contract event 0x71f53ebb046fc449a06d3319f5e84c3d0080f4fbcf7c959e1313789fc91b731f.
 //
 // Solidity: event TaskResponded(uint64 indexed taskIndex, (uint64,bool) taskResponse)
 func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) WatchTaskResponded(opts *bind.WatchOpts, sink chan<- *ContractAlignedLayerServiceManagerTaskResponded, taskIndex []uint64) (event.Subscription, error) {
+=======
+// WatchTaskResponded is a free log subscription operation binding the contract event 0x8093f568fedd692803418ecdd966ebda93313efa011b6af02d1e54625b17d728.
+//
+// Solidity: event TaskResponded(uint32 indexed taskIndex, (uint32,bool) taskResponse)
+func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) WatchTaskResponded(opts *bind.WatchOpts, sink chan<- *ContractAlignedLayerServiceManagerTaskResponded, taskIndex []uint32) (event.Subscription, error) {
+>>>>>>> main
 
 	var taskIndexRule []interface{}
 	for _, taskIndexItem := range taskIndex {
@@ -1590,9 +1674,15 @@ func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFil
 	}), nil
 }
 
+<<<<<<< HEAD
 // ParseTaskResponded is a log parse operation binding the contract event 0x71f53ebb046fc449a06d3319f5e84c3d0080f4fbcf7c959e1313789fc91b731f.
 //
 // Solidity: event TaskResponded(uint64 indexed taskIndex, (uint64,bool) taskResponse)
+=======
+// ParseTaskResponded is a log parse operation binding the contract event 0x8093f568fedd692803418ecdd966ebda93313efa011b6af02d1e54625b17d728.
+//
+// Solidity: event TaskResponded(uint32 indexed taskIndex, (uint32,bool) taskResponse)
+>>>>>>> main
 func (_ContractAlignedLayerServiceManager *ContractAlignedLayerServiceManagerFilterer) ParseTaskResponded(log types.Log) (*ContractAlignedLayerServiceManagerTaskResponded, error) {
 	event := new(ContractAlignedLayerServiceManagerTaskResponded)
 	if err := _ContractAlignedLayerServiceManager.contract.UnpackLog(event, "TaskResponded", log); err != nil {

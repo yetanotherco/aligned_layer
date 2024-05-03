@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"log"
-	"os"
 )
 
 var (
@@ -36,9 +38,9 @@ func main() {
 	}
 }
 
-func aggregatorMain(context *cli.Context) error {
+func aggregatorMain(ctx *cli.Context) error {
 
-	configFilePath := context.String(config.ConfigFileFlag.Name)
+	configFilePath := ctx.String(config.ConfigFileFlag.Name)
 	aggregatorConfig := config.NewAggregatorConfig(configFilePath)
 
 	aggregator, err := pkg.NewAggregator(*aggregatorConfig)
@@ -51,15 +53,12 @@ func aggregatorMain(context *cli.Context) error {
 	go func() {
 		listenErr := aggregator.SubscribeToNewTasks()
 		if listenErr != nil {
-			// TODO: Retry listening for tasks
-			aggregatorConfig.BaseConfig.Logger.Error("Error listening for tasks", "err", listenErr)
+			aggregatorConfig.BaseConfig.Logger.Fatal("Error subscribing for new tasks", "err", listenErr)
 		}
 	}()
 
-	// Listens for task responses signed by operators
-	err = aggregator.ServeOperators()
+	err = aggregator.Start(context.Background())
 	if err != nil {
-		aggregatorConfig.BaseConfig.Logger.Error("Error serving aggregator", "err", err)
 		return err
 	}
 

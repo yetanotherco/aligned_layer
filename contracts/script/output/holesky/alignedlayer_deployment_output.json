@@ -1,29 +1,29 @@
 {
   "addresses": {
-    "alignedLayerProxyAdmin": "0x703E7dE5F528fA828f3BE726802B2092Ae7deb2F",
-    "alignedLayerServiceManager": "0x2fcE68A46aF645A00D0b94C2db48f627040766A7",
-    "alignedLayerServiceManagerImplementation": "0x6115257Aa16F0ECD058d7d946Bd0B3235fB4D560",
-    "blsApkRegistry": "0x88e0e0e884E87F80e604cad2FDDCE61A8CEA7b1b",
-    "blsApkRegistryImplementation": "0x57e9a3e4e7dc6879fC1a40301ba5EF4797393B92",
-    "indexRegistry": "0x93A7b428482149E534f522052d534E31C07795AC",
-    "indexRegistryImplementation": "0xD6C056DCb51157f16b78c3a37eeCf68dA79bFe20",
-    "operatorStateRetriever": "0x6e34d98d4a9b1fffba2158e2A52b03dc97e9C6aF",
-    "registryCoordinator": "0x0a3c8C90199dd83BacA50d911E0D19E4f3032490",
-    "registryCoordinatorImplementation": "0xBA0852223F02924B20504f428131F4417f196F5d",
-    "serviceManagerRouter": "0xE502B9F6f6185908600e4F295338f98e98818c46",
-    "stakeRegistry": "0x9989E4d83384C33Aff37BeB40ACfE59701135d33",
-    "stakeRegistryImplementation": "0x2387A4d8a3270984Cc39D4114406cF99B5535167"
+    "alignedLayerProxyAdmin": "0xF953eDdb64b624FcEbb133f3D991BA05B122bEC8",
+    "alignedLayerServiceManager": "0x02eE8752d9d6ee1B366BD04d24Bbaa3547ABc0c1",
+    "alignedLayerServiceManagerImplementation": "0x76B637f5fDD77a7eb5A37e53508438CC484480cd",
+    "blsApkRegistry": "0x7A7122D7a5194217Be6181c76484dCc10E8BFf83",
+    "blsApkRegistryImplementation": "0x5FC324E99fb6db1859225C3E53b2688ce7FbF5E1",
+    "indexRegistry": "0x879Fce476F58b5691a6AF29C2895e9fDF956642C",
+    "indexRegistryImplementation": "0x6DC4C39E3e6FC3bdbb054C6Cf87FEf8E33DBBCa9",
+    "operatorStateRetriever": "0x942CfD2F80f517D6e6129277b027750D01Aa3Eb1",
+    "registryCoordinator": "0x953F32aE91ec538eBAD2110b3276dEDe9a886519",
+    "registryCoordinatorImplementation": "0x9Afcb760527C386c90a9222Bb4Bf62C44419e3C7",
+    "serviceManagerRouter": "0x1c49661c978c587d98a4dF730CfBaAeE8836d813",
+    "stakeRegistry": "0x77E8329dc5290Ef8BA61A997132316a39f731968",
+    "stakeRegistryImplementation": "0xB4Fe2669dA4ee0A67E292F1f09d2b83E07C0fb26"
   },
   "chainInfo": {
     "chainId": 17000,
-    "deploymentBlock": 1417511
+    "deploymentBlock": 1471520
   },
   "permissions": {
-    "alignedLayerAggregator": "0xA7D66ab47E22255E4c72E5F07A511f31b53beb68",
-    "alignedLayerChurner": "0xA7D66ab47E22255E4c72E5F07A511f31b53beb68",
-    "alignedLayerEjector": "0xA7D66ab47E22255E4c72E5F07A511f31b53beb68",
-    "alignedLayerOwner": "0xA7D66ab47E22255E4c72E5F07A511f31b53beb68",
-    "alignedLayerUpgrader": "0xA7D66ab47E22255E4c72E5F07A511f31b53beb68",
+    "alignedLayerAggregator": "0xAB630768C48Ea979559D475bEB1301680Ca9eE08",
+    "alignedLayerChurner": "0x97aEC5F28181abe5d2aD40dBe7FbaEe014529b7D",
+    "alignedLayerEjector": "0x97aEC5F28181abe5d2aD40dBe7FbaEe014529b7D",
+    "alignedLayerOwner": "0x97aEC5F28181abe5d2aD40dBe7FbaEe014529b7D",
+    "alignedLayerUpgrader": "0x97aEC5F28181abe5d2aD40dBe7FbaEe014529b7D",
     "pauserRegistry": "0x85Ef7299F8311B25642679edBF02B62FA2212F06"
   }
 }
