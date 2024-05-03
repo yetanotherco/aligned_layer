@@ -21,7 +21,6 @@ jobs:
 
       - name: Run Anvil
         run: |
-            make deps
             go install github.com/maoueh/zap-pretty@latest
             go install github.com/ethereum/go-ethereum/cmd/abigen@latest
             make integration-test
