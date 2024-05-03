@@ -49,9 +49,14 @@ The above command starts a local anvil chain from a [saved state](./tests/integr
 
 Make sure to set config file variables to correct value at `config-files/config.yaml`.
 
-To start the aggregator, run:
+To start the aggregator with a default configuration, run:
 ```bash
 make aggregator-start
+```
+
+To use some custom configuration, set the `CONFIG_FILE` parameter with the path to your configuration file:
+```bash
+make aggregator-start CONFIG_FILE=<path_to_your_config> 
 ```
 
 To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
@@ -90,16 +95,27 @@ make operator-start
 
 ### Send task
 
-To send a task to the ServiceManager using the TaskSender CLI, run:
+### Sending a Task Using the TaskSender CLI
+
+To send a task to the ServiceManager using the TaskSender CLI with a specific proving system, you can use one of the following commands depending on the proving system you wish to use:
+
+For BLS12_381
+
 ```bash
-make send-plonk-proof
+  make send-plonk_bls12_381-proof
+```
+
+For BN254
+
+```bash
+  make send-plonk_bn254-proof
 ```
 
 This will send a dummy task to the ServiceManager and an event will be emitted. 
 You should see logs from the operator with the received task's index.
 Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
 
-The plonk proof is located at `task_sender/test_examples`.
+The plonk proofs are located at `task_sender/test_examples`.
 
 ## Developing workflows in testnet
 

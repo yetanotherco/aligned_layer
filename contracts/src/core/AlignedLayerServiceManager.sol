@@ -23,6 +23,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     event NewTaskCreated(uint32 indexed taskIndex, Task task);
     event TaskResponded(uint32 indexed taskIndex, TaskResponse taskResponse);
 
+    uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
+
     // STRUCTS
     struct Task {
         uint16 provingSystemId;
@@ -32,6 +34,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint32 taskCreatedBlock;
         bytes quorumNumbers;
         bytes quorumThresholdPercentages;
+        uint256 fee;
     }
 
     // Task Response
@@ -94,7 +97,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes calldata verificationKey,
         bytes calldata quorumNumbers,
         bytes calldata quorumThresholdPercentages
-    ) external {
+    ) external payable {
+        require(msg.value > 0, "fee must be greater than 0");
+
         Task memory newTask;
 
         newTask.provingSystemId = provingSystemId;
@@ -104,6 +109,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         newTask.taskCreatedBlock = uint32(block.number);
         newTask.quorumNumbers = quorumNumbers;
         newTask.quorumThresholdPercentages = quorumThresholdPercentages;
+        newTask.fee = msg.value;
+
         taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
 
         emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
@@ -114,46 +121,30 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function respondToTask(
         Task calldata task,
         TaskResponse calldata taskResponse,
-        NonSignerStakesAndSignature memory nonSignerStakesAndSignature // TODO: aggregated signature field
+        NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
-        //make sure that the quorumNumbers and signedStakeForQuorums are of the same length
-
-        /*
-        require(
-            batchHeader.quorumNumbers.length == batchHeader.signedStakeForQuorums.length,
-            "EigenDAServiceManager.confirmBatch: quorumNumbers and signedStakeForQuorums must be of the same length"
-        );
-        */
-
-        // check the signature
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
-        // calculate message which operators signed
-
         uint32 taskCreatedBlock = task.taskCreatedBlock;
         bytes calldata quorumNumbers = task.quorumNumbers;
         bytes calldata quorumThresholdPercentages = task
             .quorumThresholdPercentages;
 
         // check that the task is valid, hasn't been responsed yet, and is being responsed in time
-        /*
         require(
-            keccak256(abi.encode(task)) ==
-                allTaskHashes[taskResponse.referenceTaskIndex],
-            "supplied task does not match the one recorded in the contract"
+            keccak256(abi.encode(task)) == taskHashes[taskResponse.taskIndex],
+            "Supplied task does not match the one recorded in the contract"
         );
 
-        // some logical checks
         require(
-            allTaskResponses[taskResponse.referenceTaskIndex] == bytes32(0),
+            taskResponses[taskResponse.taskIndex] == bytes32(0),
             "Aggregator has already responded to the task"
         );
-        */
+
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // calculate message which operators signed
-
         bytes32 message = keccak256(abi.encode(taskResponse));
 
-        // check the BLS signature
+        // check that aggregated BLS signature is valid
         (
             QuorumStakeTotals memory quorumStakeTotals,
             bytes32 hashOfNonSigners
@@ -165,19 +156,17 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             );
 
         // check that signatories own at least a threshold percentage of each quourm
-        /*
         for (uint i = 0; i < quorumNumbers.length; i++) {
-            // we don't check that the quorumThresholdPercentages are not >100 because a greater value would trivially fail the check, implying
-            // signed stake > total stake
             require(
                 quorumStakeTotals.signedStakeForQuorum[i] *
                     _THRESHOLD_DENOMINATOR >=
                     quorumStakeTotals.totalStakeForQuorum[i] *
-                        uint8(quorumThresholdPercentage),
+                        uint8(quorumThresholdPercentages[i]),
                 "Signatories do not own at least threshold percentage of a quorum"
             );
         }
-        */
+
+        payable(aggregator).transfer(task.fee);
 
         emit TaskResponded(
             taskResponse.taskIndex,
