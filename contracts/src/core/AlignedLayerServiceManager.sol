@@ -34,6 +34,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint32 taskCreatedBlock;
         bytes quorumNumbers;
         bytes quorumThresholdPercentages;
+        uint256 fee;
     }
 
     // Task Response
@@ -96,7 +97,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes calldata verificationKey,
         bytes calldata quorumNumbers,
         bytes calldata quorumThresholdPercentages
-    ) external {
+    ) external payable {
+        require(msg.value > 0, "fee must be greater than 0");
+
         Task memory newTask;
 
         newTask.provingSystemId = provingSystemId;
@@ -106,6 +109,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         newTask.taskCreatedBlock = uint32(block.number);
         newTask.quorumNumbers = quorumNumbers;
         newTask.quorumThresholdPercentages = quorumThresholdPercentages;
+        newTask.fee = msg.value;
+
         taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
 
         emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
@@ -116,7 +121,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function respondToTask(
         Task calldata task,
         TaskResponse calldata taskResponse,
-        NonSignerStakesAndSignature memory nonSignerStakesAndSignature // TODO: aggregated signature field
+        NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         uint32 taskCreatedBlock = task.taskCreatedBlock;
@@ -160,6 +165,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
                 "Signatories do not own at least threshold percentage of a quorum"
             );
         }
+
+        payable(aggregator).transfer(task.fee);
 
         emit TaskResponded(
             taskResponse.taskIndex,
