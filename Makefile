@@ -44,7 +44,7 @@ aggregator-send-dummy-responses:
 
 operator-start:
 	@echo "Starting Operator..."
-	go run operator/cmd/main.go --config $(CONFIG_FILE) \
+	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 bindings:
@@ -90,13 +90,13 @@ operator-deposit-into-mock-strategy:
 
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
-	@go run operator/scripts/deposit_into_strategy/main.go \
+	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--amount 1000
 
 operator-register-with-aligned-layer:
 	@echo "Registering operator with AlignedLayer"
-	@go run operator/scripts/register_with_aligned_layer/main.go \
+	@go run operator/cmd/main.go register \
 		--config $(CONFIG_FILE)
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
