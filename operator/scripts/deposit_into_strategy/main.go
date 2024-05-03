@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"log"
+	"math/big"
+	"os"
+
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/elcontracts"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/wallet"
 	"github.com/Layr-Labs/eigensdk-go/chainio/txmgr"
@@ -10,9 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"log"
-	"math/big"
-	"os"
 )
 
 var (
