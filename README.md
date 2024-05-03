@@ -16,22 +16,12 @@ Full documentation and examples will be added soon
 You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
 [jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
-To install zap-pretty and abigen
+To install zap-pretty, abigen, foundry, eigenlayer-cli, jq and yq:
 ```bash
 make deps
 ```
 
-To install foundry
-```bash
-make install-foundry
-```
-Then follow the command line instructions
 Make sure to run `foundryup`
-
-To install eigenlayer-cli
-```bash
-make install-eigenlayer-cli
-```
 
 ## How to use Devnet
 
