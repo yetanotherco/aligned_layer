@@ -13,7 +13,8 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git) to run the examples below.
+You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
+[jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
 To install
 ```bash
@@ -156,14 +157,24 @@ To register with EigenLayer, run:
 make operator-register-with-eigen-layer
 ```
 
+To get mock tokens (DEVNET ONLY), run:
+```bash
+make operator-mint-mock-tokens
+```
+
 To deposit into strategy, and register with AlignedLayer, run:
 ```bash
 make operator-deposit-and-register
 ```
 
-To just deposit into the strategy, run:
+To just deposit into the strategy run:
 ```bash
-make operator-deposit-into-strategy
+export STRATEGY_ADDRESS=<strategy_address> && make operator-deposit-into-strategy
+```
+
+To deposit into mock strategy (DEVNET ONLY), run:
+```bash
+make operator-deposit-into-mock-strategy
 ```
 
 To just register an operator with AlignedLayer, run:
