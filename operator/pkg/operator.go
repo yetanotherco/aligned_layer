@@ -150,23 +150,23 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	switch provingSystemId {
 	case uint16(common.GnarkPlonkBls12_381):
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		VerificationResult := o.VerifyPlonkProofBLS12_381(proof, pubInput, verificationKey)
+		verificationResult := o.verifyPlonkProofBLS12_381(proof, pubInput, verificationKey)
 
-		o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", VerificationResult)
+		o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", verificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
 			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: VerificationResult,
+			ProofIsCorrect: verificationResult,
 		}
 		return taskResponse
 
 	case uint16(common.GnarkPlonkBn254):
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		VerificationResult := o.VerifyPlonkProofBN254(proof, pubInput, verificationKey)
+		verificationResult := o.verifyPlonkProofBN254(proof, pubInput, verificationKey)
 
-		o.Logger.Infof("PLONK BN254 proof verification result: %t", VerificationResult)
+		o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
 			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: VerificationResult,
+			ProofIsCorrect: verificationResult,
 		}
 		return taskResponse
 
@@ -177,12 +177,12 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 }
 
 // VerifyPlonkProofBLS12_381 verifies a PLONK proof using BLS12-381 curve.
-func (o *Operator) VerifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+func (o *Operator) verifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BLS12_381)
 }
 
 // VerifyPlonkProofBN254 verifies a PLONK proof using BN254 curve.
-func (o *Operator) VerifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+func (o *Operator) verifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
