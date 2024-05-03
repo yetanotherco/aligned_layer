@@ -2,8 +2,9 @@
 
 ## Requirements
 
-- Erlang 26
-- Elixir 1.16.2, compiled with OTP 26
+- [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
+- [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
+- [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
 
 ## Local development
 
