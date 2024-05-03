@@ -27,6 +27,6 @@ sleep 10
 
 go test tests/integration_test.go -v
 
-kill ${ANVIL_PID}
-kill ${AGGREGATOR_PID}
-kill ${OPERATOR_PID}
+# kill ${ANVIL_PID}
+# kill ${AGGREGATOR_PID}
+# kill ${OPERATOR_PID}
