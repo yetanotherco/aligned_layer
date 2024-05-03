@@ -18,11 +18,39 @@ jobs:
 
       - name: Install YQ
         uses: chrisdickinson/setup-yq@latest
-
-      - name: Run Anvil
+      
+      - name: Install deps
         run: |
-            sudo apt-get install jq
             go install github.com/maoueh/zap-pretty@latest
             go install github.com/ethereum/go-ethereum/cmd/abigen@latest
             go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
-            make integration-test
+
+      - name: Run Anvil
+        run: |
+            make anvil-start &
+      
+      - name: Run Aggregator
+        run: |
+            make aggregator-start &
+      
+      - name: Run Opperator
+        run: |
+            sleep 10
+            make operator-full-registration
+            sleep 5
+            make operator-start &
+
+      - name: Send tasks
+        run: |
+          sleeping 60
+          echo sending task 1
+          make send-plonk_bls12_381-proof
+
+          echo sending task 2
+          make send-plonk_bn254-proof
+          sleep 60
+      
+      - name: Check results
+        run: |
+          go test tests/integration_test.go -v
+
