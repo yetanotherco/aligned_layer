@@ -127,7 +127,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         // check that the task is valid, hasn't been responsed yet, and is being responsed in time
         require(
             keccak256(abi.encode(task)) == taskHashes[taskResponse.taskIndex],
-            "supplied task does not match the one recorded in the contract"
+            "Supplied task does not match the one recorded in the contract"
         );
 
         require(
