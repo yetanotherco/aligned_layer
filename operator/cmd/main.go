@@ -36,7 +36,10 @@ func operatorMain(ctx *cli.Context) error {
 		return err
 	}
 
-	operator, _ := operator.NewOperatorFromConfig(*operatorConfig)
+	operator, err := operator.NewOperatorFromConfig(*operatorConfig)
+	if err != nil {
+		return err
+	}
 
 	log.Println("Operator starting...")
 	err = operator.Start(context.Background())

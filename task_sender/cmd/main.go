@@ -8,13 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yetanotherco/aligned_layer/core/config"
-	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
-
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 )
 
 var (
@@ -51,8 +50,14 @@ var (
 	feeFlag = &cli.IntFlag{
 		Name:     "fee",
 		Required: false,
-		Value:    1,
+		Value:    1_000_000_000_000_000, // TODO: Estimate the fee
 		Usage:    "the `FEE` in wei to send when sending a task",
+	}
+	quorumThresholdFlag = &cli.UintFlag{
+		Name:    "quorum-threshold",
+		Aliases: []string{"q"},
+		Value:   100,
+		Usage:   "the `QUORUM THRESHOLD PERCENTAGE` for tasks",
 	}
 )
 
@@ -63,6 +68,7 @@ var sendTaskFlags = []cli.Flag{
 	verificationKeyFlag,
 	config.ConfigFileFlag,
 	feeFlag,
+	quorumThresholdFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -73,6 +79,7 @@ var loopTasksFlags = []cli.Flag{
 	config.ConfigFileFlag,
 	intervalFlag,
 	feeFlag,
+	quorumThresholdFlag,
 }
 
 func main() {
@@ -119,7 +126,10 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	var verificationKeyFile []byte
-	if len(c.String("verification-key")) > 0 {
+	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 {
+		if len(c.String("verification-key")) == 0 {
+			return fmt.Errorf("the proving system needs a verification key but it is empty")
+		}
 		verificationKeyFile, err = os.ReadFile(c.String(verificationKeyFlag.Name))
 		if err != nil {
 			return fmt.Errorf("error loading verification key file: %v", err)
@@ -135,9 +145,14 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	taskSender := pkg.NewTaskSender(avsWriter)
-	task := types.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile)
+	quorumThresholdPercentage := c.Uint(quorumThresholdFlag.Name)
 
-	err = taskSender.SendTask(task, fee)
+	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
+	quorumNumbers := eigentypes.QuorumNums{0}
+	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
+	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
+
+	err = taskSender.SendTask(task)
 	if err != nil {
 		return err
 	}
@@ -164,8 +179,10 @@ func taskSenderLoopMain(c *cli.Context) error {
 func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
 	provingSystemStr = strings.TrimSpace(provingSystemStr)
 	switch provingSystemStr {
-	case "plonk":
+	case "plonk_bls12_381":
 		return common.GnarkPlonkBls12_381, nil
+	case "plonk_bn254":
+		return common.GnarkPlonkBn254, nil
 	default:
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)
