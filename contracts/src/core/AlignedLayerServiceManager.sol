@@ -20,15 +20,10 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
 
     // EVENTS
-<<<<<<< HEAD
-    event NewTaskCreated(uint64 indexed taskIndex, Task task);
-    event TaskResponded(uint64 indexed taskIndex, TaskResponse taskResponse);
-=======
     event NewTaskCreated(uint32 indexed taskIndex, Task task);
     event TaskResponded(uint32 indexed taskIndex, TaskResponse taskResponse);
 
     uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
->>>>>>> main
 
     // STRUCTS
     struct Task {
