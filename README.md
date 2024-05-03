@@ -49,9 +49,14 @@ The above command starts a local anvil chain from a [saved state](./tests/integr
 
 Make sure to set config file variables to correct value at `config-files/config.yaml`.
 
-To start the aggregator, run:
+To start the aggregator with a default configuration, run:
 ```bash
 make aggregator-start
+```
+
+To use some custom configuration, set the `CONFIG_FILE` parameter with the path to your configuration file:
+```bash
+make aggregator-start CONFIG_FILE=<path_to_your_config> 
 ```
 
 To run dummy operator to test aggregator SubmitTaskResponse endpoint, run:
