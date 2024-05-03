@@ -1,20 +1,42 @@
 .PHONY: help tests
 
+OS := $(shell uname -s)
+
 CONFIG_FILE?=config-files/config.yaml
+
+ifeq ($(OS),Linux)
+	JQ_INSTALL_CMD = sudo apt-get install jq
+	YQ_INSTALL_CMD = sudo apt-get install yq
+endif
+
+ifeq ($(OS),Darwin)
+	JQ_INSTALL_CMD = brew install jq
+	YQ_INSTALL_CMD = brew install yq
+endif
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-
-deps: ## Install deps
-	git submodule update --init --recursive
-	go install github.com/maoueh/zap-pretty@latest
-	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
 install-eigenlayer-cli:
 	@go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
+
+install-jq:
+	$(JQ_INSTALL_CMD)
+
+install-yq:
+	$(YQ_INSTALL_CMD)
+
+deps: ## Install deps
+	git submodule update --init --recursive
+	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+	make install-foundry
+	make install-eigenlayer-cli
+	make install-jq
+	make install-yq
 
 anvil-deploy-eigen-contracts:
 	@echo "Deploying Eigen Contracts..."
