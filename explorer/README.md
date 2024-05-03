@@ -9,6 +9,12 @@
 
 ### Run the frontend
 
+Set up your environment variables:
+
+```sh
+export RPC_URL=your_rpc_url
+```
+
 To start your Phoenix server:
 
 ```makefile
