@@ -19,10 +19,7 @@ jobs:
       - name: Install YQ
         uses: chrisdickinson/setup-yq@latest
 
-      - name: Install deps
-        run: |
-            make deps
-
       - name: Run Anvil
         run: |
+            make deps
             make integration-test
