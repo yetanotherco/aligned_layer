@@ -24,7 +24,10 @@ jobs:
             go install github.com/maoueh/zap-pretty@latest
             go install github.com/ethereum/go-ethereum/cmd/abigen@latest
             go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
-
+      
+      - name: Setup GO PATH
+        run: echo "export PATH=$PATH:$GITHUB_WORKSPACE/go/bin" >> $GITHUB_ENV
+      
       - name: Run Anvil
         run: |
             make anvil-start &
@@ -42,7 +45,7 @@ jobs:
 
       - name: Send tasks
         run: |
-          sleeping 60
+          sleep 60
           echo sending task 1
           make send-plonk_bls12_381-proof
 
