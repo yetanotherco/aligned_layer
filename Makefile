@@ -156,3 +156,15 @@ deploy-aligned-contracts: ## Deploy Aligned Contracts
 
 build-aligned-contracts:
 	@cd contracts/src/core && forge build
+
+__BUILD__:
+build-binaries:
+	@echo Building aggregator...
+	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
+	@echo Building aligned layer operator...
+	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo Building task sender...
+	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
+
+
+
