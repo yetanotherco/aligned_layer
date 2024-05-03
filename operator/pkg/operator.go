@@ -144,7 +144,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		"task index", newTaskCreatedLog.TaskIndex,
 		"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
 		// "quorumNumbers", newTaskCreatedLog.Task.QuorumNumbers,
-		"QuorumThresholdPercentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
+		"quorum threshold percentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
 	)
 
 	switch provingSystemId {
