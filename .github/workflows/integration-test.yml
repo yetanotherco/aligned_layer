@@ -16,6 +16,10 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
+      - name: Install deps
+        run: |
+            make deps
+
       - name: Run Anvil
         run: |
-            make integration-test &
+            make integration-test
