@@ -53,10 +53,8 @@ bindings:
 test:
 	go test ./...
 
-# make anvil-start & #todo add this in CI, during dev its better to run anvil separately
 integration-test:
-	go test tests/integration_test.go -v
-
+	./tests/integration_test.sh
 
 get-delegation-manager-address:
 	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
