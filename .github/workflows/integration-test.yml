@@ -21,6 +21,8 @@ jobs:
 
       - name: Run Anvil
         run: |
+            sudo apt-get install jq
             go install github.com/maoueh/zap-pretty@latest
             go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+            go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
             make integration-test
