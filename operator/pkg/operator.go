@@ -13,6 +13,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -167,6 +168,17 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		}
 		return taskResponse
 
+	case uint16(common.Groth16Bn254):
+		verificationKey := newTaskCreatedLog.Task.VerificationKey
+		verificationResult := o.verifyGroth16ProofBN254(proof, pubInput, verificationKey)
+
+		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
+		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			TaskIndex:      newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect: verificationResult,
+		}
+		return taskResponse
+
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		return nil
@@ -181,6 +193,11 @@ func (o *Operator) verifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []
 // VerifyPlonkProofBN254 verifies a PLONK proof using BN254 curve.
 func (o *Operator) verifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
+}
+
+// VerifyGroth16ProofBN254 verifies a PLONK proof using BN254 curve.
+func (o *Operator) verifyGroth16ProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	return o.verifyGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
 // verifyPlonkProof contains the common proof verification logic.
@@ -211,6 +228,37 @@ func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	}
 
 	err = plonk.Verify(proof, verificationKey, pubInput)
+	return err == nil
+}
+
+// verifyGroth16Proof contains the common proof verification logic.
+func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+	proofReader := bytes.NewReader(proofBytes)
+	proof := groth16.NewProof(curve)
+	if _, err := proof.ReadFrom(proofReader); err != nil {
+		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		return false
+	}
+
+	pubInputReader := bytes.NewReader(pubInputBytes)
+	pubInput, err := witness.New(curve.ScalarField())
+	if err != nil {
+		o.Logger.Errorf("Error instantiating witness: %v", err)
+		return false
+	}
+	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
+		o.Logger.Errorf("Could not read PLONK public input: %v", err)
+		return false
+	}
+
+	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
+	verificationKey := groth16.NewVerifyingKey(curve)
+	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
+		o.Logger.Errorf("Could not read PLONK verifying key from bytes: %v", err)
+		return false
+	}
+
+	err = groth16.Verify(proof, verificationKey, pubInput)
 	return err == nil
 }
 
