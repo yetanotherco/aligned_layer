@@ -46,6 +46,12 @@ var (
 		Value:   1,
 		Usage:   "the `INTERVAL` in seconds to send tasks",
 	}
+	quorumThresholdFlag = &cli.UintFlag{
+		Name:    "quorum-threshold",
+		Aliases: []string{"q"},
+		Value:   100,
+		Usage:   "the `QUORUM THRESHOLD PERCENTAGE` for tasks",
+	}
 )
 
 var sendTaskFlags = []cli.Flag{
@@ -54,6 +60,7 @@ var sendTaskFlags = []cli.Flag{
 	publicInputFlag,
 	verificationKeyFlag,
 	config.ConfigFileFlag,
+	quorumThresholdFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -63,6 +70,7 @@ var loopTasksFlags = []cli.Flag{
 	verificationKeyFlag,
 	config.ConfigFileFlag,
 	intervalFlag,
+	quorumThresholdFlag,
 }
 
 func main() {
@@ -126,11 +134,11 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	taskSender := pkg.NewTaskSender(avsWriter)
+	quorumThresholdPercentage := c.Uint(quorumThresholdFlag.Name)
 
-	// Hardcoded values - should we get this information from another source? Maybe configuration or CLI parameters?
+	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
 	quorumNumbers := eigentypes.QuorumNums{0}
-	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{100}
-
+	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
 	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages)
 
 	err = taskSender.SendTask(task)

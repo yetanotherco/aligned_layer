@@ -114,6 +114,7 @@ send-plonk_bls12_381-proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--public-input task_sender/test_examples/bls12_381/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/bls12_381/plonk.vk \
 		--config config-files/config.yaml \
+		--quorum-threshold 98 \
 		2>&1 | zap-pretty
 
 send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
