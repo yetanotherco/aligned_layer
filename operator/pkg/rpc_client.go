@@ -52,6 +52,9 @@ func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskRespo
 					c.rpcClient = client
 					c.logger.Info("Reconnected to aggregator")
 				}
+			} else {
+				c.logger.Infof("Received error from aggregator: %s. Retrying ProcessOperatorSignedTaskResponse RPC call...", err)
+				time.Sleep(RetryInterval)
 			}
 		} else {
 			c.logger.Info("Signed task response header accepted by aggregator.", "reply", reply)
