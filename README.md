@@ -13,9 +13,10 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty) and [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git) to run the examples below.
+You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
+[jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
-To install
+To install zap-pretty and abigen
 ```bash
 make deps
 ```
@@ -89,16 +90,27 @@ make operator-start
 
 ### Send task
 
-To send a task to the ServiceManager using the TaskSender CLI, run:
+### Sending a Task Using the TaskSender CLI
+
+To send a task to the ServiceManager using the TaskSender CLI with a specific proving system, you can use one of the following commands depending on the proving system you wish to use:
+
+For BLS12_381
+
 ```bash
-make send-plonk-proof
+  make send-plonk_bls12_381-proof
+```
+
+For BN254
+
+```bash
+  make send-plonk_bn254-proof
 ```
 
 This will send a dummy task to the ServiceManager and an event will be emitted. 
 You should see logs from the operator with the received task's index.
 Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
 
-The plonk proof is located at `task_sender/test_examples`.
+The plonk proofs are located at `task_sender/test_examples`.
 
 ## Developing workflows in testnet
 
@@ -145,14 +157,24 @@ To register with EigenLayer, run:
 make operator-register-with-eigen-layer
 ```
 
+To get mock tokens (DEVNET ONLY), run:
+```bash
+make operator-mint-mock-tokens
+```
+
 To deposit into strategy, and register with AlignedLayer, run:
 ```bash
 make operator-deposit-and-register
 ```
 
-To just deposit into the strategy, run:
+To just deposit into the strategy run:
 ```bash
-make operator-deposit-into-strategy
+export STRATEGY_ADDRESS=<strategy_address> && make operator-deposit-into-strategy
+```
+
+To deposit into mock strategy (DEVNET ONLY), run:
+```bash
+make operator-deposit-into-mock-strategy
 ```
 
 To just register an operator with AlignedLayer, run:
