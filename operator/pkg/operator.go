@@ -66,8 +66,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	}
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
-	// FIXME(marian): We should not hardcode the aggregator IP:PORT address
-	rpcClient, err := NewAggregatorRpcClient("localhost:8090", logger)
+	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
 	}
