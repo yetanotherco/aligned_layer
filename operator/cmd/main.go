@@ -44,6 +44,7 @@ var registerFlags = []cli.Flag{
 var depositFlags = []cli.Flag{
 	AmountFlag,
 	StrategyAddressFlag,
+	config.ConfigFileFlag,
 }
 
 var startFlags = []cli.Flag{
@@ -168,7 +169,7 @@ func depositIntoStrategyMain(ctx *cli.Context) error {
 		return nil
 	}
 
-	configuration := config.NewOperatorConfig(ctx.String(config.ConfigFileFlag.Name))
+	config := config.NewOperatorConfig(ctx.String(config.ConfigFileFlag.Name))
 	strategyAddressStr := ctx.String(StrategyAddressFlag.Name)
 	if strategyAddressStr == "" {
 		log.Println("Strategy address is required")
@@ -177,35 +178,35 @@ func depositIntoStrategyMain(ctx *cli.Context) error {
 	log.Println("Depositing into strategy", strategyAddressStr)
 	strategyAddr := common.HexToAddress(strategyAddressStr)
 
-	delegationManagerAddr := configuration.BaseConfig.EigenLayerDeploymentConfig.DelegationManagerAddr
-	avsDirectoryAddr := configuration.BaseConfig.EigenLayerDeploymentConfig.AVSDirectoryAddr
+	delegationManagerAddr := config.BaseConfig.EigenLayerDeploymentConfig.DelegationManagerAddr
+	avsDirectoryAddr := config.BaseConfig.EigenLayerDeploymentConfig.AVSDirectoryAddr
 
 	signerConfig := signerv2.Config{
-		PrivateKey: configuration.EcdsaConfig.PrivateKey,
+		PrivateKey: config.EcdsaConfig.PrivateKey,
 	}
-	signerFn, _, err := signerv2.SignerFromConfig(signerConfig, configuration.BaseConfig.ChainId)
+	signerFn, _, err := signerv2.SignerFromConfig(signerConfig, config.BaseConfig.ChainId)
 	if err != nil {
 		return err
 	}
-	w, err := wallet.NewPrivateKeyWallet(configuration.BaseConfig.EthRpcClient, signerFn,
-		configuration.Operator.Address, configuration.BaseConfig.Logger)
+	w, err := wallet.NewPrivateKeyWallet(config.BaseConfig.EthRpcClient, signerFn,
+		config.Operator.Address, config.BaseConfig.Logger)
 
 	if err != nil {
 		return err
 	}
 
-	txMgr := txmgr.NewSimpleTxManager(w, configuration.BaseConfig.EthRpcClient, configuration.BaseConfig.Logger,
-		configuration.Operator.Address)
+	txMgr := txmgr.NewSimpleTxManager(w, config.BaseConfig.EthRpcClient, config.BaseConfig.Logger,
+		config.Operator.Address)
 	eigenMetrics := metrics.NewNoopMetrics()
 	eigenLayerWriter, err := elcontracts.BuildELChainWriter(delegationManagerAddr, avsDirectoryAddr,
-		configuration.BaseConfig.EthRpcClient, configuration.BaseConfig.Logger, eigenMetrics, txMgr)
+		config.BaseConfig.EthRpcClient, config.BaseConfig.Logger, eigenMetrics, txMgr)
 	if err != nil {
 		return err
 	}
 
 	_, err = eigenLayerWriter.DepositERC20IntoStrategy(context.Background(), strategyAddr, amount)
 	if err != nil {
-		configuration.BaseConfig.Logger.Errorf("Error depositing into strategy")
+		config.BaseConfig.Logger.Errorf("Error depositing into strategy")
 		return err
 	}
 	return nil

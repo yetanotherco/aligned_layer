@@ -83,7 +83,7 @@ operator-deposit-into-mock-strategy:
 	@echo "Depositing into strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
 
-	@go run operator/scripts/deposit_into_strategy/main.go \
+	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 1000
