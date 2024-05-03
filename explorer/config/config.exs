@@ -62,18 +62,22 @@ config :phoenix, :json_library, Jason
 
 # Configures Ethers, to interact with Ethereum contracts
 config :ethers,
-  rpc_client: Ethereumex.HttpClient, # Defaults to: Ethereumex.HttpClient
-  keccak_module: ExKeccak, # Defaults to: ExKeccak
-  json_module: Jason, # Defaults to: Jason
-  secp256k1_module: ExSecp256k1, # Defaults to: ExSecp256k1
-  default_signer: nil, # Defaults to: nil, see Ethers.Signer for more info
-  default_signer_opts: [] # Defaults to: []
+  # Defaults to: Ethereumex.HttpClient
+  rpc_client: Ethereumex.HttpClient,
+  # Defaults to: ExKeccak
+  keccak_module: ExKeccak,
+  # Defaults to: Jason
+  json_module: Jason,
+  # Defaults to: ExSecp256k1
+  secp256k1_module: ExSecp256k1,
+  # Defaults to: nil, see Ethers.Signer for more info
+  default_signer: nil,
+  # Defaults to: []
+  default_signer_opts: []
 
 # Using Ethereumex, you can specify a default JSON-RPC server url here for all requests.
 config :ethereumex,
-  # url: "https://eth-holesky.blastapi.io/c95adca8-6006-4d77-9545-ea0314ce7ed5" #holesky
-  # url: "https://eth-sepolia.g.alchemy.com/v2/_vb8phUYNf2WDwohwjqxMlL5AwsYIXaK" #sepolia
-  url: "http://localhost:8545" # TODO: change local devnet to RPC endpoint
+  url: System.get_env("RPC_URL")
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
