@@ -35,7 +35,7 @@ anvil-start:
 # TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	@go run aggregator/cmd/main.go --config config-files/config.yaml \
+	@go run aggregator/cmd/main.go --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 aggregator-send-dummy-responses:
