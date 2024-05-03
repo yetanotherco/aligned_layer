@@ -6,7 +6,6 @@ CONFIG_FILE?=config-files/config.yaml
 
 ifeq ($(OS),Linux)
 	JQ_INSTALL_CMD = sudo apt-get install jq
-	YQ_INSTALL_CMD = brew install yq
 endif
 
 ifeq ($(OS),Darwin)
