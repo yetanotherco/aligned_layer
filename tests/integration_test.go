@@ -49,7 +49,7 @@ func TestEventsReader(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	abiFilePath := "/Users/urix/aligned_layer/tests/AlignedLAyerServiceManager.json"
+	abiFilePath := "/Users/urix/aligned_layer/tests/AlignedLayerServiceManager.json"
 	contractAbi, err := getAlignedABI(abiFilePath)
 	if err != nil {
 		log.Fatal(err)

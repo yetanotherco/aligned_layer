@@ -19,8 +19,3 @@ jobs:
       - name: Run Anvil
         run: |
             make integration-test &
-
-      - name: Run Anvil
-        run: |
-            go test tests/integration_test.go -v
-            exit 0

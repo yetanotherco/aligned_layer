@@ -23,9 +23,10 @@ make send-plonk_bls12_381-proof &> /dev/null
 echo sending task
 make send-plonk_bn254-proof &> /dev/null
 
-#uncomment to run locally:
-# sleep 3600
+sleep 10
 
-# kill ${ANVIL_PID}
-# kill ${AGGREGATOR_PID}
-# kill ${OPERATOR_PID}
+go test tests/integration_test.go -v
+
+kill ${ANVIL_PID}
+kill ${AGGREGATOR_PID}
+kill ${OPERATOR_PID}
