@@ -50,7 +50,7 @@ func TestIntegration(t *testing.T) {
 	// start aggregator
 	aggregator := buildAggregator(t, configFilePath)
 	go func() {
-		err := aggregator.x()
+		err := aggregator.ServeOperators()
 		assert.Nil(t, err, "Could not start aggregator")
 	}()
 	fmt.Println("Aggregator started")
@@ -75,7 +75,7 @@ func TestIntegration(t *testing.T) {
 	fmt.Println("Operator started")
 
 	// send task
-	cmd = exec.Command("make", "send-plonk-proof")
+	cmd = exec.Command("make", "send-plonk_bls12_381-proof")
 	cmd.Stdout = &out
 	err = cmd.Run()
 	if err != nil {
@@ -85,7 +85,7 @@ func TestIntegration(t *testing.T) {
 
 	// send task #2
 	// var out bytes.Buffer
-	cmd = exec.Command("make", "send-plonk-proof")
+	cmd = exec.Command("make", "send-plonk_bn254-proof")
 	// cmd.Stdout = &out
 	err = cmd.Run()
 	if err != nil {
@@ -116,7 +116,7 @@ func TestIntegration(t *testing.T) {
 	// fmt.Println("value")
 	// fmt.Print(logs)
 	assert.NotEmpty(t, logs, "No New Events found")
-	fmt.Println("TaskCreated Event found")
+	fmt.Println("Events found")
 	fmt.Println("logs:")
 	fmt.Println(logs)
 
