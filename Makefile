@@ -6,8 +6,7 @@ CONFIG_FILE?=config-files/config.yaml
 
 ifeq ($(OS),Linux)
 	JQ_INSTALL_CMD = sudo apt-get install jq
-	YQ_INSTALL_CMD = wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq &&\
-                         chmod +x /usr/bin/yq
+	YQ_INSTALL_CMD = ls
 endif
 
 ifeq ($(OS),Darwin)
