@@ -20,8 +20,10 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
 
     // EVENTS
-    event NewTaskCreated(uint64 indexed taskIndex, Task task);
-    event TaskResponded(uint64 indexed taskIndex, TaskResponse taskResponse);
+    event NewTaskCreated(uint32 indexed taskIndex, Task task);
+    event TaskResponded(uint32 indexed taskIndex, TaskResponse taskResponse);
+
+    uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
 
     // STRUCTS
     struct Task {
@@ -30,20 +32,25 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes pubInput;
         bytes verificationKey;
         uint32 taskCreatedBlock;
-        uint8 quorumThresholdPercentage;
+        bytes quorumNumbers;
+        bytes quorumThresholdPercentages;
     }
 
     // Task Response
     // In case of changing this response, change AbiEncodeTaskResponse
     // since it won't be updated automatically
     struct TaskResponse {
-        uint64 taskIndex;
+        uint32 taskIndex;
         bool proofIsCorrect;
     }
 
     /* STORAGE */
-    // The latest task index
-    uint64 public latestTaskNum;
+    uint32 public latestTaskIndexPlusOne;
+
+    mapping(uint32 => bytes32) public taskHashes;
+
+    // mapping of task indices to hash of abi.encode(taskResponse, taskResponseMetadata)
+    mapping(uint32 => bytes32) public taskResponses;
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -85,28 +92,78 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint16 provingSystemId,
         bytes calldata proof,
         bytes calldata pubInput,
-        // This is only mandatory for KZG based proving systems
+        // This parameter is only mandatory for KZG based proving systems
         bytes calldata verificationKey,
-        uint8 quorumThresholdPercentage
+        bytes calldata quorumNumbers,
+        bytes calldata quorumThresholdPercentages
     ) external {
-        // create a new task struct
         Task memory newTask;
+
         newTask.provingSystemId = provingSystemId;
         newTask.proof = proof;
         newTask.pubInput = pubInput;
         newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);
-        newTask.quorumThresholdPercentage = quorumThresholdPercentage;
+        newTask.quorumNumbers = quorumNumbers;
+        newTask.quorumThresholdPercentages = quorumThresholdPercentages;
+        taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
 
-        emit NewTaskCreated(latestTaskNum, newTask);
-        latestTaskNum = latestTaskNum + 1;
+        emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
+
+        latestTaskIndexPlusOne = latestTaskIndexPlusOne + 1;
     }
 
     function respondToTask(
-        uint64 taskIndex,
-        bool proofIsCorrect // TODO: aggregated signature field
+        Task calldata task,
+        TaskResponse calldata taskResponse,
+        NonSignerStakesAndSignature memory nonSignerStakesAndSignature // TODO: aggregated signature field
     ) external {
-        // TODO: actually do something with the aggregated signature
-        emit TaskResponded(taskIndex, TaskResponse(taskIndex, proofIsCorrect));
+        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        uint32 taskCreatedBlock = task.taskCreatedBlock;
+        bytes calldata quorumNumbers = task.quorumNumbers;
+        bytes calldata quorumThresholdPercentages = task
+            .quorumThresholdPercentages;
+
+        // check that the task is valid, hasn't been responsed yet, and is being responsed in time
+        require(
+            keccak256(abi.encode(task)) == taskHashes[taskResponse.taskIndex],
+            "Supplied task does not match the one recorded in the contract"
+        );
+
+        require(
+            taskResponses[taskResponse.taskIndex] == bytes32(0),
+            "Aggregator has already responded to the task"
+        );
+
+        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        // calculate message which operators signed
+        bytes32 message = keccak256(abi.encode(taskResponse));
+
+        // check that aggregated BLS signature is valid
+        (
+            QuorumStakeTotals memory quorumStakeTotals,
+            bytes32 hashOfNonSigners
+        ) = checkSignatures(
+                message,
+                quorumNumbers,
+                taskCreatedBlock,
+                nonSignerStakesAndSignature
+            );
+
+        // check that signatories own at least a threshold percentage of each quourm
+        for (uint i = 0; i < quorumNumbers.length; i++) {
+            require(
+                quorumStakeTotals.signedStakeForQuorum[i] *
+                    _THRESHOLD_DENOMINATOR >=
+                    quorumStakeTotals.totalStakeForQuorum[i] *
+                        uint8(quorumThresholdPercentages[i]),
+                "Signatories do not own at least threshold percentage of a quorum"
+            );
+        }
+
+        emit TaskResponded(
+            taskResponse.taskIndex,
+            TaskResponse(taskResponse.taskIndex, taskResponse.proofIsCorrect)
+        );
     }
 }
