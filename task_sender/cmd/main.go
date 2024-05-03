@@ -7,12 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Layr-Labs/eigensdk-go/types"
-	"github.com/yetanotherco/aligned_layer/core/config"
-
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 )
 
@@ -110,7 +109,7 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	var verificationKeyFile []byte
-	if provingSystem == common.GnarkPlonkBls12_381 {
+	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 {
 		if len(c.String("verification-key")) == 0 {
 			return fmt.Errorf("the proving system needs a verification key but it is empty")
 		}
@@ -129,8 +128,8 @@ func taskSenderMain(c *cli.Context) error {
 	taskSender := pkg.NewTaskSender(avsWriter)
 
 	// Hardcoded values - should we get this information from another source? Maybe configuration or CLI parameters?
-	quorumNumbers := types.QuorumNums{0}
-	quorumThresholdPercentages := []types.QuorumThresholdPercentage{100}
+	quorumNumbers := eigentypes.QuorumNums{0}
+	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{100}
 
 	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages)
 
@@ -161,8 +160,10 @@ func taskSenderLoopMain(c *cli.Context) error {
 func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
 	provingSystemStr = strings.TrimSpace(provingSystemStr)
 	switch provingSystemStr {
-	case "plonk":
+	case "plonk_bls12_381":
 		return common.GnarkPlonkBls12_381, nil
+	case "plonk_bn254":
+		return common.GnarkPlonkBn254, nil
 	default:
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)
