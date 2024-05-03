@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -46,6 +47,12 @@ var (
 		Value:   1,
 		Usage:   "the `INTERVAL` in seconds to send tasks",
 	}
+	feeFlag = &cli.IntFlag{
+		Name:     "fee",
+		Required: false,
+		Value:    1,
+		Usage:    "the `FEE` in wei to send when sending a task",
+	}
 	quorumThresholdFlag = &cli.UintFlag{
 		Name:    "quorum-threshold",
 		Aliases: []string{"q"},
@@ -60,6 +67,7 @@ var sendTaskFlags = []cli.Flag{
 	publicInputFlag,
 	verificationKeyFlag,
 	config.ConfigFileFlag,
+	feeFlag,
 	quorumThresholdFlag,
 }
 
@@ -70,6 +78,7 @@ var loopTasksFlags = []cli.Flag{
 	verificationKeyFlag,
 	config.ConfigFileFlag,
 	intervalFlag,
+	feeFlag,
 	quorumThresholdFlag,
 }
 
@@ -127,6 +136,8 @@ func taskSenderMain(c *cli.Context) error {
 		}
 	}
 
+	fee := big.NewInt(int64(c.Int(feeFlag.Name)))
+
 	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
 	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
 	if err != nil {
@@ -139,7 +150,7 @@ func taskSenderMain(c *cli.Context) error {
 	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
 	quorumNumbers := eigentypes.QuorumNums{0}
 	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
-	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages)
+	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
 
 	err = taskSender.SendTask(task)
 	if err != nil {

@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"log"
+	"math/big"
 
 	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/yetanotherco/aligned_layer/common"
@@ -16,9 +17,10 @@ type Task struct {
 	VerificationKey            []byte
 	QuorumNumbers              types.QuorumNums
 	QuorumThresholdPercentages types.QuorumThresholdPercentages
+	Fee                        *big.Int
 }
 
-func NewTask(provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages) *Task {
+func NewTask(provingSystemId common.ProvingSystemId, proof []byte, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) *Task {
 	return &Task{
 		ProvingSystem:              provingSystemId,
 		Proof:                      proof,
@@ -26,6 +28,7 @@ func NewTask(provingSystemId common.ProvingSystemId, proof []byte, publicInput [
 		VerificationKey:            verificationKey,
 		QuorumNumbers:              quorumNumbers,
 		QuorumThresholdPercentages: quorumThresholdPercentages,
+		Fee:                        fee,
 	}
 }
 
@@ -49,6 +52,7 @@ func (ts *TaskSender) SendTask(task *Task) error {
 		task.VerificationKey,
 		task.QuorumNumbers,
 		task.QuorumThresholdPercentages,
+		task.Fee,
 	)
 	if err != nil {
 		return err
