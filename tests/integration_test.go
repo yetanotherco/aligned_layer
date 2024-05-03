@@ -4,6 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"log"
+	"math/big"
+	"net/http"
+	"os"
+	// "time"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -12,13 +18,9 @@ import (
 	"github.com/yetanotherco/aligned_layer/aggregator/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
-	"log"
-	"math/big"
-	"net/http"
-	"os"
 
-	"os/exec"
 	"bytes"
+	"os/exec"
 
 	"regexp"
 	"strings"
@@ -37,7 +39,7 @@ func TestIntegration(t *testing.T) {
 	if !result {
 		t.Fatalf("Expected Anvil to be running, in port %s but it was not.", anvilPort)
 	}
-	fmt.Println("alignedContractAddress: " + alignedContractAddress)
+	// fmt.Println("alignedContractAddress: " + alignedContractAddress)
 
 	// Setup RPC client
 	client, err := ethclient.Dial("http://localhost:" + anvilPort)
@@ -48,10 +50,21 @@ func TestIntegration(t *testing.T) {
 	// start aggregator
 	aggregator := buildAggregator(t, configFilePath)
 	go func() {
-		err := aggregator.ServeOperators()
+		err := aggregator.x()
 		assert.Nil(t, err, "Could not start aggregator")
 	}()
 	fmt.Println("Aggregator started")
+
+	// register operator
+	var out bytes.Buffer
+	cmd := exec.Command("make", "operator-full-registration") //this is running a bit wonky?
+	cmd.Stdout = &out
+	err = cmd.Run()
+	if err != nil {
+		log.Fatalf("cmd.Run() failed with %s\n", err)
+	}
+	fmt.Println("Operator registered")
+	fmt.Println("Output:", out.String())
 
 	// start operator
 	op := buildOperator(t, configFilePath)
@@ -59,16 +72,26 @@ func TestIntegration(t *testing.T) {
 		err := op.Start(context.Background())
 		assert.Nil(t, err, "Could not start operator")
 	}()
+	fmt.Println("Operator started")
 
 	// send task
-	var out bytes.Buffer
-	cmd := exec.Command("make", "send-plonk-proof")
+	cmd = exec.Command("make", "send-plonk-proof")
 	cmd.Stdout = &out
 	err = cmd.Run()
 	if err != nil {
 		log.Fatalf("cmd.Run() failed with %s\n", err)
 	}
 	fmt.Println("Task sent successfully")
+
+	// send task #2
+	// var out bytes.Buffer
+	cmd = exec.Command("make", "send-plonk-proof")
+	// cmd.Stdout = &out
+	err = cmd.Run()
+	if err != nil {
+		log.Fatalf("cmd.Run() failed with %s\n", err)
+	}
+	fmt.Println("Task #2 sent successfully")
 
 	// check if contract sent event
 	query := ethereum.FilterQuery{
@@ -82,33 +105,54 @@ func TestIntegration(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// contractAbi, err := abi.JSON(strings.NewReader(string(store.StoreABI)))
-	a, err := getAlignedABI()
+
+	abiFilePath := "/Users/urix/aligned_layer/tests/AlignedLAyerServiceManager.json"
+	contractAbi, err := getAlignedABI(abiFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(a)
+	fmt.Println(contractAbi)
 
-	fmt.Println("value")
-	fmt.Print(logs)
-	assert.NotEmpty(t, logs, "No NewTaskCreated Events found")
-	// for _, vLog := range logs {
-	// 	event := struct {
-	// 		Key   [32]byte
-	// 		Value [32]byte
-	// 	}{}
-	// 	value, err := contractAbi.Unpack("NewTaskCreated", vLog.Data)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
+	// fmt.Println("value")
+	// fmt.Print(logs)
+	assert.NotEmpty(t, logs, "No New Events found")
+	fmt.Println("TaskCreated Event found")
+	fmt.Println("logs:")
+	fmt.Println(logs)
 
-	// 	fmt.Println("value")
-	// 	fmt.Println(value)
+	for _, vLog := range logs {
+		value, err := contractAbi.Unpack("NewTaskCreated", vLog.Data)
+		if err != nil {
+			fmt.Println("err")
+			log.Fatal(err)
+		} else {
+			fmt.Println("value")
+			fmt.Println(value)
+		}
+
+		// fmt.Println("topics")
+		// var topics [4]string
+		// for i := range vLog.Topics {
+		// 	fmt.Println("topic")
+		// 	topics[i] = vLog.Topics[i].Hex()
+		// 	fmt.Println(topics[i])
+		// }
+		// if id == 0 {
+		// 	assert.Equal(t, topics[1], 0x0, "Expected NewTaskCreated event with taskId 0")
+		// } else if id == 1 {
+		// 	assert.Equal(t, topics[1], 0x1, "Expected NewTaskCreated event with taskId 1")
+		// }
+	}
+
+	assert.Equal(t, "0x0000000000000000000000000000000000000000000000000000000000000000", logs[0].Topics[1].Hex(), "Expected NewTaskCreated event with taskId 0")
+	assert.Equal(t, "0x0000000000000000000000000000000000000000000000000000000000000001", logs[1].Topics[1].Hex(), "Expected NewTaskCreated event with taskId 0")
 
 	// 	assert.NotEmpty(t, value)
+	// 	fmt.Println("TaskCreated Event found? ::")
+	// 	fmt.Println(t)
 
-	// 	fmt.Println(string(event.Key[:]))   // foo
-	// 	fmt.Println(string(event.Value[:])) // bar
+	// 	// fmt.Println(string(event.Key[:]))   // foo
+	// 	// fmt.Println(string(event.Value[:])) // bar
 	// }
 
 	//check if aggregator send to operator
@@ -117,9 +161,7 @@ func TestIntegration(t *testing.T) {
 
 }
 
-func getAlignedABI() (abi.ABI, error) {
-	abiFilePath := "/Users/urix/aligned_layer/tests/AlignedLAyerServiceManager.json"
-
+func getAlignedABI(abiFilePath string) (abi.ABI, error) {
 	abiBytes, err := os.ReadFile(abiFilePath)
 	if err != nil {
 		log.Fatalf("Failed to read ABI file: %v", err)
@@ -181,6 +223,7 @@ func buildAggregator(t *testing.T, configFile string) *pkg.Aggregator {
 }
 
 func buildOperator(t *testing.T, configFile string) *operator.Operator {
+	//TODO missing register Operator to Aggregator
 	operatorConfig := config.NewOperatorConfig(configFile)
 
 	opereator, err := operator.NewOperatorFromConfig(*operatorConfig)
