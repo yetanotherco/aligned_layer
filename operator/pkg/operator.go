@@ -23,6 +23,8 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 	"github.com/yetanotherco/aligned_layer/operator/cairo_platinum"
+	"github.com/yetanotherco/aligned_layer/operator/kimchi"
+
 	"golang.org/x/crypto/sha3"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -133,7 +135,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	proofLen := (uint)(len(proof))
 
 	pubInput := newTaskCreatedLog.Task.PubInput
-	// pubInputLen := (uint)(len(pubInput))
+	pubInputLen := (uint)(len(pubInput))
 
 	provingSystemId := newTaskCreatedLog.Task.ProvingSystemId
 
@@ -181,6 +183,19 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		}
 		return taskResponse
 
+	case uint16(common.Kimchi):
+		proofBuffer := make([]byte, kimchi.MAX_PROOF_SIZE)
+		copy(proofBuffer, proof)
+		pubInputBuffer := make([]byte, kimchi.MAX_PUB_INPUT_SIZE)
+		copy(pubInputBuffer, pubInput)
+
+		verificationResult := kimchi.VerifyKimchiProof(([kimchi.MAX_PROOF_SIZE]byte)(proofBuffer), (uint)(proofLen), ([kimchi.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		o.Logger.Infof("Kimchi proof verification result: %t", verificationResult)
+		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			TaskIndex:      newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect: verificationResult,
+		}
+		return taskResponse
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		return nil

@@ -154,8 +154,21 @@ send-cairo-proof:
 	go run task_sender/cmd/main.go send-task \
 		--proving-system cairo_platinum \
 		--proof task_sender/test_examples/cairo_platinum/fibo_5.proof \
+		--public-input task_sender/test_examples/cairo_platinum/fibo_5.pub \  # Adjust path as necessary
+		2>&1 | zap-pretty
+
+
+send-kimchi-proof:
+	@echo "Sending KIMCHI proof..."
+	go run task_sender/cmd/main.go send-task \
+		--proving-system kimchi \
+		--proof task_sender/test_examples/kimchi/kimchi_ec_add.proof \
+		--public-input task_sender/test_examples/kimchi/kimchi_verifier_index.bin \
+		--verification-key task_sender/test_examples/kimchi/kimchi.vk \
 		--config config-files/config.yaml \
 		2>&1 | zap-pretty
+
+
 
 
 __DEPLOYMENT__:
@@ -179,3 +192,16 @@ build-cairo-ffi-linux:
 		&& cargo build --release \
 		&& cp target/release/libcairo_platinum_ffi.so ./libcairo_platinum.so \
 		&& cp target/release/libcairo_platinum_ffi.a ./libcairo_platinum.a 
+
+
+__KIMCHI_FFI__: ## 
+build-kimchi-macos:
+	@cd operator/kimchi/lib && cargo build --release
+	@cp operator/kimchi/lib/target/release/libkimchi_verifier_ffi.dylib operator/kimchi/lib/libkimchi_verifier.dylib
+
+build-kimchi-linux:
+	@cd operator/kimchi/lib && cargo build --release
+	@cp operator/kimchi/lib/target/release/libkimchi_verifier_ffi.so operator/kimchi/lib/libkimchi_verifier.so
+
+test-kimchi-ffi: 
+	go test ./operator/kimchi/... -v

@@ -126,7 +126,7 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	var verificationKeyFile []byte
-	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 {
+	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 || provingSystem == common.Kimchi {
 		if len(c.String("verification-key")) == 0 {
 			return fmt.Errorf("the proving system needs a verification key but it is empty")
 		}
@@ -187,6 +187,8 @@ func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 		return common.GnarkPlonkBn254, nil
 	case "cairo_platinum":
 		return common.LambdaworksCairo, nil
+	case "kimchi":
+		return common.Kimchi, nil
 	default:
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)

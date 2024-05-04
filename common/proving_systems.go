@@ -6,4 +6,5 @@ const (
 	GnarkPlonkBls12_381 ProvingSystemId = iota
 	GnarkPlonkBn254
 	LambdaworksCairo
+	Kimchi
 )
