@@ -172,12 +172,12 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		proofBuffer := make([]byte, cairo_platinum.MAX_PROOF_SIZE)
 		copy(proofBuffer, proof)
 
-		VerificationResult := cairo_platinum.VerifyCairoProof100Bits(([cairo_platinum.MAX_PROOF_SIZE]byte)(proofBuffer), (uint)(proofLen))
+		verificationResult := cairo_platinum.VerifyCairoProof100Bits(([cairo_platinum.MAX_PROOF_SIZE]byte)(proofBuffer), (uint)(proofLen))
 
-		o.Logger.Infof("CAIRO proof verification result: %t", VerificationResult)
+		o.Logger.Infof("CAIRO proof verification result: %t", verificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
 			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: VerificationResult,
+			ProofIsCorrect: verificationResult,
 		}
 		return taskResponse
 
