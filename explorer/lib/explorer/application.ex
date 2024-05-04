@@ -4,6 +4,7 @@ defmodule Explorer.Application do
   @moduledoc false
 
   use Application
+  require Logger
 
   @impl true
   def start(_type, _args) do
@@ -68,6 +69,7 @@ defmodule AlignedTaskRespondedInfo do
 end
 
 defmodule AlignedLayerServiceManager do
+  require Logger
   # read alignedLayerServiceManagerAddress from config file
   {:ok, json_string} =
     File.read("../contracts/script/output/holesky/alignedlayer_deployment_output.json")
@@ -92,6 +94,19 @@ defmodule AlignedLayerServiceManager do
       AlignedLayerServiceManager.EventFilters.new_task_created(task_id)
       |> Ethers.get_logs(fromBlock: 0)
 
+    #  struct Task {
+    #     uint16 provingSystemId;
+    #     bytes proof;
+    #     bytes pubInput;
+    #     bytes verificationKey;
+    #     uint32 taskCreatedBlock;
+    #     bytes quorumNumbers;
+    #     bytes quorumThresholdPercentages;
+    #     uint256 fee;
+    # }
+
+    Logger.debug("Events from #{task_id}: #{inspect(events)}")
+
     # extract relevant info from RPC response
     if not (events |> elem(1) |> Enum.empty?()) do
       address = events |> elem(1) |> List.first() |> Map.get(:address)
@@ -102,6 +117,11 @@ defmodule AlignedLayerServiceManager do
 
       {verificationSystemId, proof, pubInput, taskCreatedBlock} =
         events |> elem(1) |> List.first() |> Map.get(:data) |> List.first()
+
+      # struct TaskResponse {
+      #   uint32 taskIndex;
+      #   bool proofIsCorrect;
+      # }
 
       task = %AlignedTask{
         verificationSystemId: verificationSystemId,
