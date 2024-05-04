@@ -149,14 +149,6 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--interval 10 \
 		2>&1 | zap-pretty
 
-send-cairo-proof:
-	@echo "Sending CAIRO PLATINUM proof..."
-	go run task_sender/cmd/main.go send-task \
-		--proving-system cairo_platinum \
-		--proof task_sender/test_examples/cairo_platinum/fibo_5.proof \
-		--public-input task_sender/test_examples/cairo_platinum/fibo_5.pub \  # Adjust path as necessary
-		2>&1 | zap-pretty
-
 
 send-kimchi-proof:
 	@echo "Sending KIMCHI proof..."
