@@ -22,6 +22,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"github.com/yetanotherco/aligned_layer/core/utils"
+	"github.com/yetanotherco/aligned_layer/operator/cairo_platinum"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -164,6 +165,19 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
 			TaskIndex:      newTaskCreatedLog.TaskIndex,
 			ProofIsCorrect: verificationResult,
+		}
+		return taskResponse
+
+	case uint16(common.LambdaworksCairo):
+		proofBuffer := make([]byte, cairo_platinum.MAX_PROOF_SIZE)
+		copy(proofBuffer, proof)
+
+		VerificationResult := cairo_platinum.VerifyCairoProof100Bits(([cairo_platinum.MAX_PROOF_SIZE]byte)(proofBuffer), (uint)(proofLen))
+
+		o.Logger.Infof("CAIRO proof verification result: %t", VerificationResult)
+		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			TaskIndex:      newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect: VerificationResult,
 		}
 		return taskResponse
 

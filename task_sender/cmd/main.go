@@ -21,7 +21,7 @@ var (
 		Name:     "proving-system",
 		Aliases:  []string{"s"},
 		Required: true,
-		Usage:    "the `PROVING SYSTEM` to use (e.g., plonk, groth16)",
+		Usage:    "the `PROVING SYSTEM` to use (e.g., plonk, groth16,cairo_platinum)",
 	}
 	proofFlag = &cli.PathFlag{
 		Name:     "proof",
@@ -136,6 +136,8 @@ func taskSenderMain(c *cli.Context) error {
 		}
 	}
 
+	// TO Do, add Cairo proving system. It needs a if statement to check if the proving system is Cairo
+
 	fee := big.NewInt(int64(c.Int(feeFlag.Name)))
 
 	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
@@ -183,6 +185,8 @@ func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 		return common.GnarkPlonkBls12_381, nil
 	case "plonk_bn254":
 		return common.GnarkPlonkBn254, nil
+	case "cairo_platinum":
+		return common.LambdaworksCairo, nil
 	default:
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)

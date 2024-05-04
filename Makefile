@@ -149,6 +149,15 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--interval 10 \
 		2>&1 | zap-pretty
 
+send-cairo-proof:
+	@echo "Sending CAIRO PLATINUM proof..."
+	go run task_sender/cmd/main.go send-task \
+		--proving-system cairo_platinum \
+		--proof task_sender/test_examples/cairo_platinum/fibo_5.proof \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
+
+
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
@@ -156,3 +165,17 @@ deploy-aligned-contracts: ## Deploy Aligned Contracts
 
 build-aligned-contracts:
 	@cd contracts/src/core && forge build
+
+
+__LAMBDAWORKS_FFI_LINUX__:
+build-cairo-ffi-macos:
+	@cd operator/cairo_platinum/lib \
+		&& cargo build --release \
+		&& cp target/release/libcairo_platinum_ffi.dylib ./libcairo_platinum.dylib \
+		&& cp target/release/libcairo_platinum_ffi.a ./libcairo_platinum.a 
+
+build-cairo-ffi-linux:
+	@cd operator/cairo_platinum/lib \
+		&& cargo build --release \
+		&& cp target/release/libcairo_platinum_ffi.so ./libcairo_platinum.so \
+		&& cp target/release/libcairo_platinum_ffi.a ./libcairo_platinum.a 
