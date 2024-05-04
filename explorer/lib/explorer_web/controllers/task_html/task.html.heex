@@ -7,7 +7,9 @@
     <p class="font-semibold">
       block hash: <span class="break-all font-normal"><%= @task.block_hash %></span>
     </p>
-    <p class="font-semibold">block number: <span><%= @task.block_number %></span></p>
+    <p class="font-semibold">
+      block number: <span class="break-all font-normal"><%= @task.block_number %></span>
+    </p>
     <p class="font-semibold">
       transaction hash: <span class="break-all font-normal"><%= @task.transaction_hash %></span>
     </p>
@@ -18,10 +20,10 @@
         proving system ID:
         <span class="break-all font-normal"><%= @task.aligned_task.verificationSystemId %></span>
       </p>
-      <p class="font-semibold" class="break-all">
+      <%!-- <p class="font-semibold" class="break-all">
         Proof:
         <span class="break-all font-normal select-all"><%= @task.aligned_task.proof %></span>
-      </p>
+      </p> --%>
       <p class="font-semibold">
         pub Input: <span class="break-all font-normal"><%= @task.aligned_task.pubInput %></span>
       </p>
@@ -56,7 +58,7 @@
           <span class="break-all font-normal"><%= @taskResponse.proofIsCorrect %></span>
         </p>
       <% else %>
-        <p class="text-center my-auto">The task<%= @id %> doesn't seem to have a response 🫤</p>
+        <p class="text-left my-auto">The task #<%= @id %> doesn't seem to have a response 🫤</p>
       <% end %>
     </div>
   <% else %>

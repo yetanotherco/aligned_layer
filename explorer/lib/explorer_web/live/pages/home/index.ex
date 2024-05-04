@@ -4,6 +4,7 @@ defmodule ExplorerWeb.HomeLive.Index do
   def handle_event("search_task", %{"task" => task_params}, socket) do
     task_id = Map.get(task_params, "id")
     is_task_id_valid = String.match?(task_id, ~r/^\d+$/)
+
     if not is_task_id_valid do
       {:noreply, assign(socket, error: "Invalid task ID")}
     else
@@ -19,7 +20,7 @@ defmodule ExplorerWeb.HomeLive.Index do
       </div>
       <form phx-submit="search_task" class="flex items-center w-full max-w-md gap-2 z-10">
         <input
-          class="shadow-md flex h-10 w-full ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:ring-gray-300"
+          class="shadow-md flex h-10 w-full ring-offset-background file:border-0 text-foreground file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:ring-gray-300"
           type="search"
           placeholder="Search operator task..."
           name="task[id]"

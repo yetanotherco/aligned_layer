@@ -4,7 +4,6 @@ defmodule Explorer.Application do
   @moduledoc false
 
   use Application
-  require Logger
 
   @impl true
   def start(_type, _args) do
@@ -47,8 +46,12 @@ end
 
 # called AlignedTask since Task is a reserved word in Elixir
 defmodule AlignedTask do
-  @enforce_keys [:verificationSystemId, :proof, :pubInput, :taskCreatedBlock]
-  defstruct [:verificationSystemId, :proof, :pubInput, :taskCreatedBlock]
+  @enforce_keys [:verificationSystemId,
+  #:proof,
+  :pubInput, :taskCreatedBlock]
+  defstruct [:verificationSystemId,
+  #:proof,
+  :pubInput, :taskCreatedBlock]
 end
 
 defmodule AlignedTaskCreatedInfo do
@@ -94,38 +97,25 @@ defmodule AlignedLayerServiceManager do
       AlignedLayerServiceManager.EventFilters.new_task_created(task_id)
       |> Ethers.get_logs(fromBlock: 0)
 
-    #  struct Task {
-    #     uint16 provingSystemId;
-    #     bytes proof;
-    #     bytes pubInput;
-    #     bytes verificationKey;
-    #     uint32 taskCreatedBlock;
-    #     bytes quorumNumbers;
-    #     bytes quorumThresholdPercentages;
-    #     uint256 fee;
-    # }
-
-    Logger.debug("Events from #{task_id}: #{inspect(events)}")
-
     # extract relevant info from RPC response
     if not (events |> elem(1) |> Enum.empty?()) do
-      address = events |> elem(1) |> List.first() |> Map.get(:address)
-      block_hash = events |> elem(1) |> List.first() |> Map.get(:block_hash)
-      block_number = events |> elem(1) |> List.first() |> Map.get(:block_number)
-      taskId = events |> elem(1) |> List.first() |> Map.get(:topics) |> Enum.at(1)
-      transaction_hash = events |> elem(1) |> List.first() |> Map.get(:transaction_hash)
+      first_event = events |> elem(1) |> List.first()
+      Logger.debug("get_task_created_event -> event #{task_id}: #{inspect(first_event)}")
+      address = first_event |> Map.get(:address)
+      block_hash = first_event |> Map.get(:block_hash)
+      block_number = first_event |> Map.get(:block_number)
+      taskId = first_event |> Map.get(:topics) |> Enum.at(1)
+      transaction_hash = first_event |> Map.get(:transaction_hash)
 
-      {verificationSystemId, proof, pubInput, taskCreatedBlock} =
-        events |> elem(1) |> List.first() |> Map.get(:data) |> List.first()
-
-      # struct TaskResponse {
-      #   uint32 taskIndex;
-      #   bool proofIsCorrect;
-      # }
+      data = first_event |> Map.get(:data) |> List.first()
+      verificationSystemId = data |> elem(0)
+      # proof = data |> elem(1)
+      taskCreatedBlock = data |> elem(4)
+      pubInput = data |> elem(6)
 
       task = %AlignedTask{
         verificationSystemId: verificationSystemId,
-        proof: proof,
+        #proof: proof,
         pubInput: pubInput,
         taskCreatedBlock: taskCreatedBlock
       }
@@ -151,13 +141,13 @@ defmodule AlignedLayerServiceManager do
 
     # extract relevant info from RPC response
     if not (events |> elem(1) |> Enum.empty?()) do
-      address = events |> elem(1) |> List.first() |> Map.get(:address)
-      block_hash = events |> elem(1) |> List.first() |> Map.get(:block_hash)
-      block_number = events |> elem(1) |> List.first() |> Map.get(:block_number)
-      transaction_hash = events |> elem(1) |> List.first() |> Map.get(:transaction_hash)
+      first_event = events |> elem(1) |> List.first()
+      address = first_event |> Map.get(:address)
+      block_hash = first_event |> Map.get(:block_hash)
+      block_number = first_event |> Map.get(:block_number)
+      transaction_hash = first_event |> Map.get(:transaction_hash)
 
-      {taskIndex, proofIsCorrect} =
-        events |> elem(1) |> List.first() |> Map.get(:data) |> List.first()
+      {taskIndex, proofIsCorrect} = first_event |> Map.get(:data) |> List.first()
 
       {:ok,
        %AlignedTaskRespondedInfo{
