@@ -25,33 +25,44 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
 
-    // STRUCTS
+    enum BatchStatus {
+        Open,
+        Closed,
+        Verified
+    }
+
+    // A group of proofs to verify
+    struct TaskBatch {
+        bytes quorumNumbers;
+        bytes quorumThresholdPercentages;
+    }
+
+    // A proof to verify
     struct Task {
         uint16 provingSystemId;
         bytes proof;
         bytes pubInput;
         bytes verificationKey;
         uint32 taskCreatedBlock;
-        bytes quorumNumbers;
-        bytes quorumThresholdPercentages;
-        uint256 fee;
     }
 
     // Task Response
     // In case of changing this response, change AbiEncodeTaskResponse
     // since it won't be updated automatically
-    struct TaskResponse {
-        uint32 taskIndex;
-        bool proofIsCorrect;
+    struct TaskBatchResponse {
+        uint32 batchIndex;
+        bool[] proofAtIndexIsCorrect;
     }
 
     /* STORAGE */
-    uint32 public latestTaskIndexPlusOne;
+    uint32 public latestBatchIndexPlusOne;
 
     mapping(uint32 => bytes32) public taskHashes;
+    mapping(uint32 => bytes32) public batchTaskFunds;
+
 
     // mapping of task indices to hash of abi.encode(taskResponse, taskResponseMetadata)
-    mapping(uint32 => bytes32) public taskResponses;
+    mapping(uint32 => bytes32) public batchTaskResponses;
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -89,6 +100,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         return 42;
     }
 
+    // Rename to addNewTask
     function createNewTask(
         uint16 provingSystemId,
         bytes calldata proof,
@@ -111,9 +123,15 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         newTask.quorumThresholdPercentages = quorumThresholdPercentages;
         newTask.fee = msg.value;
 
-        taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
+        // Change to close the batch when enough ETH was accumulated to pay for the aggregator
+        if ( TaskBatch[] > 2 ) { 
+            emit BatchClosed()
+            emit CreatedNewBatchWithThreshold()
+        } 
 
-        emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
+        taskHashes[latestBatchIndexPlusOne] = keccak256(abi.encode(newTask));
+
+        emit NewTaskCreated(latestBatchIndexPlusOne, newTask);
 
         latestTaskIndexPlusOne = latestTaskIndexPlusOne + 1;
     }
@@ -130,6 +148,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             .quorumThresholdPercentages;
 
         // check that the task is valid, hasn't been responsed yet, and is being responsed in time
+        /*
         require(
             keccak256(abi.encode(task)) == taskHashes[taskResponse.taskIndex],
             "Supplied task does not match the one recorded in the contract"
@@ -138,11 +157,31 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         require(
             taskResponses[taskResponse.taskIndex] == bytes32(0),
             "Aggregator has already responded to the task"
-        );
+        ); */ 
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // calculate message which operators signed
+
+        
+
+        // This is not taskHash 0, this should be first element in task batch. Maybe we can carry the hash as tasks get added. It maybe better
+
+        bytes32 expected_digest = keccak256(abi.encode(taskHashes[0]));
+        for ( taskHashes in batch  ) {
+            expected_digest = keccak256(abi.encodePacked(digest, taskHashes[I]));
+        }
         bytes32 message = keccak256(abi.encode(taskResponse));
+
+        for (tasks in taskBatched)
+            digest = keccak256(abi.encode(task))
+        ...
+        /*
+        require(
+            digest == expected_digest,
+            "Supplied task does not match the one recorded in the contract"
+        );
+
+        */
 
         // check that aggregated BLS signature is valid
         (
