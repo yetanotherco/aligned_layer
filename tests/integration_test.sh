@@ -5,7 +5,7 @@ export ANVIL_PID=$!
 sleep 3
 
 echo Registering Operator
-make operator-full-registration > /dev/null
+make operator-full-registration &> /dev/null
 
 echo Starting Aggregator
 make aggregator-start > /dev/null &
@@ -29,11 +29,11 @@ sleep 10
 
 echo "Verifying Tasks sent & accepted"
 
-go test tests/integration_test.go -v
+go test tests/verify_test.go -v
 
 echo "DONE"
 
-# if running locally:
+## Uncomment if running locally:
 # kill ${ANVIL_PID}
 # kill ${AGGREGATOR_PID}
 # kill ${OPERATOR_PID}
