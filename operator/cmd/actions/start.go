@@ -16,7 +16,7 @@ var StartFlags = []cli.Flag{
 
 var StartCommand = &cli.Command{
 	Name:        "start",
-	Description: "Service that sends proofs to verify by operator nodes.",
+	Description: "CLI command to boot operator",
 	Flags:       StartFlags,
 	Action:      operatorMain,
 }

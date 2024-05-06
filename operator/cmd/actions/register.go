@@ -18,8 +18,8 @@ var registerFlags = []cli.Flag{
 
 var RegisterCommand = &cli.Command{
 	Name:        "register",
-	Usage:       "Send a single task to the verifier",
-	Description: "Service that sends proofs to verify by operator nodes.",
+	Usage:       "Register operator with Aligned Layer",
+	Description: "CLI command to register opeartor with Aligned Layer",
 	Flags:       registerFlags,
 	Action:      registerOperatorMain,
 }

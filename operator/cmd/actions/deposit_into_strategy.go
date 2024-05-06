@@ -32,7 +32,7 @@ var (
 
 var DepositIntoStrategyCommand = &cli.Command{
 	Name:        "deposit-into-strategy",
-	Description: "Service that sends proofs to verify by operator nodes.",
+	Description: "CLI command to deposit into a given strategy",
 	Flags:       depositFlags,
 	Action:      depositIntoStrategyMain,
 }
