@@ -3,12 +3,15 @@ module github.com/yetanotherco/aligned_layer
 go 1.22.2
 
 require (
+	github.com/Layr-Labs/eigenda v0.6.2
+	github.com/Layr-Labs/eigenda/api v0.6.2
 	github.com/Layr-Labs/eigensdk-go v0.1.6
 	github.com/consensys/gnark v0.9.1
 	github.com/consensys/gnark-crypto v0.12.2-0.20231013160410-1f65e75b6dfb
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/urfave/cli/v2 v2.27.1
-	golang.org/x/crypto v0.18.0
+	golang.org/x/crypto v0.19.0
+	google.golang.org/grpc v1.63.2
 )
 
 require github.com/mattn/go-isatty v0.0.19 // indirect
@@ -56,9 +59,12 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240227224415-6ceb2ff114de // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect

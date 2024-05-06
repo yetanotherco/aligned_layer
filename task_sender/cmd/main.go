@@ -150,7 +150,15 @@ func taskSenderMain(c *cli.Context) error {
 	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
 	quorumNumbers := eigentypes.QuorumNums{0}
 	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
-	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
+
+	status, err := pkg.PostProofOnEigenDA(proofFile)
+	if err != nil {
+		return err
+	}
+
+	verificationProof := status.GetInfo().GetBlobVerificationProof()
+
+	task := pkg.NewTask(provingSystem, verificationProof.GetBatchMetadata().GetBatchHeaderHash(), verificationProof.GetBlobIndex(), publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
 
 	err = taskSender.SendTask(task)
 	if err != nil {
