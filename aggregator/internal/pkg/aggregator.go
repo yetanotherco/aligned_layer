@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -27,6 +28,7 @@ type TaskResponsesWithStatus struct {
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
 	NewTaskCreatedChan    chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
+	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
 	taskSubscriber        event.Subscription
@@ -47,17 +49,17 @@ type Aggregator struct {
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
+	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(aggregatorConfig.BaseConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	avsWriter, err := chainio.NewAvsWriterFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +91,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	aggregator := Aggregator{
 		AggregatorConfig:      &aggregatorConfig,
+		avsReader:             avsReader,
 		avsSubscriber:         avsSubscriber,
 		avsWriter:             avsWriter,
 		NewTaskCreatedChan:    newTaskCreatedChan,
@@ -165,5 +168,28 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), task, taskResponse, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.logger.Error("Aggregator failed to respond to task", "err", err)
+	}
+}
+
+func (agg *Aggregator) AddNewTask(index uint32, task servicemanager.AlignedLayerServiceManagerTask) {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "taskIndex", index, "task", task)
+	agg.tasksMutex.Lock()
+	agg.tasks[index] = task
+	agg.tasksMutex.Unlock()
+	agg.taskResponsesMutex.Lock()
+	agg.OperatorTaskResponses[index] = &TaskResponsesWithStatus{
+		taskResponses:       make([]types.SignedTaskResponse, 0),
+		submittedToEthereum: false,
+	}
+	agg.taskResponsesMutex.Unlock()
+
+	quorumNums := utils.BytesToQuorumNumbers(task.QuorumNumbers)
+	quorumThresholdPercentages := utils.BytesToQuorumThresholdPercentages(task.QuorumThresholdPercentages)
+
+	// FIXME(marian): Hardcoded value of timeToExpiry to 100s. How should be get this value?
+	err := agg.blsAggregationService.InitializeNewTask(index, task.TaskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
+	if err != nil {
+		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}
 }
