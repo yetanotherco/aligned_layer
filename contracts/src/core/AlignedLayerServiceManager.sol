@@ -28,7 +28,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     // STRUCTS
     struct Task {
         uint16 provingSystemId;
-        bytes proof;
+        bytes eigenDABatchHeaderHash;
+        uint32 eigenDABlobIndex;
         bytes pubInput;
         bytes verificationKey;
         uint32 taskCreatedBlock;
@@ -91,7 +92,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     function createNewTask(
         uint16 provingSystemId,
-        bytes calldata proof,
+        bytes calldata eigenDABatchHeaderHash,
+        uint32 eigenDABlobIndex,
         bytes calldata pubInput,
         // This parameter is only mandatory for KZG based proving systems
         bytes calldata verificationKey,
@@ -103,7 +105,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         Task memory newTask;
 
         newTask.provingSystemId = provingSystemId;
-        newTask.proof = proof;
+        newTask.eigenDABatchHeaderHash = eigenDABatchHeaderHash;
+        newTask.eigenDABlobIndex = eigenDABlobIndex;
         newTask.pubInput = pubInput;
         newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);
