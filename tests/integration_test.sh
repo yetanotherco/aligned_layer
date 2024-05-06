@@ -19,11 +19,11 @@ export OPERATOR_PID=$!
 
 sleep 15
 
-# echo "\nSending Task 1" 
-# make send-plonk_bls12_381-proof #> /dev/null
+echo "\nSending Task 1" 
+make send-plonk_bls12_381-proof #> /dev/null
 
-# echo "\nSending Task 2"
-# make send-plonk_bn254-proof #> /dev/null
+echo "\nSending Task 2"
+make send-plonk_bn254-proof #> /dev/null
 
 sleep 10
 
