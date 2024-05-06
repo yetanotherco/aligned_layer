@@ -14,7 +14,7 @@ The core elements are:
 
 ### Interaction between the main components:
 
-![Figure 1: Core components](../images/diagram_3.png)
+![Figure 1: Core components](../images/diagram.png)
 
 1. Aligned Layer receives several proofs from different sources, which could be generated using different proof systems. These have varying proof sizes, verification times, and different verification logic. However, all proofs share a common characteristic: their verification is fast.
 
