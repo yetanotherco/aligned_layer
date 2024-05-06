@@ -159,10 +159,7 @@ send-kimchi-proof:
 		--verification-key task_sender/test_examples/kimchi/kimchi.vk \
 		--config config-files/config.yaml \
 		2>&1 | zap-pretty
-
-
-
-
+		
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
