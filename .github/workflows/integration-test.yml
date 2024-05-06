@@ -36,36 +36,40 @@ jobs:
       - name: Setup GO PATH
         run: echo "export PATH=$PATH:$GITHUB_WORKSPACE/go/bin" >> $GITHUB_ENV
       
-      - name: Run Anvil
+      - name: Run integration test
         run: |
-            make anvil-start &
+            make integration-test
       
-      - name: Run Aggregator
-        run: |
-            make aggregator-start &
-
-      - name: Register Operator
-        run: |
-            sleep 10
-            export CONFIG_FILE="config-files/config.yaml"
-            make operator-full-registration
+      # - name: Run Anvil
+      #   run: |
+      #       make anvil-start &
       
-      - name: Run Operator
-        run: |
-            sleep 5
-            export CONFIG_FILE="config-files/config.yaml"
-            make operator-start &
+      # - name: Run Aggregator
+      #   run: |
+      #       make aggregator-start &
 
-      - name: Send tasks
-        run: |
-          sleep 60
-          echo sending task 1
-          make send-plonk_bls12_381-proof
-
-          echo sending task 2
-          make send-plonk_bn254-proof
-          sleep 60
+      # - name: Register Operator
+      #   run: |
+      #       sleep 10
+      #       export CONFIG_FILE="config-files/config.yaml"
+      #       make operator-full-registration
       
-      - name: Check results
-        run: |
-          go test tests/integration_test.go -v
+      # - name: Run Operator
+      #   run: |
+      #       sleep 5
+      #       export CONFIG_FILE="config-files/config.yaml"
+      #       make operator-start &
+
+      # - name: Send tasks
+      #   run: |
+      #     sleep 60
+      #     echo sending task 1
+      #     make send-plonk_bls12_381-proof
+
+      #     echo sending task 2
+      #     make send-plonk_bn254-proof
+      #     sleep 60
+      
+      # - name: Check results
+      #   run: |
+      #     go test tests/integration_test.go -v
