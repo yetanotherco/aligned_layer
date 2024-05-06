@@ -43,6 +43,12 @@ jobs:
         run: |
             export CONFIG_FILE=config-files/config.yaml
             sleep 10
+            . make operator-get-eth && \
+            . make operator-register-with-eigen-layer && \
+            . make operator-mint-mock-tokens && \
+            . make operator-deposit-into-mock-strategy && \
+            . make operator-register-with-aligned-layer
+
             make operator-full-registration
             sleep 5
             make operator-start &
