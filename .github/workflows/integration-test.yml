@@ -44,22 +44,16 @@ jobs:
         run: |
             make aggregator-start &
 
-      # - name: Register Operator
-      #   run: |
-      #     make operator-full-registration
+      - name: Register Operator
+        run: |
+            sleep 10
+            export CONFIG_FILE="config-files/config.yaml"
+            make operator-full-registration
       
       - name: Run Operator
         run: |
-            export CONFIG_FILE="config-files/config.yaml"
-            sleep 10
-            . make operator-get-eth && \
-            . make operator-register-with-eigen-layer && \
-            . ./scripts/mint_mock_token.sh "config-files/config.yaml" 1000 && \
-            . make operator-deposit-into-mock-strategy && \
-            . make operator-register-with-aligned-layer
-
-            make operator-full-registration
             sleep 5
+            export CONFIG_FILE="config-files/config.yaml"
             make operator-start &
 
       - name: Send tasks
