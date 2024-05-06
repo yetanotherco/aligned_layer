@@ -7,10 +7,11 @@ if [ "$OPERATOR_ADDRESS" = "" ]; then
 fi;
 
 # Check that the script received 2 arguments
-echo args recieved in mint_mock_token.sh;
-echo $#;
-echo $1;
-echo $2;
+echo args recieved in mint_mock_token.sh
+echo $#
+echo $1
+echo $2
+echo "done printing args"
 
 if [ "$#" != 2 ]; then
   echo "Usage: $0 <config_file> <amount>"
