@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
-	"github.com/Layr-Labs/eigenda/encoding/utils/codec"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -131,23 +130,12 @@ func (o *Operator) Start(ctx context.Context) error {
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
 func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
-	eigenDABatchHeaderHash := newTaskCreatedLog.Task.EigenDABatchHeaderHash
-	eigenDABlobIndex := newTaskCreatedLog.Task.EigenDABlobIndex
-
-	ctx := context.Background()
-
-	req := disperser.RetrieveBlobRequest{
-		BatchHeaderHash: eigenDABatchHeaderHash,
-		BlobIndex:       eigenDABlobIndex,
-	}
-
-	blob, err := o.disperser.RetrieveBlob(ctx, &req)
+	// TODO: Get from Celestia based on DA solution
+	proof, err := o.getProofFromEigenDA(newTaskCreatedLog.Task.TaskDA.Commitment, newTaskCreatedLog.Task.TaskDA.Index)
 	if err != nil {
-		fmt.Println(err)
+		o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
 		return nil
 	}
-
-	proof := codec.RemoveEmptyByteFromPaddedBytes(blob.Data)
 
 	proofLen := (uint)(len(proof))
 

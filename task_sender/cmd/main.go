@@ -151,14 +151,13 @@ func taskSenderMain(c *cli.Context) error {
 	quorumNumbers := eigentypes.QuorumNums{0}
 	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
 
-	status, err := taskSender.PostProofOnEigenDA(proofFile)
+	// TODO: allow celestia
+	taskDA, err := taskSender.PostProofOnEigenDA(proofFile)
 	if err != nil {
 		return err
 	}
 
-	verificationProof := status.GetInfo().GetBlobVerificationProof()
-
-	task := pkg.NewTask(provingSystem, verificationProof.GetBatchMetadata().GetBatchHeaderHash(), verificationProof.GetBlobIndex(), publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
+	task := pkg.NewTask(provingSystem, *taskDA, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
 
 	err = taskSender.SendTask(task)
 	if err != nil {

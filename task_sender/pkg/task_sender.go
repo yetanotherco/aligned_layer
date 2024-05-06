@@ -2,11 +2,10 @@ package pkg
 
 import (
 	"context"
-	"encoding/hex"
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
-	"github.com/Layr-Labs/eigenda/encoding/utils/codec"
 	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/yetanotherco/aligned_layer/common"
+	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"log"
 	"math/big"
@@ -15,8 +14,7 @@ import (
 
 type Task struct {
 	ProvingSystem              common.ProvingSystemId
-	EigenDABatchHeaderHash     []byte
-	EigenDABlobIndex           uint32
+	TaskDA                     serviceManager.AlignedLayerServiceManagerTaskDA
 	PublicInput                []byte
 	VerificationKey            []byte
 	QuorumNumbers              types.QuorumNums
@@ -24,11 +22,10 @@ type Task struct {
 	Fee                        *big.Int
 }
 
-func NewTask(provingSystemId common.ProvingSystemId, eigenDABatchHeaderHash []byte, eigenDABlobIndex uint32, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) *Task {
+func NewTask(provingSystemId common.ProvingSystemId, taskDA serviceManager.AlignedLayerServiceManagerTaskDA, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) *Task {
 	return &Task{
 		ProvingSystem:              provingSystemId,
-		EigenDABatchHeaderHash:     eigenDABatchHeaderHash,
-		EigenDABlobIndex:           eigenDABlobIndex,
+		TaskDA:                     taskDA,
 		PublicInput:                publicInput,
 		VerificationKey:            verificationKey,
 		QuorumNumbers:              quorumNumbers,
@@ -42,7 +39,7 @@ type TaskSender struct {
 	disperser disperser.DisperserClient
 }
 
-const RETRY_INTERVAL = 1 * time.Second
+const RetryInterval = 1 * time.Second
 
 func NewTaskSender(avsWriter *chainio.AvsWriter, disperser disperser.DisperserClient) *TaskSender {
 	return &TaskSender{
@@ -56,8 +53,7 @@ func (ts *TaskSender) SendTask(task *Task) error {
 	_, index, err := ts.avsWriter.SendTask(
 		context.Background(),
 		task.ProvingSystem,
-		task.EigenDABatchHeaderHash,
-		task.EigenDABlobIndex,
+		task.TaskDA,
 		task.PublicInput,
 		task.VerificationKey,
 		task.QuorumNumbers,
@@ -69,40 +65,4 @@ func (ts *TaskSender) SendTask(task *Task) error {
 	}
 	log.Println("Task sent successfully. Task index:", index)
 	return nil
-}
-
-func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*disperser.BlobStatusReply, error) {
-	data := codec.ConvertByPaddingEmptyByte(proof)
-	disperseBlobReq := &disperser.DisperseBlobRequest{
-		Data: data,
-	}
-
-	log.Println("Posting proof on EigenDA...")
-	disperseBlob, err := ts.disperser.DisperseBlob(context.Background(), disperseBlobReq)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Println("Proof posted successfully. Request ID:", hex.EncodeToString(disperseBlob.RequestId))
-
-	log.Println("Waiting for confirmation...")
-
-	getBlobStatusReq := &disperser.BlobStatusRequest{
-		RequestId: disperseBlob.RequestId,
-	}
-
-	status, err := ts.disperser.GetBlobStatus(context.Background(), getBlobStatusReq)
-	if err != nil {
-		return nil, err
-	}
-
-	for status.Status == disperser.BlobStatus_PROCESSING {
-		time.Sleep(RETRY_INTERVAL)
-		status, err = ts.disperser.GetBlobStatus(context.Background(), getBlobStatusReq)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return status, nil
 }
