@@ -144,14 +144,14 @@ func taskSenderMain(c *cli.Context) error {
 		return err
 	}
 
-	taskSender := pkg.NewTaskSender(avsWriter)
+	taskSender := pkg.NewTaskSender(avsWriter, taskSenderConfig.EigenDADisperserConfig.Disperser)
 	quorumThresholdPercentage := c.Uint(quorumThresholdFlag.Name)
 
 	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
 	quorumNumbers := eigentypes.QuorumNums{0}
 	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
 
-	status, err := pkg.PostProofOnEigenDA(proofFile)
+	status, err := taskSender.PostProofOnEigenDA(proofFile)
 	if err != nil {
 		return err
 	}

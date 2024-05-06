@@ -17,6 +17,10 @@ bls:
   private_key_store_path: "config-files/anvil.bls.key.json"
   private_key_store_password: ""
 
+## EigenDA Configurations
+eigen_da_disperser:
+  url: "disperser-holesky.eigenda.xyz"
+
 ## Aggregator Configurations
 aggregator:
   server_ip_port_address: localhost:8090

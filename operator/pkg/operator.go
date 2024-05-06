@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"crypto/tls"
 	"encoding/hex"
 	"fmt"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"log"
 	"time"
 
@@ -44,6 +41,7 @@ type Operator struct {
 	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
+	disperser          disperser.DisperserClient
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -86,6 +84,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		NewTaskCreatedChan: newTaskCreatedChan,
 		aggRpcClient:       *rpcClient,
 		OperatorId:         operatorId,
+		disperser:          configuration.EigenDADisperserConfig.Disperser,
 		// Timeout
 		// Socket
 	}
@@ -135,28 +134,14 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	eigenDABatchHeaderHash := newTaskCreatedLog.Task.EigenDABatchHeaderHash
 	eigenDABlobIndex := newTaskCreatedLog.Task.EigenDABlobIndex
 
-	// TODO: Initialize the disperser client outside of this function
 	ctx := context.Background()
-
-	config := &tls.Config{}
-	credential := credentials.NewTLS(config)
-
-	// TODO: Removed hardcoded address
-	clientConn, err := grpc.NewClient("disperser-holesky.eigenda.xyz:443", grpc.WithTransportCredentials(credential))
-
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
-	disperserClient := disperser.NewDisperserClient(clientConn)
 
 	req := disperser.RetrieveBlobRequest{
 		BatchHeaderHash: eigenDABatchHeaderHash,
 		BlobIndex:       eigenDABlobIndex,
 	}
 
-	blob, err := disperserClient.RetrieveBlob(ctx, &req)
+	blob, err := o.disperser.RetrieveBlob(ctx, &req)
 	if err != nil {
 		fmt.Println(err)
 		return nil
@@ -167,7 +152,6 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	proofLen := (uint)(len(proof))
 
 	pubInput := newTaskCreatedLog.Task.PubInput
-	// pubInputLen := (uint)(len(pubInput))
 
 	provingSystemId := newTaskCreatedLog.Task.ProvingSystemId
 
