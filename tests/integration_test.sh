@@ -29,8 +29,8 @@ sleep 10
 
 echo "\nVerifying Tasks sent & accepted"
 
-output=$(go test tests/verify_test.go -v)
-echo $output
+go test tests/verify_test.go -v
+passed=$?
 
 ## Crashes the CI, only run locally
 if [ "$LOCAL" != "" ]; then
@@ -42,3 +42,4 @@ if [ "$LOCAL" != "" ]; then
     kill ${OPERATOR_PID}
 fi
 
+exit $passed
