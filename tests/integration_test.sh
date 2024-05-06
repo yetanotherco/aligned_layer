@@ -1,4 +1,4 @@
-echo Starting anvil
+echo "\nStarting anvil"
 make anvil-start & #> /dev/null &
 export ANVIL_PID=$!
 
@@ -33,7 +33,7 @@ output=$(go test tests/verify_test.go -v)
 echo $output
 
 ## Crashes the CI, only run locally
-if $LOCAL ; then
+if [ "$LOCAL" != "" ]; then
     echo "\nStopping Anvil"
     kill ${ANVIL_PID}
     echo "\nStopping Aggregator"
