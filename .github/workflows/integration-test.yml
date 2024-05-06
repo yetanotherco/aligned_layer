@@ -41,11 +41,11 @@ jobs:
       
       - name: Run Opperator
         run: |
-            export CONFIG_FILE=config-files/config.yaml
+            export CONFIG_FILE="config-files/config.yaml"
             sleep 10
             . make operator-get-eth && \
             . make operator-register-with-eigen-layer && \
-            ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000 && \
+            . make operator-mint-mock-tokens && \
             . make operator-deposit-into-mock-strategy && \
             . make operator-register-with-aligned-layer
 
