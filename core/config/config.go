@@ -119,23 +119,25 @@ type OperatorConfig struct {
 	BlsConfig                    *BlsConfig
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
 	Operator                     struct {
-		Address                   common.Address
-		EarningsReceiverAddress   common.Address
-		DelegationApproverAddress common.Address
-		StakerOptOutWindowBlocks  int
-		MetadataUrl               string
-		RegisterOperatorOnStartup bool
+		AggregatorServerIpPortAddress string
+		Address                       common.Address
+		EarningsReceiverAddress       common.Address
+		DelegationApproverAddress     common.Address
+		StakerOptOutWindowBlocks      int
+		MetadataUrl                   string
+		RegisterOperatorOnStartup     bool
 	}
 }
 
 type OperatorConfigFromYaml struct {
 	Operator struct {
-		Address                   common.Address `yaml:"address"`
-		EarningsReceiverAddress   common.Address `yaml:"earnings_receiver_address"`
-		DelegationApproverAddress common.Address `yaml:"delegation_approver_address"`
-		StakerOptOutWindowBlocks  int            `yaml:"staker_opt_out_window_blocks"`
-		MetadataUrl               string         `yaml:"metadata_url"`
-		RegisterOperatorOnStartup bool           `yaml:"register_operator_on_startup"`
+		AggregatorServerIpPortAddress string         `yaml:"aggregator_rpc_server_ip_port_address"`
+		Address                       common.Address `yaml:"address"`
+		EarningsReceiverAddress       common.Address `yaml:"earnings_receiver_address"`
+		DelegationApproverAddress     common.Address `yaml:"delegation_approver_address"`
+		StakerOptOutWindowBlocks      int            `yaml:"staker_opt_out_window_blocks"`
+		MetadataUrl                   string         `yaml:"metadata_url"`
+		RegisterOperatorOnStartup     bool           `yaml:"register_operator_on_startup"`
 	} `yaml:"operator"`
 	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
@@ -319,12 +321,13 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		BlsConfig:                    blsConfig,
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		Operator: struct {
-			Address                   common.Address
-			EarningsReceiverAddress   common.Address
-			DelegationApproverAddress common.Address
-			StakerOptOutWindowBlocks  int
-			MetadataUrl               string
-			RegisterOperatorOnStartup bool
+			AggregatorServerIpPortAddress string
+			Address                       common.Address
+			EarningsReceiverAddress       common.Address
+			DelegationApproverAddress     common.Address
+			StakerOptOutWindowBlocks      int
+			MetadataUrl                   string
+			RegisterOperatorOnStartup     bool
 		}(operatorConfigFromYaml.Operator),
 	}
 }
