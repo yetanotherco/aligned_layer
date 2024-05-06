@@ -59,4 +59,3 @@ jobs:
       - name: Check results
         run: |
           go test tests/integration_test.go -v
-
