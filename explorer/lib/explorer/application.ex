@@ -64,11 +64,13 @@ end
 defmodule AlignedLayerServiceManager do
   require Logger
   # read alignedLayerServiceManagerAddress from config file
-  {:ok, json_string} =
-    File.read("../contracts/script/output/holesky/alignedlayer_deployment_output.json")
+  file_path = "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
+  Logger.debug(file_path)
+  {:ok, config_json_string} =
+    File.read(file_path)
 
   alignedLayerServiceManagerAddress =
-    Jason.decode!(json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
+    Jason.decode!(config_json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
 
   use Ethers.Contract,
     abi_file: "lib/abi/AlignedLayerServiceManager.json",
@@ -120,6 +122,7 @@ defmodule AlignedLayerServiceManager do
          aligned_task: task
        }}
     else
+      Logger.debug("No task found")
       {:empty, "No task found"}
     end
   end
@@ -149,6 +152,7 @@ defmodule AlignedLayerServiceManager do
          proofIsCorrect: proofIsCorrect
        }}
     else
+      Logger.debug("No task response found")
       {:empty, "No task response found"}
     end
   end
