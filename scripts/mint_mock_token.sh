@@ -23,6 +23,7 @@ fi;
 
 echo "Minting $2 tokens to $operator_address"
 echo "Mock token address: $mock_token_address"
+echo "Amount: $2"
 
 # Ethereum sender address - anvil address 1
 private_key="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -34,3 +35,4 @@ cast send "$mock_token_address" \
     --private-key $private_key \
     --rpc-url "http://localhost:8545"
 
+echo Tokens minted
