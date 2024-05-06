@@ -6,11 +6,12 @@ sleep 3
 
 echo registering operator
 make operator-full-registration #&> /dev/null
-make operator-get-eth
-make operator-register-with-eigen-layer 
-./scripts/mint_mock_token.sh "config-files/config.yaml" 1000
-make operator-deposit-into-mock-strategy 
-make operator-register-with-aligned-layer
+# make operator-get-eth
+# make operator-register-with-eigen-layer 
+# ./scripts/mint_mock_token.sh
+# make operator-deposit-into-mock-strategy 
+# make operator-register-with-aligned-layer
+
 
 
 # echo starting aggregator

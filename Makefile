@@ -101,7 +101,7 @@ operator-register-with-eigen-layer:
 
 operator-mint-mock-tokens:
 	@echo "Minting tokens"
-	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
+	. ./scripts/mint_mock_token.sh
 
 operator-deposit-into-mock-strategy:
 	@echo "Depositing into strategy"
