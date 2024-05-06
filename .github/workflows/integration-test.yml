@@ -41,6 +41,7 @@ jobs:
       
       - name: Run Opperator
         run: |
+            export CONFIG_FILE=config-files/config.yaml
             sleep 10
             make operator-full-registration
             sleep 5
