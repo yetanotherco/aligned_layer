@@ -2,10 +2,6 @@ defmodule ExplorerWeb.TaskController do
   use ExplorerWeb, :controller
 
   def task(conn, %{"id" => id}) do
-    # Test, returns the name of the ERC20 token
-    # import MyERC20Token
-    # MyERC20Token.get_erc20_name() |> elem(1) |> IO.puts()
-
     # Returns the EigenLayer AVSDirectory contract.
     # data = AlignedLayerServiceManager.avs_directory() |> Ethers.call()
 
