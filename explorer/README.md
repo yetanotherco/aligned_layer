@@ -59,6 +59,22 @@ Where:
 - `num_task_id` is the task id you want to respond to.
 - `boolean_is_proof_correct` is a boolean that indicates if the proof was correct or not.
 
+### Update ABI
+
+Keep in mind when the contracts are updated, the ABI of the contracts must be updated in the frontend.
+
+If you want to update the ABI of the contracts, you can run the following commands:
+
+```bash
+cd ..
+make build-aligned-contracts
+cd contracts/out/
+```
+
+This will generate new contracts in the `/contracts/out/AlignedLayerServiceManager.sol` folder in the root of the project.
+Once in there copy the contents of the file after `{"abi":` and before `,"bytecode":{"object":`.
+Lastly, paste it in the `contracts/abi/AlignedLayerServiceManager.abi` file.
+
 ## Contributing
 
 We appreciate your interest in contributing to the Aligned Explorer! Your contributions can help make this project even better.
