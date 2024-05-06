@@ -16,9 +16,9 @@ fi;
 
 # Get mock token address from deployment output using jq
 mock_token_address=$(cat "contracts/script/output/devnet/strategy_deployment_output.json" | jq -r '.erc20Mock')
-operator_address=$(cat "$CONFIG_FILE" | yq -r '.operator.address')
+operator_address=$(cat "$CONFIG_FILE" | yq --unwrapScalar '.operator.address')
 
-if [[ "$mock_token_address" -eq "" ]]; then
+if [ "$mock_token_address" = "" ]; then
   echo "Mock token address is empty, please deploy the contracts first"
   exit 1
 fi;
