@@ -1,4 +1,4 @@
-.PHONY: help deps run
+.PHONY: help deps run create_env
 
 help:
 	@echo "deps - Installing Elixir code dependencies"
@@ -11,4 +11,9 @@ deps:
 
 run:
 	@echo "Starting the Elixir backend server"
-	@mix phx.server
+	./start.sh
+
+create_env:
+	@echo "Creating environment variables files .env",
+	@cp .env.example .env
+	@echo "Environment variables files created successfully!"

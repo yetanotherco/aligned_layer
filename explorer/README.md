@@ -8,6 +8,49 @@
 
 ## Local development
 
+### Set up environment variables
+
+Run the following command to set up the environment variables:
+
+```sh
+make create_env
+```
+
+This will create a `.env` file in the `/explorer` directory of the project. The `.env` file will contain the following variables:
+
+| Variable | Description |
+| -------- | ----------- |
+| `RPC_URL` | The RPC URL of the network you want to connect to. |
+| `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
+
+### Run devnet environment (optional)
+
+If you want to run the devnet environment, you can run the following command in another terminal:
+
+```sh
+cd ..
+make anvil-start
+```
+
+Then in another terminal, you can run the following command to run the operator:
+
+```sh
+make operator-full-registration
+make operator-start
+```
+
+Then, in another terminal, run the following command to start the aggregator:
+
+```sh
+make aggregator-start
+```
+
+Finally, to have a task running in the devnet, you can run the following command:
+
+```sh
+make send-plonk_bls12_381-proof-loop
+```
+
 ### Run the frontend
 
 Set up your environment variables:
@@ -32,34 +75,7 @@ make <run | deps | help>
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/tasks/:id`.
 
-### Run a devnet
-
-Once the frontend is running, open another terminal and run a local devnet (see requirements [here](../README.md#Dependencies)) with the deployed contracts:
-
-```bash
-cd ..
-make deps
-make anvil-start
-```
-
-Then, you must send a Task to view it in the explorer:
-
-```bash
-make send-plonk-proof
-```
-
-You can also respond to a task as an operator, saying if the proof was true or false:
-
-```bash
-cast send 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690 --rpc-url "http://localhost:8545" "respondToTask(uint64, bool)()" <num_task_id> <boolean_is_proof_correct> --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-```
-
-Where:
-
-- `num_task_id` is the task id you want to respond to.
-- `boolean_is_proof_correct` is a boolean that indicates if the proof was correct or not.
-
-### Update ABI
+### Upgrade ABI
 
 Keep in mind when the contracts are updated, the ABI of the contracts must be updated in the frontend.
 
