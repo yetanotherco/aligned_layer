@@ -1,4 +1,4 @@
-package main
+package plonk_bn254
 
 import (
 	"fmt"
