@@ -1,41 +1,38 @@
-echo starting anvil
-make anvil-start & #&> /dev/null &
+echo Starting anvil
+make anvil-start &> /dev/null &
 export ANVIL_PID=$!
 
 sleep 3
 
-echo registering operator
+echo Registering Operator
 make operator-full-registration #&> /dev/null
-# make operator-get-eth
-# make operator-register-with-eigen-layer 
-# ./scripts/mint_mock_token.sh
-# make operator-deposit-into-mock-strategy 
-# make operator-register-with-aligned-layer
 
-
-
-# echo starting aggregator
-make aggregator-start & #&> /dev/null &
+echo Starting Aggregator
+make aggregator-start &> /dev/null &
 export AGGREGATOR_PID=$!
 
 sleep 5
 
-echo starting operator
+echo Starting Operator
 make operator-start &> /dev/null &
 export OPERATOR_PID=$!
 
-sleep 60
+sleep 15
 
-echo sending task
+echo "Sending Task 1" 
 make send-plonk_bls12_381-proof &> /dev/null
 
-echo sending task
+echo "Sending Task 2"
 make send-plonk_bn254-proof &> /dev/null
 
 sleep 10
 
+echo "Verifying Tasks sent & accepted"
+
 go test tests/integration_test.go -v
 
-# kill ${ANVIL_PID}
-# kill ${AGGREGATOR_PID}
-# kill ${OPERATOR_PID}
+echo "DONE"
+
+kill ${ANVIL_PID}
+kill ${AGGREGATOR_PID}
+kill ${OPERATOR_PID}

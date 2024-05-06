@@ -27,7 +27,7 @@ jobs:
       - name: Install YQ
         uses: dcarbone/install-yq-action@v1.1.1
         with:
-          version: 'v.4.43.1'
+          version: 'v4.43.1'
       
       - name: Install deps
         run: |

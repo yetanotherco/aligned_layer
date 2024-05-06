@@ -28,5 +28,3 @@ cast send --from $sender_address \
     "$recipient_address"
 
 echo  "Operator funded"
-
-cat config-files/config.yaml
