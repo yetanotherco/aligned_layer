@@ -12,10 +12,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Test runningh bash
-        run: |
-          . ./scripts/mint_mock_token.sh "config-files/config.yaml" 1000
+
+      # this read ok the vars
+      # - name: Test runningh bash
+      #   run: |
+      #     . ./scripts/mint_mock_token.sh "config-files/config.yaml" 1000
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -42,8 +43,12 @@ jobs:
       - name: Run Aggregator
         run: |
             make aggregator-start &
+
+      # - name: Register Operator
+      #   run: |
+      #     make operator-full-registration
       
-      - name: Run Opperator
+      - name: Run Operator
         run: |
             export CONFIG_FILE="config-files/config.yaml"
             sleep 10
