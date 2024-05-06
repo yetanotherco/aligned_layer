@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # check that OPERATOR_ADDRESS is not empty
-if [[ "$OPERATOR_ADDRESS" -eq "" ]]; then
+if [ "$OPERATOR_ADDRESS" -eq "" ]; then
   echo "OPERATOR_ADDRESS is empty, using default value 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
   OPERATOR_ADDRESS="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 fi;
 
 # Check that the script received 2 arguments
-if [[ "$#" -ne 2 ]]; then
+if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <config_file> <amount>"
   exit 1
 fi;

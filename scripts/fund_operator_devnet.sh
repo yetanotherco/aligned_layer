@@ -3,7 +3,7 @@
 echo "funding operator"
 
 # Check that OPERATOR_ADDRESS is not empty
-if [ "$OPERATOR_ADDRESS" = "" ]; then
+if [ "$OPERATOR_ADDRESS" -eq "" ]; then
   echo "OPERATOR_ADDRESS is empty, using default value 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
   OPERATOR_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 fi;
