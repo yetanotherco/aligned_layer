@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"log"
 	"time"
 
+	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
+	"github.com/Layr-Labs/eigenda/encoding/utils/codec"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -127,7 +132,38 @@ func (o *Operator) Start(ctx context.Context) error {
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
 func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
-	proof := newTaskCreatedLog.Task.Proof
+	eigenDABatchHeaderHash := newTaskCreatedLog.Task.EigenDABatchHeaderHash
+	eigenDABlobIndex := newTaskCreatedLog.Task.EigenDABlobIndex
+
+	// TODO: Initialize the disperser client outside of this function
+	ctx := context.Background()
+
+	config := &tls.Config{}
+	credential := credentials.NewTLS(config)
+
+	// TODO: Removed hardcoded address
+	clientConn, err := grpc.NewClient("disperser-holesky.eigenda.xyz:443", grpc.WithTransportCredentials(credential))
+
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	disperserClient := disperser.NewDisperserClient(clientConn)
+
+	req := disperser.RetrieveBlobRequest{
+		BatchHeaderHash: eigenDABatchHeaderHash,
+		BlobIndex:       eigenDABlobIndex,
+	}
+
+	blob, err := disperserClient.RetrieveBlob(ctx, &req)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	proof := codec.RemoveEmptyByteFromPaddedBytes(blob.Data)
+
 	proofLen := (uint)(len(proof))
 
 	pubInput := newTaskCreatedLog.Task.PubInput
