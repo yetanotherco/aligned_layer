@@ -127,9 +127,7 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err)
-
-		// FIXME: Panicking for fast debbuging, we should rework this
-		panic(blsAggServiceResp.Err)
+		return
 	}
 
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
