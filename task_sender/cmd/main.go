@@ -166,10 +166,8 @@ func taskSenderMain(c *cli.Context) error {
 	switch da {
 	case "eigen":
 		taskDA, err = taskSender.PostProofOnEigenDA(proofFile)
-		break
 	case "celestia":
 		taskDA, err = taskSender.PostProofOnCelestia(proofFile)
-		break
 	default:
 		return fmt.Errorf("unsupported DA: %s", da)
 	}
