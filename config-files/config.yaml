@@ -21,6 +21,11 @@ bls:
 eigen_da_disperser:
   url: "disperser-holesky.eigenda.xyz"
 
+## Celestia Configurations
+celestia:
+  url: "http://localhost:26658"
+  keystore: "~/.celestia-light-arabica-11"
+
 ## Aggregator Configurations
 aggregator:
   server_ip_port_address: localhost:8090

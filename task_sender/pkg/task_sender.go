@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	"github.com/Layr-Labs/eigensdk-go/types"
+	"github.com/celestiaorg/celestia-node/api/rpc/client"
 	"github.com/yetanotherco/aligned_layer/common"
 	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -35,16 +36,18 @@ func NewTask(provingSystemId common.ProvingSystemId, taskDA serviceManager.Align
 }
 
 type TaskSender struct {
-	avsWriter *chainio.AvsWriter
-	disperser disperser.DisperserClient
+	avsWriter      *chainio.AvsWriter
+	disperser      disperser.DisperserClient
+	celestiaClient client.Client
 }
 
 const RetryInterval = 1 * time.Second
 
-func NewTaskSender(avsWriter *chainio.AvsWriter, disperser disperser.DisperserClient) *TaskSender {
+func NewTaskSender(avsWriter *chainio.AvsWriter, disperser disperser.DisperserClient, celestiaClient client.Client) *TaskSender {
 	return &TaskSender{
-		avsWriter: avsWriter,
-		disperser: disperser,
+		avsWriter:      avsWriter,
+		disperser:      disperser,
+		celestiaClient: celestiaClient,
 	}
 }
 
