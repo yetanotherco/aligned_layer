@@ -4,15 +4,16 @@ export ANVIL_PID=$!
 
 sleep 3
 
-echo "\nRegistering Operator"
-make operator-full-registration #&> /dev/null
-
 echo "\nStarting Aggregator"
 make aggregator-start & #> /dev/null &
 export AGGREGATOR_PID=$!
 
-sleep 5
+sleep 3
 
+#TODO fix this locally works the second time
+echo "\nRegistering Operator"
+make operator-full-registration #&> /dev/null
+sleep 3
 echo "\nStarting Operator"
 make operator-start & #> /dev/null &
 export OPERATOR_PID=$!

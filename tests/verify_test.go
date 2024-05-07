@@ -20,6 +20,11 @@ import (
 	"testing"
 )
 
+type TaskResponse struct {
+	TaskIndex      uint32 "json:\"taskIndex\""
+	ProofIsCorrect bool   "json:\"proofIsCorrect\""
+}
+
 func TestEventsReader(t *testing.T) {
 	fmt.Println("Running integration test")
 	err := os.Chdir("../")
@@ -37,7 +42,6 @@ func TestEventsReader(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	// check if contract sent event
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(0),
 		Addresses: []common.Address{
@@ -55,8 +59,8 @@ func TestEventsReader(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	NewTaskCreatedEventSignature := contractAbi.Events["NewTaskCreated"].ID.Hex()
-	TaskRespondedEventSignature := contractAbi.Events["TaskResponded"].ID.Hex()
+	NewTaskCreatedEventSignature := contractAbi.Events["NewTaskCreated"].ID
+	TaskRespondedEventSignature := contractAbi.Events["TaskResponded"].ID
 
 	assert.NotEmpty(t, logs, "No New Events found")
 
@@ -64,25 +68,45 @@ func TestEventsReader(t *testing.T) {
 	var taskRespondedEvents = 0
 
 	for _, vLog := range logs {
-		switch vLog.Topics[0].Hex() {
+		switch vLog.Topics[0] {
 		case NewTaskCreatedEventSignature:
+			taskCreated, _ := contractAbi.Unpack("NewTaskCreated", vLog.Data) // Couldn't cast this to a TaskResponse struct defined outside
+			task := taskCreated[0].(struct {
+				ProvingSystemId            uint16   "json:\"provingSystemId\""
+				Proof                      []uint8  "json:\"proof\""
+				PubInput                   []uint8  "json:\"pubInput\""
+				VerificationKey            []uint8  "json:\"verificationKey\""
+				TaskCreatedBlock           uint32   "json:\"taskCreatedBlock\""
+				QuorumNumbers              []uint8  "json:\"quorumNumbers\""
+				QuorumThresholdPercentages []uint8  "json:\"quorumThresholdPercentages\""
+				Fee                        *big.Int "json:\"fee\""
+			})
+
+			// If TaskIndex is added to Task struct, we can cast this event's Data to a Task struct to read it's TaskId
+			// like it is done in TaskRespondedEventSignature event
 			if taskCreatedEvents == 0 {
 				assert.Equal(t, "0x0000000000000000000000000000000000000000000000000000000000000000", vLog.Topics[1].Hex(), "Expected NewTaskCreated event with taskId 0")
+				assert.Equal(t, uint16(0), task.ProvingSystemId, "Expected NewTaskCreated event with provingSystemId 0")
+				assert.Equal(t, uint8(98), task.QuorumThresholdPercentages[0], "Expected NewTaskCreated event with quorumThresholdPercentages 98")
+				assert.Equal(t, big.NewInt(1), task.Fee, "Expected NewTaskCreated event with fee 1")
 			} else if taskCreatedEvents == 1 {
 				assert.Equal(t, "0x0000000000000000000000000000000000000000000000000000000000000001", vLog.Topics[1].Hex(), "Expected NewTaskCreated event with taskId 1")
+				assert.Equal(t, uint16(1), task.ProvingSystemId, "Expected NewTaskCreated event with provingSystemId 0")
+				assert.Equal(t, uint8(100), task.QuorumThresholdPercentages[0], "Expected NewTaskCreated event with quorumThresholdPercentages 98")
+				assert.Equal(t, big.NewInt(1), task.Fee, "Expected NewTaskCreated event with fee 1")
 			} else {
 				assert.Fail(t, "Too many NewTaskCreated events")
 			}
 			taskCreatedEvents++
 
 		case TaskRespondedEventSignature:
-			if taskRespondedEvents == 0 {
-				assert.Equal(t, "0x0000000000000000000000000000000000000000000000000000000000000000", vLog.Topics[1].Hex(), "Expected NewTaskCreated event with taskId 0")
-			} else if taskRespondedEvents == 1 {
-				assert.Equal(t, "0x0000000000000000000000000000000000000000000000000000000000000001", vLog.Topics[1].Hex(), "Expected NewTaskCreated event with taskId 1")
-			} else {
-				assert.Fail(t, "Too many TaskResponded events")
-			}
+			taskResponded, _ := contractAbi.Unpack("TaskResponded", vLog.Data) // Couldn't cast this to a TaskResponse struct defined outside
+			task := taskResponded[0].(struct {
+				TaskIndex      uint32 "json:\"taskIndex\""
+				ProofIsCorrect bool   "json:\"proofIsCorrect\""
+			})
+			assert.Equal(t, uint32(taskRespondedEvents), task.TaskIndex, "Expected NewTaskCreated event with taskId")
+			assert.Equal(t, true, task.ProofIsCorrect, "Expected TaskResponse bool true")
 			taskRespondedEvents++
 
 		default:
