@@ -24,7 +24,7 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 	}
 
 	taskDA := &serviceManager.AlignedLayerServiceManagerTaskDA{
-		Solution:   0,
+		Solution:   1,
 		Commitment: b.Commitment,
 		Index:      height,
 	}
