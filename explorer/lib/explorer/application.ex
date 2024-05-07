@@ -92,8 +92,6 @@ defmodule AlignedLayerServiceManager do
     # devnet
     default_address: alignedLayerServiceManagerAddress
 
-  # default_address: "0x2fcE68A46aF645A00D0b94C2db48f627040766A7" #holesky
-
   def get_task_created_event(task_id) do
     # check if task_id is a valid integer
     if not is_integer(task_id) do
