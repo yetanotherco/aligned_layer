@@ -118,6 +118,14 @@ Make sure to have the ServiceManager deployed and anvil running on another termi
 
 The plonk proofs are located at `task_sender/test_examples`.
 
+You can also send a task with a da by running:
+
+```bash
+  make send-plonk_bls12_381-proof DA_SOLUTION=<calldata|eigen|celestia>
+```
+
+This also works for any other proof type.
+
 ### Sending a task to be stored in Celestia
 
 First, you will need to install the celestia-node CLI. Refer to [this resource](https://docs.celestia.org/nodes/celestia-node#installing-from-source) 
