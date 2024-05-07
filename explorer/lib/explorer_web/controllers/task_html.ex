@@ -5,6 +5,6 @@ defmodule ExplorerWeb.TaskHTML do
   See the `task_html` directory for all templates available.
   """
   use ExplorerWeb, :html
-  
+
   embed_templates "task_html/*"
 end

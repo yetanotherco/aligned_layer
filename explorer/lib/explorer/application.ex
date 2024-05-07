@@ -36,12 +36,18 @@ end
 
 # called AlignedTask since Task is a reserved word in Elixir
 defmodule AlignedTask do
-  @enforce_keys [:verificationSystemId,
-  #:proof,
-  :pubInput, :taskCreatedBlock]
-  defstruct [:verificationSystemId,
-  #:proof,
-  :pubInput, :taskCreatedBlock]
+  @enforce_keys [
+    :verificationSystemId,
+    # :proof,
+    :pubInput,
+    :taskCreatedBlock
+  ]
+  defstruct [
+    :verificationSystemId,
+    # :proof,
+    :pubInput,
+    :taskCreatedBlock
+  ]
 end
 
 defmodule AlignedTaskCreatedInfo do
@@ -64,17 +70,22 @@ end
 defmodule AlignedLayerServiceManager do
   require Logger
   # read alignedLayerServiceManagerAddress from config file
-  file_path = "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
+  file_path =
+    "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
+
   Logger.debug(file_path)
-  
+
   {status, config_json_string} = File.read(file_path)
+
   case status do
     :ok -> Logger.debug("File read successfully")
     :error -> raise("Config file not read successfully, did you run make create-env ?")
   end
 
   alignedLayerServiceManagerAddress =
-    Jason.decode!(config_json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
+    Jason.decode!(config_json_string)
+    |> Map.get("addresses")
+    |> Map.get("alignedLayerServiceManager")
 
   use Ethers.Contract,
     abi_file: "lib/abi/AlignedLayerServiceManager.json",
@@ -111,7 +122,7 @@ defmodule AlignedLayerServiceManager do
 
       task = %AlignedTask{
         verificationSystemId: verificationSystemId,
-        #proof: proof,
+        # proof: proof,
         pubInput: pubInput,
         taskCreatedBlock: taskCreatedBlock
       }
