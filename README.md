@@ -117,6 +117,23 @@ Make sure to have the ServiceManager deployed and anvil running on another termi
 
 The plonk proofs are located at `task_sender/test_examples`.
 
+### Sending a task to be stored in Celestia
+
+First, you will need to install the celestia-node CLI. Refer to [this resource](https://docs.celestia.org/nodes/celestia-node#installing-from-source) 
+for instructions on how to do so.
+
+Then, to initialize the node store for the Arabica network run:
+```bash
+celestia light init --p2p.network arabica
+```
+The output in your terminal will show the location of your node store and config.
+
+Finally, to start the node in the Arabica network run:
+```bash
+
+celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
+```
+
 ## Developing workflows in testnet
 
 ### Upgrade contracts
