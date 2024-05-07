@@ -27,13 +27,14 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     // STRUCTS
     enum DASolution {
+        Calldata,
         EigenDA,
         Celestia
     }
 
     struct TaskDA {
         DASolution solution;
-        bytes commitment; // BatchHeaderHash for EigenDA - Commitment for Celestia
+        bytes proof; // Proof bytes for calldata -  BatchHeaderHash for EigenDA - Commitment for Celestia
         uint64 index; // BlobIndex for EigenDA - Height for Celestia
     }
 

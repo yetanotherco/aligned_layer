@@ -6,13 +6,13 @@ import (
 	"crypto/tls"
 	"errors"
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
+	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"log"
 	"math/big"
 	"os"
 
-	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 
@@ -163,6 +163,7 @@ type TaskSenderConfig struct {
 	BaseConfig             *BaseConfig
 	EcdsaConfig            *EcdsaConfig
 	EigenDADisperserConfig *EigenDADisperserConfig
+	CelestiaConfig         *CelestiaConfig
 }
 
 type TaskSenderConfigFromYaml struct {
@@ -369,10 +370,13 @@ func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
 
 	eigenDADisperserConfig := newEigenDADisperserConfig(configFilePath)
 
+	celestiaConfig := newCelestiaConfig(configFilePath)
+
 	return &TaskSenderConfig{
 		BaseConfig:             baseConfig,
 		EcdsaConfig:            ecdsaConfig,
 		EigenDADisperserConfig: eigenDADisperserConfig,
+		CelestiaConfig:         celestiaConfig,
 	}
 }
 

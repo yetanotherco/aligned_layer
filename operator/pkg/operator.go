@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/celestiaorg/celestia-node/share"
 	"log"
 	"time"
 
@@ -130,11 +131,31 @@ func (o *Operator) Start(ctx context.Context) error {
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
 func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
-	// TODO: Get from Celestia based on DA solution
-	proof, err := o.getProofFromEigenDA(newTaskCreatedLog.Task.TaskDA.Commitment, newTaskCreatedLog.Task.TaskDA.Index)
-	if err != nil {
-		o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
-		return nil
+
+	var proof []byte
+	var err error
+
+	switch newTaskCreatedLog.Task.TaskDA.Solution {
+	case common.Calldata:
+		proof = newTaskCreatedLog.Task.TaskDA.Proof
+	case common.EigenDA:
+		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.TaskDA.Proof, newTaskCreatedLog.Task.TaskDA.Index)
+		if err != nil {
+			o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
+			return nil
+		}
+	case common.Celestia:
+		// TODO: Add hardcoded namespace to config
+		namespace, err := share.NewBlobNamespaceV0([]byte("Aligned"))
+		if err != nil {
+			o.Logger.Errorf("Could not create namespace: %v", err)
+			return nil
+		}
+		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.TaskDA.Index, namespace, newTaskCreatedLog.Task.TaskDA.Proof)
+		if err != nil {
+			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
+			return nil
+		}
 	}
 
 	proofLen := (uint)(len(proof))
