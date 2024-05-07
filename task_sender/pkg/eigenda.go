@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	"github.com/Layr-Labs/eigenda/encoding/utils/codec"
+	"github.com/yetanotherco/aligned_layer/common"
 	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"log"
 	"time"
@@ -46,9 +47,9 @@ func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedL
 	verificationProof := status.GetInfo().GetBlobVerificationProof()
 
 	taskDA := &serviceManager.AlignedLayerServiceManagerTaskDA{
-		Solution:   0,
-		Commitment: verificationProof.GetBatchMetadata().GetBatchHeaderHash(),
-		Index:      uint64(verificationProof.GetBlobIndex()),
+		Solution: common.EigenDA,
+		Proof:    verificationProof.GetBatchMetadata().GetBatchHeaderHash(),
+		Index:    uint64(verificationProof.GetBlobIndex()),
 	}
 
 	return taskDA, nil

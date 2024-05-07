@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/celestiaorg/celestia-node/blob"
 	"github.com/celestiaorg/celestia-node/share"
+	"github.com/yetanotherco/aligned_layer/common"
 	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"log"
 )
@@ -27,9 +28,9 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 	}
 
 	taskDA := &serviceManager.AlignedLayerServiceManagerTaskDA{
-		Solution:   1,
-		Commitment: b.Commitment,
-		Index:      height,
+		Solution: common.Celestia,
+		Proof:    b.Commitment,
+		Index:    height,
 	}
 
 	return taskDA, nil

@@ -1,6 +1,7 @@
 package common
 
 const (
-	EigenDA = iota
+	Calldata = iota
+	EigenDA
 	Celestia
 )

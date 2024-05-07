@@ -64,8 +64,8 @@ var (
 	daFlag = &cli.StringFlag{
 		Name: "da",
 		// Can be either "eigen" or "celestia"
-		Usage: "the `DA` to use (eigen | celestia)",
-		Value: "celestia",
+		Usage: "the `DA` to use (calldata | eigen | celestia)",
+		Value: "calldata",
 	}
 )
 
@@ -164,6 +164,8 @@ func taskSenderMain(c *cli.Context) error {
 	da := c.String(daFlag.Name)
 	var taskDA *contractAlignedLayerServiceManager.AlignedLayerServiceManagerTaskDA
 	switch da {
+	case "calldata":
+		taskDA, err = taskSender.PostProofOnCalldata(proofFile)
 	case "eigen":
 		taskDA, err = taskSender.PostProofOnEigenDA(proofFile)
 	case "celestia":
