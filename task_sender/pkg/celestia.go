@@ -5,6 +5,7 @@ import (
 	"github.com/celestiaorg/celestia-node/blob"
 	"github.com/celestiaorg/celestia-node/share"
 	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	"log"
 )
 
 func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.AlignedLayerServiceManagerTaskDA, error) {
@@ -18,6 +19,8 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 	}
 
 	blobs := []*blob.Blob{b}
+
+	log.Println("Submitting proof to Celestia...")
 	height, err := ts.celestiaClient.Blob.Submit(context.Background(), blobs, 0.1) // TODO: estimate gas price
 	if err != nil {
 		return nil, err
