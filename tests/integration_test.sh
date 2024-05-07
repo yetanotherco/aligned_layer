@@ -37,12 +37,12 @@ passed=$?
 
 ## Crashes the CI, only run locally
 if [ "$LOCAL" != "" ]; then
-    echo "\nStopping Anvil"
-    kill ${ANVIL_PID}
-    echo "\nStopping Aggregator"
-    kill ${AGGREGATOR_PID}
     echo "\nStopping Operator"
     kill ${OPERATOR_PID}
+    echo "\nStopping Aggregator"
+    kill ${AGGREGATOR_PID}
+    echo "\nStopping Anvil"
+    kill ${ANVIL_PID}
 fi
 
 exit $passed
