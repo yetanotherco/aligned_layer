@@ -72,7 +72,7 @@ since the aggregator will have a task index of 0.
 
 ### Start operator
 
-To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
+To do the full process (register with EigenLayer, deposit into strategy and register with AlignedLayer), run:
 
 ```bash
 make operator-full-registration CONFIG_FILE=<path_to_config_file>
