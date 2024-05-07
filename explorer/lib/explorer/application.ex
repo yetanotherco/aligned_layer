@@ -66,11 +66,11 @@ defmodule AlignedLayerServiceManager do
   # read alignedLayerServiceManagerAddress from config file
   file_path = "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
   Logger.debug(file_path)
-
+  
   {status, config_json_string} = File.read(file_path)
   case status do
     :ok -> Logger.debug("File read successfully")
-    :error -> Logger.error("Error reading file")
+    :error -> raise("Config file not read successfully, did you run make create-env ?")
   end
 
   alignedLayerServiceManagerAddress =
