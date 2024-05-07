@@ -33,6 +33,8 @@ func (circuit *CubicCircuit) Define(api frontend.API) error {
 
 func main() {
 
+	outputDir := "task_sender/test_examples/gnark_plonk_bls12_381_script/"
+
 	var circuit CubicCircuit
 	// use scs.NewBuilder instead of r1cs.NewBuilder (groth16)
 	ccs, err := frontend.Compile(ecc.BLS12_381.ScalarField(), scs.NewBuilder, &circuit)
@@ -79,15 +81,15 @@ func main() {
 	}
 
 	// Open files for writing the proof, the verification key and the public witness
-	proofFile, err := os.Create("plonk.proof")
+	proofFile, err := os.Create(outputDir + "plonk.proof")
 	if err != nil {
 		panic(err)
 	}
-	vkFile, err := os.Create("plonk.vk")
+	vkFile, err := os.Create(outputDir + "plonk.vk")
 	if err != nil {
 		panic(err)
 	}
-	witnessFile, err := os.Create("plonk_pub_input.pub")
+	witnessFile, err := os.Create(outputDir + "plonk_pub_input.pub")
 	if err != nil {
 		panic(err)
 	}

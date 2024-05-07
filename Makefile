@@ -128,6 +128,12 @@ send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task 
 		--interval 10 \
 		2>&1 | zap-pretty
 
+run-plonk_bls12_381-script: ## Run the gnark_plonk_bls12_381_script
+	@echo "Running gnark_plonk_bls12_381 script..."
+	@go run task_sender/test_examples/gnark_plonk_bls12_381_script/main.go
+
+
+
 send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
 	@echo "Sending PLONK BN254 proof..."
 	@go run task_sender/cmd/main.go send-task \
@@ -148,6 +154,11 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--config config-files/config.yaml \
 		--interval 10 \
 		2>&1 | zap-pretty
+
+run-plonk_bn254-script: ## Run the gnark_plonk_bn254_script
+	@echo "Running gnark_plonk_bn254 script..."
+	@go run task_sender/test_examples/gnark_plonk_bn254_script/main.go
+
 
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
