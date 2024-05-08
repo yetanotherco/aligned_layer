@@ -8,7 +8,7 @@ defmodule ExplorerWeb.HomeLive.Index do
     if not is_task_id_valid do
       {:noreply, assign(socket, error: "Invalid task ID")}
     else
-      {:noreply, redirect(socket, to: "/task/#{task_id}")}
+      {:noreply, redirect(socket, to: "/tasks/#{task_id}")}
     end
   end
 
