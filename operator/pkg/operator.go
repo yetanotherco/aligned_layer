@@ -148,7 +148,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 			return nil
 		}
 	case common.Celestia:
-		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Chunks[0].Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData)
+		proof, err = o.getProofByChunksFromCelestia(newTaskCreatedLog)
 		if err != nil {
 			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
 			return nil
