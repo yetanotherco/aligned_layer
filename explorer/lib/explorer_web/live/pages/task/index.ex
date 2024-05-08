@@ -2,15 +2,6 @@ defmodule ExplorerWeb.TaskLive.Index do
   use ExplorerWeb, :live_view
 
   def mount(params, _session, socket) do
-    # Returns the EigenLayer AVSDirectory contract.
-    # data = AlignedLayerServiceManager.avs_directory() |> Ethers.call()
-
-    # Returns the AlignedLayer "meaning" value
-    # data = AlignedLayerServiceManager.get_meaning() |> Ethers.call() |> IO.puts()
-
-    # Returns AlignedLayer latestTaskNum
-    # data = AlignedLayerServiceManager.latest_task_num() |> Ethers.call() |> IO.puts()
-
     # Returns AlignedLayer is_aggregator -> bool
     # data = AlignedLayerServiceManager.is_aggregator("0x703E7dE5F528fA828f3BE726802B2092Ae7deb2F") |> Ethers.call()
 

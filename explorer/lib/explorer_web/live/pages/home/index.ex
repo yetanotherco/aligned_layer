@@ -1,4 +1,5 @@
 defmodule ExplorerWeb.HomeLive.Index do
+  require Logger
   use ExplorerWeb, :live_view
 
   def handle_event("search_task", %{"task" => task_params}, socket) do
@@ -10,6 +11,22 @@ defmodule ExplorerWeb.HomeLive.Index do
     else
       {:noreply, redirect(socket, to: "/tasks/#{task_id}")}
     end
+  end
+
+  def mount(_params, _session, socket) do
+    {status, last_task_id} = AlignedLayerServiceManager.latest_task_index_plus_one() |> Ethers.call()
+    case status do
+      :ok -> Logger.debug("Latest task index: #{last_task_id}")
+      :error -> raise("Error fetching latest task index")
+    end
+
+    {status, avs_directory} = AlignedLayerServiceManager.avs_directory() |> Ethers.call()
+    case status do
+      :ok -> Logger.debug("AVS directory #{avs_directory}")
+      :error -> raise("Error fetching latest task index")
+    end
+    { :ok, assign(socket, last_task_id: last_task_id) }
+
   end
 
   def render(assigns) do
