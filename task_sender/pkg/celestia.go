@@ -9,29 +9,33 @@ import (
 )
 
 func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.AlignedLayerServiceManagerDAPayload, error) {
-	b, err := blob.NewBlobV0(ts.celestiaConfig.Namespace, proof)
-	if err != nil {
-		return nil, err
-	}
+	proofChunks := SplitIntoChunks(proof, 100) // TODO: Actual max value
 
-	blobs := []*blob.Blob{b}
+	daChunks := make([]serviceManager.AlignedLayerServiceManagerDAPayloadChunk, len(proofChunks))
 
-	log.Println("Submitting proof to Celestia...")
+	for idx, proofChunk := range proofChunks {
 
-	height, err := ts.celestiaConfig.Client.Blob.Submit(context.Background(), blobs, blob.DefaultGasPrice())
-	if err != nil {
-		return nil, err
-	}
+		b, err := blob.NewBlobV0(ts.celestiaConfig.Namespace, proofChunk)
+		if err != nil {
+			return nil, err
+		}
 
-	// TODO: Actually split into chunks
-	chunk := serviceManager.AlignedLayerServiceManagerDAPayloadChunk{
-		ProofAssociatedData: b.Commitment,
-		Index:               height,
+		blobs := []*blob.Blob{b}
+
+		log.Printf("Submitting proof chunk %d to Celestia...", idx)
+
+		height, err := ts.celestiaConfig.Client.Blob.Submit(context.Background(), blobs, blob.DefaultGasPrice())
+		if err != nil {
+			return nil, err
+		}
+
+		daChunks[idx].ProofAssociatedData = b.Commitment
+		daChunks[idx].Index = height
 	}
 
 	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
 		Solution: common.Celestia,
-		Chunks:   []serviceManager.AlignedLayerServiceManagerDAPayloadChunk{chunk},
+		Chunks:   daChunks,
 	}
 
 	return DAPayload, nil
