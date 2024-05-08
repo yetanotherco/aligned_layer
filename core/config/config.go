@@ -133,6 +133,7 @@ type OperatorConfig struct {
 	BlsConfig                    *BlsConfig
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
 	EigenDADisperserConfig       *EigenDADisperserConfig
+	CelestiaConfig               *CelestiaConfig
 
 	Operator struct {
 		AggregatorServerIpPortAddress string
@@ -335,12 +336,15 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 
 	eigenDADisperserConfig := newEigenDADisperserConfig(configFilePath)
 
+	celestiaConfig := newCelestiaConfig(configFilePath)
+
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
 		EcdsaConfig:                  ecdsaConfig,
 		BlsConfig:                    blsConfig,
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		EigenDADisperserConfig:       eigenDADisperserConfig,
+		CelestiaConfig:               celestiaConfig,
 		Operator: struct {
 			AggregatorServerIpPortAddress string
 			Address                       common.Address

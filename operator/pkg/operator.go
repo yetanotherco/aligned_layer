@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/celestiaorg/celestia-node/api/rpc/client"
 	"github.com/celestiaorg/celestia-node/share"
 	"log"
 	"time"
@@ -42,6 +43,7 @@ type Operator struct {
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
 	disperser          disperser.DisperserClient
+	celestiaClient     *client.Client
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -85,6 +87,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		aggRpcClient:       *rpcClient,
 		OperatorId:         operatorId,
 		disperser:          configuration.EigenDADisperserConfig.Disperser,
+		celestiaClient:     configuration.CelestiaConfig.Client,
 		// Timeout
 		// Socket
 	}
