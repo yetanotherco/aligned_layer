@@ -44,7 +44,7 @@ aggregator-send-dummy-responses:
 
 operator-start:
 	@echo "Starting Operator..."
-	go run operator/cmd/main.go --config $(CONFIG_FILE) \
+	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 bindings:
@@ -83,20 +83,20 @@ operator-deposit-into-mock-strategy:
 	@echo "Depositing into strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
 
-	@go run operator/scripts/deposit_into_strategy/main.go \
+	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 1000
 
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
-	@go run operator/scripts/deposit_into_strategy/main.go \
+	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--amount 1000
 
 operator-register-with-aligned-layer:
 	@echo "Registering operator with AlignedLayer"
-	@go run operator/scripts/register_with_aligned_layer/main.go \
+	@go run operator/cmd/main.go register \
 		--config $(CONFIG_FILE)
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
@@ -156,3 +156,18 @@ deploy-aligned-contracts: ## Deploy Aligned Contracts
 
 build-aligned-contracts:
 	@cd contracts/src/core && forge build
+
+__BUILD__:
+build-binaries:
+	@echo "Building aggregator..."
+	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
+	@echo "Aggregator built into /aggregator/build/aligned-aggregator" 
+	@echo "Building aligned layer operator..."
+	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo "Aligned layer operator built into /operator/build/aligned-operator" 
+	@echo "Building task sender.."
+	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
+	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
+
+
+
