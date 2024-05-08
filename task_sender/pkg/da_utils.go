@@ -1,6 +1,6 @@
 package pkg
 
-func SplitIntoChunks(proof []byte, chunkSize uint) [][]byte {
+func SplitIntoChunks(proof []byte, chunkSize uint64) [][]byte {
 	chunks := make([][]byte, 0)
 	for i := 0; i < len(proof); i += int(chunkSize) {
 		end := i + int(chunkSize)

@@ -9,7 +9,12 @@ import (
 )
 
 func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.AlignedLayerServiceManagerDAPayload, error) {
-	proofChunks := SplitIntoChunks(proof, 100) // TODO: Actual max value
+	size, err := ts.celestiaConfig.Client.DA.MaxBlobSize(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	proofChunks := SplitIntoChunks(proof, size) // TODO: Actual max value
 
 	blobs := make([]*blob.Blob, len(proofChunks))
 
