@@ -1,10 +1,8 @@
-package main
+package actions
 
 import (
 	"context"
-	"log"
 	"math/big"
-	"os"
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/types"
@@ -14,30 +12,25 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
-var flags = []cli.Flag{
+var registerFlags = []cli.Flag{
 	config.ConfigFileFlag,
 }
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "aligned_layer"
-	app.Usage = "Tool for registering operator to AlignedLayer AVS"
-	app.Flags = flags
-	app.Action = registerWithAlignedLayer
-
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
-	}
+var RegisterCommand = &cli.Command{
+	Name:        "register",
+	Usage:       "Register operator with Aligned Layer",
+	Description: "CLI command to register opeartor with Aligned Layer",
+	Flags:       registerFlags,
+	Action:      registerOperatorMain,
 }
 
-func registerWithAlignedLayer(ctx *cli.Context) error {
-	configuration := config.NewOperatorConfig(ctx.String(config.ConfigFileFlag.Name))
+func registerOperatorMain(ctx *cli.Context) error {
+	config := config.NewOperatorConfig(ctx.String(config.ConfigFileFlag.Name))
 
 	quorumNumbers := []byte{0}
 
 	// Generate salt and expiry
-	privateKeyBytes := []byte(configuration.BlsConfig.KeyPair.PrivKey.String())
+	privateKeyBytes := []byte(config.BlsConfig.KeyPair.PrivKey.String())
 	salt := [32]byte{}
 
 	copy(salt[:], crypto.Keccak256([]byte("churn"), []byte(time.Now().String()), quorumNumbers, privateKeyBytes))
@@ -46,10 +39,10 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 	quorumNumbersArr := types.QuorumNums{0}
 	socket := "Not Needed"
 
-	err := RegisterOperator(context.Background(), configuration,
+	err := registerOperator(context.Background(), config,
 		socket, quorumNumbersArr, salt, expiry)
 	if err != nil {
-		configuration.BaseConfig.Logger.Error("Failed to register operator", "err", err)
+		config.BaseConfig.Logger.Error("Failed to register operator", "err", err)
 		return err
 	}
 
@@ -60,7 +53,7 @@ func registerWithAlignedLayer(ctx *cli.Context) error {
 // RegisterOperator registers a new operator with the given public key and socket with the provided quorum ids.
 // If the operator is already registered with a given quorum id, the transaction will fail (noop) and an error
 // will be returned.
-func RegisterOperator(
+func registerOperator(
 	ctx context.Context,
 	configuration *config.OperatorConfig,
 	socket string,
