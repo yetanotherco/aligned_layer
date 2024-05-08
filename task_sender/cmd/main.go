@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"log"
 	"math/big"
 	"os"
@@ -53,11 +54,18 @@ var (
 		Value:    1_000_000_000_000_000, // TODO: Estimate the fee
 		Usage:    "the `FEE` in wei to send when sending a task",
 	}
+
 	quorumThresholdFlag = &cli.UintFlag{
 		Name:    "quorum-threshold",
 		Aliases: []string{"q"},
 		Value:   100,
 		Usage:   "the `QUORUM THRESHOLD PERCENTAGE` for tasks",
+	}
+	daFlag = &cli.StringFlag{
+		Name: "da",
+		// Can be either "eigen" or "celestia"
+		Usage: "the `DA` to use (calldata | eigen | celestia)",
+		Value: "calldata",
 	}
 )
 
@@ -69,6 +77,7 @@ var sendTaskFlags = []cli.Flag{
 	config.ConfigFileFlag,
 	feeFlag,
 	quorumThresholdFlag,
+	daFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -80,6 +89,7 @@ var loopTasksFlags = []cli.Flag{
 	intervalFlag,
 	feeFlag,
 	quorumThresholdFlag,
+	daFlag,
 }
 
 func main() {
@@ -138,19 +148,46 @@ func taskSenderMain(c *cli.Context) error {
 
 	fee := big.NewInt(int64(c.Int(feeFlag.Name)))
 
-	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
+	var daSol common.DASolution
+	switch c.String(daFlag.Name) {
+	case "calldata":
+		daSol = common.Calldata
+	case "eigen":
+		daSol = common.EigenDA
+	case "celestia":
+		daSol = common.Celestia
+	default:
+		return fmt.Errorf("unsupported DA, must be one of: calldata, eigen, celestia")
+	}
+
+	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name), daSol)
 	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
 	if err != nil {
 		return err
 	}
 
-	taskSender := pkg.NewTaskSender(avsWriter)
+	taskSender := pkg.NewTaskSender(taskSenderConfig, avsWriter)
 	quorumThresholdPercentage := c.Uint(quorumThresholdFlag.Name)
 
 	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
 	quorumNumbers := eigentypes.QuorumNums{0}
 	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
-	task := pkg.NewTask(provingSystem, proofFile, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
+
+	var DAPayload *contractAlignedLayerServiceManager.AlignedLayerServiceManagerDAPayload
+	switch daSol {
+	case common.Calldata:
+		DAPayload, err = taskSender.PostProofOnCalldata(proofFile)
+	case common.EigenDA:
+		DAPayload, err = taskSender.PostProofOnEigenDA(proofFile)
+	default: // Celestia
+		DAPayload, err = taskSender.PostProofOnCelestia(proofFile)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	task := pkg.NewTask(provingSystem, *DAPayload, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
 
 	err = taskSender.SendTask(task)
 	if err != nil {
