@@ -158,7 +158,7 @@ send-sp1-proof:
 	@go run task_sender/cmd/main.go send-task \
     		--proving-system sp1 \
     		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
-    		--public-input task_sender/test_examples/bn254/plonk_pub_input.pub \
+    		--public-input task_sender/test_examples/sp1/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
     		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty

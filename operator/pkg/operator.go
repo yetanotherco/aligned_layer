@@ -6,10 +6,11 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/celestiaorg/celestia-node/api/rpc/client"
-	"github.com/yetanotherco/aligned_layer/operator/sp1"
 	"log"
 	"time"
+
+	"github.com/celestiaorg/celestia-node/api/rpc/client"
+	"github.com/yetanotherco/aligned_layer/operator/sp1"
 
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -195,7 +196,13 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	case uint16(common.SP1):
 		proofBytes := make([]byte, sp1.MAX_PROOF_SIZE)
 		copy(proofBytes, proof)
-		verificationResult := sp1.VerifySp1Proof(([sp1.MAX_PROOF_SIZE]byte)(proofBytes), proofLen)
+
+		elf := newTaskCreatedLog.Task.PubInput
+		elfBytes := make([]byte, sp1.MAX_ELF_BUFFER_SIZE)
+		copy(elfBytes, elf)
+		elfLen := (uint)(len(elf))
+
+		verificationResult := sp1.VerifySp1Proof(([sp1.MAX_PROOF_SIZE]byte)(proofBytes), proofLen, ([sp1.MAX_ELF_BUFFER_SIZE]byte)(elfBytes), elfLen)
 
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
