@@ -174,5 +174,6 @@ build-binaries:
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
 	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
 
-
+run-local:
+	./scripts/run_local.sh
 
