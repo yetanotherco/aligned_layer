@@ -17,7 +17,8 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 	blobs := []*blob.Blob{b}
 
 	log.Println("Submitting proof to Celestia...")
-	height, err := ts.celestiaConfig.Client.Blob.Submit(context.Background(), blobs, 0.1) // TODO: estimate gas price
+
+	height, err := ts.celestiaConfig.Client.Blob.Submit(context.Background(), blobs, blob.DefaultGasPrice())
 	if err != nil {
 		return nil, err
 	}
