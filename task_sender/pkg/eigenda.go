@@ -15,7 +15,7 @@ import (
 const EigenDAMaxSize = 2 * 1024 * 1024
 
 func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedLayerServiceManagerDAPayload, error) {
-	proofChunks := SplitIntoChunks(proof, EigenDAMaxSize) // TODO: Actual max value
+	proofChunks := SplitIntoChunks(proof, EigenDAMaxSize)
 
 	requestIds := make([][]byte, len(proofChunks))
 	daChunks := make([]serviceManager.AlignedLayerServiceManagerDAPayloadChunk, len(proofChunks))

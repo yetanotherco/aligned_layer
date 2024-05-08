@@ -115,7 +115,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes calldata quorumThresholdPercentages
     ) external payable {
         require(msg.value > 0, "fee must be greater than 0");
-
+        require(payload.chunks.length > 0, "payload must have at least one chunk");
+        
         Task memory newTask;
 
         newTask.provingSystemId = provingSystemId;
