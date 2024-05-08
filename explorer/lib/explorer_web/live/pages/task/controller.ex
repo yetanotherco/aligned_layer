@@ -1,5 +1,4 @@
 defmodule ExplorerWeb.Task.Controller do
-
   require Logger
   use ExplorerWeb, :live_view
 
@@ -9,6 +8,7 @@ defmodule ExplorerWeb.Task.Controller do
 
     # Returns AlignedLayer task content
     id = params["id"]
+
     newTaskEvent =
       case Integer.parse(id) do
         {task_id, _} -> AlignedLayerServiceManager.get_task_created_event(task_id)
@@ -16,11 +16,10 @@ defmodule ExplorerWeb.Task.Controller do
       end
 
     task =
-      if newTaskEvent |> elem(0) == :ok do
-        newTaskEvent |> elem(1)
-      else
-        :empty
-      end
+      case newTaskEvent do
+      {:ok, value } -> value
+      {_, _} -> :empty
+    end
 
     # Returns AlignedLayer task response content
     newRespondedEvent =
@@ -30,15 +29,21 @@ defmodule ExplorerWeb.Task.Controller do
       end
 
     taskResponse =
-      if newRespondedEvent |> elem(0) == :ok do
-        newRespondedEvent |> elem(1)
-      else
-        :empty
+      case newRespondedEvent do
+        {:ok, value} -> value
+        {_, _} -> :empty
       end
 
     isTaskEmpty = task == :empty
     isTaskResponseEmpty = taskResponse == :empty
 
-    { :ok, assign(socket, id: id, task: task, taskResponse: taskResponse, isTaskEmpty: isTaskEmpty, isTaskResponseEmpty: isTaskResponseEmpty) }
+    {:ok,
+     assign(socket,
+       id: id,
+       task: task,
+       taskResponse: taskResponse,
+       isTaskEmpty: isTaskEmpty,
+       isTaskResponseEmpty: isTaskResponseEmpty
+     )}
   end
 end
