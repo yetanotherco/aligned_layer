@@ -99,39 +99,65 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_latest_task_index() do
-    {status, last_task_id} = AlignedLayerServiceManager.latest_task_index_plus_one() |> Ethers.call()
+    {status, last_task_id} =
+      AlignedLayerServiceManager.latest_task_index_plus_one() |> Ethers.call()
+
     case status do
-      :ok -> Logger.debug("Latest task index: #{last_task_id-1}")
+      :ok -> Logger.debug("Latest task index: #{last_task_id - 1}")
       :error -> raise("Error fetching latest task index")
     end
 
-    last_task_id-1
+    last_task_id - 1
   end
 
   def get_avs_directory() do
     {status, avs_directory} = AlignedLayerServiceManager.avs_directory() |> Ethers.call()
+
     case status do
       :ok -> Logger.debug("AVS directory #{avs_directory}")
       :error -> raise("Error fetching latest task index")
     end
+
     avs_directory
   end
 
+  # def get_tx_hash(id) do
+  #   {status, tx_hash} = AlignedLayerServiceManager.task_hashes(id) |> Ethers.call()
+  #   case status do
+  #     :ok -> Logger.debug("tx_hash #{tx_hash}")
+  #     :error -> raise("Error fetching tx_hashes")
+  #   end
+  #   tx_hash |> Base.encode16 |> String.downcase |> (fn x -> "0x" <> x end).()
+  # end
+
   def get_tx_hash(id) do
-    {status, tx_hash} = AlignedLayerServiceManager.task_hashes(id) |> Ethers.call()
-    case status do
-      :ok -> Logger.debug("tx_hash #{tx_hash}")
-      :error -> raise("Error fetching tx_hashes")
-    end
-    tx_hash |> Base.encode16 |> String.downcase |> (fn x -> "0x" <> x end).()
+    AlignedLayerServiceManager.task_hashes(id)
+    |> Ethers.call()
+    |> (fn {x, y} when x == :ok -> y end).()
+    |> Base.encode16()
+    |> String.downcase()
+    |> (fn x -> "0x" <> x end).()
+
+    # {status, tx_hash} = AlignedLayerServiceManager.task_hashes(id) |> Ethers.call()
+    # case status do
+    #   :ok -> Logger.debug("tx_hash #{tx_hash}")
+    #   :error -> raise("Error fetching tx_hashes")
+    # end
+    # tx_hash |> Base.encode16 |> String.downcase |> (fn x -> "0x" <> x end).()
   end
 
-  def get_task_responses() do
-    {status, task_responses} = AlignedLayerServiceManager.task_responses() |> Ethers.call()
+  def get_task_response(id) do
+    {status, task_responses} = AlignedLayerServiceManager.task_responses(id) |> Ethers.call()
+
+    status |> IO.inspect()
+    task_responses |> IO.inspect()
+
+
     case status do
       :ok -> Logger.debug("task_responses #{task_responses}")
       :error -> raise("Error fetching task_responses")
     end
+
     task_responses
   end
 end
