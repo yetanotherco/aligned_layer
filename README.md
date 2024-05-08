@@ -13,7 +13,8 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
+You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git), 
+[celestia](https://docs.celestia.org/nodes/celestia-node#installing-from-source), 
 [jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
 To install zap-pretty and abigen
@@ -116,6 +117,44 @@ You should see logs from the operator with the received task's index.
 Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
 
 The plonk proofs are located at `task_sender/test_examples`.
+
+You can also send a task with a da by running:
+
+```bash
+  make send-plonk_bls12_381-proof DA_SOLUTION=<calldata|eigen|celestia>
+```
+
+This also works for any other proof type.
+
+### Sending a task to be stored in Celestia
+
+First, you will need to install the celestia-node CLI. Refer to [this resource](https://docs.celestia.org/nodes/celestia-node#installing-from-source) 
+for instructions on how to do so.
+
+Then, to initialize the node store for the Arabica network run:
+```bash
+celestia light init --p2p.network arabica
+```
+The output in your terminal will show the location of your node store and config.
+
+To start the node in the Arabica network run:
+```bash
+
+celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
+```
+
+Try sending a task with: 
+```bash
+make send-plonk_bls12_381-proof DA_SOLUTION=celestia
+```
+You will get an error like `...Message: rpc error: code = NotFound desc = account <account_id> not found`. This means you don't have funds in your account.
+
+To get funds in your account, access [this](https://faucet.celestia-arabica-11.com/) faucet and enter your account_id.
+
+Finally, run:
+```bash
+make send-plonk_bls12_381-proof DA_SOLUTION=celestia
+ ```
 
 ## Developing workflows in testnet
 
