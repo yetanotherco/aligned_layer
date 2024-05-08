@@ -8,6 +8,7 @@ import (
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
 	"github.com/celestiaorg/celestia-node/api/rpc/perms"
+	alcommon "github.com/yetanotherco/aligned_layer/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"log"
@@ -358,7 +359,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 	}
 }
 
-func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
+func NewTaskSenderConfig(configFilePath string, sol alcommon.DASolution) *TaskSenderConfig {
 	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup config file does not exist")
 	}
@@ -373,9 +374,20 @@ func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
 		log.Fatal("Error reading ecdsa config: ")
 	}
 
-	eigenDADisperserConfig := newEigenDADisperserConfig(configFilePath)
+	var (
+		eigenDADisperserConfig *EigenDADisperserConfig
+		celestiaConfig         *CelestiaConfig
+	)
 
-	celestiaConfig := newCelestiaConfig(configFilePath, perms.ReadWritePerms)
+	switch sol {
+	case alcommon.EigenDA:
+		eigenDADisperserConfig = newEigenDADisperserConfig(configFilePath)
+	case alcommon.Celestia:
+		celestiaConfig = newCelestiaConfig(configFilePath, perms.ReadWritePerms)
+	case alcommon.Calldata:
+	default:
+		log.Fatal("Invalid solution")
+	}
 
 	return &TaskSenderConfig{
 		BaseConfig:             baseConfig,

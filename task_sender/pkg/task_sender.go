@@ -8,6 +8,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/common"
 	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"log"
 	"math/big"
 	"time"
@@ -43,10 +44,23 @@ type TaskSender struct {
 
 const RetryInterval = 1 * time.Second
 
-func NewTaskSender(avsWriter *chainio.AvsWriter, disperser disperser.DisperserClient, celestiaClient client.Client) *TaskSender {
+func NewTaskSender(config *config.TaskSenderConfig, avsWriter *chainio.AvsWriter) *TaskSender {
+	var (
+		celestiaClient   client.Client
+		eigenDADisperser disperser.DisperserClient
+	)
+
+	if config.CelestiaConfig != nil {
+		celestiaClient = *config.CelestiaConfig.Client
+	}
+
+	if config.EigenDADisperserConfig != nil {
+		eigenDADisperser = config.EigenDADisperserConfig.Disperser
+	}
+
 	return &TaskSender{
 		avsWriter:      avsWriter,
-		disperser:      disperser,
+		disperser:      eigenDADisperser,
 		celestiaClient: celestiaClient,
 	}
 }

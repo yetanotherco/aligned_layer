@@ -148,30 +148,39 @@ func taskSenderMain(c *cli.Context) error {
 
 	fee := big.NewInt(int64(c.Int(feeFlag.Name)))
 
-	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
+	var daSol common.DASolution
+	switch c.String(daFlag.Name) {
+	case "calldata":
+		daSol = common.Calldata
+	case "eigen":
+		daSol = common.EigenDA
+	case "celestia":
+		daSol = common.Celestia
+	default:
+		return fmt.Errorf("unsupported DA, must be one of: calldata, eigen, celestia")
+	}
+
+	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name), daSol)
 	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
 	if err != nil {
 		return err
 	}
 
-	taskSender := pkg.NewTaskSender(avsWriter, taskSenderConfig.EigenDADisperserConfig.Disperser, *taskSenderConfig.CelestiaConfig.Client)
+	taskSender := pkg.NewTaskSender(taskSenderConfig, avsWriter)
 	quorumThresholdPercentage := c.Uint(quorumThresholdFlag.Name)
 
 	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
 	quorumNumbers := eigentypes.QuorumNums{0}
 	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
 
-	da := c.String(daFlag.Name)
 	var taskDA *contractAlignedLayerServiceManager.AlignedLayerServiceManagerTaskDA
-	switch da {
-	case "calldata":
+	switch daSol {
+	case common.Calldata:
 		taskDA, err = taskSender.PostProofOnCalldata(proofFile)
-	case "eigen":
+	case common.EigenDA:
 		taskDA, err = taskSender.PostProofOnEigenDA(proofFile)
-	case "celestia":
+	default: // Celestia
 		taskDA, err = taskSender.PostProofOnCelestia(proofFile)
-	default:
-		return fmt.Errorf("unsupported DA: %s", da)
 	}
 
 	if err != nil {
