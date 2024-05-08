@@ -18,7 +18,7 @@ func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedL
 	}
 
 	log.Println("Posting proof on EigenDA...")
-	disperseBlob, err := ts.disperser.DisperseBlob(context.Background(), disperseBlobReq)
+	disperseBlob, err := ts.eigenDAConfig.Disperser.DisperseBlob(context.Background(), disperseBlobReq)
 	if err != nil {
 		return nil, err
 	}
@@ -31,14 +31,14 @@ func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedL
 		RequestId: disperseBlob.RequestId,
 	}
 
-	status, err := ts.disperser.GetBlobStatus(context.Background(), getBlobStatusReq)
+	status, err := ts.eigenDAConfig.Disperser.GetBlobStatus(context.Background(), getBlobStatusReq)
 	if err != nil {
 		return nil, err
 	}
 
 	for status.Status == disperser.BlobStatus_PROCESSING {
 		time.Sleep(RetryInterval)
-		status, err = ts.disperser.GetBlobStatus(context.Background(), getBlobStatusReq)
+		status, err = ts.eigenDAConfig.Disperser.GetBlobStatus(context.Background(), getBlobStatusReq)
 		if err != nil {
 			return nil, err
 		}

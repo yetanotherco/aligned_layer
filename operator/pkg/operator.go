@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/celestiaorg/celestia-node/api/rpc/client"
-	"github.com/celestiaorg/celestia-node/share"
 	"log"
 	"time"
 
@@ -148,13 +147,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 			return nil
 		}
 	case common.Celestia:
-		// TODO: Add hardcoded namespace to config
-		namespace, err := share.NewBlobNamespaceV0([]byte("Aligned"))
-		if err != nil {
-			o.Logger.Errorf("Could not create namespace: %v", err)
-			return nil
-		}
-		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.TaskDA.Index, namespace, newTaskCreatedLog.Task.TaskDA.Proof)
+		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.TaskDA.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.TaskDA.Proof)
 		if err != nil {
 			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
 			return nil

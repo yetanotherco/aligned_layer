@@ -9,6 +9,7 @@ import (
 	"github.com/celestiaorg/celestia-node/libs/authtoken"
 	"github.com/celestiaorg/celestia-node/libs/keystore"
 	nodemod "github.com/celestiaorg/celestia-node/nodebuilder/node"
+	"github.com/celestiaorg/celestia-node/share"
 	"github.com/cristalhq/jwt"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/mitchellh/go-homedir"
@@ -19,7 +20,8 @@ import (
 )
 
 type CelestiaConfig struct {
-	Client *client.Client
+	Client    *client.Client
+	Namespace share.Namespace
 }
 
 type CelestiaConfigFromYaml struct {
@@ -56,23 +58,28 @@ func newCelestiaConfig(celestiaConfigFilePath string, permissions []auth.Permiss
 		}
 		key, err = generateNewKey(ks)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}
 
 	token, err := buildJWTToken(key.Body, permissions)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	c, err := client.NewClient(context.Background(), "http://localhost:26658", token)
 	if err != nil {
-		log.Println(err)
-		panic(err)
+		log.Fatal(err)
+	}
+
+	ns, err := share.NewBlobNamespaceV0([]byte("Aligned"))
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	return &CelestiaConfig{
-		Client: c,
+		Client:    c,
+		Namespace: ns,
 	}
 
 }

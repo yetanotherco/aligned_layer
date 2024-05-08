@@ -2,9 +2,7 @@ package pkg
 
 import (
 	"context"
-	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	"github.com/Layr-Labs/eigensdk-go/types"
-	"github.com/celestiaorg/celestia-node/api/rpc/client"
 	"github.com/yetanotherco/aligned_layer/common"
 	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -38,30 +36,17 @@ func NewTask(provingSystemId common.ProvingSystemId, taskDA serviceManager.Align
 
 type TaskSender struct {
 	avsWriter      *chainio.AvsWriter
-	disperser      disperser.DisperserClient
-	celestiaClient client.Client
+	eigenDAConfig  *config.EigenDADisperserConfig
+	celestiaConfig *config.CelestiaConfig
 }
 
 const RetryInterval = 1 * time.Second
 
 func NewTaskSender(config *config.TaskSenderConfig, avsWriter *chainio.AvsWriter) *TaskSender {
-	var (
-		celestiaClient   client.Client
-		eigenDADisperser disperser.DisperserClient
-	)
-
-	if config.CelestiaConfig != nil {
-		celestiaClient = *config.CelestiaConfig.Client
-	}
-
-	if config.EigenDADisperserConfig != nil {
-		eigenDADisperser = config.EigenDADisperserConfig.Disperser
-	}
-
 	return &TaskSender{
 		avsWriter:      avsWriter,
-		disperser:      eigenDADisperser,
-		celestiaClient: celestiaClient,
+		eigenDAConfig:  config.EigenDADisperserConfig,
+		celestiaConfig: config.CelestiaConfig,
 	}
 }
 
