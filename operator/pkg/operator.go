@@ -137,17 +137,18 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	var proof []byte
 	var err error
 
+	// TODO: Add support for multiple chunks
 	switch newTaskCreatedLog.Task.DAPayload.Solution {
 	case common.Calldata:
-		proof = newTaskCreatedLog.Task.DAPayload.ProofAssociatedData
+		proof = newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData
 	case common.EigenDA:
-		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.DAPayload.ProofAssociatedData, newTaskCreatedLog.Task.DAPayload.Index)
+		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData, newTaskCreatedLog.Task.DAPayload.Chunks[0].Index)
 		if err != nil {
 			o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
 			return nil
 		}
 	case common.Celestia:
-		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.ProofAssociatedData)
+		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Chunks[0].Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData)
 		if err != nil {
 			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
 			return nil

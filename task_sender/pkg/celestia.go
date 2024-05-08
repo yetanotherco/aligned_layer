@@ -23,10 +23,15 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 		return nil, err
 	}
 
-	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
-		Solution:            common.Celestia,
-		ProofAssociatedData: b.Commitment,
+	// TODO: Actually split into chunks
+	chunk := serviceManager.AlignedLayerServiceManagerDAPayloadChunk{
+		ProofAssociatedData: proof,
 		Index:               height,
+	}
+
+	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
+		Solution: common.Celestia,
+		Chunks:   []serviceManager.AlignedLayerServiceManagerDAPayloadChunk{chunk},
 	}
 
 	return DAPayload, nil

@@ -46,10 +46,15 @@ func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedL
 
 	verificationProof := status.GetInfo().GetBlobVerificationProof()
 
-	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
-		Solution:            common.EigenDA,
-		ProofAssociatedData: verificationProof.GetBatchMetadata().GetBatchHeaderHash(),
+	// TODO: Actually split into chunks
+	chunk := serviceManager.AlignedLayerServiceManagerDAPayloadChunk{
+		ProofAssociatedData: proof,
 		Index:               uint64(verificationProof.GetBlobIndex()),
+	}
+
+	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
+		Solution: common.EigenDA,
+		Chunks:   []serviceManager.AlignedLayerServiceManagerDAPayloadChunk{chunk},
 	}
 
 	return DAPayload, nil
