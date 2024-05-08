@@ -25,7 +25,7 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 
 	// TODO: Actually split into chunks
 	chunk := serviceManager.AlignedLayerServiceManagerDAPayloadChunk{
-		ProofAssociatedData: proof,
+		ProofAssociatedData: b.Commitment,
 		Index:               height,
 	}
 
