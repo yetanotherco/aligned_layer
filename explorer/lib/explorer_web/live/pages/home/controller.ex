@@ -15,18 +15,16 @@ defmodule ExplorerWeb.Home.Controller do
   end
 
   def mount(_, _, socket) do
-    {status, last_task_id} = AlignedLayerServiceManager.latest_task_index_plus_one() |> Ethers.call()
-    case status do
-      :ok -> Logger.debug("Latest task index: #{last_task_id}")
-      :error -> raise("Error fetching latest task index")
-    end
+    last_task_id = AlignedLayerServiceManager.get_latest_task_index() #TODO show this value in front
+    avs_directory = AlignedLayerServiceManager.get_avs_directory() #TODO show this value in front
 
-    {status, avs_directory} = AlignedLayerServiceManager.avs_directory() |> Ethers.call()
-    case status do
-      :ok -> Logger.debug("AVS directory #{avs_directory}")
-      :error -> raise("Error fetching latest task index")
-    end
-    { :ok, assign(socket, last_task_id: last_task_id) }
+    # task_responses = AlignedLayerServiceManager.get_task_responses()
+
+    "a" |> IO.inspect()
+    last_task_hash = AlignedLayerServiceManager.get_tx_hash(last_task_id)
+    # AlignedLayerServiceManager.get_task_responses() |> IO.inspect()
+
+    { :ok, assign(socket, last_task_id: last_task_id, avs_directory: avs_directory, last_task_hash: last_task_hash) }
 
   end
 
