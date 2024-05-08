@@ -187,18 +187,12 @@ __SP1_FFI__: ##
 build-sp1-macos:
 	@cd operator/sp1/lib && cargo build --release
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
-
-
-
-build-sp1-ffi-macos:
-	cd operator/sp1/lib \
-            && cargo build --release \
-            && cp target/release/libsp1_verifier_wrapper.dylib ./libsp1_verifier.dylib \
-            && cp target/release/libsp1_verifier_wrapper.a ./libsp1_verifier.a
+	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
 build-sp1-linux:
 	@cd operator/sp1/lib && cargo build --release
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
+	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
 test-sp1-ffi:
 	go test ./operator/sp1/... -v

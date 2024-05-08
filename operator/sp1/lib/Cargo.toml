@@ -1,5 +1,5 @@
 [package]
-name = "sp1-verifier-wrapper"
+name = "sp1-verifier-ffi"
 version = "0.1.0"
 edition = "2021"
 
