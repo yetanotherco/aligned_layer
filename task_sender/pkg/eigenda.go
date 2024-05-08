@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-const EigenDAMaxSize = 400 // TODO: Actual max value - 2MB for now
+// EigenDAMaxSize 2 MB
+const EigenDAMaxSize = 2 * 1024 * 1024
 
 func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedLayerServiceManagerDAPayload, error) {
 	proofChunks := SplitIntoChunks(proof, EigenDAMaxSize) // TODO: Actual max value
