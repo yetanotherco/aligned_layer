@@ -73,8 +73,6 @@ defmodule AlignedLayerServiceManager do
   file_path =
     "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
 
-  Logger.debug(file_path)
-
   {status, config_json_string} = File.read(file_path)
 
   case status do
