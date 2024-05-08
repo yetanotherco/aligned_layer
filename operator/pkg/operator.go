@@ -142,7 +142,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	case common.Calldata:
 		proof = newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData
 	case common.EigenDA:
-		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData, newTaskCreatedLog.Task.DAPayload.Chunks[0].Index)
+		proof, err = o.getProofByChunksFromEigenDA(newTaskCreatedLog)
 		if err != nil {
 			o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
 			return nil
