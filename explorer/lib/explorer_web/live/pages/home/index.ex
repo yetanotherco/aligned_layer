@@ -14,7 +14,9 @@ defmodule ExplorerWeb.Home.Index do
     ~H"""
     <div class="flex flex-col items-center justify-center w-full min-h-[30rem] relative max-w-96 mx-auto">
       <div class="text-center text-primary mb-8 z-10">
-        <h1 class="text-5xl font-medium tracking-tighter drop-shadow">Aligned Explorer</h1>
+        <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+          Aligned Explorer <%= @last_task_response %>
+        </h1>
       </div>
       <form phx-submit="search_task" class="flex items-center w-full max-w-md gap-2 z-10">
         <input
@@ -51,6 +53,31 @@ defmodule ExplorerWeb.Home.Index do
         src={~p"/images/hero.jpeg"}
       />
     </div>
+    <div>
+      <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+        Total tasks sent: <%= @last_task_id %>
+      </h1>
+      <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+        Total tasks verified: <%= @tasks_verified %>
+      </h1>
+      <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+        Tasks that where true: <%= @tasks_true %>
+      </h1>
+      <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+        Tasks that where false: <%= @tasks_false %>
+      </h1>
+
+      <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+        Last task hash: <%= @last_task_hash %>
+      </h1>
+      <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+        Last task response: <%= @last_task_response %>
+      </h1>
+      <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+        AVS directory: <%= @avs_directory %>
+      </h1>
+    </div>
+
     """
   end
 end
