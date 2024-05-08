@@ -137,11 +137,24 @@ celestia light init --p2p.network arabica
 ```
 The output in your terminal will show the location of your node store and config.
 
-Finally, to start the node in the Arabica network run:
+To start the node in the Arabica network run:
 ```bash
 
 celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
 ```
+
+Try sending a task with: 
+```bash
+make send-plonk_bls12_381-proof DA_SOLUTION=celestia
+```
+You will get an error like `...Message: rpc error: code = NotFound desc = account <account_id> not found`. This means you don't have funds in your account.
+
+To get funds in your account, access [this](https://faucet.celestia-arabica-11.com/) faucet and enter your account_id.
+
+Finally, run:
+```bash
+make send-plonk_bls12_381-proof DA_SOLUTION=celestia
+ ```
 
 ## Developing workflows in testnet
 
