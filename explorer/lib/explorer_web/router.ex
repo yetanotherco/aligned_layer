@@ -19,6 +19,7 @@ defmodule ExplorerWeb.Router do
 
     live "/", Home.Index
     live "/tasks/:id", Task.Index
+    live "/tasks", Tasks.Index
   end
 
   # Other scopes may use custom stacks.
