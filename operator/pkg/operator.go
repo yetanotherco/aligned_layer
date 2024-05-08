@@ -137,17 +137,17 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	var proof []byte
 	var err error
 
-	switch newTaskCreatedLog.Task.TaskDA.Solution {
+	switch newTaskCreatedLog.Task.DAPayload.Solution {
 	case common.Calldata:
-		proof = newTaskCreatedLog.Task.TaskDA.Proof
+		proof = newTaskCreatedLog.Task.DAPayload.Proof
 	case common.EigenDA:
-		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.TaskDA.Proof, newTaskCreatedLog.Task.TaskDA.Index)
+		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.DAPayload.Proof, newTaskCreatedLog.Task.DAPayload.Index)
 		if err != nil {
 			o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
 			return nil
 		}
 	case common.Celestia:
-		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.TaskDA.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.TaskDA.Proof)
+		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.Proof)
 		if err != nil {
 			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
 			return nil

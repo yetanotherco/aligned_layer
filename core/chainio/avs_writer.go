@@ -68,7 +68,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 }
 
 func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId,
-	taskDA servicemanager.AlignedLayerServiceManagerTaskDA, publicInput []byte,
+	DAPayload servicemanager.AlignedLayerServiceManagerDAPayload, publicInput []byte,
 	verificationKey []byte, quorumNumbers types.QuorumNums,
 	quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) (servicemanager.AlignedLayerServiceManagerTask, uint32, error) {
 
@@ -79,7 +79,7 @@ func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.Pro
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
 		uint16(provingSystemId),
-		taskDA,
+		DAPayload,
 		publicInput,
 		verificationKey,
 		quorumNumbers.UnderlyingType(),

@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.AlignedLayerServiceManagerTaskDA, error) {
+func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.AlignedLayerServiceManagerDAPayload, error) {
 	b, err := blob.NewBlobV0(ts.celestiaConfig.Namespace, proof)
 	if err != nil {
 		return nil, err
@@ -22,11 +22,11 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 		return nil, err
 	}
 
-	taskDA := &serviceManager.AlignedLayerServiceManagerTaskDA{
+	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
 		Solution: common.Celestia,
 		Proof:    b.Commitment,
 		Index:    height,
 	}
 
-	return taskDA, nil
+	return DAPayload, nil
 }

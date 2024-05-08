@@ -32,7 +32,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         Celestia
     }
 
-    struct TaskDA {
+    struct DAPayload {
         DASolution solution;
         bytes proof; // Proof bytes for calldata -  BatchHeaderHash for EigenDA - Commitment for Celestia
         uint64 index; // BlobIndex for EigenDA - Height for Celestia
@@ -40,7 +40,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     struct Task {
         uint16 provingSystemId;
-        TaskDA taskDA;
+        DAPayload DAPayload;
         bytes pubInput;
         bytes verificationKey;
         uint32 taskCreatedBlock;
@@ -103,7 +103,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     function createNewTask(
         uint16 provingSystemId,
-        TaskDA calldata taskDA,
+        DAPayload calldata payload,
         bytes calldata pubInput,
         // This parameter is only mandatory for KZG based proving systems
         bytes calldata verificationKey,
@@ -115,7 +115,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         Task memory newTask;
 
         newTask.provingSystemId = provingSystemId;
-        newTask.taskDA = taskDA;
+        newTask.DAPayload = payload;
         newTask.pubInput = pubInput;
         newTask.verificationKey = verificationKey;
         newTask.taskCreatedBlock = uint32(block.number);

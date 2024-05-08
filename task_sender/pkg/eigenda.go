@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedLayerServiceManagerTaskDA, error) {
+func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedLayerServiceManagerDAPayload, error) {
 	data := codec.ConvertByPaddingEmptyByte(proof)
 	disperseBlobReq := &disperser.DisperseBlobRequest{
 		Data: data,
@@ -46,11 +46,11 @@ func (ts *TaskSender) PostProofOnEigenDA(proof []byte) (*serviceManager.AlignedL
 
 	verificationProof := status.GetInfo().GetBlobVerificationProof()
 
-	taskDA := &serviceManager.AlignedLayerServiceManagerTaskDA{
+	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
 		Solution: common.EigenDA,
 		Proof:    verificationProof.GetBatchMetadata().GetBatchHeaderHash(),
 		Index:    uint64(verificationProof.GetBlobIndex()),
 	}
 
-	return taskDA, nil
+	return DAPayload, nil
 }

@@ -173,21 +173,21 @@ func taskSenderMain(c *cli.Context) error {
 	quorumNumbers := eigentypes.QuorumNums{0}
 	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
 
-	var taskDA *contractAlignedLayerServiceManager.AlignedLayerServiceManagerTaskDA
+	var DAPayload *contractAlignedLayerServiceManager.AlignedLayerServiceManagerDAPayload
 	switch daSol {
 	case common.Calldata:
-		taskDA, err = taskSender.PostProofOnCalldata(proofFile)
+		DAPayload, err = taskSender.PostProofOnCalldata(proofFile)
 	case common.EigenDA:
-		taskDA, err = taskSender.PostProofOnEigenDA(proofFile)
+		DAPayload, err = taskSender.PostProofOnEigenDA(proofFile)
 	default: // Celestia
-		taskDA, err = taskSender.PostProofOnCelestia(proofFile)
+		DAPayload, err = taskSender.PostProofOnCelestia(proofFile)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	task := pkg.NewTask(provingSystem, *taskDA, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
+	task := pkg.NewTask(provingSystem, *DAPayload, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
 
 	err = taskSender.SendTask(task)
 	if err != nil {

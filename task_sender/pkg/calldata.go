@@ -6,13 +6,13 @@ import (
 	"log"
 )
 
-func (ts *TaskSender) PostProofOnCalldata(proof []byte) (*serviceManager.AlignedLayerServiceManagerTaskDA, error) {
+func (ts *TaskSender) PostProofOnCalldata(proof []byte) (*serviceManager.AlignedLayerServiceManagerDAPayload, error) {
 	log.Println("Posting proof on Calldata...")
 
-	taskDA := &serviceManager.AlignedLayerServiceManagerTaskDA{
+	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
 		Solution: common.Calldata,
 		Proof:    proof,
 	}
 
-	return taskDA, nil
+	return DAPayload, nil
 }

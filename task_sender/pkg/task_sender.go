@@ -14,7 +14,7 @@ import (
 
 type Task struct {
 	ProvingSystem              common.ProvingSystemId
-	TaskDA                     serviceManager.AlignedLayerServiceManagerTaskDA
+	DAPayload                  serviceManager.AlignedLayerServiceManagerDAPayload
 	PublicInput                []byte
 	VerificationKey            []byte
 	QuorumNumbers              types.QuorumNums
@@ -22,10 +22,10 @@ type Task struct {
 	Fee                        *big.Int
 }
 
-func NewTask(provingSystemId common.ProvingSystemId, taskDA serviceManager.AlignedLayerServiceManagerTaskDA, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) *Task {
+func NewTask(provingSystemId common.ProvingSystemId, DAPayload serviceManager.AlignedLayerServiceManagerDAPayload, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) *Task {
 	return &Task{
 		ProvingSystem:              provingSystemId,
-		TaskDA:                     taskDA,
+		DAPayload:                  DAPayload,
 		PublicInput:                publicInput,
 		VerificationKey:            verificationKey,
 		QuorumNumbers:              quorumNumbers,
@@ -55,7 +55,7 @@ func (ts *TaskSender) SendTask(task *Task) error {
 	_, index, err := ts.avsWriter.SendTask(
 		context.Background(),
 		task.ProvingSystem,
-		task.TaskDA,
+		task.DAPayload,
 		task.PublicInput,
 		task.VerificationKey,
 		task.QuorumNumbers,
