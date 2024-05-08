@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/celestiaorg/celestia-node/api/rpc/client"
+	"github.com/yetanotherco/aligned_layer/operator/sp1"
 	"log"
 	"time"
 
@@ -191,6 +192,17 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		}
 		return taskResponse
 
+	case uint16(common.SP1):
+		proofBytes := make([]byte, sp1.MAX_PROOF_SIZE)
+		copy(proofBytes, proof)
+		verificationResult := sp1.VerifySp1Proof(([sp1.MAX_PROOF_SIZE]byte)(proofBytes), proofLen)
+
+		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
+		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			TaskIndex:      newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect: verificationResult,
+		}
+		return taskResponse
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		return nil

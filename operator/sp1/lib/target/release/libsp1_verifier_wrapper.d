@@ -1,0 +1,1 @@
+/Users/srosati/Work/YAC/aligned_layer/operator/sp1/lib/target/release/libsp1_verifier_wrapper.dylib: /Users/srosati/Work/YAC/aligned_layer/operator/sp1/lib/elf/riscv32im-succinct-zkvm-elf /Users/srosati/Work/YAC/aligned_layer/operator/sp1/lib/src/lib.rs

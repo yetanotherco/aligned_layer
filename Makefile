@@ -154,6 +154,15 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
+send-sp1-proof:
+	@go run task_sender/cmd/main.go send-task \
+    		--proving-system sp1 \
+    		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
+    		--public-input task_sender/test_examples/bn254/plonk_pub_input.pub \
+    		--config config-files/config.yaml \
+    		--da $(DA_SOLUTION) \
+    		2>&1 | zap-pretty
+
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
@@ -174,5 +183,24 @@ build-binaries:
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
 	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
 
+__SP1_FFI__: ##
+build-sp1-macos:
+	@cd operator/sp1/lib && cargo build --release
+	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
+
+
+
+build-sp1-ffi-macos:
+	cd operator/sp1/lib \
+            && cargo build --release \
+            && cp target/release/libsp1_verifier_wrapper.dylib ./libsp1_verifier.dylib \
+            && cp target/release/libsp1_verifier_wrapper.a ./libsp1_verifier.a
+
+build-sp1-linux:
+	@cd operator/sp1/lib && cargo build --release
+	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
+
+test-sp1-ffi:
+	go test ./operator/sp1/... -v
 
 

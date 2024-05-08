@@ -220,6 +220,8 @@ func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 		return common.GnarkPlonkBls12_381, nil
 	case "plonk_bn254":
 		return common.GnarkPlonkBn254, nil
+	case "sp1":
+		return common.SP1, nil
 	default:
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)
