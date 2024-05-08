@@ -46,7 +46,7 @@ func newCelestiaConfig(celestiaConfigFilePath string, permissions []auth.Permiss
 		log.Fatal("Celestia url is empty")
 	}
 
-	ks, err := newKeystore("~/.celestia-light-arabica-11")
+	ks, err := newKeystore(celestiaConfigFromYaml.Celestia.KeystorePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func newCelestiaConfig(celestiaConfigFilePath string, permissions []auth.Permiss
 		log.Fatal(err)
 	}
 
-	c, err := client.NewClient(context.Background(), "http://localhost:26658", token)
+	c, err := client.NewClient(context.Background(), celestiaConfigFromYaml.Celestia.Url, token)
 	if err != nil {
 		log.Fatal(err)
 	}
