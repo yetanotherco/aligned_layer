@@ -7,14 +7,11 @@ require (
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/crypto v0.18.0
-)
-
-require github.com/mattn/go-isatty v0.0.19 // indirect
-
-require (
 	github.com/consensys/gnark v0.10.0
 	github.com/consensys/gnark-crypto v0.12.2-0.20240215234832-d72fcb379d3e
 )
+
+require github.com/mattn/go-isatty v0.0.19 // indirect
 
 require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect

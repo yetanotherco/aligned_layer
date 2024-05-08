@@ -133,7 +133,6 @@ generate-plonk_bls12_381-proof: ## Run the gnark_plonk_bls12_381_script
 	@go run task_sender/test_examples/gnark_plonk_bls12_381_script/main.go
 
 
-
 send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
 	@echo "Sending PLONK BN254 proof..."
 	@go run task_sender/cmd/main.go send-task \
