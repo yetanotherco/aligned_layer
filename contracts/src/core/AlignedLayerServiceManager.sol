@@ -34,7 +34,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     struct DAPayload {
         DASolution solution;
-        bytes proof; // Proof bytes for calldata -  BatchHeaderHash for EigenDA - Commitment for Celestia
+        bytes proof_associated_data; // Proof bytes for calldata - BatchHeaderHash for EigenDA - Commitment for Celestia
         uint64 index; // BlobIndex for EigenDA - Height for Celestia
     }
 

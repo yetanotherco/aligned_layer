@@ -24,9 +24,9 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 	}
 
 	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
-		Solution: common.Celestia,
-		Proof:    b.Commitment,
-		Index:    height,
+		Solution:            common.Celestia,
+		ProofAssociatedData: b.Commitment,
+		Index:               height,
 	}
 
 	return DAPayload, nil

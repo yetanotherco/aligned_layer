@@ -10,8 +10,8 @@ func (ts *TaskSender) PostProofOnCalldata(proof []byte) (*serviceManager.Aligned
 	log.Println("Posting proof on Calldata...")
 
 	DAPayload := &serviceManager.AlignedLayerServiceManagerDAPayload{
-		Solution: common.Calldata,
-		Proof:    proof,
+		Solution:            common.Calldata,
+		ProofAssociatedData: proof,
 	}
 
 	return DAPayload, nil
