@@ -6,7 +6,6 @@ import (
 	"errors"
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/celestiaorg/celestia-node/api/rpc/client"
-	"github.com/celestiaorg/celestia-node/api/rpc/perms"
 	"github.com/celestiaorg/celestia-node/libs/authtoken"
 	"github.com/celestiaorg/celestia-node/libs/keystore"
 	nodemod "github.com/celestiaorg/celestia-node/nodebuilder/node"
@@ -30,7 +29,7 @@ type CelestiaConfigFromYaml struct {
 	} `yaml:"celestia"`
 }
 
-func newCelestiaConfig(celestiaConfigFilePath string) *CelestiaConfig {
+func newCelestiaConfig(celestiaConfigFilePath string, permissions []auth.Permission) *CelestiaConfig {
 	if _, err := os.Stat(celestiaConfigFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup celestia config file does not exist")
 	}
@@ -61,7 +60,7 @@ func newCelestiaConfig(celestiaConfigFilePath string) *CelestiaConfig {
 		}
 	}
 
-	token, err := buildJWTToken(key.Body, perms.ReadWritePerms)
+	token, err := buildJWTToken(key.Body, permissions)
 	if err != nil {
 		panic(err)
 	}

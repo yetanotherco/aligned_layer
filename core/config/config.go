@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
+	"github.com/celestiaorg/celestia-node/api/rpc/perms"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"log"
@@ -336,7 +337,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 
 	eigenDADisperserConfig := newEigenDADisperserConfig(configFilePath)
 
-	celestiaConfig := newCelestiaConfig(configFilePath)
+	celestiaConfig := newCelestiaConfig(configFilePath, perms.ReadPerms)
 
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
@@ -374,7 +375,7 @@ func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
 
 	eigenDADisperserConfig := newEigenDADisperserConfig(configFilePath)
 
-	celestiaConfig := newCelestiaConfig(configFilePath)
+	celestiaConfig := newCelestiaConfig(configFilePath, perms.ReadWritePerms)
 
 	return &TaskSenderConfig{
 		BaseConfig:             baseConfig,
