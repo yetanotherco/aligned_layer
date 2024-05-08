@@ -13,7 +13,9 @@ pub extern "C" fn verify_sp1_proof_ffi(
     let real_elf = &elf_bytes[0..elf_len];
 
     if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len]) {
-        return SP1Verifier::verify(real_elf, &proof).is_ok();
+        let client = ProverClient::new();
+        let (_pk, vk) = client.setup(real_elf);
+        return client.verify(&proof, &vk).is_ok();
     }
 
     false
