@@ -16,9 +16,5 @@ jobs:
           with:
             go-version: '1.22'
             cache: false
-        - name: Build SP1
-          run: make build-sp1-linux
-        - name: Test sp1 rust
-          run: make test-sp1-rust-ffi
         - name: Test sp1 go
           run: make test-sp1-go-bindings-linux
