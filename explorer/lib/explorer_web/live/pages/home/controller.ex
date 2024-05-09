@@ -7,7 +7,10 @@ defmodule ExplorerWeb.Home.Controller do
     is_task_id_valid = String.match?(task_id, ~r/^\d+$/)
 
     if not is_task_id_valid do
-      {:noreply, assign(socket, error: "Invalid task ID")}
+      {:noreply,
+       socket
+       |> assign(task_id: task_id)
+       |> put_flash(:error, "#{task_id} is not a valid task ID. Please enter a numeric value.")}
     else
       {:noreply, redirect(socket, to: "/tasks/#{task_id}")}
     end
