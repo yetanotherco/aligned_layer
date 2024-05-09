@@ -57,4 +57,19 @@ defmodule ExplorerWeb.Home.Controller do
       false -> [a, b + 1]
     end
   end
+
+  def get_operators_registered() do
+    # aligned:
+    # _avsDirectory.registerOperatorToAVS(operator, operatorSignature);
+    # eigen _avsDirectory:
+    #     function registerOperatorToAVS(
+    #     address operator,
+    #     ISignatureUtils.SignatureWithSaltAndExpiry memory operatorSignature
+    # )
+    # ...
+    # emit OperatorAVSRegistrationStatusUpdated(operator, msg.sender, OperatorAVSRegistrationStatus.REGISTERED);
+    #
+    # read these events , msg.sender is aligned_layer.sol, and get our operators
+    AlignedLayerServiceManager.get_operators_registered()
+  end
 end
