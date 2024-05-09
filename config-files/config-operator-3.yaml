@@ -17,8 +17,18 @@ bls:
   private_key_store_path: "config-files/devnet/keys/operator-3.bls.key.json"
   private_key_store_password: ""
 
+## EigenDA Configurations
+eigen_da_disperser:
+  url: "disperser-holesky.eigenda.xyz"
+
+## Celestia Configurations
+celestia:
+  url: "http://localhost:26658"
+  keystore: "~/.celestia-light-arabica-11"
+
 ## Operator Configurations
 operator:
+  aggregator_rpc_server_ip_port_address: localhost:8090
   address: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
   earnings_receiver_address: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
   delegation_approver_address: "0x0000000000000000000000000000000000000000"
