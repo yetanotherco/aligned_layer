@@ -198,7 +198,11 @@ test-sp1-rust-ffi:
 	@echo "Testing SP1 Rust FFI source code..."
 	@cd operator/sp1/lib && RUST_MIN_STACK=83886080 cargo t --release
 
-test-sp1-go-bindings:
+test-sp1-go-bindings-macos: build-sp1-macos
+	@echo "Testing SP1 Go bindings..."
+	go test ./operator/sp1/... -v
+
+test-sp1-go-bindings-linux: build-sp1-linux
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
