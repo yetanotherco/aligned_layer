@@ -17,6 +17,10 @@ jobs:
         with:
           go-version: '1.22'
           cache: false
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly-2024-01-25
+          components: llvm-tools, rustc-dev
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
       - name: Build SP1
