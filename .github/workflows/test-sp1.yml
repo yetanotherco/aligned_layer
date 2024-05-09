@@ -14,6 +14,9 @@ jobs:
         - name: Clear device space
           run: |
             sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+            sudo rm -rf /usr/local/lib/android
+            sudo rm -rf /opt/ghc
+            sudo rm -rf /usr/local/.ghcup
             sudo rm -rf /usr/share/dotnet
             sudo rm -rf /opt/ghc
             sudo rm -rf "/usr/local/share/boost"
