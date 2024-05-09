@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" class="dark [scrollbar-gutter:stable]">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <%!-- Title --%>
+    <.live_title suffix=" · Aligned Layer">
+      <%= assigns[:page_title] || "Explorer" %>
+    </.live_title>
+    <%!-- Description --%>
+    <meta
+      name="description"
+      content="Explore the Aligned verification layer with Aligned Exlporer. Keep track of every task, block, its response and any other relevant information of Aligned!"
+    />
+    <%!-- Emoji favicon --%>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🟩</text></svg>"
+    />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://explorer.alignedlayer.com/" />
+    <meta property="og:title" content="Aligned Explorer" />
+    <meta
+      property="og:description"
+      content="Explore the Aligned verification layer with Aligned Exlporer. Keep track of every task, block, its response and any other relevant information of Aligned!"
+    />
+    <meta property="og:image" content={~p"/images/hero.jpeg"} />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://explorer.alignedlayer.com/" />
+    <meta property="twitter:title" content="Aligned Explorer" />
+    <meta
+      property="twitter:description"
+      content="Explore the Aligned verification layer with Aligned Exlporer. Keep track of every task, block, its response and any other relevant information of Aligned!"
+    />
+    <meta property="twitter:image" content={~p"/images/hero.jpeg"} />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark')
+      }  
+    </script>
+  </head>
+  <body class="antialiased bg-gray-100 dark:bg-gray-950">
+    <%= @inner_content %>
+  </body>
+</html>

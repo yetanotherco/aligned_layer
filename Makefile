@@ -3,6 +3,7 @@
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
+DA_SOLUTION=calldata
 
 ifeq ($(OS),Linux)
 	JQ_INSTALL_CMD = sudo apt-get install jq
@@ -139,6 +140,7 @@ send-plonk_bls12_381-proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--verification-key task_sender/test_examples/bls12_381/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
+		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
@@ -150,6 +152,7 @@ send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task 
 		--verification-key task_sender/test_examples/bls12_381/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
+		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
@@ -160,6 +163,7 @@ send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
 		--public-input task_sender/test_examples/bn254/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/bn254/plonk.vk \
 		--config config-files/config.yaml \
+		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
@@ -171,6 +175,7 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--verification-key task_sender/test_examples/bn254/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
+		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 __DEPLOYMENT__:
