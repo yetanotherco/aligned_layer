@@ -77,7 +77,6 @@ defmodule ExplorerWeb.Home.Index do
         AVS directory: <%= @avs_directory %>
       </h1>
     </div>
-
     """
   end
 end
