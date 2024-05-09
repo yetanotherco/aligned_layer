@@ -19,6 +19,8 @@ jobs:
           cache: false
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
+      - name: Build SP1
+        run: make build-sp1-linux
       - name: Build operator
         run: go build operator/cmd/main.go
       - name: Build task sender
