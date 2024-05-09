@@ -14,7 +14,7 @@ pub extern "C" fn verify_sp1_proof_ffi(
     if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len]) {
         let client = ProverClient::new();
         let (_pk, vk) = client.setup(real_elf);
-        return client.verify(&proof, &vk).is_ok();
+        return client.verify_groth16(&proof, &vk).is_ok();
     }
 
     false
@@ -25,7 +25,7 @@ mod tests {
     use super::*;
 
     const PROOF: &[u8] = include_bytes!(
-        "../../../../task_sender/test_examples/sp1/fibonacci_data/sp1_fibonacci.proof"
+        "../../../../task_sender/test_examples/sp1/fibonacci_data/proof-with-pis.json"
     );
     const ELF: &[u8] = include_bytes!(
         "../../../../task_sender/test_examples/sp1/fibonacci_data/elf/riscv32im-succinct-zkvm-elf"

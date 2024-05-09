@@ -1,4 +1,4 @@
-use sp1_sdk::{utils, ProverClient, SP1Stdin};
+use sp1_sdk::{utils, Groth16Proof, ProverClient, SP1ProofWithPublicValues, SP1Stdin};
 
 /// The ELF we want to execute inside the zkVM.
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
@@ -16,25 +16,30 @@ fn main() {
     // Generate the proof for the given program and input.
     let client = ProverClient::new();
     let (pk, vk) = client.setup(ELF);
-    let mut proof = client.prove(&pk, stdin).unwrap();
+    /*
+    let mut proof = client.prove_groth16(&pk, stdin).unwrap();
 
-    println!("Fibonacci program proof generated");
+    println!("generated proof");
 
     // Read and verify the output.
     let _ = proof.public_values.read::<u32>();
     let a = proof.public_values.read::<u32>();
     let b = proof.public_values.read::<u32>();
-
     println!("a: {}", a);
     println!("b: {}", b);
 
-    // Verify proof and public values
-    client.verify_groth16(&proof, &vk).expect("verification failed");
+    */
+
+    let proof = SP1ProofWithPublicValues::<Groth16Proof>::load("../../fibonacci_data/proof-with-pis-edited.json").unwrap();
+    client
+        .verify_groth16(&proof, &vk)
+        .expect("verification failed");
 
     // Save the proof.
-    let proof_file_path = "../../fibonacci_data/sp1_fibonacci.proof";
-    proof.save(proof_file_path).expect("saving proof failed");
-
-    println!("Successfully generated and verified proof for the program!")
-    // println!("Proof saved to ")
+    /*
+    proof
+        .save("proof-with-pis.json")
+        .expect("saving proof failed");
+    */
+    println!("successfully verified proof for program!")
 }

@@ -10,7 +10,7 @@ import (
 
 func TestFibonacciSp1ProofVerifies(t *testing.T) {
 	fmt.Println(os.Getwd())
-	proofFile, err := os.Open("../../task_sender/test_examples/sp1/fibonacci_data/sp1_fibonacci.proof")
+	proofFile, err := os.Open("../../task_sender/test_examples/sp1/fibonacci_data/proof-with-pis.json")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
