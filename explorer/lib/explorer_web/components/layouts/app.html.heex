@@ -1,0 +1,24 @@
+<nav class="px-4 sm:px-6 lg:px-8 fixed top-0 w-full inline-flex justify-between p-3 border-b border-foreground/10 backdrop-blur">
+  <div class="flex items-center gap-4">
+    <a class="text-3xl" href="/">
+      🟩
+    </a>
+  </div>
+  <div class="flex items-center gap-4 font-semibold leading-6 text-foreground/80">
+    <a class="hover:text-foreground" target="_blank" href="https://x.com/alignedlayer">
+      @alignedlayer
+    </a>
+    <a
+      class="hover:text-foreground"
+      target="_blank"
+      href="https://github.com/yetanotherco/aligned_layer"
+    >
+      GitHub
+    </a>
+    <DarkMode.button />
+  </div>
+</nav>
+<main class="mt-24">
+  <.flash_group flash={@flash} />
+  <%= @inner_content %>
+</main>
