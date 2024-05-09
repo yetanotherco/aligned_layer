@@ -14,7 +14,7 @@ func (ts *TaskSender) PostProofOnCelestia(proof []byte) (*serviceManager.Aligned
 		return nil, err
 	}
 
-	proofChunks := SplitIntoChunks(proof, size) // TODO: Actual max value
+	proofChunks := SplitIntoChunks(proof, size)
 
 	blobs := make([]*blob.Blob, len(proofChunks))
 
