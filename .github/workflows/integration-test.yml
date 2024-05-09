@@ -13,11 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # this read ok the vars
-      # - name: Test runningh bash
-      #   run: |
-      #     . ./scripts/mint_mock_token.sh "config-files/config.yaml" 1000
-
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
@@ -41,37 +36,3 @@ jobs:
       - name: Run integration test
         run: |
             make integration-test
-      
-      # - name: Run Anvil
-      #   run: |
-      #       make anvil-start &
-      
-      # - name: Run Aggregator
-      #   run: |
-      #       make aggregator-start &
-
-      # - name: Register Operator
-      #   run: |
-      #       sleep 10
-      #       export CONFIG_FILE="config-files/config.yaml"
-      #       make operator-full-registration
-      
-      # - name: Run Operator
-      #   run: |
-      #       sleep 5
-      #       export CONFIG_FILE="config-files/config.yaml"
-      #       make operator-start &
-
-      # - name: Send tasks
-      #   run: |
-      #     sleep 60
-      #     echo sending task 1
-      #     make send-plonk_bls12_381-proof
-
-      #     echo sending task 2
-      #     make send-plonk_bn254-proof
-      #     sleep 60
-      
-      # - name: Check results
-      #   run: |
-      #     go test tests/integration_test.go -v
