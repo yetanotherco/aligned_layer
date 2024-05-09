@@ -1,6 +1,6 @@
 defmodule AlignedLayerServiceManager do
   require Logger
-  # read alignedLayerServiceManagerAddress from config file
+
   file_path =
     "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
 
@@ -11,14 +11,25 @@ defmodule AlignedLayerServiceManager do
     :error -> raise("Config file not read successfully, did you run make create-env ?")
   end
 
-  alignedLayerServiceManagerAddress =
-    Jason.decode!(config_json_string)
-    |> Map.get("addresses")
-    |> Map.get("alignedLayerServiceManager")
-
   use Ethers.Contract,
-    abi_file: "lib/abi/AlignedLayerServiceManager.json",
-    default_address: alignedLayerServiceManagerAddress
+  abi_file: "lib/abi/AlignedLayerServiceManager.json",
+  default_address: Jason.decode!(config_json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
+
+  def get_aligned_layer_service_manager_address() do
+    file_path =
+      "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
+
+    {status, config_json_string} = File.read(file_path)
+
+    case status do
+      :ok -> Logger.debug("File read successfully")
+      :error -> raise("Config file not read successfully, did you run make create-env ?")
+    end
+
+    Jason.decode!(config_json_string)
+      |> Map.get("addresses")
+      |> Map.get("alignedLayerServiceManager")
+  end
 
   def get_task_created_event(task_id) do
     # check if task_id is a valid integer

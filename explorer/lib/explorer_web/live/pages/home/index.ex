@@ -66,7 +66,6 @@ defmodule ExplorerWeb.Home.Index do
       <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
         Tasks that where false: <%= @tasks_false %>
       </h1>
-
       <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
         Last task hash: <%= @last_task_hash %>
       </h1>
@@ -75,6 +74,9 @@ defmodule ExplorerWeb.Home.Index do
       </h1>
       <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
         AVS directory: <%= @avs_directory %>
+      </h1>
+      <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+        Operators Registered: <%= @operators_registered %>
       </h1>
     </div>
     """

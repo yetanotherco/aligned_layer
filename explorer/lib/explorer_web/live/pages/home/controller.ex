@@ -23,24 +23,27 @@ defmodule ExplorerWeb.Home.Controller do
     last_task_hash = AlignedLayerServiceManager.get_tx_hash(last_task_id)
     last_task_response = AlignedLayerServiceManager.get_task_response(last_task_id)
 
-    tasks_verified = get_verified_tasks_count()
+    # tasks_verified = get_verified_tasks_count()
     [tasks_true, tasks_false] = get_verified_tasks_count_by_status()
+
+    operators_registered = get_operators_registered()
 
     {:ok,
      assign(socket,
        last_task_id: last_task_id,
        last_task_hash: last_task_hash,
-       tasks_verified: tasks_verified,
+       tasks_verified: tasks_true + tasks_false,
        tasks_true: tasks_true,
        tasks_false: tasks_false,
        last_task_response: last_task_response,
+       operators_registered: operators_registered,
        avs_directory: avs_directory
      )}
   end
 
-  defp get_verified_tasks_count() do
-    AlignedLayerServiceManager.get_task_responded_events() |> (fn {x, y} when x==:ok -> Enum.count(y) end).()
-  end
+  # defp get_verified_tasks_count() do
+  #   AlignedLayerServiceManager.get_task_responded_events() |> (fn {x, y} when x==:ok -> Enum.count(y) end).()
+  # end
 
   defp get_verified_tasks_count_by_status() do
     AlignedLayerServiceManager.get_task_responded_events()
@@ -58,18 +61,17 @@ defmodule ExplorerWeb.Home.Controller do
     end
   end
 
+  defp count_operators_registered(list), do: sum_operators_registered(list, 0) # tail-call recursion
+  defp sum_operators_registered([], val), do: val
+  defp sum_operators_registered([head | tail], val), do: sum_operators_registered(tail, evaluate_operator(head, val))
+  defp evaluate_operator(event, val) do
+    case event.data |> hd() == 1 do # registered or unregistered
+      true -> val + 1
+      false -> val - 1
+    end
+  end
+
   def get_operators_registered() do
-    # aligned:
-    # _avsDirectory.registerOperatorToAVS(operator, operatorSignature);
-    # eigen _avsDirectory:
-    #     function registerOperatorToAVS(
-    #     address operator,
-    #     ISignatureUtils.SignatureWithSaltAndExpiry memory operatorSignature
-    # )
-    # ...
-    # emit OperatorAVSRegistrationStatusUpdated(operator, msg.sender, OperatorAVSRegistrationStatus.REGISTERED);
-    #
-    # read these events , msg.sender is aligned_layer.sol, and get our operators
-    AlignedLayerServiceManager.get_operators_registered()
+    AVSDirectory.get_operator_status_updated_events() |> (fn {status, data} when status == :ok -> count_operators_registered(data) end).()
   end
 end
