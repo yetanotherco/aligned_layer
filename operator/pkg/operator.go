@@ -137,9 +137,13 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 	var proof []byte
 	var err error
 
-	// TODO: Add support for multiple chunks
 	switch newTaskCreatedLog.Task.DAPayload.Solution {
 	case common.Calldata:
+		// Calldata tasks should not have chunks
+		if len(newTaskCreatedLog.Task.DAPayload.Chunks) != 1 {
+			o.Logger.Errorf("Calldata task should not have chunks")
+			return nil
+		}
 		proof = newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData
 	case common.EigenDA:
 		proof, err = o.getProofByChunksFromEigenDA(newTaskCreatedLog)
