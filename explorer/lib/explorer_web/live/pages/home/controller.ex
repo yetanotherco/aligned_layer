@@ -72,4 +72,6 @@ defmodule ExplorerWeb.Home.Controller do
     # read these events , msg.sender is aligned_layer.sol, and get our operators
     AlignedLayerServiceManager.get_operators_registered()
   end
+
+  embed_templates "*"
 end
