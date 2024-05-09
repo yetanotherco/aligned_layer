@@ -52,17 +52,15 @@ func TestEventsReader(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	assert.NotEmpty(t, logs, "No New Events found")
 
 	abiFilePath := "tests/AlignedLayerServiceManager.json"
 	contractAbi, err := getAlignedABI(abiFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	NewTaskCreatedEventSignature := contractAbi.Events["NewTaskCreated"].ID
 	TaskRespondedEventSignature := contractAbi.Events["TaskResponded"].ID
-
-	assert.NotEmpty(t, logs, "No New Events found")
 
 	var taskCreatedEvents = 0
 	var taskRespondedEvents = 0
@@ -72,14 +70,20 @@ func TestEventsReader(t *testing.T) {
 		case NewTaskCreatedEventSignature:
 			taskCreated, _ := contractAbi.Unpack("NewTaskCreated", vLog.Data) // Couldn't cast this to a TaskResponse struct defined outside
 			task := taskCreated[0].(struct {
-				ProvingSystemId            uint16   "json:\"provingSystemId\""
-				Proof                      []uint8  "json:\"proof\""
-				PubInput                   []uint8  "json:\"pubInput\""
-				VerificationKey            []uint8  "json:\"verificationKey\""
-				TaskCreatedBlock           uint32   "json:\"taskCreatedBlock\""
-				QuorumNumbers              []uint8  "json:\"quorumNumbers\""
-				QuorumThresholdPercentages []uint8  "json:\"quorumThresholdPercentages\""
-				Fee                        *big.Int "json:\"fee\""
+				ProvingSystemId uint16 `json:"provingSystemId"`
+
+				DAPayload struct {
+					Solution            uint8   `json:"solution"`
+					ProofAssociatedData []uint8 `json:"proof_associated_data"`
+					Index               uint64  `json:"index"`
+				} `json:"DAPayload"`
+
+				PubInput                   []uint8  `json:"pubInput"`
+				VerificationKey            []uint8  `json:"verificationKey"`
+				TaskCreatedBlock           uint32   `json:"taskCreatedBlock"`
+				QuorumNumbers              []uint8  `json:"quorumNumbers"`
+				QuorumThresholdPercentages []uint8  `json:"quorumThresholdPercentages"`
+				Fee                        *big.Int `json:"fee"`
 			})
 
 			// If TaskIndex is added to Task struct, we can cast this event's Data to a Task struct to read it's TaskId
@@ -89,11 +93,13 @@ func TestEventsReader(t *testing.T) {
 				assert.Equal(t, uint16(0), task.ProvingSystemId, "Expected NewTaskCreated event with provingSystemId 0")
 				assert.Equal(t, uint8(98), task.QuorumThresholdPercentages[0], "Expected NewTaskCreated event with quorumThresholdPercentages 98")
 				assert.Equal(t, big.NewInt(1), task.Fee, "Expected NewTaskCreated event with fee 1")
+				assert.Equal(t, uint8(0), task.DAPayload.Solution, "Expected Solution to be Calldata")
 			} else if taskCreatedEvents == 1 {
 				assert.Equal(t, "0x0000000000000000000000000000000000000000000000000000000000000001", vLog.Topics[1].Hex(), "Expected NewTaskCreated event with taskId 1")
 				assert.Equal(t, uint16(1), task.ProvingSystemId, "Expected NewTaskCreated event with provingSystemId 0")
 				assert.Equal(t, uint8(100), task.QuorumThresholdPercentages[0], "Expected NewTaskCreated event with quorumThresholdPercentages 98")
 				assert.Equal(t, big.NewInt(1), task.Fee, "Expected NewTaskCreated event with fee 1")
+				assert.Equal(t, uint8(0), task.DAPayload.Solution, "Expected Solution to be Calldata")
 			} else {
 				assert.Fail(t, "Too many NewTaskCreated events")
 			}
