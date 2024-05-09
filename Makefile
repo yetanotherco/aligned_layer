@@ -194,7 +194,17 @@ build-sp1-linux:
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
-test-sp1-ffi:
+test-sp1-rust-ffi:
+	@echo "Testing SP1 Rust FFI source code..."
+	@cd operator/sp1/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test-sp1-go-bindings:
+	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
+
+generate-sp1-fibonacci-proof:
+	@cd task_sender/test_examples/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
+	@cp -r task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf task_sender/test_examples/sp1/fibonacci_data/
+	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1/fibonacci_data folder"
 
 
