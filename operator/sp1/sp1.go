@@ -9,10 +9,10 @@ package sp1
 import "C"
 import "unsafe"
 
-const MAX_PROOF_SIZE = 1024 * 1024
-const MAX_ELF_BUFFER_SIZE = 1024 * 1024
+const MaxProofSize = 2 * 1024 * 1024
+const MaxElfBufferSize = 1024 * 1024
 
-func VerifySp1Proof(proofBuffer [MAX_PROOF_SIZE]byte, proofLen uint, elfBuffer [MAX_ELF_BUFFER_SIZE]byte, elfLen uint) bool {
+func VerifySp1Proof(proofBuffer [MaxProofSize]byte, proofLen uint, elfBuffer [MaxElfBufferSize]byte, elfLen uint) bool {
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
 	return (bool)(C.verify_sp1_proof_ffi(proofPtr, (C.uint)(proofLen), elfPtr, (C.uint)(elfLen)))

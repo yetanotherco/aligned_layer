@@ -1,5 +1,5 @@
 use sp1_sdk::ProverClient;
-pub const MAX_PROOF_SIZE: usize = 1024 * 1024;
+pub const MAX_PROOF_SIZE: usize = 2 * 1024 * 1024;
 pub const MAX_ELF_BUFFER_SIZE: usize = 1024 * 1024;
 
 #[no_mangle]
