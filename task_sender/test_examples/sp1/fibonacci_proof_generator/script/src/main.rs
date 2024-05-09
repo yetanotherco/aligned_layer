@@ -36,5 +36,4 @@ fn main() {
     proof.save(proof_file_path).expect("saving proof failed");
 
     println!("Successfully generated and verified proof for the program!")
-    // println!("Proof saved to ")
 }
