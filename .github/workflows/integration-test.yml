@@ -29,6 +29,14 @@ jobs:
             go install github.com/maoueh/zap-pretty@latest
             go install github.com/ethereum/go-ethereum/cmd/abigen@latest
             go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
+            echo installing celestia
+            git clone https://github.com/celestiaorg/celestia-node.git
+            cd celestia-node/
+            git checkout tags/v0.13.4
+            make build
+            make install
+            make cel-key
+            celestia light init --p2p.network arabica
       
       - name: Setup GO PATH
         run: echo "export PATH=$PATH:$GITHUB_WORKSPACE/go/bin" >> $GITHUB_ENV
