@@ -18,9 +18,7 @@ jobs:
             cache: false
         - name: Build SP1
           run: make build-sp1-linux
-        - name: Build operator
-          run: go build operator/cmd/main.go
         - name: Test sp1 rust
           run: make test-sp1-rust-ffi
         - name: Test sp1 go
-          run: make test-sp1-go-bindings
+          run: make test-sp1-go-bindings-linux
