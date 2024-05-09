@@ -74,7 +74,7 @@ operator-get-eth:
 
 operator-register-with-eigen-layer:
 	@echo "Registering operator with EigenLayer"
-	@echo "" | eigenlayer operator register $(CONFIG_FILE)
+	eigenlayer operator register $(CONFIG_FILE)
 
 operator-mint-mock-tokens:
 	@echo "Minting tokens"

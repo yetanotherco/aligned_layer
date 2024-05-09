@@ -11,6 +11,7 @@ Aligned Layer works with EigenLayer to leverage ethereum consensus mechanism for
 
 Full documentation and examples will be added soon
 
+
 ## Dependencies
 
 You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
@@ -33,6 +34,7 @@ To install eigenlayer-cli
 ```bash
 make install-eigenlayer-cli
 ```
+
 
 ## Deploy Contracts
 
@@ -117,7 +119,7 @@ You need to complete the `DEPLOY_CONFIG_PATH` file with the following informatio
 
 You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
 
-#### Bindings
+### Bindings
 
 Also make sure to re-generate the Go smart contract bindings:
 ```bash
@@ -146,8 +148,6 @@ To start the aggregator run:
 make aggregator-start CONFIG_FILE=<path_to_config_file>
 ```
 
-There is a default configuration for devnet purposes in `config-files/config.yaml`.
-
 If you want to run the aggregator with the default configuration, you can run:
 
 ```bash
@@ -156,7 +156,9 @@ make aggregator-start
 
 ### Config
 
-The configuration file should look like this:
+There is a default configuration for devnet purposes in `config-files/config.yaml`.
+
+The configuration file have the following structure:
 
 ```yaml
 # Common variables for all the services
@@ -185,6 +187,7 @@ aggregator:
   avs_service_manager_address: 
   enable_metrics: <true/false>
 ```
+
 
 ## Operator
 
@@ -215,8 +218,6 @@ make operator-mint-mock-tokens CONFIG_FILE=<path_to_config_file>
 make operator-deposit-into-mock-strategy CONFIG_FILE=<path_to_config_file>
 ```
 
-There is a default configuration for devnet purposes in `config-files/config.yaml`.
-
 To deposit strategy tokens in the Anvil chain with the default configuration, you can run:
 
 ```bash
@@ -240,12 +241,24 @@ To register an operator in AlignedLayer run the following command:
 make operator-register-with-aligned-layer CONFIG_FILE=<path_to_config_file>
 ```
 
-There is a default configuration for devnet purposes in `config-files/config.yaml`.
-
 To register an operator in AlignedLayer with the default configuration, you can run:
 
 ```bash
 make operator-register-with-aligned-layer
+```
+
+### Full Registration in Anvil
+
+For devnet purposes, you can run the following command to register an operator in EigenLayer and AlignedLayer and deposit strategy tokens in EigenLayer:
+
+```bash
+make operator-full-registration CONFIG_FILE=<path_to_config_file>
+```
+
+To register an operator in EigenLayer and AlignedLayer and deposit strategy tokens in EigenLayer with the default configuration, you can run:
+
+```bash
+make operator-full-registration
 ```
 
 ### Run
@@ -256,8 +269,6 @@ To start the operator run:
 make operator-start CONFIG_FILE=<path_to_config_file>
 ```
 
-There is a default configuration for devnet purposes in `config-files/config.yaml`.
-
 If you want to run the operator with the default configuration, you can run:
 
 ```bash
@@ -266,7 +277,76 @@ make operator-start
 
 ### Config
 
+There is a default configuration for devnet purposes in `config-files/config.yaml`.
+Also, there are 3 different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
+
+The configuration file have the following structure:
+
+```yaml
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: <production/development>
+aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
+eigen_layer_deployment_config_file_path: <path_to_eigen_layer_deployment_config_file>
+eth_rpc_url: <http_rpc_url>
+eth_ws_url: <ws_rpc_url>
+eigen_metrics_ip_port_address: <ip:port>
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: <path_to_ecdsa_private_key_store>
+  private_key_store_password: <ecdsa_private_key_store_password>
+
+## BLS Configurations
+bls:
+  private_key_store_path: <path_to_bls_private_key_store>
+  private_key_store_password: <bls_private_key_store_password>
+
+## EigenDA Configurations
+eigen_da_disperser:
+  url: <eigen_da_disperser_url> # This is the url of the EigenDA Disperser
+
+## Celestia Configurations
+celestia:
+  url: <celestia_url> # This is the url of the deployed Celestia Light node
+  keystore: <celestia_keystore> # This is the keystore of the Celestia Light node
+
+## Operator Configurations
+operator:
+  aggregator_rpc_server_ip_port_address: <ip:port> # This is the aggregator url
+  address: <operator_address>
+  earnings_receiver_address: <earnings_receiver_address> # This is the address where the operator will receive the earnings, it can be the same as the operator address
+  delegation_approver_address: "0x0000000000000000000000000000000000000000" # TODO This is 0x0 for now, check what to put here
+  staker_opt_out_window_blocks: 0 # TODO This is 0 for now, check what to put here
+  metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+# Operators variables needed for register it in EigenLayer
+el_delegation_manager_address: <el_delegation_manager_address> # This is the address of the EigenLayer delegationManager
+private_key_store_path: <path_to_bls_private_key_store>
+bls_private_key_store_path: <bls_private_key_store_password>
+signer_type: local_keystore
+chain_id: <chain_id>
+```
+
+
+## Data Availability (DA)
+
+### Calldata
+
+This stores the proof data into Ethereum.
+
+Limitations -> Expensive # TODO
+
+### EigenDA
+
+Limitations -> Slow, 2MB # TODO
+
+### Celestia
+
+Limitations -> 2MB # TODO 
+
 ## Task Sender
+
+
 
 ### Run
 
