@@ -74,4 +74,6 @@ defmodule ExplorerWeb.Home.Controller do
   def get_operators_registered() do
     AVSDirectory.get_operator_status_updated_events() |> (fn {status, data} when status == :ok -> count_operators_registered(data) end).()
   end
+
+  embed_templates "*"
 end

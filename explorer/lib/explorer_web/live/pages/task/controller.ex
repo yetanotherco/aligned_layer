@@ -46,4 +46,6 @@ defmodule ExplorerWeb.Task.Controller do
        isTaskResponseEmpty: isTaskResponseEmpty
      )}
   end
+
+  embed_templates "*"
 end

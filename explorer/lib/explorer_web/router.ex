@@ -17,9 +17,8 @@ defmodule ExplorerWeb.Router do
   scope "/", ExplorerWeb do
     pipe_through :browser
 
-    live "/", Home.Index
-    live "/tasks/:id", Task.Index
-    live "/tasks", Tasks.Index
+    live "/", Home.Controller
+    live "/tasks/:id", Task.Controller
   end
 
   # Other scopes may use custom stacks.
