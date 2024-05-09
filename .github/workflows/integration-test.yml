@@ -29,7 +29,6 @@ jobs:
             go install github.com/maoueh/zap-pretty@latest
             go install github.com/ethereum/go-ethereum/cmd/abigen@latest
             go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
-            go install github.com/googleapis/enterprise-certificate-proxy@latest
             echo installing celestia
             git clone https://github.com/celestiaorg/celestia-node.git
             cd celestia-node/
