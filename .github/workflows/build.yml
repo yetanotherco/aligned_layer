@@ -21,11 +21,16 @@ jobs:
         with:
           toolchain: nightly-2024-01-25
           components: llvm-tools, rustc-dev
-      - name: Build aggregator
-        run: go build aggregator/cmd/main.go
+          working-directory: operator/sp1/lib
       - name: Build SP1
-        run: make build-sp1-linux
+        working-directory: operator/sp1/lib
+        run: |
+          cargo build --release
+          cp lib/target/release/libsp1_verifier_ffi.so libsp1_verifier.so
+          cp lib/target/release/libsp1_verifier_ffi.a libsp1_verifier.a
       - name: Build operator
         run: go build operator/cmd/main.go
+      - name: Build aggregator
+        run: go build aggregator/cmd/main.go
       - name: Build task sender
         run: go build task_sender/cmd/main.go
