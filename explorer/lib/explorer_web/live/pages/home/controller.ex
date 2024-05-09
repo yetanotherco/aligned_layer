@@ -36,11 +36,22 @@ defmodule ExplorerWeb.Home.Controller do
   end
 
   defp get_verified_tasks_count() do
-    
-    1
+    AlignedLayerServiceManager.get_task_responded_events() |> (fn {x, y} when x==:ok -> Enum.count(y) end).()
   end
 
-  defp get_verified_tasks_count_by_status do
-    [1, 0]
+  defp get_verified_tasks_count_by_status() do
+    AlignedLayerServiceManager.get_task_responded_events()
+      |> elem(1)
+      |> get_verified_tasks_count_by_status
+  end
+
+  defp get_verified_tasks_count_by_status(list), do: sum_status(list, [0, 0]) # tail-call recursion
+  defp sum_status([], [a, b]), do: [a, b]
+  defp sum_status([head | tail], [a, b]), do: sum_status(tail, evaluate_event(head, a, b))
+  defp evaluate_event(event, a, b) do
+    case event.data |> hd() |> elem(1) do
+      true -> [a + 1, b]
+      false -> [a, b + 1]
+    end
   end
 end

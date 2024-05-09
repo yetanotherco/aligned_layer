@@ -2,7 +2,7 @@ defmodule ExplorerWeb.Tasks.Controller do
   require Logger
   use ExplorerWeb, :live_view
 
-  def handle_event("next_page", %{"task" => task_params}, socket) do
+  # def handle_event("next_page", %{"task" => task_params}, socket) do
     # task_id = Map.get(task_params, "id")
     # is_task_id_valid = String.match?(task_id, ~r/^\d+$/)
 
@@ -11,7 +11,7 @@ defmodule ExplorerWeb.Tasks.Controller do
     # else
     #   {:noreply, redirect(socket, to: "/tasks/#{task_id}")}
     # end
-  end
+  # end
 
   def mount(params, _, socket) do
     params |> IO.inspect() #%{"page" => "1", "size" => "1"}

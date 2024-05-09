@@ -15,7 +15,7 @@ defmodule ExplorerWeb.Home.Index do
     <div class="flex flex-col items-center justify-center w-full min-h-[30rem] relative max-w-96 mx-auto">
       <div class="text-center text-primary mb-8 z-10">
         <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
-          Aligned Explorer <%= @last_task_response %>
+          Aligned Explorer
         </h1>
       </div>
       <form phx-submit="search_task" class="flex items-center w-full max-w-md gap-2 z-10">
