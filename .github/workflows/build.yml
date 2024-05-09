@@ -17,17 +17,8 @@ jobs:
         with:
           go-version: '1.22'
           cache: false
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: nightly-2024-01-25
-          components: llvm-tools, rustc-dev
-          working-directory: operator/sp1/lib
       - name: Build SP1
-        working-directory: operator/sp1/lib
-        run: |
-          cargo build --release
-          cp lib/target/release/libsp1_verifier_ffi.so libsp1_verifier.so
-          cp lib/target/release/libsp1_verifier_ffi.a libsp1_verifier.a
+        run: make build-sp1-linux
       - name: Build operator
         run: go build operator/cmd/main.go
       - name: Build aggregator
