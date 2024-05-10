@@ -15,7 +15,11 @@ import (
 const maxRetries = 10
 
 func WaitForTransactionReceipt(client eth.Client, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
-	for i := 0; i < maxRetries; i++ {
+	return WaitForTransactionReceiptMaxRetries(client, ctx, txHash, maxRetries)
+}
+
+func WaitForTransactionReceiptMaxRetries(client eth.Client, ctx context.Context, txHash gethcommon.Hash, maxRetries uint) (*types.Receipt, error) {
+	for i := uint(0); i < maxRetries; i++ {
 		receipt, err := client.TransactionReceipt(ctx, txHash)
 		if err != nil {
 			time.Sleep(2 * time.Second)

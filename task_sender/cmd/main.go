@@ -64,7 +64,7 @@ var (
 	daFlag = &cli.StringFlag{
 		Name: "da",
 		// Can be either "eigen" or "celestia"
-		Usage: "the `DA` to use (calldata | eigen | celestia)",
+		Usage: "the `DA` to use (calldata | eigen | celestia | blobs)",
 		Value: "calldata",
 	}
 )
@@ -156,6 +156,8 @@ func taskSenderMain(c *cli.Context) error {
 		daSol = common.EigenDA
 	case "celestia":
 		daSol = common.Celestia
+	case "blobs":
+		daSol = common.Blobs
 	default:
 		return fmt.Errorf("unsupported DA, must be one of: calldata, eigen, celestia")
 	}
@@ -179,6 +181,8 @@ func taskSenderMain(c *cli.Context) error {
 		DAPayload, err = taskSender.PostProofOnCalldata(proofFile)
 	case common.EigenDA:
 		DAPayload, err = taskSender.PostProofOnEigenDA(proofFile)
+	case common.Blobs:
+		DAPayload, err = taskSender.PostProofOnBlobs(proofFile)
 	default: // Celestia
 		DAPayload, err = taskSender.PostProofOnCelestia(proofFile)
 	}
