@@ -154,6 +154,15 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
+send-sp1-proof:
+	@go run task_sender/cmd/main.go send-task \
+    		--proving-system sp1 \
+    		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
+    		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
+    		--config config-files/config.yaml \
+    		--da $(DA_SOLUTION) \
+    		2>&1 | zap-pretty
+
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
@@ -174,5 +183,34 @@ build-binaries:
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
 	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
 
+__SP1_FFI__: ##
+build-sp1-macos:
+	@cd operator/sp1/lib && cargo build --release
+	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
+	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
+
+build-sp1-linux:
+	@cd operator/sp1/lib && cargo build --release
+	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
+	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
+
+test-sp1-rust-ffi:
+	@echo "Testing SP1 Rust FFI source code..."
+	@cd operator/sp1/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test-sp1-go-bindings-macos: build-sp1-macos
+	@echo "Testing SP1 Go bindings..."
+	go test ./operator/sp1/... -v
+
+test-sp1-go-bindings-linux: build-sp1-linux
+	@echo "Testing SP1 Go bindings..."
+	go test ./operator/sp1/... -v
+
+# @cp -r task_sender/test_examples/sp1/fibonacci_proof_generator/script/elf task_sender/test_examples/sp1/
+generate-sp1-fibonacci-proof:
+	@cd task_sender/test_examples/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
+	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
+	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
+	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
 
 
