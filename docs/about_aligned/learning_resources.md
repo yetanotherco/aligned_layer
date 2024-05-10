@@ -2,7 +2,7 @@
 
 ## Aligned Layer blog post:
 
-* [Aligned Layer](https://blog.yetanothercompany.xyz/aligned-layer/)
+* [Aligned Layer](https://blog.alignedlayer.com/aligned-layer/)
 
 ## Aligned Layer repo:
 
