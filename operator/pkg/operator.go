@@ -137,6 +137,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 	task := newTaskCreatedLog.BatchProofVerificationTask
 	var err error
+	proofVerificationResults := make([]bool, len(task.ProofVerificationsData))
 	for _, verificationData := range task.ProofVerificationsData {
 		var proof []byte
 
@@ -156,38 +157,43 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 				return nil
 			}
 		}
+
 		proofLen := (uint)(len(proof))
-		pubInput := verificationData
+		pubInput := verificationData.PubInput
 		provingSystemId := verificationData.ProvingSystemId
 
 		switch provingSystemId {
 		case uint16(common.GnarkPlonkBls12_381):
-			verificationKey := newTaskCreatedLog.Task.VerificationKey
+			verificationKey := verificationData.VerificationKey
 			verificationResult := o.verifyPlonkProofBLS12_381(proof, pubInput, verificationKey)
 
 			o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", verificationResult)
-			taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
-				TaskIndex:      newTaskCreatedLog.TaskIndex,
-				ProofIsCorrect: verificationResult,
-			}
-			return taskResponse
+
+			proofVerificationResults = append(proofVerificationResults, verificationResult)
+			// taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
+			// 	TaskIndex:      newTaskCreatedLog.TaskIndex,
+			// 	ProofIsCorrect: verificationResult,
+			// }
+			// return taskResponse
 
 		case uint16(common.GnarkPlonkBn254):
-			verificationKey := newTaskCreatedLog.Task.VerificationKey
+			verificationKey := verificationData.VerificationKey
 			verificationResult := o.verifyPlonkProofBN254(proof, pubInput, verificationKey)
 
 			o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
-			taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
-				TaskIndex:      newTaskCreatedLog.TaskIndex,
-				ProofIsCorrect: verificationResult,
-			}
-			return taskResponse
+
+			proofVerificationResults = append(proofVerificationResults, verificationResult)
+			// taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
+			// 	TaskIndex:      newTaskCreatedLog.TaskIndex,
+			// 	ProofIsCorrect: verificationResult,
+			// }
+			// return taskResponse
 
 		case uint16(common.SP1):
 			proofBytes := make([]byte, sp1.MaxProofSize)
 			copy(proofBytes, proof)
 
-			elf := newTaskCreatedLog.Task.PubInput
+			elf := verificationData.PubInput
 			elfBytes := make([]byte, sp1.MaxElfBufferSize)
 			copy(elfBytes, elf)
 			elfLen := (uint)(len(elf))
@@ -195,17 +201,24 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 			verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
 
 			o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-			taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-				TaskIndex:      newTaskCreatedLog.TaskIndex,
-				ProofIsCorrect: verificationResult,
-			}
-			return taskResponse
+
+			proofVerificationResults = append(proofVerificationResults, verificationResult)
+			// taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			// 	TaskIndex:      newTaskCreatedLog.TaskIndex,
+			// 	ProofIsCorrect: verificationResult,
+			// }
+			// return taskResponse
 		default:
 			o.Logger.Error("Unrecognized proving system ID")
 			return nil
 		}
 	}
 
+	taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
+		TaskIndex:    newTaskCreatedLog.TaskIndex,
+		ProofResults: proofVerificationResults,
+	}
+	return taskResponse
 	// o.Logger.Info("Received new task with proof to verify",
 	// 	"proof length", proofLen,
 	// 	"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
