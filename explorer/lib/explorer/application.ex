@@ -33,36 +33,3 @@ defmodule Explorer.Application do
     :ok
   end
 end
-
-# called AlignedTask since Task is a reserved word in Elixir
-defmodule AlignedTask do
-  @enforce_keys [
-    :verificationSystemId,
-    # :proof,
-    :pubInput,
-    :taskCreatedBlock
-  ]
-  defstruct [
-    :verificationSystemId,
-    # :proof,
-    :pubInput,
-    :taskCreatedBlock
-  ]
-end
-
-defmodule AlignedTaskCreatedInfo do
-  @enforce_keys [:address, :block_hash, :block_number, :taskId, :transaction_hash, :aligned_task]
-  defstruct [:address, :block_hash, :block_number, :taskId, :transaction_hash, :aligned_task]
-end
-
-defmodule AlignedTaskRespondedInfo do
-  @enforce_keys [
-    :address,
-    :block_hash,
-    :block_number,
-    :taskId,
-    :transaction_hash,
-    :proofIsCorrect
-  ]
-  defstruct [:address, :block_hash, :block_number, :taskId, :transaction_hash, :proofIsCorrect]
-end

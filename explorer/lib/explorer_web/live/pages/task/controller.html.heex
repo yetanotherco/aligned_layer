@@ -18,18 +18,35 @@
           <h2 class="text-3xl font-bold">Aligned Task</h2>
           <p class="font-semibold">
             proving system ID:
-            <span class="break-all font-normal"><%= @task.aligned_task.verificationSystemId %></span>
+            <span class="break-all font-normal"><%= @task.aligned_task.provingSystemId %></span>
+          </p>
+          <p class="font-semibold" class="break-all">
+              DAPayload Solution:
+              <span class="break-all font-normal select-all"><%= @task.aligned_task.da_payload.solution %></span>
           </p>
           <%!-- <p class="font-semibold" class="break-all">
-              Proof:
-              <span class="break-all font-normal select-all"><%= @task.aligned_task.proof %></span>
-            </p> --%>
-          <p class="font-semibold">
-            pub Input: <span class="break-all font-normal"><%= @task.aligned_task.pubInput %></span>
+              DAPayload proof_associated_data:
+              <span class="break-all font-normal select-all"><%= @task.aligned_task.da_payload.proof_associated_data %></span>
+          </p> --%>
+          <p class="font-semibold" class="break-all">
+              DAPayload index:
+              <span class="break-all font-normal select-all"><%= @task.aligned_task.da_payload.index %></span>
           </p>
+          <%!-- <p class="font-semibold">
+            verification key: <span class="break-all font-normal"><%= @task.aligned_task.verificationKey %></span>
+          </p> --%>
           <p class="font-semibold">
             Task Created Block:
             <span class="break-all font-normal"><%= @task.aligned_task.taskCreatedBlock %></span>
+          </p>
+          <p class="font-semibold">
+            quorumNumbers: <span class="break-all font-normal"><%= @task.aligned_task.quorumNumbers %></span>
+          </p>
+          <p class="font-semibold">
+            quorumThresholdPercentages: <span class="break-all font-normal"><%= @task.aligned_task.quorumThresholdPercentages %></span>
+          </p>
+          <p class="font-semibold">
+            fee: <span class="break-all font-normal"><%= @task.aligned_task.fee %> wei</span>
           </p>
         </div>
 
@@ -54,7 +71,7 @@
               <span class="break-all font-normal"><%= @taskResponse.transaction_hash %></span>
             </p>
             <p class="font-semibold">
-              Is the proof correct?
+              Was the proof correct?
               <span class="break-all font-normal"><%= @taskResponse.proofIsCorrect %></span>
             </p>
           <% else %>
