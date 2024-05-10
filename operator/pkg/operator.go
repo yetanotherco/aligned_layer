@@ -153,6 +153,12 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
 			return nil
 		}
+	case common.Blobs:
+		proof, err = o.getProofByChunksFromBlobs(newTaskCreatedLog)
+		if err != nil {
+			o.Logger.Errorf("Could not get proof from blobs: %v", err)
+			return nil
+		}
 	}
 
 	proofLen := (uint)(len(proof))
