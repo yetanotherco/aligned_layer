@@ -159,12 +159,10 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
-<<<<<<< HEAD
 generate-plonk_bn254-proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_plonk_bn254 script..."
 	@go run task_sender/test_examples/gnark_plonk_bn254_script/main.go
 
-=======
 send-sp1-proof:
 	@go run task_sender/cmd/main.go send-task \
     		--proving-system sp1 \
@@ -173,7 +171,6 @@ send-sp1-proof:
     		--config config-files/config.yaml \
     		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
->>>>>>> main
 
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
