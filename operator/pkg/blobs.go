@@ -5,8 +5,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/ethereum/go-ethereum/rlp"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -26,6 +28,8 @@ func (o *Operator) getProofByChunksFromBlobs(newTaskCreatedLog *servicemanager.C
 		o.Logger.Errorf("Could not get response from block root hash: %v", err)
 		return nil, err
 	}
+
+	log.Printf("Got %d blobs from beacon root %s", len(blobResponse.Data), newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData)
 	for _, chunk := range newTaskCreatedLog.Task.DAPayload.Chunks {
 		o.Logger.Infof("Getting proof chunk for blob %v...", chunk.Index)
 		proofChunk, err := o.getProofChunkFromBlobResponse(blobResponse, chunk.Index)
@@ -35,14 +39,36 @@ func (o *Operator) getProofByChunksFromBlobs(newTaskCreatedLog *servicemanager.C
 		}
 		proofChunks = append(proofChunks, proofChunk)
 	}
-	return bytes.Join(proofChunks, nil), nil
+
+	fullBytes := bytes.Join(proofChunks, nil)
+
+	// Decode hex
+	decodedProof := make([]byte, hex.DecodedLen(len(fullBytes)))
+	_, err = hex.Decode(decodedProof, fullBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode RLP
+	buff := make([]byte, len(decodedProof))
+	err = rlp.DecodeBytes(decodedProof, &buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return buff, nil
 }
 
 func (o *Operator) getResponseFromBeaconRoot(beaconRoot []byte) (*BlobResponse, error) {
-	beaconRootStr := string(beaconRoot)
-	resp, err := http.Get(o.Config.BlobsConfig.BeaconChainRpcUrl + "/eth/v1/beacon/blob_sidecars/" + beaconRootStr)
+	beaconRootStr := hex.EncodeToString(beaconRoot)
+	log.Println("Getting response from beacon root: ", beaconRootStr)
+
+	resp, err := http.Get(o.Config.BlobsConfig.BeaconChainRpcUrl + "/eth/v1/beacon/blob_sidecars/0x" + beaconRootStr)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("could not get response from beacon root")
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -66,13 +92,22 @@ func (o *Operator) getProofChunkFromBlobResponse(blobResponse *BlobResponse, ind
 			return nil, err
 		}
 
+		log.Println("Blob index: ", blobIndexInt)
+
 		blobIndex := uint64(blobIndexInt)
 		if blobIndex == index {
-			decodedBlob, err := hex.DecodeString(blob.Blob)
-			if err != nil {
-				return nil, err
+			//decodedBlob := make([]byte, hex.DecodedLen(len(blob.Blob)))
+			//_, err = hex.Decode(decodedBlob, []byte(blob.Blob))
+			// remove 0x prefix
+			if blob.Blob[:2] == "0x" {
+				blob.Blob = blob.Blob[2:]
 			}
-			return decodedBlob, nil
+			//decodedBlob, err := hex.DecodeString(blob.Blob)
+			//if err != nil {
+			//	return nil, err
+			//}
+
+			return []byte(blob.Blob), nil
 		}
 	}
 	return nil, errors.New("index not found in blob response")
