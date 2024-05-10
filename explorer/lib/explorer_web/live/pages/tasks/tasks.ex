@@ -2,12 +2,11 @@ defmodule ExplorerWeb.Tasks.Tasks do
   require Logger
   use ExplorerWeb, :live_view
 
-  def mount(_params, _, socket) do
+  def mount(params, _, socket) do
     events = AlignedLayerServiceManager.get_tasks_created_events()
     # events |> IO.inspect()
 
     tasks = Enum.map(events, fn event -> event |> extract_task_data end)
-
     tasks |> IO.inspect()
 
     {:ok, assign(socket, tasks: tasks)}

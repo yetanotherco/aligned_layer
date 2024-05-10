@@ -175,11 +175,24 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_tasks_created_events() do
-      {status, data} = AlignedLayerServiceManager.EventFilters.new_task_created(nil) |> Ethers.get_logs(fromBlock: 0)
-      case {status, data} do
-        {:ok, list} -> list
-        {:ok, []} -> raise("Error fetching events, no events found")
-        {:error, _} -> raise("Error fetching events")
-      end
+    {status, data} = AlignedLayerServiceManager.EventFilters.new_task_created(nil) |> Ethers.get_logs(fromBlock: 0)
+    case {status, data} do
+      {:ok, list} -> list
+      {:ok, []} -> raise("Error fetching events, no events found")
+      {:error, _} -> raise("Error fetching events")
     end
+  end
+
+  def get_tasks_created_events(from_block) do
+    if not is_integer(from_block) do
+      {:empty, "task_id must be an integer"}
+    end
+
+    {status, data} = AlignedLayerServiceManager.EventFilters.new_task_created(1) |> Ethers.get_logs(fromBlock: 0)
+    case {status, data} do
+      {:ok, list} -> list
+      {:ok, []} -> raise("Error fetching events, no events found")
+      {:error, data} -> raise("Error fetching events #{data}")
+    end
+  end
 end
