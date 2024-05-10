@@ -57,7 +57,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 			*reply = 1
 			return fmt.Errorf("task %d does not exist", taskIndex)
 		}
-		agg.AddNewTask(taskIndex, task.Task)
+		agg.AddNewTask(taskIndex, task.BatchProofVerificationTask)
 	}
 
 	// TODO: Check if the task response is valid

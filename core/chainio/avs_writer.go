@@ -3,6 +3,8 @@ package chainio
 import (
 	"context"
 
+	"math/big"
+
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
@@ -10,11 +12,9 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/signer"
 	"github.com/Layr-Labs/eigensdk-go/types"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
-	"math/big"
 )
 
 type AvsWriter struct {
@@ -44,7 +44,6 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}
 
 	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.Logger)
-
 	if err != nil {
 		baseConfig.Logger.Error("Cannot create avs service bindings", "err", err)
 		return nil, err
@@ -67,10 +66,13 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId,
-	DAPayload servicemanager.AlignedLayerServiceManagerDAPayload, publicInput []byte,
-	verificationKey []byte, quorumNumbers types.QuorumNums,
-	quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) (servicemanager.AlignedLayerServiceManagerTask, uint32, error) {
+func (w *AvsWriter) SendTask(context context.Context,
+	// provingSystemId common.ProvingSystemId,
+	// DAPayload servicemanager.AlignedLayerServiceManagerDAPayload, publicInput []byte,
+	// verificationKey []byte,
+	proofVerificationData []servicemanager.AlignedLayerServiceManagerProofVerificationData,
+	quorumNumbers types.QuorumNums,
+	quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) (servicemanager.AlignedLayerServiceManagerBatchProofVerificationTask, uint32, error) {
 
 	txOpts := w.Signer.GetTxOpts()
 
@@ -78,31 +80,28 @@ func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.Pro
 
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
-		uint16(provingSystemId),
-		DAPayload,
-		publicInput,
-		verificationKey,
+		proofVerificationData,
 		quorumNumbers.UnderlyingType(),
 		quorumThresholdPercentages.UnderlyingType(),
 	)
 	if err != nil {
 		w.logger.Error("Error assembling CreateNewTask tx", "err", err)
-		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+		return servicemanager.AlignedLayerServiceManagerBatchProofVerificationTask{}, 0, err
 	}
 
 	receipt, err := utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
 	if err != nil {
-		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+		return servicemanager.AlignedLayerServiceManagerBatchProofVerificationTask{}, 0, err
 	}
 
 	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
 	if err != nil {
-		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+		return servicemanager.AlignedLayerServiceManagerBatchProofVerificationTask{}, 0, err
 	}
-	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
+	return newTaskCreatedEvent.BatchProofVerificationTask, newTaskCreatedEvent.TaskIndex, nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemanager.AlignedLayerServiceManagerTask, taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemanager.AlignedLayerServiceManagerBatchProofVerificationTask, taskResponse servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	txOpts := w.Signer.GetTxOpts()
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
 	if err != nil {

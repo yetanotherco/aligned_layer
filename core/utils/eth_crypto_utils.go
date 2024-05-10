@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-func TaskResponseDigest(h *servicemanager.AlignedLayerServiceManagerTaskResponse) ([32]byte, error) {
+func TaskResponseDigest(h *servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse) ([32]byte, error) {
 	encodeTaskResponseByte, err := AbiEncodeTaskResponse(*h)
 	if err != nil {
 		return [32]byte{}, err
@@ -23,7 +23,7 @@ func TaskResponseDigest(h *servicemanager.AlignedLayerServiceManagerTaskResponse
 	return taskResponseDigest, nil
 }
 
-func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse) ([]byte, error) {
+func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse) ([]byte, error) {
 	// The order here has to match the field ordering of servicemanager.AlignedLayerServiceManagerTaskResponse
 
 	/* TODO: Solve this in a more generic way so it's less prone for errors. Name and types can be obtained with reflection
@@ -47,8 +47,8 @@ func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManage
 			Type: "uint32",
 		},
 		{
-			Name: "proofIsCorrect",
-			Type: "bool",
+			Name: "proofResults",
+			Type: "[]bool",
 		},
 	})
 	if err != nil {

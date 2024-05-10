@@ -35,7 +35,7 @@ func (agg *Aggregator) subscribeToNewTasks() error {
 			agg.AggregatorConfig.BaseConfig.Logger.Error("Error in subscription", "err", err)
 			return err
 		case newTask := <-agg.NewTaskCreatedChan:
-			agg.AddNewTask(newTask.TaskIndex, newTask.Task)
+			agg.AddNewTask(newTask.TaskIndex, newTask.BatchProofVerificationTask)
 		}
 	}
 }

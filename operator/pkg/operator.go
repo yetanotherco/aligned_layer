@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
@@ -134,86 +133,87 @@ func (o *Operator) Start(ctx context.Context) error {
 
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
-func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
+func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse {
 
-	var proof []byte
+	task := newTaskCreatedLog.BatchProofVerificationTask
 	var err error
+	for _, verificationData := range task.ProofVerificationsData {
+		var proof []byte
 
-	switch newTaskCreatedLog.Task.DAPayload.Solution {
-	case common.Calldata:
-		proof = newTaskCreatedLog.Task.DAPayload.ProofAssociatedData
-	case common.EigenDA:
-		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.DAPayload.ProofAssociatedData, newTaskCreatedLog.Task.DAPayload.Index)
-		if err != nil {
-			o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
-			return nil
+		switch verificationData.DAPayload.Solution {
+		case common.Calldata:
+			proof = verificationData.DAPayload.ProofAssociatedData
+		case common.EigenDA:
+			proof, err = o.getProofFromEigenDA(verificationData.DAPayload.ProofAssociatedData, verificationData.DAPayload.Index)
+			if err != nil {
+				o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
+				return nil
+			}
+		case common.Celestia:
+			proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.ProofAssociatedData)
+			if err != nil {
+				o.Logger.Errorf("Could not get proof from Celestia: %v", err)
+				return nil
+			}
 		}
-	case common.Celestia:
-		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.ProofAssociatedData)
-		if err != nil {
-			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
+		proofLen := (uint)(len(proof))
+		pubInput := verificationData
+		provingSystemId := verificationData.ProvingSystemId
+
+		switch provingSystemId {
+		case uint16(common.GnarkPlonkBls12_381):
+			verificationKey := newTaskCreatedLog.Task.VerificationKey
+			verificationResult := o.verifyPlonkProofBLS12_381(proof, pubInput, verificationKey)
+
+			o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", verificationResult)
+			taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
+				TaskIndex:      newTaskCreatedLog.TaskIndex,
+				ProofIsCorrect: verificationResult,
+			}
+			return taskResponse
+
+		case uint16(common.GnarkPlonkBn254):
+			verificationKey := newTaskCreatedLog.Task.VerificationKey
+			verificationResult := o.verifyPlonkProofBN254(proof, pubInput, verificationKey)
+
+			o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
+			taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
+				TaskIndex:      newTaskCreatedLog.TaskIndex,
+				ProofIsCorrect: verificationResult,
+			}
+			return taskResponse
+
+		case uint16(common.SP1):
+			proofBytes := make([]byte, sp1.MaxProofSize)
+			copy(proofBytes, proof)
+
+			elf := newTaskCreatedLog.Task.PubInput
+			elfBytes := make([]byte, sp1.MaxElfBufferSize)
+			copy(elfBytes, elf)
+			elfLen := (uint)(len(elf))
+
+			verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
+
+			o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
+			taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+				TaskIndex:      newTaskCreatedLog.TaskIndex,
+				ProofIsCorrect: verificationResult,
+			}
+			return taskResponse
+		default:
+			o.Logger.Error("Unrecognized proving system ID")
 			return nil
 		}
 	}
 
-	proofLen := (uint)(len(proof))
+	// o.Logger.Info("Received new task with proof to verify",
+	// 	"proof length", proofLen,
+	// 	"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
+	// 	"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
+	// 	"task index", newTaskCreatedLog.TaskIndex,
+	// 	"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
+	// )
 
-	pubInput := newTaskCreatedLog.Task.PubInput
-
-	provingSystemId := newTaskCreatedLog.Task.ProvingSystemId
-
-	o.Logger.Info("Received new task with proof to verify",
-		"proof length", proofLen,
-		"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
-		"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
-		"task index", newTaskCreatedLog.TaskIndex,
-		"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
-	)
-
-	switch provingSystemId {
-	case uint16(common.GnarkPlonkBls12_381):
-		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		verificationResult := o.verifyPlonkProofBLS12_381(proof, pubInput, verificationKey)
-
-		o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
-
-	case uint16(common.GnarkPlonkBn254):
-		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		verificationResult := o.verifyPlonkProofBN254(proof, pubInput, verificationKey)
-
-		o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
-
-	case uint16(common.SP1):
-		proofBytes := make([]byte, sp1.MaxProofSize)
-		copy(proofBytes, proof)
-
-		elf := newTaskCreatedLog.Task.PubInput
-		elfBytes := make([]byte, sp1.MaxElfBufferSize)
-		copy(elfBytes, elf)
-		elfLen := (uint)(len(elf))
-
-		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
-
-		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
-	default:
-		o.Logger.Error("Unrecognized proving system ID")
-		return nil
-	}
 }
 
 // VerifyPlonkProofBLS12_381 verifies a PLONK proof using BLS12-381 curve.

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"log"
 	"math/big"
 	"os"
@@ -12,6 +11,8 @@ import (
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
+	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
@@ -125,22 +126,22 @@ func taskSenderMain(c *cli.Context) error {
 		return fmt.Errorf("error getting verification system: %v", err)
 	}
 
-	proofFile, err := os.ReadFile(c.String(proofFlag.Name))
+	proof, err := os.ReadFile(c.String(proofFlag.Name))
 	if err != nil {
 		return fmt.Errorf("error loading proof file: %v", err)
 	}
 
-	publicInputFile, err := os.ReadFile(c.String(publicInputFlag.Name))
+	pubInput, err := os.ReadFile(c.String(publicInputFlag.Name))
 	if err != nil {
 		return fmt.Errorf("error loading public input file: %v", err)
 	}
 
-	var verificationKeyFile []byte
+	var verificationKey []byte
 	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 {
 		if len(c.String("verification-key")) == 0 {
 			return fmt.Errorf("the proving system needs a verification key but it is empty")
 		}
-		verificationKeyFile, err = os.ReadFile(c.String(verificationKeyFlag.Name))
+		verificationKey, err = os.ReadFile(c.String(verificationKeyFlag.Name))
 		if err != nil {
 			return fmt.Errorf("error loading verification key file: %v", err)
 		}
@@ -176,18 +177,25 @@ func taskSenderMain(c *cli.Context) error {
 	var DAPayload *contractAlignedLayerServiceManager.AlignedLayerServiceManagerDAPayload
 	switch daSol {
 	case common.Calldata:
-		DAPayload, err = taskSender.PostProofOnCalldata(proofFile)
+		DAPayload, err = taskSender.PostProofOnCalldata(proof)
 	case common.EigenDA:
-		DAPayload, err = taskSender.PostProofOnEigenDA(proofFile)
+		DAPayload, err = taskSender.PostProofOnEigenDA(proof)
 	default: // Celestia
-		DAPayload, err = taskSender.PostProofOnCelestia(proofFile)
+		DAPayload, err = taskSender.PostProofOnCelestia(proof)
 	}
-
 	if err != nil {
 		return err
 	}
 
-	task := pkg.NewTask(provingSystem, *DAPayload, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
+	proofVerificationData := servicemanager.AlignedLayerServiceManagerProofVerificationData{
+		ProvingSystemId: uint16(provingSystem),
+		DAPayload:       *DAPayload,
+		PubInput:        pubInput,
+		VerificationKey: verificationKey,
+	}
+
+	proofsVerificationData := []servicemanager.AlignedLayerServiceManagerProofVerificationData{proofVerificationData}
+	task := pkg.NewTask(proofsVerificationData, quorumNumbers, quorumThresholdPercentages, fee)
 
 	err = taskSender.SendTask(task)
 	if err != nil {

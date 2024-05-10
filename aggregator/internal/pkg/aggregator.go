@@ -36,7 +36,7 @@ type Aggregator struct {
 
 	// Using map here instead of slice to allow for easy lookup of tasks, when aggregator is restarting,
 	// its easier to get the task from the map instead of filling the slice again
-	tasks map[uint32]servicemanager.AlignedLayerServiceManagerTask
+	tasks map[uint32]servicemanager.AlignedLayerServiceManagerBatchProofVerificationTask
 	// Mutex to protect the tasks map
 	tasksMutex *sync.Mutex
 
@@ -64,7 +64,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	tasks := make(map[uint32]servicemanager.AlignedLayerServiceManagerTask)
+	tasks := make(map[uint32]servicemanager.AlignedLayerServiceManagerBatchProofVerificationTask)
 	operatorTaskResponses := make(map[uint32]*TaskResponsesWithStatus, 0)
 
 	chainioConfig := sdkclients.BuildAllConfig{
@@ -171,7 +171,7 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	}
 }
 
-func (agg *Aggregator) AddNewTask(index uint32, task servicemanager.AlignedLayerServiceManagerTask) {
+func (agg *Aggregator) AddNewTask(index uint32, task servicemanager.AlignedLayerServiceManagerBatchProofVerificationTask) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "taskIndex", index, "task", task)
 	agg.tasksMutex.Lock()
 	agg.tasks[index] = task
