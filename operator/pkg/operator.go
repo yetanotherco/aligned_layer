@@ -6,9 +6,11 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/celestiaorg/celestia-node/api/rpc/client"
 	"log"
 	"time"
 
+	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -40,6 +42,8 @@ type Operator struct {
 	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
+	disperser          disperser.DisperserClient
+	celestiaClient     *client.Client
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -67,8 +71,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	}
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
 
-	// FIXME(marian): We should not hardcode the aggregator IP:PORT address
-	rpcClient, err := NewAggregatorRpcClient("localhost:8090", logger)
+	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
 	}
@@ -83,6 +86,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		NewTaskCreatedChan: newTaskCreatedChan,
 		aggRpcClient:       *rpcClient,
 		OperatorId:         operatorId,
+		disperser:          configuration.EigenDADisperserConfig.Disperser,
+		celestiaClient:     configuration.CelestiaConfig.Client,
 		// Timeout
 		// Socket
 	}
@@ -129,11 +134,30 @@ func (o *Operator) Start(ctx context.Context) error {
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
 func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
-	proof := newTaskCreatedLog.Task.Proof
+
+	var proof []byte
+	var err error
+
+	switch newTaskCreatedLog.Task.DAPayload.Solution {
+	case common.Calldata:
+		proof = newTaskCreatedLog.Task.DAPayload.ProofAssociatedData
+	case common.EigenDA:
+		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.DAPayload.ProofAssociatedData, newTaskCreatedLog.Task.DAPayload.Index)
+		if err != nil {
+			o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
+			return nil
+		}
+	case common.Celestia:
+		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.ProofAssociatedData)
+		if err != nil {
+			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
+			return nil
+		}
+	}
+
 	proofLen := (uint)(len(proof))
 
 	pubInput := newTaskCreatedLog.Task.PubInput
-	// pubInputLen := (uint)(len(pubInput))
 
 	provingSystemId := newTaskCreatedLog.Task.ProvingSystemId
 

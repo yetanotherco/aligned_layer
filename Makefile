@@ -1,6 +1,7 @@
 .PHONY: help tests
 
 CONFIG_FILE?=config-files/config.yaml
+DA_SOLUTION=calldata
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -35,7 +36,7 @@ anvil-start:
 # TODO: Allow enviroment variables / different configuration files
 aggregator-start:
 	@echo "Starting Aggregator..."
-	@go run aggregator/cmd/main.go --config config-files/config.yaml \
+	@go run aggregator/cmd/main.go --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 aggregator-send-dummy-responses:
@@ -44,7 +45,7 @@ aggregator-send-dummy-responses:
 
 operator-start:
 	@echo "Starting Operator..."
-	go run operator/cmd/main.go --config $(CONFIG_FILE) \
+	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 bindings:
@@ -83,20 +84,20 @@ operator-deposit-into-mock-strategy:
 	@echo "Depositing into strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
 
-	@go run operator/scripts/deposit_into_strategy/main.go \
+	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 1000
 
 operator-deposit-into-strategy:
 	@echo "Depositing into strategy"
-	@go run operator/scripts/deposit_into_strategy/main.go \
+	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--amount 1000
 
 operator-register-with-aligned-layer:
 	@echo "Registering operator with AlignedLayer"
-	@go run operator/scripts/register_with_aligned_layer/main.go \
+	@go run operator/cmd/main.go register \
 		--config $(CONFIG_FILE)
 
 operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
@@ -115,6 +116,7 @@ send-plonk_bls12_381-proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--verification-key task_sender/test_examples/plonk/bls12_381/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
+		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
@@ -126,6 +128,7 @@ send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task 
 		--verification-key task_sender/test_examples/plonk/bls12_381/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
+		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
@@ -136,6 +139,7 @@ send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
 		--public-input task_sender/test_examples/plonk/bn254/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/plonk/bn254/plonk.vk \
 		--config config-files/config.yaml \
+		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
@@ -168,6 +172,7 @@ send-groth16_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender
 		--verification-key task_sender/test_examples/groth16/bn254/groth16.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
+		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 __DEPLOYMENT__:
@@ -177,3 +182,18 @@ deploy-aligned-contracts: ## Deploy Aligned Contracts
 
 build-aligned-contracts:
 	@cd contracts/src/core && forge build
+
+__BUILD__:
+build-binaries:
+	@echo "Building aggregator..."
+	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
+	@echo "Aggregator built into /aggregator/build/aligned-aggregator" 
+	@echo "Building aligned layer operator..."
+	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo "Aligned layer operator built into /operator/build/aligned-operator" 
+	@echo "Building task sender.."
+	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
+	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
+
+
+
