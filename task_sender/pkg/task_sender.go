@@ -2,6 +2,8 @@ package pkg
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/yetanotherco/aligned_layer/common"
 	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -36,8 +38,11 @@ func NewTask(provingSystemId common.ProvingSystemId, DAPayload serviceManager.Al
 
 type TaskSender struct {
 	avsWriter      *chainio.AvsWriter
+	EthRpcClient   eth.Client
+	EcdsaPrivKey   *ecdsa.PrivateKey
 	eigenDAConfig  *config.EigenDADisperserConfig
 	celestiaConfig *config.CelestiaConfig
+	blobsConfig    *config.BlobsConfig
 }
 
 const RetryInterval = 1 * time.Second
@@ -45,8 +50,11 @@ const RetryInterval = 1 * time.Second
 func NewTaskSender(config *config.TaskSenderConfig, avsWriter *chainio.AvsWriter) *TaskSender {
 	return &TaskSender{
 		avsWriter:      avsWriter,
+		EthRpcClient:   config.BaseConfig.EthRpcClient,
+		EcdsaPrivKey:   config.EcdsaConfig.PrivateKey,
 		eigenDAConfig:  config.EigenDADisperserConfig,
 		celestiaConfig: config.CelestiaConfig,
+		blobsConfig:    config.BlobsConfig,
 	}
 }
 

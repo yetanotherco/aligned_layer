@@ -6,4 +6,5 @@ const (
 	Calldata = iota
 	EigenDA
 	Celestia
+	Blobs
 )

@@ -80,6 +80,18 @@ type EigenDADisperserConfigFromYaml struct {
 	} `yaml:"eigen_da_disperser"`
 }
 
+type BlobsConfig struct {
+	EthRpcClient      eth.Client
+	BeaconChainRpcUrl string
+}
+
+type BlobsConfigFromYaml struct {
+	Blobs struct {
+		EthRpcUrl         string `yaml:"eth_rpc_url"`
+		BeaconChainRpcUrl string `yaml:"beacon_chain_rpc_url"`
+	} `yaml:"blobs"`
+}
+
 type AlignedLayerDeploymentConfig struct {
 	AlignedLayerServiceManagerAddr         common.Address
 	AlignedLayerRegistryCoordinatorAddr    common.Address
@@ -136,6 +148,7 @@ type OperatorConfig struct {
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
 	EigenDADisperserConfig       *EigenDADisperserConfig
 	CelestiaConfig               *CelestiaConfig
+	BlobsConfig                  *BlobsConfig
 
 	Operator struct {
 		AggregatorServerIpPortAddress string
@@ -167,6 +180,7 @@ type TaskSenderConfig struct {
 	EcdsaConfig            *EcdsaConfig
 	EigenDADisperserConfig *EigenDADisperserConfig
 	CelestiaConfig         *CelestiaConfig
+	BlobsConfig            *BlobsConfig
 }
 
 type TaskSenderConfigFromYaml struct {
@@ -340,6 +354,8 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 
 	celestiaConfig := newCelestiaConfig(configFilePath, perms.ReadPerms)
 
+	blobsConfig := newBlobsConfig(configFilePath)
+
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
 		EcdsaConfig:                  ecdsaConfig,
@@ -347,6 +363,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		EigenDADisperserConfig:       eigenDADisperserConfig,
 		CelestiaConfig:               celestiaConfig,
+		BlobsConfig:                  blobsConfig,
 		Operator: struct {
 			AggregatorServerIpPortAddress string
 			Address                       common.Address
@@ -377,6 +394,7 @@ func NewTaskSenderConfig(configFilePath string, sol alcommon.DASolution) *TaskSe
 	var (
 		eigenDADisperserConfig *EigenDADisperserConfig
 		celestiaConfig         *CelestiaConfig
+		blobsConfig            *BlobsConfig
 	)
 
 	switch sol {
@@ -384,6 +402,8 @@ func NewTaskSenderConfig(configFilePath string, sol alcommon.DASolution) *TaskSe
 		eigenDADisperserConfig = newEigenDADisperserConfig(configFilePath)
 	case alcommon.Celestia:
 		celestiaConfig = newCelestiaConfig(configFilePath, perms.ReadWritePerms)
+	case alcommon.Blobs:
+		blobsConfig = newBlobsConfig(configFilePath)
 	case alcommon.Calldata:
 	default:
 		log.Fatal("Invalid solution")
@@ -394,6 +414,7 @@ func NewTaskSenderConfig(configFilePath string, sol alcommon.DASolution) *TaskSe
 		EcdsaConfig:            ecdsaConfig,
 		EigenDADisperserConfig: eigenDADisperserConfig,
 		CelestiaConfig:         celestiaConfig,
+		BlobsConfig:            blobsConfig,
 	}
 }
 
@@ -425,6 +446,37 @@ func NewEcdsaConfig(ecdsaConfigFilePath string, chainId *big.Int) *EcdsaConfig {
 	return &EcdsaConfig{
 		PrivateKey: ecdsaKeyPair,
 		Signer:     privateKeySigner,
+	}
+}
+
+func newBlobsConfig(blobsConfigFilePath string) *BlobsConfig {
+	if _, err := os.Stat(blobsConfigFilePath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Setup ecdsa config file does not exist")
+	}
+
+	var blobsConfigFromYaml BlobsConfigFromYaml
+
+	err := sdkutils.ReadYamlConfig(blobsConfigFilePath, &blobsConfigFromYaml)
+	if err != nil {
+		log.Fatal("Error reading blobs config: ", err)
+	}
+
+	if blobsConfigFromYaml.Blobs.EthRpcUrl == "" {
+		log.Fatal("Eth rpc url is empty")
+	}
+
+	ethRpcClient, err := eth.NewClient(blobsConfigFromYaml.Blobs.EthRpcUrl)
+	if err != nil {
+		log.Fatal("Error initializing eth rpc client: ", err)
+	}
+
+	if blobsConfigFromYaml.Blobs.BeaconChainRpcUrl == "" {
+		log.Fatal("Beacon chain rpc url is empty")
+	}
+
+	return &BlobsConfig{
+		EthRpcClient:      ethRpcClient,
+		BeaconChainRpcUrl: blobsConfigFromYaml.Blobs.BeaconChainRpcUrl,
 	}
 }
 

@@ -26,6 +26,10 @@ celestia:
   url: "http://localhost:26658"
   keystore: "~/.celestia-light-arabica-11"
 
+blobs:
+  eth_rpc_url: "https://eth-holesky.blastapi.io/"
+  beacon_chain_rpc_url: "https://eth-holesky-beacon.blastapi.io/"
+
 ## Aggregator Configurations
 aggregator:
   server_ip_port_address: localhost:8090
