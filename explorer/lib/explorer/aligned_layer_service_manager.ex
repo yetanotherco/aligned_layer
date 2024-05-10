@@ -109,26 +109,13 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_latest_task_index() do
-    {status, last_task_id} =
+    {status, data} =
       AlignedLayerServiceManager.latest_task_index_plus_one() |> Ethers.call()
 
     case status do
-      :ok -> Logger.debug("Latest task index: #{last_task_id}")
-      :error -> raise("Error fetching latest task index")
+      :ok -> data
+      :error -> raise("Error fetching latest task index: #{data}")
     end
-
-    last_task_id
-  end
-
-  def get_avs_directory() do
-    {status, avs_directory} = AlignedLayerServiceManager.avs_directory() |> Ethers.call()
-
-    case status do
-      :ok -> Logger.debug("AVS directory #{avs_directory}")
-      :error -> raise("Error fetching latest task index")
-    end
-
-    avs_directory
   end
 
   # def get_tx_hash(id) do
