@@ -3,12 +3,18 @@ package config
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/tls"
 	"errors"
+	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
+	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
+	"github.com/celestiaorg/celestia-node/api/rpc/perms"
+	alcommon "github.com/yetanotherco/aligned_layer/common"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"log"
 	"math/big"
 	"os"
 
-	ecdsa2 "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 
@@ -62,6 +68,16 @@ type BlsConfigFromYaml struct {
 		PrivateKeyStorePath     string `yaml:"private_key_store_path"`
 		PrivateKeyStorePassword string `yaml:"private_key_store_password"`
 	} `yaml:"bls"`
+}
+
+type EigenDADisperserConfig struct {
+	Disperser disperser.DisperserClient
+}
+
+type EigenDADisperserConfigFromYaml struct {
+	EigenDADisperser struct {
+		Url string `yaml:"url"`
+	} `yaml:"eigen_da_disperser"`
 }
 
 type AlignedLayerDeploymentConfig struct {
@@ -118,7 +134,10 @@ type OperatorConfig struct {
 	EcdsaConfig                  *EcdsaConfig
 	BlsConfig                    *BlsConfig
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
-	Operator                     struct {
+	EigenDADisperserConfig       *EigenDADisperserConfig
+	CelestiaConfig               *CelestiaConfig
+
+	Operator struct {
 		AggregatorServerIpPortAddress string
 		Address                       common.Address
 		EarningsReceiverAddress       common.Address
@@ -144,8 +163,10 @@ type OperatorConfigFromYaml struct {
 }
 
 type TaskSenderConfig struct {
-	BaseConfig  *BaseConfig
-	EcdsaConfig *EcdsaConfig
+	BaseConfig             *BaseConfig
+	EcdsaConfig            *EcdsaConfig
+	EigenDADisperserConfig *EigenDADisperserConfig
+	CelestiaConfig         *CelestiaConfig
 }
 
 type TaskSenderConfigFromYaml struct {
@@ -315,11 +336,17 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		log.Fatal("Error reading operator config: ", err)
 	}
 
+	eigenDADisperserConfig := newEigenDADisperserConfig(configFilePath)
+
+	celestiaConfig := newCelestiaConfig(configFilePath, perms.ReadPerms)
+
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
 		EcdsaConfig:                  ecdsaConfig,
 		BlsConfig:                    blsConfig,
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
+		EigenDADisperserConfig:       eigenDADisperserConfig,
+		CelestiaConfig:               celestiaConfig,
 		Operator: struct {
 			AggregatorServerIpPortAddress string
 			Address                       common.Address
@@ -332,7 +359,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 	}
 }
 
-func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
+func NewTaskSenderConfig(configFilePath string, sol alcommon.DASolution) *TaskSenderConfig {
 	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup config file does not exist")
 	}
@@ -347,9 +374,26 @@ func NewTaskSenderConfig(configFilePath string) *TaskSenderConfig {
 		log.Fatal("Error reading ecdsa config: ")
 	}
 
+	var (
+		eigenDADisperserConfig *EigenDADisperserConfig
+		celestiaConfig         *CelestiaConfig
+	)
+
+	switch sol {
+	case alcommon.EigenDA:
+		eigenDADisperserConfig = newEigenDADisperserConfig(configFilePath)
+	case alcommon.Celestia:
+		celestiaConfig = newCelestiaConfig(configFilePath, perms.ReadWritePerms)
+	case alcommon.Calldata:
+	default:
+		log.Fatal("Invalid solution")
+	}
+
 	return &TaskSenderConfig{
-		BaseConfig:  baseConfig,
-		EcdsaConfig: ecdsaConfig,
+		BaseConfig:             baseConfig,
+		EcdsaConfig:            ecdsaConfig,
+		EigenDADisperserConfig: eigenDADisperserConfig,
+		CelestiaConfig:         celestiaConfig,
 	}
 }
 
@@ -406,6 +450,36 @@ func newBlsConfig(blsConfigFilePath string) *BlsConfig {
 
 	return &BlsConfig{
 		KeyPair: blsKeyPair,
+	}
+}
+
+func newEigenDADisperserConfig(eigenDADisperserConfigFilePath string) *EigenDADisperserConfig {
+	if _, err := os.Stat(eigenDADisperserConfigFilePath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Setup eigen da disperser config file does not exist")
+	}
+
+	var eigenDADisperserConfigFromYaml EigenDADisperserConfigFromYaml
+	err := sdkutils.ReadYamlConfig(eigenDADisperserConfigFilePath, &eigenDADisperserConfigFromYaml)
+	if err != nil {
+		log.Fatal("Error reading eigen da disperser config: ", err)
+	}
+
+	if eigenDADisperserConfigFromYaml.EigenDADisperser.Url == "" {
+		log.Fatal("Eigen DA disperser url is empty")
+	}
+
+	tlsConfig := &tls.Config{}
+	credential := credentials.NewTLS(tlsConfig)
+
+	clientConn, err := grpc.NewClient(eigenDADisperserConfigFromYaml.EigenDADisperser.Url, grpc.WithTransportCredentials(credential))
+	if err != nil {
+		log.Fatal("Error creating grpc client: ", err)
+	}
+
+	disperserClient := disperser.NewDisperserClient(clientConn)
+
+	return &EigenDADisperserConfig{
+		Disperser: disperserClient,
 	}
 }
 
