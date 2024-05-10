@@ -6,9 +6,11 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/celestiaorg/celestia-node/api/rpc/client"
 	"log"
 	"time"
+
+	"github.com/celestiaorg/celestia-node/api/rpc/client"
+	"github.com/yetanotherco/aligned_layer/operator/sp1"
 
 	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -192,17 +194,35 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		}
 		return taskResponse
 
+<<<<<<< HEAD
 	case uint16(common.Groth16Bn254):
 		verificationKey := newTaskCreatedLog.Task.VerificationKey
 		verificationResult := o.verifyGroth16ProofBN254(proof, pubInput, verificationKey)
 
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
+=======
+	case uint16(common.SP1):
+		proofBytes := make([]byte, sp1.MaxProofSize)
+		copy(proofBytes, proof)
+
+		elf := newTaskCreatedLog.Task.PubInput
+		elfBytes := make([]byte, sp1.MaxElfBufferSize)
+		copy(elfBytes, elf)
+		elfLen := (uint)(len(elf))
+
+		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
+
+		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
+>>>>>>> main
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
 			TaskIndex:      newTaskCreatedLog.TaskIndex,
 			ProofIsCorrect: verificationResult,
 		}
 		return taskResponse
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		return nil

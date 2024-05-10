@@ -17,9 +17,11 @@ jobs:
         with:
           go-version: '1.22'
           cache: false
-      - name: Build aggregator
-        run: go build aggregator/cmd/main.go
+      - name: Build SP1 bindings
+        run: make build-sp1-linux
       - name: Build operator
         run: go build operator/cmd/main.go
+      - name: Build aggregator
+        run: go build aggregator/cmd/main.go
       - name: Build task sender
         run: go build task_sender/cmd/main.go
