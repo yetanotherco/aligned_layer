@@ -114,7 +114,7 @@ defmodule AlignedLayerServiceManager do
 
     case status do
       :ok -> Logger.debug("Latest task index: #{last_task_id}")
-      :error -> raise("Error fetching latest task index")
+      :error -> raise("Error fetching latest task index #{last_task_id}")
     end
 
     last_task_id

@@ -40,3 +40,14 @@ defmodule AlignedTaskRespondedInfo do
   ]
   defstruct [:address, :block_hash, :block_number, :taskId, :transaction_hash, :proofIsCorrect]
 end
+
+defmodule AlignedTaskPageItem do
+  @enforce_keys [
+    :taskId,
+    :transaction_hash,
+    :block_number,
+    :proof_is_responded,
+    :proof_is_correct
+  ]
+  defstruct [:taskId, :transaction_hash, :block_number, :proof_is_responded, :proof_is_correct]
+end
