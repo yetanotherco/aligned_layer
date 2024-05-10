@@ -2,9 +2,9 @@ package operator
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"io"
 	"net/http"
@@ -68,7 +68,7 @@ func (o *Operator) getProofChunkFromBlobResponse(blobResponse *BlobResponse, ind
 
 		blobIndex := uint64(blobIndexInt)
 		if blobIndex == index {
-			decodedBlob, err := hexutil.Decode(blob.Blob)
+			decodedBlob, err := hex.DecodeString(blob.Blob)
 			if err != nil {
 				return nil, err
 			}
