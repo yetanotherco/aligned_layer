@@ -24,12 +24,10 @@ pub extern "C" fn verify_sp1_proof_ffi(
 mod tests {
     use super::*;
 
-    const PROOF: &[u8] = include_bytes!(
-        "../../../../task_sender/test_examples/sp1/fibonacci_data/sp1_fibonacci.proof"
-    );
-    const ELF: &[u8] = include_bytes!(
-        "../../../../task_sender/test_examples/sp1/fibonacci_data/elf/riscv32im-succinct-zkvm-elf"
-    );
+    const PROOF: &[u8] =
+        include_bytes!("../../../../task_sender/test_examples/sp1/sp1_fibonacci.proof");
+    const ELF: &[u8] =
+        include_bytes!("../../../../task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf");
 
     #[test]
     fn verify_sp1_proof_with_elf_works() {

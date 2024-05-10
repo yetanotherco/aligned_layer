@@ -158,7 +158,7 @@ send-sp1-proof:
 	@go run task_sender/cmd/main.go send-task \
     		--proving-system sp1 \
     		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
-    		--public-input task_sender/test_examples/sp1/riscv32im-succinct-zkvm-elf \
+    		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
     		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
@@ -206,9 +206,11 @@ test-sp1-go-bindings-linux: build-sp1-linux
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
+# @cp -r task_sender/test_examples/sp1/fibonacci_proof_generator/script/elf task_sender/test_examples/sp1/
 generate-sp1-fibonacci-proof:
 	@cd task_sender/test_examples/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
-	@cp -r task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf task_sender/test_examples/sp1/fibonacci_data/
-	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1/fibonacci_data folder"
+	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
+	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
+	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
 
 

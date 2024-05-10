@@ -32,7 +32,7 @@ fn main() {
     client.verify(&proof, &vk).expect("verification failed");
 
     // Save the proof.
-    let proof_file_path = "../../fibonacci_data/sp1_fibonacci.proof";
+    let proof_file_path = "sp1_fibonacci.proof";
     proof.save(proof_file_path).expect("saving proof failed");
 
     println!("Successfully generated and verified proof for the program!")
