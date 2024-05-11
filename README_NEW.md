@@ -344,6 +344,24 @@ Limitations -> Slow, 2MB # TODO
 
 Limitations -> 2MB # TODO 
 
+#### Setup
+
+To set up Celestia, you will need to install the Celestia-Node CLI.
+Refer to [this resource](https://docs.celestia.org/nodes/celestia-node#installing-from-source)
+for instructions on how to do so.
+
+Then, to initialize the node store for the Arabica network run:
+```bash
+celestia light init --p2p.network arabica
+```
+The output in your terminal will show the location of your node store and config.
+
+To start the node in the Arabica network run:
+```bash
+
+celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
+```
+
 ## Task Sender
 
 
