@@ -7,4 +7,5 @@ const (
 	GnarkPlonkBn254
 	Groth16Bn254
 	SP1
+	SP1Groth16
 )

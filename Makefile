@@ -229,6 +229,15 @@ build-sp1-macos:
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
+
+ 
+
+build-sp1-groth16-macos:
+	@cd operator/sp1_groth16/lib && cargo build --release
+	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1_groth16/lib/libsp1_verifier.dylib
+	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.a operator/sp1_groth16/lib/libsp1_verifier.a
+
+
 build-sp1-linux:
 	@cd operator/sp1/lib && cargo build --release
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
@@ -254,3 +263,6 @@ generate-sp1-fibonacci-proof:
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
 
 
+test-sp1-groth16-go-bindings-macos: build-sp1-groth16-macos
+	@echo "Testing SP1 GROTH16 Go bindings..."
+	go test ./operator/sp1_groth16/... -v
