@@ -2,6 +2,8 @@ package pkg
 
 import (
 	"context"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/yetanotherco/aligned_layer/metrics"
 	"sync"
 	"time"
 
@@ -44,6 +46,8 @@ type Aggregator struct {
 	// Mutex to protect the taskResponses map
 	taskResponsesMutex *sync.Mutex
 	logger             logging.Logger
+	metricsReg         *prometheus.Registry
+	metrics            *metrics.Metrics
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -89,6 +93,10 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.AvsRegistryReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, logger)
 
+	// Metrics
+	reg := prometheus.NewRegistry()
+	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
+
 	aggregator := Aggregator{
 		AggregatorConfig:      &aggregatorConfig,
 		avsReader:             avsReader,
@@ -101,6 +109,8 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		taskResponsesMutex:    &sync.Mutex{},
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
+		metricsReg:            reg,
+		metrics:               aggregatorMetrics,
 	}
 
 	return &aggregator, nil
@@ -116,13 +126,23 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 		}
 	}()
 
+	var metricsErrChan <-chan error
+	if agg.AggregatorConfig.Aggregator.EnableMetrics {
+		metricsErrChan = agg.metrics.Start(ctx, agg.metricsReg)
+	} else {
+		metricsErrChan = make(chan error, 1)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
+		case err := <-metricsErrChan:
+			agg.logger.Fatal("Metrics server failed", "err", err)
 		case blsAggServiceResp := <-agg.blsAggregationService.GetResponseChannel():
 			agg.logger.Info("Received response from BLS aggregation service", "blsAggServiceResp", blsAggServiceResp)
 			agg.sendAggregatedResponseToContract(blsAggServiceResp)
+			agg.metrics.IncAggregatedResponses()
 		}
 	}
 }
