@@ -17,4 +17,4 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Build AlignedServiceManager
-        run: make build-aligned-contracts
+        run: make build_aligned_contracts
