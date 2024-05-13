@@ -7,7 +7,7 @@ import (
 )
 
 type SignedTaskResponse struct {
-	TaskResponse servicemanager.AlignedLayerServiceManagerTaskResponse
+	TaskResponse servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse
 	BlsSignature bls.Signature
 	OperatorId   eigentypes.OperatorId
 }

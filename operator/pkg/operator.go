@@ -151,7 +151,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 				return nil
 			}
 		case common.Celestia:
-			proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.ProofAssociatedData)
+			proof, err = o.getProofFromCelestia(verificationData.DAPayload.Index, o.Config.CelestiaConfig.Namespace, verificationData.DAPayload.ProofAssociatedData)
 			if err != nil {
 				o.Logger.Errorf("Could not get proof from Celestia: %v", err)
 				return nil
@@ -270,7 +270,7 @@ func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	return err == nil
 }
 
-func (o *Operator) SignTaskResponse(taskResponse *servicemanager.AlignedLayerServiceManagerTaskResponse) (*bls.Signature, error) {
+func (o *Operator) SignTaskResponse(taskResponse *servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse) (*bls.Signature, error) {
 	encodedResponseBytes, err := utils.AbiEncodeTaskResponse(*taskResponse)
 	if err != nil {
 		return nil, err
