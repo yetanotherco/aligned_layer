@@ -28,6 +28,15 @@ This will create a `.env` file in the `/explorer` directory of the project. The 
 If you want to run the devnet environment, you can run the following command in another terminal:
 
 ```sh
+make run_local
+```
+
+<details>
+<summary>
+    Or alternatively you can manually run the following commands:
+</summary>
+
+```sh
 cd ..
 make anvil_start
 ```
@@ -50,6 +59,8 @@ Finally, to have a task running in the devnet, you can run the following command
 ```sh
 make send_plonk_bls12_381_proof_loop
 ```
+
+</details>
 
 ### Run the frontend
 
