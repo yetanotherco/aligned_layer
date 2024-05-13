@@ -378,11 +378,54 @@ chain_id: <chain_id>
 
 ## Task Sender
 
-
-
 ### Run
 
-## Keystores
+To send a single task run:
+
+```bash
+go run task_sender/cmd/main.go send-task
+    --proving-system <prooving-system> \
+    --proof <proof> \
+    --public-input <public-input> \
+    --verification-key <verification-key> \
+    --config <config-file> \
+    --da <da-solution>
+```
+
+To send tasks in loop run:
+
+```bash
+go run task_sender/cmd/main.go loop-tasks
+    --proving-system <prooving-system> \
+    --proof <proof> \
+    --public-input <public-input> \
+    --verification-key <verification-key> \
+    --config <config-file> \
+    --da <da-solution>
+    --interval <interval-in-seconds>
+```
+
+### Config
+
+There is a default configuration for devnet purposes in `config-files/config.yaml`.
+
+The configuration file have the following structure:
+
+```yaml
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: <production/development>
+aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
+eigen_layer_deployment_config_file_path: <path_to_eigen_layer_deployment_config_file>
+eth_rpc_url: <http_rpc_url>
+eth_ws_url: <ws_rpc_url>
+eigen_metrics_ip_port_address: <ip:port>
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: <path_to_ecdsa_private_key_store>
+  private_key_store_password: <ecdsa_private_key_store_password>
+```
 
 
 ## Deployment
