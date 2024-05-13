@@ -117,6 +117,7 @@ send-plonk_bls12_381-proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
 		--da $(DA_SOLUTION) \
+		--batch-size 10 \
 		2>&1 | zap-pretty
 
 send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
@@ -129,6 +130,7 @@ send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task 
 		--config config-files/config.yaml \
 		--interval 10 \
 		--da $(DA_SOLUTION) \
+		--batch-size 10 \
 		2>&1 | zap-pretty
 
 send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
@@ -140,6 +142,7 @@ send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
 		--verification-key task_sender/test_examples/bn254/plonk.vk \
 		--config config-files/config.yaml \
 		--da $(DA_SOLUTION) \
+		--batch-size 1 \
 		2>&1 | zap-pretty
 
 send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
@@ -152,6 +155,7 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--config config-files/config.yaml \
 		--interval 10 \
 		--da $(DA_SOLUTION) \
+		--batch-size 10 \
 		2>&1 | zap-pretty
 
 send-sp1-proof:

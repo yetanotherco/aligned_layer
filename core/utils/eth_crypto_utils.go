@@ -48,12 +48,13 @@ func AbiEncodeTaskResponse(taskResponse servicemanager.AlignedLayerServiceManage
 		},
 		{
 			Name: "proofResults",
-			Type: "[]bool",
+			Type: "bool[]",
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	arguments := abi.Arguments{
 		{
 			Type: taskResponseType,

@@ -68,6 +68,12 @@ var (
 		Usage: "the `DA` to use (calldata | eigen | celestia)",
 		Value: "calldata",
 	}
+	batchSize = &cli.IntFlag{
+		Name:     "batch-size",
+		Required: false,
+		Value:    1,
+		Usage:    "the `BATCH SIZE` of the task, i.e., how many proofs to submit in the task",
+	}
 )
 
 var sendTaskFlags = []cli.Flag{
@@ -79,6 +85,7 @@ var sendTaskFlags = []cli.Flag{
 	feeFlag,
 	quorumThresholdFlag,
 	daFlag,
+	batchSize,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -91,6 +98,7 @@ var loopTasksFlags = []cli.Flag{
 	feeFlag,
 	quorumThresholdFlag,
 	daFlag,
+	batchSize,
 }
 
 func main() {
@@ -194,7 +202,17 @@ func taskSenderMain(c *cli.Context) error {
 		VerificationKey: verificationKey,
 	}
 
-	proofsVerificationData := []servicemanager.AlignedLayerServiceManagerProofVerificationData{proofVerificationData}
+	batchSize := c.Int(batchSize.Name)
+	if batchSize < 0 {
+		return fmt.Errorf("batch size must be positive")
+	}
+	// numVerificationData := 10
+
+	proofsVerificationData := make([]servicemanager.AlignedLayerServiceManagerProofVerificationData, batchSize)
+	for i := 0; i < batchSize; i += 1 {
+		proofsVerificationData[i] = proofVerificationData
+	}
+
 	task := pkg.NewTask(proofsVerificationData, quorumNumbers, quorumThresholdPercentages, fee)
 
 	err = taskSender.SendTask(task)

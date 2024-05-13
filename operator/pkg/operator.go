@@ -136,9 +136,19 @@ func (o *Operator) Start(ctx context.Context) error {
 func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse {
 
 	task := newTaskCreatedLog.BatchProofVerificationTask
+	numProofs := len(task.ProofVerificationsData)
+
+	o.Logger.Info("Received new task with proof to verify",
+		"number of proofs in task", numProofs,
+		"task index", newTaskCreatedLog.TaskIndex,
+		"task created block", task.TaskCreatedBlock,
+	)
+
 	var err error
-	proofVerificationResults := make([]bool, len(task.ProofVerificationsData))
-	for _, verificationData := range task.ProofVerificationsData {
+	proofVerificationResults := make([]bool, numProofs)
+
+	// Iterate over every proof and verify
+	for i, verificationData := range task.ProofVerificationsData {
 		var proof []byte
 
 		switch verificationData.DAPayload.Solution {
@@ -169,12 +179,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 			o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", verificationResult)
 
-			proofVerificationResults = append(proofVerificationResults, verificationResult)
-			// taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
-			// 	TaskIndex:      newTaskCreatedLog.TaskIndex,
-			// 	ProofIsCorrect: verificationResult,
-			// }
-			// return taskResponse
+			proofVerificationResults[i] = verificationResult
 
 		case uint16(common.GnarkPlonkBn254):
 			verificationKey := verificationData.VerificationKey
@@ -182,12 +187,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 			o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
 
-			proofVerificationResults = append(proofVerificationResults, verificationResult)
-			// taskResponse := &servicemanager.AlignedLayerServiceManagerBatchProofVerificationTaskResponse{
-			// 	TaskIndex:      newTaskCreatedLog.TaskIndex,
-			// 	ProofIsCorrect: verificationResult,
-			// }
-			// return taskResponse
+			proofVerificationResults[i] = verificationResult
 
 		case uint16(common.SP1):
 			proofBytes := make([]byte, sp1.MaxProofSize)
@@ -202,12 +202,8 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 			o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 
-			proofVerificationResults = append(proofVerificationResults, verificationResult)
-			// taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			// 	TaskIndex:      newTaskCreatedLog.TaskIndex,
-			// 	ProofIsCorrect: verificationResult,
-			// }
-			// return taskResponse
+			proofVerificationResults[i] = verificationResult
+
 		default:
 			o.Logger.Error("Unrecognized proving system ID")
 			return nil
@@ -219,22 +215,15 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		ProofResults: proofVerificationResults,
 	}
 	return taskResponse
-	// o.Logger.Info("Received new task with proof to verify",
-	// 	"proof length", proofLen,
-	// 	"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
-	// 	"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
-	// 	"task index", newTaskCreatedLog.TaskIndex,
-	// 	"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
-	// )
 
 }
 
-// VerifyPlonkProofBLS12_381 verifies a PLONK proof using BLS12-381 curve.
+// VerifyPlonkProofBLS12_381 verifies a BLS12-381 PLONK proof
 func (o *Operator) verifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BLS12_381)
 }
 
-// VerifyPlonkProofBN254 verifies a PLONK proof using BN254 curve.
+// VerifyPlonkProofBN254 verifies a BN254 PLONK proof
 func (o *Operator) verifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
