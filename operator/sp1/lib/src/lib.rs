@@ -1,6 +1,12 @@
 use sp1_sdk::ProverClient;
+use lazy_static::lazy_static;
 pub const MAX_PROOF_SIZE: usize = 2 * 1024 * 1024;
 pub const MAX_ELF_BUFFER_SIZE: usize = 1024 * 1024;
+
+//TODO: instantiate ProverClient in lazy_static!
+lazy_static! {
+    static ref PROVER_CLIENT: ProverClient = ProverClient::new();
+}
 
 #[no_mangle]
 pub extern "C" fn verify_sp1_proof_ffi(
@@ -12,9 +18,8 @@ pub extern "C" fn verify_sp1_proof_ffi(
     let real_elf = &elf_bytes[0..elf_len];
 
     if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len]) {
-        let client = ProverClient::new();
-        let (_pk, vk) = client.setup(real_elf);
-        return client.verify(&proof, &vk).is_ok();
+        let (_pk, vk) = PROVER_CLIENT.setup(real_elf);
+        return PROVER_CLIENT.verify(&proof, &vk).is_ok();
     }
 
     false
