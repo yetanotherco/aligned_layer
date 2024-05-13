@@ -79,9 +79,9 @@
             "uid": "adliw96qps6bkf"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(aligned_aggregated_responses{bot=\"aggregator\"})",
+          "expr": "increase(aligned_aggregated_responses{bot=\"aggregator\"}[10y])",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -254,8 +254,8 @@
             "uid": "adliw96qps6bkf"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum(aligned_aggregated_responses{bot=\"aggregator\"})",
+          "editorMode": "code",
+          "expr": "increase(aligned_aggregated_responses{bot=\"aggregator\"}[10y])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -289,20 +289,19 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-6h",
-    "to": "now"
+    "from": "2024-05-12T21:50:22.749Z",
+    "to": "2024-05-12T22:45:40.703Z"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Aggregator",
+  "title": "Aggregator Data",
   "uid": "edlixjhppdczkf",
-  "version": 8,
+  "version": 11,
   "weekStart": ""
 }
