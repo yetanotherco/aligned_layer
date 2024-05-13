@@ -207,6 +207,7 @@ func taskSenderMain(c *cli.Context) error {
 		return fmt.Errorf("batch size must be positive")
 	}
 
+	// A dummy batch is created copying the specified proof `batchSize` times.
 	proofsVerificationData := make([]servicemanager.AlignedLayerServiceManagerProofVerificationData, batchSize)
 	for i := 0; i < batchSize; i += 1 {
 		proofsVerificationData[i] = proofVerificationData

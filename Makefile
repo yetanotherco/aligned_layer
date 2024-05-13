@@ -39,10 +39,6 @@ aggregator-start:
 	@go run aggregator/cmd/main.go --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
-aggregator-send-dummy-responses:
-	@echo "Sending dummy responses to Aggregator..."
-	@cd aggregator && go run dummy/submit_task_responses.go
-
 operator-start:
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \

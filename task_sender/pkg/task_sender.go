@@ -21,10 +21,6 @@ type BatchProofVerificationTask struct {
 
 func NewTask(proofVerificationData []servicemanager.AlignedLayerServiceManagerProofVerificationData, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) *BatchProofVerificationTask {
 	return &BatchProofVerificationTask{
-		// ProvingSystem:              provingSystemId,
-		// DAPayload:                  DAPayload,
-		// PublicInput:                publicInput,
-		// VerificationKey:            verificationKey,
 		VerificationData:           proofVerificationData,
 		QuorumNumbers:              quorumNumbers,
 		QuorumThresholdPercentages: quorumThresholdPercentages,
