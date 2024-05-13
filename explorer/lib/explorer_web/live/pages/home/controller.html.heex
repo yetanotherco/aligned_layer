@@ -11,7 +11,7 @@
       placeholder="Search operator task..."
       name="task[id]"
     />
-    <button
+    <.button
       type="submit"
       class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-card hover:text-accent-foreground h-10 w-10 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-800 border border-foreground/30"
     >
@@ -31,7 +31,7 @@
         <path d="m21 21-4.3-4.3"></path>
       </svg>
       <span class="sr-only">Search</span>
-    </button>
+    </.button>
   </form>
   <img
     class="absolute -z-10 w-80 rounded-xl mx-auto blur-sm"
@@ -40,42 +40,19 @@
   />
 </div>
 <div class="-mt-32 text-foreground z-10 flex flex-wrap justify-center px-3 gap-x-2 gap-y-3">
-  <div class="px-3 py-2 bg-background border border-foreground/20 rounded-md w-fit">
-    <h2 class="font-medium text-muted-foreground">
-      Total tasks sent:
-    </h2>
-    <span class="text-4xl font-bold">
-      <%= @last_task_id %>
-    </span>
-  </div>
-  <div class="px-3 py-2 bg-background border border-foreground/20 rounded-md w-fit">
-    <h2 class="font-medium text-muted-foreground">
-      Total tasks verified:
-    </h2>
-    <span class="text-4xl font-bold">
-      <%= @tasks_verified %>
-    </span>
-  </div>
-  <div class="px-3 py-2 bg-background border border-foreground/20 rounded-md w-fit">
-    <h2 class="font-medium text-muted-foreground">Registered Operators:</h2>
-    <span class="text-4xl font-bold">
-      <%= @operators_registered %>
-    </span>
-  </div>
-  <div class="px-3 py-2 bg-background border border-foreground/20 rounded-md w-fit">
-    <h2 class="font-medium text-muted-foreground">
-      Verified proofs:
-    </h2>
-    <span class="text-4xl font-bold">
-      <%= @tasks_true %>
-    </span>
-  </div>
-  <div class="px-3 py-2 bg-background border border-foreground/20 rounded-md w-fit">
-    <h2 class="font-medium text-muted-foreground">
-      Rejected proofs:
-    </h2>
-    <span class="text-4xl font-bold">
-      <%= @tasks_false %>
-    </span>
-  </div>
+  <.card title="Total tasks sent">
+    <%= @last_task_id %>
+  </.card>
+  <.card title="Total tasks verified">
+    <%= @tasks_verified %>
+  </.card>
+  <.card title="Registered Operators">
+    <%= @operators_registered %>
+  </.card>
+  <.card title="Verified proofs">
+    <%= @tasks_true %>
+  </.card>
+  <.card title="Rejected proofs">
+    <%= @tasks_false %>
+  </.card>
 </div>
