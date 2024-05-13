@@ -22,14 +22,18 @@ defmodule ExplorerWeb.Home.Controller do
     # tasks_verified = get_verified_tasks_count()
     [tasks_true, tasks_false] = get_verified_tasks_count_by_status()
 
+    shorthand_tasks_true = Utils.convert_number_to_shorthand(tasks_true)
+    shorthand_tasks_false = Utils.convert_number_to_shorthand(tasks_false)
+    shorthand_total_tasks = Utils.convert_number_to_shorthand(tasks_true + tasks_false)
+
     operators_registered = get_operators_registered()
 
     {:ok,
      assign(socket,
        last_task_id: last_task_id,
-       tasks_verified: tasks_true + tasks_false,
-       tasks_true: tasks_true,
-       tasks_false: tasks_false,
+       tasks_verified: shorthand_total_tasks,
+       tasks_true: shorthand_tasks_true,
+       tasks_false: shorthand_tasks_false,
        operators_registered: operators_registered
      )}
   end
