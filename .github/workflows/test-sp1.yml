@@ -27,4 +27,4 @@ jobs:
             cache: false
 
         - name: Test SP1 go bindings
-          run: make test-sp1-go-bindings-linux
+          run: make test_sp1_go_bindings_linux
