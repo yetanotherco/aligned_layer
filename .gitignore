@@ -4,4 +4,5 @@
 out
 cache
 **/build
+**/target
 
