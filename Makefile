@@ -163,37 +163,6 @@ generate-plonk_bn254-proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_plonk_bn254 script..."
 	@go run task_sender/test_examples/gnark_plonk_bn254_script/main.go
 
-
-
-send-groth16_bn254-proof: ## Send a Groth16 BN254 proof using the task sender
-	@echo "Sending GROTH16 BN254 proof..."
-	@go run task_sender/cmd/main.go send-task \
-		--proving-system groth16_bn254 \
-		--proof task_sender/test_examples/gnark_groth16_bn254_script/plonk.proof \
-		--public-input task_sender/test_examples/gnark_groth16_bn254_script/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
-		--config config-files/config.yaml \
-		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
-		2>&1 | zap-pretty
-
-send-groth16_bn254-proof-loop: ## Send a GROTH16 BN254 proof using the task sender every 10 seconds
-	@echo "Sending GROTH16 BN254 proof in a loop every 10 seconds..."
-	@go run task_sender/cmd/main.go loop-tasks \
-		--proving-system groth16_bn254 \
-		--proof task_sender/test_examples/gnark_groth16_bn254_script/plonk.proof \
-		--public-input task_sender/test_examples/gnark_groth16_bn254_script/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
-		--config config-files/config.yaml \
-		--interval 10 \
-		--da $(DA_SOLUTION) \
-		2>&1 | zap-pretty
-
-generate-groth16-proof: ## Run the gnark_plonk_bn254_script
-	@echo "Running gnark_groth_bn254 script..."
-	@go run task_sender/test_examples/gnark_groth16_bn254_script/main.go
-
-
 send-sp1-proof:
 	@go run task_sender/cmd/main.go send-task \
     		--proving-system sp1 \
@@ -202,6 +171,7 @@ send-sp1-proof:
     		--config config-files/config.yaml \
     		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
+
 
 send-sp1-groth16-proof:
 	@go run task_sender/cmd/main.go send-task \
@@ -238,16 +208,6 @@ build-sp1-macos:
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
-
- 
-
-build-sp1-groth16-macos:
-	@cd operator/sp1_groth16/lib && cargo build --release
-	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1_groth16/lib/libsp1_groth16_verifier.dylib
-	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.a operator/sp1_groth16/lib/libsp1_groth16_verifier.a
-
-
-
 build-sp1-linux:
 	@cd operator/sp1/lib && cargo build --release
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
@@ -272,7 +232,20 @@ generate-sp1-fibonacci-proof:
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
 
+__SP1_GROTH16_FFI__: ##
+build-sp1-groth16-macos:
+	@cd operator/sp1_groth16/lib && cargo build --release
+	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1_groth16/lib/libsp1_groth16_verifier.dylib
+	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.a operator/sp1_groth16/lib/libsp1_groth16_verifier.a
 
-test-sp1-groth16-go-bindings-macos: build-sp1-groth16-macos
-	@echo "Testing SP1 GROTH16 Go bindings..."
+build-sp1-groth16-linux:
+	@cd operator/sp1_groth16/lib && cargo build --release
+	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.so operator/sp1_groth16/lib/libsp1_groth16_verifier.so
+	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.a operator/sp1_groth16/lib/libsp1_groth16_verifier.a
+
+test-sp1-groth-go-bindings-macos: build-sp1-groth16-macos
+	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1_groth16/... -v
+
+build-sp1-all-macos: build-sp1-macos build-sp1-groth16-macos
+	@echo "All SP1 components for macOS have been built successfully."	
