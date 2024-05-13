@@ -29,42 +29,22 @@ import (
 const MaxBlobSize = 128 * 1024
 
 func (ts *TaskSender) PostProofOnBlobs(proof []byte) (*serviceManager.AlignedLayerServiceManagerDAPayload, error) {
-
-	encodedProof := make([]byte, hex.EncodedLen(len(proof)))
-	hex.Encode(encodedProof, proof)
-
 	b := new(bytes.Buffer)
 	w := io.Writer(b)
+
 	// Encode the proof using RLP encoding
 	// This is needed because blobs are a fixed size, so we will need to remove trailing zeros
-	err := rlp.Encode(w, encodedProof)
+	err := rlp.Encode(w, proof)
 	if err != nil {
 		return nil, err
 	}
 
-	////
-	//decodedProof := make([]byte, hex.DecodedLen(len(encodedProof)))
-	//_, err = hex.Decode(decodedProof, encodedProof)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//buff := make([]byte, len(proof))
-	//err = rlp.DecodeBytes(decodedProof, &buff)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//if !bytes.Equal(proof, buff) {
-	//	return nil, fmt.Errorf("proofs are not equal")
-	//}
-
-	////
+	encodedProof := make([]byte, hex.EncodedLen(b.Len()))
+	hex.Encode(encodedProof, b.Bytes())
 
 	chunks := SplitIntoChunks(encodedProof, MaxBlobSize)
 
-	log.Println("chunks: ", len(chunks))
-
+	log.Println("Amount of chunks: ", len(chunks))
 	log.Println("Posting proof on Blobs...")
 
 	blobs := make([]kzg4844.Blob, len(chunks))
@@ -118,7 +98,6 @@ func (ts *TaskSender) PostProofOnBlobs(proof []byte) (*serviceManager.AlignedLay
 	calcBlobFee := eip4844.CalcBlobFee(*excessBlobGas)
 
 	blobFeeCap := uint256.MustFromBig(calcBlobFee)
-	//blobFeeCap := uint256.NewInt(1532631488400)
 
 	blobFeeCap.Mul(blobFeeCap, uint256.NewInt(10))
 
@@ -137,18 +116,12 @@ func (ts *TaskSender) PostProofOnBlobs(proof []byte) (*serviceManager.AlignedLay
 	}
 
 	var gas uint64
-
 	if count == 0 {
-		// No blob transactions in the last block
+		// No blob transactions in the last block, default gas
 		gas = 100_000
 	} else {
 		gas = blobGasUsed / uint64(count)
 	}
-
-	log.Println("Gas ", gas)
-	log.Println("Tip ", tip)
-	log.Println("MaxFeePerGas ", maxFeePerGas)
-	log.Println("BlobFeeCap ", blobFeeCap)
 
 	chainId, err := ts.blobsConfig.EthRpcClient.ChainID(context.Background())
 	if err != nil {
@@ -200,14 +173,9 @@ func (ts *TaskSender) PostProofOnBlobs(proof []byte) (*serviceManager.AlignedLay
 	}
 
 	consensusResponse, err := ts.getResponseFromBeaconRoot(block.BeaconRoot().Bytes())
-	//beaconRoot, err := hex.DecodeString("b18210f0ff8fd83bc7a24e3e9c92e0d01a451519d596291e9d3bac03e30a53c7")
 	if err != nil {
 		return nil, err
 	}
-	//consensusResponse, err := ts.getResponseFromBeaconRoot(consensusResponse)
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	daChunks := make([]serviceManager.AlignedLayerServiceManagerDAPayloadChunk, len(chunks))
 	for idx, blob := range blobs {
@@ -232,53 +200,6 @@ func (ts *TaskSender) PostProofOnBlobs(proof []byte) (*serviceManager.AlignedLay
 				}
 				break
 			}
-
-			//if daChunk.Blob[:2] == "0x" {
-			//	daChunk.Blob = daChunk.Blob[2:]
-			//}
-			//
-			//decodedChunk, err := hex.DecodeString(daChunk.Blob)
-			//if err != nil {
-			//	return nil, fmt.Errorf("could not decode chunk: %v", err)
-			//}
-			//
-			//if string(chunk[:2]) == "0x" {
-			//	chunk = chunk[2:]
-			//}
-			//decodedBlob, err := hex.DecodeString(string(chunk[:]))
-			//if err != nil {
-			//	return nil, fmt.Errorf("could not decode blob: %v", err)
-			//}
-			//
-			//if bytes.Equal(decodedChunk, decodedBlob) {
-			//	txIdx, err = strconv.Atoi(daChunk.Index)
-			//	if err != nil {
-			//		return nil, err
-			//	}
-			//	break
-			//}
-
-			// TODO: more efficient way
-
-			//blobBytes := blob[:]
-			//
-			//shortenedChunk := chunk.Blob[:len(string(blobBytes))]
-			//shortenedChunkBytes := []byte(shortenedChunk)
-			//
-			//log.Println(string(blobBytes))
-			//
-			////log.Println("Comparing", len(shortenedChunkBytes), len(blobBytes))
-			////log.Println("Comparing", string(shortenedChunkBytes), string(blobBytes))
-			//
-			////log.Println("Comparing", chunk.Blob, string(blob[:]))
-			//
-			//if bytes.Equal(shortenedChunkBytes, blobBytes) {
-			//	txIdx, err = strconv.Atoi(chunk.Index)
-			//	if err != nil {
-			//		return nil, err
-			//	}
-			//	break
-			//}
 		}
 
 		if txIdx == -1 {
@@ -287,8 +208,7 @@ func (ts *TaskSender) PostProofOnBlobs(proof []byte) (*serviceManager.AlignedLay
 
 		daChunks[idx] = serviceManager.AlignedLayerServiceManagerDAPayloadChunk{
 			ProofAssociatedData: block.BeaconRoot().Bytes(),
-			//ProofAssociatedData: beaconRoot,
-			Index: uint64(txIdx),
+			Index:               uint64(txIdx),
 		}
 	}
 
@@ -319,14 +239,14 @@ type BlobResponse struct {
 
 func (ts *TaskSender) getResponseFromBeaconRoot(beaconRoot []byte) (*BlobResponse, error) {
 	beaconRootStr := hex.EncodeToString(beaconRoot)
-	log.Println("Getting response from beacon root: ", beaconRootStr)
+	log.Println("Getting response from beacon root:", beaconRootStr)
 
 	resp, err := http.Get(ts.blobsConfig.BeaconChainRpcUrl + "/eth/v1/beacon/blob_sidecars/0x" + beaconRootStr)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("could not get response from beacon root")
+		return nil, errors.New("could not get response from beacon root, status code: " + resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
