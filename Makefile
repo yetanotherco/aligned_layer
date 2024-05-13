@@ -7,9 +7,10 @@ DA_SOLUTION=calldata
 
 ifeq ($(OS),Linux)
 	JQ_INSTALL_CMD = sudo apt-get install jq
-	YQ_INSTALL_CMD = sudo add-apt-repository ppa:rmescandon/yq && \
-						sudo apt update && \
-						sudo apt install yq -y
+	YQ_INSTALL_CMD = export VERSION=v4.43.1 \
+                     export BINARY=yq_linux_amd64 \
+                     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -O - | \
+                       tar xz && mv ${BINARY} /usr/bin/yq
 endif
 
 ifeq ($(OS),Darwin)
