@@ -203,6 +203,15 @@ send-sp1-proof:
     		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
 
+send-sp1-groth16-proof:
+	@go run task_sender/cmd/main.go send-task \
+    		--proving-system sp1_groth16 \
+    		--proof task_sender/test_examples/sp1_groth16/proof-with-pis.json \
+    		--public-input task_sender/test_examples/sp1_groth16/elf/riscv32im-succinct-zkvm-elf \
+    		--config config-files/config.yaml \
+    		--da $(DA_SOLUTION) \
+    		2>&1 | zap-pretty
+
 __DEPLOYMENT__:
 deploy-aligned-contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
@@ -236,6 +245,7 @@ build-sp1-groth16-macos:
 	@cd operator/sp1_groth16/lib && cargo build --release
 	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1_groth16/lib/libsp1_verifier.dylib
 	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.a operator/sp1_groth16/lib/libsp1_verifier.a
+
 
 
 build-sp1-linux:

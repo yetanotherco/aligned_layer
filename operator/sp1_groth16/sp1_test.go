@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	sp1 "github.com/yetanotherco/aligned_layer/operator/sp1_groth16"
+	sp1G16 "github.com/yetanotherco/aligned_layer/operator/sp1_groth16"
 )
 
 func TestFibonacciSp1Groth16ProofVerifies(t *testing.T) {
@@ -12,7 +12,7 @@ func TestFibonacciSp1Groth16ProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	proofBytes := make([]byte, sp1.MaxProofSize)
+	proofBytes := make([]byte, sp1G16.MaxProofSize)
 	nReadProofBytes, err := proofFile.Read(proofBytes)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
@@ -22,13 +22,13 @@ func TestFibonacciSp1Groth16ProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	elfBytes := make([]byte, sp1.MaxElfBufferSize)
+	elfBytes := make([]byte, sp1G16.MaxElfBufferSize)
 	nReadElfBytes, err := elfFile.Read(elfBytes)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
 
-	if !sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), uint(nReadProofBytes), ([sp1.MaxElfBufferSize]byte)(elfBytes), uint(nReadElfBytes)) {
+	if !sp1G16.VerifySp1Groth16Proof(([sp1G16.MaxProofSize]byte)(proofBytes), uint(nReadProofBytes), ([sp1G16.MaxElfBufferSize]byte)(elfBytes), uint(nReadElfBytes)) {
 		t.Errorf("proof did not verify")
 	}
 }

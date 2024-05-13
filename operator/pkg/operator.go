@@ -23,12 +23,12 @@ import (
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
+	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	sp1G16 "github.com/yetanotherco/aligned_layer/operator/sp1_groth16"
 	"golang.org/x/crypto/sha3"
-
-	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
 type Operator struct {
@@ -224,15 +224,15 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 
 		// SP1 Groth16. Do i need to create a new case for this?
 	case uint16(common.SP1Groth16):
-		proofBytes := make([]byte, sp1.MaxProofSize)
+		proofBytes := make([]byte, sp1G16.MaxProofSize)
 		copy(proofBytes, proof)
 
 		elf := newTaskCreatedLog.Task.PubInput
-		elfBytes := make([]byte, sp1.MaxElfBufferSize)
+		elfBytes := make([]byte, sp1G16.MaxElfBufferSize)
 		copy(elfBytes, elf)
 		elfLen := (uint)(len(elf))
 
-		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
+		verificationResult := sp1G16.VerifySp1Groth16Proof(([sp1G16.MaxProofSize]byte)(proofBytes), proofLen, ([sp1G16.MaxElfBufferSize]byte)(elfBytes), elfLen)
 
 		o.Logger.Infof("SP1 Groth16 proof verification result: %t", verificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
