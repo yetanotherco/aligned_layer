@@ -11,8 +11,9 @@ Aligned Layer works with EigenLayer to leverage ethereum consensus mechanism for
 
 Full documentation and examples will be added soon
 
+## Setup
 
-## Dependencies
+### Dependencies
 
 You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
 [celestia](https://docs.celestia.org/nodes/celestia-node#installing-from-source),
@@ -33,6 +34,34 @@ Make sure to run `foundryup`
 To install eigenlayer-cli
 ```bash
 make install-eigenlayer-cli
+```
+
+### Keystores
+
+### Data Availability
+
+#### EigenDA
+
+You need the EigenDA Disperser to interact with EigenDA. You can find the EigenDA Disperser 
+- [Holesky](https://docs.eigenlayer.xyz/eigenda/networks/holesky)
+- [Mainnet](https://docs.eigenlayer.xyz/eigenda/networks/mainnet)
+
+#### Celestia
+
+To set up Celestia, you will need to install the Celestia-Node CLI.
+Refer to [this resource](https://docs.celestia.org/nodes/celestia-node#installing-from-source)
+for instructions on how to do so.
+
+Then, to initialize the node store for the Arabica network run:
+```bash
+celestia light init --p2p.network arabica
+```
+The output in your terminal will show the location of your node store and config.
+
+To start the node in the Arabica network run:
+```bash
+
+celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
 ```
 
 
@@ -327,40 +356,6 @@ signer_type: local_keystore
 chain_id: <chain_id>
 ```
 
-
-## Data Availability (DA)
-
-### Calldata
-
-This stores the proof data into Ethereum.
-
-Limitations -> Expensive # TODO
-
-### EigenDA
-
-Limitations -> Slow, 2MB # TODO
-
-### Celestia
-
-Limitations -> 2MB # TODO 
-
-#### Setup
-
-To set up Celestia, you will need to install the Celestia-Node CLI.
-Refer to [this resource](https://docs.celestia.org/nodes/celestia-node#installing-from-source)
-for instructions on how to do so.
-
-Then, to initialize the node store for the Arabica network run:
-```bash
-celestia light init --p2p.network arabica
-```
-The output in your terminal will show the location of your node store and config.
-
-To start the node in the Arabica network run:
-```bash
-
-celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
-```
 
 ## Task Sender
 
