@@ -21,7 +21,7 @@ type BlobResponse struct {
 
 func (o *Operator) getProofByChunksFromBlobs(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) ([]byte, error) {
 	var proofChunks []string
-	
+
 	// TODO: For now we assume that all the blobs are in the same beacon root, so for example we use the first one
 	blobResponse, err := o.getResponseFromBeaconRoot(newTaskCreatedLog.Task.DAPayload.Chunks[0].ProofAssociatedData)
 	if err != nil {
