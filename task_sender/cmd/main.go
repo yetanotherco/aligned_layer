@@ -206,7 +206,6 @@ func taskSenderMain(c *cli.Context) error {
 	if batchSize < 0 {
 		return fmt.Errorf("batch size must be positive")
 	}
-	// numVerificationData := 10
 
 	proofsVerificationData := make([]servicemanager.AlignedLayerServiceManagerProofVerificationData, batchSize)
 	for i := 0; i < batchSize; i += 1 {
