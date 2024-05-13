@@ -35,7 +35,7 @@ Make sure to run `foundryup`
 To install eigenlayer-cli
 
 ```bash
-make install-eigenlayer_cli
+make install_eigenlayer_cli
 ```
 
 ## How to use Devnet
