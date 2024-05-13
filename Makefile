@@ -238,6 +238,7 @@ build-sp1-groth16-macos:
 	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1_groth16/lib/libsp1_groth16_verifier.dylib
 	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.a operator/sp1_groth16/lib/libsp1_groth16_verifier.a
 
+/*
 build-sp1-groth16-linux:
 	@cd operator/sp1_groth16/lib && cargo build --release
 	@cp operator/sp1_groth16/lib/target/release/libsp1_verifier_ffi.so operator/sp1_groth16/lib/libsp1_groth16_verifier.so
