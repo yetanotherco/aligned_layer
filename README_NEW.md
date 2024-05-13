@@ -38,6 +38,25 @@ make install-eigenlayer-cli
 
 ### Keystores
 
+To create a keystore, you can run the following commands:
+    
+```bash
+cast wallet new-mnemonic
+cast wallet import <keystore-name> --private-key <private-key>
+```
+
+To create a ECDSA keystore, you can run the following commands:
+
+```bash
+eigenlayer operator keys import --key-type ecdsa <keystore-name> <private-key>
+```
+
+To create a BLS keystore, you can run the following commands:
+
+```bash
+eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
+```
+
 ### Data Availability
 
 #### EigenDA
