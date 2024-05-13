@@ -115,7 +115,7 @@ defmodule ExplorerWeb.CoreComponents do
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
       class={[
-        "fixed top-2 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
+        "fixed bottom-2 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
         @kind == :info && "bg-emerald-50 text-emerald-800 ring-emerald-500 fill-cyan-900",
         @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900"
       ]}
@@ -231,14 +231,35 @@ defmodule ExplorerWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 hover:bg-zinc-700 py-2 px-3",
-        "text-sm font-semibold leading-6 text-white active:text-white/80",
+        "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-zinc-700 py-2 px-3",
+        "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
         @class
       ]}
       {@rest}
     >
       <%= render_slot(@inner_block) %>
     </button>
+    """
+  end
+
+  @doc """
+  Renders a card with a title and content.
+  """
+  attr :class, :string, default: nil
+  attr :title, :string, required: true
+
+  slot :inner_block, default: nil
+
+  def card(assigns) do
+    ~H"""
+    <div class={["px-3 py-2 bg-background border border-foreground/20 rounded-md w-fit", @class]}>
+      <h2 class="font-medium text-muted-foreground capitalize">
+        <%= @title %>
+      </h2>
+      <span class="text-4xl font-bold slashed-zero">
+        <%= render_slot(@inner_block) %>
+      </span>
+    </div>
     """
   end
 
