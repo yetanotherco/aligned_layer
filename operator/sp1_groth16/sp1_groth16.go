@@ -1,7 +1,7 @@
 package sp1_groth16
 
 /*
-#cgo linux LDFLAGS: ${SRCDIR}/lib/sp1_groth16_verifier.a -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_groth16_verifier.a -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
 #cgo darwin LDFLAGS: -L./lib -lsp1_groth16_verifier
 
 #include "lib/sp1_groth16.h"
