@@ -73,6 +73,12 @@ since the aggregator will have a task index of 0.
 
 ### Start operator
 
+First make sure to build SP1 with:
+
+```bash
+make build-sp1-macos # or make build-sp1-linux
+```
+
 To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
 
 ```bash
@@ -90,6 +96,7 @@ If `CONFIG_FILE` is not provided, it will use the default config file at `config
 To use the default configuration file, just run:
 
 ```bash
+make build-sp1-macos # or make build-sp1-linux
 make operator-full-registration
 make operator-start
 ```
