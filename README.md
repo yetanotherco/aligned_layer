@@ -372,6 +372,27 @@ There is a section for operator, aggregator, and keys. Also, there are common va
 
 There are also three other configuration files in the `config-files` directory for operators. They have their own keys and addresses.
 
+
+## Metrics [This section will be updated in #146]
+
+### Install Prometheus
+
+To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
+
+### Install Grafana
+
+To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
+
+### Aggregator Metrics
+
+Aggregator metrics are exposed on the `/metrics` endpoint.
+
+If you are using the default config, you can access the metrics on `http://localhost:9091/metrics`.
+
+You can also access to Prometheus on `http://localhost:9090`.
+
+You can also access to Grafana on `http://localhost:3000`.n
+
 ## FAQ
 
 ### What is the objective of Aligned Layer?
