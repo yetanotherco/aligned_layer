@@ -80,7 +80,7 @@ make <run | deps | help>
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/tasks/:id`.
 
-### Upgrade ABI
+### Upgrade Aligned ABI
 
 Keep in mind when the contracts are updated, the ABI of the contracts must be updated in the frontend.
 
@@ -93,8 +93,10 @@ cd contracts/out/
 ```
 
 This will generate new contracts in the `/contracts/out/AlignedLayerServiceManager.sol` folder in the root of the project.
+
 Once in there copy the contents of the file after `{"abi":` and before `,"bytecode":{"object":`.
-Lastly, paste it in the `contracts/abi/AlignedLayerServiceManager.abi` file.
+
+Once copied, either create or replace the `AlignedLayerServiceManager.json` file, located in the `/explorer/lib/abi` directory, by pasting the content from your clipboard.
 
 ## Contributing
 
@@ -106,5 +108,5 @@ PRs are more than welcome if you want to collaborate to the project. If you don'
 
 If you have any questions, suggestions, or if you'd like to contribute in any way, please feel free to reach out to us:
 
-- **Telegram**: [Get Aligned](https://t.me/alignedlayer)
+- **Discord**: [Aligned](https://discord.gg/alignedlayer)
 - **GitHub Issues**: [Open an Issue](https://github.com/yetanotherco/aligned_layer/labels/frontend)
