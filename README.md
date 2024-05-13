@@ -83,7 +83,7 @@ since the aggregator will have a task index of 0.
 First make sure to build SP1 with:
 
 ```bash
-make build_sp1_macos # or make build-sp1-linux
+make build_sp1_macos # or make build_sp1_linux on linux
 ```
 
 To do the full process (register with EigenLayer, deposit into strategy and register with AligendLayer), run:
