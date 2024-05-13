@@ -103,20 +103,20 @@ make operator-start
 
 ### Send task
 
-### Sending a Task Using the TaskSender CLI
+### Sending a Task using the TaskSender CLI
 
-To send a task to the ServiceManager using the TaskSender CLI with a specific proving system, you can use one of the following commands depending on the proving system you wish to use:
+To send a task with a batch of proofs to the ServiceManager using the TaskSender CLI with a specific proving system, you can use one of the following commands depending on the proving system you wish to use. The default batch size is set to 10 except for the case of SP1.
 
-For BLS12_381
+For BLS12_381 PLONK, use:
 
 ```bash
-  make send-plonk_bls12_381-proof
+  make send-plonk_bls12_381-proof-batch
 ```
 
-For BN254
+For BN254 PLONK, use:
 
 ```bash
-  make send-plonk_bn254-proof
+  make send-plonk_bn254-proof-batch
 ```
 
 This will send a dummy task to the ServiceManager and an event will be emitted. 
@@ -128,7 +128,7 @@ The plonk proofs are located at `task_sender/test_examples`.
 You can also send a task with a da by running:
 
 ```bash
-  make send-plonk_bls12_381-proof DA_SOLUTION=<calldata|eigen|celestia>
+  make send-plonk_bls12_381-proof-batch DA_SOLUTION=<calldata|eigen|celestia>
 ```
 
 This also works for any other proof type.
@@ -152,7 +152,7 @@ celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network
 
 Try sending a task with: 
 ```bash
-make send-plonk_bls12_381-proof DA_SOLUTION=celestia
+make send-plonk_bls12_381-proof-batch DA_SOLUTION=celestia
 ```
 You will get an error like `...Message: rpc error: code = NotFound desc = account <account_id> not found`. This means you don't have funds in your account.
 
@@ -160,7 +160,7 @@ To get funds in your account, access [this](https://faucet.celestia-arabica-11.c
 
 Finally, run:
 ```bash
-make send-plonk_bls12_381-proof DA_SOLUTION=celestia
+make send-plonk_bls12_381-proof-batch DA_SOLUTION=celestia
  ```
 
 ## Developing workflows in testnet
