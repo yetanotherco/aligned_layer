@@ -368,15 +368,14 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-6h",
-    "to": "now"
+    "from": "2024-05-12T21:25:25.045Z",
+    "to": "2024-05-12T23:33:49.731Z"
   },
   "timepicker": {},
   "timezone": "browser",
