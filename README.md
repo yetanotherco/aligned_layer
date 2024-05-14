@@ -391,7 +391,7 @@ If you are using the default config, you can access the metrics on `http://local
 
 You can also access to Prometheus on `http://localhost:9090`.
 
-You can also access to Grafana on `http://localhost:3000`.n
+You can also access to Grafana on `http://localhost:3000`.
 
 ## FAQ
 
