@@ -29,7 +29,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     enum DASolution {
         Calldata,
         EigenDA,
-        Celestia
+        Celestia,
+        S3Bucket
     }
 
     struct DAPayload {
