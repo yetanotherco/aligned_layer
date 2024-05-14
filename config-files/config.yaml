@@ -27,7 +27,7 @@ celestia:
   keystore: "~/.celestia-light-arabica-11"
 
 s3_bucket:
-  url: "https://d2vnmbplfg3l8u.cloudfront.net/"
+  url: "https://storage.alignedlayer.com/"
 
 ## Aggregator Configurations
 aggregator:
