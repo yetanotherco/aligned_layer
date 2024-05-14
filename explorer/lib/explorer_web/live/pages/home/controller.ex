@@ -47,7 +47,6 @@ defmodule ExplorerWeb.Home.Controller do
 
   defp get_verified_tasks_count_by_status() do
     AlignedLayerServiceManager.get_task_responded_events()
-      |> elem(1)
       |> get_verified_tasks_count_by_status
   end
 

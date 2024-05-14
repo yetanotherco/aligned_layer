@@ -14,6 +14,18 @@ defmodule ExplorerWeb.Tasks.Tasks do
     {:ok, assign(socket, tasks: tasks_created_cross_tasks_responded)}
   end
 
+  # def handle_event("next_page", %{"task" => task_params}, socket) do
+  # def handle_event("next_page", _, socket) do
+  #   # task_id = Map.get(task_params, "id")
+  #   is_task_id_valid = String.match?(task_id, ~r/^\d+$/)
+
+  #   if not is_task_id_valid do
+  #     {:noreply, assign(socket, error: "Invalid task ID")}
+  #   else
+  #     {:noreply, redirect(socket, to: "/tasks/#{task_id}")}
+  #   end
+  # end
+
   def check_if_task_responded(task_created, task_responded_events) do
     task_response_event = Enum.find(task_responded_events, fn(event) -> match_event_id(event, task_created.taskId) end)
     case task_response_event do
