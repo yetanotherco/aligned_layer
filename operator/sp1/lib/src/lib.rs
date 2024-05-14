@@ -3,7 +3,6 @@ use lazy_static::lazy_static;
 pub const MAX_PROOF_SIZE: usize = 2 * 1024 * 1024;
 pub const MAX_ELF_BUFFER_SIZE: usize = 1024 * 1024;
 
-//TODO: instantiate ProverClient in lazy_static!
 lazy_static! {
     static ref PROVER_CLIENT: ProverClient = ProverClient::new();
 }
