@@ -3,29 +3,29 @@
 echo "Starting local execution"
 
 echo "\nStarting anvil"
-make anvil-start > /dev/null 2>&1 & 
+make anvil_start > /dev/null 2>&1 & 
 export ANVIL_PID=$!
 
 sleep 1
 
 echo "\nStarting Aggregator"
-make aggregator-start > /dev/null 2>&1 & 
+make aggregator_start > /dev/null 2>&1 & 
 
 export AGGREGATOR_PID=$!
 
 sleep 3
 
 echo "\nRegistering Operator"
-make operator-full-registration
+make operator_full_registration
 sleep 3
 echo "\nStarting Operator"
-make operator-start > /dev/null 2>&1 & 
+make operator_start > /dev/null 2>&1 & 
 export OPERATOR_PID=$!
 
 sleep 2
 
 echo "\nSending 1 task"
-make send-plonk_bls12_381-proof > /dev/null 2>&1
+make send_plonk_bls12_381_proof > /dev/null 2>&1
 
 echo "Ready"
 read  -n 1 -p "Press anything to stop execution of Anvil & Aggregator & Operator" wait
