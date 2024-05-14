@@ -4,6 +4,11 @@
       <%!-- ids:: <%= @tasks %> --%>
       TODO: extract task from tasks list being passed to this page
     </p>
-    <button>Prev</button>
-    <button>Next</button>
+    <%!-- <div phx-click={JS.push("next", value: %{myvar1: @val1})}/> --%>
+    <.button phx-click={JS.push("previous_page", value: %{current_page: @current_page})}>
+      Previous
+    </.button>
+    <.button phx-click={JS.push("next_page", value: %{current_page: @current_page})}>
+      Next
+    </.button>
 </div>
