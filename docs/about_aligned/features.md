@@ -2,7 +2,7 @@
 
 ## Expanding capacities
 
-With Aligned Layer, we are expanding Ethereum's ZK capabilities to include an interesting variety of proof systems in the Ethereum ecosystem. We want to offer the infrastructure for the future of trustless applications using verifiable computation and Ethereum's security.
+With Aligned, we are expanding Ethereum's ZK capabilities to include an interesting variety of proof systems in the Ethereum ecosystem. We want to offer the infrastructure for the future of trustless applications using verifiable computation and Ethereum's security.
 
 ## Neutrality
 
