@@ -1,10 +1,10 @@
 # Learning Resources:
 
-## Aligned Layer blog post:
+## Aligned blog post:
 
-* [Aligned Layer](https://blog.alignedlayer.com/aligned-layer/)
+* [Aligned](https://blog.alignedlayer.com/aligned-layer/)
 
-## Aligned Layer repo:
+## Aligned repo:
 
 * [EigenLayer implementation](https://github.com/yetanotherco/aligned_layer)
 
