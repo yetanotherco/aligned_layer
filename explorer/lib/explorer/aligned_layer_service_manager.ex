@@ -118,15 +118,6 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  # def get_tx_hash(id) do
-  #   {status, tx_hash} = AlignedLayerServiceManager.task_hashes(id) |> Ethers.call()
-  #   case status do
-  #     :ok -> Logger.debug("tx_hash #{tx_hash}")
-  #     :error -> raise("Error fetching tx_hashes")
-  #   end
-  #   tx_hash |> Base.encode16 |> String.downcase |> (fn x -> "0x" <> x end).()
-  # end
-
   def get_tx_hash(id) do
     AlignedLayerServiceManager.task_hashes(id)
     |> Ethers.call()
@@ -134,13 +125,6 @@ defmodule AlignedLayerServiceManager do
     |> Base.encode16()
     |> String.downcase()
     |> (fn x -> "0x" <> x end).()
-
-    # {status, tx_hash} = AlignedLayerServiceManager.task_hashes(id) |> Ethers.call()
-    # case status do
-    #   :ok -> tx_hash |> Base.encode16 |> String.downcase |> (fn x -> "0x" <> x end).()
-    #   :error -> raise("Error fetching tx_hashes")
-    # end
-
   end
 
   def get_task_response(id) do
