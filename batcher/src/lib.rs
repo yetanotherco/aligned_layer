@@ -1,6 +1,6 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ProvingSystemId {
     GnarkPlonkBls12_381,
     GnarkPlonkBn254,
@@ -8,13 +8,19 @@ pub enum ProvingSystemId {
     SP1,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
-    proving_system: ProvingSystemId,
-    proof: Vec<u8>,
-    public_input: Vec<u8>,
-    verification_key: Vec<u8>,
-    quorum_numbers: Vec<u8>,
-    quorum_threshold_percentages: Vec<u8>,
-    fee: u64,
+    pub proving_system: ProvingSystemId,
+    pub proof: Vec<u8>,
+    pub public_input: Vec<u8>,
+    pub verification_key: Vec<u8>,
+    pub quorum_numbers: Vec<u8>,
+    pub quorum_threshold_percentages: Vec<u8>,
+    pub fee: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum VerificationResult {
+    Success { hash: Vec<u8> },
+    Failure,
 }
