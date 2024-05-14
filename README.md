@@ -389,9 +389,21 @@ Aggregator metrics are exposed on the `/metrics` endpoint.
 
 If you are using the default config, you can access the metrics on `http://localhost:9091/metrics`.
 
-You can also access to Prometheus on `http://localhost:9090`.
+To run prometheus you can use the following command:
+
+```bash
+./prometheus --config.file=<path_to_repo>/prometheus/prometheus.yml
+```
+
+You can access to Prometheus on `http://localhost:9090`.
 
 You can also access to Grafana on `http://localhost:3000`.
+
+To add a new data source, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/).
+
+Once you added Prometheus as a data source, you can import the dashboard from the `provisioning/dashboards/aggregator.json` file.
+
+[TODO(juli): load config in grafana automatically]
 
 ## FAQ
 
