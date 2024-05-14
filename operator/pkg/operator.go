@@ -239,7 +239,7 @@ func (o *Operator) verifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
-// VerifyGroth16ProofBN254 verifies a PLONK proof using BN254 curve.
+// VerifyGroth16ProofBN254 verifies a GROTH16 proof using BN254 curve.
 func (o *Operator) verifyGroth16ProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
