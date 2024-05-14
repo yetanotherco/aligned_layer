@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// TODO(Nico): If we batch the proofs, we need to receive a list of proofIds and fetch all of them
+// TODO(Nico): If we batch the proofs, we need to receive a list of proofIds and fetch all of them, change this once the contract changes
 func (o *Operator) getProofFromS3Bucket(proofId string) ([]byte, error) {
 
 	resp, err := http.Get(o.Config.S3BucketConfig.Url + proofId)
