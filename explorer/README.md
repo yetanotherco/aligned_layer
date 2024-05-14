@@ -29,26 +29,26 @@ If you want to run the devnet environment, you can run the following command in 
 
 ```sh
 cd ..
-make anvil-start
+make anvil_start
 ```
 
 Then in another terminal, you can run the following command to run the operator:
 
 ```sh
-make operator-full-registration
-make operator-start
+make operator_full_registration
+make operator_start
 ```
 
 Then, in another terminal, run the following command to start the aggregator:
 
 ```sh
-make aggregator-start
+make aggregator_start
 ```
 
 Finally, to have a task running in the devnet, you can run the following command:
 
 ```sh
-make send-plonk_bls12_381-proof-loop
+make send_plonk_bls12_381_proof_loop
 ```
 
 ### Run the frontend
@@ -77,7 +77,7 @@ If you want to update the ABI of the contracts, you can run the following comman
 
 ```bash
 cd ..
-make build-aligned-contracts
+make build_aligned_contracts
 cd contracts/out/
 ```
 
