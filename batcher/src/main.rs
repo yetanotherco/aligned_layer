@@ -1,14 +1,20 @@
-use std::{
-    io::Error as IoError,
-    net::SocketAddr,
-};
-use env_logger::Env;
+use std::{io::Error as IoError, net::SocketAddr};
 
-use futures_channel::mpsc::{unbounded};
+use clap::Parser;
+use env_logger::Env;
+use futures_channel::mpsc::unbounded;
 use futures_util::{future, pin_mut, stream::TryStreamExt, StreamExt};
 use log::info;
-
+use log::Level::Error;
 use tokio::net::{TcpListener, TcpStream};
+
+#[derive(Parser)]
+#[command(name = "Aligned Layer Batcher")]
+#[command(about = "An application with server and client subcommands", long_about = None)]
+struct Cli {
+    #[arg(short, long)]
+    port: Option<u16>,
+}
 
 async fn handle_connection(raw_stream: TcpStream, addr: SocketAddr) {
     info!("Incoming TCP connection from: {}", addr);
@@ -22,8 +28,16 @@ async fn handle_connection(raw_stream: TcpStream, addr: SocketAddr) {
     let (outgoing, incoming) = ws_stream.split();
 
     let get_incoming = incoming.try_for_each(|msg| {
-        info!("Received a message from {}: {}", addr, msg.to_text().unwrap());
-        tx.unbounded_send(msg.clone()).unwrap();
+        info!(
+            "Received a message from {}: {}",
+            addr,
+            msg.to_text().unwrap()
+        );
+        tx.unbounded_send(msg.clone())
+            .expect("Failed to send message");
+
+        // Close channel after response
+        tx.close_channel();
 
         future::ok(())
     });
@@ -37,9 +51,13 @@ async fn handle_connection(raw_stream: TcpStream, addr: SocketAddr) {
 
 #[tokio::main]
 async fn main() -> Result<(), IoError> {
+    let cli = Cli::parse();
+
+    let port = cli.port.unwrap_or(8080);
+
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let addr = "localhost:8080";
+    let addr = format!("localhost:{}", port);
 
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;
