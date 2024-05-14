@@ -17,46 +17,24 @@ import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.so
  * - freezing operators as the result of various "challenges"
  */
 contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
+
     address aggregator;
 
     // EVENTS
-    event NewTaskCreated(uint32 indexed taskIndex, Task task);
+    event NewTaskCreated(uint32 indexed taskIndex, uint256 merkleRootOfBatch, string dataStorePointer);
+
     event TaskResponded(uint32 indexed taskIndex, TaskResponse taskResponse);
 
     uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
 
-    // STRUCTS
-    enum DASolution {
-        Calldata,
-        EigenDA,
-        Celestia
-    }
-
-    struct DAPayload {
-        DASolution solution;
-        bytes proof_associated_data; // Proof bytes for calldata - BatchHeaderHash for EigenDA - Commitment for Celestia
-        uint64 index; // BlobIndex for EigenDA - Height for Celestia
-    }
-
+    /*
     struct Task {
-        uint16 provingSystemId;
-        DAPayload DAPayload;
-        bytes pubInput;
-        bytes verificationKey;
-        uint32 taskCreatedBlock;
-        bytes quorumNumbers;
-        bytes quorumThresholdPercentages;
-        uint256 fee;
+        uint256 merkleRootOfBatch;
+        // This should be removed, and a fixed amount of quorumNumbers and threshold is being used
+        // bytes quorumNumbers;
+        // bytes quorumThresholdPercentages;
     }
-
-    // Task Response
-    // In case of changing this response, change AbiEncodeTaskResponse
-    // since it won't be updated automatically
-    struct TaskResponse {
-        uint32 taskIndex;
-        bool proofIsCorrect;
-    }
-
+    */
     /* STORAGE */
     uint32 public latestTaskIndexPlusOne;
 
@@ -102,48 +80,39 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function createNewTask(
-        uint16 provingSystemId,
-        DAPayload calldata payload,
-        bytes calldata pubInput,
-        // This parameter is only mandatory for KZG based proving systems
-        bytes calldata verificationKey,
-        bytes calldata quorumNumbers,
-        bytes calldata quorumThresholdPercentages
+        uint256 merkleRootOfBatch,
+        string calldata dataStorePointer
     ) external payable {
-        require(msg.value > 0, "fee must be greater than 0");
+        // Task memory newTask;
 
-        Task memory newTask;
+        // newTask.quorumNumbers = quorumNumbers;
+        // newTask.quorumThresholdPercentages = quorumThresholdPercentages;
 
-        newTask.provingSystemId = provingSystemId;
-        newTask.DAPayload = payload;
-        newTask.pubInput = pubInput;
-        newTask.verificationKey = verificationKey;
-        newTask.taskCreatedBlock = uint32(block.number);
-        newTask.quorumNumbers = quorumNumbers;
-        newTask.quorumThresholdPercentages = quorumThresholdPercentages;
-        newTask.fee = msg.value;
 
-        taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
+        // taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
 
-        emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
+        
+        emit NewTaskCreated(latestTaskIndexPlusOne, merkleRootOfBatch, dataStorePointer,);
 
         latestTaskIndexPlusOne = latestTaskIndexPlusOne + 1;
     }
 
     function respondToTask(
-        Task calldata task,
-        TaskResponse calldata taskResponse,
+        uint32 taskIndex,
+        uint256 merkleRootOfBatch,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         uint32 taskCreatedBlock = task.taskCreatedBlock;
+
+        // We need to block
         bytes calldata quorumNumbers = task.quorumNumbers;
         bytes calldata quorumThresholdPercentages = task
             .quorumThresholdPercentages;
 
         // check that the task is valid, hasn't been responsed yet, and is being responsed in time
         require(
-            keccak256(abi.encode(task)) == taskHashes[taskResponse.taskIndex],
+            merkleRootOfBatch == taskHashes[taskIndex],
             "Supplied task does not match the one recorded in the contract"
         );
 
@@ -177,8 +146,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
                 "Signatories do not own at least threshold percentage of a quorum"
             );
         }
-
-        payable(aggregator).transfer(task.fee);
 
         emit TaskResponded(
             taskResponse.taskIndex,
