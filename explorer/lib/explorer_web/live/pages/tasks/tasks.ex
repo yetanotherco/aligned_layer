@@ -11,14 +11,24 @@ defmodule ExplorerWeb.Tasks.Tasks do
       |>
       Enum.map(fn task_created -> check_if_task_responded(task_created, task_responded_events) end)
 
-    current_page = params |> Map.get("page") |> Integer.parse() |> elem(0) #TODO add check
-    {:ok, assign(socket, current_page: current_page, tasks: tasks_created_cross_tasks_responded)}
+    {:ok, assign(socket, current_page: get_current_page(params), tasks: tasks_created_cross_tasks_responded)}
+  end
+
+  def get_current_page(params) do
+    case params |> Map.get("page") do
+      nil -> 1
+      page -> page |> Integer.parse() |> elem(0)
+    end
   end
 
   def handle_event(event, params, socket) do
+    current_page = case params |> Map.get("current_page") do
+      nil -> 1
+      page -> page
+    end
     new_page = case event do
-      "next_page" -> params |> Map.get("current_page") |> (fn x -> x + 1 end).()
-      "previous_page" -> params |> Map.get("current_page") |> (fn x -> x - 1 end).()
+      "next_page" -> current_page |> (fn x -> x + 1 end).()
+      "previous_page" -> current_page |> (fn x -> x - 1 end).()
     end
     {:noreply, redirect(socket, to: "/tasks?page=#{new_page}")}
   end
