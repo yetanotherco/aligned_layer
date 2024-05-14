@@ -159,9 +159,6 @@ defmodule AlignedLayerServiceManager do
   def get_task_response(id) do
     {status, task_responses} = AlignedLayerServiceManager.task_responses(id) |> Ethers.call()
 
-    status |> IO.inspect()
-    task_responses |> IO.inspect()
-
     case status do
       :ok -> Logger.debug("task_responses #{task_responses}")
       :error -> raise("Error fetching task_responses")
@@ -171,7 +168,12 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_task_responded_events() do
-      AlignedLayerServiceManager.EventFilters.task_responded(nil) |> Ethers.get_logs(fromBlock: 0)
+      {status, data} = AlignedLayerServiceManager.EventFilters.task_responded(nil) |> Ethers.get_logs(fromBlock: 0)
+      case {status, data} do
+        {:ok, list} -> list
+        {:ok, []} -> raise("Error fetching responded events, no events found")
+        {:error, data} -> raise("Error fetching responded events #{data}")
+      end
   end
 
   def get_tasks_created_events() do
