@@ -1,8 +1,13 @@
 <div class="flex flex-col space-y-3 bg-zinc-200 dark:bg-zinc-900 rounded-2xl px-6 py-8 min-h-[40rem] text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
   <h1 class="text-5xl font-bold">Tasks List</h1>
     <p class="font-semibold">
-      <%!-- ids:: <%= @tasks %> --%>
-      TODO: extract task from tasks list being passed to this page
+      <div :for={task <- @tasks} class="flex gap-4 text-sm leading-6 sm:gap-8">
+        task: <%= task.taskId %>      
+        <%= task.transaction_hash %>   
+        <%= task.block_number %>   
+        <%= task.proof_is_responded %>     
+        <%= task.proof_is_correct %>     
+      </div>
     </p>
     <%!-- <div phx-click={JS.push("next", value: %{myvar1: @val1})}/> --%>
     <.button phx-click={JS.push("previous_page", value: %{current_page: @current_page})}>
