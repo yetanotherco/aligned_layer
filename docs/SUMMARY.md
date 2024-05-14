@@ -10,6 +10,7 @@
 * [Role of EigenLayer](about_aligned/role_of_eigenlayer.md)
 * [How does Aligned Layer work?](about_aligned/how_does_aligned_layer_work.md)
 * [Learning Resources](about_aligned/learning_resources.md)
+* [FAQ](about_aligned/FAQ.md)
 
 ## Links
 
