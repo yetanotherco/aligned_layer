@@ -154,6 +154,13 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
 			return nil
 		}
+	case common.S3Bucket:
+		// TODO(Nico): Once the Task has a proofId, remove this hardcoded value
+		proof, err = o.getProofFromS3Bucket("1")
+		if err != nil {
+			o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
+			return nil
+		}
 	}
 
 	proofLen := (uint)(len(proof))
