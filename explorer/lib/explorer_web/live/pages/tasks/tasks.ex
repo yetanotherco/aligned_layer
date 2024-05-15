@@ -67,9 +67,7 @@ defmodule ExplorerWeb.Tasks.Tasks do
   end
 
   def match_event_id(event, id) do
-    # "event" |> IO.inspect()
-    # event["topics"] |> IO.inspect()
-    padded_hex_string = Integer.to_string(id, 16) |> String.pad_leading(64, "0")
+    padded_hex_string = Integer.to_string(id, 16) |> String.pad_leading(64, "0") |> String.downcase()
     idx = "0x" <> padded_hex_string
 
     case event["topics"] do
