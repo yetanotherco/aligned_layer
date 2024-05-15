@@ -16,7 +16,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::connect_async;
 
-use batcher::{ProvingSystemId, Task};
+use batcher::types::{ProvingSystemId, Task};
 
 #[tokio::main]
 async fn main() {
