@@ -10,7 +10,7 @@ To overcome these restrictions, you can:
 1.	Create another layer without Ethereum's limitations.
 2.	And ensure its security in some manner.
 
-That's why we created Aligned Layer: a verification layer secured by the pooled security of Ethereum stakers.
+That's why we created Aligned: a verification layer secured by the pooled security of Ethereum stakers.
 
 ## About Slashing mechanism.
 
@@ -26,4 +26,4 @@ The enforcement of the staker's commitment and stakes takes place on the Ethereu
 
 EigenLayer requires a trustless and programmable platform to enforce different staker commitments, and Ethereum is the most suitable for this. It holds the largest stake. The higher the amount staked, the more security and guarantees it provides to its users.
 
-The objective is for the stakers to be able to provide security, empowering them to commit to effectively securing a range of infrastructure protocols. If a staker attempts to engage in fraudulent activities, evidence can be presented by anyone to punish the staker and that is used by us in Aligned Layer.
+The objective is for the stakers to be able to provide security, empowering them to commit to effectively securing a range of infrastructure protocols. If a staker attempts to engage in fraudulent activities, evidence can be presented by anyone to punish the staker and that is used by us in Aligned.
