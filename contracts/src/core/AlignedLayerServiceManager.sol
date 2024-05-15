@@ -17,14 +17,10 @@ import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.so
  * - freezing operators as the result of various "challenges"
  */
 contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
-
     address aggregator;
 
     // EVENTS
-    event NewTaskCreated(
-        bytes32 batchTaskHash,
-        string batchDataPointer
-    );
+    event NewTaskCreated(bytes32 batchTaskHash, string batchDataPointer);
 
     event BatchVerified(bytes32 batchMerkleRoot);
 
@@ -82,12 +78,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
 
-        batchesState[batchMerkleRoot] = batchState; 
+        batchesState[batchMerkleRoot] = batchState;
 
-        emit NewTaskCreated(
-            batchMerkleRoot,
-            dataStorePointer
-        );
+        emit NewTaskCreated(batchMerkleRoot, dataStorePointer);
     }
 
     function respondToTask(
@@ -105,7 +98,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             batchesState[batchMerkleRoot].taskCreatedBlock == 0,
             "Batch doesn't exists"
         );
-        
+
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
         (
@@ -117,7 +110,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
                 nonSignerStakesAndSignature
             );
 
-            
         // check that signatories own at least a threshold percentage of each quourm
         require(
             quorumStakeTotals.signedStakeForQuorum[0] *
@@ -127,8 +119,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             "Signatories do not own at least threshold percentage of a quorum"
         );
 
-        emit BatchVerified(
-            batchMerkleRoot
-        );
+        emit BatchVerified(batchMerkleRoot);
     }
 }
