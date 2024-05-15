@@ -18,7 +18,7 @@ struct Cli {
 async fn main() -> Result<(), IoError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let app = App::new();
+    let app = App::new().await;
     let app = Arc::new(app);
 
     let cli = Cli::parse();

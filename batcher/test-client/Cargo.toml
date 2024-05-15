@@ -13,3 +13,4 @@ tungstenite = "0.21.0"
 url = "2.5.0"
 futures-channel = "0.3.30"
 batcher = { path = "../" }
+bytes = "1.6.0"

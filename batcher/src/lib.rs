@@ -1,3 +1,5 @@
+extern crate core;
+
 use std::future::Future;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -8,16 +10,21 @@ use log::{debug, info};
 use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
+use aws_sdk_s3::client::Client as S3Client;
+use bytes::Bytes;
+use sha3::{Digest, Sha3_256};
 
 use crate::types::{Task, VerificationResult};
 
 pub mod types;
+pub mod s3;
 
 pub trait Listener {
     fn listen(&self, address: &str) -> impl Future;
 }
 
 pub struct App {
+    s3_client: S3Client,
     sp1_prover_client: ProverClient,
 }
 
@@ -26,7 +33,6 @@ impl Listener for Arc<App> {
     fn listen(&self, address: &str) -> impl Future {
         async move {
             // Create the event loop and TCP listener we'll accept connections on.
-
             let try_socket = TcpListener::bind(address).await;
             let listener = try_socket.expect("Failed to bind");
             info!("Listening on: {}", address);
@@ -43,20 +49,18 @@ impl Listener for Arc<App> {
     }
 }
 
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl App {
-    pub fn new() -> Self {
+    pub async fn new() -> Self {
+        let s3_client = s3::create_client().await;
+
         info!("Initializing prover client");
-        let prover_client: ProverClient = ProverClient::new();
+        let sp1_prover_client: ProverClient = ProverClient::new();
         info!("Prover client initialized");
 
         Self {
-            sp1_prover_client: prover_client,
+            s3_client,
+            sp1_prover_client
         }
     }
 
@@ -109,7 +113,18 @@ impl App {
         info!("Proof verification result: {}", is_valid);
 
         let response = if is_valid {
-            let hash = task.hash();
+            let task_bytes = bincode::serialize(&task)
+                .expect("Failed to bincode serialize task");
+
+            let task_bytes = Bytes::from(task_bytes);
+
+            let mut hasher = Sha3_256::new();
+            hasher.update(&task_bytes);
+            let hash = hasher.finalize().to_vec();
+
+            s3::upload_object(&self.s3_client, "storage.alignedlayer.com",
+                              task_bytes, hex::encode(hash.as_slice()).as_str())
+                .await.expect("Failed to upload object to S3");
 
             serde_json::to_string(&VerificationResult::Success {
                 hash,
