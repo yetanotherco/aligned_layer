@@ -1,22 +1,12 @@
-//! A simple example of hooking up stdin/stdout to a WebSocket stream.
-//!
-//! This example will connect to a server specified in the argument list and
-//! then forward all data read on stdin to the server, printing out all data
-//! received on stdout.
-//!
-//! Note that this is not currently optimized for performance, especially around
-//! buffer management. Rather it's intended to show an example of working with a
-//! client.
-//!
-//! You can use this example together with the `server` example.
-
 use std::env;
+use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
 use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::connect_async;
 
 use batcher::types::{ProvingSystemId, Task};
+use log::error;
 
 #[tokio::main]
 async fn main() {
@@ -58,4 +48,36 @@ async fn main() {
         tokio::io::stdout().write_all(&data).await.unwrap();
     })
     .await;
+}
+
+#[allow(unused)]
+async fn upload_proof_to_s3() -> Option<Duration> {
+    let proof =
+        std::fs::read("./test_files/sp1/sp1_fibonacci.proof")
+            .expect("Failed to read proof file");
+
+    let client = batcher::s3::create_client().await;
+    let bytes = bytes::Bytes::from(proof);
+    let bucket_name = "storage.alignedlayer.com";
+    let key = "10mb_file";
+
+    // start timer
+    let start = std::time::Instant::now();
+
+    println!("Uploading object to S3");
+    let result = batcher::s3::upload_object(&client, bucket_name, bytes, key).await;
+    match result {
+        Ok(_) => {
+            println!("Uploaded object to S3");
+            // end timer
+            let elapsed = start.elapsed();
+            println!("Time elapsed: {:?}", elapsed);
+
+            Some(elapsed)
+        },
+        Err(e) => {
+            error!("Failed to upload object to S3: {:?}", e);
+            None
+        },
+    }
 }

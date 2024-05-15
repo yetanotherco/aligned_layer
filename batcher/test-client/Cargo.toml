@@ -14,3 +14,4 @@ url = "2.5.0"
 futures-channel = "0.3.30"
 batcher = { path = "../" }
 bytes = "1.6.0"
+log = "0.4.21"
