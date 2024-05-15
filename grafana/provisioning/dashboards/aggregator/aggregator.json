@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 7,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -50,7 +50,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 2,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -71,7 +71,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.2",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "datasource": {
@@ -79,9 +79,9 @@
             "uid": "prometheus"
           },
           "disableTextWrap": false,
-          "editorMode": "code",
+          "editorMode": "builder",
           "exemplar": false,
-          "expr": "increase(aligned_aggregated_responses{bot=\"aggregator\"}[10y])",
+          "expr": "floor(increase(aligned_aggregated_responses{bot=\"aggregator\"}[10y]))",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -127,7 +127,7 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 2,
+        "x": 4,
         "y": 0
       },
       "id": 3,
@@ -147,7 +147,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.2",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "datasource": {
@@ -156,7 +156,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "rate(aligned_aggregated_responses{bot=\"aggregator\"}[1m])",
+          "expr": "changes(aligned_aggregated_responses{bot=\"aggregator\"}[1m])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -243,6 +243,7 @@
           "showLegend": true
         },
         "tooltip": {
+          "maxHeight": 600,
           "mode": "single",
           "sort": "none"
         }
@@ -254,8 +255,8 @@
             "uid": "prometheus"
           },
           "disableTextWrap": false,
-          "editorMode": "code",
-          "expr": "increase(aligned_aggregated_responses{bot=\"aggregator\"}[10y])",
+          "editorMode": "builder",
+          "expr": "floor(increase(aligned_aggregated_responses{bot=\"aggregator\"}[10y]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -342,6 +343,7 @@
           "showLegend": true
         },
         "tooltip": {
+          "maxHeight": 600,
           "mode": "single",
           "sort": "none"
         }
@@ -354,7 +356,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "rate(aligned_aggregated_responses{bot=\"aggregator\"}[1m])",
+          "expr": "changes(aligned_aggregated_responses{bot=\"aggregator\"}[1m])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -368,19 +370,21 @@
       "type": "timeseries"
     }
   ],
+  "refresh": "",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "2024-05-12T21:25:25.045Z",
-    "to": "2024-05-12T23:33:49.731Z"
+    "from": "now-5m",
+    "to": "now"
   },
+  "timeRangeUpdatedDuringEditOrView": false,
   "timepicker": {},
   "timezone": "browser",
   "title": "Aggregator Data",
   "uid": "edlixjhppdczkf",
-  "version": 14,
+  "version": 5,
   "weekStart": ""
 }
