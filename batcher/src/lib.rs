@@ -13,6 +13,7 @@ use tokio_tungstenite::tungstenite::Message;
 use aws_sdk_s3::client::Client as S3Client;
 use bytes::Bytes;
 use sha3::{Digest, Sha3_256};
+use tokio::sync::Mutex;
 
 use crate::types::{Task, VerificationResult};
 
@@ -26,7 +27,10 @@ pub trait Listener {
 pub struct App {
     s3_client: S3Client,
     sp1_prover_client: ProverClient,
+    current_batch: Mutex<Vec<Task>>,
 }
+
+const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
 // Implement the Listener trait for the App struct
 impl Listener for Arc<App> {
@@ -60,7 +64,8 @@ impl App {
 
         Self {
             s3_client,
-            sp1_prover_client
+            sp1_prover_client,
+            current_batch: Mutex::new(Vec::new()),
         }
     }
 
@@ -122,9 +127,13 @@ impl App {
             hasher.update(&task_bytes);
             let hash = hasher.finalize().to_vec();
 
-            s3::upload_object(&self.s3_client, "storage.alignedlayer.com",
-                              task_bytes, hex::encode(hash.as_slice()).as_str())
-                .await.expect("Failed to upload object to S3");
+            self.add_task(task).await;
+            // let hex_hash = hex::encode(hash.as_slice());
+
+            // self.current_batch.push(task);
+
+            // s3::upload_object(&self.s3_client, S3_BUCKET_NAME, task_bytes, &hex_hash)
+            //     .await.expect("Failed to upload object to S3");
 
             serde_json::to_string(&VerificationResult::Success {
                 hash,
@@ -142,5 +151,39 @@ impl App {
         tx.close_channel();
 
         Ok(())
+    }
+
+    pub async fn add_task(&self, task: Task) {
+        let mut current_batch = self.current_batch.lock().await;
+        current_batch.push(task);
+
+        if current_batch.len() < 2 {
+            return;
+        }
+
+        info!("Batch is full, sending to S3");
+
+        // If batch is full, send to S3
+
+        // TODO: user should not have to wait for this to complete
+
+        let batch_bytes = bincode::serialize(current_batch.as_slice())
+            .expect("Failed to bincode serialize batch");
+
+        current_batch.clear();
+        // TODO: Lock should be released here
+
+        let batch_bytes = Bytes::from(batch_bytes);
+
+        let mut hasher = Sha3_256::new();
+        hasher.update(&batch_bytes);
+        let hash = hasher.finalize().to_vec();
+
+        let hex_hash = hex::encode(hash.as_slice());
+
+        s3::upload_object(&self.s3_client, S3_BUCKET_NAME, batch_bytes, &hex_hash)
+            .await.expect("Failed to upload object to S3");
+
+        info!("Batch sent to S3 with name: {}", hex_hash);
     }
 }

@@ -1222,6 +1222,7 @@ dependencies = [
  "bincode",
  "bytes",
  "clap",
+ "dotenv",
  "env_logger",
  "futures-channel",
  "futures-util",
