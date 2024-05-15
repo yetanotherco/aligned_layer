@@ -12,7 +12,8 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use aws_sdk_s3::client::Client as S3Client;
 use bytes::Bytes;
-use sha3::{Digest, Sha3_256};
+use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use tokio::sync::Mutex;
 
 use crate::types::Task;
@@ -122,16 +123,8 @@ impl App {
 
         let response = match response {
             Ok(_) => {
-                let task_bytes = bincode::serialize(&task)
-                    .expect("Failed to bincode serialize task");
-
+                let hash = Task::hash_data(&task).to_vec();
                 self.add_task(task).await;
-
-                let task_bytes = Bytes::from(task_bytes);
-                let mut hasher = Sha3_256::new();
-                hasher.update(&task_bytes);
-                let hash = hasher.finalize().to_vec();
-
                 Ok(hash)
             }
             Err(e) => Err(e.to_string())
@@ -170,23 +163,25 @@ impl App {
             return;
         }
 
-        let batch_bytes = bincode::serialize(current_batch.as_slice())
-            .expect("Failed to bincode serialize batch");
+        let batch = current_batch.clone();
 
         current_batch.clear();
 
         let s3_client = self.s3_client.clone();
         tokio::spawn(async move {
-            info!("Sending batch to s3");
-            let mut hasher = Sha3_256::new();
-            hasher.update(&batch_bytes);
-            let hash = hasher.finalize().to_vec();
+            info!("Building merkle tree for batch");
 
-            let hex_hash = hex::encode(hash.as_slice());
+            let merkle_tree: MerkleTree<Task> = MerkleTree::build(batch.as_slice());
+            let hex_hash = hex::encode(&merkle_tree.root);
 
-            let batch_bytes = Bytes::from(batch_bytes);
+            let merkle_tree_bytes = bincode::serialize(&merkle_tree)
+                .expect("Failed to serialize merkle tree");
 
-            s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &hex_hash)
+            let merkle_tree_bytes = Bytes::from(merkle_tree_bytes);
+
+            info!("Uploading batch to S3");
+
+            s3::upload_object(&s3_client, S3_BUCKET_NAME, merkle_tree_bytes, &hex_hash)
                 .await.expect("Failed to upload object to S3");
 
             info!("Batch sent to S3 with name: {}", hex_hash);

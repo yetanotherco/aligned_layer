@@ -32,6 +32,4 @@ bytes = "1.6.0"
 hex = "0.4.3"
 dotenv = "0.15.0"
 anyhow = "1.0.83"
-
-
-
+lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
