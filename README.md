@@ -110,6 +110,9 @@ make operator_start
 
 ### Start batcher
 
+First create a .env file inside the batcher directory.
+An example of the .env file can be found at `batcher/.env.example`.
+
 To start the batcher, run:
 
 ```bash
