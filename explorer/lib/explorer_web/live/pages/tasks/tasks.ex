@@ -4,29 +4,16 @@ defmodule ExplorerWeb.Tasks.Tasks do
 
   def mount(params, _, socket) do
     current_page = get_current_page(params)
-    # task_created_events = AlignedLayerServiceManager.get_tasks_created_events()
-    # task_responded_events = AlignedLayerServiceManager.get_task_responded_events()
 
-    page_size = 3
-    from = (current_page-1) * page_size
-    to = from + page_size - 1
+    page_size = 5
+    [from, to] = [(current_page-1) * page_size, ((current_page-1) * page_size) + page_size - 1]
 
-    [task_created_events, task_responded_events] = AlignedLayerServiceManager.get_task_range(from, to)
-    "[task_created_events, task_responded_events]" |> IO.inspect()
-    [task_created_events, task_responded_events] |> IO.inspect()
-
-    tasks_created_cross_tasks_responded = tasks_created_cross_tasks_responded(task_created_events, task_responded_events)
-    "tasks_created_cross_tasks_responded" |> IO.inspect()
-    tasks_created_cross_tasks_responded |> IO.inspect()
-    # Enum.map(task_created_events, fn event -> event |> extract_task_data end)
-      # |>
-      # Enum.map(fn task_created -> check_if_task_responded(task_created, task_responded_events) end)
-
+    tasks_created_cross_tasks_responded = AlignedLayerServiceManager.get_task_range(from, to) |> tasks_created_cross_tasks_responded()
 
     {:ok, assign(socket, current_page: current_page, tasks: tasks_created_cross_tasks_responded)}
   end
 
-  def tasks_created_cross_tasks_responded(task_created_events, task_responded_events) do
+  def tasks_created_cross_tasks_responded([task_created_events, task_responded_events]) do
     Enum.map(task_created_events, fn event -> event |> extract_task_data end)
     |> Enum.map(fn task_created -> check_if_task_responded(task_created, task_responded_events) end)
   end
@@ -34,7 +21,9 @@ defmodule ExplorerWeb.Tasks.Tasks do
   def get_current_page(params) do
     case params |> Map.get("page") do
       nil -> 1
-      page -> page |> Integer.parse() |> elem(0)
+      page ->
+        number = page |> Integer.parse() |> elem(0)
+        if number < 1, do: 1, else: number
     end
   end
 
