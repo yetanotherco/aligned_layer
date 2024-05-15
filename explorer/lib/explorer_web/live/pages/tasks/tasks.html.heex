@@ -1,19 +1,18 @@
 <div class="flex flex-col space-y-3 bg-zinc-200 dark:bg-zinc-900 rounded-2xl px-6 py-8 min-h-[40rem] text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
-  <h1 class="text-5xl font-bold">Tasks List</h1>
-    <p class="font-semibold">
-      <div :for={task <- @tasks} class="flex gap-4 text-sm leading-6 sm:gap-8">
-        task: <%= task.taskId %>      
-        <%= task.transaction_hash %>   
-        <%= task.block_number %>   
-        <%= task.proof_is_responded %>     
-        <%= task.proof_is_correct %>     
-      </div>
-    </p>
-    <%!-- <div phx-click={JS.push("next", value: %{myvar1: @val1})}/> --%>
+  <h1 class="text-5xl font-bold">Tasks</h1>
+  <.table id="tasks" rows={@tasks}>
+    <:col :let={task} label="id"><%= task.taskId %></:col>
+    <:col :let={task} label="Hash"><%= task.transaction_hash %></:col>
+    <:col :let={task} label="block number"><%= task.block_number %></:col>
+    <:col :let={task} label="proof is responded"><%= task.proof_is_responded %></:col>
+    <:col :let={task} label="proof is correct"><%= task.proof_is_correct %></:col>
+  </.table>
+  <div>
     <.button phx-click={JS.push("previous_page", value: %{current_page: @current_page})}>
       Previous
     </.button>
     <.button phx-click={JS.push("next_page", value: %{current_page: @current_page})}>
       Next
     </.button>
+  </div>
 </div>
