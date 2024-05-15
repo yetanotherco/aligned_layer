@@ -112,8 +112,7 @@ batcher_start:
 
 batcher_send_dummy_task:
 	@echo "Sending dummy task to Batcher..."
-	@cd batcher/test-client && cargo run -- ws://localhost:8080 \
-		2>&1 | zap-pretty
+	@cd batcher/test-client && cargo run -- ws://localhost:8080
 
 __TASK_SENDERS__:
  # TODO add a default proving system
