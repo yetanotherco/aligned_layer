@@ -21,11 +21,11 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     // EVENTS
     event NewTaskCreated(
-        uint32 indexed taskIndex,
-        Task newTask,
+        bytes32 batchTaskHash,
+        string batchDataPointer,
     );
 
-    event TaskResponded(uint32 indexed taskIndex, TaskResponse taskResponse);
+    event BatchVerified(bytes32 batchMerkleRoot);
 
     uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
     bytes[] internal constant QUORUM_NUMBERS = [0];
@@ -76,7 +76,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function createNewTask(
-        uint256 batchMerkleRoot,
+        bytes32 batchMerkleRoot,
         string calldata dataStorePointer
     ) external payable {
         BatchState memory batchState;
@@ -86,22 +86,26 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
         batchesState[batchMerkleRoot] = batchState; 
 
-        /* Esto va, ahora lo ponemos
         emit NewTaskCreated(
-            latestTaskIndexPlusOne,
-            newTask,
+            batchMerkleRoot,
+            dataStorePointer
         );
-        */
     }
 
     function respondToTask(
-        // Index is a hint, the operator doesn't sign it
-        uint32 taskIndex,
         // Root is signed as a way to verify the batch was right
-        uint256 batchMerkleRoot,
+        bytes32 batchMerkleRoot,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+
+        // Check task hasn't been responsed yet
+        // Note: This is a hacky solidity way to see that the element exists
+        // Value 0 would mean that the task is in block 0 so this can't happen.
+        require(
+            batchesState[taskIndex] == 0,
+            "Batch doesn't exists"
+        );
 
         // Validate the root in the index hint coincides with the signed information
         require(
@@ -109,25 +113,14 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             "Task in index doesn't match the provided root"
         );
 
-        // Check task hasn't been responsed yet
-        require(
-            batchesState[taskIndex].responded == false,
-            "Aggregator has already responded to the task"
-        );
-
- 
-
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
-        // calculate message which operators signed
-        // operator signed merkleRoot
-        bytes32 message = keccak256(batchMerkleRoot);
 
         // check that aggregated BLS signature is valid
         (
             QuorumStakeTotals memory quorumStakeTotals,
             bytes32 hashOfNonSigners
         ) = checkSignatures(
-                message,
+                batchMerkleRoot,
                 QUORUM_NUMBERS,
                 taskCreatedBlock,
                 nonSignerStakesAndSignature
@@ -144,8 +137,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             );
         }
 
-        emit TaskResponded(
-            taskIndex
+        emit BatchVerified(
+            batchMerkleRoot
         );
     }
 }
