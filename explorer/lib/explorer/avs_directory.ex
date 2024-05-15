@@ -12,8 +12,9 @@ defmodule AVSDirectory do
   end
 
   use Ethers.Contract,
-  abi_file: "lib/abi/AVSDirectory.json",
-  default_address: Jason.decode!(config_json_string) |> Map.get("addresses") |> Map.get("avsDirectory")
+    abi_file: "lib/abi/AVSDirectory.json",
+    default_address:
+      Jason.decode!(config_json_string) |> Map.get("addresses") |> Map.get("avsDirectory")
 
   def get_avs_directory_address() do
     file_path =
@@ -27,15 +28,16 @@ defmodule AVSDirectory do
     end
 
     Jason.decode!(config_json_string)
-      |> Map.get("addresses")
-      |> Map.get("avsDirectory")
+    |> Map.get("addresses")
+    |> Map.get("avsDirectory")
   end
-
 
   def get_operator_status_updated_events() do
     # event OperatorAVSRegistrationStatusUpdated(address indexed operator, address indexed avs, OperatorAVSRegistrationStatus status);
-      AVSDirectory.EventFilters.operator_avs_registration_status_updated(nil, AlignedLayerServiceManager.get_aligned_layer_service_manager_address())
-        |> Ethers.get_logs(fromBlock: 0)
+    AVSDirectory.EventFilters.operator_avs_registration_status_updated(
+      nil,
+      AlignedLayerServiceManager.get_aligned_layer_service_manager_address()
+    )
+    |> Ethers.get_logs(fromBlock: 0)
   end
-
 end

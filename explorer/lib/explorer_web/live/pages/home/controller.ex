@@ -44,7 +44,7 @@ defmodule ExplorerWeb.Home.Controller do
 
   defp get_verified_tasks_count_by_status() do
     AlignedLayerServiceManager.get_task_responded_events()
-      |> get_verified_tasks_count_by_status
+    |> get_verified_tasks_count_by_status
   end
 
   # tail-call recursion

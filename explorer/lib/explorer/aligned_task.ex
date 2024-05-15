@@ -1,5 +1,6 @@
 defmodule DASolution do
-  def option do [
+  def option do
+    [
       {:Calldata, 0},
       {:EigenDA, 1},
       {:Celestia, 2}
@@ -8,20 +9,30 @@ defmodule DASolution do
 end
 
 defmodule Explorer.DAPayload do
-  defstruct solution: {:empty, nil}, #enum DASolution, 0 for calldata, 1 for EigenDA, 2 for Celestia
-    proof_associated_data: nil, #bytes ; Proof bytes for calldata - BatchHeaderHash for EigenDA - Commitment for Celestia
-    index: nil #uint64 ; BlobIndex for EigenDA - Height for Celestia
+  # enum DASolution, 0 for calldata, 1 for EigenDA, 2 for Celestia
+  defstruct solution: {:empty, nil},
+            # bytes ; Proof bytes for calldata - BatchHeaderHash for EigenDA - Commitment for Celestia
+            proof_associated_data: nil,
+            # uint64 ; BlobIndex for EigenDA - Height for Celestia
+            index: nil
 end
 
 defmodule Explorer.AlignedTask do
-  defstruct provingSystemId: nil, #int
-    da_payload: %Explorer.DAPayload{},
-    pubInput: nil, #int
-    verificationKey: nil, #bytes
-    taskCreatedBlock: nil, #uint32
-    quorumNumbers: nil, #bytes
-    quorumThresholdPercentages: nil, #bytes
-    fee: nil #uint256
+  # int
+  defstruct provingSystemId: nil,
+            da_payload: %Explorer.DAPayload{},
+            # int
+            pubInput: nil,
+            # bytes
+            verificationKey: nil,
+            # uint32
+            taskCreatedBlock: nil,
+            # bytes
+            quorumNumbers: nil,
+            # bytes
+            quorumThresholdPercentages: nil,
+            # uint256
+            fee: nil
 end
 
 defmodule AlignedTaskCreatedInfo do

@@ -17,9 +17,9 @@ defmodule ExplorerWeb.Task.Controller do
 
     task =
       case newTaskEvent do
-      {:ok, value } -> value
-      {_, _} -> :empty
-    end
+        {:ok, value} -> value
+        {_, _} -> :empty
+      end
 
     # Returns AlignedLayer task response content
     newRespondedEvent =
