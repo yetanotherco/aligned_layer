@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 12,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -71,7 +71,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.2",
+      "pluginVersion": "10.4.3",
       "targets": [
         {
           "datasource": {
@@ -146,7 +146,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.2",
+      "pluginVersion": "10.4.3",
       "targets": [
         {
           "datasource": {
@@ -220,7 +220,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.4.2",
+      "pluginVersion": "10.4.3",
       "targets": [
         {
           "datasource": {
@@ -439,7 +439,7 @@
           "useBackend": false
         }
       ],
-      "title": "Response Rate per Min",
+      "title": "Responses Rate per Min",
       "type": "timeseries"
     }
   ],
@@ -457,6 +457,6 @@
   "timezone": "browser",
   "title": "Aggregator Data",
   "uid": "edlixjhppdczkf",
-  "version": 6,
+  "version": 2,
   "weekStart": ""
 }
