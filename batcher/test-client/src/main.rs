@@ -22,6 +22,7 @@ async fn main() {
     // Read proof file
     let proof =
         std::fs::read("./test_files/sp1/sp1_fibonacci.proof").expect("Failed to read proof file");
+
     // Read public input file
     let public_input = std::fs::read("./test_files/sp1/riscv32im-succinct-zkvm-elf")
         .expect("Failed to read public input file");
@@ -35,6 +36,7 @@ async fn main() {
         quorum_threshold_percentages: vec![100],
         fee: 123,
     };
+
     let (mut write, read) = ws_stream.split();
 
     let json_data = serde_json::to_string(&task).expect("Failed to serialize task");

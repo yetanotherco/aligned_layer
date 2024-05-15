@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
-use log::{debug, info};
+use log::{debug, error, info};
 use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
@@ -15,7 +15,7 @@ use bytes::Bytes;
 use sha3::{Digest, Sha3_256};
 use tokio::sync::Mutex;
 
-use crate::types::{Task, VerificationResult};
+use crate::types::Task;
 
 pub mod types;
 pub mod s3;
@@ -109,41 +109,52 @@ impl App {
         let proof = task.proof.as_slice();
         let elf = task.public_input.as_slice();
 
-        // Deserialize proof from task
-        let proof = bincode::deserialize(proof).expect("Failed to deserialize proof");
-
-        info!("Verifying proof");
-        let (_pk, vk) = self.sp1_prover_client.setup(elf);
-        let is_valid = self.sp1_prover_client.verify(&proof, &vk).is_ok();
-        info!("Proof verification result: {}", is_valid);
-
-        let response = if is_valid {
-            let task_bytes = bincode::serialize(&task)
-                .expect("Failed to bincode serialize task");
-
-            let task_bytes = Bytes::from(task_bytes);
-
-            let mut hasher = Sha3_256::new();
-            hasher.update(&task_bytes);
-            let hash = hasher.finalize().to_vec();
-
-            self.add_task(task).await;
-
-            serde_json::to_string(&VerificationResult::Success {
-                hash,
-            })
-            .expect("Failed to serialize response")
-
-
-        } else {
-            serde_json::to_string(&VerificationResult::Failure).expect("Failed to serialize response")
+        // switch on proving system
+        let response = match task.proving_system {
+            types::ProvingSystemId::SP1 => {
+                self.verify_sp1_proof(proof, elf).await
+            }
+            _ => {
+                error!("Unsupported proving system");
+                Err(anyhow::anyhow!("Unsupported proving system"))
+            }
         };
+
+        let response = match response {
+            Ok(_) => {
+                let task_bytes = bincode::serialize(&task)
+                    .expect("Failed to bincode serialize task");
+
+                self.add_task(task).await;
+
+                let task_bytes = Bytes::from(task_bytes);
+                let mut hasher = Sha3_256::new();
+                hasher.update(&task_bytes);
+                let hash = hasher.finalize().to_vec();
+
+                Ok(hash)
+            }
+            Err(e) => Err(e.to_string())
+        };
+
+        let response = serde_json::to_string(&response)
+            .expect("Failed to serialize response");
 
         tx.unbounded_send(Message::Text(response))
             .expect("Failed to send message");
 
         // Close connection
         tx.close_channel();
+
+        Ok(())
+    }
+
+    pub async fn verify_sp1_proof(&self, proof: &[u8], elf: &[u8]) -> Result<(), anyhow::Error> {
+        let (_pk, vk) = self.sp1_prover_client.setup(elf);
+        let proof = bincode::deserialize(proof).map_err(|_| anyhow::anyhow!("Invalid proof"))?;
+
+        self.sp1_prover_client.verify(&proof, &vk)
+            .map_err(|_| anyhow::anyhow!("Failed to verify proof"))?;
 
         Ok(())
     }

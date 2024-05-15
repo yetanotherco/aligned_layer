@@ -18,9 +18,3 @@ pub struct Task {
     pub quorum_threshold_percentages: Vec<u8>,
     pub fee: u64,
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum VerificationResult {
-    Success { hash: Vec<u8> },
-    Failure,
-}
