@@ -174,6 +174,11 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 func (agg *Aggregator) AddNewTask(index uint32, task servicemanager.AlignedLayerServiceManagerTask) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "taskIndex", index, "task", task)
 	agg.tasksMutex.Lock()
+	if _, ok := agg.tasks[index]; ok {
+		agg.logger.Warn("Task already exists", "taskIndex", index)
+		agg.tasksMutex.Unlock()
+		return
+	}
 	agg.tasks[index] = task
 	agg.tasksMutex.Unlock()
 	agg.taskResponsesMutex.Lock()
