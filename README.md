@@ -13,7 +13,7 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
+You will need [go](https://go.dev/doc/install), [rust](https://www.rust-lang.org/tools/install),  [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
 [celestia](https://docs.celestia.org/nodes/celestia-node#installing-from-source),
 [jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
@@ -106,6 +106,19 @@ To use the default configuration file, just run:
 make build_sp1_macos # or make build_sp1_linux on linux
 make operator_full_registration
 make operator_start
+```
+
+### Start batcher
+
+To start the batcher, run:
+
+```bash
+make batcher_start
+```
+
+To send a dummy task to the batcher, run:
+```bash
+make batcher_send_dummy_task
 ```
 
 ### Send task
