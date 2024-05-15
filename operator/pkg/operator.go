@@ -276,8 +276,26 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen, 
 			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 
-		o.Logger.Infof("Halo2-ipa proof verification result: %t", verificationResult)
-		results <- verificationResult
+		o.Logger.Infof("Halo2-ipa proof verification result: %t", verificationResult)		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			TaskIndex:      newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect: verificationResult,
+		}
+		return taskResponse
+	/*
+	case uint16(common.Halo2KZG):
+		proofBytes := make([]byte, Halo2KZG.MaxProofSize)
+		copy(proofBytes, proof)
+
+		verificationKey := newTaskCreateLog.Task.VerificationKey
+		verificationResult := halo2Kzg.VerifyHalo2Proof(([halo2Kzg.MaxProofSize]byte)(proofBytes), proofLen, ([halo2Kzg.MaxVerifierParamsBufferSize]byte)(Bytes), verificationKey, pubInput)
+
+		o.Logger.Infof("Halo2 proof verification result: %t", verificationResult)
+		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
+			TaskIndex:      newTaskCreatedLog.TaskIndex,
+			ProofIsCorrect: verificationResult,
+		}
+		return taskResponse
+	*/
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
