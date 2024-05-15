@@ -27,7 +27,7 @@ type TaskResponsesWithStatus struct {
 
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
-	NewTaskCreatedChan    chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
+	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
@@ -36,7 +36,7 @@ type Aggregator struct {
 
 	// Using map here instead of slice to allow for easy lookup of tasks, when aggregator is restarting,
 	// its easier to get the task from the map instead of filling the slice again
-	tasks map[uint32]servicemanager.AlignedLayerServiceManagerTask
+	tasks map[[32]byte]uint32
 	// Mutex to protect the tasks map
 	tasksMutex *sync.Mutex
 
@@ -44,10 +44,14 @@ type Aggregator struct {
 	// Mutex to protect the taskResponses map
 	taskResponsesMutex *sync.Mutex
 	logger             logging.Logger
+
+	// FIXME(marian): This is a hacky workaround to send some sensible index to the BLS aggregation service,
+	// which needs a task index.
+	taskCounter uint32
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
+	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
@@ -64,7 +68,8 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	tasks := make(map[uint32]servicemanager.AlignedLayerServiceManagerTask)
+	// tasks := make(map[uint32]servicemanager.AlignedLayerServiceManagerB)
+	tasks := make(map[[32]byte]uint32)
 	operatorTaskResponses := make(map[uint32]*TaskResponsesWithStatus, 0)
 
 	chainioConfig := sdkclients.BuildAllConfig{
@@ -89,18 +94,22 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.AvsRegistryReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, logger)
 
+	// Explicitly initializing this value just in case.
+	taskCounter := uint32(0)
+
 	aggregator := Aggregator{
 		AggregatorConfig:      &aggregatorConfig,
 		avsReader:             avsReader,
 		avsSubscriber:         avsSubscriber,
 		avsWriter:             avsWriter,
-		NewTaskCreatedChan:    newTaskCreatedChan,
+		NewBatchChan:          newBatchChan,
 		tasks:                 tasks,
 		tasksMutex:            &sync.Mutex{},
 		OperatorTaskResponses: operatorTaskResponses,
 		taskResponsesMutex:    &sync.Mutex{},
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
+		taskCounter:           taskCounter,
 	}
 
 	return &aggregator, nil
@@ -171,8 +180,10 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	}
 }
 
-func (agg *Aggregator) AddNewTask(index uint32, task servicemanager.AlignedLayerServiceManagerTask) {
-	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "taskIndex", index, "task", task)
+// MARIAN: KEEP WORKING HERE
+func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte) {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
+
 	agg.tasksMutex.Lock()
 	agg.tasks[index] = task
 	agg.tasksMutex.Unlock()
