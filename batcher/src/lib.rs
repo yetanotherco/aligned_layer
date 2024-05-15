@@ -97,11 +97,11 @@ impl App {
         let task: Task = serde_json::from_str(message.to_text().expect("Message is not text"))
             .expect("Failed to deserialize task");
 
-        let proof = task.proof;
+        let proof = task.proof.as_slice();
         let elf = task.public_input.as_slice();
 
         // Deserialize proof from task
-        let proof = bincode::deserialize(proof.as_slice()).expect("Failed to deserialize proof");
+        let proof = bincode::deserialize(proof).expect("Failed to deserialize proof");
 
         info!("Verifying proof");
         let (_pk, vk) = self.sp1_prover_client.setup(elf);
@@ -109,8 +109,10 @@ impl App {
         info!("Proof verification result: {}", is_valid);
 
         let response = if is_valid {
+            let hash = task.hash();
+
             serde_json::to_string(&VerificationResult::Success {
-                hash: vec![1, 2, 3, 4],
+                hash,
             })
             .expect("Failed to serialize response")
         } else {

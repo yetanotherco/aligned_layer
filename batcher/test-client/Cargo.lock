@@ -835,6 +835,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "sha3",
  "sp1-sdk",
  "tokio",
  "tokio-tungstenite",
