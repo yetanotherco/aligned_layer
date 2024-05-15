@@ -156,7 +156,7 @@ func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.Co
 		}
 	case common.S3Bucket:
 		// TODO(Nico): Once the Task has a proofId, remove this hardcoded value
-		proof, err = o.getProofFromS3Bucket("1")
+		proof, err = o.getProofFromS3Bucket("plonk.proof")
 		if err != nil {
 			o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 			return nil
