@@ -128,62 +128,57 @@ impl App {
             let hash = hasher.finalize().to_vec();
 
             self.add_task(task).await;
-            // let hex_hash = hex::encode(hash.as_slice());
-
-            // self.current_batch.push(task);
-
-            // s3::upload_object(&self.s3_client, S3_BUCKET_NAME, task_bytes, &hex_hash)
-            //     .await.expect("Failed to upload object to S3");
 
             serde_json::to_string(&VerificationResult::Success {
                 hash,
             })
             .expect("Failed to serialize response")
+
+
         } else {
-            serde_json::to_string(&VerificationResult::Failure)
-                .expect("Failed to serialize response")
+            serde_json::to_string(&VerificationResult::Failure).expect("Failed to serialize response")
         };
 
         tx.unbounded_send(Message::Text(response))
             .expect("Failed to send message");
 
-        // Close channel after response
+        // Close connection
         tx.close_channel();
 
         Ok(())
     }
 
     pub async fn add_task(&self, task: Task) {
+        debug!("Adding task to batch");
+
         let mut current_batch = self.current_batch.lock().await;
         current_batch.push(task);
 
+        debug!("Batch size: {}", current_batch.len());
         if current_batch.len() < 2 {
             return;
         }
-
-        info!("Batch is full, sending to S3");
-
-        // If batch is full, send to S3
-
-        // TODO: user should not have to wait for this to complete
 
         let batch_bytes = bincode::serialize(current_batch.as_slice())
             .expect("Failed to bincode serialize batch");
 
         current_batch.clear();
-        // TODO: Lock should be released here
 
-        let batch_bytes = Bytes::from(batch_bytes);
+        let s3_client = self.s3_client.clone();
+        tokio::spawn(async move {
+            info!("Sending batch to s3");
+            let mut hasher = Sha3_256::new();
+            hasher.update(&batch_bytes);
+            let hash = hasher.finalize().to_vec();
 
-        let mut hasher = Sha3_256::new();
-        hasher.update(&batch_bytes);
-        let hash = hasher.finalize().to_vec();
+            let hex_hash = hex::encode(hash.as_slice());
 
-        let hex_hash = hex::encode(hash.as_slice());
+            let batch_bytes = Bytes::from(batch_bytes);
 
-        s3::upload_object(&self.s3_client, S3_BUCKET_NAME, batch_bytes, &hex_hash)
-            .await.expect("Failed to upload object to S3");
+            s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &hex_hash)
+                .await.expect("Failed to upload object to S3");
 
-        info!("Batch sent to S3 with name: {}", hex_hash);
+            info!("Batch sent to S3 with name: {}", hex_hash);
+        });
     }
 }
