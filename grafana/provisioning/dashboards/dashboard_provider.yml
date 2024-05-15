@@ -11,5 +11,5 @@ providers:
     allowUiUpdates: true
     updateIntervalSeconds: 10
     options:
-      path: /Users/juarce/repos/yetanothercompany/aligned_layer/grafana/dashboards
+      path: /etc/grafana/provisioning/dashboards
       foldersFromFilesStructure: true
