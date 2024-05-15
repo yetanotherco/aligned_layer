@@ -12,6 +12,7 @@ const (
 	GnarkPlonkBn254
 	Groth16Bn254
 	SP1
+	Halo2KZG
 )
 
 func (t *ProvingSystemId) String() string {
