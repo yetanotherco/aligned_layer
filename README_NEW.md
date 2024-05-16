@@ -463,6 +463,29 @@ make send_plonk_bn254_proof_loop
 ```
 
 
+## Metrics
+
+### Aggregator Metrics
+
+Aggregator metrics are exposed on the `/metrics` endpoint.
+
+If you are using the default config, you can access the metrics on `http://localhost:9091/metrics`.
+
+To run Prometheus and Grafana just run:
+
+```bash
+make run_metrics
+```
+
+Then you can access Grafana on `http://localhost:3000` with the default credentials `admin:admin`.
+
+If you want to install Prometheus and Grafana manually, you can follow the instructions below.
+
+To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
+
+To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
+
+
 ## Deployment
 
 To build go binaries run:
