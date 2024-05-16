@@ -25,6 +25,30 @@ services:
     networks:
       - aligned-network
 
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+      - --web.enable-remote-write-receiver
+    restart: unless-stopped
+    expose:
+      - 9090
+    networks:
+      - aligned-network
+    # host.docker.internal might not work on linux
+    # https://stackoverflow.com/a/67158212/4971151
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 
 volumes:
   prometheus_data: {} # TODO this is not used yet
