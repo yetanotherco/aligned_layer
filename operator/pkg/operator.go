@@ -227,13 +227,33 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 			ProofIsCorrect: verificationResult,
 		}
 		return taskResponse
-	/*
 	case uint16(common.Halo2KZG):
+		//Extract Proof Bytes
 		proofBytes := make([]byte, Halo2KZG.MaxProofSize)
 		copy(proofBytes, proof)
 
-		verificationKey := newTaskCreateLog.Task.VerificationKey
-		verificationResult := halo2Kzg.VerifyHalo2Proof(([halo2Kzg.MaxProofSize]byte)(proofBytes), proofLen, ([halo2Kzg.MaxVerifierParamsBufferSize]byte)(Bytes), verificationKey, pubInput)
+		//Extract Verification Key Bytes
+		vkBytes := newTaskCreateLog.Task.VerificationKey
+		vkBytes := make([]byte, halo2.MaxVerificationKeySize)
+		copy(vkBytes, vkBytes[:halo2.MaxVerificationKeySize])
+		vkLen := (uint)(len(vkBytes))
+
+		//Extract Verification Key Bytes
+		kzgParamsBytes := make([]byte,(halo2.MaxKZGParamsSize))
+		copy(kzgParamsBytes, verificationKeyBytes[halo2.MaxVerificationKeySize:])
+		kzgParamLen := (uint)(len(kzgParamsBytes))
+
+		//Extract Public Input Bytes
+		publicInput := newTaskCreatedLog.Task.PubInput
+		publicInputBytes := make([]byte, halo2.MaxPublicInputSize)
+		copy(publicInputBytes, publicInput)
+		publicInputLen := (uint)(len(publicInput))
+
+		verificationResult := halo2Kzg.VerifyHalo2Proof(
+			([halo2Kzg.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2Kzg.MaxVerifierParamsBufferSize]byte)(vkBytes), vkLen, 
+			([halo2Kzg.MaxKZGParamsSize]byte)(kzgParamsBytes), kzgParamLen, 
+			([halo2Kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,
 
 		o.Logger.Infof("Halo2 proof verification result: %t", verificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
