@@ -51,5 +51,5 @@ services:
 
 
 volumes:
-  prometheus_data: {} # TODO this is not used yet
+  prometheus_data: {}
   grafana_data: {}
