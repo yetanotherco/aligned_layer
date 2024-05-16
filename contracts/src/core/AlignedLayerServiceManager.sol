@@ -20,7 +20,11 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
 
     // EVENTS
-    event NewBatch(bytes32 batchMerkleRoot, string batchDataPointer);
+    event NewBatch(
+        bytes32 batchMerkleRoot,
+        uint32 taskCreatedBlock,
+        string batchDataPointer
+    );
 
     event BatchVerified(bytes32 batchMerkleRoot);
 
@@ -78,7 +82,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
         batchesState[batchMerkleRoot] = batchState;
 
-        emit NewBatch(batchMerkleRoot, batchDataPointer);
+        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
     }
 
     function respondToTask(

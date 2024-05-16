@@ -11,6 +11,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
 	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorpubkeys"
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -18,6 +19,10 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
+
+// FIXME(marian): Read this from Aligned contract directly
+const QUORUM_NUMBER = byte(0)
+const QUORUM_THRESHOLD = byte(67)
 
 // Aggregator stores TaskResponse for a task here
 type TaskResponsesWithStatus struct {
@@ -40,14 +45,15 @@ type Aggregator struct {
 	// Mutex to protect the tasks map
 	tasksMutex *sync.Mutex
 
-	OperatorTaskResponses map[uint32]*TaskResponsesWithStatus
+	OperatorTaskResponses map[[32]byte]*TaskResponsesWithStatus
 	// Mutex to protect the taskResponses map
 	taskResponsesMutex *sync.Mutex
 	logger             logging.Logger
 
 	// FIXME(marian): This is a hacky workaround to send some sensible index to the BLS aggregation service,
 	// which needs a task index.
-	taskCounter uint32
+	taskCounter      uint32
+	taskCounterMutex *sync.Mutex
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -70,7 +76,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	// tasks := make(map[uint32]servicemanager.AlignedLayerServiceManagerB)
 	tasks := make(map[[32]byte]uint32)
-	operatorTaskResponses := make(map[uint32]*TaskResponsesWithStatus, 0)
+	operatorTaskResponses := make(map[[32]byte]*TaskResponsesWithStatus, 0)
 
 	chainioConfig := sdkclients.BuildAllConfig{
 		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
@@ -110,6 +116,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
 		taskCounter:           taskCounter,
+		taskCounterMutex:      &sync.Mutex{},
 	}
 
 	return &aggregator, nil
@@ -181,24 +188,31 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 }
 
 // MARIAN: KEEP WORKING HERE
-func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte) {
+func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
 
+	agg.taskCounterMutex.Lock()
+	agg.taskCounter++
+	agg.taskCounterMutex.Unlock()
+
 	agg.tasksMutex.Lock()
-	agg.tasks[index] = task
+	agg.tasks[batchMerkleRoot] = agg.taskCounter
 	agg.tasksMutex.Unlock()
+
 	agg.taskResponsesMutex.Lock()
-	agg.OperatorTaskResponses[index] = &TaskResponsesWithStatus{
+	agg.OperatorTaskResponses[batchMerkleRoot] = &TaskResponsesWithStatus{
 		taskResponses:       make([]types.SignedTaskResponse, 0),
 		submittedToEthereum: false,
 	}
 	agg.taskResponsesMutex.Unlock()
 
-	quorumNums := utils.BytesToQuorumNumbers(task.QuorumNumbers)
-	quorumThresholdPercentages := utils.BytesToQuorumThresholdPercentages(task.QuorumThresholdPercentages)
+	// quorumNums := utils.BytesToQuorumNumbers(task.QuorumNumbers)
+	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
+	// quorumThresholdPercentages := utils.BytesToQuorumThresholdPercentages(task.QuorumThresholdPercentages)
+	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
 	// FIXME(marian): Hardcoded value of timeToExpiry to 100s. How should be get this value?
-	err := agg.blsAggregationService.InitializeNewTask(index, task.TaskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	err := agg.blsAggregationService.InitializeNewTask(agg.taskCounter, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
