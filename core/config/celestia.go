@@ -31,7 +31,7 @@ type CelestiaConfigFromYaml struct {
 	} `yaml:"celestia"`
 }
 
-func newCelestiaConfig(celestiaConfigFilePath string, permissions []auth.Permission) *CelestiaConfig {
+func NewCelestiaConfig(celestiaConfigFilePath string, permissions []auth.Permission) *CelestiaConfig {
 	if _, err := os.Stat(celestiaConfigFilePath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Setup celestia config file does not exist")
 	}

@@ -234,6 +234,12 @@ send_sp1_proof: ## Send an SP1 proof using the task sender
     		2>&1 | zap-pretty
 
 
+__METRICS__: ## ____
+run_metrics: ## Run metrics using metrics-docker-compose.yaml
+	@echo "Running metrics..."
+	@docker-compose -f metrics-docker-compose.yaml up
+
+
 run_local:
 	./scripts/run_local.sh
 
