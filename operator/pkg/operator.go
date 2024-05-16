@@ -110,20 +110,21 @@ func (o *Operator) Start(ctx context.Context) error {
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
-		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
+		case newBatchLog := <-o.NewTaskCreatedChan:
 			// o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
-			err := o.ProcessNewBatchLog(newTaskCreatedLog)
+			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
 				o.Logger.Errorf("Proof in batch did not verify", "err", err)
 				// FIXME(marian): This is not how we should handle this error. Just doing this for fast iteration and debug
 				panic("Proof did not verify")
 			}
-			responseSignature := o.SignTaskResponse(newTaskCreatedLog.BatchMerkleRoot)
+			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
 
 			signedTaskResponse := types.SignedTaskResponse{
-				BatchMerkleRoot: newTaskCreatedLog.BatchMerkleRoot,
-				BlsSignature:    *responseSignature,
-				OperatorId:      o.OperatorId,
+				BatchMerkleRoot:  newBatchLog.BatchMerkleRoot,
+				TaskCreatedBlock: newBatchLog.TaskCreatedBlock,
+				BlsSignature:     *responseSignature,
+				OperatorId:       o.OperatorId,
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)

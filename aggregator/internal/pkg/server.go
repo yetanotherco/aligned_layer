@@ -7,7 +7,6 @@ import (
 	"net/rpc"
 
 	"github.com/yetanotherco/aligned_layer/core/types"
-	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 func (agg *Aggregator) ServeOperators() error {
@@ -47,33 +46,40 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
 
-	taskIndex := signedTaskResponse.TaskResponse.TaskIndex
+	// taskIndex := signedTaskResponse.TaskResponse.TaskIndex
 	// Check if the task exists. If not, get the task from the contract, and store it in the tasks map
 	// If the task does not exist, return an error
-	if _, ok := agg.OperatorTaskResponses[taskIndex]; !ok {
-		task, err := agg.avsReader.GetNewTaskCreated(taskIndex)
-		if err != nil {
-			agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskIndex)
-			*reply = 1
-			return fmt.Errorf("task %d does not exist", taskIndex)
-		}
-		agg.AddNewTask(taskIndex, task.Task)
+	if _, ok := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]; !ok {
+		fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
+		// task, err := agg.avsReader.GetNewTaskCreated(taskIndex)
+		// if err != nil {
+		// 	agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskIndex)
+		// 	*reply = 1
+		// 	return fmt.Errorf("task %d does not exist", taskIndex)
+		// }
+		agg.AddNewTask(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.TaskCreatedBlock)
 	}
 
 	// TODO: Check if the task response is valid
 	agg.taskResponsesMutex.Lock()
-	taskResponses := agg.OperatorTaskResponses[taskIndex]
+	taskResponses := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]
 	taskResponses.taskResponses = append(
-		agg.OperatorTaskResponses[taskIndex].taskResponses,
+		agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot].taskResponses,
 		*signedTaskResponse)
-	taskResponseDigest, err := utils.TaskResponseDigest(&signedTaskResponse.TaskResponse)
-	if err != nil {
-		return err
-	}
+
+	// NOTE(marian): Instead of using `taskResponseDigest`, we use directly `batchMerkleRoot`. Is this ok?
+	// taskResponseDigest, err := utils.TaskResponseDigest(&signedTaskResponse)
+	// if err != nil {
+	// 	return err
+	// }
 	agg.taskResponsesMutex.Unlock()
 
-	err = agg.blsAggregationService.ProcessNewSignature(
-		context.Background(), taskIndex, taskResponseDigest,
+	agg.taskCounterMutex.Lock()
+	taskIndex := agg.taskCounter
+	agg.taskCounterMutex.Unlock()
+
+	err := agg.blsAggregationService.ProcessNewSignature(
+		context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
 		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 	)
 	if err != nil {

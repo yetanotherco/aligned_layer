@@ -41,7 +41,7 @@ type Aggregator struct {
 
 	// Using map here instead of slice to allow for easy lookup of tasks, when aggregator is restarting,
 	// its easier to get the task from the map instead of filling the slice again
-	tasks map[[32]byte]uint32
+	tasks map[uint32][32]byte
 	// Mutex to protect the tasks map
 	tasksMutex *sync.Mutex
 
@@ -75,7 +75,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	}
 
 	// tasks := make(map[uint32]servicemanager.AlignedLayerServiceManagerB)
-	tasks := make(map[[32]byte]uint32)
+	tasks := make(map[uint32][32]byte)
 	operatorTaskResponses := make(map[[32]byte]*TaskResponsesWithStatus, 0)
 
 	chainioConfig := sdkclients.BuildAllConfig{
@@ -174,20 +174,19 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	)
 
 	agg.tasksMutex.Lock()
-	task := agg.tasks[blsAggServiceResp.TaskIndex]
+	batchMerkleRoot := agg.tasks[blsAggServiceResp.TaskIndex]
 	agg.tasksMutex.Unlock()
 
 	agg.taskResponsesMutex.Lock()
 	// FIXME(marian): Not sure how this should be handled. Getting the first one for now
-	taskResponse := agg.OperatorTaskResponses[blsAggServiceResp.TaskIndex].taskResponses[0].TaskResponse
+	// taskResponse := agg.OperatorTaskResponses[batchMerkleRoot].taskResponses[0].TaskResponse
 	agg.taskResponsesMutex.Unlock()
-	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), task, taskResponse, nonSignerStakesAndSignature)
+	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.logger.Error("Aggregator failed to respond to task", "err", err)
 	}
 }
 
-// MARIAN: KEEP WORKING HERE
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
 
@@ -196,7 +195,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	agg.taskCounterMutex.Unlock()
 
 	agg.tasksMutex.Lock()
-	agg.tasks[batchMerkleRoot] = agg.taskCounter
+	agg.tasks[agg.taskCounter] = batchMerkleRoot
 	agg.tasksMutex.Unlock()
 
 	agg.taskResponsesMutex.Lock()
@@ -207,8 +206,9 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	agg.taskResponsesMutex.Unlock()
 
 	// quorumNums := utils.BytesToQuorumNumbers(task.QuorumNumbers)
-	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	// quorumThresholdPercentages := utils.BytesToQuorumThresholdPercentages(task.QuorumThresholdPercentages)
+
+	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
 	// FIXME(marian): Hardcoded value of timeToExpiry to 100s. How should be get this value?

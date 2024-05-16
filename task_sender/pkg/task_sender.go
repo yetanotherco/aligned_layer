@@ -2,35 +2,29 @@ package pkg
 
 import (
 	"context"
-	"github.com/Layr-Labs/eigensdk-go/types"
-	"github.com/yetanotherco/aligned_layer/common"
-	serviceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	"log"
+	"time"
+
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"log"
-	"math/big"
-	"time"
 )
 
 type Task struct {
-	ProvingSystem              common.ProvingSystemId
-	DAPayload                  serviceManager.AlignedLayerServiceManagerDAPayload
-	PublicInput                []byte
-	VerificationKey            []byte
-	QuorumNumbers              types.QuorumNums
-	QuorumThresholdPercentages types.QuorumThresholdPercentages
-	Fee                        *big.Int
+	BatchMerkleRoot  [32]byte
+	batchDataPointer string
+	// ProvingSystem              common.ProvingSystemId
+	// DAPayload                  serviceManager.AlignedLayerServiceManagerDAPayload
+	// PublicInput                []byte
+	// VerificationKey            []byte
+	// QuorumNumbers              types.QuorumNums
+	// QuorumThresholdPercentages types.QuorumThresholdPercentages
+	// Fee                        *big.Int
 }
 
-func NewTask(provingSystemId common.ProvingSystemId, DAPayload serviceManager.AlignedLayerServiceManagerDAPayload, publicInput []byte, verificationKey []byte, quorumNumbers types.QuorumNums, quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) *Task {
+func NewTask(batchMerkleRoot [32]byte, batchDataPointer string) *Task {
 	return &Task{
-		ProvingSystem:              provingSystemId,
-		DAPayload:                  DAPayload,
-		PublicInput:                publicInput,
-		VerificationKey:            verificationKey,
-		QuorumNumbers:              quorumNumbers,
-		QuorumThresholdPercentages: quorumThresholdPercentages,
-		Fee:                        fee,
+		BatchMerkleRoot:  batchMerkleRoot,
+		batchDataPointer: batchDataPointer,
 	}
 }
 
@@ -52,19 +46,14 @@ func NewTaskSender(config *config.TaskSenderConfig, avsWriter *chainio.AvsWriter
 
 func (ts *TaskSender) SendTask(task *Task) error {
 	log.Println("Sending task...")
-	_, index, err := ts.avsWriter.SendTask(
+	err := ts.avsWriter.SendTask(
 		context.Background(),
-		task.ProvingSystem,
-		task.DAPayload,
-		task.PublicInput,
-		task.VerificationKey,
-		task.QuorumNumbers,
-		task.QuorumThresholdPercentages,
-		task.Fee,
+		task.BatchMerkleRoot,
+		task.batchDataPointer,
 	)
 	if err != nil {
 		return err
 	}
-	log.Println("Task sent successfully. Task index:", index)
+	log.Println("Task sent successfully. Batch Merkle Root:", task.BatchMerkleRoot)
 	return nil
 }
