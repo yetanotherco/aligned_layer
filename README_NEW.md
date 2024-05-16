@@ -26,14 +26,14 @@ make deps
 
 To install foundry
 ```bash
-make install-foundry
+make install_foundry
 ```
 Then follow the command line instructions
 Make sure to run `foundryup`
 
 To install eigenlayer-cli
 ```bash
-make install-eigenlayer-cli
+make install_eigenlayer_cli
 ```
 
 ### Keystores
@@ -93,13 +93,13 @@ celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network
 When changing EigenLayer contracts, the anvil state needs to be updated with:
 
 ```bash
-make anvil-deploy-eigen-contracts
+make anvil_deploy_eigen_contracts
 ```
 
 You will also need to redeploy the MockStrategy & MockERC20 contracts:
 
 ```bash
-make anvil-deploy-mock-strategy
+make anvil_deploy_mock_strategy
 ```
 #### Holesky
 
@@ -117,7 +117,7 @@ The current EigenLayer contracts for Mainnet are available in the [eigenlayer-ma
 When changing AlignedLayer contracts, the anvil state needs to be updated with:
 
 ```bash
-make anvil-deploy-aligned-contracts
+make anvil_deploy_aligned_contracts
 ```
 
 #### Holesky/Mainnet
@@ -139,7 +139,7 @@ You can find an example `.env` file in [.env.example.holesky](contracts/scripts/
 Then run the following command:
 
 ```bash
-make deploy-aligned-contracts
+make deploy_aligned_contracts
 ```
 
 You need to complete the `DEPLOY_CONFIG_PATH` file with the following information:
@@ -180,7 +180,7 @@ make bindings
 Start anvil with every relevant contract deployed with:
 
 ```bash
-make anvil-start
+make anvil_start
 ```
 
 The above command starts a local anvil chain from a [saved state](./tests/integration/eigenlayer-and-shared-avs-contracts-deployed-anvil-state.json) with EigenLayer and AlignedLayer contracts already deployed (but no operator registered).
@@ -193,13 +193,13 @@ The above command starts a local anvil chain from a [saved state](./tests/integr
 To start the aggregator run:
 
 ```bash
-make aggregator-start CONFIG_FILE=<path_to_config_file>
+make aggregator_start CONFIG_FILE=<path_to_config_file>
 ```
 
 If you want to run the aggregator with the default configuration, you can run:
 
 ```bash
-make aggregator-start
+make aggregator_start
 ```
 
 ### Config
@@ -244,13 +244,13 @@ aggregator:
 To register an operator in EigenLayer run the following command:
 
 ```bash
-make operator-register-with-eigen-layer CONFIG_FILE=<path_to_config_file>
+make operator_register_with_eigen_layer CONFIG_FILE=<path_to_config_file>
 ```
 
 To register an operator in EigenLayer with the default configuration, you can run:
 
 ```bash
-make operator-register-with-eigen-layer
+make operator_register_with_eigen_layer
 ```
 
 ### Deposit Strategy Tokens
@@ -262,15 +262,15 @@ There is an ERC20 token deployed in the Anvil chain to use as strategy token wit
 To deposit strategy tokens in the Anvil chain, you can use the following command:
 
 ```bash
-make operator-mint-mock-tokens CONFIG_FILE=<path_to_config_file>
-make operator-deposit-into-mock-strategy CONFIG_FILE=<path_to_config_file>
+make operator_mint_mock_tokens CONFIG_FILE=<path_to_config_file>
+make operator_deposit_into_mock_strategy CONFIG_FILE=<path_to_config_file>
 ```
 
 To deposit strategy tokens in the Anvil chain with the default configuration, you can run:
 
 ```bash
-make operator-mint-mock-tokens
-make operator-deposit-into-mock-strategy
+make operator_mint_mock_tokens
+make operator_deposit_into_mock_strategy
 ```
 
 #### Holesky/Mainnet
@@ -286,13 +286,13 @@ To obtain HolETH and swap it for different strategies, you can use the following
 To register an operator in AlignedLayer run the following command:
 
 ```bash
-make operator-register-with-aligned-layer CONFIG_FILE=<path_to_config_file>
+make operator_register_with_aligned_layer CONFIG_FILE=<path_to_config_file>
 ```
 
 To register an operator in AlignedLayer with the default configuration, you can run:
 
 ```bash
-make operator-register-with-aligned-layer
+make operator_register_with_aligned_layer
 ```
 
 ### Full Registration in Anvil
@@ -300,13 +300,13 @@ make operator-register-with-aligned-layer
 For devnet purposes, you can run the following command to register an operator in EigenLayer and AlignedLayer and deposit strategy tokens in EigenLayer:
 
 ```bash
-make operator-full-registration CONFIG_FILE=<path_to_config_file>
+make operator_full_registration CONFIG_FILE=<path_to_config_file>
 ```
 
 To register an operator in EigenLayer and AlignedLayer and deposit strategy tokens in EigenLayer with the default configuration, you can run:
 
 ```bash
-make operator-full-registration
+make operator_full_registration
 ```
 
 ### Run
@@ -314,13 +314,13 @@ make operator-full-registration
 To start the operator run:
 
 ```bash
-make operator-start CONFIG_FILE=<path_to_config_file>
+make operator_start CONFIG_FILE=<path_to_config_file>
 ```
 
 If you want to run the operator with the default configuration, you can run:
 
 ```bash
-make operator-start
+make operator_start
 ```
 
 ### Config
@@ -427,8 +427,39 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
+### Send PLONK BLS12_381 Proof
+
+To send a single PLONK BLS12_381 proof run:
+
+```bash
+make send_plonk_bls12_381_proof
+```
+
+To send PLONK BLS12_381 proofs in loop run:
+
+```bash
+make send_plonk_bls12_381_proof_loop
+```
+
+### Send PLONK BN254 Proof
+
+To send a single PLONK BN254 proof run:
+
+```bash
+make send_plonk_bn254_proof
+```
+
+To send PLONK BN254 proofs in loop run:
+
+```bash
+make send_plonk_bn254_proof_loop
+```
+
 
 ## Deployment
 
+To build go binaries run:
 
-
+```bash
+make build_binaries
+```
