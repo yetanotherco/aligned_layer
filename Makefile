@@ -253,3 +253,7 @@ generate_sp1_fibonacci_proof:
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
+
+generate_risc_zero_fibonacci_proof:
+	@cd task_sender/test_examples/risc_zero/fibonacci_proof_generator/ && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder"
