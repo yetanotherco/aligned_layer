@@ -26,7 +26,6 @@ celestia:
   url: "http://localhost:26658"
   keystore: "~/.celestia-light-arabica-11"
 
-
 ## Operator Configurations
 operator:
   aggregator_rpc_server_ip_port_address: localhost:8090
