@@ -2,7 +2,6 @@ use std::{
     fs::File,
     io::{BufReader, BufWriter, ErrorKind, Write, Read},
 };
-
 use ff::{Field, PrimeField};
 use halo2_proofs::{
     circuit::{Layouter, SimpleFloorPlanner, Value},
@@ -13,7 +12,7 @@ use halo2_proofs::{
     poly::{
         kzg::{
             commitment::{KZGCommitmentScheme, ParamsKZG},
-            multiopen::{ProverGWC, VerifierGWC},
+            multiopen::{ProverGWC, VerifierGWC, VerifierSHPLONK},
             strategy::SingleStrategy,
         },
         commitment::Params,
@@ -27,57 +26,58 @@ use halo2_proofs::{
 use halo2curves::bn256::{Bn256, Fr, G1Affine};
 use rand_core::OsRng;
 
-
-pub const MAX_PROOF_SIZE: usize = 1024;
-
-//TODO: write this out based on size of G1Affine elements
-pub const MAX_KZG_PARAMS_SIZE: usize = 4 * 1024;
+pub const MAX_PROOF_SIZE: usize = 2048;
 
 //TODO: write this out based on size of G1Affine elements
-pub const MAX_VERIFIER_KEY_SIZE: usize = 2 * 1024;
+pub const MAX_KZG_PARAMS_SIZE: usize = 4096;
 
 //TODO: write this out based on size of G1Affine elements
-pub const MAX_PUBLIC_INPUT_SIZE: usize = 2 * 1024;
+pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
+
+//TODO: write this out based on size of G1Affine elements
+pub const MAX_PUBLIC_INPUT_SIZE: usize = 64;
 
 //NOTE(pat): For now we only support a single strategy and single parameter configuration.
 //NOTE(pat): We can't use generics over FFI so we need to have multiple implementations for each field/curve -> Use Bn254
 //NOTE(pat): We can't use generics over FFI so we need multiple implementations for each plonk implementation
 #[no_mangle]
-pub extern "C" fn verify_halo2_proof_ffi(
+pub extern "C" fn verify_halo2_kzg_proof_ffi(
 proof_bytes: &[u8; MAX_PROOF_SIZE],
 proof_len: usize,
-verifier_params_bytes: &[u8; MAX_KZG_PARAMS_SIZE],
+verifier_params_bytes: &[u8; MAX_VERIFIER_KEY_SIZE],
 vk_len: usize,
-kzg_param_len: usize,
+kzg_params_bytes: &[u8; MAX_KZG_PARAMS_SIZE],
+kzg_params_len: usize,
 public_input_bytes: &[u8; MAX_PUBLIC_INPUT_SIZE],
 public_input_len: usize,
-) -> () {
-    /*
+) -> bool {
+    let k = 4;
+    let circuit = StandardPlonk(Fr::random(OsRng));
+    let compress_selectors = true;
+    let proof = &proof_bytes[..proof_len];
     //NOTE: SingleStrategy is for single proofs so that setting will not change across invocations
-	if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len]) {
-        //Read vk
-        if let Ok(vk) = pk_read::<G1Affine, _, StandardPlonk>(&BufReader::new(&mut verifier_params_bytes[..vk_len]), SerdeFormat::RawBytes, k ) {
-            if let Ok(params) = Params::read::<_>(&verifier_params_bytes[vk_len..kzg_param_len]) {
-                if let Ok(public_input) = read_fr(&public_input_bytes[..public_input_len]){
-                    let strategy = SingleStrategy::new(&params);
-                    let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
-                    return verify_proof::<
-                        KZGCommitmentScheme<Bn256>,
-                        VerifierSHPLONK<'_, Bn256>,
-                        Challenge255<G1Affine>,
-                        Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
-                        SingleStrategy<'_, Bn256>,
-                    >(&params, &vk, strategy, &[instances], &mut transcript).is_ok()
-                }
+    //Read vk
+    if let Ok(vk) = vk_read::<G1Affine, _, StandardPlonk>(&mut BufReader::new(&verifier_params_bytes[..vk_len]), SerdeFormat::RawBytes, k, &circuit, compress_selectors) {
+        if let Ok(params) = Params::read::<_>(&mut BufReader::new(&kzg_params_bytes[..kzg_params_len])) {
+            if let Ok(res) = read_fr(&public_input_bytes[..public_input_len]) {
+                let strategy = SingleStrategy::new(&params);
+                let instances = res.as_slice();
+                let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof[..]);
+                return verify_proof::<
+                    KZGCommitmentScheme<Bn256>,
+                    VerifierGWC<'_, Bn256>,
+                    Challenge255<G1Affine>,
+                    Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
+                    SingleStrategy<'_, Bn256>,
+                >(&params, &vk, strategy, &[&[instances]], &mut transcript).is_ok()
             }
         }
-	}
+    }
 
 	false
-    */
 }
 
-fn read_fr(mut file: &File) -> Result<Vec<Fr>, ErrorKind> {
+fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
     //TODO: make this capacity the size of the file / 32
     let mut instances = Vec::new();
     // Buffer to store each 32-byte slice
@@ -86,7 +86,7 @@ fn read_fr(mut file: &File) -> Result<Vec<Fr>, ErrorKind> {
     // Loop until end of file
     loop {
         // Read 32 bytes into the buffer
-        match file.read_exact(&mut buffer) {
+        match buf.read_exact(&mut buffer) {
             Ok(_) => {
                 // Process the buffer here (printing as an example)
                 instances.push(Fr::from_bytes(&buffer).unwrap());
@@ -107,112 +107,113 @@ fn read_fr(mut file: &File) -> Result<Vec<Fr>, ErrorKind> {
     Ok(instances)
 }
 
+// HALO2 Cicuit Example
+#[derive(Clone, Copy)]
+struct StandardPlonkConfig {
+    a: Column<Advice>,
+    b: Column<Advice>,
+    c: Column<Advice>,
+    q_a: Column<Fixed>,
+    q_b: Column<Fixed>,
+    q_c: Column<Fixed>,
+    q_ab: Column<Fixed>,
+    constant: Column<Fixed>,
+    #[allow(dead_code)]
+    instance: Column<Instance>,
+}
+
+impl StandardPlonkConfig {
+    fn configure(meta: &mut ConstraintSystem<Fr>) -> Self {
+        let [a, b, c] = [(); 3].map(|_| meta.advice_column());
+        let [q_a, q_b, q_c, q_ab, constant] = [(); 5].map(|_| meta.fixed_column());
+        let instance = meta.instance_column();
+
+        [a, b, c].map(|column| meta.enable_equality(column));
+
+        meta.create_gate(
+            "q_a·a + q_b·b + q_c·c + q_ab·a·b + constant + instance = 0",
+            |meta| {
+                let [a, b, c] = [a, b, c].map(|column| meta.query_advice(column, Rotation::cur()));
+                let [q_a, q_b, q_c, q_ab, constant] = [q_a, q_b, q_c, q_ab, constant]
+                    .map(|column| meta.query_fixed(column, Rotation::cur()));
+                let instance = meta.query_instance(instance, Rotation::cur());
+                Some(
+                    q_a * a.clone()
+                        + q_b * b.clone()
+                        + q_c * c
+                        + q_ab * a * b
+                        + constant
+                        + instance,
+                )
+            },
+        );
+
+        StandardPlonkConfig {
+            a,
+            b,
+            c,
+            q_a,
+            q_b,
+            q_c,
+            q_ab,
+            constant,
+            instance,
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+struct StandardPlonk(Fr);
+
+impl Circuit<Fr> for StandardPlonk {
+    type Config = StandardPlonkConfig;
+    type FloorPlanner = SimpleFloorPlanner;
+    #[cfg(feature = "circuit-params")]
+    type Params = ();
+
+    fn without_witnesses(&self) -> Self {
+        Self::default()
+    }
+
+    fn configure(meta: &mut ConstraintSystem<Fr>) -> Self::Config {
+        StandardPlonkConfig::configure(meta)
+    }
+
+    fn synthesize(
+        &self,
+        config: Self::Config,
+        mut layouter: impl Layouter<Fr>,
+    ) -> Result<(), ErrorFront> {
+        layouter.assign_region(
+            || "",
+            |mut region| {
+                region.assign_advice(|| "", config.a, 0, || Value::known(self.0))?;
+                region.assign_fixed(|| "", config.q_a, 0, || Value::known(-Fr::one()))?;
+
+                region.assign_advice(|| "", config.a, 1, || Value::known(-Fr::from(5u64)))?;
+                for (idx, column) in (1..).zip([
+                    config.q_a,
+                    config.q_b,
+                    config.q_c,
+                    config.q_ab,
+                    config.constant,
+                ]) {
+                    region.assign_fixed(|| "", column, 1, || Value::known(Fr::from(idx as u64)))?;
+                }
+
+                let a = region.assign_advice(|| "", config.a, 2, || Value::known(Fr::one()))?;
+                a.copy_advice(|| "", &mut region, config.b, 3)?;
+                a.copy_advice(|| "", &mut region, config.c, 4)?;
+                Ok(())
+            },
+        )
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[derive(Clone, Copy)]
-    struct StandardPlonkConfig {
-        a: Column<Advice>,
-        b: Column<Advice>,
-        c: Column<Advice>,
-        q_a: Column<Fixed>,
-        q_b: Column<Fixed>,
-        q_c: Column<Fixed>,
-        q_ab: Column<Fixed>,
-        constant: Column<Fixed>,
-        #[allow(dead_code)]
-        instance: Column<Instance>,
-    }
-
-    impl StandardPlonkConfig {
-        fn configure(meta: &mut ConstraintSystem<Fr>) -> Self {
-            let [a, b, c] = [(); 3].map(|_| meta.advice_column());
-            let [q_a, q_b, q_c, q_ab, constant] = [(); 5].map(|_| meta.fixed_column());
-            let instance = meta.instance_column();
-
-            [a, b, c].map(|column| meta.enable_equality(column));
-
-            meta.create_gate(
-                "q_a·a + q_b·b + q_c·c + q_ab·a·b + constant + instance = 0",
-                |meta| {
-                    let [a, b, c] = [a, b, c].map(|column| meta.query_advice(column, Rotation::cur()));
-                    let [q_a, q_b, q_c, q_ab, constant] = [q_a, q_b, q_c, q_ab, constant]
-                        .map(|column| meta.query_fixed(column, Rotation::cur()));
-                    let instance = meta.query_instance(instance, Rotation::cur());
-                    Some(
-                        q_a * a.clone()
-                            + q_b * b.clone()
-                            + q_c * c
-                            + q_ab * a * b
-                            + constant
-                            + instance,
-                    )
-                },
-            );
-
-            StandardPlonkConfig {
-                a,
-                b,
-                c,
-                q_a,
-                q_b,
-                q_c,
-                q_ab,
-                constant,
-                instance,
-            }
-        }
-    }
-
-    #[derive(Clone, Default)]
-    struct StandardPlonk(Fr);
-
-    impl Circuit<Fr> for StandardPlonk {
-        type Config = StandardPlonkConfig;
-        type FloorPlanner = SimpleFloorPlanner;
-        #[cfg(feature = "circuit-params")]
-        type Params = ();
-
-        fn without_witnesses(&self) -> Self {
-            Self::default()
-        }
-
-        fn configure(meta: &mut ConstraintSystem<Fr>) -> Self::Config {
-            StandardPlonkConfig::configure(meta)
-        }
-
-        fn synthesize(
-            &self,
-            config: Self::Config,
-            mut layouter: impl Layouter<Fr>,
-        ) -> Result<(), ErrorFront> {
-            layouter.assign_region(
-                || "",
-                |mut region| {
-                    region.assign_advice(|| "", config.a, 0, || Value::known(self.0))?;
-                    region.assign_fixed(|| "", config.q_a, 0, || Value::known(-Fr::one()))?;
-
-                    region.assign_advice(|| "", config.a, 1, || Value::known(-Fr::from(5u64)))?;
-                    for (idx, column) in (1..).zip([
-                        config.q_a,
-                        config.q_b,
-                        config.q_c,
-                        config.q_ab,
-                        config.constant,
-                    ]) {
-                        region.assign_fixed(|| "", column, 1, || Value::known(Fr::from(idx as u64)))?;
-                    }
-
-                    let a = region.assign_advice(|| "", config.a, 2, || Value::known(Fr::one()))?;
-                    a.copy_advice(|| "", &mut region, config.b, 3)?;
-                    a.copy_advice(|| "", &mut region, config.c, 4)?;
-                    Ok(())
-                },
-            )
-        }
-    }
-
 	#[test]
 	fn halo2_serialization_works() {
         let k = 4;
@@ -305,8 +306,10 @@ mod tests {
         writer.flush().unwrap();
 
         //read instances
-        let f = File::open("pub_input.bin").unwrap();
-        let res = read_fr(&f).unwrap();
+        let mut f = File::open("pub_input.bin").unwrap();
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+        let res = read_fr(&buf).unwrap();
         let instances = res.as_slice();
 
         let strategy = SingleStrategy::new(&params);
@@ -329,16 +332,11 @@ mod tests {
 
     const PROOF: &[u8] = include_bytes!("../plonk_proof.bin");
 
-    //const PUB_INPUT: &[u8] = include_bytes!("../pub_input.bin");
+    const PUB_INPUT: &[u8] = include_bytes!("../pub_input.bin");
 
     const VERIFIER_KEY: &[u8] = include_bytes!("../vk.bin");
 
     const KZG_PARAMS: &[u8] = include_bytes!("../kzg_params.bin");
-
-    const VERIFIER_KEY_LEN: usize = 2308;
-
-    const KZG_PARAMS_LEN: usize = 2308;
-
 
 	#[test]
 	fn verify_halo2_proof_works() {
@@ -353,13 +351,18 @@ mod tests {
         let vk_len = VERIFIER_KEY.len();
         vk_buffer[..vk_len].clone_from_slice(VERIFIER_KEY);
 
-        // Select KZG Params Bytes
+        // Get length of
         let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
         let kzg_params_len = KZG_PARAMS.len();
         kzg_params_buffer[..kzg_params_len].clone_from_slice(KZG_PARAMS);
 
-        //let result = verify_halo2_proof_ffi(proof_buffer, proof_len, vk_buffer, vk_len, kzg_params_buffer, kzg_param_len, pub_input, pub_input_len);
-        //assert!(result)
+        // Select Public Input Bytes
+        let mut public_input_buffer = [0u8; MAX_PUBLIC_INPUT_SIZE];
+        let public_input_len = PUB_INPUT.len();
+        public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
+
+        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, proof_len, &vk_buffer, vk_len, &kzg_params_buffer, kzg_params_len, &public_input_buffer, public_input_len);
+        assert!(result)
 	}
 
 	#[test]
@@ -379,6 +382,7 @@ mod tests {
         let kzg_params_size = KZG_PARAMS.len();
         kzg_params_buffer[vk_size..kzg_params_size].clone_from_slice(KZG_PARAMS);
 
-        //assert!(result)
+        let result = verify_halo2_kzg_proof_ffi(proof_buffer, proof_len, vk_buffer, vk_len, kzg_params_buffer, kzg_param_len, pub_input, pub_input_len);
+        assert!(result)
 	}
 }
