@@ -97,7 +97,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         // Value 0 would mean that the task is in block 0 so this can't happen.
 
         require(
-            batchesState[batchMerkleRoot].taskCreatedBlock == 0,
+            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
             "Batch doesn't exists"
         );
 
