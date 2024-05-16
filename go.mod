@@ -7,8 +7,6 @@ require (
 	github.com/Layr-Labs/eigenda/api v0.6.2
 	github.com/Layr-Labs/eigensdk-go v0.1.6
 	github.com/celestiaorg/celestia-node v0.13.5
-	github.com/consensys/gnark v0.9.1
-	github.com/consensys/gnark-crypto v0.12.2-0.20231013160410-1f65e75b6dfb
 	github.com/cristalhq/jwt v1.2.0
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/filecoin-project/go-jsonrpc v0.3.1
@@ -16,6 +14,11 @@ require (
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/crypto v0.22.0
 	google.golang.org/grpc v1.63.2
+)
+
+require (
+	github.com/consensys/gnark v0.10.0
+	github.com/consensys/gnark-crypto v0.12.2-0.20240215234832-d72fcb379d3e
 )
 
 require (
@@ -156,6 +159,8 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/influxdata/influxdb-client-go/v2 v2.12.2 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
+	github.com/ingonyama-zk/icicle v0.0.0-20230928131117-97f0079e5c71 // indirect
+	github.com/ingonyama-zk/iciclegnark v0.1.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/boxo v0.18.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect

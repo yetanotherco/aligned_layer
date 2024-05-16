@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"log"
 	"math/big"
 	"os"
 	"strings"
 	"time"
+
+	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/urfave/cli/v2"
@@ -136,7 +137,7 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	var verificationKeyFile []byte
-	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 {
+	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 || provingSystem == common.Groth16Bn254 {
 		if len(c.String("verification-key")) == 0 {
 			return fmt.Errorf("the proving system needs a verification key but it is empty")
 		}
@@ -220,6 +221,10 @@ func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 		return common.GnarkPlonkBls12_381, nil
 	case "plonk_bn254":
 		return common.GnarkPlonkBn254, nil
+	case "groth16_bn254":
+		return common.Groth16Bn254, nil
+	case "sp1":
+		return common.SP1, nil
 	default:
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)

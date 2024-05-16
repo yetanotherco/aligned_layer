@@ -1,14 +1,12 @@
 # Learning Resources:
 
-## Aligned Layer blog posts:
+## Aligned blog post:
 
-* [Aligned Layer](https://blog.yetanothercompany.xyz/aligned-layer/)
+* [Aligned](https://blog.alignedlayer.com/aligned-layer/)
 
-## Aligned Layer repos:
+## Aligned repo:
 
-* [EigenLayer implementation](https://github.com/yetanotherco/aligned_layer_testnet)
-* [Tendermint implementation](https://github.com/yetanotherco/aligned_layer_tendermint) 
-* [Compilation of resources from Zero to Aligned](https://github.com/yetanotherco/zero-to-aligned)
+* [EigenLayer implementation](https://github.com/yetanotherco/aligned_layer)
 
 ## LambdaClass blog posts:
 

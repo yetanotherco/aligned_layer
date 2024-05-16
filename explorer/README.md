@@ -28,28 +28,39 @@ This will create a `.env` file in the `/explorer` directory of the project. The 
 If you want to run the devnet environment, you can run the following command in another terminal:
 
 ```sh
+make run_local
+```
+
+<details>
+<summary>
+    Or alternatively you can manually run the following commands:
+</summary>
+
+```sh
 cd ..
-make anvil-start
+make anvil_start
 ```
 
 Then in another terminal, you can run the following command to run the operator:
 
 ```sh
-make operator-full-registration
-make operator-start
+make operator_full_registration
+make operator_start
 ```
 
 Then, in another terminal, run the following command to start the aggregator:
 
 ```sh
-make aggregator-start
+make aggregator_start
 ```
 
 Finally, to have a task running in the devnet, you can run the following command:
 
 ```sh
-make send-plonk_bls12_381-proof-loop
+make send_plonk_bls12_381_proof_loop
 ```
+
+</details>
 
 ### Run the frontend
 
@@ -69,7 +80,7 @@ make <run | deps | help>
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/tasks/:id`.
 
-### Upgrade ABI
+### Upgrade Aligned ABI
 
 Keep in mind when the contracts are updated, the ABI of the contracts must be updated in the frontend.
 
@@ -77,13 +88,15 @@ If you want to update the ABI of the contracts, you can run the following comman
 
 ```bash
 cd ..
-make build-aligned-contracts
+make build_aligned_contracts
 cd contracts/out/
 ```
 
 This will generate new contracts in the `/contracts/out/AlignedLayerServiceManager.sol` folder in the root of the project.
+
 Once in there copy the contents of the file after `{"abi":` and before `,"bytecode":{"object":`.
-Lastly, paste it in the `contracts/abi/AlignedLayerServiceManager.abi` file.
+
+Once copied, either create or replace the `AlignedLayerServiceManager.json` file, located in the `/explorer/lib/abi` directory, by pasting the content from your clipboard.
 
 ## Contributing
 
@@ -95,5 +108,5 @@ PRs are more than welcome if you want to collaborate to the project. If you don'
 
 If you have any questions, suggestions, or if you'd like to contribute in any way, please feel free to reach out to us:
 
-- **Telegram**: [Get Aligned](https://t.me/alignedlayer)
+- **Discord**: [Aligned](https://discord.gg/alignedlayer)
 - **GitHub Issues**: [Open an Issue](https://github.com/yetanotherco/aligned_layer/labels/frontend)
