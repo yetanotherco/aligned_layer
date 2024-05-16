@@ -68,8 +68,6 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 
 	txOpts := w.Signer.GetTxOpts()
 
-	// txOpts.Value = fee
-
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
 		batchMerkleRoot,
@@ -85,10 +83,6 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 		return err
 	}
 
-	// newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewBatch(*receipt.Logs[0])
-	// if err != nil {
-	// 	return err
-	// }
 	return nil
 }
 

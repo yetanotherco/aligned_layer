@@ -177,10 +177,6 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	batchMerkleRoot := agg.tasks[blsAggServiceResp.TaskIndex]
 	agg.tasksMutex.Unlock()
 
-	agg.taskResponsesMutex.Lock()
-	// FIXME(marian): Not sure how this should be handled. Getting the first one for now
-	// taskResponse := agg.OperatorTaskResponses[batchMerkleRoot].taskResponses[0].TaskResponse
-	agg.taskResponsesMutex.Unlock()
 	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.logger.Error("Aggregator failed to respond to task", "err", err)
@@ -204,9 +200,6 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 		submittedToEthereum: false,
 	}
 	agg.taskResponsesMutex.Unlock()
-
-	// quorumNums := utils.BytesToQuorumNumbers(task.QuorumNumbers)
-	// quorumThresholdPercentages := utils.BytesToQuorumThresholdPercentages(task.QuorumThresholdPercentages)
 
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}

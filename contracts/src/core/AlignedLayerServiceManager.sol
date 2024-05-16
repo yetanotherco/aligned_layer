@@ -35,7 +35,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint32 taskCreatedBlock;
         bool responded;
     }
-    //mapping(uint32 => bytes32) public taskHashes;
 
     /* STORAGE */
     mapping(bytes32 => BatchState) batchesState;

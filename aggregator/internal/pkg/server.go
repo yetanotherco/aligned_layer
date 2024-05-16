@@ -46,7 +46,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
 
-	// taskIndex := signedTaskResponse.TaskResponse.TaskIndex
 	// Check if the task exists. If not, get the task from the contract, and store it in the tasks map
 	// If the task does not exist, return an error
 	if _, ok := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]; !ok {

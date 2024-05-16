@@ -7,57 +7,6 @@ import (
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 )
 
-// func TaskResponseDigest(signedTaskResponse *types.SignedTaskResponse) ([32]byte, error) {
-// 	encodeTaskResponseByte, err := AbiEncodeTaskResponse(*signedTaskResponse)
-// 	if err != nil {
-// 		return [32]byte{}, err
-// 	}
-
-// 	var taskResponseDigest [32]byte
-// 	hasher := sha3.NewLegacyKeccak256()
-// 	hasher.Write(encodeTaskResponseByte)
-// 	copy(taskResponseDigest[:], hasher.Sum(nil)[:32])
-
-// 	return taskResponseDigest, nil
-// }
-
-// func AbiEncodeTaskResponse(signedTaskResponse *types.SignedTaskResponse) ([]byte, error) {
-// 	// The order here has to match the field ordering of servicemanager.AlignedLayerServiceManagerTaskResponse
-
-// 	/* TODO: Solve this in a more generic way so it's less prone for errors. Name and types can be obtained with reflection
-// 	for i := 0; i < reflectedType.NumField(); i++ {
-// 		name := reflectedType.Field(i).Name
-// 		thisType := reflectedType.Field(i).Type
-// 	}
-// 	*/
-
-// 	taskResponseType, err := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
-// 		{
-// 			Name: "taskIndex",
-// 			Type: "uint32",
-// 		},
-// 		{
-// 			Name: "proofIsCorrect",
-// 			Type: "bool",
-// 		},
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	arguments := abi.Arguments{
-// 		{
-// 			Type: taskResponseType,
-// 		},
-// 	}
-
-// 	bytes, err := arguments.Pack(taskResponse)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return bytes, nil
-// }
-
 // BN254.sol is a library, so bindings for G1 Points and G2 Points are only generated
 // in every contract that imports that library. Thus the output here will need to be
 // type casted if G1Point is needed to interface with another contract (eg: BLSPublicKeyCompendium.sol)
