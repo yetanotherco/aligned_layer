@@ -17,6 +17,7 @@ type AggregatorConfig struct {
 		BlsPublicKeyCompendiumAddress common.Address
 		AvsServiceManagerAddress      common.Address
 		EnableMetrics                 bool
+		MetricsIpPortAddress          string
 	}
 }
 
@@ -26,6 +27,7 @@ type AggregatorConfigFromYaml struct {
 		BlsPublicKeyCompendiumAddress common.Address `yaml:"bls_public_key_compendium_address"`
 		AvsServiceManagerAddress      common.Address `yaml:"avs_service_manager_address"`
 		EnableMetrics                 bool           `yaml:"enable_metrics"`
+		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
 	} `yaml:"aggregator"`
 }
 
@@ -65,6 +67,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			BlsPublicKeyCompendiumAddress common.Address
 			AvsServiceManagerAddress      common.Address
 			EnableMetrics                 bool
+			MetricsIpPortAddress          string
 		}(aggregatorConfigFromYaml.Aggregator),
 	}
 }
