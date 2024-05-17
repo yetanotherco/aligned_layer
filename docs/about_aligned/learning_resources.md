@@ -1,14 +1,18 @@
-# Learning Resources:
+# Learning Resources
 
-## Aligned blog post:
+## Aligned blog post
 
 * [Aligned](https://blog.alignedlayer.com/aligned-layer/)
 
-## Aligned repo:
+## Aligned repo
 
 * [EigenLayer implementation](https://github.com/yetanotherco/aligned_layer)
 
-## LambdaClass blog posts:
+## Talks and conferences
+
+* [ZK Accelerate talk](https://www.youtube.com/watch?v=jKy-Juy5O40)
+
+## LambdaClass blog posts
 
 * [History of zero knowledge proofs]( https://blog.lambdaclass.com/our-highly-subjective-view-on-the-history-of-zero-knowledge-proofs/)
 * [Proof aggregation techniques](https://blog.lambdaclass.com/proof-aggregation-techniques/)
