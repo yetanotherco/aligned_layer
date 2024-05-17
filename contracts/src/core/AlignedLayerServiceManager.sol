@@ -19,6 +19,9 @@ import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.so
 contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
 
+    uint256 internal constant THRESHOLD_DENOMINATOR = 100;
+    uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
+
     // EVENTS
     event NewBatch(
         bytes32 batchMerkleRoot,
@@ -27,9 +30,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     );
 
     event BatchVerified(bytes32 batchMerkleRoot);
-
-    uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
-    uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
 
     struct BatchState {
         uint32 taskCreatedBlock;
@@ -113,8 +113,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
         // check that signatories own at least a threshold percentage of each quourm
         require(
-            quorumStakeTotals.signedStakeForQuorum[0] *
-                _THRESHOLD_DENOMINATOR >=
+            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR >=
                 quorumStakeTotals.totalStakeForQuorum[0] *
                     QUORUM_THRESHOLD_PERCENTAGE,
             "Signatories do not own at least threshold percentage of a quorum"
