@@ -56,6 +56,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	taskResponses.taskResponses = append(
 		agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot].taskResponses,
 		*signedTaskResponse)
+	agg.taskResponsesMutex.Unlock()
 
 	agg.taskCounterMutex.Lock()
 	taskIndex := agg.taskCounter
