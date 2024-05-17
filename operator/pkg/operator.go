@@ -151,23 +151,6 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 
 	return nil
 
-	// switch newBatchLog.Task.DAPayload.Solution {
-	// case common.Calldata:
-	// 	proof = newBatchLog.Task.DAPayload.ProofAssociatedData
-	// case common.EigenDA:
-	// 	proof, err = o.getProofFromEigenDA(newBatchLog.Task.DAPayload.ProofAssociatedData, newBatchLog.Task.DAPayload.Index)
-	// 	if err != nil {
-	// 		o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
-	// 		return nil
-	// 	}
-	// case common.Celestia:
-	// 	proof, err = o.getProofFromCelestia(newBatchLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newBatchLog.Task.DAPayload.ProofAssociatedData)
-	// 	if err != nil {
-	// 		o.Logger.Errorf("Could not get proof from Celestia: %v", err)
-	// 		return nil
-	// 	}
-	// }
-
 	// o.Logger.Info("Received new task with proof to verify",
 	// 	"proof length", proofLen,
 	// 	"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
