@@ -104,6 +104,16 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_register_with_aligned_layer
 
+__BATCHER__:
+
+batcher_start:
+	@echo "Starting Batcher..."
+	@cd batcher && cargo run --release
+
+batcher_send_dummy_task:
+	@echo "Sending dummy task to Batcher..."
+	@cd batcher/test-client && cargo run -- ws://localhost:8080
+
 __TASK_SENDERS__:
  # TODO add a default proving system
 
