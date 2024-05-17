@@ -5,6 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/yetanotherco/aligned_layer/metrics"
+
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -54,6 +57,8 @@ type Aggregator struct {
 	// which needs a task index.
 	taskCounter      uint32
 	taskCounterMutex *sync.Mutex
+	metricsReg       *prometheus.Registry
+	metrics          *metrics.Metrics
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -103,6 +108,10 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	// Explicitly initializing this value just in case.
 	taskCounter := uint32(0)
 
+	// Metrics
+	reg := prometheus.NewRegistry()
+	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
+
 	aggregator := Aggregator{
 		AggregatorConfig:      &aggregatorConfig,
 		avsReader:             avsReader,
@@ -117,6 +126,8 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		logger:                logger,
 		taskCounter:           taskCounter,
 		taskCounterMutex:      &sync.Mutex{},
+		metricsReg:            reg,
+		metrics:               aggregatorMetrics,
 	}
 
 	return &aggregator, nil
@@ -132,13 +143,23 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 		}
 	}()
 
+	var metricsErrChan <-chan error
+	if agg.AggregatorConfig.Aggregator.EnableMetrics {
+		metricsErrChan = agg.metrics.Start(ctx, agg.metricsReg)
+	} else {
+		metricsErrChan = make(chan error, 1)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
+		case err := <-metricsErrChan:
+			agg.logger.Fatal("Metrics server failed", "err", err)
 		case blsAggServiceResp := <-agg.blsAggregationService.GetResponseChannel():
 			agg.logger.Info("Received response from BLS aggregation service", "blsAggServiceResp", blsAggServiceResp)
 			agg.sendAggregatedResponseToContract(blsAggServiceResp)
+			agg.metrics.IncAggregatedResponses()
 		}
 	}
 }
@@ -191,6 +212,11 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	agg.taskCounterMutex.Unlock()
 
 	agg.tasksMutex.Lock()
+	if _, ok := agg.tasks[agg.taskCounter]; ok {
+		agg.logger.Warn("Task already exists", "taskIndex", agg.taskCounter)
+		agg.tasksMutex.Unlock()
+		return
+	}
 	agg.tasks[agg.taskCounter] = batchMerkleRoot
 	agg.tasksMutex.Unlock()
 

@@ -23,7 +23,7 @@ func NewTask(batchMerkleRoot [32]byte, batchDataPointer string) *Task {
 
 type TaskSender struct {
 	avsWriter      *chainio.AvsWriter
-	eigenDAConfig  *config.EigenDADisperserConfig
+	eigenDAConfig  *config.EigenDAConfig
 	celestiaConfig *config.CelestiaConfig
 }
 
@@ -32,7 +32,7 @@ const RetryInterval = 1 * time.Second
 func NewTaskSender(config *config.TaskSenderConfig, avsWriter *chainio.AvsWriter) *TaskSender {
 	return &TaskSender{
 		avsWriter:      avsWriter,
-		eigenDAConfig:  config.EigenDADisperserConfig,
+		eigenDAConfig:  config.EigenDAConfig,
 		celestiaConfig: config.CelestiaConfig,
 	}
 }

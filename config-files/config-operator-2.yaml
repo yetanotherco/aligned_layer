@@ -18,14 +18,13 @@ bls:
   private_key_store_password: ""
 
 ## EigenDA Configurations
-eigen_da_disperser:
+eigen_da:
   url: "disperser-holesky.eigenda.xyz"
 
 ## Celestia Configurations
 celestia:
   url: "http://localhost:26658"
   keystore: "~/.celestia-light-arabica-11"
-
 
 ## Operator Configurations
 operator:

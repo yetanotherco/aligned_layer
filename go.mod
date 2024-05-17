@@ -11,6 +11,7 @@ require (
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/filecoin-project/go-jsonrpc v0.3.1
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/prometheus/client_golang v1.19.1
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/crypto v0.22.0
 	google.golang.org/grpc v1.63.2
@@ -249,7 +250,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
-	github.com/prometheus/client_golang v1.19.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.52.2 // indirect
 	github.com/prometheus/procfs v0.13.0 // indirect

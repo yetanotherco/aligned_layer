@@ -201,6 +201,11 @@ send_sp1_proof:
     		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
 
+__METRICS__:
+run_metrics: ## Run metrics using metrics-docker-compose.yaml
+	@echo "Running metrics..."
+	@docker-compose -f metrics-docker-compose.yaml up
+
 __DEPLOYMENT__:
 deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
@@ -220,6 +225,9 @@ build_binaries:
 	@echo "Building task sender.."
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
 	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
+
+run_local:
+	./scripts/run_local.sh
 
 __SP1_FFI__: ##
 build_sp1_macos:
@@ -250,5 +258,3 @@ generate_sp1_fibonacci_proof:
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
-
-
