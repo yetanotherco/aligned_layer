@@ -1,4 +1,4 @@
-# Use cases:
+# Use cases
 
 Among the possible use cases of Aligned we have:
 
