@@ -398,3 +398,26 @@ test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
+
+__HALO2KZG_FFI__: ##
+build_halo2kzg_macos:
+	@cd operator/halo2kzg/lib && cargo build --release
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.dylib operator/halo2/lib/libhalo2kzg_verifier.dylib
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2/lib/libhalo2kzg_verifier.a
+
+build_halo2kzg_linux:
+	@cd operator/halo2kzg/lib && cargo build --release
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.so operator/halo2/lib/libhalo2kzg_verifier.so
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2/lib/libhalo2kzg_verifier.a
+
+test_halo2kzg_rust_ffi:
+	@echo "Testing Halo2-KZG Rust FFI source code..."
+	@cd operator/halo2kzg/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_halo2kzg_go_bindings_macos: build_halo2kzg_macos
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2kzg/... -v
+
+test_halo2kzg_go_bindings_linux: build_halo2kzg_linux
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2kzg/... -v
