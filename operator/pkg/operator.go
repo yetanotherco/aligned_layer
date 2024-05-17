@@ -137,6 +137,10 @@ func (o *Operator) Start(ctx context.Context) error {
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
 func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
 
+	o.Logger.Info("Received new batch with proofs to verify",
+		"batch merkle root", newBatchLog.BatchMerkleRoot,
+	)
+
 	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
@@ -150,14 +154,6 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	}
 
 	return nil
-
-	// o.Logger.Info("Received new task with proof to verify",
-	// 	"proof length", proofLen,
-	// 	"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
-	// 	"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
-	// 	"task index", newBatchLog.TaskIndex,
-	// 	"task created block", newBatchLog.Task.TaskCreatedBlock,
-	// )
 }
 
 func (o *Operator) verify(verificationData VerificationData) bool {

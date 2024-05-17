@@ -79,7 +79,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	// tasks := make(map[uint32]servicemanager.AlignedLayerServiceManagerB)
 	tasks := make(map[uint32][32]byte)
 	operatorTaskResponses := make(map[[32]byte]*TaskResponsesWithStatus, 0)
 
