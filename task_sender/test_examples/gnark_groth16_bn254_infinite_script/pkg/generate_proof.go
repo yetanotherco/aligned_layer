@@ -24,7 +24,7 @@ type InequalityCircuit struct {
 }
 
 // Define declares the circuit constraints
-// x**3 + x + 5 == y
+// x != 0
 func (circuit *InequalityCircuit) Define(api frontend.API) error {
 	api.AssertIsDifferent(circuit.X, 0)
 	return nil
@@ -78,15 +78,15 @@ func GenerateIneqProof(x int) {
 	}
 
 	// Open files for writing the proof, the verification key and the public witness
-	proofFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_plonk.proof")
+	proofFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.proof")
 	if err != nil {
 		panic(err)
 	}
-	vkFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_plonk.vk")
+	vkFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.vk")
 	if err != nil {
 		panic(err)
 	}
-	witnessFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_plonk_pub_input.pub")
+	witnessFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.pub")
 	if err != nil {
 		panic(err)
 	}

@@ -6,6 +6,9 @@ import (
 	"os"
 	"strings"
 	"time"
+	"strconv"
+	"encoding/json"
+	"crypto/sha256"
 
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
@@ -92,14 +95,23 @@ var loopTasksFlags = []cli.Flag{
 
 var infiniteTasksFlags = []cli.Flag{
 	provingSystemFlag,
-	// proofFlag, //this doesn't go since it must generate a new one for each send
-	// publicInputFlag, //this doesn't go since it must generate a new one for each send
-	verificationKeyFlag, //tied to the circuit, in this case : 'x!=0 ?'
+	// proofFlag, //this doesn't go since it must generate a new one for each send //TODO fix since it is 'required'
+	// publicInputFlag, //this doesn't go since it must generate a new one for each send //TODO fix since it is 'required'
+	// verificationKeyFlag, //tied to the circuit, in this case : 'x!=0 ?' //TODO make it read only once, i think it is generating one for each new cycle
 	config.ConfigFileFlag,
 	intervalFlag,
 	feeFlag,
 	quorumThresholdFlag,
 	daFlag,
+}
+
+type VerificationData struct {
+	ProvingSystemId string
+	Proof           []byte
+	// FIXME(marian): These two fields should probably not be here.
+	// Just setting them for a PoC
+	PubInput        []byte
+	VerificationKey []byte
 }
 
 func main() {
@@ -111,7 +123,9 @@ func main() {
 				Usage:       "Send a single task to the verifier",
 				Description: "Service that sends proofs to verify by operator nodes.",
 				Flags:       sendTaskFlags,
-				Action:      taskSenderMain,
+				Action: func(c *cli.Context) error {
+					return taskSenderMain(c)
+				},
 			},
 			{
 				Name:        "loop-tasks",
@@ -136,7 +150,11 @@ func main() {
 	}
 }
 
-func taskSenderMain(c *cli.Context) error {
+func taskSenderMain(c *cli.Context, xParam ...int) error {
+	x := 0
+	if len(xParam) > 0 {
+		x = xParam[0]
+	}
 
 	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
 	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
@@ -146,22 +164,43 @@ func taskSenderMain(c *cli.Context) error {
 
 	taskSender := pkg.NewTaskSender(taskSenderConfig, avsWriter)
 
-	// TODO(marian): Remove this hardcoded merkle root
-	// TODO merkle root should be calculated from the hash of:
-	// type VerificationData struct {
-	// 	ProvingSystemId common.ProvingSystemId
-	// 	Proof           []byte
-	// 	// FIXME(marian): These two fields should probably not be here.
-	// 	// Just setting them for a PoC
-	// 	PubInput        []byte
-	// 	VerificationKey []byte
-	// }
 	var batchMerkleRoot [32]byte
-	batchMerkleRoot[0] = byte(2)
-	batchMerkleRoot[1] = byte(3)
+	var batchDataPointer string
 
-	// TODO(marian): Remove this dummy S3 url
-	batchDataPointer := "aligned.awesome.batch.s3.com"
+	if x == 0 { //use hardcoded value
+		// TODO(marian): Remove this hardcoded merkle root
+		batchMerkleRoot[0] = byte(2)
+		batchMerkleRoot[1] = byte(3)
+		// TODO(marian): Remove this dummy S3 url
+		batchDataPointer = "aligned.awesome.batch.s3.com"
+	} else { //we can calculate the real value
+		outputDir := "task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/"
+		ProofByteArray, err := os.ReadFile(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.proof") //TODO un-hardcode provingSystem
+		if err != nil {
+			return err
+		}
+		PubInputByteArray, err := os.ReadFile(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.pub")
+		if err != nil {
+			return err
+		}
+		VerificationKeyByteArray, err := os.ReadFile(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.vk")
+		if err != nil {
+			return err
+		}
+		data := VerificationData{
+			ProvingSystemId: provingSystemFlag.Value,
+			Proof:           ProofByteArray,
+			PubInput:        PubInputByteArray,
+			VerificationKey: VerificationKeyByteArray,
+		}
+		byteArray, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+		batchMerkleRoot = sha256.Sum256(byteArray)
+		batchDataPointer = outputDir + "ineq_" + strconv.Itoa(x) + "_groth16"
+	}
+
 
 	task := pkg.NewTask(batchMerkleRoot, batchDataPointer)
 
@@ -198,31 +237,14 @@ func taskSenderInfiniteMain(c *cli.Context) error {
 
 	x := 0
 	for {
-		// TODO send a different task each time, holding an incrementing value for each task
-		// run generate_groth16_proof(counter)
 		x += 1
-
+		// TODO: Generate proof
 		generateproof.GenerateIneqProof(x)
-		err := taskSenderMain(c)
+		// TODO send proof to task sender
+		err := taskSenderMain(c, x)
 		if err != nil {
 			return err
 		}
-
-		// Change the proof file
-		proofFile := c.String(proofFlag.Name)
-		proofFile = strings.Replace(proofFile, "proof", "proof2", 1)
-		c.Set(proofFlag.Name, proofFile)
-
-		// Change the public input file
-		publicInputFile := c.String(publicInputFlag.Name)
-		publicInputFile = strings.Replace(publicInputFile, "public_input", "public_input2", 1)
-		c.Set(publicInputFlag.Name, publicInputFile)
-
-		// Change the verification key file
-		verificationKeyFile := c.String(verificationKeyFlag.Name)
-		verificationKeyFile = strings.Replace(verificationKeyFile, "verification_key", "verification_key2", 1)
-		c.Set(verificationKeyFlag.Name, verificationKeyFile)
-
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
 }

@@ -188,12 +188,11 @@ send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task send
 		2>&1 | zap-pretty
 
 send_groth26_bn254_proof_infinite: ## Send a different Groth16 BN254 proof using the task sender every 10 seconds
-	@echo "Sending a different GROTH16 BN254 proof in a loop every 10 seconds..."
+	@echo "Sending a different GROTH16 BN254 proof in a loop every 5 seconds..."
 	@go run task_sender/cmd/main.go infinite-tasks \
 		--proving-system groth16_bn254 \
-		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
-		--interval 10 \
+		--interval 5 \
 		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
@@ -204,7 +203,7 @@ generate_groth16_proof: ## Run the gnark_plonk_bn254_script
 
 generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254_ineq script..."
-	@go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/main.go 2
+	@go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/main.go 1
 
 send_sp1_proof:
 	@go run task_sender/cmd/main.go send-task \
