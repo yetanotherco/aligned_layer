@@ -12,6 +12,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
+	generate_proof "github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/generate_proof"
 )
 
 var (
@@ -89,6 +90,18 @@ var loopTasksFlags = []cli.Flag{
 	daFlag,
 }
 
+var infiniteTasksFlags = []cli.Flag{
+	provingSystemFlag,
+	// proofFlag, //this doesn't go since it must generate a new one for each send
+	// publicInputFlag, //this doesn't go since it must generate a new one for each send
+	verificationKeyFlag, //tied to the circuit, in this case : 'x!=0 ?'
+	config.ConfigFileFlag,
+	intervalFlag,
+	feeFlag,
+	quorumThresholdFlag,
+	daFlag,
+}
+
 func main() {
 	app := &cli.App{
 		Name: "Aligned Layer Task Sender",
@@ -106,6 +119,13 @@ func main() {
 				Description: "Service that sends proofs to verify by operator nodes.",
 				Flags:       loopTasksFlags,
 				Action:      taskSenderLoopMain,
+			},
+			{
+				Name:        "infinite-tasks",
+				Usage:       "Send a different task every `INTERVAL` seconds",
+				Description: "Service that sends proofs to verify by operator nodes.",
+				Flags:       infiniteTasksFlags,
+				Action:      taskSenderInfiniteMain,
 			},
 		},
 	}
@@ -127,6 +147,15 @@ func taskSenderMain(c *cli.Context) error {
 	taskSender := pkg.NewTaskSender(taskSenderConfig, avsWriter)
 
 	// TODO(marian): Remove this hardcoded merkle root
+	// TODO merkle root should be calculated from the hash of:
+	// type VerificationData struct {
+	// 	ProvingSystemId common.ProvingSystemId
+	// 	Proof           []byte
+	// 	// FIXME(marian): These two fields should probably not be here.
+	// 	// Just setting them for a PoC
+	// 	PubInput        []byte
+	// 	VerificationKey []byte
+	// }
 	var batchMerkleRoot [32]byte
 	batchMerkleRoot[0] = byte(2)
 	batchMerkleRoot[1] = byte(3)
@@ -156,6 +185,44 @@ func taskSenderLoopMain(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
+}
+
+func taskSenderInfiniteMain(c *cli.Context) error {
+	interval := c.Int(intervalFlag.Name)
+
+	if interval < 1 {
+		return fmt.Errorf("interval must be greater than 0")
+	}
+
+	x := 0
+	for {
+		// TODO send a different task each time, holding an incrementing value for each task
+		// run generate_groth16_proof(counter)
+		x += 1
+
+		generate_proof.generate_ineq_proof(x)
+		err := taskSenderMain(c)
+		if err != nil {
+			return err
+		}
+
+		// Change the proof file
+		proofFile := c.String(proofFlag.Name)
+		proofFile = strings.Replace(proofFile, "proof", "proof2", 1)
+		c.Set(proofFlag.Name, proofFile)
+
+		// Change the public input file
+		publicInputFile := c.String(publicInputFlag.Name)
+		publicInputFile = strings.Replace(publicInputFile, "public_input", "public_input2", 1)
+		c.Set(publicInputFlag.Name, publicInputFile)
+
+		// Change the verification key file
+		verificationKeyFile := c.String(verificationKeyFlag.Name)
+		verificationKeyFile = strings.Replace(verificationKeyFile, "verification_key", "verification_key2", 1)
+		c.Set(verificationKeyFlag.Name, verificationKeyFile)
+
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
 }

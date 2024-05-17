@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"fmt"
@@ -28,15 +28,6 @@ type InequalityCircuit struct {
 func (circuit *InequalityCircuit) Define(api frontend.API) error {
 	api.AssertIsDifferent(circuit.X, 0)
 	return nil
-}
-
-func main() {
-	x, err := strconv.Atoi(os.Args[1])
-	if err != nil {
-		panic("error parsing input")
-	}
-
-	generate_ineq_proof(x)
 }
 
 func generate_ineq_proof(x int) {
