@@ -8,10 +8,9 @@ import (
 	"net/http"
 )
 
-func (o *Operator) getBatchFromS3(proofHash string) ([]VerificationData, error) {
-	log.Println("Getting batch from S3..., proofHash:", proofHash)
-	url := o.Config.S3BucketConfig.Url + proofHash
-	resp, err := http.Get(url)
+func (o *Operator) getBatchFromS3(proofUrl string) ([]VerificationData, error) {
+	log.Println("Getting batch from S3..., proofUrl:", proofUrl)
+	resp, err := http.Get(proofUrl)
 	if err != nil {
 		return nil, err
 	}

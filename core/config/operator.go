@@ -16,7 +16,6 @@ type OperatorConfig struct {
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
 	EigenDADisperserConfig       *EigenDAConfig
 	CelestiaConfig               *CelestiaConfig
-	S3BucketConfig               *S3BucketConfig
 
 	Operator struct {
 		AggregatorServerIpPortAddress string
@@ -74,8 +73,6 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 
 	celestiaConfig := NewCelestiaConfig(configFilePath, perms.ReadPerms)
 
-	s3BucketConfig := NewS3BucketConfig(configFilePath)
-
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
 		EcdsaConfig:                  ecdsaConfig,
@@ -83,7 +80,6 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		EigenDADisperserConfig:       eigenDADisperserConfig,
 		CelestiaConfig:               celestiaConfig,
-		S3BucketConfig:               s3BucketConfig,
 		Operator: struct {
 			AggregatorServerIpPortAddress string
 			Address                       common.Address
