@@ -107,7 +107,7 @@ func GenerateIneqProof(x int) {
 		panic("could not serialize proof into file")
 	}
 
-	fmt.Println("Proof written into groth16_cubic_circuit.proof")
+	fmt.Println("Proof written into ineq_{x}_groth16.proof")
 	fmt.Println("Verification key written into groth16_verification_key")
 	fmt.Println("Public witness written into witness.pub")
 }
