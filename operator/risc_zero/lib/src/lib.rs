@@ -21,7 +21,7 @@ mod tests {
 
     const RECEIPT: &[u8] =
         include_bytes!("../../../../task_sender/test_examples/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
-    const IMAGE_ID: &[u32; 8] = &[2168696514, 4069298130, 1005557306, 3274294743, 1735077096, 3539040653, 808254153, 306297660];
+    const IMAGE_ID: &[u32; 8] = &[3090655438, 2953112184, 965953788, 2757110989, 1044116726, 4262054234, 2330742163, 3902204400];
 
     #[test]
     fn verify_risc_zero_receipt_with_image_id_works() {

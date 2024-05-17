@@ -17,7 +17,7 @@ func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 
-	imageId := []uint32{2168696514, 4069298130, 1005557306, 3274294743, 1735077096, 3539040653, 808254153, 306297660}
+	imageId := []uint32{3090655438, 2953112184, 965953788, 2757110989, 1044116726, 4262054234, 2330742163, 3902204400}
 
 	if !risc_zero.VerifyRiscZeroReceipt(([risc_zero.MaxReceiptSize]byte)(receiptBytes), uint(nReadReceiptBytes), ([risc_zero.MaxImageIdSize]uint32)(imageId)) {
 		t.Errorf("proof did not verify")

@@ -10,4 +10,4 @@ methods/guest/Cargo.lock
 .DS_Store
 
 # Proofs
-**/risc_zero_fibonacci.proof
+#**/risc_zero_fibonacci.proof
