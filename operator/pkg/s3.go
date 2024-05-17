@@ -29,10 +29,10 @@ func (o *Operator) getBatchFromS3(proofHash string) ([]VerificationData, error) 
 
 	var batch []VerificationData
 
-	//var verificationData VerificationData
 	err = json.Unmarshal(proof, &batch)
 	if err != nil {
 		return nil, err
+	}
 
 	return batch, nil
 }
