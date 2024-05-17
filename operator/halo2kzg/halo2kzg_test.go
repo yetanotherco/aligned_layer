@@ -19,7 +19,6 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
-	fmt.Println("Length of proof input bytes:", nReadProofBytes)
 
 	paramsFile, err := os.Open("./lib/verification_key.bin")
 	if err != nil {
@@ -41,8 +40,6 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
-	fmt.Println("Length of vk bytes:", nReadVkBytes)
-	fmt.Println("Length of kzg params bytes:", nReadKzgParamsBytes)
 
 	publicInputFile, err := os.Open("./lib/pub_input.bin")
 	if err != nil {
@@ -53,7 +50,6 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
-	fmt.Println("Length of public input bytes:", nReadPublicInputBytes)
 
 	if !halo2kzg.VerifyHalo2KzgProof(
 		([halo2kzg.MaxProofSize]byte)(proofBytes), uint(nReadProofBytes), 
