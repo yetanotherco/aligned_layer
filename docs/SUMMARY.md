@@ -12,6 +12,10 @@
 * [Learning Resources](about_aligned/learning_resources.md)
 * [FAQ](about_aligned/FAQ.md)
 
+## Contract
+
+* [AlignedLayerServiceManager](contract/service_manager.md)
+
 ## Links
 
 * [Telegram Group](https://t.me/aligned_layer)
