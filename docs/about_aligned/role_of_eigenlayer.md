@@ -12,7 +12,7 @@ To overcome these restrictions, you can:
 
 That's why we created Aligned: a verification layer secured by the pooled security of Ethereum stakers.
 
-## About Slashing mechanism.
+## About Slashing mechanism
 
 Cryptoeconomic security quantifies the cost that someone must bear in order to cause a protocol to lose a desired security property. Referred to as the Cost-of-Corruption (CoC), if the expenses related to corruption are greater than any possible gains, the system is seen as having robust security.
 
