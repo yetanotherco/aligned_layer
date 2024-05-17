@@ -18,7 +18,7 @@ bls:
   private_key_store_password: ""
 
 ## EigenDA Configurations
-eigen_da_disperser:
+eigen_da:
   url: "disperser-holesky.eigenda.xyz"
 
 ## Celestia Configurations
@@ -32,6 +32,7 @@ aggregator:
   bls_public_key_compendium_address: 0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44
   avs_service_manager_address: 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690
   enable_metrics: true
+  metrics_ip_port_address: localhost:9091
 
 ## Operator Configurations
 operator:

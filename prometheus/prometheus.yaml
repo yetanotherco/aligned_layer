@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+
+# A scrape configuration containing exactly one endpoint to scrape.
+scrape_configs:
+
+  - job_name: "aligned-aggregator"
+    scrape_interval: 1s
+    static_configs:
+      - targets: ["host.docker.internal:9091"]
+        labels:
+          bot: "aggregator"

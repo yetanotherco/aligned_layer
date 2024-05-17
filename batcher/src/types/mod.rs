@@ -1,8 +1,7 @@
-use std::fmt::Debug;
 use bytes::Bytes;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use serde::{Deserialize, Serialize};
-use sha3::{Digest, Sha3_256};
+use sha3::{Digest, Keccak256};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub enum ProvingSystemId {
@@ -14,30 +13,30 @@ pub enum ProvingSystemId {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct Task {
+pub struct VerificationData {
     pub proving_system: ProvingSystemId,
     pub proof: Vec<u8>,
-    pub public_input: Vec<u8>,
-    pub verification_key: Vec<u8>,
-    pub quorum_numbers: Vec<u8>,
-    pub quorum_threshold_percentages: Vec<u8>,
-    pub fee: u64,
+    pub public_input: Option<Vec<u8>>,
+    pub verification_key: Option<Vec<u8>>,
+    pub vm_program_code: Option<Vec<u8>>,
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct VerificationBatch(Vec<VerificationData>);
 
-impl IsMerkleTreeBackend for Task {
+impl IsMerkleTreeBackend for VerificationBatch {
     type Node = Bytes;
-    type Data = Task;
+    type Data = VerificationData;
 
     fn hash_data(leaf: &Self::Data) -> Self::Node {
         let leaf_bytes = bincode::serialize(leaf).expect("Failed to serialize leaf");
-        let mut hasher = Sha3_256::new();
+        let mut hasher = Keccak256::new();
         hasher.update(&leaf_bytes);
         hasher.finalize().to_vec().into()
     }
 
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
-        let mut hasher = Sha3_256::new();
+        let mut hasher = Keccak256::new();
         hasher.update(child_1);
         hasher.update(child_2);
         hasher.finalize().to_vec().into()
