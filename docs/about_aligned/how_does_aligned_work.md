@@ -1,6 +1,6 @@
 # How does Aligned work?
 
-## Aligned architecture:
+## Aligned architecture
 
 The core elements are:
 
@@ -12,7 +12,7 @@ The core elements are:
   
 - Ethereum: The source of trust and liquility.
 
-### Interaction between the main components:
+### Interaction between the main components
 
 ![Figure 1: Core components](../images/diagram.png)
 
