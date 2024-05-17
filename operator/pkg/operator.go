@@ -14,6 +14,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -288,26 +289,26 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 		//Extract Verification Key Bytes
 		vkBytes := newTaskCreateLog.Task.VerificationKey
-		vkBytes := make([]byte, halo2.MaxVerificationKeySize)
-		copy(vkBytes, vkBytes[:halo2.MaxVerificationKeySize])
+		vkBytes := make([]byte, halo2kzg.MaxVerificationKeySize)
+		copy(vkBytes, vkBytes[:halo2kzg.MaxVerificationKeySize])
 		vkLen := (uint)(len(vkBytes))
 
 		//Extract Verification Key Bytes
-		kzgParamsBytes := make([]byte,(halo2.MaxKZGParamsSize))
-		copy(kzgParamsBytes, verificationKeyBytes[halo2.MaxVerificationKeySize:])
+		kzgParamsBytes := make([]byte,(halo2kzg.MaxKZGParamsSize))
+		copy(kzgParamsBytes, verificationKeyBytes[halo2kzg.MaxVerifierKeySize:])
 		kzgParamLen := (uint)(len(kzgParamsBytes))
 
 		//Extract Public Input Bytes
 		publicInput := newTaskCreatedLog.Task.PubInput
-		publicInputBytes := make([]byte, halo2.MaxPublicInputSize)
+		publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
 		copy(publicInputBytes, publicInput)
 		publicInputLen := (uint)(len(publicInput))
 
-		verificationResult := halo2Kzg.VerifyHalo2Proof(
-			([halo2Kzg.MaxProofSize]byte)(proofBytes), proofLen, 
-			([halo2Kzg.MaxVerifierParamsBufferSize]byte)(vkBytes), vkLen, 
-			([halo2Kzg.MaxKZGParamsSize]byte)(kzgParamsBytes), kzgParamLen, 
-			([halo2Kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,
+		verificationResult := halo2kzg.VerifyHalo2KzgProof(
+			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
+			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamLen, 
+			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 
 		o.Logger.Infof("Halo2 proof verification result: %t", verificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
@@ -315,7 +316,6 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 			ProofIsCorrect: verificationResult,
 		}
 		return taskResponse
-	*/
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
