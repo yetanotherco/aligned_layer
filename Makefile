@@ -211,6 +211,11 @@ send_sp1_proof:
     		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
 
+__METRICS__:
+run_metrics: ## Run metrics using metrics-docker-compose.yaml
+	@echo "Running metrics..."
+	@docker-compose -f metrics-docker-compose.yaml up
+
 __DEPLOYMENT__:
 deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
