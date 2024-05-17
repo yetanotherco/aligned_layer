@@ -1,4 +1,4 @@
-## AlignedLayerServiceManager:
+## AlignedLayerServiceManager
 
 The [AlignedLayerServiceManager contract](https://github.com/yetanotherco/aligned_layer/blob/main/contracts/src/core/AlignedLayerServiceManager.sol) serves the purpose of confirming data stored by the disperser using inferred aggregated signatures of the quorum and freezing operators in response to various challenges. It imports contracts from [EigenLayer core contracts](https://github.com/Layr-Labs/eigenlayer-contracts/tree/master) and [EigenLayer Middleware contracts](https://github.com/Layr-Labs/eigenlayer-middleware) and is still under development.
  
