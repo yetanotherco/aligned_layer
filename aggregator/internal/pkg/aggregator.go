@@ -2,10 +2,11 @@ package pkg
 
 import (
 	"context"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/yetanotherco/aligned_layer/metrics"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/yetanotherco/aligned_layer/metrics"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -13,6 +14,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
 	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorpubkeys"
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -20,6 +22,10 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
+
+// FIXME(marian): Read this from Aligned contract directly
+const QUORUM_NUMBER = byte(0)
+const QUORUM_THRESHOLD = byte(67)
 
 // Aggregator stores TaskResponse for a task here
 type TaskResponsesWithStatus struct {
@@ -29,7 +35,7 @@ type TaskResponsesWithStatus struct {
 
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
-	NewTaskCreatedChan    chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
+	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
@@ -38,20 +44,25 @@ type Aggregator struct {
 
 	// Using map here instead of slice to allow for easy lookup of tasks, when aggregator is restarting,
 	// its easier to get the task from the map instead of filling the slice again
-	tasks map[uint32]servicemanager.AlignedLayerServiceManagerTask
+	tasks map[uint32][32]byte
 	// Mutex to protect the tasks map
 	tasksMutex *sync.Mutex
 
-	OperatorTaskResponses map[uint32]*TaskResponsesWithStatus
+	OperatorTaskResponses map[[32]byte]*TaskResponsesWithStatus
 	// Mutex to protect the taskResponses map
 	taskResponsesMutex *sync.Mutex
 	logger             logging.Logger
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+
+	// FIXME(marian): This is a hacky workaround to send some sensible index to the BLS aggregation service,
+	// which needs a task index.
+	taskCounter      uint32
+	taskCounterMutex *sync.Mutex
+	metricsReg       *prometheus.Registry
+	metrics          *metrics.Metrics
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
+	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
@@ -68,8 +79,8 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	tasks := make(map[uint32]servicemanager.AlignedLayerServiceManagerTask)
-	operatorTaskResponses := make(map[uint32]*TaskResponsesWithStatus, 0)
+	tasks := make(map[uint32][32]byte)
+	operatorTaskResponses := make(map[[32]byte]*TaskResponsesWithStatus, 0)
 
 	chainioConfig := sdkclients.BuildAllConfig{
 		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
@@ -93,6 +104,9 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.AvsRegistryReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, logger)
 
+	// Explicitly initializing this value just in case.
+	taskCounter := uint32(0)
+
 	// Metrics
 	reg := prometheus.NewRegistry()
 	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
@@ -102,13 +116,15 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsReader:             avsReader,
 		avsSubscriber:         avsSubscriber,
 		avsWriter:             avsWriter,
-		NewTaskCreatedChan:    newTaskCreatedChan,
+		NewBatchChan:          newBatchChan,
 		tasks:                 tasks,
 		tasksMutex:            &sync.Mutex{},
 		OperatorTaskResponses: operatorTaskResponses,
 		taskResponsesMutex:    &sync.Mutex{},
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
+		taskCounter:           taskCounter,
+		taskCounterMutex:      &sync.Mutex{},
 		metricsReg:            reg,
 		metrics:               aggregatorMetrics,
 	}
@@ -178,41 +194,43 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	)
 
 	agg.tasksMutex.Lock()
-	task := agg.tasks[blsAggServiceResp.TaskIndex]
+	batchMerkleRoot := agg.tasks[blsAggServiceResp.TaskIndex]
 	agg.tasksMutex.Unlock()
 
-	agg.taskResponsesMutex.Lock()
-	// FIXME(marian): Not sure how this should be handled. Getting the first one for now
-	taskResponse := agg.OperatorTaskResponses[blsAggServiceResp.TaskIndex].taskResponses[0].TaskResponse
-	agg.taskResponsesMutex.Unlock()
-	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), task, taskResponse, nonSignerStakesAndSignature)
+	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.logger.Error("Aggregator failed to respond to task", "err", err)
 	}
 }
 
-func (agg *Aggregator) AddNewTask(index uint32, task servicemanager.AlignedLayerServiceManagerTask) {
-	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "taskIndex", index, "task", task)
+func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
+
+	agg.taskCounterMutex.Lock()
+	agg.taskCounter++
+	agg.taskCounterMutex.Unlock()
+
 	agg.tasksMutex.Lock()
-	if _, ok := agg.tasks[index]; ok {
-		agg.logger.Warn("Task already exists", "taskIndex", index)
+	if _, ok := agg.tasks[agg.taskCounter]; ok {
+		agg.logger.Warn("Task already exists", "taskIndex", agg.taskCounter)
 		agg.tasksMutex.Unlock()
 		return
 	}
-	agg.tasks[index] = task
+	agg.tasks[agg.taskCounter] = batchMerkleRoot
 	agg.tasksMutex.Unlock()
+
 	agg.taskResponsesMutex.Lock()
-	agg.OperatorTaskResponses[index] = &TaskResponsesWithStatus{
+	agg.OperatorTaskResponses[batchMerkleRoot] = &TaskResponsesWithStatus{
 		taskResponses:       make([]types.SignedTaskResponse, 0),
 		submittedToEthereum: false,
 	}
 	agg.taskResponsesMutex.Unlock()
 
-	quorumNums := utils.BytesToQuorumNumbers(task.QuorumNumbers)
-	quorumThresholdPercentages := utils.BytesToQuorumThresholdPercentages(task.QuorumThresholdPercentages)
+	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
+	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
 	// FIXME(marian): Hardcoded value of timeToExpiry to 100s. How should be get this value?
-	err := agg.blsAggregationService.InitializeNewTask(index, task.TaskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	err := agg.blsAggregationService.InitializeNewTask(agg.taskCounter, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
