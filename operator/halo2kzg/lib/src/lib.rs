@@ -51,11 +51,6 @@ kzg_params_len: usize,
 public_input_bytes: &[u8; MAX_PUBLIC_INPUT_SIZE],
 public_input_len: usize,
 ) -> bool {
-    //Print everything for debugging
-    println!("proof_len: {:?}", proof_len);
-    println!("vk_len: {:?}", vk_len);
-    println!("kzg_params_len: {:?}", kzg_params_len);
-    println!("public_input_len: {:?}", public_input_len);
     let k = 4;
     let circuit = StandardPlonk(Fr::random(OsRng));
     let compress_selectors = true;
