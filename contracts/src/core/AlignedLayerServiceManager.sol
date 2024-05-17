@@ -74,6 +74,11 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
     ) external payable {
+        require(
+            batchesState[batchMerkleRoot].taskCreatedBlock == 0,
+            "Batch was already verified"
+        );
+
         BatchState memory batchState;
 
         batchState.taskCreatedBlock = uint32(block.number);
