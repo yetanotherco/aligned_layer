@@ -5,7 +5,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::connect_async;
 
-use batcher::types::{ProvingSystemId, Task};
+use batcher::types::{ProvingSystemId, VerificationData};
 use log::error;
 
 #[tokio::main]
@@ -24,17 +24,15 @@ async fn main() {
         std::fs::read("./test_files/sp1/sp1_fibonacci.proof").expect("Failed to read proof file");
 
     // Read public input file
-    let public_input = std::fs::read("./test_files/sp1/riscv32im-succinct-zkvm-elf")
+    let vm_program_code = std::fs::read("./test_files/sp1/riscv32im-succinct-zkvm-elf")
         .expect("Failed to read public input file");
 
-    let task = Task {
+    let task = VerificationData {
         proving_system: ProvingSystemId::SP1,
         proof,
-        public_input,
-        verification_key: vec![5, 6, 7, 8],
-        quorum_numbers: vec![0],
-        quorum_threshold_percentages: vec![100],
-        fee: 123,
+        public_input: None,
+        verification_key: None,
+        vm_program_code: Some(vm_program_code),
     };
 
     let (mut write, read) = ws_stream.split();

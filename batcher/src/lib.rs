@@ -15,7 +15,7 @@ use bytes::Bytes;
 use sha3::{Digest, Sha3_256};
 use tokio::sync::Mutex;
 
-use crate::types::Task;
+use crate::types::VerificationData;
 
 pub mod types;
 pub mod s3;
@@ -27,7 +27,7 @@ pub trait Listener {
 pub struct App {
     s3_client: S3Client,
     sp1_prover_client: ProverClient,
-    current_batch: Mutex<Vec<Task>>,
+    current_batch: Mutex<Vec<VerificationData>>,
 }
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
@@ -103,15 +103,19 @@ impl App {
         // TODO: Handle errors
 
         // Deserialize task from message
-        let task: Task = serde_json::from_str(message.to_text().expect("Message is not text"))
+        let verification_data: VerificationData = serde_json::from_str(message.to_text().expect("Message is not text"))
             .expect("Failed to deserialize task");
 
-        let proof = task.proof.as_slice();
-        let elf = task.public_input.as_slice();
+        let proof = verification_data.proof.as_slice();
+        let vm_program_code = verification_data.vm_program_code.as_ref();
 
         // switch on proving system
-        let response = match task.proving_system {
+        let response = match verification_data.proving_system {
             types::ProvingSystemId::SP1 => {
+                let elf = vm_program_code.expect("VM program code is required");
+
+                let elf = elf.as_slice();
+
                 self.verify_sp1_proof(proof, elf).await
             }
             _ => {
@@ -122,10 +126,10 @@ impl App {
 
         let response = match response {
             Ok(_) => {
-                let task_bytes = bincode::serialize(&task)
+                let task_bytes = bincode::serialize(&verification_data)
                     .expect("Failed to bincode serialize task");
 
-                self.add_task(task).await;
+                self.add_task(verification_data).await;
 
                 let task_bytes = Bytes::from(task_bytes);
                 let mut hasher = Sha3_256::new();
@@ -159,11 +163,11 @@ impl App {
         Ok(())
     }
 
-    pub async fn add_task(&self, task: Task) {
+    pub async fn add_task(&self, verification_data: VerificationData) {
         debug!("Adding task to batch");
 
         let mut current_batch = self.current_batch.lock().await;
-        current_batch.push(task);
+        current_batch.push(verification_data);
 
         debug!("Batch size: {}", current_batch.len());
         if current_batch.len() < 2 {

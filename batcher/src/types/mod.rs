@@ -9,12 +9,10 @@ pub enum ProvingSystemId {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Task {
+pub struct VerificationData {
     pub proving_system: ProvingSystemId,
     pub proof: Vec<u8>,
-    pub public_input: Vec<u8>,
-    pub verification_key: Vec<u8>,
-    pub quorum_numbers: Vec<u8>,
-    pub quorum_threshold_percentages: Vec<u8>,
-    pub fee: u64,
+    pub public_input: Option<Vec<u8>>,
+    pub verification_key: Option<Vec<u8>>,
+    pub vm_program_code: Option<Vec<u8>>
 }
