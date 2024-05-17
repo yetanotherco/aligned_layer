@@ -12,13 +12,6 @@ import (
 type Task struct {
 	BatchMerkleRoot  [32]byte
 	batchDataPointer string
-	// ProvingSystem              common.ProvingSystemId
-	// DAPayload                  serviceManager.AlignedLayerServiceManagerDAPayload
-	// PublicInput                []byte
-	// VerificationKey            []byte
-	// QuorumNumbers              types.QuorumNums
-	// QuorumThresholdPercentages types.QuorumThresholdPercentages
-	// Fee                        *big.Int
 }
 
 func NewTask(batchMerkleRoot [32]byte, batchDataPointer string) *Task {

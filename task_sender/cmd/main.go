@@ -164,11 +164,6 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	taskSender := pkg.NewTaskSender(taskSenderConfig, avsWriter)
-	// quorumThresholdPercentage := c.Uint(quorumThresholdFlag.Name)
-
-	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
-	// quorumNumbers := eigentypes.QuorumNums{0}
-	// quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
 
 	// var DAPayload *contractAlignedLayerServiceManager.AlignedLayerServiceManagerDAPayload
 	// switch daSol {
