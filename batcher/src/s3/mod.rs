@@ -17,7 +17,7 @@ pub async fn create_client() -> Client {
 pub async fn upload_object(
     client: &Client,
     bucket_name: &str,
-    bytes: Bytes,
+    bytes: Vec<u8>,
     key: &str,
 ) -> Result<PutObjectOutput, SdkError<PutObjectError>> {
     let body = ByteStream::from(bytes);
