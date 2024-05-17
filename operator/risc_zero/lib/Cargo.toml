@@ -1,0 +1,11 @@
+[package]
+name = "risc_zero_verifier_ffi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+risc0-zkvm = { version = "0.21.0" }
+bincode = "1.3.3"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
