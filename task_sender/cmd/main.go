@@ -213,7 +213,7 @@ func taskSenderLoopMain(c *cli.Context) error {
 	}
 }
 
-func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
+func ParseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
 	provingSystemStr = strings.TrimSpace(provingSystemStr)
 	switch provingSystemStr {
 	case "plonk_bls12_381":

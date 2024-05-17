@@ -46,17 +46,8 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
 
-	// Check if the task exists. If not, get the task from the contract, and store it in the tasks map
-	// If the task does not exist, return an error
 	if _, ok := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]; !ok {
-		fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
-		// task, err := agg.avsReader.GetNewTaskCreated(taskIndex)
-		// if err != nil {
-		// 	agg.AggregatorConfig.BaseConfig.Logger.Error("Task does not exist", "taskIndex", taskIndex)
-		// 	*reply = 1
-		// 	return fmt.Errorf("task %d does not exist", taskIndex)
-		// }
-		agg.AddNewTask(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.TaskCreatedBlock)
+		return fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
 	}
 
 	// TODO: Check if the task response is valid
@@ -65,13 +56,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	taskResponses.taskResponses = append(
 		agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot].taskResponses,
 		*signedTaskResponse)
-
-	// NOTE(marian): Instead of using `taskResponseDigest`, we use directly `batchMerkleRoot`. Is this ok?
-	// taskResponseDigest, err := utils.TaskResponseDigest(&signedTaskResponse)
-	// if err != nil {
-	// 	return err
-	// }
-	agg.taskResponsesMutex.Unlock()
 
 	agg.taskCounterMutex.Lock()
 	taskIndex := agg.taskCounter
