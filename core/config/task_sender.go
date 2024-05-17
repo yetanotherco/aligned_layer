@@ -7,10 +7,8 @@ import (
 )
 
 type TaskSenderConfig struct {
-	BaseConfig     *BaseConfig
-	EcdsaConfig    *EcdsaConfig
-	EigenDAConfig  *EigenDAConfig
-	CelestiaConfig *CelestiaConfig
+	BaseConfig  *BaseConfig
+	EcdsaConfig *EcdsaConfig
 }
 
 type TaskSenderConfigFromYaml struct {
