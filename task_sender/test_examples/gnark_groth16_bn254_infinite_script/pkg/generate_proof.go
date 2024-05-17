@@ -30,7 +30,7 @@ func (circuit *InequalityCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func generate_ineq_proof(x int) {
+func GenerateIneqProof(x int) {
 	outputDir := "task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/"
 
 	var circuit InequalityCircuit

@@ -12,7 +12,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
-	generate_proof "github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/generate_proof"
+	generateproof "github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/pkg"
 )
 
 var (
@@ -202,7 +202,7 @@ func taskSenderInfiniteMain(c *cli.Context) error {
 		// run generate_groth16_proof(counter)
 		x += 1
 
-		generate_proof.generate_ineq_proof(x)
+		generateproof.GenerateIneqProof(x)
 		err := taskSenderMain(c)
 		if err != nil {
 			return err

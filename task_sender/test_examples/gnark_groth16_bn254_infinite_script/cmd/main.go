@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/pkg"
 	"os"
 	"strconv"
-	pkg "github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/pkg"
 )
 
 func main() {
@@ -12,5 +12,5 @@ func main() {
 		panic("error parsing input")
 	}
 
-	pkg.generate_ineq_proof(x)
+	pkg.GenerateIneqProof(x)
 }
