@@ -117,67 +117,14 @@ func main() {
 }
 
 func taskSenderMain(c *cli.Context) error {
-	// provingSystem, err := parseProvingSystem(c.String(provingSystemFlag.Name))
-	// if err != nil {
-	// 	return fmt.Errorf("error getting verification system: %v", err)
-	// }
 
-	// proofFile, err := os.ReadFile(c.String(proofFlag.Name))
-	// if err != nil {
-	// 	return fmt.Errorf("error loading proof file: %v", err)
-	// }
-
-	// publicInputFile, err := os.ReadFile(c.String(publicInputFlag.Name))
-	// if err != nil {
-	// 	return fmt.Errorf("error loading public input file: %v", err)
-	// }
-
-	// var verificationKeyFile []byte
-	// if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 || provingSystem == common.Groth16Bn254 {
-	// 	if len(c.String("verification-key")) == 0 {
-	// 		return fmt.Errorf("the proving system needs a verification key but it is empty")
-	// 	}
-	// 	verificationKeyFile, err = os.ReadFile(c.String(verificationKeyFlag.Name))
-	// 	if err != nil {
-	// 		return fmt.Errorf("error loading verification key file: %v", err)
-	// 	}
-	// }
-
-	// fee := big.NewInt(int64(c.Int(feeFlag.Name)))
-
-	var daSol common.DASolution
-	switch c.String(daFlag.Name) {
-	case "calldata":
-		daSol = common.Calldata
-	case "eigen":
-		daSol = common.EigenDA
-	case "celestia":
-		daSol = common.Celestia
-	default:
-		return fmt.Errorf("unsupported DA, must be one of: calldata, eigen, celestia")
-	}
-
-	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name), daSol)
+	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
 	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
 	if err != nil {
 		return err
 	}
 
 	taskSender := pkg.NewTaskSender(taskSenderConfig, avsWriter)
-
-	// var DAPayload *contractAlignedLayerServiceManager.AlignedLayerServiceManagerDAPayload
-	// switch daSol {
-	// case common.Calldata:
-	// 	DAPayload, err = taskSender.PostProofOnCalldata(proofFile)
-	// case common.EigenDA:
-	// 	DAPayload, err = taskSender.PostProofOnEigenDA(proofFile)
-	// default: // Celestia
-	// 	DAPayload, err = taskSender.PostProofOnCelestia(proofFile)
-	// }
-
-	// if err != nil {
-	// 	return err
-	// }
 
 	// TODO(marian): Remove this hardcoded merkle root
 	var batchMerkleRoot [32]byte
