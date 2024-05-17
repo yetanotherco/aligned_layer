@@ -174,7 +174,7 @@ impl App {
             return;
         }
 
-        let batch_bytes = bincode::serialize(current_batch.as_slice())
+        let batch_string = serde_json::to_string(current_batch.as_slice())
             .expect("Failed to bincode serialize batch");
 
         current_batch.clear();
@@ -183,12 +183,14 @@ impl App {
         tokio::spawn(async move {
             info!("Sending batch to s3");
             let mut hasher = Sha3_256::new();
-            hasher.update(&batch_bytes);
+            hasher.update(&batch_string);
             let hash = hasher.finalize().to_vec();
 
             let hex_hash = hex::encode(hash.as_slice());
+            
+            info!("Batch hash: {}", hex_hash);
 
-            let batch_bytes = Bytes::from(batch_bytes);
+            let batch_bytes = Bytes::from(batch_string);
 
             s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &hex_hash)
                 .await

@@ -26,6 +26,9 @@ celestia:
   url: "http://localhost:26658"
   keystore: "~/.celestia-light-arabica-11"
 
+s3_bucket:
+  url: "https://storage.alignedlayer.com/"
+
 ## Aggregator Configurations
 aggregator:
   server_ip_port_address: localhost:8090
