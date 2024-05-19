@@ -21,13 +21,14 @@ mod tests {
 
     const RECEIPT: &[u8] =
         include_bytes!("../../../../task_sender/test_examples/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
-    const IMAGE_ID: &[u32; 8] = &[3090655438, 2953112184, 965953788, 2757110989, 1044116726, 4262054234, 2330742163, 3902204400];
+    const IMAGE_ID: &[u32; 8] = &[316158856, 2947247145, 681508048, 729072451, 1635382859, 3265258586, 1254443731, 1018622456];
 
     #[test]
     fn verify_risc_zero_receipt_with_image_id_works() {
        const RECEIPT_SIZE: usize = RECEIPT.len();
-       let mut receipt_buffer = [0u8; MAX_RECEIPT_SIZE];
+       let mut receipt_buffer = [0u8; super::MAX_RECEIPT_SIZE];
        receipt_buffer[..RECEIPT_SIZE].clone_from_slice(RECEIPT);
+
 
        let result = verify_risc_zero_receipt_ffi(&receipt_buffer, RECEIPT_SIZE, IMAGE_ID);
        assert!(result)
