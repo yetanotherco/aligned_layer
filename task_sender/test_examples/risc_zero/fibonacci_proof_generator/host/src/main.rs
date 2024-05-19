@@ -11,6 +11,8 @@ fn main() {
         .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
         .init();
 
+   println!("Image ID to be copied to operator/risc_zero/lib/src/lib.rs and operator/risc_zero/risc_zero_test.go: {:?}", FIBONACCI_ID);
+
     // An executor environment describes the configurations for the zkVM
     // including program inputs.
     // An default ExecutorEnv can be created like so:
