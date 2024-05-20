@@ -1,6 +1,5 @@
 use aws_config::BehaviorVersion;
 use aws_config::meta::region::RegionProviderChain;
-use bytes::Bytes;
 use aws_sdk_s3::Client;
 use aws_sdk_s3::error::SdkError;
 use aws_sdk_s3::operation::put_object::{PutObjectError, PutObjectOutput};
