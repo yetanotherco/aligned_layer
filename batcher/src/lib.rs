@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use aws_sdk_s3::client::Client as S3Client;
 use bytes::Bytes;
+use ethers::prelude::rand::random;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
 use log::{debug, error, info};
@@ -14,11 +15,13 @@ use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
+use crate::eth::AlignedLayerServiceManager;
 
 use crate::types::VerificationData;
 
 pub mod s3;
 pub mod types;
+mod eth;
 
 pub trait Listener {
     fn listen(&self, address: &str) -> impl Future;
@@ -26,6 +29,7 @@ pub trait Listener {
 
 pub struct App {
     s3_client: S3Client,
+    service_manager: AlignedLayerServiceManager,
     sp1_prover_client: ProverClient,
     current_batch: Mutex<Vec<VerificationData>>,
 }
@@ -61,8 +65,12 @@ impl App {
         let sp1_prover_client: ProverClient = ProverClient::new();
         info!("Prover client initialized");
 
+        let service_manager = eth::get_contract().await
+            .expect("Failed to get contract");
+
         Self {
             s3_client,
+            service_manager,
             sp1_prover_client,
             current_batch: Mutex::new(Vec::new()),
         }
@@ -180,6 +188,7 @@ impl App {
         current_batch.clear();
 
         let s3_client = self.s3_client.clone();
+        let service_manager = self.service_manager.clone();
         tokio::spawn(async move {
             info!("Sending batch to s3");
             let mut hasher = Sha3_256::new();
@@ -197,6 +206,22 @@ impl App {
                 .expect("Failed to upload object to S3");
 
             info!("Batch sent to S3 with name: {}", file_name);
+
+            info!("Uploading batch to contract");
+            // generate random hash until we have merkle trees
+            let mut hash = [0u8; 32];
+            let first_byte: u8 = random();
+            hash[0] = first_byte;
+
+            let batch_data_pointer = format!("https://storage.alignedlayer.com/{}", file_name);
+            match eth::create_new_task(
+                service_manager,
+                hash,
+                batch_data_pointer,
+            ).await {
+                Ok(_) => info!("Batch uploaded to contract"),
+                Err(e) => error!("Failed to upload batch to contract: {}", e)
+            }
         });
     }
 }
