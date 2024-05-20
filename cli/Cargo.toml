@@ -4,3 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+aws-config = "1.4.0"
+aws-sdk-s3 = "1.29.0"
+bytes = "1.6.0"
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.0-testnet" }
+log = "0.4.21"
+anyhow = "1.0.86"
+bincode = "1.3.3"
+tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros"] }
+reqwest = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dotenv = "0.15.0"
+env_logger = "0.11.3"
+rand = "0.9.0-alpha.1"
