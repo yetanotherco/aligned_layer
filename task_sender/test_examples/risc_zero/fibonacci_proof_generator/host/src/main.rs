@@ -52,18 +52,14 @@ fn main() -> std::io::Result<()> {
 
     let verification_result = receipt.verify(FIBONACCI_ID).is_ok();
 
-    println!("Verification result: {}", verification_result);
-
     let serialized = bincode::serialize(&receipt).unwrap();
 
     std::fs::write(PROOF_FILE_PATH, serialized)?;
 
-    // Abrir archivo para escribir el ID de Fibonacci
     let file_name = "fibonacci_id.txt";
     let file = File::create(file_name)?;
     let mut writer = BufWriter::new(file);
 
-    // Escribir la matriz en el archivo
     writeln!(writer, "{:?}", FIBONACCI_ID)?;
 
     Ok(())
