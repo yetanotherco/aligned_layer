@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aws-config = "1.4.0"
-aws-sdk-s3 = "1.29.0"
 bytes = "1.6.0"
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.0-testnet" }
 log = "0.4.21"
