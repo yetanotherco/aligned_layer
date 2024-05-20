@@ -5,10 +5,9 @@ import (
 )
 
 type VerificationData struct {
-	ProvingSystemId common.ProvingSystemId
-	Proof           []byte
-	// FIXME(marian): These two fields should probably not be here.
-	// Just setting them for a PoC
-	PubInput        []byte
-	VerificationKey []byte
+	ProvingSystemId common.ProvingSystemId `json:"proving_system"`
+	Proof           []byte                 `json:"proof"`
+	PubInput        []byte                 `json:"public_input"`
+	VerificationKey []byte                 `json:"verification_key"`
+	VmProgramCode   []byte                 `json:"vm_program_code"`
 }

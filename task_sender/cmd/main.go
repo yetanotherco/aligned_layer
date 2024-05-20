@@ -169,10 +169,10 @@ func taskSenderMain(c *cli.Context, xParam ...int) error {
 
 	if x == 0 { //use hardcoded value
 		// TODO(marian): Remove this hardcoded merkle root
-		batchMerkleRoot[0] = byte(2)
-		batchMerkleRoot[1] = byte(3)
+		batchMerkleRoot[0] = byte(123)
+		batchMerkleRoot[1] = byte(123)
 		// TODO(marian): Remove this dummy S3 url
-		batchDataPointer = "aligned.awesome.batch.s3.com"
+		batchDataPointer = "https://storage.alignedlayer.com/b4b654a31b43c7b5711206eea7d44f884ece1fe7164b478fa16215be77dc84cb.json"
 	} else { //we can calculate the real value
 		outputDir := "task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/"
 		ProofByteArray, err := os.ReadFile(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.proof") //TODO un-hardcode provingSystem
