@@ -7,5 +7,4 @@ const (
 	GnarkPlonkBn254
 	Groth16Bn254
 	SP1
-	RiscZero
 )
