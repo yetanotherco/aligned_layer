@@ -282,4 +282,5 @@ generate_risc_zero_fibonacci_proof:
 		cargo clean && \
 		rm -f risc_zero_fibonacci.proof && \
 		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder"
+		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
+		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"

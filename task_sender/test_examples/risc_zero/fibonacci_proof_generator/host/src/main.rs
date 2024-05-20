@@ -2,18 +2,15 @@
 // The ELF is used for proving and the ID is used for verification.
 use methods::{FIBONACCI_ELF, FIBONACCI_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
-use std::io::{BufWriter, Write}; // Añadido Write para usar writeln!
-use std::fs::File;
 
 const PROOF_FILE_PATH: &str = "risc_zero_fibonacci.proof";
+const FIBONACCI_ID_FILE_PATH: &str = "fibonacci_id.txt";
 
-fn main() -> std::io::Result<()> {
+fn main() {
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
         .init();
-
-    println!("Image ID to be copied to operator/risc_zero/lib/src/lib.rs and operator/risc_zero/risc_zero_test.go: {:?}", FIBONACCI_ID);
 
     // An executor environment describes the configurations for the zkVM
     // including program inputs.
@@ -48,19 +45,17 @@ fn main() -> std::io::Result<()> {
 
     println!("a: {}", a);
     println!("b: {}", b);
-    println!("ID: {:?}", FIBONACCI_ID);
 
     let verification_result = receipt.verify(FIBONACCI_ID).is_ok();
 
+    println!("Verification result: {}", verification_result);
+
     let serialized = bincode::serialize(&receipt).unwrap();
 
-    std::fs::write(PROOF_FILE_PATH, serialized)?;
+    std::fs::write(PROOF_FILE_PATH, serialized).expect("Failed to write proof file");
 
-    let file_name = "fibonacci_id.txt";
-    let file = File::create(file_name)?;
-    let mut writer = BufWriter::new(file);
+    let fibonacci_id_str = format!("{:?}", FIBONACCI_ID);
 
-    writeln!(writer, "{:?}", FIBONACCI_ID)?;
+    std::fs::write(FIBONACCI_ID_FILE_PATH, fibonacci_id_str).expect("Failed to write image ID file");
 
-    Ok(())
 }

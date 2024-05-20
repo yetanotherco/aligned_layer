@@ -38,6 +38,3 @@ npm-debug.log
 
 # Environment Variables
 /.env
-
-# Ignore IMAGE_ID file 
-/task_sender/test_examples/risc_zero/fibonacci_proof_generator/fibonacci_id.txt
