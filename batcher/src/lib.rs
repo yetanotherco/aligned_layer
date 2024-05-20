@@ -174,8 +174,8 @@ impl App {
             return;
         }
 
-        let batch_bytes = bincode::serialize(current_batch.as_slice())
-            .expect("Failed to bincode serialize batch");
+        let batch_bytes =
+            serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
         info!("Building merkle tree for batch");
         let batch_merkle_tree: MerkleTree<VerificationBatch> = MerkleTree::build(&current_batch);
@@ -193,11 +193,17 @@ impl App {
         tokio::spawn(async move {
             info!("Uploading batch to S3");
 
-            s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &batch_merkle_root)
+            let hex_hash = hex::encode(hash.as_slice());
+
+            info!("Batch hash: {}", hex_hash);
+
+            let file_name = hex_hash + ".json";
+
+            s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &file_name)
                 .await
                 .expect("Failed to upload object to S3");
 
-            info!("Batch sent to S3 with name: {}", batch_merkle_root);
+            info!("Batch sent to S3 with name: {}", file_name);
         });
     }
 }
