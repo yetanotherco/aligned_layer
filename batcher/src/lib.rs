@@ -164,7 +164,7 @@ impl App {
     }
 
     pub async fn add_task(&self, verification_data: VerificationData) {
-        debug!("Adding task to batch");
+        info!("Adding verification data to batch...");
 
         let mut current_batch = self.current_batch.lock().await;
         current_batch.push(verification_data);
@@ -174,17 +174,14 @@ impl App {
             return;
         }
 
-        let batch_bytes =
-            serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
-
-        info!("Building merkle tree for batch");
         let batch_merkle_tree: MerkleTree<VerificationBatch> = MerkleTree::build(&current_batch);
 
-        let batch_merkle_root = batch_merkle_tree
-            .root
-            .iter()
-            .map(|byte| format!("{:02X}", byte))
-            .collect::<String>();
+        let batch_merkle_root = hex::encode(batch_merkle_tree.root);
+        info!("Batch merkle root: {}", batch_merkle_root);
+        let file_name = batch_merkle_root + ".json";
+
+        let batch_bytes =
+            serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
         current_batch.clear();
 
@@ -192,12 +189,6 @@ impl App {
 
         tokio::spawn(async move {
             info!("Uploading batch to S3");
-
-            let hex_hash = hex::encode(hash.as_slice());
-
-            info!("Batch hash: {}", hex_hash);
-
-            let file_name = hex_hash + ".json";
 
             s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &file_name)
                 .await
