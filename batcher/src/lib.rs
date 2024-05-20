@@ -174,8 +174,8 @@ impl App {
             return;
         }
 
-        let batch_bytes = bincode::serialize(current_batch.as_slice())
-            .expect("Failed to bincode serialize batch");
+        let batch_bytes = serde_json::to_vec(current_batch.as_slice())
+            .expect("Failed to serialize batch");
 
         current_batch.clear();
 
@@ -187,14 +187,16 @@ impl App {
             let hash = hasher.finalize().to_vec();
 
             let hex_hash = hex::encode(hash.as_slice());
+            
+            info!("Batch hash: {}", hex_hash);
 
-            let batch_bytes = Bytes::from(batch_bytes);
+            let file_name = hex_hash + ".json";
 
-            s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &hex_hash)
+            s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &file_name)
                 .await
                 .expect("Failed to upload object to S3");
 
-            info!("Batch sent to S3 with name: {}", hex_hash);
+            info!("Batch sent to S3 with name: {}", file_name);
         });
     }
 }

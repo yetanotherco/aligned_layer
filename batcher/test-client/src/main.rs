@@ -57,7 +57,6 @@ async fn upload_proof_to_s3() -> Option<Duration> {
             .expect("Failed to read proof file");
 
     let client = batcher::s3::create_client().await;
-    let bytes = bytes::Bytes::from(proof);
     let bucket_name = "storage.alignedlayer.com";
     let key = "10mb_file";
 
@@ -65,7 +64,7 @@ async fn upload_proof_to_s3() -> Option<Duration> {
     let start = std::time::Instant::now();
 
     println!("Uploading object to S3");
-    let result = batcher::s3::upload_object(&client, bucket_name, bytes, key).await;
+    let result = batcher::s3::upload_object(&client, bucket_name, proof, key).await;
     match result {
         Ok(_) => {
             println!("Uploaded object to S3");
