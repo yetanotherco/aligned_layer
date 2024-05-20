@@ -42,15 +42,15 @@ async fn main() {
         },
         "plonk_bls12_381" => {
             let proof =
-                std::fs::read("./test_files/plonk_bn254/plonk.proof")
+                std::fs::read("./test_files/plonk_bls12_381/plonk.proof")
                     .expect("Failed to read proof file");
 
             let public_input =
-                std::fs::read("./test_files/plonk_bn254/plonk_pub_input.pub")
+                std::fs::read("./test_files/plonk_bls12_381/plonk_pub_input.pub")
                     .expect("Failed to read public input file");
 
             let verification_key =
-                std::fs::read("./test_files/plonk_bn254/plonk.vk")
+                std::fs::read("./test_files/plonk_bls12_381/plonk.vk")
                     .expect("Failed to read verification key file");
 
             VerificationData {
@@ -96,7 +96,7 @@ async fn main() {
                     .expect("Failed to read verification key file");
 
             VerificationData {
-                proving_system: ProvingSystemId::GnarkPlonkBn254,
+                proving_system: ProvingSystemId::Groth16Bn254,
                 proof,
                 public_input: Some(public_input),
                 verification_key: Some(verification_key),

@@ -169,7 +169,7 @@ impl App {
         current_batch.push(verification_data);
 
         debug!("Batch size: {}", current_batch.len());
-        if current_batch.len() < 2 {
+        if current_batch.len() < 4 {
             return;
         }
 
