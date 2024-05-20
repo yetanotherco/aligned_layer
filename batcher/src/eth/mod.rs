@@ -2,24 +2,27 @@ use std::str::FromStr;
 use std::sync::Arc;
 use ethers::prelude::*;
 use ethers::prelude::k256::ecdsa::SigningKey;
+use crate::config::ECDSAConfig;
 
 abigen!(AlignedLayerServiceManagerContract, "./src/eth/abi/AlignedLayerServiceManager.json");
 
 pub type AlignedLayerServiceManager = AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
-pub async fn get_contract() -> Result<AlignedLayerServiceManager, anyhow::Error> {
-    let provider = Provider::<Http>::try_from("http://localhost:8545")?;
+pub async fn get_contract(eth_rpc_url: String, ecdsa_config: ECDSAConfig, contract_address: String) -> Result<AlignedLayerServiceManager, anyhow::Error> {
+    let provider = Provider::<Http>::try_from(eth_rpc_url)?;
     let chain_id = provider.get_chainid().await?;
 
-    let wallet = Wallet::from_str("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")?
-        .with_chain_id(chain_id.as_u64());
+    // get private key from keystore
+    let wallet = Wallet::decrypt_keystore(
+        &ecdsa_config.private_key_store_path,
+        &ecdsa_config.private_key_store_password,
+    )?.with_chain_id(chain_id.as_u64());
 
     let signer =
         Arc::new(SignerMiddleware::new(provider, wallet));
 
-
     let service_manager = AlignedLayerServiceManager::new(
-        H160::from_str("0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690")?,
+        H160::from_str(contract_address.as_str())?,
         signer,
     );
 

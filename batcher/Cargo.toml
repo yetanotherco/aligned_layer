@@ -34,4 +34,5 @@ dotenv = "0.15.0"
 anyhow = "1.0.83"
 ethers = "2.0"
 rand = "0.8.5"
+serde_yaml = "0.9.34"
 

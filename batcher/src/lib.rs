@@ -15,6 +15,7 @@ use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
+use crate::config::{BatcherConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
 
 use crate::types::VerificationData;
@@ -22,6 +23,7 @@ use crate::types::VerificationData;
 pub mod s3;
 pub mod types;
 mod eth;
+mod config;
 
 pub trait Listener {
     fn listen(&self, address: &str) -> impl Future;
@@ -58,14 +60,18 @@ impl Listener for Arc<App> {
 }
 
 impl App {
-    pub async fn new() -> Self {
+    pub async fn new(config_file: String) -> Self {
         let s3_client = s3::create_client().await;
+
+        let config = BatcherConfigFromYaml::new(config_file);
+        let deployment_output = ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
         info!("Initializing prover client");
         let sp1_prover_client: ProverClient = ProverClient::new();
         info!("Prover client initialized");
 
-        let service_manager = eth::get_contract().await
+        let service_manager =
+            eth::get_contract(config.eth_rpc_url, config.ecdsa, deployment_output.addresses.aligned_layer_service_manager).await
             .expect("Failed to get contract");
 
         Self {
