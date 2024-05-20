@@ -202,7 +202,7 @@ impl App {
             let hash = hasher.finalize().to_vec();
 
             let hex_hash = hex::encode(hash.as_slice());
-            
+
             info!("Batch hash: {}", hex_hash);
 
             let file_name = hex_hash + ".json";
