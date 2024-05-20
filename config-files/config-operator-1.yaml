@@ -18,7 +18,7 @@ bls:
   private_key_store_password: ""
 
 ## EigenDA Configurations
-eigen_da_disperser:
+eigen_da:
   url: "disperser-holesky.eigenda.xyz"
 
 ## Celestia Configurations

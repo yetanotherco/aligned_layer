@@ -13,7 +13,7 @@ Full documentation and examples will be added soon
 
 ## Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
+You will need [go](https://go.dev/doc/install), [rust](https://www.rust-lang.org/tools/install),  [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
 [celestia](https://docs.celestia.org/nodes/celestia-node#installing-from-source),
 [jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
@@ -106,6 +106,22 @@ To use the default configuration file, just run:
 make build_sp1_macos # or make build_sp1_linux on linux
 make operator_full_registration
 make operator_start
+```
+
+### Start batcher
+
+First create a .env file inside the batcher directory.
+An example of the .env file can be found at `batcher/.env.example`.
+
+To start the batcher, run:
+
+```bash
+make batcher_start
+```
+
+To send a dummy task to the batcher, run:
+```bash
+make batcher_send_dummy_task
 ```
 
 ### Send task
@@ -398,6 +414,31 @@ In `config-files/config.yaml` you can find the configuration file for the projec
 There is a section for operator, aggregator, and keys. Also, there are common variables for the project.
 
 There are also three other configuration files in the `config-files` directory for operators. They have their own keys and addresses.
+
+
+## Metrics
+
+
+### Aggregator Metrics
+
+Aggregator metrics are exposed on the `/metrics` endpoint.
+
+If you are using the default config, you can access the metrics on `http://localhost:9091/metrics`.
+
+To run Prometheus and Grafana just run:
+
+```bash
+make run_metrics
+```
+
+Then you can access Grafana on `http://localhost:3000` with the default credentials `admin:admin`.
+
+If you want to install Prometheus and Grafana manually, you can follow the instructions below.
+
+To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
+
+To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
+
 
 ## FAQ
 
