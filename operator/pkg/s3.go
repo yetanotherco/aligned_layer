@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
 func (o *Operator) getBatchFromS3(proofUrl string) ([]VerificationData, error) {
-	log.Println("Getting batch from S3..., proofUrl:", proofUrl)
+	o.Logger.Infof("Getting batch from S3..., proofUrl: %s", proofUrl)
 	resp, err := http.Get(proofUrl)
 	if err != nil {
 		return nil, err
