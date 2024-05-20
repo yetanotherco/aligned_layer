@@ -1067,7 +1067,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bincode",
- "bytes",
  "dotenv",
  "env_logger",
  "log",
