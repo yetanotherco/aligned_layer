@@ -77,7 +77,7 @@ defmodule ExplorerWeb.Tasks.Tasks do
 
     case event["topics"] do
       [_ | [^idx]] -> true
-      rest -> false
+      _rest -> false
     end
   end
 
