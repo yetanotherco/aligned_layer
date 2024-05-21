@@ -1,6 +1,5 @@
 extern crate dotenv;
 
-
 use std::io::Error as IoError;
 use std::sync::Arc;
 
@@ -37,6 +36,14 @@ async fn main() -> Result<(), IoError> {
     let app = Arc::new(app);
 
     let addr = format!("localhost:{}", port);
+
+    // spawn thread for polling
+    tokio::spawn({
+        let app = app.clone();
+        async move {
+            app.poll_new_blocks().await;
+        }
+    });
 
     app.listen(&addr).await;
 

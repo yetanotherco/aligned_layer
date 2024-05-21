@@ -14,5 +14,5 @@ pub struct VerificationData {
     pub proof: Vec<u8>,
     pub public_input: Option<Vec<u8>>,
     pub verification_key: Option<Vec<u8>>,
-    pub vm_program_code: Option<Vec<u8>>
+    pub vm_program_code: Option<Vec<u8>>,
 }
