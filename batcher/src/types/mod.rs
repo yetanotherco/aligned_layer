@@ -23,6 +23,6 @@ pub fn get_proving_system_from_str(proving_system: &str) -> ProvingSystemId {
         "GnarkPlonkBn254" => ProvingSystemId::GnarkPlonkBn254,
         "Groth16Bn254" => ProvingSystemId::Groth16Bn254,
         "SP1" => ProvingSystemId::SP1,
-        _ => panic!("Invalid proving system: {}", proving_system),
+        _ => panic!("Invalid proving system: {}\nAvailable prooving systems:\n GnarkPlonkBls12_381\n GnarkPlonkBn254\n Groth16Bn254\n SP1", proving_system),
     }
 }

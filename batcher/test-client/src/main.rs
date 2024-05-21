@@ -1,45 +1,61 @@
-use std::env;
 use std::time::Duration;
+use std::path::PathBuf;
 
 use futures_util::{SinkExt, StreamExt};
 use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::connect_async;
 
 use batcher::types::{ProvingSystemId, VerificationData, get_proving_system_from_str};
-use log::error;
+
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(name = "Batcher address", long = "conn", default_value = "ws://localhost:8080")]
+    connect_addr: String,
+
+    #[arg(name = "Proving System", long = "proving_system")]
+    proving_system_flag: String,
+
+    #[arg(name = "Proof file name", long = "proof")]
+    proof_file_name: PathBuf,
+
+    #[arg(name = "Public input file name", long = "public_input", default_value = ".")]
+    public_input_file_name: PathBuf,
+
+    #[arg(name = "Verification key file name", long = "vk", default_value = ".")]
+    verification_key_file_name: PathBuf,
+
+    #[arg(name = "VM prgram code file name", long = "vm_program", default_value = ".")]
+    vm_program_code_file_name: PathBuf,
+
+    #[arg(name = "Loop timer", long = "timer", default_value_t = 0)]
+    timer_loop: u8,
+}
 
 #[tokio::main]
 async fn main() {
-    let connect_addr = env::args() // ex: ws://localhost:8080
-        .nth(1)
-        .unwrap_or_else(|| panic!("this program requires at least one argument"));
-    
-    let proving_system_flag = env::args() // ex: SP1
-        .nth(2)
-        .unwrap_or_else(|| panic!("this program requires at least two arguments"));
+    let args = Args::parse();
 
-    let file_name = env::args() // ex: ./test_files/sp1/sp1_fibonacci
-        .nth(3)
-        .unwrap_or_else(|| panic!("this program requires at least three arguments"));
-
-    let url = url::Url::parse(&connect_addr).unwrap();
+    let url = url::Url::parse(&args.connect_addr).unwrap();
 
     let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
     println!("WebSocket handshake has been successfully completed");
     let (mut ws_write, ws_read) = ws_stream.split();
 
-    let proving_system = get_proving_system_from_str(&proving_system_flag);
+    let proving_system = get_proving_system_from_str(&args.proving_system_flag);
 
     // Read proof file
     let proof =
-        std::fs::read(file_name.clone() + ".proof").expect("Failed to read .proof file");
+        std::fs::read(args.proof_file_name).expect("Failed to read .proof file"); //file_name.clone() + ".proof").expect("Failed to read .proof file");
 
     // Read public input file
     let mut public_input: Option<Vec<u8>> = None;
-    if let Ok(data) = std::fs::read(file_name.clone() + ".pub") {
+    if let Ok(data) = std::fs::read(args.public_input_file_name) {
         public_input = Some(data);
     } else {
-        println!("Warning: File {}.pub does not exist, continuing with no public_input", file_name);
+        println!("Warning: File .pub does not exist, continuing with no public_input");
     }
 
     let verification_key: Option<Vec<u8>>;
@@ -48,9 +64,9 @@ async fn main() {
     if proving_system == ProvingSystemId::SP1 {
         verification_key = None;
             // TODO check -elf file name
-        vm_program_code = Some(std::fs::read(file_name + "-elf").expect("Failed to read .vm file")); //"./test_files/sp1/riscv32im-succinct-zkvm-elf") //previous
+        vm_program_code = Some(std::fs::read(args.vm_program_code_file_name).expect("Failed to read vm file")); //"./test_files/sp1/riscv32im-succinct-zkvm-elf") //previous
     } else {
-        verification_key = Some(std::fs::read(file_name + ".vk").expect("Failed to read .vk file"));
+        verification_key = Some(std::fs::read(args.verification_key_file_name).expect("Failed to read .vk file"));
         vm_program_code = None;
     }
 
