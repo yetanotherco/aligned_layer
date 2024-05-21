@@ -4,7 +4,6 @@ use aws_sdk_s3::error::SdkError;
 use aws_sdk_s3::operation::put_object::{PutObjectError, PutObjectOutput};
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
-use bytes::Bytes;
 
 pub async fn create_client() -> Client {
     let region_provider = RegionProviderChain::default_provider().or_else("us-east-2");

@@ -247,7 +247,7 @@ impl App {
             let hash = hasher.finalize().to_vec();
 
             let hex_hash = hex::encode(hash.as_slice());
-
+            
             info!("Batch hash: {}", hex_hash);
 
             let file_name = hex_hash + ".json";
@@ -259,7 +259,7 @@ impl App {
             info!("Batch sent to S3 with name: {}", file_name);
 
             info!("Uploading batch to contract");
-            // generate random hash until we have merkle trees
+            // TODO: change to merkle root when we have merkle trees
             let mut hash = [0u8; 32];
             let first_byte: u8 = random();
             hash[0] = first_byte;
