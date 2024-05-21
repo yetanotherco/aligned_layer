@@ -193,10 +193,9 @@ impl App {
         }
 
         let batch_merkle_tree: MerkleTree<VerificationBatch> = MerkleTree::build(&current_batch);
-        let r = batch_merkle_tree.root;
-
         let batch_merkle_root_hex = hex::encode(batch_merkle_tree.root);
         info!("Batch merkle root: {}", batch_merkle_root_hex);
+
         let file_name = batch_merkle_root_hex + ".json";
 
         let batch_bytes =
