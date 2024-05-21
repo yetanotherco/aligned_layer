@@ -202,7 +202,7 @@ func getProofData(c *cli.Context, x int) ([32]byte, string, error) {
 	}
 
 	var data operator.VerificationData
-	if provingSystem == common.SP1 { // TODO is this the correct way of handling VerificationKey/VmProgramCode ?
+	if provingSystem == common.SP1 { // currently, this is the correct way of handling VerificationKey/VmProgramCode
 		data = operator.VerificationData{
 			ProvingSystemId: provingSystem,
 			Proof:           ProofByteArray,

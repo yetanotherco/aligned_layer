@@ -112,7 +112,12 @@ batcher_start:
 
 batcher_send_dummy_task:
 	@echo "Sending dummy task to Batcher..."
-	@cd batcher/test-client && cargo run -- ws://localhost:8080
+	@cd batcher/test-client && cargo run -- ws://localhost:8080 SP1 ./test_files/sp1/sp1_fibonacci
+
+# batcher_send_infinite_tasks: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+# 	@echo "Sending a different GROTH16 BN254 proof in a loop every 3 seconds..."
+# 	@cd batcher/test-client && cargo run -- ws://localhost:8080 proving_system file_name timer3
+
 
 __TASK_SENDERS__:
  # TODO add a default proving system
