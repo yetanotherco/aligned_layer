@@ -125,10 +125,9 @@ batcher_send_groth16_task:
 		--public_input ../../test_files/groth16/ineq_1_groth16.pub \
 		--vk ../../test_files/groth16/ineq_1_groth16.vk \
 
-# batcher_send_infinite_tasks: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
-# 	@echo "Sending a different GROTH16 BN254 proof in a loop every 3 seconds..."
-# 	@cd batcher/test-client && cargo run -- ws://localhost:8080 proving_system file_name timer3
-
+batcher_send_infinite_tasks: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@echo "Sending a different GROTH16 BN254 proof in a loop every 3 seconds..."
+	@./batcher/test-client/send_infinite_tasks.sh
 
 __TASK_SENDERS__:
  # TODO add a default proving system

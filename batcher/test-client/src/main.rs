@@ -48,7 +48,9 @@ async fn main() {
 
     // Read proof file
     let proof =
-        std::fs::read(args.proof_file_name).expect("Failed to read .proof file"); //file_name.clone() + ".proof").expect("Failed to read .proof file");
+        std::fs::read(&args.proof_file_name)
+        .unwrap_or_else(|_| panic!("Failed to read .proof file: {:?}", args.proof_file_name));
+        
 
     // Read public input file
     let mut public_input: Option<Vec<u8>> = None;
