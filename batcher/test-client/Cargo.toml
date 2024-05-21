@@ -16,3 +16,4 @@ batcher = { path = "../" }
 bytes = "1.6.0"
 log = "0.4.21"
 anyhow = "1.0.83"
+clap = { version = "4.5.4", features = ["derive"] }

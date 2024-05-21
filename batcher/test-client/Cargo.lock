@@ -5198,6 +5198,7 @@ dependencies = [
  "anyhow",
  "batcher",
  "bytes",
+ "clap",
  "futures-channel",
  "futures-util",
  "log",
