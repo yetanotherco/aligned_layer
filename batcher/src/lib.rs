@@ -81,7 +81,6 @@ impl App {
     pub async fn listen(self: &Arc<Self>, address: &str) {
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address).await.expect("Failed to build");
-        // let listener = try_socket.expect("Failed to bind");
         info!("Listening on: {}", address);
 
         // Let's spawn the handling of each connection in a separate task.
@@ -247,7 +246,7 @@ impl App {
             let hash = hasher.finalize().to_vec();
 
             let hex_hash = hex::encode(hash.as_slice());
-            
+
             info!("Batch hash: {}", hex_hash);
 
             let file_name = hex_hash + ".json";
