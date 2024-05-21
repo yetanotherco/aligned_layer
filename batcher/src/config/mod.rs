@@ -1,6 +1,5 @@
 use serde::Deserialize;
 
-
 #[derive(Debug, Deserialize)]
 pub struct ECDSAConfig {
     pub private_key_store_path: String,
@@ -34,7 +33,8 @@ pub struct ContractDeploymentOutput {
 
 impl ContractDeploymentOutput {
     pub fn new(deployment_output: String) -> Self {
-        let deployment_output = std::fs::read_to_string(deployment_output).expect("Failed to read deployment output file");
+        let deployment_output = std::fs::read_to_string(deployment_output)
+            .expect("Failed to read deployment output file");
         serde_json::from_str(&deployment_output).expect("Failed to parse deployment output file")
     }
 }

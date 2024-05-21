@@ -15,15 +15,15 @@ use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
+
 use crate::config::{BatcherConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
-
 use crate::types::VerificationData;
 
+mod config;
+mod eth;
 pub mod s3;
 pub mod types;
-mod eth;
-mod config;
 
 pub trait Listener {
     fn listen(&self, address: &str) -> impl Future;
@@ -64,15 +64,20 @@ impl App {
         let s3_client = s3::create_client().await;
 
         let config = BatcherConfigFromYaml::new(config_file);
-        let deployment_output = ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
+        let deployment_output =
+            ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
         info!("Initializing prover client");
         let sp1_prover_client: ProverClient = ProverClient::new();
         info!("Prover client initialized");
 
-        let service_manager =
-            eth::get_contract(config.eth_rpc_url, config.ecdsa, deployment_output.addresses.aligned_layer_service_manager).await
-            .expect("Failed to get contract");
+        let service_manager = eth::get_contract(
+            config.eth_rpc_url,
+            config.ecdsa,
+            deployment_output.addresses.aligned_layer_service_manager,
+        )
+        .await
+        .expect("Failed to get contract");
 
         Self {
             s3_client,
@@ -188,8 +193,8 @@ impl App {
             return;
         }
 
-        let batch_bytes = serde_json::to_vec(current_batch.as_slice())
-            .expect("Failed to serialize batch");
+        let batch_bytes =
+            serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
         current_batch.clear();
 
@@ -214,19 +219,15 @@ impl App {
             info!("Batch sent to S3 with name: {}", file_name);
 
             info!("Uploading batch to contract");
-            // generate random hash until we have merkle trees
+            // TODO: change to merkle root when we have merkle trees
             let mut hash = [0u8; 32];
             let first_byte: u8 = random();
             hash[0] = first_byte;
 
             let batch_data_pointer = format!("https://storage.alignedlayer.com/{}", file_name);
-            match eth::create_new_task(
-                service_manager,
-                hash,
-                batch_data_pointer,
-            ).await {
+            match eth::create_new_task(service_manager, hash, batch_data_pointer).await {
                 Ok(_) => info!("Batch uploaded to contract"),
-                Err(e) => error!("Failed to upload batch to contract: {}", e)
+                Err(e) => error!("Failed to upload batch to contract: {}", e),
             }
         });
     }
