@@ -16,6 +16,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 	generateproof "github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/pkg"
+	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 )
 
 var (
@@ -105,15 +106,6 @@ var infiniteTasksFlags = []cli.Flag{
 	daFlag,
 }
 
-type VerificationData struct {
-	ProvingSystemId string
-	Proof           []byte
-	// FIXME(marian): These two fields should probably not be here.
-	// Just setting them for a PoC
-	PubInput        []byte
-	VerificationKey []byte
-}
-
 func main() {
 	app := &cli.App{
 		Name: "Aligned Layer Task Sender",
@@ -187,18 +179,28 @@ func taskSenderMain(c *cli.Context, xParam ...int) error {
 		if err != nil {
 			return err
 		}
-		data := VerificationData{
-			ProvingSystemId: provingSystemFlag.Value,
+		provingSystem, err := ParseProvingSystem(provingSystemFlag.Value)
+		if err != nil {
+			return err
+		}
+		data := operator.VerificationData{
+			ProvingSystemId: provingSystem,
 			Proof:           ProofByteArray,
 			PubInput:        PubInputByteArray,
 			VerificationKey: VerificationKeyByteArray,
+			// VmProgramCode:   []byte                 `json:"vm_program_code"` //TODO add in correct format
+			VmProgramCode:  []byte(""),
 		}
+
+
 		byteArray, err := json.Marshal(data)
 		if err != nil {
 			return err
 		}
 		batchMerkleRoot = sha256.Sum256(byteArray)
-		batchDataPointer = outputDir + "ineq_" + strconv.Itoa(x) + "_groth16"
+		// batchDataPointer = outputDir + "ineq_" + strconv.Itoa(x) + "_groth16" //local files
+		batchDataPointer = "https://storage.alignedlayer.com/b4b654a31b43c7b5711206eea7d44f884ece1fe7164b478fa16215be77dc84cb.json"
+
 	}
 
 
@@ -238,9 +240,7 @@ func taskSenderInfiniteMain(c *cli.Context) error {
 	x := 0
 	for {
 		x += 1
-		// TODO: Generate proof
 		generateproof.GenerateIneqProof(x)
-		// TODO send proof to task sender
 		err := taskSenderMain(c, x)
 		if err != nil {
 			return err
