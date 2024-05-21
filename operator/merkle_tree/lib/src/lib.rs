@@ -1,33 +1,21 @@
-use serde::{Deserialize, Serialize};
+mod types;
+
+use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+use crate::types::{VerificationBatch, VerificationData};
 
 const MAX_BATCH_SIZE: usize = 2 * 1024 * 1024 * 10;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ProvingSystemId {
-    GnarkPlonkBls12_381,
-    GnarkPlonkBn254,
-    Groth16Bn254,
-    SP1,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VerificationData {
-    pub proving_system: ProvingSystemId,
-    pub proof: Vec<u8>,
-    pub public_input: Option<Vec<u8>>,
-    pub verification_key: Option<Vec<u8>>,
-    pub vm_program_code: Option<Vec<u8>>
-}
 
 #[no_mangle]
 pub extern "C" fn verify_merkle_tree_batch_ffi(
     batch_bytes: &[u8; MAX_BATCH_SIZE],
     batch_len: usize,
+    merkle_root: &[u8; 32]
 ) -> bool {
-
     if let Ok(batch) = bincode::deserialize::<Vec<VerificationData>>(&batch_bytes[..batch_len]) {
-        println!("Batch: {:?}", batch);
-        return true;
+        let batch_merkle_tree: MerkleTree<VerificationBatch> = MerkleTree::build(&batch);
+        let batch_merkle_root = hex::encode(batch_merkle_tree.root);
+        let received_merkle_root = hex::encode(merkle_root);
+        return batch_merkle_root == received_merkle_root;
     }
     return false;
 }
@@ -41,7 +29,7 @@ mod tests {
     #[test]
     fn test_verify_merkle_tree_batch_ffi() {
         // Path to the JSON file
-        let path = "/Users/nicolasrampoldi/Downloads/b4b654a31b43c7b5711206eea7d44f884ece1fe7164b478fa16215be77dc84cb.json";
+        let path = "./test_files/7a3d9215cfac21a4b0e94382e53a9f26bc23ed990f9c850a31ccf3a65aec1466.json";
 
         // Open the file
         let mut file = File::open(path).unwrap();
@@ -60,8 +48,12 @@ mod tests {
         let mut batch_bytes = [0; MAX_BATCH_SIZE];
         batch_bytes[..bytes.len()].copy_from_slice(&bytes);
 
+        // Transform merkle_root into a &[u8; 32]
+        let mut merkle_root = [0; 32];
+        merkle_root.copy_from_slice(&hex::decode("7a3d9215cfac21a4b0e94382e53a9f26bc23ed990f9c850a31ccf3a65aec1466").unwrap());
+
         // Call the FFI function
-        let result = verify_merkle_tree_batch_ffi(&batch_bytes, bytes.len());
+        let result = verify_merkle_tree_batch_ffi(&batch_bytes, bytes.len(), &merkle_root);
 
         // Assert that the result is true
         assert_eq!(result, true);
