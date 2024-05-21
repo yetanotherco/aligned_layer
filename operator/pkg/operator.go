@@ -3,6 +3,7 @@ package operator
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
@@ -228,21 +229,44 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 			ProofIsCorrect: verificationResult,
 		}
 		return taskResponse
-	case uint16(common.Halo2KZG):
+	case common.Halo2KZG:
 		//Extract Proof Bytes
-		proofBytes := make([]byte, Halo2KZG.MaxProofSize)
-		copy(proofBytes, proof)
+		proofBytes := make([]byte, halo2kzg.MaxProofSize)
+		copy(proofBytes, verificationData.Proof)
+		proofLen := (uint)(len(verificationData.Proof))
 
 		//Extract Verification Key Bytes
-		vkBytes := newTaskCreateLog.Task.VerificationKey
-		vkBytes := make([]byte, halo2kzg.MaxVerificationKeySize)
-		copy(vkBytes, vkBytes[:halo2kzg.MaxVerificationKeySize])
-		vkLen := (uint)(len(vkBytes))
+		paramsBytes := newTaskCreateLog.Task.VerificationKey
+
+		// Deserialize csLen
+		csLenBuffer := make([]byte, 4)
+		copy(csLenBuffer, paramsBytes[:4])
+		csLen := (uint)(binary.LittleEndian.Uint32(csLenBuffer))
+
+		// Deserialize vkLen
+		vkLenBuffer := make([]byte, 4)
+		copy(vkLenBuffer, paramsBytes[4:8])
+		vkLen := (uint)(binary.LittleEndian.Uint32(vkLenBuffer))
+
+		// Deserialize kzgParamLen
+		kzgParamsLenBuffer := make([]byte, 4)
+		copy(kzgParamsLenBuffer, paramsBytes[8:12])
+		kzgParamsLen := (uint)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
+
+		//Extract Constraint System Bytes
+		csBytes := make([]byte, halo2kzg.MaxConstraintSystemSize)
+		csOffset := uint(12)
+		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
 
 		//Extract Verification Key Bytes
-		kzgParamsBytes := make([]byte,(halo2kzg.MaxKZGParamsSize))
-		copy(kzgParamsBytes, verificationKeyBytes[halo2kzg.MaxVerifierKeySize:])
-		kzgParamLen := (uint)(len(kzgParamsBytes))
+		vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
+		vkOffset := csOffset + csLen
+		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
+
+		//Extract Kzg Parameter Bytes
+		kzgParamsBytes := make([]byte,(halo2kzg.MaxKzgParamsSize))
+		kzgParamsOffset := vkOffset + vkLen
+		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:])
 
 		//Extract Public Input Bytes
 		publicInput := newTaskCreatedLog.Task.PubInput
@@ -252,11 +276,12 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
 			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), uint(csLen),
 			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
-			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamLen, 
+			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen, 
 			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 
-		o.Logger.Infof("Halo2 proof verification result: %t", verificationResult)
+		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
 			TaskIndex:      newTaskCreatedLog.TaskIndex,
 			ProofIsCorrect: verificationResult,
