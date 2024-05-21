@@ -58,8 +58,8 @@ mod test {
 
         let parent = VerificationBatch::hash_new_parent(&child_1, &child_2);
 
-        // This value is built using Openzeppelin's module for Merkle Trees, in particular
-        // using the SimpleMerkleTree. For more details see the merkle_tree.js script
+        // This value is built using Openzeppelin's module for Merkle Trees, in particular using
+        // the SimpleMerkleTree. For more details see the openzeppelin_merkle_tree/merkle_tree.js script.
         let expected_parent = "71d8979cbfae9b197a4fbcc7d387b1fae9560e2f284d30b4e90c80f6bc074f57";
 
         assert_eq!(hex::encode(parent), expected_parent)
