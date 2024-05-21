@@ -1,12 +1,13 @@
 extern crate core;
 
-use std::future::Future;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aws_sdk_s3::client::Client as S3Client;
 use bytes::Bytes;
+use ethers::prelude::{Middleware, Provider};
 use ethers::prelude::rand::random;
+use ethers::providers::Http;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
 use log::{debug, error, info};
@@ -25,43 +26,22 @@ mod eth;
 pub mod s3;
 pub mod types;
 
-pub trait Listener {
-    fn listen(&self, address: &str) -> impl Future;
-}
-
 pub struct App {
     s3_client: S3Client,
+    eth_rpc_provider: Provider<Http>,
     service_manager: AlignedLayerServiceManager,
     sp1_prover_client: ProverClient,
     eth_ws_url: String,
     current_batch: Mutex<Vec<VerificationData>>,
     block_interval: u64,
+    batch_size_interval: usize,
     last_uploaded_batch_block: Mutex<u64>,
 }
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
-// Implement the Listener trait for the App struct
-impl Listener for Arc<App> {
-    fn listen(&self, address: &str) -> impl Future {
-        async move {
-            // Create the event loop and TCP listener we'll accept connections on.
-            let listener = TcpListener::bind(address).await.expect("Failed to build");
-            // let listener = try_socket.expect("Failed to bind");
-            info!("Listening on: {}", address);
-
-            // Let's spawn the handling of each connection in a separate task.
-            while let Ok((stream, addr)) = listener.accept().await {
-                let c = self.clone();
-
-                tokio::spawn(async move {
-                    c.handle_connection(stream, addr).await;
-                });
-            }
-        }
-    }
-}
-
+// Implement the AppTrait for Arc<App> so that we can use it in the main function
+// AppTrait is needed to implement for Arc<App> instead of just app
 impl App {
     pub async fn new(config_file: String) -> Self {
         let s3_client = s3::create_client().await;
@@ -74,8 +54,11 @@ impl App {
         let sp1_prover_client: ProverClient = ProverClient::new();
         info!("Prover client initialized");
 
+        let eth_rpc_provider =
+            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
+
         let service_manager = eth::get_contract(
-            config.eth_rpc_url,
+            eth_rpc_provider.clone(),
             config.ecdsa,
             deployment_output.addresses.aligned_layer_service_manager,
         )
@@ -84,12 +67,30 @@ impl App {
 
         Self {
             s3_client,
+            eth_rpc_provider,
             service_manager,
             sp1_prover_client,
             eth_ws_url: config.eth_ws_url,
             current_batch: Mutex::new(Vec::new()),
             block_interval: config.batcher.block_interval,
+            batch_size_interval: config.batcher.batch_size_interval,
             last_uploaded_batch_block: Mutex::new(0),
+        }
+    }
+
+    pub async fn listen(self: &Arc<Self>, address: &str) {
+        // Create the event loop and TCP listener we'll accept connections on.
+        let listener = TcpListener::bind(address).await.expect("Failed to build");
+        // let listener = try_socket.expect("Failed to bind");
+        info!("Listening on: {}", address);
+
+        // Let's spawn the handling of each connection in a separate task.
+        while let Ok((stream, addr)) = listener.accept().await {
+            let c = self.clone();
+
+            tokio::spawn(async move {
+                c.handle_connection(stream, addr).await;
+            });
         }
     }
 
@@ -101,7 +102,7 @@ impl App {
         .expect("Failed to poll new blocks");
     }
 
-    pub async fn handle_connection(&self, raw_stream: TcpStream, addr: SocketAddr) {
+    async fn handle_connection(self: &Arc<Self>, raw_stream: TcpStream, addr: SocketAddr) {
         info!("Incoming TCP connection from: {}", addr);
 
         let ws_stream = tokio_tungstenite::accept_async(raw_stream)
@@ -127,8 +128,8 @@ impl App {
         info!("{} disconnected", &addr);
     }
 
-    pub async fn handle_message(
-        &self,
+    async fn handle_message(
+        self: &Arc<Self>,
         tx: UnboundedSender<Message>,
         message: Message,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
@@ -149,7 +150,7 @@ impl App {
 
                 let elf = elf.as_slice();
 
-                self.verify_sp1_proof(proof, elf).await
+                self.verify_sp1_proof(proof, elf)
             }
             _ => {
                 error!("Unsupported proving system");
@@ -185,41 +186,46 @@ impl App {
         Ok(())
     }
 
-    pub async fn verify_sp1_proof(&self, proof: &[u8], elf: &[u8]) -> Result<(), anyhow::Error> {
-        let (_pk, vk) = self.sp1_prover_client.setup(elf);
-        let proof = bincode::deserialize(proof).map_err(|_| anyhow::anyhow!("Invalid proof"))?;
-
-        self.sp1_prover_client
-            .verify(&proof, &vk)
-            .map_err(|_| anyhow::anyhow!("Failed to verify proof"))?;
-
-        Ok(())
-    }
-
-    pub async fn add_task(&self, verification_data: VerificationData) {
+    async fn add_task(self: &Arc<Self>, verification_data: VerificationData) {
         debug!("Adding task to batch");
 
         let mut current_batch = self.current_batch.lock().await;
         current_batch.push(verification_data);
 
         debug!("Batch size: {}", current_batch.len());
+
+        if current_batch.len() >= self.batch_size_interval {
+            let c = self.clone();
+            tokio::spawn(async move {
+                let block_number = c
+                    .eth_rpc_provider
+                    .get_block_number()
+                    .await
+                    .expect("Failed to get block number");
+                let block_number =
+                    u64::try_from(block_number).expect("Failed to convert block number");
+                c.handle_new_block(block_number).await;
+            });
+        }
     }
 
-    pub async fn handle_new_block(&self, block_number: u64) {
-        // TODO: retry on failure
+    async fn handle_new_block(&self, block_number: u64) {
         let batch_bytes = {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
-            if block_number < *last_uploaded_batch_block + self.block_interval {
+            let mut current_batch = self.current_batch.lock().await;
+            if current_batch.is_empty() {
+                info!("No tasks in batch");
+                return;
+            }
+
+            // check if neither interval is reached
+            if current_batch.len() < self.batch_size_interval
+                && block_number < *last_uploaded_batch_block + self.block_interval
+            {
                 info!(
                     "Block interval not reached, current block: {}, last uploaded block: {}",
                     block_number, *last_uploaded_batch_block
                 );
-                return;
-            }
-
-            let mut current_batch = self.current_batch.lock().await;
-            if current_batch.is_empty() {
-                info!("No tasks in batch");
                 return;
             }
 
@@ -264,5 +270,16 @@ impl App {
                 Err(e) => error!("Failed to upload batch to contract: {}", e),
             }
         });
+    }
+
+    fn verify_sp1_proof(&self, proof: &[u8], elf: &[u8]) -> Result<(), anyhow::Error> {
+        let (_pk, vk) = self.sp1_prover_client.setup(elf);
+        let proof = bincode::deserialize(proof).map_err(|_| anyhow::anyhow!("Invalid proof"))?;
+
+        self.sp1_prover_client
+            .verify(&proof, &vk)
+            .map_err(|_| anyhow::anyhow!("Failed to verify proof"))?;
+
+        Ok(())
     }
 }

@@ -15,12 +15,15 @@ abigen!(
 pub type AlignedLayerServiceManager =
     AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
+pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
+    Provider::<Http>::try_from(eth_rpc_url).map_err(|err| anyhow::anyhow!(err))
+}
+
 pub async fn get_contract(
-    eth_rpc_url: String,
+    provider: Provider<Http>,
     ecdsa_config: ECDSAConfig,
     contract_address: String,
 ) -> Result<AlignedLayerServiceManager, anyhow::Error> {
-    let provider = Provider::<Http>::try_from(eth_rpc_url)?;
     let chain_id = provider.get_chainid().await?;
 
     // get private key from keystore

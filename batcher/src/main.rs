@@ -6,7 +6,7 @@ use std::sync::Arc;
 use clap::Parser;
 use env_logger::Env;
 
-use batcher::{App, Listener};
+use batcher::App;
 
 #[derive(Parser)]
 #[command(name = "Aligned Layer Batcher")]

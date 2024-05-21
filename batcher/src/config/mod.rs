@@ -9,6 +9,7 @@ pub struct ECDSAConfig {
 #[derive(Debug, Deserialize)]
 pub struct BatcherConfigFromYaml {
     pub block_interval: u64,
+    pub batch_size_interval: usize,
 }
 
 #[derive(Debug, Deserialize)]
