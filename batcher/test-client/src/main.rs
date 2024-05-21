@@ -55,19 +55,21 @@ async fn main() {
     if let Ok(data) = std::fs::read(args.public_input_file_name) {
         public_input = Some(data);
     } else {
-        println!("Warning: File .pub does not exist, continuing with no public_input");
+        println!("Warning: No Public Input file, continuing with no public_input");
     }
 
-    let verification_key: Option<Vec<u8>>;
-    let vm_program_code: Option<Vec<u8>>;
-    // Read verification key / vm_program_code
-    if proving_system == ProvingSystemId::SP1 {
-        verification_key = None;
-            // TODO check -elf file name
-        vm_program_code = Some(std::fs::read(args.vm_program_code_file_name).expect("Failed to read vm file")); //"./test_files/sp1/riscv32im-succinct-zkvm-elf") //previous
+    let mut verification_key: Option<Vec<u8>> = None;
+    if let Ok(data) = std::fs::read(args.verification_key_file_name) {
+        verification_key = Some(data);
     } else {
-        verification_key = Some(std::fs::read(args.verification_key_file_name).expect("Failed to read .vk file"));
-        vm_program_code = None;
+        println!("Warning: no Verification Key File, continuing with no VK File");
+    }
+
+    let mut vm_program_code: Option<Vec<u8>> = None;
+    if let Ok(data) = std::fs::read(args.vm_program_code_file_name) {
+        vm_program_code = Some(data);
+    } else {
+        println!("Warning: no VM Program Code File, continuing with no VM Program Code");
     }
 
     let task = VerificationData {
