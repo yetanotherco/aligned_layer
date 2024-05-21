@@ -26,6 +26,10 @@ celestia:
   url: "http://localhost:26658"
   keystore: "~/.celestia-light-arabica-11"
 
+## Batcher configurations
+batcher:
+  block_interval: 3
+
 ## Aggregator Configurations
 aggregator:
   server_ip_port_address: localhost:8090

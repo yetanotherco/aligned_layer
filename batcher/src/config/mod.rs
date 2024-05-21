@@ -8,13 +8,19 @@ pub struct ECDSAConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct BatcherConfigFromYaml {
+    pub block_interval: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConfigFromYaml {
     pub eth_rpc_url: String,
     pub eth_ws_url: String,
     pub ecdsa: ECDSAConfig,
     pub aligned_layer_deployment_config_file_path: String,
+    pub batcher: BatcherConfigFromYaml,
 }
 
-impl BatcherConfigFromYaml {
+impl ConfigFromYaml {
     pub fn new(config_file: String) -> Self {
         let config_file = std::fs::read_to_string(config_file).expect("Failed to read config file");
         serde_yaml::from_str(&config_file).expect("Failed to parse config file")

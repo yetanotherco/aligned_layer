@@ -16,7 +16,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
 
-use crate::config::{BatcherConfigFromYaml, ContractDeploymentOutput};
+use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
 use crate::types::VerificationData;
 
@@ -35,6 +35,8 @@ pub struct App {
     sp1_prover_client: ProverClient,
     eth_ws_url: String,
     current_batch: Mutex<Vec<VerificationData>>,
+    block_interval: u64,
+    last_uploaded_batch_block: Mutex<u64>,
 }
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
@@ -64,7 +66,7 @@ impl App {
     pub async fn new(config_file: String) -> Self {
         let s3_client = s3::create_client().await;
 
-        let config = BatcherConfigFromYaml::new(config_file);
+        let config = ConfigFromYaml::new(config_file);
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
@@ -86,6 +88,8 @@ impl App {
             sp1_prover_client,
             eth_ws_url: config.eth_ws_url,
             current_batch: Mutex::new(Vec::new()),
+            block_interval: config.batcher.block_interval,
+            last_uploaded_batch_block: Mutex::new(0),
         }
     }
 
@@ -199,53 +203,23 @@ impl App {
         current_batch.push(verification_data);
 
         debug!("Batch size: {}", current_batch.len());
-        // if current_batch.len() < 2 {
-        //     return;
-        // }
-        //
-        // let batch_bytes =
-        //     serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
-        //
-        // current_batch.clear();
-        //
-        // let s3_client = self.s3_client.clone();
-        // let service_manager = self.service_manager.clone();
-        // tokio::spawn(async move {
-        //     info!("Sending batch to s3");
-        //     let mut hasher = Sha3_256::new();
-        //     hasher.update(&batch_bytes);
-        //     let hash = hasher.finalize().to_vec();
-        //
-        //     let hex_hash = hex::encode(hash.as_slice());
-        //
-        //     info!("Batch hash: {}", hex_hash);
-        //
-        //     let file_name = hex_hash + ".json";
-        //
-        //     s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &file_name)
-        //         .await
-        //         .expect("Failed to upload object to S3");
-        //
-        //     info!("Batch sent to S3 with name: {}", file_name);
-        //
-        //     info!("Uploading batch to contract");
-        //     // generate random hash until we have merkle trees
-        //     let mut hash = [0u8; 32];
-        //     let first_byte: u8 = random();
-        //     hash[0] = first_byte;
-        //
-        //     let batch_data_pointer = format!("https://storage.alignedlayer.com/{}", file_name);
-        //     match eth::create_new_task(service_manager, hash, batch_data_pointer).await {
-        //         Ok(_) => info!("Batch uploaded to contract"),
-        //         Err(e) => error!("Failed to upload batch to contract: {}", e),
-        //     }
-        // });
     }
 
-    pub async fn handle_new_block(&self, _block_number: u64) {
+    pub async fn handle_new_block(&self, block_number: u64) {
+        // TODO: retry on failure
         let batch_bytes = {
+            let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+            if block_number < *last_uploaded_batch_block + self.block_interval {
+                info!(
+                    "Block interval not reached, current block: {}, last uploaded block: {}",
+                    block_number, *last_uploaded_batch_block
+                );
+                return;
+            }
+
             let mut current_batch = self.current_batch.lock().await;
             if current_batch.is_empty() {
+                info!("No tasks in batch");
                 return;
             }
 
@@ -253,19 +227,10 @@ impl App {
                 serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
             current_batch.clear();
+            *last_uploaded_batch_block = block_number;
 
             batch_bytes
         }; // lock is released here so new tasks can be added
-
-        // let mut current_batch = self.current_batch.lock().await;
-        // if current_batch.is_empty() {
-        //     return;
-        // }
-        //
-        // let batch_bytes =
-        //     serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
-        //
-        // current_batch.clear();
 
         let s3_client = self.s3_client.clone();
         let service_manager = self.service_manager.clone();
