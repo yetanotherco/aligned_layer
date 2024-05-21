@@ -130,7 +130,6 @@ async fn upload_proof_to_s3() -> Option<Duration> {
             .expect("Failed to read proof file");
 
     let client = batcher::s3::create_client().await;
-    // let bytes = bytes::Bytes::from(proof);
     let bucket_name = "storage.alignedlayer.com";
     let key = "10mb_file";
 

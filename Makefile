@@ -110,7 +110,7 @@ PROVING_SYSTEM?=sp1
 
 batcher_start:
 	@echo "Starting Batcher..."
-	@cd batcher && cargo run --release
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
 batcher_send_dummy_task:
 	@echo "Sending dummy task to Batcher..."
