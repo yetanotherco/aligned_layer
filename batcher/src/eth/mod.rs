@@ -1,8 +1,8 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use ethers::prelude::*;
 use ethers::prelude::k256::ecdsa::SigningKey;
+use ethers::prelude::*;
 
 use crate::config::ECDSAConfig;
 
@@ -39,10 +39,10 @@ pub async fn get_contract(
 
 pub async fn create_new_task(
     service_manager: AlignedLayerServiceManager,
-    merkle_root: [u8; 32],
+    batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
 ) -> Result<TransactionReceipt, anyhow::Error> {
-    let call = service_manager.create_new_task(merkle_root, batch_data_pointer);
+    let call = service_manager.create_new_task(batch_merkle_root, batch_data_pointer);
     let pending_tx = call.send().await?;
 
     match pending_tx.await? {

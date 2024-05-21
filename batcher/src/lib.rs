@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use aws_sdk_s3::client::Client as S3Client;
 use bytes::Bytes;
-use ethers::prelude::rand::random;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
+use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error, info};
 use sha3::{Digest, Sha3_256};
 use sp1_sdk::ProverClient;
@@ -18,12 +18,14 @@ use tokio_tungstenite::tungstenite::Message;
 
 use crate::config::{BatcherConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
-use crate::types::VerificationData;
+use crate::types::{VerificationBatch, VerificationData};
 
 mod config;
 mod eth;
 pub mod s3;
 pub mod types;
+
+const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
 pub trait Listener {
     fn listen(&self, address: &str) -> impl Future;
@@ -36,15 +38,12 @@ pub struct App {
     current_batch: Mutex<Vec<VerificationData>>,
 }
 
-const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
-
 // Implement the Listener trait for the App struct
 impl Listener for Arc<App> {
     fn listen(&self, address: &str) -> impl Future {
         async move {
             // Create the event loop and TCP listener we'll accept connections on.
             let listener = TcpListener::bind(address).await.expect("Failed to build");
-            // let listener = try_socket.expect("Failed to bind");
             info!("Listening on: {}", address);
 
             // Let's spawn the handling of each connection in a separate task.
@@ -183,7 +182,7 @@ impl App {
     }
 
     pub async fn add_task(&self, verification_data: VerificationData) {
-        debug!("Adding task to batch");
+        info!("Adding verification data to batch...");
 
         let mut current_batch = self.current_batch.lock().await;
         current_batch.push(verification_data);
@@ -193,6 +192,12 @@ impl App {
             return;
         }
 
+        let batch_merkle_tree: MerkleTree<VerificationBatch> = MerkleTree::build(&current_batch);
+        let batch_merkle_root_hex = hex::encode(batch_merkle_tree.root);
+        info!("Batch merkle root: {}", batch_merkle_root_hex);
+
+        let file_name = batch_merkle_root_hex + ".json";
+
         let batch_bytes =
             serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
@@ -201,33 +206,22 @@ impl App {
         let s3_client = self.s3_client.clone();
         let service_manager = self.service_manager.clone();
         tokio::spawn(async move {
-            info!("Sending batch to s3");
-            let mut hasher = Sha3_256::new();
-            hasher.update(&batch_bytes);
-            let hash = hasher.finalize().to_vec();
-
-            let hex_hash = hex::encode(hash.as_slice());
-
-            info!("Batch hash: {}", hex_hash);
-
-            let file_name = hex_hash + ".json";
+            info!("Uploading batch to S3...");
 
             s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &file_name)
                 .await
                 .expect("Failed to upload object to S3");
 
             info!("Batch sent to S3 with name: {}", file_name);
-
             info!("Uploading batch to contract");
-            // TODO: change to merkle root when we have merkle trees
-            let mut hash = [0u8; 32];
-            let first_byte: u8 = random();
-            hash[0] = first_byte;
 
-            let batch_data_pointer = format!("https://storage.alignedlayer.com/{}", file_name);
-            match eth::create_new_task(service_manager, hash, batch_data_pointer).await {
-                Ok(_) => info!("Batch uploaded to contract"),
-                Err(e) => error!("Failed to upload batch to contract: {}", e),
+            let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
+
+            match eth::create_new_task(service_manager, batch_merkle_tree.root, batch_data_pointer)
+                .await
+            {
+                Ok(_) => info!("Batch verification task created on Aligned contract"),
+                Err(e) => error!("Failed to create batch verification task: {}", e),
             }
         });
     }
