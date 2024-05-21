@@ -96,9 +96,6 @@ var loopTasksFlags = []cli.Flag{
 
 var infiniteTasksFlags = []cli.Flag{
 	provingSystemFlag,
-	// proofFlag, //this doesn't go since it must generate a new one for each send //TODO fix since it is 'required'
-	// publicInputFlag, //this doesn't go since it must generate a new one for each send //TODO fix since it is 'required'
-	// verificationKeyFlag, //tied to the circuit, in this case : 'x!=0 ?' //TODO make it read only once, i think it is generating one for each new cycle
 	config.ConfigFileFlag,
 	intervalFlag,
 	feeFlag,
@@ -159,13 +156,14 @@ func taskSenderMain(c *cli.Context, xParam ...int) error {
 	var batchMerkleRoot [32]byte
 	var batchDataPointer string
 
-	if x == 0 { //use hardcoded value
+	if x == 0 { //previous version, use hardcoded value
 		// TODO(marian): Remove this hardcoded merkle root
 		batchMerkleRoot[0] = byte(123)
 		batchMerkleRoot[1] = byte(123)
 		// TODO(marian): Remove this dummy S3 url
 		batchDataPointer = "https://storage.alignedlayer.com/b4b654a31b43c7b5711206eea7d44f884ece1fe7164b478fa16215be77dc84cb.json"
-	} else { //we can calculate the real value
+	} else { //new version, we can calculate the real values
+		// Read from local files the proof, to send to batcher
 		outputDir := "task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/"
 		ProofByteArray, err := os.ReadFile(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.proof") //TODO un-hardcode provingSystem
 		if err != nil {
@@ -188,8 +186,7 @@ func taskSenderMain(c *cli.Context, xParam ...int) error {
 			Proof:           ProofByteArray,
 			PubInput:        PubInputByteArray,
 			VerificationKey: VerificationKeyByteArray,
-			// VmProgramCode:   []byte                 `json:"vm_program_code"` //TODO add in correct format
-			VmProgramCode:  []byte(""),
+			VmProgramCode:  []byte(""), //TODO add correct info
 		}
 
 
