@@ -29,9 +29,6 @@ struct Args {
 
     #[arg(name = "VM prgram code file name", long = "vm_program", default_value = ".")]
     vm_program_code_file_name: PathBuf,
-
-    #[arg(name = "Loop timer", long = "timer", default_value_t = 0)]
-    timer_loop: u8,
 }
 
 #[tokio::main]
