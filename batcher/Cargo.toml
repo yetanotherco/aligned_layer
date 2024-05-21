@@ -33,3 +33,6 @@ hex = "0.4.3"
 dotenv = "0.15.0"
 anyhow = "1.0.83"
 lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
+ethers = "2.0"
+rand = "0.8.5"
+serde_yaml = "0.9.34"

@@ -16,10 +16,16 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
 
+use crate::config::{BatcherConfigFromYaml, ContractDeploymentOutput};
+use crate::eth::AlignedLayerServiceManager;
 use crate::types::{VerificationBatch, VerificationData};
 
+mod config;
+mod eth;
 pub mod s3;
 pub mod types;
+
+const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
 pub trait Listener {
     fn listen(&self, address: &str) -> impl Future;
@@ -27,11 +33,10 @@ pub trait Listener {
 
 pub struct App {
     s3_client: S3Client,
+    service_manager: AlignedLayerServiceManager,
     sp1_prover_client: ProverClient,
     current_batch: Mutex<Vec<VerificationData>>,
 }
-
-const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
 // Implement the Listener trait for the App struct
 impl Listener for Arc<App> {
@@ -54,15 +59,28 @@ impl Listener for Arc<App> {
 }
 
 impl App {
-    pub async fn new() -> Self {
+    pub async fn new(config_file: String) -> Self {
         let s3_client = s3::create_client().await;
+
+        let config = BatcherConfigFromYaml::new(config_file);
+        let deployment_output =
+            ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
         info!("Initializing prover client");
         let sp1_prover_client: ProverClient = ProverClient::new();
         info!("Prover client initialized");
 
+        let service_manager = eth::get_contract(
+            config.eth_rpc_url,
+            config.ecdsa,
+            deployment_output.addresses.aligned_layer_service_manager,
+        )
+        .await
+        .expect("Failed to get contract");
+
         Self {
             s3_client,
+            service_manager,
             sp1_prover_client,
             current_batch: Mutex::new(Vec::new()),
         }
@@ -175,10 +193,11 @@ impl App {
         }
 
         let batch_merkle_tree: MerkleTree<VerificationBatch> = MerkleTree::build(&current_batch);
+        let r = batch_merkle_tree.root;
 
-        let batch_merkle_root = hex::encode(batch_merkle_tree.root);
-        info!("Batch merkle root: {}", batch_merkle_root);
-        let file_name = batch_merkle_root + ".json";
+        let batch_merkle_root_hex = hex::encode(batch_merkle_tree.root);
+        info!("Batch merkle root: {}", batch_merkle_root_hex);
+        let file_name = batch_merkle_root_hex + ".json";
 
         let batch_bytes =
             serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
@@ -186,15 +205,25 @@ impl App {
         current_batch.clear();
 
         let s3_client = self.s3_client.clone();
-
+        let service_manager = self.service_manager.clone();
         tokio::spawn(async move {
-            info!("Uploading batch to S3");
+            info!("Uploading batch to S3...");
 
             s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &file_name)
                 .await
                 .expect("Failed to upload object to S3");
 
             info!("Batch sent to S3 with name: {}", file_name);
+            info!("Uploading batch to contract");
+
+            let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
+
+            match eth::create_new_task(service_manager, batch_merkle_tree.root, batch_data_pointer)
+                .await
+            {
+                Ok(_) => info!("Batch uploaded to contract"),
+                Err(e) => error!("Failed to upload batch to contract: {}", e),
+            }
         });
     }
 }

@@ -24,21 +24,21 @@ pub struct VerificationData {
 pub struct VerificationBatch(Vec<VerificationData>);
 
 impl IsMerkleTreeBackend for VerificationBatch {
-    type Node = Vec<u8>;
+    type Node = [u8; 32];
     type Data = VerificationData;
 
     fn hash_data(leaf: &Self::Data) -> Self::Node {
         let leaf_bytes = bincode::serialize(leaf).expect("Failed to serialize leaf");
         let mut hasher = Keccak256::new();
         hasher.update(&leaf_bytes);
-        hasher.finalize().to_vec()
+        hasher.finalize().into()
     }
 
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
         let mut hasher = Keccak256::new();
         hasher.update(child_1);
         hasher.update(child_2);
-        hasher.finalize().to_vec()
+        hasher.finalize().into()
     }
 }
 
@@ -50,11 +50,11 @@ mod test {
     fn hash_new_parent_is_correct() {
         let mut hasher1 = Keccak256::new();
         hasher1.update(vec![1u8]);
-        let child_1 = hasher1.finalize().to_vec();
+        let child_1 = hasher1.finalize().into();
 
         let mut hasher2 = Keccak256::new();
         hasher2.update(vec![2u8]);
-        let child_2 = hasher2.finalize().to_vec();
+        let child_2 = hasher2.finalize().into();
 
         let parent = VerificationBatch::hash_new_parent(&child_1, &child_2);
 
