@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -25,8 +25,6 @@ import (
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/types"
-	"github.com/yetanotherco/aligned_layer/core/utils"
-	"golang.org/x/crypto/sha3"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
@@ -40,7 +38,7 @@ type Operator struct {
 	KeyPair            *bls.KeyPair
 	OperatorId         eigentypes.OperatorId
 	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
+	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
 	disperser          disperser.DisperserClient
@@ -70,7 +68,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
+	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
@@ -112,18 +110,21 @@ func (o *Operator) Start(ctx context.Context) error {
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
-		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
-			o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
-			taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
-			responseSignature, err := o.SignTaskResponse(taskResponse)
+		case newBatchLog := <-o.NewTaskCreatedChan:
+			// o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
+			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
-				o.Logger.Errorf("Could not sign task response", "err", err)
+				o.Logger.Errorf("Proof in batch did not verify", "err", err)
+				// FIXME(marian): This is not how we should handle this error. Just doing this for fast iteration and debug
+				panic("Proof did not verify")
 			}
+			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
 
 			signedTaskResponse := types.SignedTaskResponse{
-				TaskResponse: *taskResponse,
-				BlsSignature: *responseSignature,
-				OperatorId:   o.OperatorId,
+				BatchMerkleRoot:  newBatchLog.BatchMerkleRoot,
+				TaskCreatedBlock: newBatchLog.TaskCreatedBlock,
+				BlsSignature:     *responseSignature,
+				OperatorId:       o.OperatorId,
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
@@ -134,85 +135,65 @@ func (o *Operator) Start(ctx context.Context) error {
 
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
-func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
+func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
 
-	var proof []byte
-	var err error
+	o.Logger.Info("Received new batch with proofs to verify",
+		"batch merkle root", newBatchLog.BatchMerkleRoot,
+	)
 
-	switch newTaskCreatedLog.Task.DAPayload.Solution {
-	case common.Calldata:
-		proof = newTaskCreatedLog.Task.DAPayload.ProofAssociatedData
-	case common.EigenDA:
-		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.DAPayload.ProofAssociatedData, newTaskCreatedLog.Task.DAPayload.Index)
-		if err != nil {
-			o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
-			return nil
-		}
-	case common.Celestia:
-		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.ProofAssociatedData)
-		if err != nil {
-			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
-			return nil
+	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer)
+	if err != nil {
+		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
+		return nil
+	}
+
+	for _, verificationData := range verificationDataBatch {
+		if !o.verify(verificationData) {
+			return fmt.Errorf("Proof did not verify")
 		}
 	}
 
-	proofLen := (uint)(len(proof))
+	return nil
+}
 
-	pubInput := newTaskCreatedLog.Task.PubInput
+func (o *Operator) verify(verificationData VerificationData) bool {
+	switch verificationData.ProvingSystemId {
+	case common.GnarkPlonkBls12_381:
+		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
+		o.Logger.Infof("PLONK BLS12-381 proof verification result: %t", verificationResult)
 
-	provingSystemId := newTaskCreatedLog.Task.ProvingSystemId
+		return verificationResult
 
-	o.Logger.Info("Received new task with proof to verify",
-		"proof length", proofLen,
-		"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
-		"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
-		"task index", newTaskCreatedLog.TaskIndex,
-		"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
-	)
-
-	switch provingSystemId {
-	case uint16(common.GnarkPlonkBls12_381):
-		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		verificationResult := o.verifyPlonkProofBLS12_381(proof, pubInput, verificationKey)
-
-		o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
-
-	case uint16(common.GnarkPlonkBn254):
-		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		verificationResult := o.verifyPlonkProofBN254(proof, pubInput, verificationKey)
-
+	case common.GnarkPlonkBn254:
+		verificationResult := o.verifyPlonkProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
 
-	case uint16(common.SP1):
+		return verificationResult
+
+	case common.Groth16Bn254:
+		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
+
+		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
+		return verificationResult
+
+	case common.SP1:
 		proofBytes := make([]byte, sp1.MaxProofSize)
-		copy(proofBytes, proof)
+		copy(proofBytes, verificationData.Proof)
+		proofLen := (uint)(len(verificationData.Proof))
 
-		elf := newTaskCreatedLog.Task.PubInput
+		elf := verificationData.VmProgramCode
 		elfBytes := make([]byte, sp1.MaxElfBufferSize)
 		copy(elfBytes, elf)
 		elfLen := (uint)(len(elf))
 
 		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
-
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
+
+		return verificationResult
+
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
-		return nil
+		return false
 	}
 }
 
@@ -224,6 +205,11 @@ func (o *Operator) verifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []
 // VerifyPlonkProofBN254 verifies a PLONK proof using BN254 curve.
 func (o *Operator) verifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
+}
+
+// VerifyGroth16ProofBN254 verifies a GROTH16 proof using BN254 curve.
+func (o *Operator) verifyGroth16ProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	return o.verifyGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
 // verifyPlonkProof contains the common proof verification logic.
@@ -257,17 +243,38 @@ func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	return err == nil
 }
 
-func (o *Operator) SignTaskResponse(taskResponse *servicemanager.AlignedLayerServiceManagerTaskResponse) (*bls.Signature, error) {
-	encodedResponseBytes, err := utils.AbiEncodeTaskResponse(*taskResponse)
-	if err != nil {
-		return nil, err
+// verifyGroth16Proof contains the common proof verification logic.
+func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+	proofReader := bytes.NewReader(proofBytes)
+	proof := groth16.NewProof(curve)
+	if _, err := proof.ReadFrom(proofReader); err != nil {
+		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		return false
 	}
 
-	var taskResponseDigest [32]byte
-	hasher := sha3.NewLegacyKeccak256()
-	hasher.Write(encodedResponseBytes)
-	copy(taskResponseDigest[:], hasher.Sum(nil)[:32])
+	pubInputReader := bytes.NewReader(pubInputBytes)
+	pubInput, err := witness.New(curve.ScalarField())
+	if err != nil {
+		o.Logger.Errorf("Error instantiating witness: %v", err)
+		return false
+	}
+	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
+		o.Logger.Errorf("Could not read PLONK public input: %v", err)
+		return false
+	}
 
-	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(taskResponseDigest)
-	return &responseSignature, nil
+	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
+	verificationKey := groth16.NewVerifyingKey(curve)
+	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
+		o.Logger.Errorf("Could not read PLONK verifying key from bytes: %v", err)
+		return false
+	}
+
+	err = groth16.Verify(proof, verificationKey, pubInput)
+	return err == nil
+}
+
+func (o *Operator) SignTaskResponse(batchMerkleRoot [32]byte) *bls.Signature {
+	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchMerkleRoot)
+	return &responseSignature
 }
