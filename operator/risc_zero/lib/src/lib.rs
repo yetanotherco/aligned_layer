@@ -1,13 +1,12 @@
 use risc0_zkvm::Receipt;
 
 pub const MAX_RECEIPT_SIZE: usize = 215523;
-pub const MAX_IMAGE_ID_SIZE: usize = 8;
 
 #[no_mangle]
 pub extern "C" fn verify_risc_zero_receipt_ffi(
     receipt_bytes: &[u8; MAX_RECEIPT_SIZE],
     receipt_len: usize,
-    image_id: &[u32; MAX_IMAGE_ID_SIZE],
+    image_id: &[u32; 8],
 ) -> bool {
     if let Ok(receipt) = bincode::deserialize::<Receipt>(&receipt_bytes[..receipt_len]) {
         return receipt.verify(*image_id).is_ok();
