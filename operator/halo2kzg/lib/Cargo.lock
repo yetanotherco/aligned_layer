@@ -308,7 +308,6 @@ dependencies = [
 [[package]]
 name = "halo2_backend"
 version = "0.3.0"
-source = "git+https://github.com/privacy-scaling-explorations/halo2.git#620176cd93cabe2e3574478d3d34b8d609f44c2a"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -318,6 +317,7 @@ dependencies = [
  "rand_chacha",
  "rand_core",
  "rayon",
+ "serde",
  "sha3",
  "tracing",
 ]
@@ -325,7 +325,6 @@ dependencies = [
 [[package]]
 name = "halo2_frontend"
 version = "0.3.0"
-source = "git+https://github.com/privacy-scaling-explorations/halo2.git#620176cd93cabe2e3574478d3d34b8d609f44c2a"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -338,24 +337,25 @@ dependencies = [
 [[package]]
 name = "halo2_middleware"
 version = "0.3.0"
-source = "git+https://github.com/privacy-scaling-explorations/halo2.git#620176cd93cabe2e3574478d3d34b8d609f44c2a"
 dependencies = [
  "ff",
  "halo2curves",
  "rayon",
+ "serde",
 ]
 
 [[package]]
 name = "halo2_proofs"
 version = "0.3.0"
-source = "git+https://github.com/privacy-scaling-explorations/halo2.git#620176cd93cabe2e3574478d3d34b8d609f44c2a"
 dependencies = [
+ "bincode",
  "group",
  "halo2_backend",
  "halo2_frontend",
  "halo2_middleware",
  "halo2curves",
  "rand_core",
+ "serde",
 ]
 
 [[package]]
@@ -367,6 +367,7 @@ dependencies = [
  "blake2b_simd",
  "ff",
  "group",
+ "hex",
  "lazy_static",
  "num-bigint",
  "num-traits",
@@ -376,6 +377,8 @@ dependencies = [
  "rand",
  "rand_core",
  "rayon",
+ "serde",
+ "serde_arrays",
  "static_assertions",
  "subtle",
 ]
@@ -390,6 +393,7 @@ dependencies = [
  "ff",
  "group",
  "gumdrop",
+ "halo2_backend",
  "halo2_proofs",
  "halo2curves",
  "proptest",
@@ -398,6 +402,15 @@ dependencies = [
  "rayon",
  "serde_json",
  "tracing",
+]
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -564,8 +577,10 @@ dependencies = [
  "blake2b_simd",
  "ff",
  "group",
+ "hex",
  "lazy_static",
  "rand",
+ "serde",
  "static_assertions",
  "subtle",
 ]
@@ -768,6 +783,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "226b61a0d411b2ba5ff6d7f73a476ac4f8bb900373459cd00fab8512828ba395"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde_arrays"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38636132857f68ec3d5f3eb121166d2af33cb55174c4d5ff645db6165cbef0fd"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
