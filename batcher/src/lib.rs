@@ -220,8 +220,8 @@ impl App {
             match eth::create_new_task(service_manager, batch_merkle_tree.root, batch_data_pointer)
                 .await
             {
-                Ok(_) => info!("Batch uploaded to contract"),
-                Err(e) => error!("Failed to upload batch to contract: {}", e),
+                Ok(_) => info!("Batch verification task created on Aligned contract"),
+                Err(e) => error!("Failed to create batch verification task: {}", e),
             }
         });
     }
