@@ -1,82 +1,84 @@
-use std::{
-    fs::File,
-    io::{BufReader, BufWriter, ErrorKind, Write, Read},
-};
-use ff::{Field, PrimeField};
+use std::io::{BufReader, ErrorKind, Read};
 use halo2_proofs::{
     circuit::{Layouter, SimpleFloorPlanner, Value},
     plonk::{
-        create_proof, keygen_pk, keygen_vk_custom, pk_read, vk_read, verify_proof, Advice, Circuit, Column,
-        ConstraintSystem, ErrorFront, Fixed, Instance,
+        verify_proof, Advice, Circuit, Column,
+        ConstraintSystem, ErrorFront, Fixed, Instance, VerifyingKey
     },
     poly::{
         kzg::{
-            commitment::{KZGCommitmentScheme, ParamsKZG},
-            multiopen::{ProverSHPLONK, VerifierSHPLONK},
+            commitment::KZGCommitmentScheme,
+            multiopen::VerifierSHPLONK,
             strategy::SingleStrategy,
         },
         commitment::Params,
         Rotation,
     },
     transcript::{
-        Blake2bRead, Blake2bWrite, Challenge255, TranscriptReadBuffer, TranscriptWriterBuffer,
+        Blake2bRead, Challenge255, TranscriptReadBuffer,
     },
     SerdeFormat,
 };
 use halo2curves::bn256::{Bn256, Fr, G1Affine};
-use rand_core::OsRng;
 
+//TODO: Set these to true max bounds
 pub const MAX_PROOF_SIZE: usize = 2048;
 
-//TODO: write this out based on size of G1Affine elements
 pub const MAX_KZG_PARAMS_SIZE: usize = 2308;
 
-//TODO: write this out based on size of G1Affine elements
+pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 791;
+
 pub const MAX_VERIFIER_KEY_SIZE: usize = 518;
 
-//TODO: write this out based on size of G1Affine elements
-pub const MAX_PUBLIC_INPUT_SIZE: usize = 64;
+pub const MAX_PUBLIC_INPUT_SIZE: usize = 1024 * 1024;
 
-//NOTE(pat): For now we only support a single strategy and single parameter configuration.
-//NOTE(pat): We can't use generics over FFI so we need to have multiple implementations for each field/curve -> Use Bn254
-//NOTE(pat): We can't use generics over FFI so we need multiple implementations for each plonk implementation
+#[no_mangle]
+pub extern "C" fn print_pub_len(public_input_len: usize) {
+    println!("pub input len in Rust {}", public_input_len);
+}
+
 #[no_mangle]
 pub extern "C" fn verify_halo2_kzg_proof_ffi(
 proof_bytes: &[u8; MAX_PROOF_SIZE],
 proof_len: usize,
-verifier_params_bytes: &[u8; MAX_VERIFIER_KEY_SIZE],
+cs_bytes: &[u8; MAX_CONSTRAINT_SYSTEM_SIZE],
+cs_len: usize,
+verifier_key_bytes: &[u8; MAX_VERIFIER_KEY_SIZE],
 vk_len: usize,
 kzg_params_bytes: &[u8; MAX_KZG_PARAMS_SIZE],
 kzg_params_len: usize,
 public_input_bytes: &[u8; MAX_PUBLIC_INPUT_SIZE],
 public_input_len: usize,
 ) -> bool {
-    let k = 4;
-    let circuit = StandardPlonk(Fr::random(OsRng));
-    let compress_selectors = true;
-    let proof = &proof_bytes[..proof_len];
+    println!("proof_len {}", proof_len);
+    println!("cs_len {}", cs_len);
+    println!("vk_len {}", vk_len);
+    println!("kzg_params_len {}", kzg_params_len);
+    println!("public_buffer_len {}", public_input_bytes.len());
+    println!("public_input_len {}", public_input_len);
     //NOTE: SingleStrategy is for single proofs so that setting will not change across invocations
-    //Read vk
-    if let Ok(vk) = vk_read::<G1Affine, _, StandardPlonk>(&mut BufReader::new(&verifier_params_bytes[..vk_len]), SerdeFormat::RawBytes, k, &circuit, compress_selectors) {
-        if let Ok(params) = Params::read::<_>(&mut BufReader::new(&kzg_params_bytes[..kzg_params_len])) {
-            if let Ok(res) = read_fr(&public_input_bytes[..public_input_len]) {
-                let strategy = SingleStrategy::new(&params);
-                let instances = res.as_slice();
-                let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof[..]);
-                return verify_proof::<
-                    KZGCommitmentScheme<Bn256>,
-                    VerifierSHPLONK<'_, Bn256>,
-                    Challenge255<G1Affine>,
-                    Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
-                    SingleStrategy<'_, Bn256>,
-                >(&params, &vk, strategy, &[&[instances]], &mut transcript).is_ok()
+    if let Ok(cs) = bincode::deserialize(&cs_bytes[..cs_len]) {
+        if let Ok(vk) = VerifyingKey::<G1Affine>::read(&mut BufReader::new(&verifier_key_bytes[..vk_len]), SerdeFormat::RawBytes, cs) {
+            if let Ok(params) = Params::read::<_>(&mut BufReader::new(&kzg_params_bytes[..kzg_params_len])) {
+                if let Ok(res) = read_fr(&public_input_bytes[..public_input_len]) {
+                    let strategy = SingleStrategy::new(&params);
+                    let instances = res.as_slice();
+                    let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof_bytes[..proof_len]);
+                    return verify_proof::<
+                        KZGCommitmentScheme<Bn256>,
+                        VerifierSHPLONK<'_, Bn256>,
+                        Challenge255<G1Affine>,
+                        Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
+                        SingleStrategy<'_, Bn256>,
+                    >(&params, &vk, strategy, &[&[instances]], &mut transcript).is_ok()
+                }
             }
         }
     }
-
 	false
 }
 
+//TODO: Clean these up
 fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
     //TODO: make this capacity the size of the file / 32
     let mut instances = Vec::new();
@@ -107,7 +109,19 @@ fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
     Ok(instances)
 }
 
-// HALO2 Cicuit Example
+/*
+TODO:
+- End-to-End ffi tests working in makefile
+- Tests work with lookups
+- Set Max sizes to correct size -> 1 Kb larger than tests
+- Clean up error handling
+- Read everything from single file
+- Serialize and append length to start of parameters
+*/
+
+// HALO2 Circuit with Lookups
+
+// HALO2 Circuit Example
 #[derive(Clone, Copy)]
 struct StandardPlonkConfig {
     a: Column<Advice>,
@@ -168,8 +182,6 @@ struct StandardPlonk(Fr);
 impl Circuit<Fr> for StandardPlonk {
     type Config = StandardPlonkConfig;
     type FloorPlanner = SimpleFloorPlanner;
-    #[cfg(feature = "circuit-params")]
-    type Params = ();
 
     fn without_witnesses(&self) -> Self {
         Self::default()
@@ -213,6 +225,30 @@ impl Circuit<Fr> for StandardPlonk {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use rand_core::OsRng;
+    use std::{
+        fs::File,
+        io::{BufReader, BufWriter, Write, Read},
+    };
+    use ff::{Field, PrimeField};
+    use halo2_backend::plonk::circuit::ConstraintSystemBack;
+    use halo2_proofs::{
+        plonk::{
+            create_proof, keygen_pk, keygen_vk_custom, pk_read, verify_proof, VerifyingKey
+        },
+        poly::{
+            kzg::{
+                commitment::{KZGCommitmentScheme, ParamsKZG},
+                multiopen::ProverSHPLONK,
+
+            },
+        },
+        transcript::{
+            Blake2bRead, Blake2bWrite, Challenge255, TranscriptReadBuffer, TranscriptWriterBuffer,
+        }
+    };
+
 	#[test]
 	fn halo2_serialization_works() {
         let k = 4;
@@ -220,6 +256,7 @@ mod tests {
         let params = ParamsKZG::<Bn256>::setup(k, OsRng);
         let compress_selectors = true;
         let vk = keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
+        let cs = vk.clone().cs;
         let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
 
         // write pk
@@ -233,25 +270,6 @@ mod tests {
         let mut reader = BufReader::new(f);
         #[allow(clippy::unit_arg)]
         let pk = pk_read::<G1Affine, _, StandardPlonk>(
-            &mut reader,
-            SerdeFormat::RawBytes,
-            k,
-            &circuit,
-            compress_selectors,
-        )
-        .unwrap();
-
-        //write vk
-        let f = File::create("vk.bin").unwrap();
-        let mut writer = BufWriter::new(f);
-        vk.write(&mut writer, SerdeFormat::RawBytes).unwrap();
-        writer.flush().unwrap();
-
-        //read vk
-        let f = File::open("vk.bin").unwrap();
-        let mut reader = BufReader::new(f);
-        #[allow(clippy::unit_arg)]
-        let vk = vk_read::<G1Affine, _, StandardPlonk>(
             &mut reader,
             SerdeFormat::RawBytes,
             k,
@@ -280,23 +298,12 @@ mod tests {
         .expect("prover should not fail");
         let proof = transcript.finalize();
 
-        //write params
-        let f = File::create("kzg_params.bin").unwrap();
-        let mut writer = BufWriter::new(f);
-        params.write(&mut writer).unwrap();
-        writer.flush().unwrap();
-
-        //read params
-        let f = File::open("kzg_params.bin").unwrap();
-        let mut reader = BufReader::new(f);
-        let params = Params::read::<_>(&mut reader).unwrap();
-
         //write proof
-        std::fs::write("plonk_proof.bin", &proof[..])
+        std::fs::write("proof.bin", &proof[..])
         .expect("should succeed to write new proof");
 
         //read proof
-        let proof = std::fs::read("plonk_proof.bin").expect("should succeed to read proof");
+        let proof = std::fs::read("proof.bin").expect("should succeed to read proof");
 
         //write instances
         let f = File::create("pub_input.bin").unwrap();
@@ -310,6 +317,27 @@ mod tests {
         f.read_to_end(&mut buf).unwrap();
         let res = read_fr(&buf).unwrap();
         let instances = res.as_slice();
+        
+        let mut vk_buf = Vec::new();
+        vk.write(&mut vk_buf, SerdeFormat::RawBytes).unwrap();
+        let vk_len = vk_buf.len();
+        let mut kzg_params_buf = Vec::new();
+        params.write(&mut kzg_params_buf).unwrap();
+        let kzg_params_len = kzg_params_buf.len();
+
+        //Write everything to parameters file
+        let params_file = File::create("params.bin").unwrap();
+        let mut writer = BufWriter::new(params_file);
+        let cs_buf = bincode::serialize(&cs).unwrap();
+        //Write Parameter Lengths as u32
+        writer.write_all(&(cs_buf.len() as u32).to_le_bytes()).unwrap();
+        writer.write_all(&(vk_len as u32).to_le_bytes()).unwrap();
+        writer.write_all(&(kzg_params_len as u32).to_le_bytes()).unwrap();
+        //Write Parameters
+        writer.write_all(&cs_buf).unwrap();
+        writer.write_all(&vk_buf).unwrap();
+        writer.write_all(&kzg_params_buf).unwrap();
+        writer.flush().unwrap();
 
         let strategy = SingleStrategy::new(&params);
         let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
@@ -329,38 +357,46 @@ mod tests {
         .is_ok());
 	}
 
-    const PROOF: &[u8] = include_bytes!("../plonk_proof.bin");
+    const PROOF: &[u8] = include_bytes!("../proof.bin");
 
     const PUB_INPUT: &[u8] = include_bytes!("../pub_input.bin");
 
-    const VERIFIER_KEY: &[u8] = include_bytes!("../vk.bin");
-
-    const KZG_PARAMS: &[u8] = include_bytes!("../kzg_params.bin");
+    const PARAMS: &[u8] = include_bytes!("../params.bin");
 
 	#[test]
 	fn verify_halo2_proof_works() {
-        //TODO: move to writing to single params file
         // Select Proof Bytes
         let mut proof_buffer = [0u8; MAX_PROOF_SIZE];
         let proof_len = PROOF.len();
         proof_buffer[..proof_len].clone_from_slice(PROOF);
 
+        // Select Constraint System Bytes
+        let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
+        let cs_len_buf: [u8; 4] = PARAMS[..4].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
+        let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
+        let cs_offset = 12;
+        cs_buffer[..cs_len].clone_from_slice(&PARAMS[cs_offset..(cs_offset + cs_len)]);
+
         // Select Verifier Key Bytes
         let mut vk_buffer = [0u8; MAX_VERIFIER_KEY_SIZE];
-        let vk_len = VERIFIER_KEY.len();
-        vk_buffer[..vk_len].clone_from_slice(VERIFIER_KEY);
+        let vk_len_buf: [u8; 4] = PARAMS[4..8].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
+        let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
+        let vk_offset = cs_offset + cs_len;
+        vk_buffer[..vk_len].clone_from_slice(&PARAMS[vk_offset..(vk_offset + vk_len)]);
 
         // Select KZG Params Bytes
         let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
-        let kzg_params_len = KZG_PARAMS.len();
-        kzg_params_buffer[..kzg_params_len].clone_from_slice(KZG_PARAMS);
+        let kzg_len_buf: [u8; 4] = PARAMS[8..12].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
+        let kzg_params_len = u32::from_le_bytes(kzg_len_buf) as usize;
+        let kzg_offset = vk_offset + vk_len;
+        kzg_params_buffer[..kzg_params_len].clone_from_slice(&PARAMS[kzg_offset..]);
 
         // Select Public Input Bytes
         let mut public_input_buffer = [0u8; MAX_PUBLIC_INPUT_SIZE];
         let public_input_len = PUB_INPUT.len();
         public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
 
-        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, proof_len, &vk_buffer, vk_len, &kzg_params_buffer, kzg_params_len, &public_input_buffer, public_input_len);
+        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, proof_len, &cs_buffer, cs_len, &vk_buffer, vk_len, &kzg_params_buffer, kzg_params_len, &public_input_buffer, public_input_len);
         assert!(result)
 	}
 
@@ -371,23 +407,33 @@ mod tests {
         let proof_len = PROOF.len();
         proof_buffer[..proof_len].clone_from_slice(PROOF);
 
+        // Select Constraint System Bytes
+        let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
+        let cs_len_buf: [u8; 4] = PARAMS[..4].try_into().map_err(|_| "Failed to convert slice to array").unwrap();
+        let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
+        let cs_offset = 12;
+        cs_buffer[..cs_len].clone_from_slice(&PARAMS[cs_offset..(cs_offset + cs_len)]);
+
         // Select Verifier Key Bytes
         let mut vk_buffer = [0u8; MAX_VERIFIER_KEY_SIZE];
-        let vk_len = VERIFIER_KEY.len();
-        vk_buffer[..vk_len].clone_from_slice(VERIFIER_KEY);
+        let vk_len_buf: [u8; 4] = PARAMS[4..8].try_into().map_err(|_| "Failed to convert slice to array").unwrap();
+        let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
+        let vk_offset = cs_offset + cs_len;
+        vk_buffer[..vk_len].clone_from_slice(&PARAMS[vk_offset..(vk_offset + vk_len)]);
 
         // Select KZG Params Bytes
         let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
-        let kzg_params_len = KZG_PARAMS.len();
-        kzg_params_buffer[..kzg_params_len].clone_from_slice(KZG_PARAMS);
+        let kzg_len_buf: [u8; 4] = PARAMS[8..12].try_into().map_err(|_| "Failed to convert slice to array").unwrap();
+        let kzg_params_len = u32::from_le_bytes(kzg_len_buf) as usize;
+        let kzg_offset = vk_offset + vk_len;
+        kzg_params_buffer[..kzg_params_len].clone_from_slice(&PARAMS[kzg_offset..]);
 
         // Select Public Input Bytes
         let mut public_input_buffer = [0u8; MAX_PUBLIC_INPUT_SIZE];
         let public_input_len = PUB_INPUT.len();
         public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
 
-
-        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, proof_len - 1, &vk_buffer, vk_len, &kzg_params_buffer, kzg_params_len, &public_input_buffer, public_input_len);
+        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, proof_len - 1, &cs_buffer, cs_len, &vk_buffer, vk_len, &kzg_params_buffer, kzg_params_len, &public_input_buffer, public_input_len);
         assert!(!result)
 	}
 }
