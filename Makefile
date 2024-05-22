@@ -131,6 +131,10 @@ batcher_send_infinite_tasks: ## Send a different Groth16 BN254 proof using the t
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
 	@./batcher/test-client/send_infinite_tasks.sh 4
 
+batcher_send_burst_tasks:
+	@echo "Sending a burst of tasks to Batcher..."
+	@./batcher/test-client/send_burst_tasks.sh
+
 __TASK_SENDERS__:
  # TODO add a default proving system
 
