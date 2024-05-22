@@ -399,25 +399,33 @@ test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
 
-__HALO2KZG_FFI__: ##
-build_halo2kzg_macos:
+__HALO2_KZG_FFI__: ##
+build_halo2_kzg_macos:
 	@cd operator/halo2kzg/lib && cargo build --release
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.dylib operator/halo2/lib/libhalo2kzg_verifier.dylib
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2/lib/libhalo2kzg_verifier.a
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.dylib operator/halo2kzg/lib/libhalo2kzg_verifier.dylib
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
 
-build_halo2kzg_linux:
+build_halo2_kzg_linux:
 	@cd operator/halo2kzg/lib && cargo build --release
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.so operator/halo2/lib/libhalo2kzg_verifier.so
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2/lib/libhalo2kzg_verifier.a
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.so operator/halo2kzg/lib/libhalo2kzg_verifier.so
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
 
-test_halo2kzg_rust_ffi:
+test_halo2_kzg_rust_ffi:
 	@echo "Testing Halo2-KZG Rust FFI source code..."
-	@cd operator/halo2kzg/lib && RUST_MIN_STACK=83886080 cargo t --release
+	@cd operator/halo2kzg/lib && cargo t --release
 
-test_halo2kzg_go_bindings_macos: build_halo2kzg_macos
+test_halo2_kzg_go_bindings_macos: build_halo2_kzg_macos
 	@echo "Testing Halo2-KZG Go bindings..."
 	go test ./operator/halo2kzg/... -v
 
-test_halo2kzg_go_bindings_linux: build_halo2kzg_linux
+test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
 	@echo "Testing Halo2-KZG Go bindings..."
 	go test ./operator/halo2kzg/... -v
+
+generate_halo2_kzg_proof:
+	@cd task_sender/test_examples/halo2_kzg && \
+	cargo clean && \
+	rm params.bin proof.bin pub_input.bin && \
+	RUST_LOG=info cargo run --release && \
+	echo "Generating halo2 plonk proof..." && \
+	echo "Generated halo2 plonk proof!"
