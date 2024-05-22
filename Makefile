@@ -399,31 +399,31 @@ test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
 
-__HALO2_KZG_FFI__: ##
-build_halo2_kzg_macos:
-	@cd operator/halo2kzg/lib && cargo build --release
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.dylib operator/halo2kzg/lib/libhalo2kzg_verifier.dylib
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
+__HALO2_IPA_FFI__: ##
+build_halo2_ipa_macos:
+	@cd operator/halo2ipa/lib && cargo build --release
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.dylib operator/halo2ipa/lib/libhalo2ipa_verifier.dylib
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
 
-build_halo2_kzg_linux:
-	@cd operator/halo2kzg/lib && cargo build --release
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.so operator/halo2kzg/lib/libhalo2kzg_verifier.so
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
+build_halo2_ipa_linux:
+	@cd operator/halo2ipa/lib && cargo build --release
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.so operator/halo2ipa/lib/libhalo2ipa_verifier.so
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
 
-test_halo2_kzg_rust_ffi:
+test_halo2_ipa_ffi:
 	@echo "Testing Halo2-KZG Rust FFI source code..."
-	@cd operator/halo2kzg/lib && cargo t --release
+	@cd operator/halo2ipa/lib && cargo t --release
 
-test_halo2_kzg_go_bindings_macos: build_halo2_kzg_macos
+test_halo2_ipa_go_bindings_macos: build_halo2_ipa_macos
 	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2kzg/... -v
+	go test ./operator/halo2ipa/... -v
 
-test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
+test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
 	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2kzg/... -v
+	go test ./operator/halo2ipa/... -v
 
-generate_halo2_kzg_proof:
-	@cd task_sender/test_examples/halo2_kzg && \
+generate_halo2_ipa_proof:
+	@cd task_sender/test_examples/halo2_ipa && \
 	cargo clean && \
 	rm params.bin proof.bin pub_input.bin && \
 	RUST_LOG=info cargo run --release && \

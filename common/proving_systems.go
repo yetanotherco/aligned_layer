@@ -12,11 +12,11 @@ const (
 	GnarkPlonkBn254
 	Groth16Bn254
 	SP1
-	Halo2KZG
+	Halo2IPA
 )
 
 func (t *ProvingSystemId) String() string {
-	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1"}[*t]
+	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1", "HALO2IPA"}[*t]
 }
 
 func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
@@ -29,6 +29,8 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Groth16Bn254, nil
 	case "SP1":
 		return SP1, nil
+	case "HALO2IPA":
+		return HALO2IPA, nil
 	}
 
 	return 0, fmt.Errorf("unknown proving system: %s", provingSystem)
