@@ -276,7 +276,7 @@ build_merkle_tree_macos:
 	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
 build_merkle_tree_linux:
-	@cd operator/sp1/lib && cargo build --release
+	@cd operator/merkle_tree/lib && cargo build --release
 	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
 	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
