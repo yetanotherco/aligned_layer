@@ -98,6 +98,13 @@ Once in there copy the contents of the file after `{"abi":` and before `,"byteco
 
 Once copied, either create or replace the `AlignedLayerServiceManager.json` file, located in the `/explorer/lib/abi` directory, by pasting the content from your clipboard.
 
+Lastly, repeat the same process for the AVSDirectory contract.
+
+Last updated ABI versions:
+
+- AlignedLayerServiceManager: v0.8.24
+- AVSDirectory: v0.8.24
+
 ## Contributing
 
 We appreciate your interest in contributing to the Aligned Explorer! Your contributions can help make this project even better.
