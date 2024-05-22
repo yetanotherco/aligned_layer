@@ -1,0 +1,12 @@
+# Cargo build
+**/target
+
+# Cargo config
+.cargo
+
+# MacOS nuisances
+.DS_Store
+
+# Proofs
+**/risc_zero_fibonacci.proof
+**/fibonacci_id.txt

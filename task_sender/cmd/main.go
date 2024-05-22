@@ -240,10 +240,18 @@ func getAndUploadProofData(c *cli.Context, x int) ([32]byte, string, error) {
 
 func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) (string, error) {
 	// I want to upload the bytearray to my S3 bucket, with merkleRoot as the object name
-	godotenv.Load("./task_sender/.env")
-	region := os.Getenv("AWS_REGION") // TODO .env
+	err := godotenv.Load("./task_sender/.env")
+    if err != nil {
+        log.Fatalf("Error loading .env file: %v", err)
+    }
+	region := os.Getenv("AWS_REGION")
 	accessKey := os.Getenv("AWS_ACCESS_KEY")
 	secretKey := os.Getenv("AWS_SECRET")
+	bucket := os.Getenv("AWS_S3_BUCKET")
+	if region == "" || accessKey == "" || secretKey == "" || bucket == "" {
+		fmt.Println("Fail.\nPlease set the AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET, and AWS_S3_BUCKET environment variables. \nYou can yse task_Sender/.env.example as a template.")
+		return "", fmt.Errorf("missing AWS environment variables")
+	}
 
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),
@@ -251,16 +259,15 @@ func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) (string, error) {
 	})
 	if err != nil {
 		fmt.Println("Error creating aws session:", err)
+		fmt.Println("Did you set the AWS_REGION, AWS_ACCESS_KEY, and AWS_SECRET environment variables?\nYou can yse task_Sender/.env.example as a template.")
 		return "", err
 	}
 	svc := s3.New(sess)
 
-	bucket := os.Getenv("AWS_S3_BUCKET") //"storage.alignedlayer.com"
-
 	merkleRootHex := hex.EncodeToString(merkleRoot[:])
 	key := merkleRootHex + ".json"
 
-	// This uploads the contents of the buffer to S3
+	// This uploads the contents to S3
 	_, err = svc.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
