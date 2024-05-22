@@ -279,9 +279,10 @@ func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) (string, error) {
 	}
 
 	fmt.Println("File uploaded successfully!!!")
-	fmt.Println(merkleRootHex)
 
 	batchDataPointer := "https://storage.alignedlayer.com/" + key
+	fmt.Println(batchDataPointer)
+
 	return batchDataPointer, nil
 }
 
