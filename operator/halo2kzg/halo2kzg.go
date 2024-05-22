@@ -27,7 +27,6 @@ const MaxKzgParamsSize = 4 * 1024;
 // MaxPublicInputSize 4KB
 const MaxPublicInputSize = 4 * 1024;
 
-//Merge all pointers into one array and send across interface
 func VerifyHalo2KzgProof(
 	proofBuffer [MaxProofSize]byte, proofLen uint, 
 	csBuffer [MaxConstraintSystemSize]byte, csLen uint, 

@@ -70,9 +70,7 @@ public_input_len: u64,
 	false
 }
 
-//TODO: Clean these up
 fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
-    //TODO: make this capacity the size of the file / 32
     let mut instances = Vec::with_capacity(buf.len() / 32);
     // Buffer to store each 32-byte slice
     let mut buffer = [0; 32];
@@ -96,18 +94,6 @@ fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
     
     Ok(instances)
 }
-
-/*
-TODO:
-- End-to-End ffi tests working in makefile
-- Tests work with lookups
-- Set Max sizes to correct size -> 1 Kb larger than tests
-- Clean up error handling
-- Read everything from single file
-- Serialize and append length to start of parameters
-*/
-
-// HALO2 Circuit with Lookups
 
 // HALO2 Circuit Example
 #[derive(Clone, Copy)]
