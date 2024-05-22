@@ -128,11 +128,11 @@ func taskSenderMain(c *cli.Context) error {
 
 	// TODO(marian): Remove this hardcoded merkle root
 	var batchMerkleRoot [32]byte
-	batchMerkleRoot[0] = byte(2)
-	batchMerkleRoot[1] = byte(3)
+	batchMerkleRoot[0] = byte(123)
+	batchMerkleRoot[1] = byte(123)
 
 	// TODO(marian): Remove this dummy S3 url
-	batchDataPointer := "aligned.awesome.batch.s3.com"
+	batchDataPointer := "https://storage.alignedlayer.com/b4b654a31b43c7b5711206eea7d44f884ece1fe7164b478fa16215be77dc84cb.json"
 
 	task := pkg.NewTask(batchMerkleRoot, batchDataPointer)
 
