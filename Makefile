@@ -268,3 +268,26 @@ generate_sp1_fibonacci_proof:
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
+
+__MERKLE_TREE_FFI__: ##
+build_merkle_tree_macos:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+build_merkle_tree_linux:
+	@cd operator/sp1/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+test_merkle_tree_rust_ffi:
+	@echo "Testing Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
