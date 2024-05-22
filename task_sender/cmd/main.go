@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,9 +16,14 @@ import (
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
 	generateproof "github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/pkg"
-	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
 var (
@@ -152,7 +159,7 @@ func taskSenderMain(c *cli.Context, xParam ...int) error {
 
 	taskSender := pkg.NewTaskSender(taskSenderConfig, avsWriter)
 
-	batchMerkleRoot, batchDataPointer, err := getProofData(c, x)
+	batchMerkleRoot, batchDataPointer, err := getAndUploadProofData(c, x)
 	if err != nil {
 		return err
 	}
@@ -167,10 +174,7 @@ func taskSenderMain(c *cli.Context, xParam ...int) error {
 	return nil
 }
 
-func getProofData(c *cli.Context, x int) ([32]byte, string, error) {
-	// TODO un-hardcode batchDataPointer
-	batchDataPointer := "https://storage.alignedlayer.com/b4b654a31b43c7b5711206eea7d44f884ece1fe7164b478fa16215be77dc84cb.json"
-
+func getAndUploadProofData(c *cli.Context, x int) ([32]byte, string, error) {
 	var proofFile, pubInputFile, verificationKeyFile string
 
 	provingSystem, err := ParseProvingSystem(c.String(provingSystemFlag.Name))
@@ -225,8 +229,50 @@ func getProofData(c *cli.Context, x int) ([32]byte, string, error) {
 		return [32]byte{}, "", err
 	}
 	merkleRoot := sha256.Sum256(byteArray)
+	err = uploadObjectToS3(byteArray, merkleRoot)
+	if err != nil {
+		return [32]byte{}, "", err
+	}
+	// TODO un-hardcode batchDataPointer
+	batchDataPointer := "https://storage.alignedlayer.com/b4b654a31b43c7b5711206eea7d44f884ece1fe7164b478fa16215be77dc84cb.json"
 
 	return merkleRoot, batchDataPointer, nil
+}
+
+func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) error {
+	// I want to upload the bytearray to my S3 bucket, with merkleRoot as the object name
+	region := os.Getenv("AWS_REGION") // TODO .env
+	accessKey := os.Getenv("AWS_ACCESS_KEY")
+	secretKey := os.Getenv("AWS_SECRET")
+
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(region),
+		Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
+	})
+	if err != nil {
+		fmt.Println("Error creating aws session:", err)
+		return err
+	}
+	svc := s3.New(sess)
+
+	bucket := os.Getenv("AWS_S3_BUCKET") // TODO
+
+	merkleRootHex := hex.EncodeToString(merkleRoot[:])
+	key := merkleRootHex
+
+	// This uploads the contents of the buffer to S3
+	_, err = svc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader(byteArray),
+	})
+	if err != nil {
+		fmt.Println("Error uploading file:", err)
+		return err
+	}
+
+	fmt.Println("File uploaded successfully!!!")
+	return nil
 }
 
 func taskSenderLoopMain(c *cli.Context) error {
