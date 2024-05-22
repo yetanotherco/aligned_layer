@@ -96,19 +96,19 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     ) external {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
-        // Check task hasn't been responsed yet
-        require(
-            batchesState[batchMerkleRoot].responded == false,
-            "Batch already responded"
-        );
-        batchesState[batchMerkleRoot].responded = true;
-
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock != 0,
             "Batch doesn't exists"
         );
+
+        // Check task hasn't been responsed yet
+        require(
+            batchesState[batchMerkleRoot].responded == false,
+            "Batch already responded"
+        );
+        batchesState[batchMerkleRoot].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
