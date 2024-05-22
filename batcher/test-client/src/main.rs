@@ -1,12 +1,10 @@
-use std::time::Duration;
 use std::path::PathBuf;
-use std::env;
 
 use futures_util::{SinkExt, StreamExt};
 use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::connect_async;
 
-use batcher::types::{ProvingSystemId, VerificationData, get_proving_system_from_str};
+use batcher::types::{VerificationData, get_proving_system_from_str};
 
 use clap::Parser;
 
