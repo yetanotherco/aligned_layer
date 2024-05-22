@@ -1,7 +1,5 @@
-mod types;
-
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use crate::types::{VerificationBatch, VerificationData};
+use batcher::types::{VerificationBatch, VerificationData};
 
 // TODO: Ten times the size of one proof, could be changed later
 const MAX_BATCH_SIZE: usize = 2 * 1024 * 1024 * 10;
