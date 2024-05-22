@@ -240,7 +240,10 @@ func getAndUploadProofData(c *cli.Context, x int) ([32]byte, string, error) {
 
 func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) (string, error) {
 	// I want to upload the bytearray to my S3 bucket, with merkleRoot as the object name
-	godotenv.Load("./task_sender/.env")
+	err := godotenv.Load("./task_sender/.env")
+    if err != nil {
+        log.Fatalf("Error loading .env file: %v", err)
+    }
 	region := os.Getenv("AWS_REGION")
 	accessKey := os.Getenv("AWS_ACCESS_KEY")
 	secretKey := os.Getenv("AWS_SECRET")
