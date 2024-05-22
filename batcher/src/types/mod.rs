@@ -1,4 +1,4 @@
-use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
+use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
@@ -15,17 +15,34 @@ pub enum ProvingSystemId {
 pub struct VerificationData {
     pub proving_system: ProvingSystemId,
     pub proof: Vec<u8>,
-    pub public_input: Option<Vec<u8>>,
+    pub pub_input: Option<Vec<u8>>,
     pub verification_key: Option<Vec<u8>>,
     pub vm_program_code: Option<Vec<u8>>,
+    pub proof_generator_addr: String,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct VerificationBatch(Vec<VerificationData>);
 
-impl IsMerkleTreeBackend for VerificationBatch {
+pub struct VerificationDataCommitment {
+    pub proof_commitment: [u8; 32],
+    pub pub_input_commitment: Option<[u8; 32]>,
+    pub vm_program_code_commitment: Option<[u8; 32]>,
+    pub verification_key_commitment: Option<[u8; 32]>,
+}
+
+pub struct VerificationCommitmentBatch(Vec<VerificationDataCommitment>);
+
+pub struct BatchInclusionData {
+    pub verification_data_commitment: VerificationDataCommitment,
+    pub batch_merkle_root: [u8; 32],
+    pub batch_inclusion_proof: Proof<[u8; 32]>,
+    pub proof_generator_addr: String,
+}
+
+impl IsMerkleTreeBackend for VerificationCommitmentBatch {
     type Node = [u8; 32];
-    type Data = VerificationData;
+    type Data = VerificationDataCommitment;
 
     fn hash_data(leaf: &Self::Data) -> Self::Node {
         let leaf_bytes = bincode::serialize(leaf).expect("Failed to serialize leaf");
