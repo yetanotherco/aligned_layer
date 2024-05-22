@@ -214,7 +214,7 @@ send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task send
 		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
-send_groth16_bn254_proof_infinite: ## Send a different Groth16 BN254 proof using the task sender every 10 seconds
+send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@echo "Sending a different GROTH16 BN254 proof in a loop every 3 seconds..."
 	@go run task_sender/cmd/main.go infinite-tasks \
 		--proving-system groth16_bn254 \
