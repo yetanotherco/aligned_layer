@@ -21,9 +21,11 @@ import (
 	generateproof "github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/pkg"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/aws/credentials"
+
+	godotenv "github.com/joho/godotenv"
 )
 
 var (
@@ -205,60 +207,58 @@ func getAndUploadProofData(c *cli.Context, x int) ([32]byte, string, error) {
 		return [32]byte{}, "", err
 	}
 
-	var data operator.VerificationData
+	var data []operator.VerificationData
 	if provingSystem == common.SP1 { // currently, this is the correct way of handling VerificationKey/VmProgramCode
-		data = operator.VerificationData{
+		data = []operator.VerificationData{{
 			ProvingSystemId: provingSystem,
 			Proof:           ProofByteArray,
 			PubInput:        PubInputByteArray,
 			VerificationKey: []byte(""),
 			VmProgramCode:   VerificationKeyByteArray,
-		}
+		}}
 	} else {
-		data = operator.VerificationData{
+		data = []operator.VerificationData{{
 			ProvingSystemId: provingSystem,
 			Proof:           ProofByteArray,
 			PubInput:        PubInputByteArray,
 			VerificationKey: VerificationKeyByteArray,
 			VmProgramCode:   []byte(""),
-		}
+		}}
 	}
-
 	byteArray, err := json.Marshal(data)
 	if err != nil {
 		return [32]byte{}, "", err
 	}
 	merkleRoot := sha256.Sum256(byteArray)
-	err = uploadObjectToS3(byteArray, merkleRoot)
+	batchDataPointer, err := uploadObjectToS3(byteArray, merkleRoot)
 	if err != nil {
 		return [32]byte{}, "", err
 	}
-	// TODO un-hardcode batchDataPointer
-	batchDataPointer := "https://storage.alignedlayer.com/b4b654a31b43c7b5711206eea7d44f884ece1fe7164b478fa16215be77dc84cb.json"
 
 	return merkleRoot, batchDataPointer, nil
 }
 
-func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) error {
+func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) (string, error) {
 	// I want to upload the bytearray to my S3 bucket, with merkleRoot as the object name
+	godotenv.Load("./task_sender/.env")
 	region := os.Getenv("AWS_REGION") // TODO .env
 	accessKey := os.Getenv("AWS_ACCESS_KEY")
 	secretKey := os.Getenv("AWS_SECRET")
 
 	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region),
+		Region:      aws.String(region),
 		Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
 	})
 	if err != nil {
 		fmt.Println("Error creating aws session:", err)
-		return err
+		return "", err
 	}
 	svc := s3.New(sess)
 
-	bucket := os.Getenv("AWS_S3_BUCKET") // TODO
+	bucket := os.Getenv("AWS_S3_BUCKET") //"storage.alignedlayer.com"
 
 	merkleRootHex := hex.EncodeToString(merkleRoot[:])
-	key := merkleRootHex
+	key := merkleRootHex + ".json"
 
 	// This uploads the contents of the buffer to S3
 	_, err = svc.PutObject(&s3.PutObjectInput{
@@ -268,11 +268,14 @@ func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) error {
 	})
 	if err != nil {
 		fmt.Println("Error uploading file:", err)
-		return err
+		return "", err
 	}
 
 	fmt.Println("File uploaded successfully!!!")
-	return nil
+	fmt.Println(merkleRootHex)
+
+	batchDataPointer := "https://storage.alignedlayer.com/" + key
+	return batchDataPointer, nil
 }
 
 func taskSenderLoopMain(c *cli.Context) error {

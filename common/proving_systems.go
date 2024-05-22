@@ -1,7 +1,6 @@
 package common
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -30,15 +29,5 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return SP1, nil
 	}
 
-	return 0, fmt.Errorf("Unknown proving system: %s", provingSystem)
-}
-
-func (t *ProvingSystemId) UnmarshalJSON(b []byte) error {
-	var s string
-	err := json.Unmarshal(b, &s)
-	if err != nil {
-		return err
-	}
-	*t, err = ProvingSystemIdFromString(s)
-	return err
+	return 0, fmt.Errorf("unknown proving system: %s", provingSystem)
 }
