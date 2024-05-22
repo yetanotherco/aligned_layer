@@ -21,49 +21,41 @@ use halo2_proofs::{
 };
 use halo2curves::bn256::{Bn256, Fr, G1Affine};
 
-//TODO: Set these to true max bounds
-pub const MAX_PROOF_SIZE: usize = 2048;
+// MaxProofSize 4KB
+pub const MAX_PROOF_SIZE: usize = 4 * 1024;
 
-pub const MAX_KZG_PARAMS_SIZE: usize = 2308;
+// MaxConstraintSystemSize 2KB
+pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
 
-pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 791;
+// MaxVerificationKeySize 1KB
+pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
 
-pub const MAX_VERIFIER_KEY_SIZE: usize = 518;
+// MaxKzgParamsSize 4KB
+pub const MAX_KZG_PARAMS_SIZE: usize = 4 * 1024;
 
-pub const MAX_PUBLIC_INPUT_SIZE: usize = 1024 * 1024;
-
-#[no_mangle]
-pub extern "C" fn print_pub_len(public_input_len: usize) {
-    println!("pub input len in Rust {}", public_input_len);
-}
+// MaxPublicInputSize 4KB
+pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
 
 #[no_mangle]
 pub extern "C" fn verify_halo2_kzg_proof_ffi(
-proof_bytes: &[u8; MAX_PROOF_SIZE],
-proof_len: usize,
-cs_bytes: &[u8; MAX_CONSTRAINT_SYSTEM_SIZE],
-cs_len: usize,
-verifier_key_bytes: &[u8; MAX_VERIFIER_KEY_SIZE],
-vk_len: usize,
-kzg_params_bytes: &[u8; MAX_KZG_PARAMS_SIZE],
-kzg_params_len: usize,
-public_input_bytes: &[u8; MAX_PUBLIC_INPUT_SIZE],
-public_input_len: usize,
+proof_buf: &[u8; MAX_PROOF_SIZE],
+proof_len: u64,
+cs_buf: &[u8; MAX_CONSTRAINT_SYSTEM_SIZE],
+cs_len: u64,
+verifier_key_buf: &[u8; MAX_VERIFIER_KEY_SIZE],
+vk_len: u64,
+kzg_params_buf: &[u8; MAX_KZG_PARAMS_SIZE],
+kzg_params_len: u64,
+public_input_buf: &[u8; MAX_PUBLIC_INPUT_SIZE],
+public_input_len: u64,
 ) -> bool {
-    println!("proof_len {}", proof_len);
-    println!("cs_len {}", cs_len);
-    println!("vk_len {}", vk_len);
-    println!("kzg_params_len {}", kzg_params_len);
-    println!("public_buffer_len {}", public_input_bytes.len());
-    println!("public_input_len {}", public_input_len);
-    //NOTE: SingleStrategy is for single proofs so that setting will not change across invocations
-    if let Ok(cs) = bincode::deserialize(&cs_bytes[..cs_len]) {
-        if let Ok(vk) = VerifyingKey::<G1Affine>::read(&mut BufReader::new(&verifier_key_bytes[..vk_len]), SerdeFormat::RawBytes, cs) {
-            if let Ok(params) = Params::read::<_>(&mut BufReader::new(&kzg_params_bytes[..kzg_params_len])) {
-                if let Ok(res) = read_fr(&public_input_bytes[..public_input_len]) {
+    if let Ok(cs) = bincode::deserialize(&cs_buf[..(cs_len as usize)]) {
+        if let Ok(vk) = VerifyingKey::<G1Affine>::read(&mut BufReader::new(&verifier_key_buf[..(vk_len as usize)]), SerdeFormat::RawBytes, cs) {
+            if let Ok(params) = Params::read::<_>(&mut BufReader::new(&kzg_params_buf[..(kzg_params_len as usize)])) {
+                if let Ok(res) = read_fr(&public_input_buf[..(public_input_len as usize)]) {
                     let strategy = SingleStrategy::new(&params);
                     let instances = res.as_slice();
-                    let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof_bytes[..proof_len]);
+                    let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof_buf[..(proof_len as usize)]);
                     return verify_proof::<
                         KZGCommitmentScheme<Bn256>,
                         VerifierSHPLONK<'_, Bn256>,
@@ -81,26 +73,22 @@ public_input_len: usize,
 //TODO: Clean these up
 fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
     //TODO: make this capacity the size of the file / 32
-    let mut instances = Vec::new();
+    let mut instances = Vec::with_capacity(buf.len() / 32);
     // Buffer to store each 32-byte slice
     let mut buffer = [0; 32];
     
-    // Loop until end of file
     loop {
         // Read 32 bytes into the buffer
         match buf.read_exact(&mut buffer) {
             Ok(_) => {
-                // Process the buffer here (printing as an example)
                 instances.push(Fr::from_bytes(&buffer).unwrap());
-
             },
             Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
                 // If end of file reached, break the loop
                 break;
             },
             Err(e) => {
-                // Handle other errors
-                eprintln!("Error reading file: {}", e);
+                eprintln!("Error Deserializing Public Inputs: {}", e);
                 return Err(ErrorKind::Other)
             }
         }
@@ -229,13 +217,12 @@ mod tests {
     use rand_core::OsRng;
     use std::{
         fs::File,
-        io::{BufReader, BufWriter, Write, Read},
+        io::{BufWriter, Write, Read},
     };
     use ff::{Field, PrimeField};
-    use halo2_backend::plonk::circuit::ConstraintSystemBack;
     use halo2_proofs::{
         plonk::{
-            create_proof, keygen_pk, keygen_vk_custom, pk_read, verify_proof, VerifyingKey
+            create_proof, keygen_pk, keygen_vk_custom, verify_proof,
         },
         poly::{
             kzg::{
@@ -249,6 +236,18 @@ mod tests {
         }
     };
 
+    const PROOF: &[u8] = include_bytes!("../../../../task_sender/test_examples/halo2_kzg/proof.bin");
+
+    const PROOF_FILE_PATH: &str = "../../../task_sender/test_examples/halo2_kzg/proof.bin";
+
+    const PUB_INPUT: &[u8] = include_bytes!("../../../../task_sender/test_examples/halo2_kzg/pub_input.bin");
+
+    const PUB_INPUT_PATH: &str = "../../../task_sender/test_examples/halo2_kzg/pub_input.bin";
+
+    const PARAMS: &[u8] = include_bytes!("../../../../task_sender/test_examples/halo2_kzg/params.bin");
+
+    const PARAMS_FILE_PATH: &str = "../../../task_sender/test_examples/halo2_kzg/params.bin";
+
 	#[test]
 	fn halo2_serialization_works() {
         let k = 4;
@@ -258,25 +257,6 @@ mod tests {
         let vk = keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
         let cs = vk.clone().cs;
         let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
-
-        // write pk
-        let f = File::create("pk.bin").unwrap();
-        let mut writer = BufWriter::new(f);
-        pk.write(&mut writer, SerdeFormat::RawBytes).unwrap();
-        writer.flush().unwrap();
-
-        // read pk
-        let f = File::open("pk.bin").unwrap();
-        let mut reader = BufReader::new(f);
-        #[allow(clippy::unit_arg)]
-        let pk = pk_read::<G1Affine, _, StandardPlonk>(
-            &mut reader,
-            SerdeFormat::RawBytes,
-            k,
-            &circuit,
-            compress_selectors,
-        )
-        .unwrap();
 
         let instances: &[&[Fr]] = &[&[circuit.0]];
         let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
@@ -299,20 +279,20 @@ mod tests {
         let proof = transcript.finalize();
 
         //write proof
-        std::fs::write("proof.bin", &proof[..])
+        std::fs::write(PROOF_FILE_PATH, &proof[..])
         .expect("should succeed to write new proof");
 
         //read proof
-        let proof = std::fs::read("proof.bin").expect("should succeed to read proof");
+        let proof = std::fs::read(PROOF_FILE_PATH).expect("should succeed to read proof");
 
-        //write instances
-        let f = File::create("pub_input.bin").unwrap();
+        //write public input
+        let f = File::create(PUB_INPUT_PATH).unwrap();
         let mut writer = BufWriter::new(f);
         instances.to_vec().into_iter().flatten().for_each(|fp| { writer.write(&fp.to_repr()).unwrap(); });
         writer.flush().unwrap();
 
         //read instances
-        let mut f = File::open("pub_input.bin").unwrap();
+        let mut f = File::open(PUB_INPUT_PATH).unwrap();
         let mut buf = Vec::new();
         f.read_to_end(&mut buf).unwrap();
         let res = read_fr(&buf).unwrap();
@@ -326,7 +306,7 @@ mod tests {
         let kzg_params_len = kzg_params_buf.len();
 
         //Write everything to parameters file
-        let params_file = File::create("params.bin").unwrap();
+        let params_file = File::create(PARAMS_FILE_PATH).unwrap();
         let mut writer = BufWriter::new(params_file);
         let cs_buf = bincode::serialize(&cs).unwrap();
         //Write Parameter Lengths as u32
@@ -338,6 +318,36 @@ mod tests {
         writer.write_all(&vk_buf).unwrap();
         writer.write_all(&kzg_params_buf).unwrap();
         writer.flush().unwrap();
+
+        let mut f = File::open(PARAMS_FILE_PATH).unwrap();
+        let mut params_buf = Vec::new();
+        f.read_to_end(&mut params_buf).unwrap();
+        println!("params_buf len: {:?}", params_buf.len());
+
+        // Select Constraint System Bytes
+        let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
+        let cs_len_buf: [u8; 4] = params_buf[..4].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
+        let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
+        let cs_offset = 12;
+        cs_buffer[..cs_len].clone_from_slice(&params_buf[cs_offset..(cs_offset + cs_len)]);
+
+        // Select Verifier Key Bytes
+        let mut vk_buffer = [0u8; MAX_VERIFIER_KEY_SIZE];
+        let vk_len_buf: [u8; 4] = params_buf[4..8].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
+        let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
+        let vk_offset = cs_offset + cs_len;
+        vk_buffer[..vk_len].clone_from_slice(&params_buf[vk_offset..(vk_offset + vk_len)]);
+
+        // Select KZG Params Bytes
+        let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
+        let kzg_len_buf: [u8; 4] = params_buf[8..12].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
+        let kzg_params_len = u32::from_le_bytes(kzg_len_buf) as usize;
+        let kzg_offset = vk_offset + vk_len;
+        kzg_params_buffer[..kzg_params_len].clone_from_slice(&params_buf[kzg_offset..]);
+
+        let cs = bincode::deserialize(&cs_buf[..cs_len]).unwrap();
+        let vk = VerifyingKey::<G1Affine>::read(&mut BufReader::new(&vk_buffer[..vk_len]), SerdeFormat::RawBytes, cs).unwrap();
+        let params = Params::read::<_>(&mut BufReader::new(&kzg_params_buffer[..kzg_params_len])).unwrap();
 
         let strategy = SingleStrategy::new(&params);
         let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
@@ -357,14 +367,9 @@ mod tests {
         .is_ok());
 	}
 
-    const PROOF: &[u8] = include_bytes!("../proof.bin");
-
-    const PUB_INPUT: &[u8] = include_bytes!("../pub_input.bin");
-
-    const PARAMS: &[u8] = include_bytes!("../params.bin");
-
 	#[test]
-	fn verify_halo2_proof_works() {
+	fn verify_halo2_plonk_proof() {
+        //TODO: add verifying halo2 proof with lookups
         // Select Proof Bytes
         let mut proof_buffer = [0u8; MAX_PROOF_SIZE];
         let proof_len = PROOF.len();
@@ -396,12 +401,12 @@ mod tests {
         let public_input_len = PUB_INPUT.len();
         public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
 
-        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, proof_len, &cs_buffer, cs_len, &vk_buffer, vk_len, &kzg_params_buffer, kzg_params_len, &public_input_buffer, public_input_len);
+        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, proof_len as u64, &cs_buffer, cs_len as u64, &vk_buffer, vk_len as u64, &kzg_params_buffer, kzg_params_len as u64, &public_input_buffer, public_input_len as u64);
         assert!(result)
 	}
 
 	#[test]
-	fn verify_halo2_proof_aborts_with_bad_proof() {
+	fn verify_halo2_plonk_proof_aborts_with_bad_proof() {
         // Select Proof Bytes
         let mut proof_buffer = [42u8; MAX_PROOF_SIZE];
         let proof_len = PROOF.len();
@@ -433,7 +438,7 @@ mod tests {
         let public_input_len = PUB_INPUT.len();
         public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
 
-        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, proof_len - 1, &cs_buffer, cs_len, &vk_buffer, vk_len, &kzg_params_buffer, kzg_params_len, &public_input_buffer, public_input_len);
+        let result = verify_halo2_kzg_proof_ffi(&proof_buffer, (proof_len - 1) as u64, &cs_buffer, cs_len as u64, &vk_buffer, vk_len as u64, &kzg_params_buffer, kzg_params_len as u64, &public_input_buffer, public_input_len as u64);
         assert!(!result)
 	}
 }

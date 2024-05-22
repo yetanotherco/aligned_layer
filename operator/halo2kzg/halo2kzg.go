@@ -7,26 +7,25 @@ package halo2kzg
 #include "lib/halo2kzg.h"
 */
 import "C"
-import "fmt"
 import "unsafe"
 
-// MaxProofSize 2MB
-const MaxProofSize = 2048;
+// MaxProofSize 4KB
+const MaxProofSize =  8 * 1024;
 
-// MaxVerificationKeySize 4 MB
-const MaxParamsSize = 4 * 1024;
+// MaxProofSize 4KB
+const MaxParamsSize =  8 * 1024;
 
-// MaxConstraintSystemSize 1 KB
-const MaxConstraintSystemSize = 791;
+// MaxConstraintSystemSize 2KB
+const MaxConstraintSystemSize = 2 * 1024;
 
-// MaxVerificationKeySize 1 KB
-const MaxVerifierKeySize = 518;
+// MaxVerificationKeySize 1KB
+const MaxVerifierKeySize = 1024;
 
-// MaxVerificationKeySize 4 MB
-const MaxKzgParamsSize = 2308;
+// MaxKzgParamsSize 4KB
+const MaxKzgParamsSize = 4 * 1024;
 
-// MaxPublicInputSize 4 MB
-const MaxPublicInputSize = 1024 * 1024;
+// MaxPublicInputSize 4KB
+const MaxPublicInputSize = 4 * 1024;
 
 //Merge all pointers into one array and send across interface
 func VerifyHalo2KzgProof(
@@ -36,25 +35,17 @@ func VerifyHalo2KzgProof(
 	kzgParamBuffer [MaxKzgParamsSize]byte, kzgParamLen uint, 
 	publicInputBuffer [MaxPublicInputSize]byte, publicInputLen uint,
 ) bool {
-	fmt.Printf("Public Input Len: %d\n", publicInputLen)
-	(C.print_pub_len((C.uint)(publicInputLen)))
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	csPtr := (*C.uchar)(unsafe.Pointer(&csBuffer[0]))
 	vkPtr := (*C.uchar)(unsafe.Pointer(&vkBuffer[0]))
 	kzgParamPtr := (*C.uchar)(unsafe.Pointer(&kzgParamBuffer[0]))
 	publicInputPtr := (*C.uchar)(unsafe.Pointer(&publicInputBuffer[0]))
 
-	/*
-	publicInputPtr = proofPtr;	
-	publicInputLenForReal := uint(1)
-	*/
-
 	return (bool)(C.verify_halo2_kzg_proof_ffi(
-		proofPtr, (C.uint)(proofLen), 
-		csPtr, (C.uint)(csLen),
-		vkPtr, (C.uint)(vkLen),
-		kzgParamPtr, (C.uint)(kzgParamLen),
-		// 4 or 8 bytes
-		publicInputPtr, (C.uint)(publicInputLen)),
+		proofPtr, (C.ulonglong)(proofLen), 
+		csPtr, (C.ulonglong)(csLen),
+		vkPtr, (C.ulonglong)(vkLen),
+		kzgParamPtr, (C.ulonglong)(kzgParamLen),
+		publicInputPtr, (C.ulonglong)(publicInputLen)),
 	)
 }

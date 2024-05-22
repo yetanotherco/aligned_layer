@@ -283,13 +283,13 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		}
 		return taskResponse
 	case common.Halo2KZG:
-		//Extract Proof Bytes
+		// Extract Proof Bytes
 		proofBytes := make([]byte, halo2kzg.MaxProofSize)
 		copy(proofBytes, verificationData.Proof)
 		proofLen := (uint)(len(verificationData.Proof))
 
-		//Extract Verification Key Bytes
-		paramsBytes := newTaskCreateLog.Task.VerificationKey
+		// Extract Verification Key Bytes
+		paramsBytes := verificationData.VerificationKey
 
 		// Deserialize csLen
 		csLenBuffer := make([]byte, 4)
@@ -306,40 +306,36 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		copy(kzgParamsLenBuffer, paramsBytes[8:12])
 		kzgParamsLen := (uint)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
 
-		//Extract Constraint System Bytes
+		// Extract Constraint System Bytes
 		csBytes := make([]byte, halo2kzg.MaxConstraintSystemSize)
 		csOffset := uint(12)
 		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
 
-		//Extract Verification Key Bytes
+		// Extract Verification Key Bytes
 		vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
 		vkOffset := csOffset + csLen
 		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
 
-		//Extract Kzg Parameter Bytes
+		// Extract Kzg Parameter Bytes
 		kzgParamsBytes := make([]byte,(halo2kzg.MaxKzgParamsSize))
 		kzgParamsOffset := vkOffset + vkLen
 		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:])
 
-		//Extract Public Input Bytes
-		publicInput := newTaskCreatedLog.Task.PubInput
+		// Extract Public Input Bytes
+		publicInput := verificationData.PubInput
 		publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
 		copy(publicInputBytes, publicInput)
 		publicInputLen := (uint)(len(publicInput))
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
 			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen, 
-			([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), uint(csLen),
+			([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), csLen,
 			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
 			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen, 
 			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
+		return verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false

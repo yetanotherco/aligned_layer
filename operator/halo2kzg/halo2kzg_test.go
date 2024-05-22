@@ -1,17 +1,20 @@
 package halo2kzg_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"encoding/binary"
-
 	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 )
 
-//TODO: remove prints
+const ProofFilePath = "../../task_sender/test_examples/halo2_kzg/proof.bin";
+
+const PublicInputPath = "../../task_sender/test_examples/halo2_kzg/pub_input.bin";
+
+const ParamsFilePath = "../../task_sender/test_examples/halo2_kzg/params.bin";
+
 func TestHalo2KzgProofVerifies(t *testing.T) {
-	proofFile, err := os.Open("./lib/proof.bin")
+	proofFile, err := os.Open(ProofFilePath)
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
@@ -22,7 +25,7 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	}
 	defer proofFile.Close()
 
-	paramsFile, err := os.Open("./lib/params.bin")
+	paramsFile, err := os.Open(ParamsFilePath)
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
@@ -46,28 +49,23 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	copy(kzgParamLenBuffer, paramsFileBytes[8:12])
 
 	csLen :=  binary.LittleEndian.Uint32(csLenBuffer)
-	fmt.Printf("csLen: %d\n", csLen)
 	vkLen :=  binary.LittleEndian.Uint32(vkLenBuffer)
-	fmt.Printf("vkLen: %d\n", vkLen)
 	kzgParamsLen :=  binary.LittleEndian.Uint32(kzgParamLenBuffer)
-	fmt.Printf("kzgParamsLen: %d\n", kzgParamsLen)
 
 	// Select bytes
 	csOffset := uint32(12)
-	fmt.Printf("csOffset: %d\n", csOffset)
 	copy(csBytes, paramsFileBytes[csOffset:(csOffset + csLen)])
 	vkOffset := csOffset + csLen
 	copy(vkBytes, paramsFileBytes[vkOffset:(vkOffset + vkLen)])
 	kzgParamsOffset := vkOffset + vkLen
 	copy(kzgParamsBytes, paramsFileBytes[kzgParamsOffset:])
 
-	publicInputFile, err := os.Open("./lib/pub_input.bin")
+	publicInputFile, err := os.Open(PublicInputPath)
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
 	publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
 	nReadPublicInputBytes, err := publicInputFile.Read(publicInputBytes)
-	fmt.Printf("Public Input Len: %d\n", nReadPublicInputBytes)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
