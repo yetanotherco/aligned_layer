@@ -113,6 +113,17 @@ make operator_start
 First create a .env file inside the batcher directory.
 An example of the .env file can be found at `batcher/.env.example`.
 
+You can configure the batcher with `config-files/config.yaml`.
+
+The values it uses are:
+1. `batcher.block_interval`
+2. `batcher.batch_size_interval`
+3. `ecda.private_key_store_path`
+4. `ecda.private_key_store_password`
+5. `eth_rpc_url`
+6. `eth_ws_url`
+7. `aligned_layer_deployment_config_file_path`
+
 To start the batcher, run:
 
 ```bash
@@ -121,7 +132,7 @@ make batcher_start
 
 To send a dummy task to the batcher, run:
 ```bash
-make batcher_send_dummy_task
+make batcher_send_dummy_task PROVING_SYSTEM=<sp1|plonk_bls12_381|plonk_bn254|groth16_bn254> # Default is sp1
 ```
 
 ### Send task

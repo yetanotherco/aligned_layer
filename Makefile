@@ -106,10 +106,15 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 __BATCHER__:
 
+PROVING_SYSTEM?=sp1
+
 batcher_start:
 	@echo "Starting Batcher..."
-	@cd batcher && cargo run --release
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
+batcher_send_dummy_task:
+	@echo "Sending dummy task to Batcher..."
+	@cd batcher/test-client && cargo run -- ws://localhost:8080 $(PROVING_SYSTEM)
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/test-client/target/debug && ./test-client \
