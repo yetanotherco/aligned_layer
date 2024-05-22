@@ -217,7 +217,7 @@ impl App {
             let current_batch_len = current_batch.len();
             if current_batch_len <= 1 {
                 // Needed because merkle tree freezes on only one leaf
-                info!("New Block reached but current batch is empty or has only one task");
+                debug!("New block reached but current batch is empty or has only one proof. Waiting for more proofs...");
                 return;
             }
 
@@ -242,7 +242,7 @@ impl App {
             *last_uploaded_batch_block = block_number;
 
             (batch_bytes, batch_merkle_tree.root)
-        }; // lock is released here so new tasks can be added
+        }; // lock is released here so new proofs can be added
 
         let s3_client = self.s3_client.clone();
         let service_manager = self.service_manager.clone();
