@@ -244,6 +244,11 @@ func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) (string, error) {
 	region := os.Getenv("AWS_REGION") // TODO .env
 	accessKey := os.Getenv("AWS_ACCESS_KEY")
 	secretKey := os.Getenv("AWS_SECRET")
+	bucket := os.Getenv("AWS_S3_BUCKET") //"storage.alignedlayer.com"
+	if region == "" || accessKey == "" || secretKey == "" || bucket == "" {
+		fmt.Println("Fail.\nPlease set the AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET, and AWS_S3_BUCKET environment variables. \nYou can yse task_Sender/.env.example as a template.")
+		return "", fmt.Errorf("missing AWS environment variables")
+	}
 
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),
@@ -251,11 +256,10 @@ func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) (string, error) {
 	})
 	if err != nil {
 		fmt.Println("Error creating aws session:", err)
+		fmt.Println("Did you set the AWS_REGION, AWS_ACCESS_KEY, and AWS_SECRET environment variables?\nYou can yse task_Sender/.env.example as a template.")
 		return "", err
 	}
 	svc := s3.New(sess)
-
-	bucket := os.Getenv("AWS_S3_BUCKET") //"storage.alignedlayer.com"
 
 	merkleRootHex := hex.EncodeToString(merkleRoot[:])
 	key := merkleRootHex + ".json"
