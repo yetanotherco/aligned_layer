@@ -10,7 +10,7 @@ use ethers::providers::Http;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{debug, error, info};
+use log::{debug, error, warn, info};
 use sha3::{Digest, Sha3_256};
 use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
@@ -140,7 +140,6 @@ impl App {
         let proof = verification_data.proof.as_slice();
         let vm_program_code = verification_data.vm_program_code.as_ref();
 
-        // switch on proving system
         let response = match verification_data.proving_system {
             types::ProvingSystemId::SP1 => {
                 let elf = vm_program_code.expect("VM program code is required");
@@ -150,8 +149,8 @@ impl App {
                 self.verify_sp1_proof(proof, elf)
             }
             _ => {
-                error!("Unsupported proving system");
-                Err(anyhow::anyhow!("Unsupported proving system"))
+                warn!("Unsupported proving system, proof not verified");
+                Ok(())
             }
         };
 
