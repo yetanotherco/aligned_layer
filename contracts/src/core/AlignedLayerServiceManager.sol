@@ -101,6 +101,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             batchesState[batchMerkleRoot].responded == false,
             "Batch already responded"
         );
+        batchesState[batchMerkleRoot].responded = true;
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
@@ -127,8 +128,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
                     QUORUM_THRESHOLD_PERCENTAGE,
             "Signatories do not own at least threshold percentage of a quorum"
         );
-
-        batchesState[batchMerkleRoot].responded = true;
 
         emit BatchVerified(batchMerkleRoot);
     }
