@@ -1,13 +1,12 @@
 extern crate dotenv;
 
-
 use std::io::Error as IoError;
 use std::sync::Arc;
 
 use clap::Parser;
 use env_logger::Env;
 
-use batcher::{App, Listener};
+use batcher::App;
 
 #[derive(Parser)]
 #[command(name = "Aligned Layer Batcher")]
@@ -37,6 +36,14 @@ async fn main() -> Result<(), IoError> {
     let app = Arc::new(app);
 
     let addr = format!("localhost:{}", port);
+
+    // spawn thread for polling
+    tokio::spawn({
+        let app = app.clone();
+        async move {
+            app.poll_new_blocks().await;
+        }
+    });
 
     app.listen(&addr).await;
 
