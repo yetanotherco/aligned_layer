@@ -10,16 +10,17 @@ use ethers::providers::Http;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{debug, error, warn, info};
+use log::{debug, error, info, warn};
 use sha3::{Digest, Sha3_256};
 use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
+use types::VerificationCommitmentBatch;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
-use crate::types::{VerificationBatch, VerificationData};
+use crate::types::VerificationData;
 
 mod config;
 mod eth;
@@ -231,8 +232,10 @@ impl App {
                 return;
             }
 
-            let batch_merkle_tree: MerkleTree<VerificationBatch> =
-                MerkleTree::build(&current_batch);
+            let batch_commitment = VerificationCommitmentBatch::from(&(*current_batch));
+
+            let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
+                MerkleTree::build(&batch_commitment.0);
 
             let batch_bytes =
                 serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
