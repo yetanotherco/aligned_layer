@@ -181,7 +181,7 @@ func (o *Operator) verify(verificationData VerificationData) bool {
 		copy(proofBytes, verificationData.Proof)
 		proofLen := (uint)(len(verificationData.Proof))
 
-		elf := verificationData.PubInput
+		elf := verificationData.VmProgramCode
 		elfBytes := make([]byte, sp1.MaxElfBufferSize)
 		copy(elfBytes, elf)
 		elfLen := (uint)(len(elf))
