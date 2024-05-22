@@ -132,7 +132,7 @@ make batcher_start
 
 To send a dummy task to the batcher, run:
 ```bash
-make batcher_send_dummy_task
+make batcher_send_dummy_task PROVING_SYSTEM=<sp1|plonk_bls12_381|plonk_bn254|groth16_bn254> # Default is sp1
 ```
 
 ### Send task
