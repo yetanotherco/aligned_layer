@@ -1,69 +1,50 @@
 extern crate core;
 
-use std::future::Future;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aws_sdk_s3::client::Client as S3Client;
 use bytes::Bytes;
-use ethers::prelude::rand::random;
+use ethers::prelude::{Middleware, Provider};
+use ethers::providers::Http;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
-use log::{debug, info, warn, error};
+use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+use log::{debug, error, warn, info};
 use sha3::{Digest, Sha3_256};
 use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
 
-use crate::config::{BatcherConfigFromYaml, ContractDeploymentOutput};
+use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
-use crate::types::VerificationData;
+use crate::types::{VerificationBatch, VerificationData};
 
 mod config;
 mod eth;
 pub mod s3;
 pub mod types;
 
-pub trait Listener {
-    fn listen(&self, address: &str) -> impl Future;
-}
+const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
 pub struct App {
     s3_client: S3Client,
+    eth_rpc_provider: Provider<Http>,
     service_manager: AlignedLayerServiceManager,
     sp1_prover_client: ProverClient,
+    eth_ws_url: String,
     current_batch: Mutex<Vec<VerificationData>>,
-}
-
-const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
-
-// Implement the Listener trait for the App struct
-impl Listener for Arc<App> {
-    fn listen(&self, address: &str) -> impl Future {
-        async move {
-            // Create the event loop and TCP listener we'll accept connections on.
-            let listener = TcpListener::bind(address).await.expect("Failed to build");
-            // let listener = try_socket.expect("Failed to bind");
-            info!("Listening on: {}", address);
-
-            // Let's spawn the handling of each connection in a separate task.
-            while let Ok((stream, addr)) = listener.accept().await {
-                let c = self.clone();
-
-                tokio::spawn(async move {
-                    c.handle_connection(stream, addr).await;
-                });
-            }
-        }
-    }
+    block_interval: u64,
+    batch_size_interval: usize,
+    last_uploaded_batch_block: Mutex<u64>,
 }
 
 impl App {
     pub async fn new(config_file: String) -> Self {
         let s3_client = s3::create_client().await;
 
-        let config = BatcherConfigFromYaml::new(config_file);
+        let config = ConfigFromYaml::new(config_file);
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
@@ -71,8 +52,11 @@ impl App {
         let sp1_prover_client: ProverClient = ProverClient::new();
         info!("Prover client initialized");
 
+        let eth_rpc_provider =
+            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
+
         let service_manager = eth::get_contract(
-            config.eth_rpc_url,
+            eth_rpc_provider.clone(),
             config.ecdsa,
             deployment_output.addresses.aligned_layer_service_manager,
         )
@@ -81,13 +65,41 @@ impl App {
 
         Self {
             s3_client,
+            eth_rpc_provider,
             service_manager,
             sp1_prover_client,
+            eth_ws_url: config.eth_ws_url,
             current_batch: Mutex::new(Vec::new()),
+            block_interval: config.batcher.block_interval,
+            batch_size_interval: config.batcher.batch_size_interval,
+            last_uploaded_batch_block: Mutex::new(0),
         }
     }
 
-    pub async fn handle_connection(&self, raw_stream: TcpStream, addr: SocketAddr) {
+    pub async fn listen(self: &Arc<Self>, address: &str) {
+        // Create the event loop and TCP listener we'll accept connections on.
+        let listener = TcpListener::bind(address).await.expect("Failed to build");
+        info!("Listening on: {}", address);
+
+        // Let's spawn the handling of each connection in a separate task.
+        while let Ok((stream, addr)) = listener.accept().await {
+            let c = self.clone();
+
+            tokio::spawn(async move {
+                c.handle_connection(stream, addr).await;
+            });
+        }
+    }
+
+    pub async fn poll_new_blocks(&self) {
+        eth::poll_new_blocks(self.eth_ws_url.clone(), |block_number| async move {
+            self.handle_new_block(block_number).await
+        })
+        .await
+        .expect("Failed to poll new blocks");
+    }
+
+    async fn handle_connection(self: &Arc<Self>, raw_stream: TcpStream, addr: SocketAddr) {
         info!("Incoming TCP connection from: {}", addr);
 
         let ws_stream = tokio_tungstenite::accept_async(raw_stream)
@@ -113,8 +125,8 @@ impl App {
         info!("{} disconnected", &addr);
     }
 
-    pub async fn handle_message(
-        &self,
+    async fn handle_message(
+        self: &Arc<Self>,
         tx: UnboundedSender<Message>,
         message: Message,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
@@ -134,7 +146,7 @@ impl App {
 
                 let elf = elf.as_slice();
 
-                self.verify_sp1_proof(proof, elf).await
+                self.verify_sp1_proof(proof, elf)
             }
             _ => {
                 warn!("Unsupported proving system, proof not verified");
@@ -170,7 +182,95 @@ impl App {
         Ok(())
     }
 
-    pub async fn verify_sp1_proof(&self, proof: &[u8], elf: &[u8]) -> Result<(), anyhow::Error> {
+    async fn add_task(self: &Arc<Self>, verification_data: VerificationData) {
+        info!("Adding verification data to batch...");
+
+        let len = {
+            let mut current_batch = self.current_batch.lock().await;
+            current_batch.push(verification_data);
+
+            debug!("Batch size: {}", current_batch.len());
+
+            current_batch.len()
+        };
+
+        if len >= self.batch_size_interval {
+            let c = self.clone();
+            tokio::spawn(async move {
+                let block_number = c
+                    .eth_rpc_provider
+                    .get_block_number()
+                    .await
+                    .expect("Failed to get block number");
+                let block_number =
+                    u64::try_from(block_number).expect("Failed to convert block number");
+                c.handle_new_block(block_number).await;
+            });
+        }
+    }
+
+    async fn handle_new_block(&self, block_number: u64) {
+        let (batch_bytes, batch_merkle_root) = {
+            let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+            let mut current_batch = self.current_batch.lock().await;
+            let current_batch_len = current_batch.len();
+            if current_batch_len <= 1 {
+                // Needed because merkle tree freezes on only one leaf
+                debug!("New block reached but current batch is empty or has only one proof. Waiting for more proofs...");
+                return;
+            }
+
+            // check if neither interval is reached
+            if current_batch.len() < self.batch_size_interval
+                && block_number < *last_uploaded_batch_block + self.block_interval
+            {
+                info!(
+                    "Block interval not reached, current block: {}, last uploaded block: {}",
+                    block_number, *last_uploaded_batch_block
+                );
+                return;
+            }
+
+            let batch_merkle_tree: MerkleTree<VerificationBatch> =
+                MerkleTree::build(&current_batch);
+
+            let batch_bytes =
+                serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
+
+            current_batch.clear();
+            *last_uploaded_batch_block = block_number;
+
+            (batch_bytes, batch_merkle_tree.root)
+        }; // lock is released here so new proofs can be added
+
+        let s3_client = self.s3_client.clone();
+        let service_manager = self.service_manager.clone();
+        tokio::spawn(async move {
+            let batch_merkle_root_hex = hex::encode(batch_merkle_root);
+            info!("Batch merkle root: {}", batch_merkle_root_hex);
+
+            let file_name = batch_merkle_root_hex + ".json";
+
+            info!("Uploading batch to S3...");
+
+            s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &file_name)
+                .await
+                .expect("Failed to upload object to S3");
+
+            info!("Batch sent to S3 with name: {}", file_name);
+            info!("Uploading batch to contract");
+
+            let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
+
+            match eth::create_new_task(service_manager, batch_merkle_root, batch_data_pointer).await
+            {
+                Ok(_) => info!("Batch verification task created on Aligned contract"),
+                Err(e) => error!("Failed to create batch verification task: {}", e),
+            }
+        });
+    }
+
+    fn verify_sp1_proof(&self, proof: &[u8], elf: &[u8]) -> Result<(), anyhow::Error> {
         let (_pk, vk) = self.sp1_prover_client.setup(elf);
         let proof = bincode::deserialize(proof).map_err(|_| anyhow::anyhow!("Invalid proof"))?;
 
@@ -179,55 +279,5 @@ impl App {
             .map_err(|_| anyhow::anyhow!("Failed to verify proof"))?;
 
         Ok(())
-    }
-
-    pub async fn add_task(&self, verification_data: VerificationData) {
-        debug!("Adding task to batch");
-
-        let mut current_batch = self.current_batch.lock().await;
-        current_batch.push(verification_data);
-
-        debug!("Batch size: {}", current_batch.len());
-        if current_batch.len() < 2 {
-            return;
-        }
-
-        let batch_bytes =
-            serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
-
-        current_batch.clear();
-
-        let s3_client = self.s3_client.clone();
-        let service_manager = self.service_manager.clone();
-        tokio::spawn(async move {
-            info!("Sending batch to s3");
-            let mut hasher = Sha3_256::new();
-            hasher.update(&batch_bytes);
-            let hash = hasher.finalize().to_vec();
-
-            let hex_hash = hex::encode(hash.as_slice());
-
-            info!("Batch hash: {}", hex_hash);
-
-            let file_name = hex_hash + ".json";
-
-            s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes, &file_name)
-                .await
-                .expect("Failed to upload object to S3");
-
-            info!("Batch sent to S3 with name: {}", file_name);
-
-            info!("Uploading batch to contract");
-            // TODO: change to merkle root when we have merkle trees
-            let mut hash = [0u8; 32];
-            let first_byte: u8 = random();
-            hash[0] = first_byte;
-
-            let batch_data_pointer = format!("https://storage.alignedlayer.com/{}", file_name);
-            match eth::create_new_task(service_manager, hash, batch_data_pointer).await {
-                Ok(_) => info!("Batch uploaded to contract"),
-                Err(e) => error!("Failed to upload batch to contract: {}", e),
-            }
-        });
     }
 }

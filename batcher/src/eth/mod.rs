@@ -1,8 +1,9 @@
+use std::future::Future;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use ethers::prelude::*;
 use ethers::prelude::k256::ecdsa::SigningKey;
+use ethers::prelude::*;
 
 use crate::config::ECDSAConfig;
 
@@ -14,12 +15,15 @@ abigen!(
 pub type AlignedLayerServiceManager =
     AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
+pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
+    Provider::<Http>::try_from(eth_rpc_url).map_err(|err| anyhow::anyhow!(err))
+}
+
 pub async fn get_contract(
-    eth_rpc_url: String,
+    provider: Provider<Http>,
     ecdsa_config: ECDSAConfig,
     contract_address: String,
 ) -> Result<AlignedLayerServiceManager, anyhow::Error> {
-    let provider = Provider::<Http>::try_from(eth_rpc_url)?;
     let chain_id = provider.get_chainid().await?;
 
     // get private key from keystore
@@ -39,14 +43,30 @@ pub async fn get_contract(
 
 pub async fn create_new_task(
     service_manager: AlignedLayerServiceManager,
-    merkle_root: [u8; 32],
+    batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
 ) -> Result<TransactionReceipt, anyhow::Error> {
-    let call = service_manager.create_new_task(merkle_root, batch_data_pointer);
+    let call = service_manager.create_new_task(batch_merkle_root, batch_data_pointer);
     let pending_tx = call.send().await?;
 
     match pending_tx.await? {
         Some(receipt) => Ok(receipt),
         None => Err(anyhow::anyhow!("Receipt not found")),
     }
+}
+
+pub async fn poll_new_blocks<F, Fut>(eth_ws_url: String, callback: F) -> Result<(), anyhow::Error>
+where
+    F: Fn(u64) -> Fut,
+    Fut: Future,
+{
+    let provider = Provider::<Ws>::connect(eth_ws_url).await?;
+    let mut stream = provider.subscribe_blocks().await?;
+    while let Some(block) = stream.next().await {
+        let block_number = block.number.unwrap();
+        let block_number = u64::try_from(block_number).map_err(|err| anyhow::anyhow!(err))?;
+        callback(block_number).await;
+    }
+
+    Ok(())
 }
