@@ -25,6 +25,7 @@ mod config;
 mod eth;
 pub mod s3;
 pub mod types;
+pub mod gnark;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
@@ -147,6 +148,30 @@ impl App {
                 let elf = elf.as_slice();
 
                 self.verify_sp1_proof(proof, elf)
+            }
+            types::ProvingSystemId::GnarkPlonkBls12_381 => {
+                debug!("Verifying proof with gnark plonk bls12_381...");
+                let vk = verification_data
+                    .verification_key
+                    .as_ref()
+                    .expect("Verification key is required");
+
+                let public_inputs = verification_data
+                    .public_input
+                    .as_ref()
+                    .expect("Public input is required");
+
+                let is_valid = unsafe {
+                    gnark::VerifyPlonkProofBLS12_381(&proof.into(), &public_inputs.into(), &vk.into())
+                };
+
+                debug!("Proof is valid: {}", is_valid);
+
+                if is_valid {
+                    Ok(())
+                } else {
+                    Err(anyhow::anyhow!("Failed to verify proof"))
+                }
             }
             _ => {
                 warn!("Unsupported proving system, proof not verified");
