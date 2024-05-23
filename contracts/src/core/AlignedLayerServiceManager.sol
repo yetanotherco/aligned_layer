@@ -37,7 +37,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     /* STORAGE */
-    mapping(bytes32 => BatchState) batchesState;
+    mapping(bytes32 => BatchState) public batchesState;
 
     constructor(
         IAVSDirectory __avsDirectory,
