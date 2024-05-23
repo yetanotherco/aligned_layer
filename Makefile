@@ -329,3 +329,26 @@ generate_risc_zero_fibonacci_proof:
 		RUST_LOG=info cargo run --release && \
 		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
 		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"
+
+__MERKLE_TREE_FFI__: ##
+build_merkle_tree_macos:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+build_merkle_tree_linux:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+test_merkle_tree_rust_ffi:
+	@echo "Testing Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
