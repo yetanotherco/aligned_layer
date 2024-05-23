@@ -42,14 +42,14 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     constructor(
         IAVSDirectory __avsDirectory,
-        IPaymentCoordinator ___paymentCoordinator,
+        IPaymentCoordinator __paymentCoordinator,
         IRegistryCoordinator __registryCoordinator,
         IStakeRegistry __stakeRegistry
     )
         BLSSignatureChecker(__registryCoordinator)
         ServiceManagerBase(
             __avsDirectory,
-            ___paymentCoordinator,
+            __paymentCoordinator,
             __registryCoordinator,
             __stakeRegistry
         )
@@ -95,7 +95,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function respondToTask(
         // Root is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
-        bytes calldata quorumNumbers,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
@@ -113,10 +112,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         // check that aggregated BLS signature is valid
         (
             QuorumStakeTotals memory quorumStakeTotals,
-            bytes32 hashOfNonSigners
+            bytes32 _hashOfNonSigners
         ) = checkSignatures(
                 batchMerkleRoot,
-                quorumNumbers,
                 batchesState[batchMerkleRoot].taskCreatedBlock,
                 nonSignerStakesAndSignature
             );
