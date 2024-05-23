@@ -10,13 +10,13 @@ lazy_static! {
 #[no_mangle]
 pub extern "C" fn verify_sp1_proof_ffi(
     proof_bytes: &[u8; MAX_PROOF_SIZE],
-    proof_len: usize,
+    proof_len: u64,
     elf_bytes: &[u8; MAX_ELF_BUFFER_SIZE],
-    elf_len: usize,
+    elf_len: u64,
 ) -> bool {
-    let real_elf = &elf_bytes[0..elf_len];
+    let real_elf = &elf_bytes[0..(elf_len as usize)];
 
-    if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len]) {
+    if let Ok(proof) = bincode::deserialize(&proof_bytes[..(proof_len as usize)]) {
         let (_pk, vk) = PROVER_CLIENT.setup(real_elf);
         return PROVER_CLIENT.verify(&proof, &vk).is_ok();
     }
