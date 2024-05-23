@@ -1,7 +1,6 @@
 .PHONY: help tests
 
 CONFIG_FILE?=config-files/config.yaml
-DA_SOLUTION=calldata
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -143,7 +142,6 @@ send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
@@ -155,7 +153,6 @@ send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task 
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
@@ -171,7 +168,6 @@ send_plonk_bn254_proof: ## Send a PLONK BN254 proof using the task sender
 		--public-input task_sender/test_examples/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
@@ -183,7 +179,6 @@ send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender e
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
@@ -199,7 +194,6 @@ send_groth16_bn254_proof: ## Send a Groth16 BN254 proof using the task sender
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task sender every 10 seconds
@@ -211,7 +205,6 @@ send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task send
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
@@ -220,7 +213,6 @@ send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using
 		--proving-system groth16_bn254 \
 		--config config-files/config.yaml \
 		--interval 3 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 
@@ -238,7 +230,6 @@ send_sp1_proof:
     		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
     		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
-    		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
 
 __METRICS__:

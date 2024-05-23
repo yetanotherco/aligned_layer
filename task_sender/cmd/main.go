@@ -72,12 +72,6 @@ var (
 		Value:   100,
 		Usage:   "the `QUORUM THRESHOLD PERCENTAGE` for tasks",
 	}
-	daFlag = &cli.StringFlag{
-		Name: "da",
-		// Can be either "eigen" or "celestia"
-		Usage: "the `DA` to use (calldata | eigen | celestia)",
-		Value: "calldata",
-	}
 )
 
 var sendTaskFlags = []cli.Flag{
@@ -88,7 +82,6 @@ var sendTaskFlags = []cli.Flag{
 	config.ConfigFileFlag,
 	feeFlag,
 	quorumThresholdFlag,
-	daFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -100,7 +93,6 @@ var loopTasksFlags = []cli.Flag{
 	intervalFlag,
 	feeFlag,
 	quorumThresholdFlag,
-	daFlag,
 }
 
 var infiniteTasksFlags = []cli.Flag{
@@ -109,7 +101,6 @@ var infiniteTasksFlags = []cli.Flag{
 	intervalFlag,
 	feeFlag,
 	quorumThresholdFlag,
-	daFlag,
 }
 
 func main() {
