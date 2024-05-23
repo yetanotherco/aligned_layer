@@ -234,6 +234,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         //deploy the alignedLayer service manager implementation
         alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
             avsDirectory,
+            paymentCoordinator,
             registryCoordinator,
             stakeRegistry
         );
@@ -463,6 +464,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         //deploy the alignedLayer service manager implementation
         alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
             avsDirectory,
+            paymentCoordinator,
             registryCoordinator,
             stakeRegistry
         );

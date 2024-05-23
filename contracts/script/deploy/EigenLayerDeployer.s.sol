@@ -20,6 +20,7 @@ import "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import "eigenlayer-contracts/src/contracts/core/Slasher.sol";
 import "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
+import "eigenlayer-contracts/src/contracts/core/PaymentCoordinator.sol";
 
 import "eigenlayer-contracts/src/contracts/strategies/StrategyBaseTVLLimits.sol";
 
@@ -64,6 +65,8 @@ contract EigenLayerDeployer is Script, Test {
     StrategyManager public strategyManagerImplementation;
     AVSDirectory public avsDirectory;
     AVSDirectory public avsDirectoryImplementation;
+    PaymentCoordinator public paymentCoordinator;
+    PaymentCoordinator public paymentCoordinatorImplementation;
     EigenPodManager public eigenPodManager;
     EigenPodManager public eigenPodManagerImplementation;
     DelayedWithdrawalRouter public delayedWithdrawalRouter;
@@ -95,6 +98,16 @@ contract EigenLayerDeployer is Script, Test {
     uint256 DELEGATION_WITHDRAWAL_DELAY_BLOCKS;
     uint256 EIGENPOD_MANAGER_INIT_PAUSED_STATUS;
     uint256 DELAYED_WITHDRAWAL_ROUTER_INIT_PAUSED_STATUS;
+    // PaymentCoordinator
+    uint256 PAYMENT_COORDINATOR_INIT_PAUSED_STATUS;
+    uint32 PAYMENT_COORDINATOR_MAX_PAYMENT_DURATION;
+    uint32 PAYMENT_COORDINATOR_MAX_RETROACTIVE_LENGTH;
+    uint32 PAYMENT_COORDINATOR_MAX_FUTURE_LENGTH;
+    uint32 PAYMENT_COORDINATOR_GENESIS_PAYMENT_TIMESTAMP;
+    address PAYMENT_COORDINATOR_UPDATER;
+    uint32 PAYMENT_COORDINATOR_ACTIVATION_DELAY;
+    uint32 PAYMENT_COORDINATOR_CALCULATION_INTERVAL_SECONDS;
+    uint32 PAYMENT_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS;
 
     // one week in blocks -- 50400
     uint32 STRATEGY_MANAGER_INIT_WITHDRAWAL_DELAY_BLOCKS;
@@ -129,6 +142,27 @@ contract EigenLayerDeployer is Script, Test {
 
         MAX_RESTAKED_BALANCE_GWEI_PER_VALIDATOR = uint64(
             stdJson.readUint(config_data, ".eigenPod.MAX_RESTAKED_BALANCE_GWEI_PER_VALIDATOR")
+        );
+
+        // PaymentCoordinator
+        PAYMENT_COORDINATOR_INIT_PAUSED_STATUS = stdJson.readUint(
+            config_data,
+            ".paymentCoordinator.init_paused_status"
+        );
+        PAYMENT_COORDINATOR_CALCULATION_INTERVAL_SECONDS = uint32(
+            stdJson.readUint(config_data, ".paymentCoordinator.CALCULATION_INTERVAL_SECONDS")
+        );
+        PAYMENT_COORDINATOR_MAX_PAYMENT_DURATION = uint32(stdJson.readUint(config_data, ".paymentCoordinator.MAX_PAYMENT_DURATION"));
+        PAYMENT_COORDINATOR_MAX_RETROACTIVE_LENGTH = uint32(stdJson.readUint(config_data, ".paymentCoordinator.MAX_RETROACTIVE_LENGTH"));
+        PAYMENT_COORDINATOR_MAX_FUTURE_LENGTH = uint32(stdJson.readUint(config_data, ".paymentCoordinator.MAX_FUTURE_LENGTH"));
+        PAYMENT_COORDINATOR_GENESIS_PAYMENT_TIMESTAMP = uint32(stdJson.readUint(config_data, ".paymentCoordinator.GENESIS_PAYMENT_TIMESTAMP"));
+        PAYMENT_COORDINATOR_UPDATER = stdJson.readAddress(config_data, ".paymentCoordinator.payment_updater_address");
+        PAYMENT_COORDINATOR_ACTIVATION_DELAY = uint32(stdJson.readUint(config_data, ".paymentCoordinator.activation_delay"));
+        PAYMENT_COORDINATOR_CALCULATION_INTERVAL_SECONDS = uint32(
+            stdJson.readUint(config_data, ".paymentCoordinator.calculation_interval_seconds")
+        );
+        PAYMENT_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS = uint32(
+            stdJson.readUint(config_data, ".paymentCoordinator.global_operator_commission_bips")
         );
 
         // tokens to deploy strategies for
@@ -173,6 +207,9 @@ contract EigenLayerDeployer is Script, Test {
         avsDirectory = AVSDirectory(
             address(new TransparentUpgradeableProxy(address(emptyContract), address(eigenLayerProxyAdmin), ""))
         );
+        paymentCoordinator = PaymentCoordinator(
+            address(new TransparentUpgradeableProxy(address(emptyContract), address(eigenLayerProxyAdmin), ""))
+        );
         slasher = Slasher(
             address(new TransparentUpgradeableProxy(address(emptyContract), address(eigenLayerProxyAdmin), ""))
         );
@@ -206,6 +243,15 @@ contract EigenLayerDeployer is Script, Test {
         delegationImplementation = new DelegationManager(strategyManager, slasher, eigenPodManager);
         strategyManagerImplementation = new StrategyManager(delegation, eigenPodManager, slasher);
         avsDirectoryImplementation = new AVSDirectory(delegation);
+        paymentCoordinatorImplementation = new PaymentCoordinator(
+            delegation,
+            strategyManager,
+            PAYMENT_COORDINATOR_CALCULATION_INTERVAL_SECONDS,
+            PAYMENT_COORDINATOR_MAX_PAYMENT_DURATION,
+            PAYMENT_COORDINATOR_MAX_RETROACTIVE_LENGTH,
+            PAYMENT_COORDINATOR_MAX_FUTURE_LENGTH,
+            PAYMENT_COORDINATOR_GENESIS_PAYMENT_TIMESTAMP
+        );
         slasherImplementation = new Slasher(strategyManager, delegation);
         eigenPodManagerImplementation = new EigenPodManager(
             ethPOSDeposit,
@@ -259,6 +305,19 @@ contract EigenLayerDeployer is Script, Test {
             TransparentUpgradeableProxy(payable(address(avsDirectory))),
             address(avsDirectoryImplementation),
             abi.encodeWithSelector(AVSDirectory.initialize.selector, executorMultisig, eigenLayerPauserReg, 0)
+        );
+        eigenLayerProxyAdmin.upgradeAndCall(
+            TransparentUpgradeableProxy(payable(address(paymentCoordinator))),
+            address(paymentCoordinatorImplementation),
+            abi.encodeWithSelector(
+                PaymentCoordinator.initialize.selector,
+                executorMultisig,
+                eigenLayerPauserReg,
+                PAYMENT_COORDINATOR_INIT_PAUSED_STATUS,
+                PAYMENT_COORDINATOR_UPDATER,
+                PAYMENT_COORDINATOR_ACTIVATION_DELAY,
+                PAYMENT_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS
+            )
         );
         eigenLayerProxyAdmin.upgradeAndCall(
             TransparentUpgradeableProxy(payable(address(eigenPodManager))),
@@ -356,6 +415,12 @@ contract EigenLayerDeployer is Script, Test {
         vm.serializeAddress(deployed_addresses, "delegationManagerImplementation", address(delegationImplementation));
         vm.serializeAddress(deployed_addresses, "avsDirectory", address(avsDirectory));
         vm.serializeAddress(deployed_addresses, "avsDirectoryImplementation", address(avsDirectoryImplementation));
+        vm.serializeAddress(deployed_addresses, "paymentCoordinator", address(paymentCoordinator));
+        vm.serializeAddress(
+            deployed_addresses,
+            "paymentCoordinatorImplementation",
+            address(paymentCoordinatorImplementation)
+        );
         vm.serializeAddress(deployed_addresses, "strategyManager", address(strategyManager));
         vm.serializeAddress(
             deployed_addresses,

@@ -14,6 +14,7 @@ sleep 1
 
 # Deploy the contracts
 forge script script/deploy/EigenLayerDeployer.s.sol --rpc-url "http://localhost:8545" --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" --broadcast --sig "run(string memory configFile)" -- eigen.devnet.config.json
+# forge script script/deploy/EigenLayerPaymentCoordinatorDeployer.s.sol --rpc-url "http://localhost:8545" --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" --broadcast --sig "run(string memory configFileName, string memory deploymentFileName)" -- eigen.devnet.config.json eigenlayer_deployment_output.json
 
 # Kill the anvil process to save state
 pkill anvil
