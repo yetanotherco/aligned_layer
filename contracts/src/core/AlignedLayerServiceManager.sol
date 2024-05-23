@@ -8,6 +8,7 @@ import {ServiceManagerBase, IAVSDirectory} from "eigenlayer-middleware/ServiceMa
 import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
+import {IPaymentCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IPaymentCoordinator.sol";
 
 /**
  * @title Primary entrypoint for procuring services from AlignedLayer.
@@ -41,12 +42,14 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     constructor(
         IAVSDirectory __avsDirectory,
+        IPaymentCoordinator ___paymentCoordinator,
         IRegistryCoordinator __registryCoordinator,
         IStakeRegistry __stakeRegistry
     )
         BLSSignatureChecker(__registryCoordinator)
         ServiceManagerBase(
             __avsDirectory,
+            ___paymentCoordinator,
             __registryCoordinator,
             __stakeRegistry
         )
@@ -92,6 +95,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     function respondToTask(
         // Root is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
+        bytes calldata quorumNumbers,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
@@ -112,6 +116,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             bytes32 hashOfNonSigners
         ) = checkSignatures(
                 batchMerkleRoot,
+                quorumNumbers,
                 batchesState[batchMerkleRoot].taskCreatedBlock,
                 nonSignerStakesAndSignature
             );
