@@ -106,13 +106,15 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 __BATCHER__:
 
+PROVING_SYSTEM?=sp1
+
 batcher_start:
 	@echo "Starting Batcher..."
-	@cd batcher && cargo run --release
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
 batcher_send_dummy_task:
 	@echo "Sending dummy task to Batcher..."
-	@cd batcher/test-client && cargo run -- ws://localhost:8080
+	@cd batcher/test-client && cargo run -- ws://localhost:8080 $(PROVING_SYSTEM)
 
 __TASK_SENDERS__:
  # TODO add a default proving system
@@ -268,3 +270,34 @@ generate_sp1_fibonacci_proof:
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
+
+__RISC_ZERO_FFI__: ##
+build_risc_zero_macos:
+	@cd operator/risc_zero/lib && cargo build --release
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
+
+build_risc_zero_linux:
+	@cd operator/risc_zero/lib && cargo build --release
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
+
+test_risc_zero_rust_ffi:
+	@echo "Testing RISC Zero Rust FFI source code..."
+	@cd operator/risc_zero/lib && cargo test --release
+
+test_risc_zero_go_bindings_macos: build_risc_zero_macos
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero/... -v
+
+test_risc_zero_go_bindings_linux: build_risc_zero_linux
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero/... -v
+
+generate_risc_zero_fibonacci_proof:
+	@cd task_sender/test_examples/risc_zero/fibonacci_proof_generator && \
+		cargo clean && \
+		rm -f risc_zero_fibonacci.proof && \
+		RUST_LOG=info cargo run --release && \
+		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
+		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"
