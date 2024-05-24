@@ -55,44 +55,4 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         assertEq(taskCreatedBlock, uint32(block.number));
         assertEq(responded, false);
     }
-
-    // TODO fix this test in another PR
-    // This test is based on https://github.com/Layr-Labs/eigenda/blob/master/contracts/test/unit/EigenDAServiceManagerUnit.t.sol#L63
-    // function testRespondToTask() public {
-    //     bytes32 batchMerkleRoot = keccak256(abi.encodePacked("batch1"));
-    //     string memory batchDataPointer = "ipfs://batch1";
-    //     // IBLSSignatureChecker.NonSignerStakesAndSignature memory nonSignerStakesAndSignature;
-    //     uint256 nonRandomNumber = 111;
-    //     uint256 numNonSigners = 1;
-    //     uint256 quorumBitmap = 1;
-    //     // bytes memory quorumNumbers = BitmapUtils.bitmapToBytesArray(quorumBitmap);
-
-    //     (uint32 referenceBlockNumber, BLSSignatureChecker.NonSignerStakesAndSignature memory nonSignerStakesAndSignature) = 
-    //         _registerSignatoriesAndGetNonSignerStakeAndSignatureRandom(nonRandomNumber, numNonSigners, quorumBitmap);
-
-    //     // Create a new task first TODO use stdstore instead of contract method
-    //     alignedLayerServiceManager.createNewTask{value: 0}(batchMerkleRoot, batchDataPointer);
-    //     // stdstore
-    //     //     .target(address(alignedLayerServiceManager))
-    //     //     .sig(alignedLayerServiceManager.batchesState.selector)
-    //     //     .with_key(batchMerkleRoot)
-    //     //     .depth(0)
-    //     //     .checked_write(uint32(block.number));
-    //     // stdstore
-    //     //     .target(address(alignedLayerServiceManager))
-    //     //     .sig(alignedLayerServiceManager.batchesState.selector)
-    //     //     .with_key(batchMerkleRoot)
-    //     //     .depth(1)
-    //     //     .checked_write(false);
-
-    //     // vm.expectEmit(true, true, true, true);
-    //     // emit BatchVerified(batchMerkleRoot);
-
-    //     alignedLayerServiceManager.respondToTask(batchMerkleRoot, nonSignerStakesAndSignature);
-
-    //     (uint32 taskCreatedBlock, bool responded) = alignedLayerServiceManager.batchesState(batchMerkleRoot);
-
-    //     assertEq(taskCreatedBlock, uint32(block.number));
-    //     assertEq(responded, true);
-    // }
 }
