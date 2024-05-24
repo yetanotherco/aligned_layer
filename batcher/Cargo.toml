@@ -7,7 +7,6 @@ edition = "2021"
 name = "batcher"
 path = "src/lib.rs"
 
-
 [[bin]]
 name = "batcher"
 path = "src/main.rs"
