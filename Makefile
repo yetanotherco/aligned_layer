@@ -141,12 +141,12 @@ batcher_send_groth16_task: batcher/client/target/release/batcher-client
 		--public_input ../../test_files/groth16/ineq_1_groth16.pub \
 		--vk ../../test_files/groth16/ineq_1_groth16.vk \
 
-batcher_send_infinite_tasks: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
 	@./batcher/client/send_infinite_tasks.sh 4
 
-batcher_send_burst_tasks: build_batcher_client
+batcher_send_burst_groth16: build_batcher_client
 	@echo "Sending a burst of tasks to Batcher..."
 	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
 
