@@ -81,6 +81,8 @@ impl From<&Vec<VerificationData>> for VerificationCommitmentBatch {
     }
 }
 
+/// BatchInclusionData is the information that is retrieved to the clients once
+/// the verification data sent by them has been processed.
 pub struct BatchInclusionData {
     pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
