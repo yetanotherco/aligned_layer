@@ -28,6 +28,9 @@ struct Args {
 
     #[arg(name = "VM prgram code file name", long = "vm_program", default_value = ".")]
     vm_program_code_file_name: PathBuf,
+
+    #[arg(name = "Number of repetitions", long = "repetitions", default_value = "1")]
+    repetitions: u32,
 }
 
 #[tokio::main]
@@ -81,17 +84,14 @@ async fn main() {
     };
 
     let json_data = serde_json::to_string(&task).expect("Failed to serialize task");
-    // loop {
-        for _ in 0..10 {
-            ws_write
-                .send(tungstenite::Message::Text(json_data.to_string()))
-                .await
-                .unwrap();
-        }
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    // }
+    for _ in 0..args.repetitions {
+        ws_write
+            .send(tungstenite::Message::Text(json_data.to_string()))
+            .await
+            .unwrap();
+    }
 
-    ws_read.take(100).for_each(|message| async move {
+    ws_read.take(args.repetitions as usize).for_each(|message| async move {
         let data = message.unwrap().into_data();
         tokio::io::stdout().write_all(&data).await.unwrap();
     })

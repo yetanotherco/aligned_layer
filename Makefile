@@ -30,7 +30,11 @@ anvil_deploy_aligned_contracts:
 
 anvil_start:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
+
+anvil_start_with_block_time:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 5
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
@@ -114,6 +118,10 @@ batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
+
+build_batcher_client:
+	@cd batcher/client && cargo b --release
+
 batcher/client/target/release/batcher-client:
 	@cd batcher/client && cargo b --release
 
@@ -137,9 +145,9 @@ batcher_send_infinite_tasks: ./batcher/client/target/release/batcher-client ## S
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
 	@./batcher/client/send_infinite_tasks.sh 4
 
-batcher_send_burst_tasks:
+batcher_send_burst_tasks: build_batcher_client
 	@echo "Sending a burst of tasks to Batcher..."
-	@./batcher/test-client/send_burst_tasks.sh
+	@./batcher/client/send_burst_tasks.sh 1000
 
 __TASK_SENDERS__:
  # TODO add a default proving system
