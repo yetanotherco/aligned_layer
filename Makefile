@@ -117,20 +117,20 @@ batcher_start: ./batcher/.env
 batcher/client/target/release/batcher-client: 
 	@cd batcher/client && cargo b --release
 
-batcher_send_sp1_task: batcher/client/target/release/batcher-client
+batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/client/target/release && ./batcher-client \
+	@cd batcher/client/ && cargo run --release -- \
 		--proving_system SP1 \
-		--proof ../../test_files/sp1/sp1_fibonacci.proof \
-		--vm_program ../../test_files/sp1/sp1_fibonacci-elf
+		--proof test_files/sp1/sp1_fibonacci.proof \
+		--vm_program test_files/sp1/sp1_fibonacci-elf
 
 batcher_send_groth16_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/client/target/release && ./batcher-client \
+	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
-		--proof ../../test_files/groth16/ineq_1_groth16.proof \
-		--public_input ../../test_files/groth16/ineq_1_groth16.pub \
-		--vk ../../test_files/groth16/ineq_1_groth16.vk \
+		--proof test_files/groth16/ineq_1_groth16.proof \
+		--public_input test_files/groth16/ineq_1_groth16.pub \
+		--vk test_files/groth16/ineq_1_groth16.vk
 
 batcher_send_infinite_tasks: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs	
