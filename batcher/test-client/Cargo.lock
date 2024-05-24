@@ -1270,6 +1270,7 @@ checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 name = "batcher"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives",
  "anyhow",
  "aws-config",
  "aws-sdk-s3",
@@ -6334,6 +6335,7 @@ dependencies = [
 name = "test-client"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives",
  "anyhow",
  "batcher",
  "bytes",
