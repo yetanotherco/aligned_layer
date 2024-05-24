@@ -1,6 +1,6 @@
-# defmodule ExplorerWeb.Tasks.Tasks do
-#   require Logger
-#   use ExplorerWeb, :live_view
+defmodule ExplorerWeb.Batches.Index do
+  require Logger
+  use ExplorerWeb, :live_view
 
 #   def mount(params, _, socket) do
 #     current_page = get_current_page(params)
@@ -91,5 +91,5 @@
 #     }
 #   end
 
-#   embed_templates "*"
-# end
+  embed_templates "*"
+end

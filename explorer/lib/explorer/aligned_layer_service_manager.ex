@@ -70,9 +70,12 @@ defmodule AlignedLayerServiceManager do
     events =
       AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 0)
 
+    "events" |> IO.inspect()
+    events |> IO.inspect()
+
     case events do
       {:ok, []} -> raise("Error fetching responded events, no events found")
-      {:ok, list} -> list
+      {:ok, list} -> {:ok, list}
       {:error, data} -> raise("Error fetching responded events #{data}")
     end
   end

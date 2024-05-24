@@ -1,5 +1,5 @@
 <div class="flex flex-col space-y-3 bg-zinc-200 dark:bg-zinc-900 rounded-2xl px-6 py-8 min-h-[40rem] text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
-  <%= if not @isTaskEmpty do %>
+  <%!-- <%= if not @isTaskEmpty do %>
     <h1 class="text-5xl font-bold">Task #<%= @id %></h1>
     <p class="font-semibold">
       address: <span class="break-all font-normal"><%= @task.address %></span>
@@ -26,19 +26,12 @@
           <%= @task.aligned_task.da_payload.solution %>
         </span>
       </p>
-      <%!-- <p class="font-semibold" class="break-all">
-              DAPayload proof_associated_data:
-              <span class="break-all font-normal select-all"><%= @task.aligned_task.da_payload.proof_associated_data %></span>
-          </p> --%>
       <p class="font-semibold" class="break-all">
         DAPayload index:
         <span class="break-all font-normal select-all">
           <%= @task.aligned_task.da_payload.index %>
         </span>
       </p>
-      <%!-- <p class="font-semibold">
-            verification key: <span class="break-all font-normal"><%= @task.aligned_task.verificationKey %></span>
-          </p> --%>
       <p class="font-semibold">
         Task Created Block:
         <span class="break-all font-normal"><%= @task.aligned_task.taskCreatedBlock %></span>
@@ -98,5 +91,5 @@
         src={~p"/images/not-found.jpeg"}
       />
     </div>
-  <% end %>
+  <% end %> --%>
 </div>

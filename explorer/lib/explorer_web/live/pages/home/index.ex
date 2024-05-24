@@ -1,18 +1,18 @@
-defmodule ExplorerWeb.Home.Controller do
+defmodule ExplorerWeb.Home.Index do
   require Logger
   use ExplorerWeb, :live_view
 
-  def handle_event("search_task", %{"task" => task_params}, socket) do
-    task_id = Map.get(task_params, "id")
-    is_task_id_valid = String.match?(task_id, ~r/^\d+$/)
+  def handle_event("search_batch", %{"batch" => batch_params}, socket) do
+    batch_merkle_root = Map.get(batch_params, "merkle_root")
+    is_batch_merkle_root_valid = String.match?(batch_merkle_root, ~r/^0x[a-fA-F0-9]+$/)
 
-    if not is_task_id_valid do
+    if not is_batch_merkle_root_valid do
       {:noreply,
        socket
-       |> assign(task_id: task_id)
-       |> put_flash(:error, "#{task_id} is not a valid task ID. Please enter a numeric value.")}
+       |> assign(batch_merkle_root: batch_merkle_root)
+       |> put_flash(:error, "#{batch_merkle_root} is not a valid merkle root. Please enter a hex value.")}
     else
-      {:noreply, redirect(socket, to: "/tasks/#{task_id}")}
+      {:noreply, redirect(socket, to: "/batches/#{batch_merkle_root}")}
     end
   end
 
@@ -33,7 +33,11 @@ defmodule ExplorerWeb.Home.Controller do
   end
 
   defp get_verified_batches_count() do
-    AlignedLayerServiceManager.get_batch_verified_events() |> (fn {x, y} when x==:ok -> Enum.count(y) end).()
+    AlignedLayerServiceManager.get_batch_verified_events() |>
+      (fn
+        {:ok, list} -> Enum.count(list)
+        {:error, _} -> 0
+    end).()
   end
 
   # TODO: refactor to new arquitecture

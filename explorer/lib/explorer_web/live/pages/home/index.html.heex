@@ -4,12 +4,12 @@
       Aligned Explorer
     </h1>
   </div>
-  <form phx-submit="search_task" class="flex items-center w-full max-w-md gap-2 z-10">
+  <form phx-submit="search_batch" class="flex items-center w-full max-w-md gap-2 z-10">
     <input
       class="shadow-md flex h-10 w-full ring-offset-background file:border-0 text-foreground file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground/30 bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:ring-gray-300"
       type="search"
-      placeholder="Search operator task..."
-      name="task[id]"
+      placeholder="Search proof batch by hash..."
+      name="batch[merkle_root]"
     />
     <.button
       type="submit"
@@ -40,19 +40,10 @@
   />
 </div>
 <div class="-mt-32 text-foreground z-10 flex flex-wrap justify-center px-3 gap-x-2 gap-y-3">
-  <.card title="Total tasks sent">
-    <%= @last_task_id %>
-  </.card>
-  <.card title="Total tasks verified">
-    <%= @tasks_verified %>
+  <.card title="verified batches">
+    <%= @verified_batches %>
   </.card>
   <.card title="Registered Operators">
     <%= @operators_registered %>
-  </.card>
-  <.card title="Verified proofs">
-    <%= @tasks_true %>
-  </.card>
-  <.card title="Rejected proofs">
-    <%= @tasks_false %>
   </.card>
 </div>

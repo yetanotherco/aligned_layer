@@ -17,15 +17,10 @@ defmodule ExplorerWeb.Router do
   scope "/", ExplorerWeb do
     pipe_through :browser
 
-    live "/", Home.Controller
-    live "/tasks/:id", Task.Controller
-    # live "/tasks", Tasks.Tasks
+    live "/", Home.Index
+    live "/batches/:id", Batch.Index
+    live "/batches", Batches.Index
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", ExplorerWeb do
-  #   pipe_through :api
-  # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:explorer, :dev_routes) do
