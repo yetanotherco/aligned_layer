@@ -19,21 +19,15 @@ defmodule ExplorerWeb.Home.Controller do
   def mount(_, _, socket) do
     # last_task_id = AlignedLayerServiceManager.get_latest_task_index()
 
-    # tasks_verified = get_verified_tasks_count()
-    [tasks_true, tasks_false] = get_verified_tasks_count_by_status()
+    verified_batches = get_verified_batches_count()
 
-    shorthand_tasks_true = Utils.convert_number_to_shorthand(tasks_true)
-    shorthand_tasks_false = Utils.convert_number_to_shorthand(tasks_false)
-    shorthand_total_tasks = Utils.convert_number_to_shorthand(tasks_true + tasks_false)
+    shorthand_verified_batches = Utils.convert_number_to_shorthand(verified_batches)
 
     operators_registered = get_operators_registered()
 
     {:ok,
      assign(socket,
-       last_task_id: 112233,
-       tasks_verified: shorthand_total_tasks,
-       tasks_true: shorthand_tasks_true,
-       tasks_false: shorthand_tasks_false,
+       verified_batches: shorthand_verified_batches,
        operators_registered: operators_registered
      )}
   end
