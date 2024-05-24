@@ -81,14 +81,21 @@ async fn main() {
     };
 
     let json_data = serde_json::to_string(&task).expect("Failed to serialize task");
-    ws_write
-        .send(tungstenite::Message::Text(json_data.to_string()))
-        .await
-        .unwrap();
+    // loop {
+        for _ in 0..10 {
+            ws_write
+                .send(tungstenite::Message::Text(json_data.to_string()))
+                .await
+                .unwrap();
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    // }
 
-    ws_read.for_each(|message| async {
+    ws_read.take(100).for_each(|message| async move {
         let data = message.unwrap().into_data();
         tokio::io::stdout().write_all(&data).await.unwrap();
     })
     .await;
+
+    ws_write.close().await.expect("Failed to close WebSocket connection");
 }

@@ -177,7 +177,7 @@ impl App {
             .expect("Failed to send message");
 
         // Close connection
-        tx.close_channel();
+        // tx.close_channel();
 
         Ok(())
     }

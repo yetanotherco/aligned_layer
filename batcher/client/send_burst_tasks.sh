@@ -17,11 +17,22 @@ fi
 echo "Generating proof $counter != 0"
 go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/cmd/main.go $counter
 
-iter=1
-while [ $iter -le $burst ]
-do
-    echo "iter: $iter"
-    ./batcher/test-client/target/debug/test-client --proving_system Groth16Bn254 --proof task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.proof --public_input task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.pub --vk task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.vk
-    iter=$((iter + 1))
-    # counter=$((counter + 1))
-done
+#iter=1
+#while [ $iter -le $burst ]
+#do
+#    echo "iter: $iter"
+#    cargo run --manifest-path ./batcher/test-client/Cargo.toml -- \
+#      --proving_system Groth16Bn254 \
+#      --proof task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.proof \
+#      --public_input task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.pub \
+#      --vk task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.vk
+#    iter=$((iter + 1))
+#    # counter=$((counter + 1))
+#done
+echo "iter: $iter"
+cargo +nightly-2024-04-17 run --release --manifest-path ./batcher/test-client/Cargo.toml -- \
+  --proving_system Groth16Bn254 \
+  --proof task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.proof \
+  --public_input task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.pub \
+  --vk task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.vk
+
