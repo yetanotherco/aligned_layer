@@ -113,12 +113,10 @@ defmodule AlignedLayerServiceManager do
   end
 
   def is_batch_responded(merkle_root) do
-    batchState =
-      AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root)) |> Ethers.call()
-
-    "batchState" |> IO.inspect()
-    batchState |> IO.inspect()
-
+    case AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root)) |> Ethers.call() do
+      {:ok, [_, true]} -> true
+      _ -> false
+    end
   end
 
   # previous version: get_latest_task_index

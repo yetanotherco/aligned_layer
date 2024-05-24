@@ -20,11 +20,7 @@ defmodule ExplorerWeb.Batch.Index do
         {:ok, event} -> {:ok, event}
       end
 
-    batchWasResponded =
-      case AlignedLayerServiceManager.is_batch_responded(merkle_root) do
-        {:ok, [_, true]} -> true
-        _ -> false
-      end
+    batchWasResponded = AlignedLayerServiceManager.is_batch_responded(merkle_root)
 
     {
       :ok,
