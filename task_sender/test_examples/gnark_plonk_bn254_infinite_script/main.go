@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/pkg"
+	"github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_plonk_bn254_infinite_script/pkg"
 )
 
 func main() {

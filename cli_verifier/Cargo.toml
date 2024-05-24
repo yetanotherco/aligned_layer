@@ -1,0 +1,16 @@
+[package]
+name = "cli_verifier"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+clap = "4.0"
+rand = "0.8"
+reqwest = { version = "0.11", features = ["blocking"] }
+sp1_sdk = { path = "../operator/sp1/lib" } 
+
+lazy_static = "1.4"
+bincode = "1.3"
+
+
+

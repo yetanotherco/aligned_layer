@@ -130,6 +130,18 @@ batcher_send_infinite_tasks: ## Send a different Groth16 BN254 proof using the t
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
 	@./batcher/test-client/send_infinite_tasks.sh 4
 
+batcher_send_plonk_bn254_task:
+	@echo "Sending Plonk6Bn254 1!=0 task to Batcher..."
+	@cd batcher/test-client/target/debug && ./test-client \
+		--proving_system plonk_bn254 \
+		--proof ../../test_files/plonk_bn254/ineq_1_plonk.proof \
+		--public_input ../../test_files/plonk_bn254/ineq_1_plonk.pub \
+		--vk ../../test_files/plonk_bn254/ineq_1_plonk.vk \
+
+batcher_send_infinite_plonk_tasks: ## Send a different PLONK BN254 proof using the task sender every 3 seconds
+	@echo "Sending a different PLONK BN254 proof in a loop every n seconds..."
+	@./batcher/test-client/send_infinite_tasks_plonk.sh 4
+
 __TASK_SENDERS__:
  # TODO add a default proving system
 
@@ -215,6 +227,19 @@ send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using
 		--interval 3 \
 		2>&1 | zap-pretty
 
+## Plonk loop and infinite
+
+send_infinite_plonk_bn254_proof: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@echo "Sending a different PLONK BN254 proof in a loop every 3 seconds..."
+	@go run task_sender/cmd/main.go infinite-tasks \
+		--proving-system plonk_bn254 \
+		--config config-files/config.yaml \
+		--interval 3 \
+		2>&1 | zap-pretty
+
+generate_plonk_bn254_ineq_proof: ## Run the gnark_plonk_bn254_script
+	@echo "Running gnark_plonk_bn254_ineq script..."
+	@go run task_sender/test_examples/gnark_plonk_bn254_infinite_script/main.go 1
 
 generate_groth16_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
