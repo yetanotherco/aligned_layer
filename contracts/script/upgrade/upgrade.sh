@@ -9,7 +9,7 @@ pwd
 
 cd ../../
 
-anvil --load-state scripts/anvil/state/alignedlayer-deployed-anvil-state.json --dump-state scripts/anvil/state/alignedlayer-upgraded-anvil-state.json &
+anvil --load-state scripts/anvil/state/alignedlayer-deployed-anvil-state.json --dump-state scripts/anvil/state/alignedlayer-deployed-anvil-state.json &
 
 sleep 2
 
