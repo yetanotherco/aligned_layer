@@ -40,9 +40,10 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
     //     assertEq(alignedLayerServiceManager.isAggregator(aggregator), true);
     // }
 
-    function testCreateNewTask() public {
-        bytes32 batchMerkleRoot = keccak256(abi.encodePacked("batch1"));
-        string memory batchDataPointer = "ipfs://batch1";
+    function testCreateNewTask(string memory root, string memory batchDataPointer) public {
+        vm.assume(bytes(batchDataPointer).length > 50);
+        bytes32 batchMerkleRoot = keccak256(abi.encodePacked(root));
+        // string memory batchDataPointer = "ipfs://batch1";
 
         vm.expectEmit(true, true, true, true);
         emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
