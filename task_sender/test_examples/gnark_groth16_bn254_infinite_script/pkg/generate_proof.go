@@ -1,9 +1,10 @@
-package main
+package pkg
 
 import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
@@ -15,27 +16,24 @@ import (
 )
 
 // CubicCircuit defines a simple circuit
-// x**3 + x + 5 == y
-type CubicCircuit struct {
+// x != 0
+type InequalityCircuit struct {
 	// struct tags on a variable is optional
 	// default uses variable name and secret visibility.
 	X frontend.Variable `gnark:"x"`
-	Y frontend.Variable `gnark:",public"`
 }
 
 // Define declares the circuit constraints
-// x**3 + x + 5 == y
-func (circuit *CubicCircuit) Define(api frontend.API) error {
-	x3 := api.Mul(circuit.X, circuit.X, circuit.X)
-	api.AssertIsEqual(circuit.Y, api.Add(x3, circuit.X, 5))
+// x != 0
+func (circuit *InequalityCircuit) Define(api frontend.API) error {
+	api.AssertIsDifferent(circuit.X, 0)
 	return nil
 }
 
-func main() {
+func GenerateIneqProof(x int) {
+	outputDir := "task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/"
 
-	outputDir := "task_sender/test_examples/gnark_groth16_bn254_script/"
-
-	var circuit CubicCircuit
+	var circuit InequalityCircuit
 	// use r1cs.NewBuilder instead of scs.NewBuilder
 	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &circuit)
 	if err != nil {
@@ -54,13 +52,14 @@ func main() {
 	pk, vk, _ := groth16.Setup(ccs)
 	//	pk, vk, err := groth16.Setup(ccs, srs)
 
-	assignment := CubicCircuit{X: 3, Y: 35}
+	assignment := InequalityCircuit{X: x}
 
 	fullWitness, err := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// TODO , this should be empty, right? private input is x and no pub input
 	publicWitness, err := frontend.NewWitness(&assignment, ecc.BN254.ScalarField(), frontend.PublicOnly())
 	if err != nil {
 		log.Fatal(err)
@@ -79,15 +78,15 @@ func main() {
 	}
 
 	// Open files for writing the proof, the verification key and the public witness
-	proofFile, err := os.Create(outputDir + "groth16.proof")
+	proofFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.proof")
 	if err != nil {
 		panic(err)
 	}
-	vkFile, err := os.Create(outputDir + "groth16.vk")
+	vkFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.vk")
 	if err != nil {
 		panic(err)
 	}
-	witnessFile, err := os.Create(outputDir + "groth16.pub")
+	witnessFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.pub")
 	if err != nil {
 		panic(err)
 	}
@@ -108,7 +107,7 @@ func main() {
 		panic("could not serialize proof into file")
 	}
 
-	fmt.Println("Proof written into groth16_cubic_circuit.proof")
+	fmt.Println("Proof written into ineq_{x}_groth16.proof")
 	fmt.Println("Verification key written into groth16_verification_key")
 	fmt.Println("Public witness written into witness.pub")
 }
