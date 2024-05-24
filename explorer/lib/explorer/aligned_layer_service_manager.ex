@@ -49,14 +49,14 @@ defmodule AlignedLayerServiceManager do
     data = event |> Map.get(:data) |> List.first()
 
     # TODO verify this
-    new_batch = %Aligned.NewBatchEvent{
+    new_batch = %NewBatchEvent{
       batchMerkleRoot: data |> elem(0),
       taskCreatedBlock: data |> elem(1),
       batchDataPointer: data |> elem(2)
     }
 
     {:ok,
-      %Aligned.NewBatchInfo{
+      %NewBatchInfo{
         address: event |> Map.get(:address),
         block_hash: event |> Map.get(:block_hash),
         block_number: event |> Map.get(:block_number),
