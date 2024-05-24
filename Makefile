@@ -109,6 +109,7 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 __BATCHER__:
 
+BURST_SIZE=10
 PROVING_SYSTEM?=sp1
 
 ./batcher/.env:
@@ -147,7 +148,7 @@ batcher_send_infinite_tasks: ./batcher/client/target/release/batcher-client ## S
 
 batcher_send_burst_tasks: build_batcher_client
 	@echo "Sending a burst of tasks to Batcher..."
-	@./batcher/client/send_burst_tasks.sh 1000
+	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
 
 __TASK_SENDERS__:
  # TODO add a default proving system
