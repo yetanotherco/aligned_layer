@@ -45,7 +45,7 @@ func (agg *Aggregator) tryCreateTaskSubscriber() error {
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Subscribing to Ethereum serviceManager task events")
 	agg.taskSubscriber, err = agg.avsSubscriber.AvsContractBindings.ServiceManager.WatchNewBatch(&bind.WatchOpts{},
-		agg.NewBatchChan)
+		agg.NewBatchChan, nil)
 
 	if err != nil {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to create task subscriber", "err", err)
