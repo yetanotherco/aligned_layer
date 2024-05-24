@@ -5,7 +5,7 @@ on:
     branches:
       - main
   pull_request:
-    # Optionally configure to run only for changes in specific files. For example:
+    # Run only for changes in specific files.
      paths:
      - contracts/**
      - foundry.toml
