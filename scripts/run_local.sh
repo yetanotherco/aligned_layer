@@ -25,7 +25,7 @@ export OPERATOR_PID=$!
 sleep 2
 
 echo "Starting Batcher"
-make batcher_start > /dev/null 2>&1
+make batcher_start > /dev/null 2>&1 &
 export BATCHER_PID=$!
 
 echo "Sending 15 tasks to Batcher"
