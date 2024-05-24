@@ -8,6 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/celestiaorg/celestia-node/api/rpc/client"
@@ -168,35 +169,52 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 		return nil
 	}
 
+	verificationDataBatchLen := len(verificationDataBatch)
+	results := make(chan bool, verificationDataBatchLen)
+	var wg sync.WaitGroup
+	wg.Add(verificationDataBatchLen)
 	for _, verificationData := range verificationDataBatch {
-		if !o.verify(verificationData) {
-			return fmt.Errorf("Proof did not verify")
+		go func() {
+			defer wg.Done()
+			o.verify(verificationData, results)
+			o.metrics.IncOperatorTaskResponses()
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if !result {
+			o.Logger.Error("Proof did not verify")
+			return nil
 		}
-		o.metrics.IncOperatorTaskResponses()
 	}
 
 	return nil
 }
 
-func (o *Operator) verify(verificationData VerificationData) bool {
+func (o *Operator) verify(verificationData VerificationData, results chan bool) {
 	switch verificationData.ProvingSystemId {
 	case common.GnarkPlonkBls12_381:
 		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("PLONK BLS12-381 proof verification result: %t", verificationResult)
 
-		return verificationResult
+		results <- verificationResult
 
 	case common.GnarkPlonkBn254:
 		verificationResult := o.verifyPlonkProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
 
-		return verificationResult
+		results <- verificationResult
 
 	case common.Groth16Bn254:
 		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
-		return verificationResult
+		results <- verificationResult
 
 	case common.SP1:
 		proofBytes := make([]byte, sp1.MaxProofSize)
@@ -211,11 +229,10 @@ func (o *Operator) verify(verificationData VerificationData) bool {
 		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 
-		return verificationResult
-
+		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
-		return false
+		results <- false
 	}
 }
 
