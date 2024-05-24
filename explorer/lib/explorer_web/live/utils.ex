@@ -24,3 +24,16 @@ defmodule ExplorerWeb.Utils do
 
   def convert_number_to_shorthand(_number), do: "Invalid number"
 end
+
+defmodule Utils do
+  def string_to_bytes32(string) do
+    binary = :erlang.list_to_binary(String.to_charlist(string))
+
+    case byte_size(binary) do
+      size when size < 32 -> binary <> :binary.copy(<<0>>, 32 - size)
+      32 -> binary
+      size when size > 32 -> binary |> binary_part(0, 32)
+    end
+    
+  end
+end

@@ -1,6 +1,6 @@
 <div class="flex flex-col space-y-3 bg-zinc-200 dark:bg-zinc-900 rounded-2xl px-6 py-8 min-h-[40rem] text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
   <%!-- <%= if not @isTaskEmpty do %>
-    <h1 class="text-5xl font-bold">Task #<%= @id %></h1>
+    <h1 class="text-5xl font-bold">Batch #<%= @merkle_root %></h1>
     <p class="font-semibold">
       address: <span class="break-all font-normal"><%= @task.address %></span>
     </p>
@@ -65,7 +65,7 @@
           <span class="break-all font-normal"><%= @taskResponse.block_number %></span>
         </p>
         <p class="font-semibold">
-          task Id: <span class="break-all font-normal"><%= @taskResponse.taskId %></span>
+          Batch merkle_root: <span class="break-all font-normal"><%= @taskResponse.merkle_root %></span>
         </p>
         <p class="font-semibold">
           transaction hash:

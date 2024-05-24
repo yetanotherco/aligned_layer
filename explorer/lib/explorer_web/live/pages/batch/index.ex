@@ -2,50 +2,54 @@ defmodule ExplorerWeb.Batch.Index do
   require Logger
   use ExplorerWeb, :live_view
 
-  # def mount(params, _, socket) do
-  #   # Returns AlignedLayer is_aggregator -> bool
-  #   # data = AlignedLayerServiceManager.is_aggregator("0x703E7dE5F528fA828f3BE726802B2092Ae7deb2F") |> Ethers.call()
+  def mount(params, _, socket) do
+    # Returns AlignedLayer is_aggregator -> bool
+    # data = AlignedLayerServiceManager.is_aggregator("0x703E7dE5F528fA828f3BE726802B2092Ae7deb2F") |> Ethers.call()
 
-  #   # Returns AlignedLayer task content
-  #   id = params["id"]
+    # Returns AlignedLayer task content
+    "params" |> IO.inspect()
+    params |> IO.inspect()
 
-  #   newTaskEvent =
-  #     case Integer.parse(id) do
-  #       {task_id, _} -> AlignedLayerServiceManager.get_task_created_event(task_id)
-  #       _ -> {:empty, "task_id must be an integer"}
-  #     end
+    merkle_root = params["merkle_root"]
 
-  #   task =
-  #     case newTaskEvent do
-  #       {:ok, value} -> value
-  #       {_, _} -> :empty
-  #     end
+    if merkle_root == nil do
+      {:error, "merkle_root is required"}
+      # TODO return empty
+    end
 
-  #   # Returns AlignedLayer task response content
-  #   newRespondedEvent =
-  #     case Integer.parse(id) do
-  #       {task_id, _} -> AlignedLayerServiceManager.get_task_responded_event(task_id)
-  #       _ -> {:empty, "task_id must be an integer"}
-  #     end
+    newBatchEvent =
+      case AlignedLayerServiceManager.get_new_batch_events(merkle_root) do
+        {:error, reason} -> {:error, reason}
+        {:empty, reason} -> {:empty, reason}
+        {_, []} -> {:empty, "No task found"}
+        {:ok, event} -> {:ok, event}
+      end
 
-  #   taskResponse =
-  #     case newRespondedEvent do
-  #       {:ok, value} -> value
-  #       {_, _} -> :empty
-  #     end
+    batchResponded = AlignedLayerServiceManager.is_batch_responded(merkle_root)
+    "batchResponded" |> IO.inspect()
+    batchResponded |> IO.inspect()
+    
 
-  #   isTaskEmpty = task == :empty
-  #   isTaskResponseEmpty = taskResponse == :empty
+    # # Returns AlignedLayer task response content
+    # newRespondedEvent =
+    #   case Integer.parse(id) do
+    #     {task_id, _} -> AlignedLayerServiceManager.get_task_responded_event(task_id)
+    #     _ -> {:empty, "task_id must be an integer"}
+    #   end
 
-  #   {:ok,
-  #    assign(socket,
-  #      id: id,
-  #      task: task,
-  #      taskResponse: taskResponse,
-  #      isTaskEmpty: isTaskEmpty,
-  #      isTaskResponseEmpty: isTaskResponseEmpty
-  #    )}
-  # end
+    # taskResponse =
+    #   case newRespondedEvent do
+    #     {:ok, value} -> value
+    #     {_, _} -> :empty
+    #   end
+
+    # isTaskEmpty = task == :empty
+    # isTaskResponseEmpty = taskResponse == :empty
+
+    {:ok, assign(socket,
+      newBatchEvent: newBatchEvent
+    )}
+  end
 
   embed_templates "*"
 end

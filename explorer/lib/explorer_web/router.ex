@@ -18,7 +18,7 @@ defmodule ExplorerWeb.Router do
     pipe_through :browser
 
     live "/", Home.Index
-    live "/batches/:id", Batch.Index
+    live "/batches/:merkle_root", Batch.Index
     live "/batches", Batches.Index
   end
 

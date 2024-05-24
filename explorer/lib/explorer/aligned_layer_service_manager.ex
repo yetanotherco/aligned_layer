@@ -35,7 +35,7 @@ defmodule AlignedLayerServiceManager do
 
   def get_new_batch_events(merkle_root) do
     events =
-      AlignedLayerServiceManager.EventFilters.new_batch(merkle_root)
+      AlignedLayerServiceManager.EventFilters.new_batch(Utils.string_to_bytes32(merkle_root))
       |> Ethers.get_logs(fromBlock: 0)
 
     case events do
@@ -46,13 +46,14 @@ defmodule AlignedLayerServiceManager do
   end
 
   defp extract_new_batch_event_info(event) do
-    data = event |> Map.get(:data) |> List.first()
+    data = event |> Map.get(:data)
+    topics_raw = event |> Map.get(:topics_raw)
 
     # TODO verify this
     new_batch = %NewBatchEvent{
-      batchMerkleRoot: data |> elem(0),
-      taskCreatedBlock: data |> elem(1),
-      batchDataPointer: data |> elem(2)
+      batchMerkleRoot: topics_raw |> Enum.at(1),
+      taskCreatedBlock: data |> Enum.at(0),
+      batchDataPointer: data |> Enum.at(1)
     }
 
     {:ok,
@@ -109,6 +110,15 @@ defmodule AlignedLayerServiceManager do
         batch_verified: batch_verified
       }
     }
+  end
+
+  def is_batch_responded(merkle_root) do
+    batchState =
+      AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root)) |> Ethers.call()
+
+    "batchState" |> IO.inspect()
+    batchState |> IO.inspect()
+
   end
 
   # previous version: get_latest_task_index
