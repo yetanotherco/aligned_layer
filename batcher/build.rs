@@ -1,4 +1,4 @@
-use std::{path::PathBuf, env, process::Command};
+use std::{env, path::PathBuf, process::Command};
 
 const GO_SRC: &str = "./gnark/verifier.go";
 const GO_OUT: &str = "libgo.a";

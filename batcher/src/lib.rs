@@ -10,7 +10,7 @@ use ethers::providers::Http;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{debug, error, warn, info};
+use log::{debug, error, info, warn};
 use sha3::{Digest, Sha3_256};
 use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
@@ -19,13 +19,14 @@ use tokio_tungstenite::tungstenite::Message;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
+use crate::gnark::verify_gnark;
 use crate::types::{VerificationBatch, VerificationData};
 
 mod config;
 mod eth;
+pub mod gnark;
 pub mod s3;
 pub mod types;
-pub mod gnark;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
@@ -149,8 +150,7 @@ impl App {
 
                 self.verify_sp1_proof(proof, elf)
             }
-            types::ProvingSystemId::GnarkPlonkBls12_381 => {
-                debug!("Verifying proof with gnark plonk bls12_381...");
+            types::ProvingSystemId::GnarkPlonkBls12_381 | types::ProvingSystemId::GnarkPlonkBn254 | types::ProvingSystemId::Groth16Bn254 => {
                 let vk = verification_data
                     .verification_key
                     .as_ref()
@@ -161,10 +161,7 @@ impl App {
                     .as_ref()
                     .expect("Public input is required");
 
-                let is_valid = unsafe {
-                    gnark::VerifyPlonkProofBLS12_381(&proof.into(), &public_inputs.into(), &vk.into())
-                };
-
+                let is_valid = verify_gnark(&verification_data.proving_system, proof, public_inputs, vk);
                 debug!("Proof is valid: {}", is_valid);
 
                 if is_valid {
@@ -172,10 +169,6 @@ impl App {
                 } else {
                     Err(anyhow::anyhow!("Failed to verify proof"))
                 }
-            }
-            _ => {
-                warn!("Unsupported proving system, proof not verified");
-                Ok(())
             }
         };
 
