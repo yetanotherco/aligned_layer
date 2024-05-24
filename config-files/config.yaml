@@ -28,8 +28,8 @@ celestia:
 
 ## Batcher configurations
 batcher:
-  block_interval: 3
-  batch_size_interval: 5
+  block_interval: 2
+  batch_size_interval: 2
 
 ## Aggregator Configurations
 aggregator:
