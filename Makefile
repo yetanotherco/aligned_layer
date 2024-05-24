@@ -107,28 +107,35 @@ __BATCHER__:
 
 PROVING_SYSTEM?=sp1
 
-batcher_start:
+./batcher/.env:
+	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
+
+batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
-batcher_send_sp1_task:
+batcher/client/target/release/batcher-client: 
+	@cd batcher/client && cargo b --release
+
+batcher_send_sp1_task: batcher/client/target/release/batcher-client
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/test-client/target/debug && ./test-client \
+	@cd batcher/client/target/release && ./batcher-client \
 		--proving_system SP1 \
 		--proof ../../test_files/sp1/sp1_fibonacci.proof \
 		--vm_program ../../test_files/sp1/sp1_fibonacci-elf
 
-batcher_send_groth16_task:
+batcher_send_groth16_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/test-client/target/debug && ./test-client \
+	@cd batcher/client/target/release && ./batcher-client \
 		--proving_system Groth16Bn254 \
 		--proof ../../test_files/groth16/ineq_1_groth16.proof \
 		--public_input ../../test_files/groth16/ineq_1_groth16.pub \
 		--vk ../../test_files/groth16/ineq_1_groth16.vk \
 
-batcher_send_infinite_tasks: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+batcher_send_infinite_tasks: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs	
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
-	@./batcher/test-client/send_infinite_tasks.sh 4
+	@./batcher/client/send_infinite_tasks.sh 4
 
 __TASK_SENDERS__:
  # TODO add a default proving system
