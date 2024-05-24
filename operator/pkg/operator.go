@@ -174,11 +174,11 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
 	for _, verificationData := range verificationDataBatch {
-		go func() {
+		go func(data VerificationData) {
 			defer wg.Done()
-			o.verify(verificationData, results)
+			o.verify(data, results)
 			o.metrics.IncOperatorTaskResponses()
-		}()
+		}(verificationData)
 	}
 
 	go func() {
