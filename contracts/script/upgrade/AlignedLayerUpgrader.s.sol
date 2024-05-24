@@ -20,6 +20,10 @@ contract AlignedLayerUpgrader is Script {
             "./script/output/devnet/alignedlayer_deployment_output.json"
         );
 
+        uint256 alignedLayerUpgraderPrivateKey = vm.envUint(
+            "ALIGNED_LAYER_UPGRADER_PRIVATE_KEY"
+        );
+
         ProxyAdmin alignedLayerProxyAdmin = ProxyAdmin(
             stdJson.readAddress(
                 aligned_deployment_file,
@@ -48,11 +52,15 @@ contract AlignedLayerUpgrader is Script {
             )
         );
 
+        vm.startBroadcast(alignedLayerUpgraderPrivateKey);
+
         AlignedLayerServiceManager alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
                 avsDirectory,
                 registryCoordinator,
                 stakeRegistry
             );
+
+        vm.stopBroadcast();
 
         // alignedLayerServiceManager is the proxy
         AlignedLayerServiceManager alignedLayerServiceManager = AlignedLayerServiceManager(
@@ -62,27 +70,29 @@ contract AlignedLayerUpgrader is Script {
                 )
             );
 
-        alignedLayerProxyAdmin.upgradeAndCall(
+        require(
+            alignedLayerProxyAdmin.getProxyAdmin(
+                TransparentUpgradeableProxy(
+                    payable(address(alignedLayerServiceManager))
+                )
+            ) == address(alignedLayerProxyAdmin),
+            "AlignedLayerServiceManager is not owned by AlignedLayerProxyAdmin"
+        );
+
+        vm.startBroadcast(alignedLayerUpgraderPrivateKey);
+
+        alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(
                 payable(address(alignedLayerServiceManager))
             ),
-            address(alignedLayerServiceManagerImplementation),
-            abi.encodeWithSelector(
-                AlignedLayerServiceManager.initialize.selector,
-                stdJson.readAddress(
-                    aligned_deployment_file,
-                    ".permissions.alignedLayerOwner"
-                ),
-                stdJson.readAddress(
-                    aligned_deployment_file,
-                    ".permissions.alignedLayerAggregator"
-                )
-            )
+            address(alignedLayerServiceManagerImplementation)
         );
 
+        vm.stopBroadcast();
+
         return (
-            address(registryCoordinator.stakeRegistry()),
-            address(stakeRegistry)
+            address(alignedLayerServiceManager),
+            address(alignedLayerServiceManagerImplementation)
         );
     }
 }

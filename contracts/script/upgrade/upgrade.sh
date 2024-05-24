@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# cd to the directory of this script so that this can be run from anywhere
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+
+cd "$parent_path"
+
+pwd
+
+cd ../../
+
 anvil --load-state scripts/anvil/state/alignedlayer-deployed-anvil-state.json --dump-state scripts/anvil/state/alignedlayer-upgraded-anvil-state.json &
 
 sleep 2
