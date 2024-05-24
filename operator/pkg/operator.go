@@ -5,6 +5,8 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/yetanotherco/aligned_layer/metrics"
 	"log"
 	"time"
 
@@ -43,6 +45,8 @@ type Operator struct {
 	aggRpcClient       AggregatorRpcClient
 	disperser          disperser.DisperserClient
 	celestiaClient     *client.Client
+	metricsReg         *prometheus.Registry
+	metrics            *metrics.Metrics
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -77,6 +81,11 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 
 	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
 	address := configuration.Operator.Address
+
+	// Metrics
+	reg := prometheus.NewRegistry()
+	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
+
 	operator := &Operator{
 		Config:             configuration,
 		Logger:             logger,
@@ -87,6 +96,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		OperatorId:         operatorId,
 		disperser:          configuration.EigenDADisperserConfig.Disperser,
 		celestiaClient:     configuration.CelestiaConfig.Client,
+		metricsReg:         reg,
+		metrics:            operatorMetrics,
 		// Timeout
 		// Socket
 	}
@@ -101,11 +112,21 @@ func (o *Operator) SubscribeToNewTasks() event.Subscription {
 
 func (o *Operator) Start(ctx context.Context) error {
 	sub := o.SubscribeToNewTasks()
+
+	var metricsErrChan <-chan error
+	if o.Config.Operator.EnableMetrics {
+		metricsErrChan = o.metrics.Start(ctx, o.metricsReg)
+	} else {
+		metricsErrChan = make(chan error, 1)
+	}
+
 	for {
 		select {
 		case <-context.Background().Done():
 			o.Logger.Info("Operator shutting down...")
 			return nil
+		case err := <-metricsErrChan:
+			o.Logger.Fatal("Metrics server failed", "err", err)
 		case err := <-sub.Err():
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
@@ -151,6 +172,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 		if !o.verify(verificationData) {
 			return fmt.Errorf("Proof did not verify")
 		}
+		o.metrics.IncOperatorTaskResponses()
 	}
 
 	return nil
