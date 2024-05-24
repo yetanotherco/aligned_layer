@@ -24,12 +24,12 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     // EVENTS
     event NewBatch(
-        bytes32 batchMerkleRoot,
+        bytes32 indexed batchMerkleRoot,
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
 
-    event BatchVerified(bytes32 batchMerkleRoot);
+    event BatchVerified(bytes32 indexed batchMerkleRoot);
 
     struct BatchState {
         uint32 taskCreatedBlock;
@@ -37,7 +37,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     /* STORAGE */
-    mapping(bytes32 => BatchState) batchesState;
+    mapping(bytes32 => BatchState) public batchesState;
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -96,14 +96,19 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     ) external {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
-        // Check task hasn't been responsed yet
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
-
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock != 0,
             "Batch doesn't exists"
         );
+
+        // Check task hasn't been responsed yet
+        require(
+            batchesState[batchMerkleRoot].responded == false,
+            "Batch already responded"
+        );
+        batchesState[batchMerkleRoot].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
