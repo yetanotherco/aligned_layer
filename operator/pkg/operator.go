@@ -259,14 +259,14 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 		return false
 	}
 	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK public input: %v", err)
+		o.Logger.Errorf("Could not read Groth16 public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := groth16.NewVerifyingKey(curve)
 	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK verifying key from bytes: %v", err)
+		o.Logger.Errorf("Could not read Groth16 verifying key from bytes: %v", err)
 		return false
 	}
 
