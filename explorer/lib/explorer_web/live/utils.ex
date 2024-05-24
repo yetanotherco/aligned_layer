@@ -26,14 +26,13 @@ defmodule ExplorerWeb.Utils do
 end
 
 defmodule Utils do
-  def string_to_bytes32(string) do
-    binary = :erlang.list_to_binary(String.to_charlist(string))
+  def string_to_bytes32(hex_string) do
+    # Remove the '0x' prefix
+    hex = String.slice(hex_string, 2..-1)
 
-    case byte_size(binary) do
-      size when size < 32 -> binary <> :binary.copy(<<0>>, 32 - size)
-      32 -> binary
-      size when size > 32 -> binary |> binary_part(0, 32)
-    end
-    
+    # Convert the hex string to a binary
+    {:ok, binary} = Base.decode16(hex, case: :mixed)
+
+    binary
   end
 end

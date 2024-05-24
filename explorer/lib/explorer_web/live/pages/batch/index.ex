@@ -25,29 +25,15 @@ defmodule ExplorerWeb.Batch.Index do
         {:ok, event} -> {:ok, event}
       end
 
-    batchResponded = AlignedLayerServiceManager.is_batch_responded(merkle_root)
-    "batchResponded" |> IO.inspect()
-    batchResponded |> IO.inspect()
-    
-
-    # # Returns AlignedLayer task response content
-    # newRespondedEvent =
-    #   case Integer.parse(id) do
-    #     {task_id, _} -> AlignedLayerServiceManager.get_task_responded_event(task_id)
-    #     _ -> {:empty, "task_id must be an integer"}
-    #   end
-
-    # taskResponse =
-    #   case newRespondedEvent do
-    #     {:ok, value} -> value
-    #     {_, _} -> :empty
-    #   end
-
-    # isTaskEmpty = task == :empty
-    # isTaskResponseEmpty = taskResponse == :empty
+    batchWasResponded =
+      case AlignedLayerServiceManager.is_batch_responded(merkle_root) do
+        {:ok, [_, true]} -> true
+        _ -> false
+      end
 
     {:ok, assign(socket,
-      newBatchEvent: newBatchEvent
+      newBatchEvent: newBatchEvent,
+      batchWasResponded: batchWasResponded
     )}
   end
 
