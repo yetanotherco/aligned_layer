@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "forge-std/StdJson.sol";
 
 contract AlignedLayerUpgrader is Script {
-    function run() external {
+    function run() external returns (address, address) {
         string memory eigen_deployment_file = vm.readFile(
             "./script/output/devnet/eigenlayer_deployment_output.json"
         );
@@ -20,101 +20,31 @@ contract AlignedLayerUpgrader is Script {
             "./script/output/devnet/alignedlayer_deployment_output.json"
         );
 
-        address avsDirectoryAddress = stdJson.readAddress(
-            eigen_deployment_file,
-            ".addresses.avsDirectory"
-        );
-
-        address registryCoordinatorAddress = stdJson.readAddress(
-            aligned_deployment_file,
-            ".addresses.registryCoordinator"
-        );
-
-        address stakeRegistryAddress = stdJson.readAddress(
-            aligned_deployment_file,
-            ".addresses.stakeRegistry"
-        );
-
-        address alignedLayerProxyAdminAddress = stdJson.readAddress(
-            aligned_deployment_file,
-            ".addresses.alignedLayerProxyAdmin"
-        );
-
-        address alignedLayerServiceManagerAddress = stdJson.readAddress(
-            aligned_deployment_file,
-            ".addresses.alignedLayerServiceManager"
-        );
-
-        address deployer = stdJson.readAddress(
-            aligned_deployment_file,
-            ".permissions.alignedLayerOwner"
-        );
-
-        address aggregator = stdJson.readAddress(
-            aligned_deployment_file,
-            ".permissions.alignedLayerAggregator"
-        );
-
-        require(
-            avsDirectoryAddress != address(0),
-            "AVS directory address not found"
-        );
-
-        require(
-            registryCoordinatorAddress != address(0),
-            "Registry coordinator address not found"
-        );
-
-        require(
-            stakeRegistryAddress != address(0),
-            "Stake registry address not found"
-        );
-
-        require(
-            alignedLayerProxyAdminAddress != address(0),
-            "Aligned layer proxy admin address not found"
-        );
-
-        require(
-            alignedLayerServiceManagerAddress != address(0),
-            "Aligned layer service manager address not found"
-        );
-
-        require(deployer != address(0), "Deployer address not found");
-
-        require(aggregator != address(0), "Aggregator address not found");
-
         ProxyAdmin alignedLayerProxyAdmin = ProxyAdmin(
-            alignedLayerProxyAdminAddress
+            stdJson.readAddress(
+                aligned_deployment_file,
+                ".addresses.alignedLayerProxyAdmin"
+            )
         );
 
         RegistryCoordinator registryCoordinator = RegistryCoordinator(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(registryCoordinatorAddress),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
+            stdJson.readAddress(
+                aligned_deployment_file,
+                ".addresses.registryCoordinator"
             )
         );
 
         AVSDirectory avsDirectory = AVSDirectory(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(avsDirectoryAddress),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
+            stdJson.readAddress(
+                eigen_deployment_file,
+                ".addresses.avsDirectory"
             )
         );
 
         StakeRegistry stakeRegistry = StakeRegistry(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(stakeRegistryAddress),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
+            stdJson.readAddress(
+                aligned_deployment_file,
+                ".addresses.stakeRegistry"
             )
         );
 
@@ -124,14 +54,12 @@ contract AlignedLayerUpgrader is Script {
                 stakeRegistry
             );
 
-        alignedLayerServiceManagerImplementation.initialize(
-            deployer,
-            aggregator
-        );
-
         // alignedLayerServiceManager is the proxy
         AlignedLayerServiceManager alignedLayerServiceManager = AlignedLayerServiceManager(
-                alignedLayerServiceManagerAddress
+                stdJson.readAddress(
+                    aligned_deployment_file,
+                    ".addresses.alignedLayerServiceManager"
+                )
             );
 
         alignedLayerProxyAdmin.upgradeAndCall(
@@ -141,9 +69,20 @@ contract AlignedLayerUpgrader is Script {
             address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
-                deployer,
-                aggregator
+                stdJson.readAddress(
+                    aligned_deployment_file,
+                    ".permissions.alignedLayerOwner"
+                ),
+                stdJson.readAddress(
+                    aligned_deployment_file,
+                    ".permissions.alignedLayerAggregator"
+                )
             )
+        );
+
+        return (
+            address(registryCoordinator.stakeRegistry()),
+            address(stakeRegistry)
         );
     }
 }
