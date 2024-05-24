@@ -7,8 +7,6 @@ import "../src/core/AlignedLayerServiceManager.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {BLSMockAVSDeployer} from "eigenlayer-middleware/../test/utils/BLSMockAVSDeployer.sol";
-// import {IBLSSignatureChecker} from "eigenlayer-middleware/interfaces/IBLSSignatureChecker.sol";
-// import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol";
 
 contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
     AlignedLayerServiceManager alignedLayerServiceManager;
@@ -57,6 +55,8 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         assertEq(responded, false);
     }
 
+    // TODO fix this test in another PR
+    // This test is based on https://github.com/Layr-Labs/eigenda/blob/master/contracts/test/unit/EigenDAServiceManagerUnit.t.sol#L63
     // function testRespondToTask() public {
     //     bytes32 batchMerkleRoot = keccak256(abi.encodePacked("batch1"));
     //     string memory batchDataPointer = "ipfs://batch1";
