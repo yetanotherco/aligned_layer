@@ -27,7 +27,6 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1.2.0
 
-      # Add any step generating a gas report to a temporary file named gasreport.ansi. For example:
       - name: Run tests
         run: forge test --gas-report > ../gasreport.ansi # <- this file name should be unique in your repository!
         env:
