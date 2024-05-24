@@ -24,12 +24,12 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     // EVENTS
     event NewBatch(
-        bytes32 batchMerkleRoot,
+        bytes32 indexed batchMerkleRoot,
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
 
-    event BatchVerified(bytes32 batchMerkleRoot);
+    event BatchVerified(bytes32 indexed batchMerkleRoot);
 
     struct BatchState {
         uint32 taskCreatedBlock;
