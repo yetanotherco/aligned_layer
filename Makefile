@@ -1,7 +1,6 @@
 .PHONY: help tests
 
 CONFIG_FILE?=config-files/config.yaml
-DA_SOLUTION=calldata
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -108,28 +107,35 @@ __BATCHER__:
 
 PROVING_SYSTEM?=sp1
 
-batcher_start:
+./batcher/.env:
+	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
+
+batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
-batcher_send_sp1_task:
+batcher/client/target/release/batcher-client:
+	@cd batcher/client && cargo b --release
+
+batcher_send_sp1_task: batcher/client/target/release/batcher-client
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/test-client/target/debug && ./test-client \
+	@cd batcher/client/target/release && ./batcher-client \
 		--proving_system SP1 \
 		--proof ../../test_files/sp1/sp1_fibonacci.proof \
 		--vm_program ../../test_files/sp1/sp1_fibonacci-elf
 
-batcher_send_groth16_task:
+batcher_send_groth16_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/test-client/target/debug && ./test-client \
+	@cd batcher/client/target/release && ./batcher-client \
 		--proving_system Groth16Bn254 \
 		--proof ../../test_files/groth16/ineq_1_groth16.proof \
 		--public_input ../../test_files/groth16/ineq_1_groth16.pub \
 		--vk ../../test_files/groth16/ineq_1_groth16.vk \
 
-batcher_send_infinite_tasks: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+batcher_send_infinite_tasks: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
-	@./batcher/test-client/send_infinite_tasks.sh 4
+	@./batcher/client/send_infinite_tasks.sh 4
 
 batcher_send_burst_tasks:
 	@echo "Sending a burst of tasks to Batcher..."
@@ -147,7 +153,6 @@ send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
@@ -159,7 +164,6 @@ send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task 
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
@@ -175,7 +179,6 @@ send_plonk_bn254_proof: ## Send a PLONK BN254 proof using the task sender
 		--public-input task_sender/test_examples/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
@@ -187,7 +190,6 @@ send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender e
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
@@ -203,7 +205,6 @@ send_groth16_bn254_proof: ## Send a Groth16 BN254 proof using the task sender
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task sender every 10 seconds
@@ -215,7 +216,6 @@ send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task send
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
@@ -224,7 +224,6 @@ send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using
 		--proving-system groth16_bn254 \
 		--config config-files/config.yaml \
 		--interval 3 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 
@@ -242,7 +241,6 @@ send_sp1_proof:
     		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
     		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
-    		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
 
 __METRICS__:
@@ -333,3 +331,26 @@ generate_risc_zero_fibonacci_proof:
 		RUST_LOG=info cargo run --release && \
 		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
 		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"
+
+__MERKLE_TREE_FFI__: ##
+build_merkle_tree_macos:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+build_merkle_tree_linux:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+test_merkle_tree_rust_ffi:
+	@echo "Testing Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
