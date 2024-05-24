@@ -15,6 +15,10 @@ on:
 jobs:
   compare_gas_reports:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./contracts
+
     steps:
       - uses: actions/checkout@v4
         with:
