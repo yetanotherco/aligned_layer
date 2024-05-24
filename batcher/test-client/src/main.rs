@@ -23,6 +23,7 @@ async fn main() {
     let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
     println!("WebSocket handshake has been successfully completed");
 
+    // Dummy address for testing.
     let addr_str = "0x66f9664f97F2b50F62D13eA064982f936dE76657";
     let proof_generator_addr: Address = Address::parse_checksummed(addr_str, None).unwrap();
 
