@@ -252,8 +252,6 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 		return false
 	}
 
-	fmt.Println("PUBLIC INPUT BYTES:", pubInputBytes)
-
 	pubInputReader := bytes.NewReader(pubInputBytes)
 	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
