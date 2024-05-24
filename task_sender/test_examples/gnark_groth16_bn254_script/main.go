@@ -79,15 +79,15 @@ func main() {
 	}
 
 	// Open files for writing the proof, the verification key and the public witness
-	proofFile, err := os.Create(outputDir + "plonk.proof")
+	proofFile, err := os.Create(outputDir + "groth16.proof")
 	if err != nil {
 		panic(err)
 	}
-	vkFile, err := os.Create(outputDir + "plonk.vk")
+	vkFile, err := os.Create(outputDir + "groth16.vk")
 	if err != nil {
 		panic(err)
 	}
-	witnessFile, err := os.Create(outputDir + "plonk_pub_input.pub")
+	witnessFile, err := os.Create(outputDir + "groth16.pub")
 	if err != nil {
 		panic(err)
 	}
