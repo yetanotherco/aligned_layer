@@ -227,10 +227,6 @@ generate_groth16_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
 	@go run task_sender/test_examples/gnark_groth16_bn254_script/main.go
 
-generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
-	@echo "Running gnark_groth_bn254_ineq script..."
-	@go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/main.go 1
-
 send_sp1_proof:
 	@go run task_sender/cmd/main.go send-task \
     		--proving-system sp1 \
