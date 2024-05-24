@@ -28,6 +28,8 @@ echo "Starting Batcher"
 make batcher_start > /dev/null 2>&1 &
 export BATCHER_PID=$!
 
+sleep 45
+
 echo "Sending 15 tasks to Batcher"
 make batcher_send_sp1_task
 make batcher_send_sp1_task
