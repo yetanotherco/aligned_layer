@@ -25,6 +25,8 @@ type OperatorConfig struct {
 		StakerOptOutWindowBlocks      int
 		MetadataUrl                   string
 		RegisterOperatorOnStartup     bool
+		EnableMetrics                 bool
+		MetricsIpPortAddress          string
 	}
 }
 
@@ -37,6 +39,8 @@ type OperatorConfigFromYaml struct {
 		StakerOptOutWindowBlocks      int            `yaml:"staker_opt_out_window_blocks"`
 		MetadataUrl                   string         `yaml:"metadata_url"`
 		RegisterOperatorOnStartup     bool           `yaml:"register_operator_on_startup"`
+		EnableMetrics                 bool           `yaml:"enable_metrics"`
+		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
 	} `yaml:"operator"`
 	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
@@ -88,6 +92,8 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			StakerOptOutWindowBlocks      int
 			MetadataUrl                   string
 			RegisterOperatorOnStartup     bool
+			EnableMetrics                 bool
+			MetricsIpPortAddress          string
 		}(operatorConfigFromYaml.Operator),
 	}
 }
