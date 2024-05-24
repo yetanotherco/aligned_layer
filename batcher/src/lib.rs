@@ -150,7 +150,9 @@ impl App {
 
                 self.verify_sp1_proof(proof, elf)
             }
-            types::ProvingSystemId::GnarkPlonkBls12_381 | types::ProvingSystemId::GnarkPlonkBn254 | types::ProvingSystemId::Groth16Bn254 => {
+            types::ProvingSystemId::GnarkPlonkBls12_381
+            | types::ProvingSystemId::GnarkPlonkBn254
+            | types::ProvingSystemId::Groth16Bn254 => {
                 let vk = verification_data
                     .verification_key
                     .as_ref()
@@ -161,7 +163,8 @@ impl App {
                     .as_ref()
                     .expect("Public input is required");
 
-                let is_valid = verify_gnark(&verification_data.proving_system, proof, public_inputs, vk);
+                let is_valid =
+                    verify_gnark(&verification_data.proving_system, proof, public_inputs, vk);
                 debug!("Proof is valid: {}", is_valid);
 
                 if is_valid {

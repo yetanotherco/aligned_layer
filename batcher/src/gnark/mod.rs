@@ -28,15 +28,26 @@ impl From<&[u8]> for GoSlice {
     }
 }
 
-pub fn verify_gnark(proving_system: &ProvingSystemId, proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
+pub fn verify_gnark(
+    proving_system: &ProvingSystemId,
+    proof: &[u8],
+    public_input: &[u8],
+    verification_key: &[u8],
+) -> bool {
     let proof = GoSlice::from(proof);
     let public_input = GoSlice::from(public_input);
     let verification_key = GoSlice::from(verification_key);
 
     match proving_system {
-        ProvingSystemId::GnarkPlonkBn254 => unsafe { VerifyPlonkProofBN254(&proof, &public_input, &verification_key) },
-        ProvingSystemId::GnarkPlonkBls12_381 => unsafe { VerifyPlonkProofBLS12_381(&proof, &public_input, &verification_key) },
-        ProvingSystemId::Groth16Bn254 => unsafe { VerifyGroth16ProofBN254(&proof, &public_input, &verification_key) },
+        ProvingSystemId::GnarkPlonkBn254 => unsafe {
+            VerifyPlonkProofBN254(&proof, &public_input, &verification_key)
+        },
+        ProvingSystemId::GnarkPlonkBls12_381 => unsafe {
+            VerifyPlonkProofBLS12_381(&proof, &public_input, &verification_key)
+        },
+        ProvingSystemId::Groth16Bn254 => unsafe {
+            VerifyGroth16ProofBN254(&proof, &public_input, &verification_key)
+        },
         _ => panic!("Unsupported proving system"),
     }
 }
