@@ -2,7 +2,7 @@ use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 pub enum ProvingSystemId {
     GnarkPlonkBls12_381,
     GnarkPlonkBn254,
@@ -63,5 +63,15 @@ mod test {
         let expected_parent = "71d8979cbfae9b197a4fbcc7d387b1fae9560e2f284d30b4e90c80f6bc074f57";
 
         assert_eq!(hex::encode(parent), expected_parent)
+    }
+}
+
+pub fn get_proving_system_from_str(proving_system: &str) -> ProvingSystemId {
+    match proving_system {
+        "GnarkPlonkBls12_381" => ProvingSystemId::GnarkPlonkBls12_381,
+        "GnarkPlonkBn254" => ProvingSystemId::GnarkPlonkBn254,
+        "Groth16Bn254" => ProvingSystemId::Groth16Bn254,
+        "SP1" => ProvingSystemId::SP1,
+        _ => panic!("Invalid proving system: {}\nAvailable prooving systems:\n GnarkPlonkBls12_381\n GnarkPlonkBn254\n Groth16Bn254\n SP1", proving_system),
     }
 }
