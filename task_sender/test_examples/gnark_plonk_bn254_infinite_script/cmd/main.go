@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	x, err := strconv.Atoi(os.Args[0])
+	x, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		panic("error parsing input")
 	}

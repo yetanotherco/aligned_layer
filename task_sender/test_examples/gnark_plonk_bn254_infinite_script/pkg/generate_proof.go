@@ -16,22 +16,25 @@ import (
 
 // InequalityCircuit defines a simple circuit
 // x != 0
-type InequalityCircuit struct {
+type EqualityCircuit struct {
 	X frontend.Variable `gnark:"x"`
+	// 	Y frontend.Variable `gnark:",public"`
 }
 
 // Define declares the circuit constraints
-// x != 0
-func (circuit *InequalityCircuit) Define(api frontend.API) error {
+// x == y
+func (circuit *EqualityCircuit) Define(api frontend.API) error {
+	//	api.AssertIsEqual(circuit.X, circuit.Y)
 	api.AssertIsDifferent(circuit.X, 0)
+	api.AssertIsDifferent(circuit.X, -1)
 	return nil
 }
 
 func GenerateIneqProof(x int) {
 	outputDir := "task_sender/test_examples/gnark_plonk_bn254_infinite_script/infinite_proofs/"
 	fmt.Println("Starting GenerateIneqProof for x =", x)
-
-	var circuit InequalityCircuit
+	//	y := x
+	var circuit EqualityCircuit
 	fmt.Println("Compiling circuit...")
 	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), scs.NewBuilder, &circuit)
 	if err != nil {
@@ -39,11 +42,11 @@ func GenerateIneqProof(x int) {
 	}
 	fmt.Println("Circuit compiled successfully.")
 
-	r1cs := ccs.(*cs.SparseR1CS)
-	fmt.Printf("Number of constraints: %d\n", r1cs.GetNbConstraints())
+	scs := ccs.(*cs.SparseR1CS)
+	fmt.Printf("Number of constraints: %d\n", scs.GetNbConstraints())
 
 	fmt.Println("Generating SRS...")
-	srs, srsLagrangeInterpolation, err := unsafekzg.NewSRS(r1cs) //Here
+	srs, srsLagrangeInterpolation, err := unsafekzg.NewSRS(scs) //Here
 	if err != nil {
 		panic("KZG setup error: " + err.Error())
 	}
@@ -56,7 +59,7 @@ func GenerateIneqProof(x int) {
 	}
 	fmt.Println("PLONK setup completed.")
 
-	assignment := InequalityCircuit{X: x}
+	assignment := EqualityCircuit{X: x}
 
 	fmt.Println("Creating full witness...")
 	fullWitness, err := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
