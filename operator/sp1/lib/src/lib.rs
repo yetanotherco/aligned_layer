@@ -10,9 +10,9 @@ lazy_static! {
 #[no_mangle]
 pub extern "C" fn verify_sp1_proof_ffi(
     proof_bytes: &[u8; MAX_PROOF_SIZE],
-    proof_len: u64,
+    proof_len: u32,
     elf_bytes: &[u8; MAX_ELF_BUFFER_SIZE],
-    elf_len: u64,
+    elf_len: u32,
 ) -> bool {
     let real_elf = &elf_bytes[0..(elf_len as usize)];
 
@@ -43,7 +43,7 @@ mod tests {
         let elf_size = ELF.len();
         elf_buffer[..elf_size].clone_from_slice(ELF);
 
-        let result = verify_sp1_proof_ffi(&proof_buffer, proof_size, &elf_buffer, elf_size);
+        let result = verify_sp1_proof_ffi(&proof_buffer, proof_size as u32, &elf_buffer, elf_size as u32);
         assert!(result)
     }
 
@@ -57,7 +57,7 @@ mod tests {
         let elf_size = ELF.len();
         elf_buffer[..elf_size].clone_from_slice(ELF);
 
-        let result = verify_sp1_proof_ffi(&proof_buffer, proof_size - 1, &elf_buffer, elf_size);
+        let result = verify_sp1_proof_ffi(&proof_buffer, (proof_size - 1) as u32, &elf_buffer, elf_size as u32);
         assert!(!result)
     }
 }
