@@ -9,6 +9,11 @@ pwd
 
 cd ../../
 
+if [ -z "$ALIGNED_LAYER_UPGRADER_PRIVATE_KEY" ]; then
+    echo "ALIGNED_LAYER_UPGRADER_PRIVATE_KEY Variable is empty. Aborting execution."
+    exit 1
+fi
+
 anvil --load-state scripts/anvil/state/alignedlayer-deployed-anvil-state.json --dump-state scripts/anvil/state/alignedlayer-deployed-anvil-state.json &
 
 sleep 2
