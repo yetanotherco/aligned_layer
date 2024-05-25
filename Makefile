@@ -29,6 +29,10 @@ anvil_deploy_aligned_contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
 
+anvil_upgrade_aligned_contracts:
+	@echo "Upgrading Aligned Contracts..."
+	. contracts/scripts/anvil/upgrade_aligned_contracts.sh
+
 anvil_start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
