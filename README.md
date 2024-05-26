@@ -222,8 +222,10 @@ make anvil_deploy_mock_strategy
 When changing Aligned contracts, the anvil state needs to be updated with:
 
 ```bash
-make anvil_deploy_aligned_contracts
+make anvil_upgrade_aligned_contracts
 ```
+
+Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key.
 
 Also make sure to re-generate the Go smart contract bindings:
 
@@ -354,6 +356,16 @@ The addresses of the relevant contracts after running the anvil script is dumped
 The state is backuped on ```contracts/scripts/anvil/state```
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
+
+## Testnet/Mainnet Upgrade
+
+To upgrade the Aligned Layer contracts run:
+
+```bash
+make upgrade_aligned_contracts
+```
+
+Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key.
 
 ### Strategies
 
