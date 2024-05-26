@@ -20,9 +20,12 @@ sleep 2
 
 # Save the output to a variable to later extract the address of the new deployed contract
 forge_output=$(forge script script/upgrade/AlignedLayerUpgrader.s.sol \
+    "./script/output/devnet/eigenlayer_deployment_output.json" \
+    "./script/output/devnet/alignedlayer_deployment_output.json" \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
-    --broadcast)
+    --broadcast \
+    --sig "run(string memory eigenLayerDeploymentFilePath, string memory alignedLayerDeploymentFilePath)")
 
 echo "$forge_output"
 

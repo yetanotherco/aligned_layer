@@ -11,13 +11,16 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "forge-std/StdJson.sol";
 
 contract AlignedLayerUpgrader is Script {
-    function run() external returns (address, address) {
+    function run(
+        string memory eigenLayerDeploymentFilePath,
+        string memory alignedLayerDeploymentFilePath
+    ) external returns (address, address) {
         string memory eigen_deployment_file = vm.readFile(
-            "./script/output/devnet/eigenlayer_deployment_output.json"
+            eigenLayerDeploymentFilePath
         );
 
         string memory aligned_deployment_file = vm.readFile(
-            "./script/output/devnet/alignedlayer_deployment_output.json"
+            alignedLayerDeploymentFilePath
         );
 
         uint256 alignedLayerUpgraderPrivateKey = vm.envUint(
