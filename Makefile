@@ -227,6 +227,10 @@ deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
 
+upgrade_aligned_contracts: ## Upgrade Aligned Contracts
+	@echo "Upgrading Aligned Contracts..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 

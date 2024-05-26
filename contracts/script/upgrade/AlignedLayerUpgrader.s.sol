@@ -23,9 +23,7 @@ contract AlignedLayerUpgrader is Script {
             alignedLayerDeploymentFilePath
         );
 
-        uint256 alignedLayerUpgraderPrivateKey = vm.envUint(
-            "ALIGNED_LAYER_UPGRADER_PRIVATE_KEY"
-        );
+        uint256 alignedLayerUpgraderPrivateKey = vm.envUint("PRIVATE_KEY");
 
         ProxyAdmin alignedLayerProxyAdmin = ProxyAdmin(
             stdJson.readAddress(
