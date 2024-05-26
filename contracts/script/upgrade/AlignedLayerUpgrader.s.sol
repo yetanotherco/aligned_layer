@@ -71,15 +71,6 @@ contract AlignedLayerUpgrader is Script {
                 )
             );
 
-        require(
-            alignedLayerProxyAdmin.getProxyAdmin(
-                TransparentUpgradeableProxy(
-                    payable(address(alignedLayerServiceManager))
-                )
-            ) == address(alignedLayerProxyAdmin),
-            "AlignedLayerServiceManager is not owned by AlignedLayerProxyAdmin"
-        );
-
         vm.startBroadcast(alignedLayerUpgraderPrivateKey);
 
         alignedLayerProxyAdmin.upgrade(
