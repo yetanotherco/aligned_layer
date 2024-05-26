@@ -49,7 +49,6 @@ impl VerificationData {
 
 fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
     let (_pk, vk) = SP1_PROVER_CLIENT.setup(elf);
-    let proof = bincode::deserialize(proof).map_err(|_| anyhow::anyhow!("Invalid proof"))?;
     if let Ok(proof) = bincode::deserialize(proof) {
         return SP1_PROVER_CLIENT.verify(&proof, &vk).is_ok();
     }

@@ -5,7 +5,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::connect_async;
 
-use batcher::types::{get_proving_system_from_str, VerificationData};
+use batcher::types::{parse_proving_system, VerificationData};
 
 use clap::Parser;
 
@@ -61,7 +61,7 @@ async fn main() {
     println!("WebSocket handshake has been successfully completed");
     let (mut ws_write, ws_read) = ws_stream.split();
 
-    let proving_system = get_proving_system_from_str(&args.proving_system_flag);
+    let proving_system = parse_proving_system(&args.proving_system_flag);
 
     // Read proof file
     let proof = std::fs::read(&args.proof_file_name)
