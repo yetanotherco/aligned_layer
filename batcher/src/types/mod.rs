@@ -1,7 +1,14 @@
 use alloy_primitives::Address;
 use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
+use lazy_static::lazy_static;
+use log::warn;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+use sp1_sdk::ProverClient;
+
+lazy_static! {
+    static ref SP1_PROVER_CLIENT: ProverClient = ProverClient::new();
+}
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 pub enum ProvingSystemId {
@@ -20,6 +27,34 @@ pub struct VerificationData {
     pub verification_key: Option<Vec<u8>>,
     pub vm_program_code: Option<Vec<u8>>,
     pub proof_generator_addr: Address,
+}
+
+impl VerificationData {
+    pub fn verify(&self) -> bool {
+        match self.proving_system {
+            ProvingSystemId::SP1 => {
+                if let Some(elf) = &self.vm_program_code {
+                    return verify_sp1_proof(self.proof.as_slice(), elf.as_slice());
+                }
+                warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
+                false
+            }
+            _ => {
+                warn!("Unsupported proving system, proof not verified");
+                false
+            }
+        }
+    }
+}
+
+fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
+    let (_pk, vk) = SP1_PROVER_CLIENT.setup(elf);
+    let proof = bincode::deserialize(proof).map_err(|_| anyhow::anyhow!("Invalid proof"))?;
+    if let Ok(proof) = bincode::deserialize(proof) {
+        return SP1_PROVER_CLIENT.verify(&proof, &vk).is_ok();
+    }
+
+    false
 }
 
 #[derive(Debug, Default)]
@@ -134,7 +169,7 @@ mod test {
     }
 }
 
-pub fn get_proving_system_from_str(proving_system: &str) -> ProvingSystemId {
+pub fn parse_proving_system(proving_system: &str) -> ProvingSystemId {
     match proving_system {
         "GnarkPlonkBls12_381" => ProvingSystemId::GnarkPlonkBls12_381,
         "GnarkPlonkBn254" => ProvingSystemId::GnarkPlonkBn254,

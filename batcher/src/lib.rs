@@ -77,7 +77,7 @@ impl App {
         }
     }
 
-    pub async fn listen(self: &Arc<Self>, address: &str) {
+    pub async fn listen_connections(self: &Arc<Self>, address: &str) {
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address).await.expect("Failed to build");
         info!("Listening on: {}", address);
@@ -92,12 +92,19 @@ impl App {
         }
     }
 
-    pub async fn poll_new_blocks(&self) {
-        eth::poll_new_blocks(self.eth_ws_url.clone(), |block_number| async move {
-            self.handle_new_block(block_number).await
-        })
-        .await
-        .expect("Failed to poll new blocks");
+    pub async fn listen_new_blocks(&self) ->  {
+        // eth::poll_new_blocks(self.eth_ws_url.clone(), |block_number| async move {
+        //     self.handle_new_block(block_number).await
+        // })
+        // .await
+        // .expect("Failed to poll new blocks");
+        let provider = Provider::<Ws>::connect(self.eth_ws_url).await?;
+        let mut stream = provider.subscribe_blocks().await
+        while let Some(block) = stream.next().await {
+            let block_number = block.number.unwrap();
+            let block_number = u64::try_from(block_number).map_err(|err| anyhow::anyhow!(err))?;
+            callback(block_number).await;
+        }
     }
 
     async fn handle_connection(self: &Arc<Self>, raw_stream: TcpStream, addr: SocketAddr) {
@@ -138,38 +145,13 @@ impl App {
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
-        let proof = verification_data.proof.as_slice();
-        let vm_program_code = verification_data.vm_program_code.as_ref();
+        verification_data.verify();
 
-        let response = match verification_data.proving_system {
-            types::ProvingSystemId::SP1 => {
-                let elf = vm_program_code.expect("VM program code is required");
-
-                let elf = elf.as_slice();
-
-                self.verify_sp1_proof(proof, elf)
-            }
-            _ => {
-                warn!("Unsupported proving system, proof not verified");
-                Ok(())
-            }
-        };
-
-        let response = match response {
-            Ok(_) => {
-                let task_bytes = bincode::serialize(&verification_data)
-                    .expect("Failed to bincode serialize task");
-
-                self.add_task(verification_data).await;
-
-                let task_bytes = Bytes::from(task_bytes);
-                let mut hasher = Sha3_256::new();
-                hasher.update(&task_bytes);
-                let hash = hasher.finalize().to_vec();
-
-                Ok(hash)
-            }
-            Err(e) => Err(e.to_string()),
+        let response = if verification_data.verify() {
+            self.add_task(verification_data).await;
+            Ok([1u8; 32])
+        } else {
+            Err("Verification data did not verify")
         };
 
         let response = serde_json::to_string(&response).expect("Failed to serialize response");
@@ -182,29 +164,22 @@ impl App {
 
     async fn add_task(self: &Arc<Self>, verification_data: VerificationData) {
         info!("Adding verification data to batch...");
-
-        let len = {
             let mut current_batch = self.current_batch.lock().await;
             current_batch.push(verification_data);
-
             debug!("Batch size: {}", current_batch.len());
-
-            current_batch.len()
-        };
-
-        if len >= self.batch_size_interval {
-            let c = self.clone();
-            tokio::spawn(async move {
-                let block_number = c
-                    .eth_rpc_provider
-                    .get_block_number()
-                    .await
-                    .expect("Failed to get block number");
-                let block_number =
-                    u64::try_from(block_number).expect("Failed to convert block number");
-                c.handle_new_block(block_number).await;
-            });
-        }
+        // if len >= self.batch_size_interval {
+        //     let c = self.clone();
+        //     tokio::spawn(async move {
+        //         let block_number = c
+        //             .eth_rpc_provider
+        //             .get_block_number()
+        //             .await
+        //             .expect("Failed to get block number");
+        //         let block_number =
+        //             u64::try_from(block_number).expect("Failed to convert block number");
+        //         c.handle_new_block(block_number).await;
+        //     });
+        // }
     }
 
     async fn handle_new_block(&self, block_number: u64) {

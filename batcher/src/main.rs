@@ -41,11 +41,11 @@ async fn main() -> Result<(), IoError> {
     tokio::spawn({
         let app = app.clone();
         async move {
-            app.poll_new_blocks().await;
+            app.listen_new_blocks().await;
         }
     });
 
-    app.listen(&addr).await;
+    app.listen_connections(&addr).await;
 
     Ok(())
 }
