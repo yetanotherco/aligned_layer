@@ -7,6 +7,8 @@ use clap::Parser;
 use env_logger::Env;
 
 use batcher::App;
+use tokio::sync::broadcast;
+use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Parser)]
 #[command(name = "Aligned Layer Batcher")]
@@ -37,15 +39,20 @@ async fn main() -> Result<(), IoError> {
 
     let addr = format!("localhost:{}", port);
 
+    let (tx, _) = broadcast::channel::<Message>(10);
+    let tx = Arc::new(tx);
+    let tx1 = tx.clone();
+    let tx2 = tx.clone();
+
     // spawn thread for polling
     tokio::spawn({
         let app = app.clone();
         async move {
-            app.listen_new_blocks().await.unwrap();
+            app.listen_new_blocks(tx1).await.unwrap();
         }
     });
 
-    app.listen_connections(&addr).await;
+    app.listen_connections(&addr, tx2).await;
 
     Ok(())
 }
