@@ -41,6 +41,13 @@ struct Args {
         default_value = "."
     )]
     vm_program_code_file_name: PathBuf,
+
+    #[arg(
+        name = "Number of repetitions",
+        long = "repetitions",
+        default_value = "1"
+    )]
+    repetitions: u32,
 }
 
 #[tokio::main]
@@ -96,15 +103,23 @@ async fn main() {
     };
 
     let json_data = serde_json::to_string(&verification_data).expect("Failed to serialize task");
-    ws_write
-        .send(tungstenite::Message::Text(json_data.to_string()))
-        .await
-        .unwrap();
+    for _ in 0..args.repetitions {
+        ws_write
+            .send(tungstenite::Message::Text(json_data.to_string()))
+            .await
+            .unwrap();
+    }
 
     ws_read
-        .for_each(|message| async {
+        .take(args.repetitions as usize)
+        .for_each(|message| async move {
             let data = message.unwrap().into_data();
             tokio::io::stdout().write_all(&data).await.unwrap();
         })
         .await;
+
+    ws_write
+        .close()
+        .await
+        .expect("Failed to close WebSocket connection");
 }
