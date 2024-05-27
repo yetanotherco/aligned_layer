@@ -8,14 +8,15 @@ defmodule ExplorerWeb.Batches.Index do
     page_size = 5
     # [from, to] = [(current_page - 1) * page_size, (current_page - 1) * page_size + page_size - 1]
 
-    newBatchEvents = AlignedLayerServiceManager.get_new_batch_events(page_size * current_page)
+    batches =
+      AlignedLayerServiceManager.get_new_batch_events(page_size * current_page) |>
+      Enum.map(&AlignedLayerServiceManager.extract_new_batch_event_info/1) |>
+      Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1)
 
-    "newBatchEvents" |> IO.inspect()
-    newBatchEvents |> IO.inspect()
+    "batches" |> IO.inspect()
+    batches |> IO.inspect()
 
-    # tasks_created_cross_tasks_responded = Enum.map(newBatchEvents, fn event -> event |> extract_new_batch_event_info end)
-
-    {:ok, assign(socket, current_page: current_page, tasks: newBatchEvents)}
+    {:ok, assign(socket, current_page: current_page, batches: batches)}
   end
 
   def get_current_page(params) do

@@ -15,6 +15,7 @@ end
 defmodule NewBatchEvent do
   @enforce_keys [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer]
   defstruct [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer]
+
   def extract_merkle_root(event) do
     event.topics_raw |> Enum.at(1)
   end
@@ -55,12 +56,15 @@ end
 
 defmodule BatchPageItem do
   @enforce_keys [
-    :batchMerkleRoot,
-    :taskCreatedBlock,
-    :batchDataPointer,
+    :batch_merkle_root,
+    :task_created_block_number,
+    :task_created_tx_hash,
+    :task_responded_block_number,
+    :task_responded_tx_hash,
+    :batch_data_pointer,
     :responded
   ]
-  defstruct [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer, :responded]
+  defstruct [:batch_merkle_root, :task_created_block_number, :task_created_tx_hash, :task_responded_block_number, :task_responded_tx_hash, :batch_data_pointer, :responded]
 end
 
 # TODO pagination

@@ -74,7 +74,7 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  defp extract_new_batch_event_info(event) do
+  def extract_new_batch_event_info(event) do
     data = event |> Map.get(:data)
     topics_raw = event |> Map.get(:topics_raw)
 
@@ -143,20 +143,24 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def get_latest_batches() do
-    AlignedLayerServiceManager.EventFilters.new_batch(nil)
+  # def cross_event_with_response({status, %NewBatchInfo{new_batch: %NewBatchEvent{batchMerkleRoot: merkle_root}}}) do
+  def cross_event_with_response({status, new_batch_info}) do
+    new_batch = new_batch_info.new_batch
+    # "new_batch_info" |> IO.inspect()
+    # new_batch_info |> IO.inspect()
+    batch_page_item = %BatchPageItem{
+      batch_merkle_root: new_batch.batchMerkleRoot,
+      task_created_block_number: new_batch.taskCreatedBlock,
+      task_created_tx_hash: new_batch.batchDataPointer,
+      task_responded_block_number: nil,
+      task_responded_tx_hash: nil,
+      batch_data_pointer: new_batch.batchDataPointer,
+      responded: is_batch_responded(new_batch.batchMerkleRoot)
+    }
   end
 
   # previous version: get_latest_task_index
   # TODO
-  # def get_latest_batch_merkle_root() do
-  #   {status, data} =
-
-  #   case status do
-  #     :ok -> data
-  #     :error -> raise("Error fetching latest task index: #{data}")
-  #   end
-  # end
 
   # TODO refactor to new arquitecture, rethink this
   # def get_tx_hash(id) do
@@ -166,19 +170,6 @@ defmodule AlignedLayerServiceManager do
   #   |> Base.encode16()
   #   |> String.downcase()
   #   |> (fn x -> "0x" <> x end).()
-  # end
-
-  # TODO refactor to new arquitecture, rethink this
-  # maybe use new storage "batchesState"
-  # def get_task_response(id) do
-  #   {status, task_responses} = AlignedLayerServiceManager.task_responses(id) |> Ethers.call()
-
-  #   case status do
-  #     :ok -> Logger.debug("task_responses #{task_responses}")
-  #     :error -> raise("Error fetching task_responses")
-  #   end
-
-  #   task_responses
   # end
 
   # TODO pagination : revise with new arquitecture
