@@ -197,9 +197,6 @@ impl App {
         tx.unbounded_send(Message::Text(response))
             .expect("Failed to send message");
 
-        // Close connection
-        tx.close_channel();
-
         Ok(())
     }
 
