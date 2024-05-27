@@ -84,7 +84,7 @@ impl App {
         }
     }
 
-    pub async fn listen_connections(self: &Arc<Self>, address: &str, tx: Arc<Sender<Message>>) {
+    pub async fn listen_connections(self: Arc<Self>, address: &str, tx: Arc<Sender<Message>>) {
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address).await.expect("Failed to build");
         info!("Listening on: {}", address);
@@ -92,11 +92,9 @@ impl App {
         // Let's spawn the handling of each connection in a separate task.
         while let Ok((stream, addr)) = listener.accept().await {
             let c = self.clone();
-            let mut rx = tx.subscribe();
+            let rx = tx.subscribe();
 
-            tokio::spawn(async move {
-                c.handle_connection(stream, addr, &mut rx).await;
-            });
+            tokio::spawn(c.handle_connection(stream, addr, rx));
         }
     }
 
@@ -117,9 +115,7 @@ impl App {
             info!("New block received");
             tokio::spawn(async move {
                 let block_number = block.number.unwrap();
-                let block_number = u64::try_from(block_number)
-                    .map_err(|err: &str| anyhow::anyhow!(err))
-                    .unwrap();
+                let block_number = u64::try_from(block_number).unwrap();
                 batcher.handle_new_block(block_number, tx).await;
             });
         }
@@ -128,10 +124,10 @@ impl App {
     }
 
     async fn handle_connection(
-        self: &Arc<Self>,
+        self: Arc<Self>,
         raw_stream: TcpStream,
         addr: SocketAddr,
-        rx: &mut Receiver<Message>,
+        rx: Receiver<Message>,
     ) {
         info!("Incoming TCP connection from: {}", addr);
 
@@ -145,23 +141,32 @@ impl App {
 
         let get_incoming = incoming
             .try_filter(|msg| future::ready(msg.is_text()))
-            .try_for_each(|msg| async move { self.handle_message(msg).await });
+            .try_for_each(|msg| self.clone().handle_message(msg));
 
         // let send_outgoing = rx.map(Ok).forward(outgoing);
         // let send_outgoing = rx.recv().map(f);
-        info!("hola");
         // let send_outgoing = rx.recv().and_then(|msg| outgoing.send(msg));
-        let send_outgoing = rx.recv().map_ok(|msg| outgoing.send(msg));
-        info!("chau");
+        let mut rx = rx;
+        let send_outgoing = async {
+            let msg = rx.recv().await.unwrap();
+            outgoing.send(msg).await.unwrap();
+            outgoing.close().await
+        };
+        // .map_ok(|msg| async {
+        //     println!("MESSAGE RECEIVED: {}", msg);
+        //     outgoing.send(msg).await
+        // });
 
         pin_mut!(get_incoming, send_outgoing);
         future::select(get_incoming, send_outgoing).await;
+        // f1.unwrap();
+        // f2.unwrap();
 
         info!("{} disconnected", &addr);
     }
 
     async fn handle_message(
-        self: &Arc<Self>,
+        self: Arc<Self>,
         // tx: UnboundedSender<Message>,
         message: Message,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
@@ -308,7 +313,7 @@ impl App {
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: {}", batch_merkle_root_hex);
 
-        let file_name = batch_merkle_root_hex + ".json";
+        let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
 
@@ -324,8 +329,9 @@ impl App {
             Ok(_) => info!("Batch verification task created on Aligned contract"),
             Err(e) => error!("Failed to create batch verification task: {}", e),
         }
-        tx.send(Message::Binary(batch_merkle_root.to_vec()))
+        // tx.send(Message::Binary(batch_merkle_root.to_vec()))
+        //     .expect("Could not send response");
+        tx.send(Message::Text(batch_merkle_root_hex))
             .expect("Could not send response");
-        // }
     }
 }

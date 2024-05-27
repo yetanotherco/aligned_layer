@@ -1,13 +1,14 @@
 use std::path::PathBuf;
 
 use alloy_primitives::Address;
-use futures_util::{SinkExt, StreamExt};
+use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::connect_async;
 
 use batcher::types::{parse_proving_system, VerificationData};
 
 use clap::Parser;
+use tungstenite::error::ProtocolError;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -56,6 +57,7 @@ async fn main() {
 
     let url = url::Url::parse(&args.connect_addr).unwrap();
     // panic!("Usage: {} <ws://addr> <sp1|plonk_bls12_381|plonk_bn254|groth16_bn254>", args[0]);
+    println!("URL: {}", url);
 
     let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
     println!("WebSocket handshake has been successfully completed");
@@ -110,13 +112,23 @@ async fn main() {
             .unwrap();
     }
 
+    // ws_read.try_filter(|msg| {msg.is_binary() || msg.is_text()})
     ws_read
-        .take(args.repetitions as usize)
-        .for_each(|message| async move {
-            let data = message.unwrap().into_data();
-            tokio::io::stdout().write_all(&data).await.unwrap();
+        .try_filter(|msg| future::ready(msg.is_text()))
+        .for_each(|msg| async move {
+            let data = msg.unwrap().into_data();
+            println!("RESPONSE: {:?}", data);
+            // tokio::io::stdout().write_all(&data).await.map_err(|_| {
+            //     tokio_tungstenite::tungstenite::Error::Protocol(ProtocolError::HandshakeIncomplete)
+            // })
         })
         .await;
+    // .take(args.repetitions as usize)
+    // .for_each(|message| async move {
+    //     let data = message.unwrap().into_data();
+    //     tokio::io::stdout().write_all(&data).await.unwrap();
+    // })
+    // .await;
 
     ws_write
         .close()
