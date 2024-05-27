@@ -200,19 +200,10 @@ impl App {
 
         let len = {
             let mut current_batch = self.current_batch.lock().await;
-            let batch_size: usize = current_batch.iter().map(|v| v.proof.len()).sum();
-
-            if batch_size + verification_data.proof.len() > self.max_batch_size {
-                warn!("Batch size limit reached, not adding new proof");
-                return;
-            }
-
             current_batch.push(verification_data);
 
-            debug!("Batch size: {}", current_batch.len());
-            let len = current_batch.len();
-
-            len
+            debug!("Batch length: {}", current_batch.len());
+            current_batch.len()
         };
 
         if len >= self.batch_size_interval {
@@ -252,15 +243,56 @@ impl App {
                 return;
             }
 
-            let batch_merkle_tree: MerkleTree<VerificationBatch> =
-                MerkleTree::build(&current_batch);
+            let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+            let mut current_batch = self.current_batch.lock().await;
+            let current_batch_len = current_batch.len();
+            if current_batch_len <= 1 {
+                // Needed because merkle tree freezes on only one leaf
+                debug!("New block reached but current batch is empty or has only one proof. Waiting for more proofs...");
+                return;
+            }
 
-            let batch_bytes =
+            // check if neither interval is reached
+            if current_batch.len() < self.batch_size_interval
+                && block_number < *last_uploaded_batch_block + self.block_interval
+            {
+                info!(
+                    "Block interval not reached, current block: {}, last uploaded block: {}",
+                    block_number, *last_uploaded_batch_block
+                );
+                return;
+            }
+
+            let mut batch_bytes =
                 serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
-            current_batch.clear();
-            *last_uploaded_batch_block = block_number;
+            let batch_to_send;
+            let mut current_batch_end = current_batch_len;
+            if batch_bytes.len() > self.max_batch_size {
+                let mut current_batch_size = 0;
+                for (i, verification_data) in current_batch.iter().enumerate() {
+                    let verification_data_bytes = bincode::serialize(verification_data)
+                        .expect("Failed to serialize verification data");
+                    current_batch_size += verification_data_bytes.len();
+                    if current_batch_size > self.max_batch_size {
+                        current_batch_end = i;
+                        break;
+                    }
+                }
 
+                batch_to_send = current_batch.drain(..current_batch_end)
+                    .collect::<Vec<_>>();
+                
+                batch_bytes = serde_json::to_vec(&batch_to_send)
+                    .expect("Failed to serialize batch");
+            } else {
+                batch_to_send = current_batch.drain(..).collect();
+            }
+
+            let batch_merkle_tree: MerkleTree<VerificationBatch> =
+                MerkleTree::build(&batch_to_send);
+
+            *last_uploaded_batch_block = block_number;
             (batch_bytes, batch_merkle_tree.root)
         }; // lock is released here so new proofs can be added
 
