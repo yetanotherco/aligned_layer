@@ -28,11 +28,23 @@ end
 defmodule Utils do
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
-    hex = String.slice(hex_string, 2..-1)
+    hex = case hex_string do
+      "0x" <> _ -> String.slice(hex_string, 2..-1)
+      _ -> raise "Invalid hex string, missing '0x' prefix"
+    end
 
     # Convert the hex string to a binary
-    {:ok, binary} = Base.decode16(hex, case: :mixed)
-
-    binary
+    case Base.decode16(hex, case: :mixed) do
+      {:ok, binary} -> binary
+      _ -> raise "Invalid hex string"
+    end
   end
+
+  def get_last_n_items(events, n) when is_list(events) and is_integer(n) and n >= 0 do
+    events
+    |> Enum.reverse()
+    |> Enum.take(n)
+    |> Enum.reverse()
+  end
+
 end

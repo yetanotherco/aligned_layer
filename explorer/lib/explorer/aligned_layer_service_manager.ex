@@ -33,7 +33,7 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def get_new_batch_events(merkle_root) do
+  def get_new_batch_events(merkle_root) when is_binary(merkle_root) do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(Utils.string_to_bytes32(merkle_root))
       |> Ethers.get_logs(fromBlock: 0)
@@ -42,6 +42,34 @@ defmodule AlignedLayerServiceManager do
       {:error, reason} -> {:empty, reason}
       {_, []} -> {:empty, "No task found"}
       {:ok, event} -> extract_new_batch_event_info(event |> List.first())
+    end
+  end
+
+  def get_new_batch_events(amount) when is_integer(amount) do
+
+    events =
+      AlignedLayerServiceManager.EventFilters.new_batch(nil)
+      |> Ethers.get_logs(fromBlock: get_latest_block_number(-100), toBlock: get_latest_block_number())
+
+    case events do
+      {:ok, []} -> raise("Error fetching events, no events found")
+      {:ok, list} -> Utils.get_last_n_items(list, amount)
+      {:error, _} -> raise("Error fetching events")
+    end
+
+  end
+
+  def get_latest_block_number() do
+    {:ok, num} = Ethers.current_block_number()
+    num
+  end
+
+  def get_latest_block_number(less) when is_integer(less) do
+    {:ok, num} = Ethers.current_block_number()
+    case num - abs(less) do #this allows passing negative number as param, which makes it easier to code
+      r when r > 0 -> r
+      r when r <= 0 -> 1
+      _ -> raise("Error fetching latest block number")
     end
   end
 
@@ -70,9 +98,6 @@ defmodule AlignedLayerServiceManager do
   def get_batch_verified_events() do
     events =
       AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 0)
-
-    "events" |> IO.inspect()
-    events |> IO.inspect()
 
     case events do
       {:ok, []} -> raise("Error fetching responded events, no events found")
@@ -117,6 +142,10 @@ defmodule AlignedLayerServiceManager do
       {:ok, [_, true]} -> true
       _ -> false
     end
+  end
+
+  def get_latest_batches() do
+    AlignedLayerServiceManager.EventFilters.new_batch(nil)
   end
 
   # previous version: get_latest_task_index

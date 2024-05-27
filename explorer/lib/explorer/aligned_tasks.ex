@@ -15,6 +15,9 @@ end
 defmodule NewBatchEvent do
   @enforce_keys [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer]
   defstruct [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer]
+  def extract_merkle_root(event) do
+    event.topics_raw |> Enum.at(1)
+  end
 end
 
 # %Aligned.NewBatchInfo{
