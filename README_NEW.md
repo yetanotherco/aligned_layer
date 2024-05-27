@@ -161,7 +161,7 @@ make bindings
 Start anvil with every relevant contract deployed with:
 
 ```bash
-make anvil_start
+make anvil_start_with_block_time
 ```
 
 The above command starts a local anvil chain from a [saved state](./tests/integration/eigenlayer-and-shared-avs-contracts-deployed-anvil-state.json) with EigenLayer and AlignedLayer contracts already deployed (but no operator registered).
