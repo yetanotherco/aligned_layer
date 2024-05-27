@@ -19,51 +19,25 @@ import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.so
 contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
 
+    uint256 internal constant THRESHOLD_DENOMINATOR = 100;
+    uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
+
     // EVENTS
-    event NewTaskCreated(uint32 indexed taskIndex, Task task);
-    event TaskResponded(uint32 indexed taskIndex, TaskResponse taskResponse);
+    event NewBatch(
+        bytes32 indexed batchMerkleRoot,
+        uint32 taskCreatedBlock,
+        string batchDataPointer
+    );
 
-    uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
+    event BatchVerified(bytes32 indexed batchMerkleRoot);
 
-    // STRUCTS
-    enum DASolution {
-        Calldata,
-        EigenDA,
-        Celestia
-    }
-
-    struct DAPayload {
-        DASolution solution;
-        bytes proof_associated_data; // Proof bytes for calldata - BatchHeaderHash for EigenDA - Commitment for Celestia
-        uint64 index; // BlobIndex for EigenDA - Height for Celestia
-    }
-
-    struct Task {
-        uint16 provingSystemId;
-        DAPayload DAPayload;
-        bytes pubInput;
-        bytes verificationKey;
+    struct BatchState {
         uint32 taskCreatedBlock;
-        bytes quorumNumbers;
-        bytes quorumThresholdPercentages;
-        uint256 fee;
-    }
-
-    // Task Response
-    // In case of changing this response, change AbiEncodeTaskResponse
-    // since it won't be updated automatically
-    struct TaskResponse {
-        uint32 taskIndex;
-        bool proofIsCorrect;
+        bool responded;
     }
 
     /* STORAGE */
-    uint32 public latestTaskIndexPlusOne;
-
-    mapping(uint32 => bytes32) public taskHashes;
-
-    // mapping of task indices to hash of abi.encode(taskResponse, taskResponseMetadata)
-    mapping(uint32 => bytes32) public taskResponses;
+    mapping(bytes32 => BatchState) public batchesState;
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -96,93 +70,65 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         return aggregator == _aggregator;
     }
 
-    // NOTE(marian): Dummy function for testing contract integration
-    function getMeaning() external view returns (uint) {
-        return 42;
-    }
-
     function createNewTask(
-        uint16 provingSystemId,
-        DAPayload calldata payload,
-        bytes calldata pubInput,
-        // This parameter is only mandatory for KZG based proving systems
-        bytes calldata verificationKey,
-        bytes calldata quorumNumbers,
-        bytes calldata quorumThresholdPercentages
+        bytes32 batchMerkleRoot,
+        string calldata batchDataPointer
     ) external payable {
-        require(msg.value > 0, "fee must be greater than 0");
+        require(
+            batchesState[batchMerkleRoot].taskCreatedBlock == 0,
+            "Batch was already verified"
+        );
 
-        Task memory newTask;
+        BatchState memory batchState;
 
-        newTask.provingSystemId = provingSystemId;
-        newTask.DAPayload = payload;
-        newTask.pubInput = pubInput;
-        newTask.verificationKey = verificationKey;
-        newTask.taskCreatedBlock = uint32(block.number);
-        newTask.quorumNumbers = quorumNumbers;
-        newTask.quorumThresholdPercentages = quorumThresholdPercentages;
-        newTask.fee = msg.value;
+        batchState.taskCreatedBlock = uint32(block.number);
+        batchState.responded = false;
 
-        taskHashes[latestTaskIndexPlusOne] = keccak256(abi.encode(newTask));
+        batchesState[batchMerkleRoot] = batchState;
 
-        emit NewTaskCreated(latestTaskIndexPlusOne, newTask);
-
-        latestTaskIndexPlusOne = latestTaskIndexPlusOne + 1;
+        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
     }
 
     function respondToTask(
-        Task calldata task,
-        TaskResponse calldata taskResponse,
+        // Root is signed as a way to verify the batch was right
+        bytes32 batchMerkleRoot,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
-        uint32 taskCreatedBlock = task.taskCreatedBlock;
-        bytes calldata quorumNumbers = task.quorumNumbers;
-        bytes calldata quorumThresholdPercentages = task
-            .quorumThresholdPercentages;
 
-        // check that the task is valid, hasn't been responsed yet, and is being responsed in time
+        // Note: This is a hacky solidity way to see that the element exists
+        // Value 0 would mean that the task is in block 0 so this can't happen.
         require(
-            keccak256(abi.encode(task)) == taskHashes[taskResponse.taskIndex],
-            "Supplied task does not match the one recorded in the contract"
+            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
+            "Batch doesn't exists"
         );
 
+        // Check task hasn't been responsed yet
         require(
-            taskResponses[taskResponse.taskIndex] == bytes32(0),
-            "Aggregator has already responded to the task"
+            batchesState[batchMerkleRoot].responded == false,
+            "Batch already responded"
         );
+        batchesState[batchMerkleRoot].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
-        // calculate message which operators signed
-        bytes32 message = keccak256(abi.encode(taskResponse));
-
         // check that aggregated BLS signature is valid
         (
             QuorumStakeTotals memory quorumStakeTotals,
             bytes32 hashOfNonSigners
         ) = checkSignatures(
-                message,
-                quorumNumbers,
-                taskCreatedBlock,
+                batchMerkleRoot,
+                batchesState[batchMerkleRoot].taskCreatedBlock,
                 nonSignerStakesAndSignature
             );
 
         // check that signatories own at least a threshold percentage of each quourm
-        for (uint i = 0; i < quorumNumbers.length; i++) {
-            require(
-                quorumStakeTotals.signedStakeForQuorum[i] *
-                    _THRESHOLD_DENOMINATOR >=
-                    quorumStakeTotals.totalStakeForQuorum[i] *
-                        uint8(quorumThresholdPercentages[i]),
-                "Signatories do not own at least threshold percentage of a quorum"
-            );
-        }
-
-        payable(aggregator).transfer(task.fee);
-
-        emit TaskResponded(
-            taskResponse.taskIndex,
-            TaskResponse(taskResponse.taskIndex, taskResponse.proofIsCorrect)
+        require(
+            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR >=
+                quorumStakeTotals.totalStakeForQuorum[0] *
+                    QUORUM_THRESHOLD_PERCENTAGE,
+            "Signatories do not own at least threshold percentage of a quorum"
         );
+
+        emit BatchVerified(batchMerkleRoot);
     }
 }

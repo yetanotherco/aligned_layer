@@ -1,21 +1,31 @@
 package main
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
-	"math/big"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
-	contractAlignedLayerServiceManager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
-
-	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/common"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 	"github.com/yetanotherco/aligned_layer/task_sender/pkg"
+	generateproof "github.com/yetanotherco/aligned_layer/task_sender/test_examples/gnark_groth16_bn254_infinite_script/pkg"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+
+	godotenv "github.com/joho/godotenv"
 )
 
 var (
@@ -62,12 +72,6 @@ var (
 		Value:   100,
 		Usage:   "the `QUORUM THRESHOLD PERCENTAGE` for tasks",
 	}
-	daFlag = &cli.StringFlag{
-		Name: "da",
-		// Can be either "eigen" or "celestia"
-		Usage: "the `DA` to use (calldata | eigen | celestia)",
-		Value: "calldata",
-	}
 )
 
 var sendTaskFlags = []cli.Flag{
@@ -78,7 +82,6 @@ var sendTaskFlags = []cli.Flag{
 	config.ConfigFileFlag,
 	feeFlag,
 	quorumThresholdFlag,
-	daFlag,
 }
 
 var loopTasksFlags = []cli.Flag{
@@ -90,7 +93,14 @@ var loopTasksFlags = []cli.Flag{
 	intervalFlag,
 	feeFlag,
 	quorumThresholdFlag,
-	daFlag,
+}
+
+var infiniteTasksFlags = []cli.Flag{
+	provingSystemFlag,
+	config.ConfigFileFlag,
+	intervalFlag,
+	feeFlag,
+	quorumThresholdFlag,
 }
 
 func main() {
@@ -102,7 +112,9 @@ func main() {
 				Usage:       "Send a single task to the verifier",
 				Description: "Service that sends proofs to verify by operator nodes.",
 				Flags:       sendTaskFlags,
-				Action:      taskSenderMain,
+				Action: func(c *cli.Context) error {
+					return taskSenderMain(c)
+				},
 			},
 			{
 				Name:        "loop-tasks",
@@ -110,6 +122,13 @@ func main() {
 				Description: "Service that sends proofs to verify by operator nodes.",
 				Flags:       loopTasksFlags,
 				Action:      taskSenderLoopMain,
+			},
+			{
+				Name:        "infinite-tasks",
+				Usage:       "Send a different task every `INTERVAL` seconds",
+				Description: "Service that sends proofs to verify by operator nodes.",
+				Flags:       infiniteTasksFlags,
+				Action:      taskSenderInfiniteMain,
 			},
 		},
 	}
@@ -120,75 +139,25 @@ func main() {
 	}
 }
 
-func taskSenderMain(c *cli.Context) error {
-	provingSystem, err := parseProvingSystem(c.String(provingSystemFlag.Name))
-	if err != nil {
-		return fmt.Errorf("error getting verification system: %v", err)
+func taskSenderMain(c *cli.Context, xParam ...int) error {
+	x := 0
+	if len(xParam) > 0 {
+		x = xParam[0]
 	}
-
-	proofFile, err := os.ReadFile(c.String(proofFlag.Name))
-	if err != nil {
-		return fmt.Errorf("error loading proof file: %v", err)
-	}
-
-	publicInputFile, err := os.ReadFile(c.String(publicInputFlag.Name))
-	if err != nil {
-		return fmt.Errorf("error loading public input file: %v", err)
-	}
-
-	var verificationKeyFile []byte
-	if provingSystem == common.GnarkPlonkBls12_381 || provingSystem == common.GnarkPlonkBn254 || provingSystem == common.Groth16Bn254 {
-		if len(c.String("verification-key")) == 0 {
-			return fmt.Errorf("the proving system needs a verification key but it is empty")
-		}
-		verificationKeyFile, err = os.ReadFile(c.String(verificationKeyFlag.Name))
-		if err != nil {
-			return fmt.Errorf("error loading verification key file: %v", err)
-		}
-	}
-
-	fee := big.NewInt(int64(c.Int(feeFlag.Name)))
-
-	var daSol common.DASolution
-	switch c.String(daFlag.Name) {
-	case "calldata":
-		daSol = common.Calldata
-	case "eigen":
-		daSol = common.EigenDA
-	case "celestia":
-		daSol = common.Celestia
-	default:
-		return fmt.Errorf("unsupported DA, must be one of: calldata, eigen, celestia")
-	}
-
-	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name), daSol)
+	taskSenderConfig := config.NewTaskSenderConfig(c.String(config.ConfigFileFlag.Name))
 	avsWriter, err := chainio.NewAvsWriterFromConfig(taskSenderConfig.BaseConfig, taskSenderConfig.EcdsaConfig)
 	if err != nil {
 		return err
 	}
 
 	taskSender := pkg.NewTaskSender(taskSenderConfig, avsWriter)
-	quorumThresholdPercentage := c.Uint(quorumThresholdFlag.Name)
 
-	// Hardcoded value for `quorumNumbers` - should we get this information from another source? Maybe configuration or CLI parameters?
-	quorumNumbers := eigentypes.QuorumNums{0}
-	quorumThresholdPercentages := []eigentypes.QuorumThresholdPercentage{eigentypes.QuorumThresholdPercentage(quorumThresholdPercentage)}
-
-	var DAPayload *contractAlignedLayerServiceManager.AlignedLayerServiceManagerDAPayload
-	switch daSol {
-	case common.Calldata:
-		DAPayload, err = taskSender.PostProofOnCalldata(proofFile)
-	case common.EigenDA:
-		DAPayload, err = taskSender.PostProofOnEigenDA(proofFile)
-	default: // Celestia
-		DAPayload, err = taskSender.PostProofOnCelestia(proofFile)
-	}
-
+	batchMerkleRoot, batchDataPointer, err := getAndUploadProofData(c, x)
 	if err != nil {
 		return err
 	}
 
-	task := pkg.NewTask(provingSystem, *DAPayload, publicInputFile, verificationKeyFile, quorumNumbers, quorumThresholdPercentages, fee)
+	task := pkg.NewTask(batchMerkleRoot, batchDataPointer)
 
 	err = taskSender.SendTask(task)
 	if err != nil {
@@ -196,6 +165,116 @@ func taskSenderMain(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func getAndUploadProofData(c *cli.Context, x int) ([32]byte, string, error) {
+	var proofFile, pubInputFile, verificationKeyFile string
+
+	provingSystem, err := ParseProvingSystem(c.String(provingSystemFlag.Name))
+	if err != nil {
+		return [32]byte{}, "", err
+	}
+
+	if x == 0 { //previous version, not generated by infinite-generator read proof from flag parameters
+		proofFile = c.String(proofFlag.Name)
+		pubInputFile = c.String(publicInputFlag.Name)
+		verificationKeyFile = c.String(verificationKeyFlag.Name)
+	} else { //new version, generated by infinite-generator, we can calculate the real values
+		outputDir := "task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/"
+		proofFile = outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.proof" //TODO un-hardcode provingSystem
+		pubInputFile = outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.pub"
+		verificationKeyFile = outputDir + "ineq_" + strconv.Itoa(x) + "_groth16.vk"
+	}
+	ProofByteArray, err := os.ReadFile(proofFile)
+	if err != nil {
+		return [32]byte{}, "", err
+	}
+	PubInputByteArray, err := os.ReadFile(pubInputFile)
+	if err != nil {
+		return [32]byte{}, "", err
+	}
+	VerificationKeyByteArray, err := os.ReadFile(verificationKeyFile)
+	if err != nil {
+		return [32]byte{}, "", err
+	}
+
+	var data []operator.VerificationData
+	if provingSystem == common.SP1 { // currently, this is the correct way of handling VerificationKey/VmProgramCode
+		data = []operator.VerificationData{{
+			ProvingSystemId: provingSystem,
+			Proof:           ProofByteArray,
+			PubInput:        PubInputByteArray,
+			VerificationKey: []byte(""),
+			VmProgramCode:   VerificationKeyByteArray,
+		}}
+	} else {
+		data = []operator.VerificationData{{
+			ProvingSystemId: provingSystem,
+			Proof:           ProofByteArray,
+			PubInput:        PubInputByteArray,
+			VerificationKey: VerificationKeyByteArray,
+			VmProgramCode:   []byte(""),
+		}}
+	}
+	byteArray, err := json.Marshal(data)
+	if err != nil {
+		return [32]byte{}, "", err
+	}
+	merkleRoot := sha256.Sum256(byteArray)
+	batchDataPointer, err := uploadObjectToS3(byteArray, merkleRoot)
+	if err != nil {
+		return [32]byte{}, "", err
+	}
+
+	return merkleRoot, batchDataPointer, nil
+}
+
+func uploadObjectToS3(byteArray []byte, merkleRoot [32]byte) (string, error) {
+	// I want to upload the bytearray to my S3 bucket, with merkleRoot as the object name
+	err := godotenv.Load("./task_sender/.env")
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+	region := os.Getenv("AWS_REGION")
+	accessKey := os.Getenv("AWS_ACCESS_KEY")
+	secretKey := os.Getenv("AWS_SECRET")
+	bucket := os.Getenv("AWS_S3_BUCKET")
+	if region == "" || accessKey == "" || secretKey == "" || bucket == "" {
+		fmt.Println("Fail.\nPlease set the AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET, and AWS_S3_BUCKET environment variables. \nYou can use task_sender/.env.example as a template.")
+		return "", fmt.Errorf("missing AWS environment variables")
+	}
+
+	sess, err := session.NewSession(&aws.Config{
+		Region:      aws.String(region),
+		Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
+	})
+	if err != nil {
+		fmt.Println("Error creating aws session:", err)
+		fmt.Println("Did you set the AWS_REGION, AWS_ACCESS_KEY, and AWS_SECRET environment variables?\nYou can yse task_Sender/.env.example as a template.")
+		return "", err
+	}
+	svc := s3.New(sess)
+
+	merkleRootHex := hex.EncodeToString(merkleRoot[:])
+	key := merkleRootHex + ".json"
+
+	// This uploads the contents to S3
+	_, err = svc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader(byteArray),
+	})
+	if err != nil {
+		fmt.Println("Error uploading file:", err)
+		return "", err
+	}
+
+	fmt.Println("File uploaded successfully!!!")
+
+	batchDataPointer := "https://storage.alignedlayer.com/" + key
+	fmt.Println(batchDataPointer)
+
+	return batchDataPointer, nil
 }
 
 func taskSenderLoopMain(c *cli.Context) error {
@@ -214,7 +293,26 @@ func taskSenderLoopMain(c *cli.Context) error {
 	}
 }
 
-func parseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
+func taskSenderInfiniteMain(c *cli.Context) error {
+	interval := c.Int(intervalFlag.Name)
+
+	if interval < 1 {
+		return fmt.Errorf("interval must be greater than 0")
+	}
+
+	x := 0
+	for {
+		x += 1
+		generateproof.GenerateIneqProof(x)
+		err := taskSenderMain(c, x)
+		if err != nil {
+			return err
+		}
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
+}
+
+func ParseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error) {
 	provingSystemStr = strings.TrimSpace(provingSystemStr)
 	switch provingSystemStr {
 	case "plonk_bls12_381":

@@ -8,13 +8,10 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
-	"github.com/Layr-Labs/eigensdk-go/types"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
-	"math/big"
 )
 
 type AvsWriter struct {
@@ -67,44 +64,31 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendTask(context context.Context, provingSystemId common.ProvingSystemId,
-	DAPayload servicemanager.AlignedLayerServiceManagerDAPayload, publicInput []byte,
-	verificationKey []byte, quorumNumbers types.QuorumNums,
-	quorumThresholdPercentages types.QuorumThresholdPercentages, fee *big.Int) (servicemanager.AlignedLayerServiceManagerTask, uint32, error) {
+func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, batchDataPointer string) error {
 
 	txOpts := w.Signer.GetTxOpts()
-
-	txOpts.Value = fee
 
 	tx, err := w.AvsContractBindings.ServiceManager.CreateNewTask(
 		txOpts,
-		uint16(provingSystemId),
-		DAPayload,
-		publicInput,
-		verificationKey,
-		quorumNumbers.UnderlyingType(),
-		quorumThresholdPercentages.UnderlyingType(),
+		batchMerkleRoot,
+		batchDataPointer,
 	)
 	if err != nil {
 		w.logger.Error("Error assembling CreateNewTask tx", "err", err)
-		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+		return err
 	}
 
-	receipt, err := utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
+	_, err = utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
 	if err != nil {
-		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
+		return err
 	}
 
-	newTaskCreatedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseNewTaskCreated(*receipt.Logs[0])
-	if err != nil {
-		return servicemanager.AlignedLayerServiceManagerTask{}, 0, err
-	}
-	return newTaskCreatedEvent.Task, newTaskCreatedEvent.TaskIndex, nil
+	return nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemanager.AlignedLayerServiceManagerTask, taskResponse servicemanager.AlignedLayerServiceManagerTaskResponse, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	txOpts := w.Signer.GetTxOpts()
-	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, task, taskResponse, nonSignerStakesAndSignature)
+	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
 		return nil, err
@@ -115,7 +99,7 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, task servicemana
 		return nil, err
 	}
 
-	taskRespondedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseTaskResponded(*receipt.Logs[0])
+	taskRespondedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseBatchVerified(*receipt.Logs[0])
 	if err != nil {
 		return nil, err
 	}

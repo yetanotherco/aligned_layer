@@ -1,7 +1,6 @@
 .PHONY: help tests
 
 CONFIG_FILE?=config-files/config.yaml
-DA_SOLUTION=calldata
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-36s\033[0m %s\n", $$1, $$2}'
@@ -64,7 +63,11 @@ anvil_deploy_aligned_contracts: ## Deploy Aligned Contracts
 
 anvil_start: ## Start Anvil with Eigen and Aligned Contracts
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
+
+anvil_start_with_block_time: ## Start Anvil with Eigen and Aligned Contracts using 5s as block time
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 5
 
 
 __AGGREGATOR__: ## ____
@@ -137,6 +140,48 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_register_with_aligned_layer ## Register operator with EigenLayer and AlignedLayer with CONFIG_FILE (default: config-files/config.yaml) for devnet
 
 
+__BATCHER__:
+
+BURST_SIZE=10
+PROVING_SYSTEM?=sp1
+
+./batcher/.env:
+	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
+
+batcher_start: ./batcher/.env
+	@echo "Starting Batcher..."
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
+
+build_batcher_client:
+	@cd batcher/client && cargo b --release
+
+batcher/client/target/release/batcher-client:
+	@cd batcher/client && cargo b --release
+
+batcher_send_sp1_task: batcher/client/target/release/batcher-client
+	@echo "Sending SP1 fibonacci task to Batcher..."
+	@cd batcher/client/target/release && ./batcher-client \
+		--proving_system SP1 \
+		--proof ../../test_files/sp1/sp1_fibonacci.proof \
+		--vm_program ../../test_files/sp1/sp1_fibonacci-elf
+
+batcher_send_groth16_task: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@cd batcher/client/target/release && ./batcher-client \
+		--proving_system Groth16Bn254 \
+		--proof ../../test_files/groth16/ineq_1_groth16.proof \
+		--public_input ../../test_files/groth16/ineq_1_groth16.pub \
+		--vk ../../test_files/groth16/ineq_1_groth16.vk \
+
+batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
+	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
+	@./batcher/client/send_infinite_tasks.sh 4
+
+batcher_send_burst_groth16: build_batcher_client
+	@echo "Sending a burst of tasks to Batcher..."
+	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
+
 __TASK_SENDERS__: ## ____
  # TODO add a default proving system
 
@@ -149,7 +194,6 @@ send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
@@ -161,7 +205,6 @@ send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task 
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
@@ -177,7 +220,6 @@ send_plonk_bn254_proof: ## Send a PLONK BN254 proof using the task sender
 		--public-input task_sender/test_examples/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
@@ -189,7 +231,6 @@ send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender e
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
@@ -205,7 +246,6 @@ send_groth16_bn254_proof: ## Send a Groth16 BN254 proof using the task sender
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task sender every 10 seconds
@@ -217,12 +257,23 @@ send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task send
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
+		2>&1 | zap-pretty
+
+send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@echo "Sending a different GROTH16 BN254 proof in a loop every 3 seconds..."
+	@go run task_sender/cmd/main.go infinite-tasks \
+		--proving-system groth16_bn254 \
+		--config config-files/config.yaml \
+		--interval 3 \
 		2>&1 | zap-pretty
 
 generate_groth16_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
 	@go run task_sender/test_examples/gnark_groth16_bn254_script/main.go
+
+generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
+	@echo "Running gnark_groth_bn254_ineq script..."
+	@go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/main.go 1
 
 send_sp1_proof: ## Send an SP1 proof using the task sender
 	@go run task_sender/cmd/main.go send-task \
@@ -230,7 +281,6 @@ send_sp1_proof: ## Send an SP1 proof using the task sender
     		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
     		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
-    		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
 
 
@@ -272,3 +322,57 @@ generate_sp1_fibonacci_proof: ## Generate SP1 Fibonacci proof and ELF
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
+
+__RISC_ZERO_FFI__: ##
+build_risc_zero_macos:
+	@cd operator/risc_zero/lib && cargo build --release
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
+
+build_risc_zero_linux:
+	@cd operator/risc_zero/lib && cargo build --release
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
+
+test_risc_zero_rust_ffi:
+	@echo "Testing RISC Zero Rust FFI source code..."
+	@cd operator/risc_zero/lib && cargo test --release
+
+test_risc_zero_go_bindings_macos: build_risc_zero_macos
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero/... -v
+
+test_risc_zero_go_bindings_linux: build_risc_zero_linux
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero/... -v
+
+generate_risc_zero_fibonacci_proof:
+	@cd task_sender/test_examples/risc_zero/fibonacci_proof_generator && \
+		cargo clean && \
+		rm -f risc_zero_fibonacci.proof && \
+		RUST_LOG=info cargo run --release && \
+		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
+		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"
+
+__MERKLE_TREE_FFI__: ##
+build_merkle_tree_macos:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+build_merkle_tree_linux:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+test_merkle_tree_rust_ffi:
+	@echo "Testing Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
