@@ -5,6 +5,7 @@
 - [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
 - [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
+- [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
 
 ## Local development
 
@@ -22,6 +23,16 @@ This will create a `.env` file in the `/explorer` directory of the project. The 
 | -------- | ----------- |
 | `RPC_URL` | The RPC URL of the network you want to connect to. |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
+
+### Running the database
+
+To run the database, you will need to have [docker](https://docs.docker.com/get-docker/).
+
+Running Postgres via Docker is simple; just need run the following command:
+
+```sh
+docker run --name explorer-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5500:5432 -d postgres
+```
 
 ### Run devnet environment (optional)
 
@@ -41,24 +52,48 @@ cd ..
 make anvil_start
 ```
 
-Then in another terminal, you can run the following command to run the operator:
-
-```sh
-make operator_full_registration
-make operator_start
-```
-
 Then, in another terminal, run the following command to start the aggregator:
 
 ```sh
 make aggregator_start
 ```
 
-Finally, to have a task running in the devnet, you can run the following command:
+Again, in another terminal, you can run the following command to run the operator:
 
 ```sh
-make send_plonk_bls12_381_proof_loop
+make operator_full_registration
+make operator_start
 ```
+
+Now we need to start the batcher by running the following command:
+
+```sh
+make batcher_start
+```
+
+Finally, to have a batch of tasks running in the devnet, you can run the following commands:
+
+```sh
+make batcher_send_sp1_task
+make batcher_send_sp1_task
+make batcher_send_sp1_task
+make batcher_send_sp1_task
+make batcher_send_sp1_task
+make batcher_send_groth16_task
+make batcher_send_groth16_task
+make batcher_send_groth16_task
+make batcher_send_groth16_task
+make batcher_send_groth16_task
+make batcher_send_sp1_task
+make batcher_send_groth16_task
+make batcher_send_sp1_task
+make batcher_send_groth16_task
+make batcher_send_sp1_task
+```
+
+This will send 10 SP1 tasks, 5 Groth16 tasks, and 5 SP1 tasks to the devnet.
+
+In order to stop the devnet environment, you'll need to stop each of the services started in the previous steps.
 
 </details>
 
