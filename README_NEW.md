@@ -331,15 +331,6 @@ bls:
   private_key_store_path: <path_to_bls_private_key_store>
   private_key_store_password: <bls_private_key_store_password>
 
-## EigenDA Configurations
-eigen_da_disperser:
-  url: <eigen_da_disperser_url> # This is the url of the EigenDA Disperser
-
-## Celestia Configurations
-celestia:
-  url: <celestia_url> # This is the url of the deployed Celestia Light node
-  keystore: <celestia_keystore> # This is the keystore of the Celestia Light node
-
 ## Operator Configurations
 operator:
   aggregator_rpc_server_ip_port_address: <ip:port> # This is the aggregator url
