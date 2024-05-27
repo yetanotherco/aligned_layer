@@ -30,7 +30,11 @@ anvil_deploy_aligned_contracts:
 
 anvil_start:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
+
+anvil_start_with_block_time:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 5
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
@@ -105,6 +109,7 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 __BATCHER__:
 
+BURST_SIZE=10
 PROVING_SYSTEM?=sp1
 
 ./batcher/.env:
@@ -114,7 +119,11 @@ batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
-batcher/client/target/release/batcher-client: 
+
+build_batcher_client:
+	@cd batcher/client && cargo b --release
+
+batcher/client/target/release/batcher-client:
 	@cd batcher/client && cargo b --release
 
 batcher_send_sp1_task: batcher/client/target/release/batcher-client
@@ -248,6 +257,10 @@ send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using
 generate_groth16_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
 	@go run task_sender/test_examples/gnark_groth16_bn254_script/main.go
+
+generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
+	@echo "Running gnark_groth_bn254_ineq script..."
+	@go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/main.go 1
 
 send_sp1_proof:
 	@go run task_sender/cmd/main.go send-task \
