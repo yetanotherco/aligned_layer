@@ -6,9 +6,12 @@ defmodule ExplorerWeb.Batches.Index do
     current_page = get_current_page(params)
 
     page_size = 5
-    [from, to] = [(current_page - 1) * page_size, (current_page - 1) * page_size + page_size - 1]
+    # [from, to] = [(current_page - 1) * page_size, (current_page - 1) * page_size + page_size - 1]
 
-    newBatchEvents = AlignedLayerServiceManager.get_new_batch_events()
+    newBatchEvents = AlignedLayerServiceManager.get_new_batch_events(page_size * current_page)
+
+    "newBatchEvents" |> IO.inspect()
+    newBatchEvents |> IO.inspect()
 
     # tasks_created_cross_tasks_responded = Enum.map(newBatchEvents, fn event -> event |> extract_new_batch_event_info end)
 
@@ -27,18 +30,6 @@ defmodule ExplorerWeb.Batches.Index do
   end
 
   # old version:
-
-  # def mount(params, _, socket) do
-  #   current_page = get_current_page(params)
-
-  #   page_size = 5
-  #   [from, to] = [(current_page - 1) * page_size, (current_page - 1) * page_size + page_size - 1]
-
-  #   tasks_created_cross_tasks_responded =
-  #     AlignedLayerServiceManager.get_task_range(from, to) |> tasks_created_cross_tasks_responded()
-
-  #   {:ok, assign(socket, current_page: current_page, tasks: tasks_created_cross_tasks_responded)}
-  # end
 
   # def tasks_created_cross_tasks_responded([task_created_events, task_responded_events]) do
   #   Enum.map(task_created_events, fn event -> event |> extract_task_data end)

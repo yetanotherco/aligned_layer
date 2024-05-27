@@ -24,8 +24,8 @@ defmodule ExplorerWeb.Home.Index do
     operators_registered = get_operators_registered()
 
     latest_batches = AlignedLayerServiceManager.get_new_batch_events(5) |> Enum.map( fn event -> NewBatchEvent.extract_merkle_root(event) end )
-    "latest_batches" |> IO.inspect()
-    latest_batches |> IO.inspect()
+    # "latest_batches" |> IO.inspect()
+    # latest_batches |> IO.inspect()
     {:ok,
      assign(socket,
        verified_batches: shorthand_verified_batches,
