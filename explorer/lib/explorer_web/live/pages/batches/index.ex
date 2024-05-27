@@ -12,7 +12,18 @@ defmodule ExplorerWeb.Batches.Index do
 
     # tasks_created_cross_tasks_responded = Enum.map(newBatchEvents, fn event -> event |> extract_new_batch_event_info end)
 
-    {:ok, assign(socket, current_page: current_page, tasks: tasks_created_cross_tasks_responded)}
+    {:ok, assign(socket, current_page: current_page, tasks: newBatchEvents)}
+  end
+
+  def get_current_page(params) do
+    case params |> Map.get("page") do
+      nil ->
+        1
+
+      page ->
+        number = page |> Integer.parse() |> elem(0)
+        if number < 1, do: 1, else: number
+    end
   end
 
   # old version:
@@ -36,16 +47,7 @@ defmodule ExplorerWeb.Batches.Index do
   #   end)
   # end
 
-#   def get_current_page(params) do
-#     case params |> Map.get("page") do
-#       nil ->
-#         1
 
-#       page ->
-#         number = page |> Integer.parse() |> elem(0)
-#         if number < 1, do: 1, else: number
-#     end
-#   end
 
 #   def handle_event(event, params, socket) do
 #     current_page =

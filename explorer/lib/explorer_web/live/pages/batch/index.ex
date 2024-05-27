@@ -12,7 +12,7 @@ defmodule ExplorerWeb.Batch.Index do
       }
     end
 
-    newBatchEvent =
+    newBatchInfo =
       case AlignedLayerServiceManager.get_new_batch_events(merkle_root) do
         {:error, reason} -> {:error, reason}
         {:empty, reason} -> {:empty, reason}
@@ -24,8 +24,9 @@ defmodule ExplorerWeb.Batch.Index do
 
     {
       :ok,
-      assign(socket, newBatchEvent: newBatchEvent, batchWasResponded: batchWasResponded)
+      assign(socket, newBatchInfo: newBatchInfo, batchWasResponded: batchWasResponded)
     }
+
   end
 
   embed_templates "*"
