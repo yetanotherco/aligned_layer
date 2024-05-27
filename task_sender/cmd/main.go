@@ -189,7 +189,7 @@ func getAndUploadProofData(c *cli.Context, x int) ([32]byte, string, error) {
 	case common.SP1:
 		provingSystemDir = "sp1_infinite_script/infinite_proofs/"
 	default:
-		return [32]byte{}, "", fmt.Errorf("unsupported proving system: %s", provingSystem)
+		return [32]byte{}, "", fmt.Errorf("unsupported proving system: %s", fmt.Sprint(provingSystem))
 	}
 
 	outputDir += provingSystemDir
@@ -344,7 +344,7 @@ func taskSenderInfiniteMain(c *cli.Context) error {
 		case common.Groth16Bn254:
 			groth16generateproof.GenerateIneqProof(x)
 		default:
-			return fmt.Errorf("unsupported proving system: %s", provingSystem)
+			return fmt.Errorf("unsupported proving system: %s", fmt.Sprint(provingSystem))
 		}
 
 		err = taskSenderMain(c, x)
