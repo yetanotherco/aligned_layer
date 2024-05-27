@@ -262,9 +262,9 @@ For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as
 
 To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/stage-2-testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
 
-### Register into AlignedLayer
+### Register into Aligned
 
-To register an operator in AlignedLayer run the following command:
+To register an operator in Aligned run the following command:
 
 ```bash
 make operator_register_with_aligned_layer CONFIG_FILE=<path_to_config_file>
