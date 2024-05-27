@@ -223,7 +223,7 @@ When changing Aligned contracts, the anvil state needs to be updated with:
 make anvil_upgrade_aligned_contracts
 ```
 
-Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key. Also, make sure the **EXISTING_DEPLOYMENT_INFO_PATH** and the **DEPLOY_CONFIG_PATH** env variables are set to the Eigen Layer output and the Aligned Layer output respectively.
+Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key (It should start with 0x). Also, make sure the **EXISTING_DEPLOYMENT_INFO_PATH** and the **DEPLOY_CONFIG_PATH** env variables are set to the Eigen Layer output and the Aligned Layer output respectively.
 
 Also make sure to re-generate the Go smart contract bindings:
 
@@ -363,7 +363,7 @@ To upgrade the Aligned Layer contracts run:
 make upgrade_aligned_contracts
 ```
 
-Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key. Also, make sure the **EXISTING_DEPLOYMENT_INFO_PATH** and the **DEPLOY_CONFIG_PATH** env variables are set to the Eigen Layer output and the Aligned Layer output respectively.
+Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key (It should start with 0x). Also, make sure the **EXISTING_DEPLOYMENT_INFO_PATH** and the **DEPLOY_CONFIG_PATH** env variables are set to the Eigen Layer output and the Aligned Layer output respectively.
 
 ### Strategies
 
