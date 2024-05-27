@@ -457,7 +457,7 @@ Aligned’s mission is to extend Ethereum’s zero-knowledge capabilities. We ar
 
 ### Why do we need a ZK verification layer?
 
-Verifiable computation allows developers to build applications that help Ethereum scale or even create applications that were not possible before, with enhanced privacy properties. We believe the future of Ethereum will be shaped by zero-knowledge proofs and help it increase its capabilities. 
+Verifiable computation allows developers to build applications that help Ethereum scale or even create applications that were not possible before. We believe the future of Ethereum will be shaped by zero-knowledge and validity proofs, helping it increase its capabilities.
 
 ### What are the use cases of Aligned?
 
