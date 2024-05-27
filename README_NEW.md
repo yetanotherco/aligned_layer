@@ -259,6 +259,7 @@ To register an operator in EigenLayer with the default configuration, you can ru
 make operator_register_with_eigen_layer
 ```
 
+
 ### Deposit Strategy Tokens
 
 #### Anvil
@@ -334,7 +335,7 @@ make operator_start
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 Also, there are 3 different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
 
-The configuration file have the following structure:
+The configuration file has the following structure:
 
 ```yaml
 # Common variables for all the services
@@ -379,6 +380,92 @@ private_key_store_path: <path_to_bls_private_key_store>
 bls_private_key_store_path: <bls_private_key_store_password>
 signer_type: local_keystore
 chain_id: <chain_id>
+```
+
+## Batcher
+
+### Config
+To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/`).
+
+The necessary environment variables are:
+
+| Variable Name         | Description                                                                                                                    |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
+| AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
+| AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
+| AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
+| RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
+ 
+You can find an example `.env` file in [.env.example](batcher/.env.example)
+
+You can configure the batcher in `config-files/config.yaml`:
+
+```yaml
+# Common variables for all the services
+eth_rpc_url: <http_rpc_url>
+eth_ws_url: <ws_rpc_url>
+aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
+
+## Batcher Configurations
+batcher:
+  block_interval: <block_interval>
+  batch_size_interval: <batch_size_interval>
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: <path_to_ecdsa_private_key_store>
+  private_key_store_password: <ecdsa_private_key_store_password>
+```
+
+### Start the Batcher
+
+```bash
+make batcher_start
+```
+
+### Send task
+
+### Sending a Task to the Batcher using our Rust TaskSender CLI
+
+#### Send one SP1 proof
+
+```bash
+make batcher_send_sp1_task
+```
+
+#### Send one Groth 16 proof
+
+```bash
+make batcher_send_groth16_task
+```
+
+#### Send infinite Groth 16 proofs
+
+```bash
+make batcher_send_infinite_groth16
+```
+
+#### Send burst of Groth 16 proofs
+
+```bash
+make batcher_send_burst_groth16
+```
+
+#### Send specific proof
+
+```bash
+./batcher/test-client/target/debug/test-client \
+  --proving_system <desired_proving_system> \
+  --proof <proof_file>
+```
+
+#### Optional flags
+
+This CLI also has other optional flags (such as a public_input file, a Verification Key file or a vm_program file), visualizable by running:
+
+```bash
+./batcher/test-client/target/debug/test-client --help
 ```
 
 
