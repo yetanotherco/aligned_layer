@@ -6,10 +6,17 @@ use std::sync::Arc;
 use clap::Parser;
 use env_logger::Env;
 
-use batcher::App;
+use batcher::Batcher;
 use tokio::sync::broadcast;
 use tokio_tungstenite::tungstenite::Message;
 
+/// Batcher main flow:
+/// There are two main tasks spawed: `listen_connections` and `listen_new_blocks`
+/// * `listen_connections` waits for websocket connections and adds verification data sent by clients
+///    to the batch.
+/// * `listen_new_blocks` waits for new blocks and when one is received, checks if the conditions are met
+///    the current batch to be submitted. In other words, this task is the one that controls when a batch
+///    is to be posted.
 #[derive(Parser)]
 #[command(name = "Aligned Layer Batcher")]
 #[command(about = "An application with server and client subcommands", long_about = None)]
@@ -34,25 +41,35 @@ async fn main() -> Result<(), IoError> {
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let app = App::new(cli.config).await;
-    let app = Arc::new(app);
+    let batcher = Batcher::new(cli.config).await;
+    let batcher = Arc::new(batcher);
 
     let addr = format!("localhost:{}", port);
 
+    // A broadcast channel transmitter is created so that when the block listener checks that a batch
+    // is ready to be submitted, the information about the merkle root of the batch is transmitted to
+    // the the websocket connections to respond to clients.
     let (tx, _) = broadcast::channel::<Message>(10);
     let tx = Arc::new(tx);
-    let tx1 = tx.clone();
-    let tx2 = tx.clone();
 
-    // spawn thread for polling
+    // `connections_tx` is passed to the  connections listener task so that each new
+    // connections subscribes to this transmitter and waits to receive the batch merkle root
+    // once it is processed
+    let connections_tx = tx.clone();
+
+    // `blocks_tx` is passed to the blocks listener so that when a batch is processed, its
+    // merkle root is transmitted to the websocket connections
+    let blocks_tx = tx.clone();
+
+    // spawn thread listening to blocks
     tokio::spawn({
-        let app = app.clone();
+        let app = batcher.clone();
         async move {
-            app.listen_new_blocks(tx1).await.unwrap();
+            app.listen_new_blocks(blocks_tx).await.unwrap();
         }
     });
 
-    app.listen_connections(&addr, tx2).await;
+    batcher.listen_connections(&addr, connections_tx).await;
 
     Ok(())
 }

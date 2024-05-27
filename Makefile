@@ -109,7 +109,7 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 __BATCHER__:
 
-BURST_SIZE=10
+BURST_SIZE=5
 PROVING_SYSTEM?=sp1
 
 ./batcher/.env:
@@ -131,7 +131,8 @@ batcher_send_sp1_task:
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
-		--vm_program test_files/sp1/sp1_fibonacci-elf
+		--vm_program test_files/sp1/sp1_fibonacci-elf \
+		--repetitions 5
 
 batcher_send_groth16_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -139,7 +140,8 @@ batcher_send_groth16_task: batcher/client/target/release/batcher-client
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
-		--vk test_files/groth16/ineq_1_groth16.vk
+		--vk test_files/groth16/ineq_1_groth16.vk \
+		--repetitions 5
 
 batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs

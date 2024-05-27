@@ -2,13 +2,11 @@ use std::path::PathBuf;
 
 use alloy_primitives::Address;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
-use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::connect_async;
 
 use batcher::types::{parse_proving_system, VerificationData};
 
 use clap::Parser;
-use tungstenite::error::ProtocolError;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -105,6 +103,8 @@ async fn main() {
     };
 
     let json_data = serde_json::to_string(&verification_data).expect("Failed to serialize task");
+
+    println!("REPETITIONS: {}", args.repetitions);
     for _ in 0..args.repetitions {
         ws_write
             .send(tungstenite::Message::Text(json_data.to_string()))
