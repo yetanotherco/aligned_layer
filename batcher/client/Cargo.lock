@@ -1295,6 +1295,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "batcher-client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "batcher",
+ "bytes",
+ "clap",
+ "futures-channel",
+ "futures-util",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite 0.21.0",
+ "tungstenite 0.21.0",
+ "url",
+]
+
+[[package]]
 name = "bech32"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6328,24 +6347,6 @@ dependencies = [
  "dirs-next",
  "rustversion",
  "winapi",
-]
-
-[[package]]
-name = "test-client"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "batcher",
- "bytes",
- "futures-channel",
- "futures-util",
- "log",
- "serde",
- "serde_json",
- "tokio",
- "tokio-tungstenite 0.21.0",
- "tungstenite 0.21.0",
- "url",
 ]
 
 [[package]]

@@ -1,7 +1,6 @@
 .PHONY: help tests
 
 CONFIG_FILE?=config-files/config.yaml
-DA_SOLUTION=calldata
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -35,7 +34,11 @@ anvil_upgrade_aligned_contracts:
 
 anvil_start:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
+
+anvil_start_with_block_time:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 5
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
@@ -110,15 +113,46 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 __BATCHER__:
 
+BURST_SIZE=10
 PROVING_SYSTEM?=sp1
 
-batcher_start:
+./batcher/.env:
+	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
+
+batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
-batcher_send_dummy_task:
-	@echo "Sending dummy task to Batcher..."
-	@cd batcher/test-client && cargo run -- ws://localhost:8080 $(PROVING_SYSTEM)
+
+build_batcher_client:
+	@cd batcher/client && cargo b --release
+
+batcher/client/target/release/batcher-client:
+	@cd batcher/client && cargo b --release
+
+batcher_send_sp1_task: batcher/client/target/release/batcher-client
+	@echo "Sending SP1 fibonacci task to Batcher..."
+	@cd batcher/client/target/release && ./batcher-client \
+		--proving_system SP1 \
+		--proof ../../test_files/sp1/sp1_fibonacci.proof \
+		--vm_program ../../test_files/sp1/sp1_fibonacci-elf
+
+batcher_send_groth16_task: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@cd batcher/client/target/release && ./batcher-client \
+		--proving_system Groth16Bn254 \
+		--proof ../../test_files/groth16/ineq_1_groth16.proof \
+		--public_input ../../test_files/groth16/ineq_1_groth16.pub \
+		--vk ../../test_files/groth16/ineq_1_groth16.vk \
+
+batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
+	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
+	@./batcher/client/send_infinite_tasks.sh 4
+
+batcher_send_burst_groth16: build_batcher_client
+	@echo "Sending a burst of tasks to Batcher..."
+	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
 
 __TASK_SENDERS__:
  # TODO add a default proving system
@@ -132,7 +166,6 @@ send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
@@ -144,7 +177,6 @@ send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task 
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
@@ -160,7 +192,6 @@ send_plonk_bn254_proof: ## Send a PLONK BN254 proof using the task sender
 		--public-input task_sender/test_examples/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
@@ -172,7 +203,6 @@ send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender e
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
@@ -188,7 +218,6 @@ send_groth16_bn254_proof: ## Send a Groth16 BN254 proof using the task sender
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
 send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task sender every 10 seconds
@@ -200,13 +229,24 @@ send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task send
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
+
+send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@echo "Sending a different GROTH16 BN254 proof in a loop every 3 seconds..."
+	@go run task_sender/cmd/main.go infinite-tasks \
+		--proving-system groth16_bn254 \
+		--config config-files/config.yaml \
+		--interval 3 \
+		2>&1 | zap-pretty
+
 
 generate_groth16_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
 	@go run task_sender/test_examples/gnark_groth16_bn254_script/main.go
 
+generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
+	@echo "Running gnark_groth_bn254_ineq script..."
+	@go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/main.go 1
 
 send_sp1_proof:
 	@go run task_sender/cmd/main.go send-task \
@@ -214,7 +254,6 @@ send_sp1_proof:
     		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
     		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
-    		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
 
 __METRICS__:

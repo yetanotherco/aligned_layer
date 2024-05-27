@@ -137,71 +137,69 @@ make batcher_send_dummy_task PROVING_SYSTEM=<sp1|plonk_bls12_381|plonk_bn254|gro
 
 ### Send task
 
+### Sending a Task Using to the Batcher using our Rust TaskSender CLI
+
+To send a task to the Batcher, using the Batcher TaskSendet CLI, you can use one of the following commands, which will send one proof to the batcher:
+
+```bash
+make batcher_send_sp1_task
+```
+
+```bash
+make batcher_send_groth16_task
+```
+
+Also, you can send infinite different tasks to the batcher:
+```bash
+make batcher_send_infinite_tasks
+```
+
+If you wish to be more specific about what you want to send to the batcher, you can run the CLI yourself, as following:
+```bash
+./batcher/test-client/target/debug/test-client \
+  --proving_system <desired_proving_system> \
+  --proof <proof_file>
+```
+
+This CLI also has other optional flags (such as a public_input file, a Verification Key file or a vm_program file), visualizable by running
+```bash
+./batcher/test-client/target/debug/test-client --help
+```
+
+### Sending a Task directly to the Smart Contract using our GO TaskSender CLI
+
+You can also send a task directly to the AlignedLayer smart contract, bypassing the batcher. This option is available but not recommended since the sender must send a whole batch himself, thus incurring in extra costs.
+
+Anyhow, you can send some preset proofs, such as:
+```bash
+make send_plonk_bls12_381_proof
+make send_plonk_bn254_proof
+make send_groth16_bn254_proof
+make send_sp1_proof
+```
+
+Also, you can send infinite different proofs, as following:
+```bash
+make send_infinite_groth16_bn254_proof
+```
+
+If you wish to be more specific about what you want to send to the batcher, you can run the CLI yourseld, ass following:
+```bash
+go run task_sender/cmd/main.go send-task \
+  --proving-system <desired_proving_system> \
+  --proof <proof_file> \
+  --public-input <public_input_file> \
+  --config config-files/config.yaml \
+  2>&1 | zap-pretty
+```
+
 ### Sending a Task Using the TaskSender CLI
 
 To send a task to the ServiceManager using the TaskSender CLI with a specific proving system, you can use one of the following commands depending on the proving system you wish to use:
 
-For BLS12_381
-
-```bash
-  make send_plonk_bls12_381_proof
-```
-
-For BN254
-
-```bash
-  make send_plonk_bn254_proof
-```
-
 This will send a dummy task to the ServiceManager and an event will be emitted.
 You should see logs from the operator with the received task's index.
 Make sure to have the ServiceManager deployed and anvil running on another terminal or background.
-
-The plonk proofs are located at `task_sender/test_examples`.
-
-You can also send a task with a da by running:
-
-```bash
-  make send_plonk_bls12_381_proof DA_SOLUTION=<calldata|eigen|celestia>
-```
-
-This also works for any other proof type.
-
-### Sending a task to be stored in Celestia
-
-First, you will need to install the celestia-node CLI. Refer to [this resource](https://docs.celestia.org/nodes/celestia-node#installing-from-source)
-for instructions on how to do so.
-
-Then, to initialize the node store for the Arabica network run:
-
-```bash
-celestia light init --p2p.network arabica
-```
-
-The output in your terminal will show the location of your node store and config.
-
-To start the node in the Arabica network run:
-
-```bash
-
-celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
-```
-
-Try sending a task with:
-
-```bash
-make send_plonk_bls12_381_proof DA_SOLUTION=celestia
-```
-
-You will get an error like `...Message: rpc error: code = NotFound desc = account <account_id> not found`. This means you don't have funds in your account.
-
-To get funds in your account, access [this](https://faucet.celestia-arabica-11.com/) faucet and enter your account_id.
-
-Finally, run:
-
-```bash
-make send_plonk_bls12_381_proof DA_SOLUTION=celestia
- ```
 
 ## Developing workflows in testnet
 
