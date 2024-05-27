@@ -37,6 +37,8 @@ pub struct App {
     current_batch: Mutex<Vec<VerificationData>>,
     block_interval: u64,
     batch_size_interval: usize,
+    max_proof_size: usize,
+    max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
 }
 
@@ -72,6 +74,8 @@ impl App {
             current_batch: Mutex::new(Vec::new()),
             block_interval: config.batcher.block_interval,
             batch_size_interval: config.batcher.batch_size_interval,
+            max_proof_size: config.batcher.max_proof_size,
+            max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(0),
         }
     }
@@ -131,13 +135,25 @@ impl App {
         message: Message,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
         // TODO: Handle errors
-
+        /* TODO: response could be handling better by returning Ok / Error from in here
+        and then sending the response from the caller */
+        
         // Deserialize task from message
         let verification_data: VerificationData =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
         let proof = verification_data.proof.as_slice();
+        if proof.len() > self.max_proof_size {
+            let response: Result<(), _> = Err("Proof size is too large".to_string());
+            let response = serde_json::to_string(&response).expect("Failed to serialize response");
+
+            tx.unbounded_send(Message::Text(response))
+                .expect("Failed to send message");
+
+            return Ok(());
+        }
+        
         let vm_program_code = verification_data.vm_program_code.as_ref();
 
         let response = match verification_data.proving_system {
@@ -182,16 +198,18 @@ impl App {
     async fn add_task(self: &Arc<Self>, verification_data: VerificationData) {
         info!("Adding verification data to batch...");
 
-        let len = {
+        let (len, batch_size) = {
             let mut current_batch = self.current_batch.lock().await;
             current_batch.push(verification_data);
 
             debug!("Batch size: {}", current_batch.len());
-
-            current_batch.len()
+            let len = current_batch.len();
+            let batch_size: usize = current_batch.iter().map(|v| v.proof.len()).sum();
+            
+            (len, batch_size)
         };
 
-        if len >= self.batch_size_interval {
+        if len >= self.batch_size_interval  {
             let c = self.clone();
             tokio::spawn(async move {
                 let block_number = c
