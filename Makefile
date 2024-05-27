@@ -146,7 +146,7 @@ batcher_send_infinite_groth16_tasks: ./batcher/client/target/release/batcher-cli
 	@./batcher/client/send_infinite_tasks.sh 4 Groth16
 
 
-batcher_send_infinite_plonk_tasks: ./batcher/client/target/release/batcher-client ## Send a different PLONK BN254 proof using the task sender every 3 seconds
+batcher_send_infinite_plonk_bn254_tasks: ./batcher/client/target/release/batcher-client ## Send a different PLONK BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_plonk_bn254_infinite_script/infinite_proofs	
 	@echo "Sending a different PLONK BN254 proof in a loop every n seconds..."
 	@./batcher/client/send_infinite_tasks.sh 4 PlonkBn254
