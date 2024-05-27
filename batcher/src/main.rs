@@ -11,7 +11,7 @@ use tokio::sync::broadcast;
 use tokio_tungstenite::tungstenite::Message;
 
 /// Batcher main flow:
-/// There are two main tasks spawed: `listen_connections` and `listen_new_blocks`
+/// There are two main tasks spawned: `listen_connections` and `listen_new_blocks`
 /// * `listen_connections` waits for websocket connections and adds verification data sent by clients
 ///    to the batch.
 /// * `listen_new_blocks` waits for new blocks and when one is received, checks if the conditions are met

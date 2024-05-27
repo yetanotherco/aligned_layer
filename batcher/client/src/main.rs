@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use alloy_primitives::Address;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
+use log::info;
 use tokio_tungstenite::connect_async;
 
 use batcher::types::{parse_proving_system, VerificationData};
@@ -54,7 +55,6 @@ async fn main() {
     let args = Args::parse();
 
     let url = url::Url::parse(&args.connect_addr).unwrap();
-    // panic!("Usage: {} <ws://addr> <sp1|plonk_bls12_381|plonk_bn254|groth16_bn254>", args[0]);
     println!("URL: {}", url);
 
     let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
@@ -104,7 +104,6 @@ async fn main() {
 
     let json_data = serde_json::to_string(&verification_data).expect("Failed to serialize task");
 
-    println!("REPETITIONS: {}", args.repetitions);
     for _ in 0..args.repetitions {
         ws_write
             .send(tungstenite::Message::Text(json_data.to_string()))
@@ -112,23 +111,13 @@ async fn main() {
             .unwrap();
     }
 
-    // ws_read.try_filter(|msg| {msg.is_binary() || msg.is_text()})
     ws_read
         .try_filter(|msg| future::ready(msg.is_text()))
         .for_each(|msg| async move {
-            let data = msg.unwrap().into_data();
-            println!("RESPONSE: {:?}", data);
-            // tokio::io::stdout().write_all(&data).await.map_err(|_| {
-            //     tokio_tungstenite::tungstenite::Error::Protocol(ProtocolError::HandshakeIncomplete)
-            // })
+            let data = msg.unwrap().into_text();
+            info!("RESPONSE: {:?}", data);
         })
         .await;
-    // .take(args.repetitions as usize)
-    // .for_each(|message| async move {
-    //     let data = message.unwrap().into_data();
-    //     tokio::io::stdout().write_all(&data).await.unwrap();
-    // })
-    // .await;
 
     ws_write
         .close()
