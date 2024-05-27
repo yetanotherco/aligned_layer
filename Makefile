@@ -110,7 +110,6 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 __BATCHER__:
 
 BURST_SIZE=10
-PROVING_SYSTEM?=sp1
 
 ./batcher/.env:
 	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
