@@ -137,8 +137,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
 				o.Logger.Errorf("Proof in batch did not verify", "err", err)
-				// FIXME(marian): This is not how we should handle this error. Just doing this for fast iteration and debug
-				panic("Proof did not verify")
+				continue
 			}
 			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
 
@@ -166,7 +165,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
-		return nil
+		return err
 	}
 
 	verificationDataBatchLen := len(verificationDataBatch)
