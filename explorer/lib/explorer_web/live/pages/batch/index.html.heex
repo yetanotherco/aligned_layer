@@ -1,33 +1,22 @@
 <div class="flex flex-col space-y-3  text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
   <%= if @newBatchInfo != :empty do %>
-    <h1 class="text-5xl font-bold font-white">Batch Details</h1>
-    <div class="bg-zinc-200 dark:bg-zinc-900 px-6 py-7 min-h-fit flex flex-col space-y-3 rounded-2xl">
-      <p class="font-semibold inline-flex flex-col">
-        Merkle Root Hash <span class="break-all font-normal"><%= @merkle_root %></span>
-      </p>
-
-      <p class="font-semibold inline-flex flex-col">
-        Address <span class="break-all font-normal"><%= @newBatchInfo.address %></span>
-      </p>
-
-      <p class="font-semibold inline-flex flex-col">
-        Block Hash <span class="break-all font-normal"><%= @newBatchInfo.block_hash %></span>
-      </p>
-
-      <p class="font-semibold inline-flex flex-col">
-        Block Number <span class="break-all font-normal"><%= @newBatchInfo.block_number %></span>
-      </p>
-
-      <p class="font-semibold inline-flex flex-col">
-        Transaction Hash
-        <span class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></span>
-      </p>
-    </div>
+    <h1 class="text-5xl font-bold font-foreground">Batch Details</h1>
+    <.card
+      class="px-6 py-5 min-h-fit flex flex-col rounded-3xl"
+      inner_class="font-semibold inline-flex flex-col text-base"
+    >
+      Merkle Root Hash: <span class="break-all font-normal"><%= @merkle_root %></span>
+      Address: <span class="break-all font-normal"><%= @newBatchInfo.address %></span>
+      Block Hash: <span class="break-all font-normal"><%= @newBatchInfo.block_hash %></span>
+      Block Number: <span class="break-all font-normal"><%= @newBatchInfo.block_number %></span>
+      Transaction Hash:
+      <span class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></span>
+    </.card>
   <% else %>
     <div class="flex flex-col space-y-6 justify-center grow relative text-center">
       <h1 class="text-5xl font-semibold">Oops!</h1>
       <h2 class="text-xl font-medium">
-        The batch you are looking for is either <br/> empty or doesn't exist.
+        The batch you are looking for is either <br /> empty or doesn't exist.
       </h2>
       <img
         class="z-0 w-64 rounded-xl mx-auto"

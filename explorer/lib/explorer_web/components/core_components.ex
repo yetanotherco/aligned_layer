@@ -249,7 +249,8 @@ defmodule ExplorerWeb.CoreComponents do
   Renders a card with a title and content.
   """
   attr :class, :string, default: nil
-  attr :title, :string, required: true
+  attr :title, :string, default: nil
+  attr :inner_class, :string, default: nil
 
   slot :inner_block, default: nil
 
@@ -259,7 +260,7 @@ defmodule ExplorerWeb.CoreComponents do
       <h2 class="font-medium text-muted-foreground capitalize">
         <%= @title %>
       </h2>
-      <span class="text-4xl font-bold slashed-zero">
+      <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
         <%= render_slot(@inner_block) %>
       </span>
     </div>
