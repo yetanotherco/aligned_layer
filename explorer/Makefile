@@ -3,6 +3,7 @@
 help:
 	@echo "deps - Installing Elixir code dependencies"
 	@echo "run - Starting the Elixir backend server"
+	@echo "create_env - Create environment variables files from .env.example to a new .env file"
 	@echo "help - Show this help"
 
 deps:
