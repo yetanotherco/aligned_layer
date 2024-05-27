@@ -1,95 +1,44 @@
-<div class="flex flex-col space-y-3 bg-zinc-200 dark:bg-zinc-900 rounded-2xl px-6 py-8 min-h-[40rem] text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
-  <%!-- <%= if not @isTaskEmpty do %>
-    <h1 class="text-5xl font-bold">Batch #<%= @merkle_root %></h1>
-    <p class="font-semibold">
-      address: <span class="break-all font-normal"><%= @task.address %></span>
-    </p>
-    <p class="font-semibold">
-      block hash: <span class="break-all font-normal"><%= @task.block_hash %></span>
-    </p>
-    <p class="font-semibold">
-      block number: <span class="break-all font-normal"><%= @task.block_number %></span>
-    </p>
-    <p class="font-semibold">
-      transaction hash: <span class="break-all font-normal"><%= @task.transaction_hash %></span>
-    </p>
+<div class="flex flex-col space-y-3  text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
+  <%= if @newBatchInfo != :empty do %>
+    <h1 class="text-5xl font-bold font-white">Batch Details</h1>
+    <div class="bg-zinc-200 dark:bg-zinc-900 px-6 py-7 min-h-fit flex flex-col space-y-3 rounded-2xl">
+      <p class="font-semibold inline-flex flex-col">
+        Merkle Root Hash <span class="break-all font-normal"><%= @merkle_root %></span>
+      </p>
 
-    <div class="capitalize flex flex-col space-y-3">
-      <h2 class="text-3xl font-bold">Aligned Task</h2>
-      <p class="font-semibold">
-        proving system ID:
-        <span class="break-all font-normal"><%= @task.aligned_task.provingSystemId %></span>
+      <p class="font-semibold inline-flex flex-col">
+        Address <span class="break-all font-normal"><%= @newBatchInfo.address %></span>
       </p>
-      <p class="font-semibold" class="break-all">
-        DAPayload Solution:
-        <span class="break-all font-normal select-all">
-          <%= @task.aligned_task.da_payload.solution %>
-        </span>
-      </p>
-      <p class="font-semibold" class="break-all">
-        DAPayload index:
-        <span class="break-all font-normal select-all">
-          <%= @task.aligned_task.da_payload.index %>
-        </span>
-      </p>
-      <p class="font-semibold">
-        Task Created Block:
-        <span class="break-all font-normal"><%= @task.aligned_task.taskCreatedBlock %></span>
-      </p>
-      <p class="font-semibold">
-        quorumNumbers:
-        <span class="break-all font-normal"><%= @task.aligned_task.quorumNumbers %></span>
-      </p>
-      <p class="font-semibold">
-        quorumThresholdPercentages:
-        <span class="break-all font-normal">
-          <%= @task.aligned_task.quorumThresholdPercentages %>
-        </span>
-      </p>
-      <p class="font-semibold">
-        fee: <span class="break-all font-normal"><%= @task.aligned_task.fee %> wei</span>
-      </p>
-    </div>
 
-    <div class="capitalize flex flex-col space-y-3">
-      <h2 class="text-3xl font-bold">Aligned Task Response</h2>
-      <%= if not @isTaskResponseEmpty do %>
-        <p class="font-semibold">
-          address: <span class="break-all font-normal"><%= @taskResponse.address %></span>
-        </p>
-        <p class="font-semibold">
-          block hash: <span class="break-all font-normal"><%= @taskResponse.block_hash %></span>
-        </p>
-        <p class="font-semibold">
-          block number:
-          <span class="break-all font-normal"><%= @taskResponse.block_number %></span>
-        </p>
-        <p class="font-semibold">
-          Batch merkle_root: <span class="break-all font-normal"><%= @taskResponse.merkle_root %></span>
-        </p>
-        <p class="font-semibold">
-          transaction hash:
-          <span class="break-all font-normal"><%= @taskResponse.transaction_hash %></span>
-        </p>
-        <p class="font-semibold">
-          Was the proof correct?
-          <span class="break-all font-normal"><%= @taskResponse.proofIsCorrect %></span>
-        </p>
-      <% else %>
-        <p class="text-left my-auto">The task #<%= @id %> doesn't seem to have a response 🫤</p>
-      <% end %>
+      <p class="font-semibold inline-flex flex-col">
+        Block Hash <span class="break-all font-normal"><%= @newBatchInfo.block_hash %></span>
+      </p>
+
+      <p class="font-semibold inline-flex flex-col">
+        Block Number <span class="break-all font-normal"><%= @newBatchInfo.block_number %></span>
+      </p>
+
+      <p class="font-semibold inline-flex flex-col">
+        Transaction Hash
+        <span class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></span>
+      </p>
     </div>
   <% else %>
     <div class="flex flex-col space-y-6 justify-center grow relative text-center">
       <h1 class="text-5xl font-semibold">Oops!</h1>
       <h2 class="text-xl font-medium">
-        The task you are looking for doesn't exist. <br /> Please try another task ID.
+        The batch you are looking for is either <br/> empty or doesn't exist.
       </h2>
       <img
         class="z-0 w-64 rounded-xl mx-auto"
         alt="block not found"
         src={~p"/images/not-found.jpeg"}
       />
+      <a href="/">
+        <.button>
+          Go Home
+        </.button>
+      </a>
     </div>
-  <% end %> --%>
+  <% end %>
 </div>
