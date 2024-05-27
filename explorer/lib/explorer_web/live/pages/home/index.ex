@@ -10,7 +10,10 @@ defmodule ExplorerWeb.Home.Index do
       {:noreply,
        socket
        |> assign(batch_merkle_root: batch_merkle_root)
-       |> put_flash(:error, "Please enter a valid proof batch hash, these should be hex values (0x69...).")}
+       |> put_flash(
+         :error,
+         "Please enter a valid proof batch hash, these should be hex values (0x69...)."
+       )}
     else
       {:noreply, redirect(socket, to: "/batches/#{batch_merkle_root}")}
     end
@@ -23,9 +26,13 @@ defmodule ExplorerWeb.Home.Index do
 
     operators_registered = get_operators_registered()
 
-    latest_batches = AlignedLayerServiceManager.get_new_batch_events(5) |> Enum.map( fn event -> NewBatchEvent.extract_merkle_root(event) end )
-    # "latest_batches" |> IO.inspect()
-    # latest_batches |> IO.inspect()
+    latest_batches =
+      AlignedLayerServiceManager.get_new_batch_events(5)
+      |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
+
+    "latest_batches: " |> IO.inspect()
+    IO.inspect(latest_batches)
+
     {:ok,
      assign(socket,
        verified_batches: shorthand_verified_batches,
@@ -34,13 +41,12 @@ defmodule ExplorerWeb.Home.Index do
      )}
   end
 
-
   defp get_verified_batches_count() do
-    AlignedLayerServiceManager.get_batch_verified_events() |>
-      (fn
-        {:ok, list} -> Enum.count(list)
-        {:error, _} -> 0
-    end).()
+    AlignedLayerServiceManager.get_batch_verified_events()
+    |> (fn
+          {:ok, list} -> Enum.count(list)
+          {:error, _} -> 0
+        end).()
   end
 
   # tail-call recursion

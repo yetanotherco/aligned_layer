@@ -1,14 +1,15 @@
 <div class="flex flex-col items-center justify-center w-full min-h-[30rem] relative max-w-96 mx-auto">
   <div class="text-center text-primary mb-8 z-10">
-    <h1 class="text-5xl font-medium tracking-tighter drop-shadow">
+    <label for="search" class="text-5xl font-medium tracking-tighter drop-shadow">
       Aligned Explorer
-    </h1>
+    </label>
   </div>
   <form phx-submit="search_batch" class="flex items-center w-full max-w-md gap-2 z-10">
     <input
+      id="search"
       class="shadow-md flex h-10 w-full ring-offset-background file:border-0 text-foreground file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground/30 bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:ring-gray-300"
       type="search"
-      placeholder="Search proof batch by hash..."
+      placeholder="Search by merkle root hash..."
       name="batch[merkle_root]"
     />
     <.button
@@ -35,15 +36,25 @@
   </form>
   <img
     class="absolute -z-10 w-80 rounded-xl mx-auto blur-sm"
-    alt="block not found"
+    alt="hero monolith"
     src={~p"/images/hero.jpeg"}
   />
 </div>
-<div class="-mt-32 text-foreground z-10 flex flex-wrap justify-center px-3 gap-x-2 gap-y-3">
+
+<div class="-mt-32 text-foreground z-10 grid grid-cols-1 md:grid-cols-2 justify-center gap-3 max-w-96 md:max-w-[32rem] mx-auto">
   <.card title="verified batches">
     <%= @verified_batches %>
   </.card>
   <.card title="Registered Operators">
     <%= @operators_registered %>
+  </.card>
+  <.card
+    class="col-span-2 w-full flex flex-col"
+    inner_class="text-ellipsis overflow-hidden text-lg space-y-2"
+    title="Latest Batches"
+  >
+    <%= for batch <- @latest_batches do %>
+      <a class="hover:text-foreground/80" href={"/batches/#{batch}"}><%= batch %></a>
+    <% end %>
   </.card>
 </div>
