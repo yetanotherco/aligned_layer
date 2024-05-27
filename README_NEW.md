@@ -572,6 +572,35 @@ To build go binaries run:
 make build_binaries
 ```
 
+
+## Notes on project creation / devnet deployment
+
+Eigenlayer middleware was installed as a submodule with:
+
+```sh
+mkdir contracts
+cd contacts
+forge init . --no-commit
+forge install Layr-Labs/eigenlayer-middleware@mainnet
+```
+
+Then to solve the issue <https://github.com/Layr-Labs/eigenlayer-middleware/issues/229>, we changed it to:
+
+```forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit```
+
+As soon as it gets fixed in mainnet we can revert it.
+
+Base version of middleware used is ```7229f2b```
+
+The script to initialize the devnet can be found on  ```contracts/scripts/anvil```
+
+The addresses of the relevant contracts after running the anvil script is dumped on ```contracts/script/output/devnet```.
+
+The state is backuped on ```contracts/scripts/anvil/state```
+
+Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
+
+
 ## Tests
 
 To run the go tests
