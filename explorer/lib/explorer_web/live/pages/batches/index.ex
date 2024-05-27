@@ -2,24 +2,39 @@ defmodule ExplorerWeb.Batches.Index do
   require Logger
   use ExplorerWeb, :live_view
 
-#   def mount(params, _, socket) do
-#     current_page = get_current_page(params)
+  def mount(params, _, socket) do
+    current_page = get_current_page(params)
 
-#     page_size = 5
-#     [from, to] = [(current_page - 1) * page_size, (current_page - 1) * page_size + page_size - 1]
+    page_size = 5
+    [from, to] = [(current_page - 1) * page_size, (current_page - 1) * page_size + page_size - 1]
 
-#     tasks_created_cross_tasks_responded =
-#       AlignedLayerServiceManager.get_task_range(from, to) |> tasks_created_cross_tasks_responded()
+    newBatchEvents = AlignedLayerServiceManager.get_new_batch_events()
 
-#     {:ok, assign(socket, current_page: current_page, tasks: tasks_created_cross_tasks_responded)}
-#   end
+    # tasks_created_cross_tasks_responded = Enum.map(newBatchEvents, fn event -> event |> extract_new_batch_event_info end)
 
-#   def tasks_created_cross_tasks_responded([task_created_events, task_responded_events]) do
-#     Enum.map(task_created_events, fn event -> event |> extract_task_data end)
-#     |> Enum.map(fn task_created ->
-#       check_if_task_responded(task_created, task_responded_events)
-#     end)
-#   end
+    {:ok, assign(socket, current_page: current_page, tasks: tasks_created_cross_tasks_responded)}
+  end
+
+  # old version:
+
+  # def mount(params, _, socket) do
+  #   current_page = get_current_page(params)
+
+  #   page_size = 5
+  #   [from, to] = [(current_page - 1) * page_size, (current_page - 1) * page_size + page_size - 1]
+
+  #   tasks_created_cross_tasks_responded =
+  #     AlignedLayerServiceManager.get_task_range(from, to) |> tasks_created_cross_tasks_responded()
+
+  #   {:ok, assign(socket, current_page: current_page, tasks: tasks_created_cross_tasks_responded)}
+  # end
+
+  # def tasks_created_cross_tasks_responded([task_created_events, task_responded_events]) do
+  #   Enum.map(task_created_events, fn event -> event |> extract_task_data end)
+  #   |> Enum.map(fn task_created ->
+  #     check_if_task_responded(task_created, task_responded_events)
+  #   end)
+  # end
 
 #   def get_current_page(params) do
 #     case params |> Map.get("page") do

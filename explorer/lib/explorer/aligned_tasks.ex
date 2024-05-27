@@ -49,6 +49,17 @@ defmodule BatchVerifiedInfo do
   defstruct [:address, :block_hash, :block_number, :transaction_hash, :batch_verified]
 end
 
+
+defmodule BatchPageItem do
+  @enforce_keys [
+    :batchMerkleRoot,
+    :taskCreatedBlock,
+    :batchDataPointer,
+    :responded
+  ]
+  defstruct [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer, :responded]
+end
+
 # TODO pagination
 # defmodule AlignedTaskPageItem do
 #   @enforce_keys [
