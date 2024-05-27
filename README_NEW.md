@@ -8,17 +8,22 @@ Basic repo demoing a Stark/Snark verifier AVS middleware with full EigenLayer in
 
 ## The Project
 
-Aligned Layer works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduces the proving overhead and adds verifier overhead, now become economically feasable to verify thanks to Aligned Layer.
+Aligned Layer works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned Layer.
 
-Full documentation and examples will be added soon
+## Help
+
+To see all the available commands run
+
+```bash
+make help
+```
 
 
 ## Setup
 
 ### Dependencies
 
-You will need [go](https://go.dev/doc/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
-[celestia](https://docs.celestia.org/nodes/celestia-node#installing-from-source),
+You will need [go](https://go.dev/doc/install), [rust](https://www.rust-lang.org/tools/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
 [jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
 
 To install zap-pretty and abigen
@@ -36,12 +41,6 @@ Make sure to run `foundryup`
 To install eigenlayer-cli
 ```bash
 make install_eigenlayer_cli
-```
-
-Make sure to build SP1 with:
-
-```bash
-make build_sp1_macos # or make build_sp1_linux on linux
 ```
 
 ### Keystores
@@ -65,31 +64,6 @@ To create a BLS keystore, you can run the following commands:
 eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
 ```
 
-### Data Availability
-
-#### EigenDA
-
-You need the EigenDA Disperser to interact with EigenDA. You can find the EigenDA Disperser 
-- [Holesky](https://docs.eigenlayer.xyz/eigenda/networks/holesky)
-- [Mainnet](https://docs.eigenlayer.xyz/eigenda/networks/mainnet)
-
-#### Celestia
-
-To set up Celestia, you will need to install the Celestia-Node CLI.
-Refer to [this resource](https://docs.celestia.org/nodes/celestia-node#installing-from-source)
-for instructions on how to do so.
-
-Then, to initialize the node store for the Arabica network run:
-```bash
-celestia light init --p2p.network arabica
-```
-The output in your terminal will show the location of your node store and config.
-
-To start the node in the Arabica network run:
-```bash
-celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
-```
-
 
 ## Deploy Contracts
 
@@ -108,6 +82,7 @@ You will also need to redeploy the MockStrategy & MockERC20 contracts:
 ```bash
 make anvil_deploy_mock_strategy
 ```
+
 #### Holesky
 
 The current EigenLayer contracts for Holesky are available in the [eigenlayer-holesky-contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json).
@@ -212,7 +187,7 @@ make aggregator_start
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 
-The configuration file have the following structure:
+The configuration file has the following structure:
 
 ```yaml
 # Common variables for all the services
@@ -258,7 +233,6 @@ To register an operator in EigenLayer with the default configuration, you can ru
 ```bash
 make operator_register_with_eigen_layer
 ```
-
 
 ### Deposit Strategy Tokens
 
@@ -382,6 +356,7 @@ signer_type: local_keystore
 chain_id: <chain_id>
 ```
 
+
 ## Batcher
 
 ### Config
@@ -426,7 +401,7 @@ make batcher_start
 
 ### Send task
 
-### Sending a Task to the Batcher using our Rust TaskSender CLI
+#### Sending a Task to the Batcher using our Rust TaskSender CLI
 
 #### Send one SP1 proof
 
@@ -471,33 +446,6 @@ This CLI also has other optional flags (such as a public_input file, a Verificat
 
 ## Task Sender
 
-### Run
-
-To send a single task run:
-
-```bash
-go run task_sender/cmd/main.go send-task
-    --proving-system <prooving-system> \
-    --proof <proof> \
-    --public-input <public-input> \
-    --verification-key <verification-key> \
-    --config <config-file> \
-    --da <da-solution>
-```
-
-To send tasks in loop run:
-
-```bash
-go run task_sender/cmd/main.go loop-tasks
-    --proving-system <prooving-system> \
-    --proof <proof> \
-    --public-input <public-input> \
-    --verification-key <verification-key> \
-    --config <config-file> \
-    --da <da-solution>
-    --interval <interval-in-seconds>
-```
-
 ### Config
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
@@ -520,7 +468,7 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
-### Send PLONK BLS12_381 Proof
+### Send PLONK BLS12_381 proof
 
 To send a single PLONK BLS12_381 proof run:
 
@@ -534,7 +482,7 @@ To send PLONK BLS12_381 proofs in loop run:
 make send_plonk_bls12_381_proof_loop
 ```
 
-### Send PLONK BN254 Proof
+### Send PLONK BN254 proof
 
 To send a single PLONK BN254 proof run:
 
@@ -546,6 +494,59 @@ To send PLONK BN254 proofs in loop run:
 
 ```bash
 make send_plonk_bn254_proof_loop
+```
+
+### Send Groth 16 BN254 proof
+
+To send a single Groth 16 BN254 proof run:
+
+```bash
+make send_groth16_bn254_proof
+```
+
+To send Groth 16 BN254 proofs in loop run:
+
+```bash
+make send_groth16_bn254_proof_loop
+```
+
+To send different Groth 16 BN254 proofs in loop run:
+
+```bash
+make send_infinite_groth16_bn254_proof
+```
+
+### Send SP1 proof
+
+To send a single SP1 proof run:
+
+```bash
+make send_sp1_proof
+```
+
+### Send a specific proof
+
+```bash
+go run task_sender/cmd/main.go send-task
+    --proving-system <prooving-system> \
+    --proof <proof> \
+    --public-input <public-input> \
+    --verification-key <verification-key> \
+    --config <config-file> \
+    --da <da-solution>
+```
+
+### Send a specific proof in loop
+
+```bash
+go run task_sender/cmd/main.go loop-tasks
+    --proving-system <prooving-system> \
+    --proof <proof> \
+    --public-input <public-input> \
+    --verification-key <verification-key> \
+    --config <config-file> \
+    --da <da-solution>
+    --interval <interval-in-seconds>
 ```
 
 
@@ -578,6 +579,14 @@ To build go binaries run:
 
 ```bash
 make build_binaries
+```
+
+## Tests
+
+To run the go tests
+
+```bash
+make test
 ```
 
 
