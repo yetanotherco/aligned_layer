@@ -11,7 +11,9 @@ defmodule AlignedLayerServiceManager do
     :error -> raise("Config file not read successfully, did you run make create-env ?")
   end
 
-  @aligned_layer_service_manager_address Jason.decode!(config_json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
+  @aligned_layer_service_manager_address Jason.decode!(config_json_string)
+                                         |> Map.get("addresses")
+                                         |> Map.get("alignedLayerServiceManager")
 
   use Ethers.Contract,
     abi_file: "lib/abi/AlignedLayerServiceManager.json",
@@ -27,7 +29,7 @@ defmodule AlignedLayerServiceManager do
       |> Ethers.get_logs(fromBlock: 0)
 
     case events do
-      {:ok, []} -> raise("Error fetching events, no events found")
+      {:ok, []} -> []
       {:ok, list} -> list
       {:error, _} -> raise("Error fetching events")
     end
@@ -57,14 +59,13 @@ defmodule AlignedLayerServiceManager do
     }
 
     {:ok,
-      %NewBatchInfo{
-        address: event |> Map.get(:address),
-        block_hash: event |> Map.get(:block_hash),
-        block_number: event |> Map.get(:block_number),
-        transaction_hash: event |> Map.get(:transaction_hash),
-        new_batch: new_batch
-      }
-    }
+     %NewBatchInfo{
+       address: event |> Map.get(:address),
+       block_hash: event |> Map.get(:block_hash),
+       block_number: event |> Map.get(:block_number),
+       transaction_hash: event |> Map.get(:transaction_hash),
+       new_batch: new_batch
+     }}
   end
 
   def get_batch_verified_events() do
@@ -102,18 +103,18 @@ defmodule AlignedLayerServiceManager do
     }
 
     {:ok,
-      %BatchVerifiedInfo{
-        address: event |> Map.get(:address),
-        block_hash: event |> Map.get(:block_hash),
-        block_number: event |> Map.get(:block_number),
-        transaction_hash: event |> Map.get(:transaction_hash),
-        batch_verified: batch_verified
-      }
-    }
+     %BatchVerifiedInfo{
+       address: event |> Map.get(:address),
+       block_hash: event |> Map.get(:block_hash),
+       block_number: event |> Map.get(:block_number),
+       transaction_hash: event |> Map.get(:transaction_hash),
+       batch_verified: batch_verified
+     }}
   end
 
   def is_batch_responded(merkle_root) do
-    case AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root)) |> Ethers.call() do
+    case AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root))
+         |> Ethers.call() do
       {:ok, [_, true]} -> true
       _ -> false
     end
@@ -152,7 +153,6 @@ defmodule AlignedLayerServiceManager do
 
   #   task_responses
   # end
-
 
   # TODO pagination : revise with new arquitecture
   # i will turn it off for now, to do a step-by-step refactor
