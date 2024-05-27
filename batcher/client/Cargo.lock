@@ -1305,6 +1305,7 @@ dependencies = [
  "batcher",
  "bytes",
  "clap",
+ "env_logger",
  "futures-channel",
  "futures-util",
  "log",

@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use alloy_primitives::Address;
+use env_logger::Env;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
-use log::info;
+use log::{info, warn};
 use tokio_tungstenite::connect_async;
 
 use batcher::types::{parse_proving_system, VerificationData};
@@ -54,11 +55,12 @@ struct Args {
 async fn main() {
     let args = Args::parse();
 
-    let url = url::Url::parse(&args.connect_addr).unwrap();
-    println!("URL: {}", url);
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
+    let url = url::Url::parse(&args.connect_addr).unwrap();
     let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
-    println!("WebSocket handshake has been successfully completed");
+    info!("WebSocket handshake has been successfully completed");
+
     let (mut ws_write, ws_read) = ws_stream.split();
 
     let proving_system = parse_proving_system(&args.proving_system_flag);
@@ -72,24 +74,24 @@ async fn main() {
     if let Ok(data) = std::fs::read(args.pub_input_file_name) {
         pub_input = Some(data);
     } else {
-        println!("Warning: No Public Input file, continuing with no public_input");
+        warn!("No public input file provided, continuing without public input...");
     }
 
     let mut verification_key: Option<Vec<u8>> = None;
     if let Ok(data) = std::fs::read(args.verification_key_file_name) {
         verification_key = Some(data);
     } else {
-        println!("Warning: no Verification Key File, continuing with no VK File");
+        warn!("No verification key file provided, continuing without verification key...");
     }
 
     let mut vm_program_code: Option<Vec<u8>> = None;
     if let Ok(data) = std::fs::read(args.vm_program_code_file_name) {
         vm_program_code = Some(data);
     } else {
-        println!("Warning: no VM Program Code File, continuing with no VM Program Code");
+        warn!("No VM program code file provided, continuing without VM program code...");
     }
 
-    // Dummy address for testing.
+    // FIXME(marian): Dummy address for testing, this should be get by parameter
     let addr_str = "0x66f9664f97F2b50F62D13eA064982f936dE76657";
     let proof_generator_addr: Address = Address::parse_checksummed(addr_str, None).unwrap();
 
@@ -114,11 +116,12 @@ async fn main() {
     ws_read
         .try_filter(|msg| future::ready(msg.is_text()))
         .for_each(|msg| async move {
-            let data = msg.unwrap().into_text();
-            info!("RESPONSE: {:?}", data);
+            let data = msg.unwrap().into_text().unwrap();
+            info!("Batch merkle root received: {}", data);
         })
         .await;
 
+    info!("Closing connection...");
     ws_write
         .close()
         .await
