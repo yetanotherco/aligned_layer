@@ -54,7 +54,6 @@ defmodule AlignedLayerServiceManager do
       |> Ethers.get_logs(fromBlock: get_latest_block_number(-100), toBlock: get_latest_block_number())
 
     case events do
-      {:ok, []} -> raise("Error fetching events, no events found")
       {:ok, list} -> Utils.get_last_n_items(list, amount)
       {:error, _} -> raise("Error fetching events")
     end
@@ -101,7 +100,6 @@ defmodule AlignedLayerServiceManager do
       AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 0)
 
     case events do
-      {:ok, []} -> raise("Error fetching responded events, no events found")
       {:ok, list} -> {:ok, list}
       {:error, data} -> raise("Error fetching responded events #{data}")
     end
