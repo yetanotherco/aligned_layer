@@ -19,10 +19,10 @@ defmodule ExplorerWeb.Batch.Index do
           {:error, reason}
 
         {:empty, reason} ->
-          {:empty, reason}
+          :empty
 
         {_, []} ->
-          {:empty, "No batch found"}
+          :empty
 
         {:ok, event} ->
           event
