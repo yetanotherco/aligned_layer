@@ -10,7 +10,7 @@ defmodule ExplorerWeb.Home.Index do
       {:noreply,
        socket
        |> assign(batch_merkle_root: batch_merkle_root)
-       |> put_flash(:error, "#{batch_merkle_root} is not a valid merkle root. Please enter a hex value.")}
+       |> put_flash(:error, "Please enter a valid proof batch hash, these should be hex values (0x69...).")}
     else
       {:noreply, redirect(socket, to: "/batches/#{batch_merkle_root}")}
     end
