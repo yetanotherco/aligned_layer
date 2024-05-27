@@ -87,7 +87,6 @@ The output in your terminal will show the location of your node store and config
 
 To start the node in the Arabica network run:
 ```bash
-
 celestia light start --core.ip validator-1.celestia-arabica-11.com --p2p.network arabica
 ```
 
