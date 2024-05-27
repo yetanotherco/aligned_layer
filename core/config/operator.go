@@ -27,6 +27,7 @@ type OperatorConfig struct {
 		RegisterOperatorOnStartup     bool
 		EnableMetrics                 bool
 		MetricsIpPortAddress          string
+		MaxBatchSize                  int64
 	}
 }
 
@@ -41,6 +42,7 @@ type OperatorConfigFromYaml struct {
 		RegisterOperatorOnStartup     bool           `yaml:"register_operator_on_startup"`
 		EnableMetrics                 bool           `yaml:"enable_metrics"`
 		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
+		MaxBatchSize                  int64          `yaml:"max_batch_size"`
 	} `yaml:"operator"`
 	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
@@ -94,6 +96,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			RegisterOperatorOnStartup     bool
 			EnableMetrics                 bool
 			MetricsIpPortAddress          string
+			MaxBatchSize                  int64
 		}(operatorConfigFromYaml.Operator),
 	}
 }

@@ -198,18 +198,24 @@ impl App {
     async fn add_task(self: &Arc<Self>, verification_data: VerificationData) {
         info!("Adding verification data to batch...");
 
-        let (len, batch_size) = {
+        let len = {
             let mut current_batch = self.current_batch.lock().await;
+            let batch_size: usize = current_batch.iter().map(|v| v.proof.len()).sum();
+
+            if batch_size + verification_data.proof.len() > self.max_batch_size {
+                warn!("Batch size limit reached, not adding new proof");
+                return;
+            }
+
             current_batch.push(verification_data);
 
             debug!("Batch size: {}", current_batch.len());
             let len = current_batch.len();
-            let batch_size: usize = current_batch.iter().map(|v| v.proof.len()).sum();
-            
-            (len, batch_size)
+
+            len
         };
 
-        if len >= self.batch_size_interval  {
+        if len >= self.batch_size_interval {
             let c = self.clone();
             tokio::spawn(async move {
                 let block_number = c

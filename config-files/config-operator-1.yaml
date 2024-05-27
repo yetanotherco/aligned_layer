@@ -36,6 +36,8 @@ operator:
   metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
   enable_metrics: true
   metrics_ip_port_address: localhost:9092
+  max_batch_size: 268435456 # 256 MiB
+
 # Operators variables needed for register it in EigenLayer
 el_delegation_manager_address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
 private_key_store_path: config-files/devnet/keys/operator-1.ecdsa.key.json
