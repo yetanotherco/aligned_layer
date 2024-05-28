@@ -5,7 +5,7 @@ defmodule ExplorerWeb.Batches.Index do
   def mount(params, _, socket) do
     current_page = get_current_page(params)
 
-    page_size = 5
+    page_size = 7
     # [from, to] = [(current_page - 1) * page_size, (current_page - 1) * page_size + page_size - 1]
 
     batches =
@@ -13,7 +13,7 @@ defmodule ExplorerWeb.Batches.Index do
       Enum.map(&AlignedLayerServiceManager.extract_new_batch_event_info/1) |>
       Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1) |>
       Enum.reverse()
-      
+
     "batches" |> IO.inspect()
     batches |> IO.inspect()
 

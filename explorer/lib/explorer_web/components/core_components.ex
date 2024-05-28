@@ -246,6 +246,20 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+    Renders a card background.
+  """
+  attr :class, :string, default: nil
+  slot :inner_block, default: nil
+
+  def card_background(assigns) do
+    ~H"""
+    <div class={["bg-background border border-foreground/20 rounded-2xl p-4", @class]}>
+      <%= render_slot(@inner_block) %>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a card with a title and content.
   """
   attr :class, :string, default: nil
@@ -256,14 +270,14 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card(assigns) do
     ~H"""
-    <div class={["px-3 py-2 bg-background border border-foreground/20 rounded-2xl min-w-52", @class]}>
+    <.card_background class={@class}>
       <h2 class="font-medium text-muted-foreground capitalize">
         <%= @title %>
       </h2>
       <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
         <%= render_slot(@inner_block) %>
       </span>
-    </div>
+    </.card_background>
     """
   end
 

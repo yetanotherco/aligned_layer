@@ -48,13 +48,18 @@
   <.card title="Registered Operators">
     <%= @operators_registered %>
   </.card>
-  <%= if @latest_batches != :empty do %>
+  <%= if @latest_batches != :empty and @latest_batches != [] do %>
     <.card
       class="relative col-span-2 w-full flex flex-col space-y-1"
       inner_class="text-ellipsis overflow-hidden text-lg flex flex-col space-y-1"
       title="Recent Batches"
     >
-      <a href="/batches" class="absolute top-2.5 right-3.5 hover:underline font-medium text-muted-foreground capitaliz text-sm">View All</a>
+      <a
+        href="/batches"
+        class="absolute top-2.5 right-3.5 hover:underline font-medium text-muted-foreground capitaliz text-sm"
+      >
+        View All
+      </a>
       <%= for batch <- @latest_batches do %>
         <a class="flex justify-between group" href={"/batches/#{batch}"}>
           <span class="group-hover:text-foreground/80" title={batch}>
