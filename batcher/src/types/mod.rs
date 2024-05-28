@@ -2,10 +2,12 @@ use alloy_primitives::Address;
 use anyhow::anyhow;
 use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
 use lazy_static::lazy_static;
-use log::warn;
+use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use sp1_sdk::ProverClient;
+
+use crate::gnark::verify_gnark;
 
 lazy_static! {
     static ref SP1_PROVER_CLIENT: ProverClient = ProverClient::new();
@@ -40,9 +42,19 @@ impl VerificationData {
                 warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
                 false
             }
-            _ => {
-                warn!("Unsupported proving system, proof not verified");
-                false
+
+            ProvingSystemId::GnarkPlonkBls12_381
+            | ProvingSystemId::GnarkPlonkBn254
+            | ProvingSystemId::Groth16Bn254 => {
+                let vk = &self
+                    .verification_key
+                    .as_ref()
+                    .expect("Verification key is required");
+
+                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let is_valid = verify_gnark(&self.proving_system, &self.proof, pub_input, vk);
+                debug!("Gnark proof is valid: {}", is_valid);
+                is_valid
             }
         }
     }
