@@ -331,12 +331,14 @@ func taskSenderInfiniteMain(c *cli.Context) error {
 	}
 
 	x := 0
+
+	provingSystem, err := ParseProvingSystem(c.String(provingSystemFlag.Name))
+	if err != nil {
+		return err
+	}
+
 	for {
 		x += 1
-		provingSystem, err := ParseProvingSystem(c.String(provingSystemFlag.Name))
-		if err != nil {
-			return err
-		}
 
 		switch provingSystem {
 		case common.GnarkPlonkBn254:
