@@ -304,13 +304,13 @@ __BUILD__:
 build_binaries:
 	@echo "Building aggregator..."
 	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
-	@echo "Aggregator built into /aggregator/build/aligned-aggregator" 
+	@echo "Aggregator built into /aggregator/build/aligned-aggregator"
 	@echo "Building aligned layer operator..."
 	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
-	@echo "Aligned layer operator built into /operator/build/aligned-operator" 
+	@echo "Aligned layer operator built into /operator/build/aligned-operator"
 	@echo "Building task sender.."
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
-	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
+	@echo "Task sender built into /task_sender/build/aligned-task-sender"
 
 run_local:
 	./scripts/run_local.sh
