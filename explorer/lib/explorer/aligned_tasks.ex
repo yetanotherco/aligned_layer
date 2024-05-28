@@ -66,15 +66,3 @@ defmodule BatchPageItem do
   ]
   defstruct [:batch_merkle_root, :task_created_block_number, :task_created_tx_hash, :task_responded_block_number, :task_responded_tx_hash, :batch_data_pointer, :responded]
 end
-
-# TODO pagination
-# defmodule AlignedTaskPageItem do
-#   @enforce_keys [
-#     :taskId,
-#     :transaction_hash,
-#     :block_number,
-#     :proof_is_responded,
-#     :proof_is_correct
-#   ]
-#   defstruct [:taskId, :transaction_hash, :block_number, :proof_is_responded, :proof_is_correct]
-# end
