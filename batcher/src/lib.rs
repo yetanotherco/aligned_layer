@@ -10,7 +10,7 @@ use ethers::providers::Http;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use sha3::{Digest, Sha3_256};
 use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
@@ -269,14 +269,12 @@ impl App {
 
             let batch_to_send;
             if batch_bytes.len() > self.max_batch_size {
-                let mut current_batch_end = 0;
+                let mut current_batch_end = 0; // not inclusive
                 let mut current_batch_size = 0;
                 for (i, verification_data) in current_batch.iter().enumerate() {
                     let verification_data_bytes = serde_json::to_vec(verification_data)
                         .expect("Failed to serialize verification data");
 
-                    debug!("Current batch size: {}, Verification data size: {}", current_batch_size,
-                        verification_data_bytes.len());
                     current_batch_size += verification_data_bytes.len();
                     if current_batch_size > self.max_batch_size {
                         current_batch_end = i;
@@ -288,9 +286,7 @@ impl App {
                 batch_to_send = current_batch.drain(..current_batch_end)
                     .collect::<Vec<_>>();
 
-                debug!("Batch size after splitting: {}", batch_to_send.len());
-                debug!("# of Elements remaining: {}", current_batch.len());
-                
+                debug!("# of Elements remaining for next batch: {}", current_batch.len());
                 batch_bytes = serde_json::to_vec(&batch_to_send)
                     .expect("Failed to serialize batch");
             } else {
