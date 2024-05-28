@@ -9,7 +9,7 @@
   - [Index](#index)
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
-  - [Setup](#setup)
+  - [Local Devnet Setup](#local-devnet-setup)
   - [How to setup a local devnet with Anvil](#how-to-setup-a-local-devnet-with-anvil)
   - [Aggregator](#aggregator)
   - [Operator](#operator)
@@ -28,7 +28,6 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 
 ## How to use the testnet
-
 
 ### Requirements
 
@@ -63,7 +62,7 @@ popd
 
 ```bash
 pushd batcher/client/ ; \
- cargo run -- \
+cargo run -- \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -77,7 +76,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 
 ```bash
 pushd batcher/client/ ; \
- cargo run -- \
+cargo run -- \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
@@ -121,7 +120,7 @@ cargo run -- \
 popd
 ```
 
-## Setup
+## Local Devnet Setup
 
 ### Dependencies
 
