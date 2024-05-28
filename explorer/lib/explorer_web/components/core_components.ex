@@ -256,7 +256,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card(assigns) do
     ~H"""
-    <div class={["px-3 py-2 bg-background border border-foreground/20 rounded-md min-w-52", @class]}>
+    <div class={["px-3 py-2 bg-background border border-foreground/20 rounded-2xl min-w-52", @class]}>
       <h2 class="font-medium text-muted-foreground capitalize">
         <%= @title %>
       </h2>
