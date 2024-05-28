@@ -1,4 +1,5 @@
 use alloy_primitives::Address;
+use anyhow::anyhow;
 use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
@@ -134,12 +135,12 @@ mod test {
     }
 }
 
-pub fn get_proving_system_from_str(proving_system: &str) -> ProvingSystemId {
+pub fn get_proving_system_from_str(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
     match proving_system {
-        "GnarkPlonkBls12_381" => ProvingSystemId::GnarkPlonkBls12_381,
-        "GnarkPlonkBn254" => ProvingSystemId::GnarkPlonkBn254,
-        "Groth16Bn254" => ProvingSystemId::Groth16Bn254,
-        "SP1" => ProvingSystemId::SP1,
-        _ => panic!("Invalid proving system: {}\nAvailable prooving systems:\n GnarkPlonkBls12_381\n GnarkPlonkBn254\n Groth16Bn254\n SP1", proving_system),
+        "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
+        "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
+        "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
+        "SP1" => Ok(ProvingSystemId::SP1),
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1]", proving_system))
     }
 }
