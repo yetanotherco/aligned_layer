@@ -10,35 +10,37 @@ Basic repo demoing a Stark/Snark verifier AVS middleware with full EigenLayer in
 
 Aligned Layer works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned Layer.
 
-## Help
-
-To see all the available commands run
-
-```bash
-make help
-```
-
 
 ## Setup
 
 ### Dependencies
 
-You will need [go](https://go.dev/doc/install), [rust](https://www.rust-lang.org/tools/install), [foundry](https://book.getfoundry.sh/getting-started/installation), [zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git),
-[jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) to run the examples below.
+Ensure you have the following installed:
 
-To install zap-pretty and abigen
+- [Go](https://go.dev/doc/install)
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+- [zap-pretty](https://github.com/maoueh/zap-pretty)
+- [abigen](https://geth.ethereum.org/docs/tools/abigen)
+- [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git)
+- [jq](https://jqlang.github.io/jq/)
+- [yq](https://github.com/mikefarah/yq)
+
+Install zap-pretty and abigen:
+
 ```bash
 make deps
 ```
 
-To install foundry
+Install foundry:
+
 ```bash
 make install_foundry
+foundryup
 ```
-Then follow the command line instructions
-Make sure to run `foundryup`
 
-To install eigenlayer-cli
+Install eigenlayer-cli:
+
 ```bash
 make install_eigenlayer_cli
 ```
@@ -62,6 +64,24 @@ To create a BLS keystore, you can run the following commands:
 
 ```bash
 eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
+```
+
+## Local Devnet with Anvil
+
+```bash
+make anvil_start_with_block_time
+```
+
+In another terminal window:
+
+```bash
+make aggregator_start
+```
+
+In another terminal window:
+
+```bash
+make operator_full_registration
 ```
 
 
