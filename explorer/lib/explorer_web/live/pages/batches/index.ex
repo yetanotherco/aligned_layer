@@ -11,8 +11,9 @@ defmodule ExplorerWeb.Batches.Index do
     batches =
       AlignedLayerServiceManager.get_new_batch_events(page_size * current_page) |>
       Enum.map(&AlignedLayerServiceManager.extract_new_batch_event_info/1) |>
-      Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1)
-
+      Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1) |>
+      Enum.reverse()
+      
     "batches" |> IO.inspect()
     batches |> IO.inspect()
 
