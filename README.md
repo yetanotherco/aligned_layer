@@ -438,20 +438,15 @@ make batcher_send_burst_groth16
 
 #### Send specific proof
 
+The SP1 proof needs the proof file and the vm program file.
+The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
+
 ```bash
 cd batcher/client/ && cargo run --release -- \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
+--public-input <public_input_file> \
 --vm_program <vm_program_file> \
---conn batcher.alignedlayer.com
-```
-
-#### Optional flags
-
-This CLI also has other optional flags (such as a public_input file, a Verification Key file or a vm_program file), visualizable by running:
-
-```bash
-./batcher/test-client/target/debug/test-client --help
 ```
 
 
@@ -538,28 +533,28 @@ make send_sp1_proof
 ### Send a specific proof
 
 ```bash
-go run task_sender/cmd/main.go send-task
-    --proving-system <prooving-system> \
-    --proof <proof> \
-    --public-input <public-input> \
-    --verification-key <verification-key> \
-    --config <config-file> \
-    --da <da-solution>
+go run task_sender/cmd/main.go send-task \
+--proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1> \
+--proof <proof_file> \
+--public-input <public_input_file> \
+--verification-key <verification_key_file> \
+--config <config_file> \
+--quorum-threshold <quorum_threshold> \
+2>&1 | zap-pretty
 ```
 
 ### Send a specific proof in loop
 
 ```bash
 go run task_sender/cmd/main.go loop-tasks
-    --proving-system <prooving-system> \
-    --proof <proof> \
-    --public-input <public-input> \
-    --verification-key <verification-key> \
-    --config <config-file> \
-    --da <da-solution>
+    --proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1> \
+    --proof <proof_file> \
+    --public-input <public_input_file> \
+    --verification-key <verification_key_file> \
+    --config <config_file> \
+    --quorum-threshold <quorum_threshold> \
     --interval <interval-in-seconds>
 ```
-
 
 ## Deploy Contracts
 
