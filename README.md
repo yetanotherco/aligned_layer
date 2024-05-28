@@ -10,7 +10,6 @@
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
   - [Local Devnet Setup](#local-devnet-setup)
-  - [How to setup a local devnet with Anvil](#how-to-setup-a-local-devnet-with-anvil)
   - [Aggregator](#aggregator)
   - [Operator](#operator)
   - [Batcher](#batcher)
@@ -154,6 +153,57 @@ Install eigenlayer-cli:
 make install_eigenlayer_cli
 ```
 
+### Booting Devnet with Default configs
+
+Run in different terminals the following commands to boot Aligned locally:
+
+```bash
+make anvil_start_with_block_time
+```
+
+```bash
+make aggregator_start
+```
+
+```bash
+make operator_register_and_start
+```
+
+```bash
+make batcher_start
+```
+
+Send SP1 proof:
+```bash
+make batcher_send_sp1_task
+```
+
+### Send test proofs to batcher for testing
+
+All these proofs are for testing purposes
+
+
+Send 8 proofs each second:
+
+```bash
+make batcher_send_burst_groth16
+```
+
+Send Groth 16 proofs each 2 seconds:
+
+```bash
+make batcher_send_infinite_groth16
+```
+
+Send an individual Groth 16 proof:
+
+```bash
+make batcher_send_groth16_task
+```
+
+// to review
+
+
 ### Keystores
 
 To create a keystore, run:
@@ -173,56 +223,6 @@ To create a BLS keystore, run:
 
 ```bash
 eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
-```
-
-## How to setup a local devnet with Anvil
-
-```bash
-make anvil_start_with_block_time
-```
-
-To start sending proofs, in another terminal window:
-
-```bash
-make aggregator_start
-```
-
-In another terminal window:
-
-```bash
-make operator_full_registration
-```
-
-```bash
-make operator_start
-```
-
-In another terminal window:
-
-```bash
-make batcher_start
-```
-
-In another terminal window:
-
-Send SP1 proof:
-```bash
-make batcher_send_sp1_task
-```
-
-Send Groth 16 proof:
-```bash
-make batcher_send_groth16_task
-```
-
-Send infinite Groth 16 proofs:
-```bash
-make batcher_send_infinite_groth16
-```
-
-Send burst of Groth 16 proofs:
-```bash
-make batcher_send_burst_groth16
 ```
 
 ## Aggregator
