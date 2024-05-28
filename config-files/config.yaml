@@ -29,9 +29,9 @@ celestia:
 ## Batcher configurations
 batcher:
   block_interval: 1
-  batch_size_interval: 9999999999
-  max_proof_size: 67108864 # 64 MiB
-  max_batch_size: 268435456 # 256 MiB
+  batch_size_interval: 999999999
+  max_proof_size: 4000 # 64 MiB
+  max_batch_size: 16000 # 256 MiB
 
 ## Aggregator Configurations
 aggregator:

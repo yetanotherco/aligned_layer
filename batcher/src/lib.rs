@@ -9,6 +9,7 @@ use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Http;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
+use gnark::verify_gnark;
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error, info};
 use sha3::{Digest, Sha3_256};
@@ -16,11 +17,11 @@ use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
+use types::VerificationCommitmentBatch;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
-use crate::gnark::verify_gnark;
-use crate::types::{VerificationBatch, VerificationData};
+use crate::types::VerificationData;
 
 mod config;
 mod eth;
@@ -139,7 +140,7 @@ impl App {
         // TODO: Handle errors
         /* TODO: response could be handling better by returning Ok / Error from in here
         and then sending the response from the caller */
-        
+
         // Deserialize task from message
         let verification_data: VerificationData =
             serde_json::from_str(message.to_text().expect("Message is not text"))
@@ -155,7 +156,7 @@ impl App {
 
             return Ok(());
         }
-        
+
         let vm_program_code = verification_data.vm_program_code.as_ref();
 
         let response = match verification_data.proving_system {
@@ -175,12 +176,13 @@ impl App {
                     .expect("Verification key is required");
 
                 let public_inputs = verification_data
-                    .public_input
+                    .pub_input
                     .as_ref()
                     .expect("Public input is required");
 
                 let is_valid =
                     verify_gnark(&verification_data.proving_system, proof, public_inputs, vk);
+
                 debug!("Proof is valid: {}", is_valid);
 
                 if is_valid {
@@ -294,8 +296,9 @@ impl App {
                 current_batch.clear();
             }
 
-            let batch_merkle_tree: MerkleTree<VerificationBatch> =
-                MerkleTree::build(&batch_to_send);
+            let batch_commitment = VerificationCommitmentBatch::from(&batch_to_send);
+            let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
+                MerkleTree::build(&batch_commitment.0);
 
             *last_uploaded_batch_block = block_number;
             (batch_bytes, batch_merkle_tree.root)
