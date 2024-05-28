@@ -78,7 +78,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "floor(increase(aligned_aggregated_responses{bot=\"aggregator\"}[10y]))",
+          "expr": "floor(increase(aligned_operator_responses{bot=\"operator\"}[10y]))",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -90,7 +90,7 @@
           "useBackend": false
         }
       ],
-      "title": "Total Responses",
+      "title": "Total Verified Proofs",
       "type": "stat"
     },
     {
@@ -149,7 +149,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "floor(increase(aligned_aggregated_responses{bot=\"aggregator\"}[$__range]))",
+          "expr": "floor(increase(aligned_operator_responses{bot=\"operator\"}[$__range]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -159,7 +159,7 @@
           "useBackend": false
         }
       ],
-      "title": "New Responses",
+      "title": "New Verified Proofs",
       "type": "stat"
     },
     {
@@ -248,7 +248,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "floor(increase(aligned_aggregated_responses{bot=\"aggregator\"}[10y]))",
+          "expr": "floor(increase(aligned_operator_responses{bot=\"operator\"}[10y]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -258,7 +258,7 @@
           "useBackend": false
         }
       ],
-      "title": "Aggregator",
+      "title": "Operator",
       "type": "timeseries"
     },
     {
@@ -319,7 +319,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(aligned_aggregated_responses{bot=\"aggregator\"}[1m]) * 60",
+          "expr": "rate(aligned_operator_responses{bot=\"operator\"}[1m]) * 60",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -329,7 +329,7 @@
           "useBackend": false
         }
       ],
-      "title": "Responses Rate per Min",
+      "title": "Verification Rate per Min",
       "type": "gauge"
     },
     {
@@ -385,14 +385,14 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(aligned_aggregated_responses{bot=\"aggregator\"}[1m])",
+          "expr": "rate(aligned_operator_responses{bot=\"operator\"}[1m])",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Responses Rate per Sec",
+      "title": "Verification Rate per Sec",
       "type": "gauge"
     },
     {
@@ -481,7 +481,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(aligned_aggregated_responses{bot=\"aggregator\"}[1m]) * 60",
+          "expr": "rate(aligned_operator_responses{bot=\"operator\"}[1m]) * 60",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -491,7 +491,7 @@
           "useBackend": false
         }
       ],
-      "title": "Responses Rate per Min",
+      "title": "Verification Rate per Min",
       "type": "timeseries"
     }
   ],
@@ -508,8 +508,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Aggregator Data",
-  "uid": "edlixjhppdczkf",
+  "title": "Operator Data",
+  "uid": "operator",
   "version": 3,
   "weekStart": ""
 }

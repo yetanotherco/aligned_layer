@@ -10,3 +10,10 @@ scrape_configs:
       - targets: ["host.docker.internal:9091"]
         labels:
           bot: "aggregator"
+
+  - job_name: "aligned-operator"
+    scrape_interval: 1s
+    static_configs:
+      - targets: [ "host.docker.internal:9092" ]
+        labels:
+          bot: "operator"

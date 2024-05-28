@@ -5,7 +5,10 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/yetanotherco/aligned_layer/metrics"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/celestiaorg/celestia-node/api/rpc/client"
@@ -43,6 +46,8 @@ type Operator struct {
 	aggRpcClient       AggregatorRpcClient
 	disperser          disperser.DisperserClient
 	celestiaClient     *client.Client
+	metricsReg         *prometheus.Registry
+	metrics            *metrics.Metrics
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -77,6 +82,11 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 
 	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
 	address := configuration.Operator.Address
+
+	// Metrics
+	reg := prometheus.NewRegistry()
+	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
+
 	operator := &Operator{
 		Config:             configuration,
 		Logger:             logger,
@@ -87,6 +97,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		OperatorId:         operatorId,
 		disperser:          configuration.EigenDADisperserConfig.Disperser,
 		celestiaClient:     configuration.CelestiaConfig.Client,
+		metricsReg:         reg,
+		metrics:            operatorMetrics,
 		// Timeout
 		// Socket
 	}
@@ -101,11 +113,21 @@ func (o *Operator) SubscribeToNewTasks() event.Subscription {
 
 func (o *Operator) Start(ctx context.Context) error {
 	sub := o.SubscribeToNewTasks()
+
+	var metricsErrChan <-chan error
+	if o.Config.Operator.EnableMetrics {
+		metricsErrChan = o.metrics.Start(ctx, o.metricsReg)
+	} else {
+		metricsErrChan = make(chan error, 1)
+	}
+
 	for {
 		select {
 		case <-context.Background().Done():
 			o.Logger.Info("Operator shutting down...")
 			return nil
+		case err := <-metricsErrChan:
+			o.Logger.Fatal("Metrics server failed", "err", err)
 		case err := <-sub.Err():
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
@@ -147,34 +169,52 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 		return nil
 	}
 
+	verificationDataBatchLen := len(verificationDataBatch)
+	results := make(chan bool, verificationDataBatchLen)
+	var wg sync.WaitGroup
+	wg.Add(verificationDataBatchLen)
 	for _, verificationData := range verificationDataBatch {
-		if !o.verify(verificationData) {
-			return fmt.Errorf("Proof did not verify")
+		go func(data VerificationData) {
+			defer wg.Done()
+			o.verify(data, results)
+			o.metrics.IncOperatorTaskResponses()
+		}(verificationData)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if !result {
+			o.Logger.Error("Proof did not verify")
+			return nil
 		}
 	}
 
 	return nil
 }
 
-func (o *Operator) verify(verificationData VerificationData) bool {
+func (o *Operator) verify(verificationData VerificationData, results chan bool) {
 	switch verificationData.ProvingSystemId {
 	case common.GnarkPlonkBls12_381:
 		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("PLONK BLS12-381 proof verification result: %t", verificationResult)
 
-		return verificationResult
+		results <- verificationResult
 
 	case common.GnarkPlonkBn254:
 		verificationResult := o.verifyPlonkProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
 
-		return verificationResult
+		results <- verificationResult
 
 	case common.Groth16Bn254:
 		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
-		return verificationResult
+		results <- verificationResult
 
 	case common.SP1:
 		proofBytes := make([]byte, sp1.MaxProofSize)
@@ -189,11 +229,10 @@ func (o *Operator) verify(verificationData VerificationData) bool {
 		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 
-		return verificationResult
-
+		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
-		return false
+		results <- false
 	}
 }
 
@@ -259,14 +298,14 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 		return false
 	}
 	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK public input: %v", err)
+		o.Logger.Errorf("Could not read Groth16 public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := groth16.NewVerifyingKey(curve)
 	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK verifying key from bytes: %v", err)
+		o.Logger.Errorf("Could not read Groth16 verifying key from bytes: %v", err)
 		return false
 	}
 
