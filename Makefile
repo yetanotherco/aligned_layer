@@ -34,7 +34,7 @@ anvil_start:
 
 anvil_start_with_block_time:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 5
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 2
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
@@ -111,7 +111,7 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 __BATCHER__:
 
-BURST_SIZE=10
+BURST_SIZE=5
 
 ./batcher/.env:
 	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
@@ -135,13 +135,13 @@ batcher_send_sp1_task:
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf
 
-batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+batcher_send_sp1_burst_5:
+	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
-		--proving_system GnarkPlonkBn254 \
-		--proof test_files/plonk_bn254/plonk.proof \
-		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
-		--vk test_files/plonk_bn254/plonk.vk
+		--proving_system SP1 \
+		--proof test_files/sp1/sp1_fibonacci.proof \
+		--vm_program test_files/sp1/sp1_fibonacci-elf \
+		--repetitions 5
 
 batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -168,8 +168,17 @@ batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 		--public_input test_files/plonk_bn254/ineq_1_plonk.pub \
 		--vk test_files/plonk_bn254/ineq_1_plonk.vk \
 
-batcher_send_infinite_groth16_tasks: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
-	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs	
+batcher_send_groth16_burst_5: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Groth16Bn254 \
+		--proof test_files/groth16/ineq_1_groth16.proof \
+		--public_input test_files/groth16/ineq_1_groth16.pub \
+		--vk test_files/groth16/ineq_1_groth16.vk \
+		--repetitions 5
+
+batcher_send_infinite_groth16_task: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
 	@./batcher/client/send_infinite_tasks.sh 4 Groth16
 
@@ -207,7 +216,6 @@ send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task 
 generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
 	@echo "Running gnark_plonk_bls12_381 script..."
 	@go run task_sender/test_examples/gnark_plonk_bls12_381_script/main.go
-
 
 send_plonk_bn254_proof: ## Send a PLONK BN254 proof using the task sender
 	@echo "Sending PLONK BN254 proof..."
@@ -310,13 +318,13 @@ __BUILD__:
 build_binaries:
 	@echo "Building aggregator..."
 	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
-	@echo "Aggregator built into /aggregator/build/aligned-aggregator" 
+	@echo "Aggregator built into /aggregator/build/aligned-aggregator"
 	@echo "Building aligned layer operator..."
 	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
-	@echo "Aligned layer operator built into /operator/build/aligned-operator" 
+	@echo "Aligned layer operator built into /operator/build/aligned-operator"
 	@echo "Building task sender.."
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
-	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
+	@echo "Task sender built into /task_sender/build/aligned-task-sender"
 
 run_local:
 	./scripts/run_local.sh
