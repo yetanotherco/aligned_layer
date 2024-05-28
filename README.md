@@ -3,14 +3,34 @@
 > [!CAUTION]
 > To be used in testnet only.
 
+## Index
+
+- [Aligned](#aligned)
+  - [Index](#index)
+  - [The Project](#the-project)
+  - [How to use the testnet](#how-to-use-the-testnet)
+  - [Setup](#setup)
+  - [How to setup a local devnet with Anvil](#how-to-setup-a-local-devnet-with-anvil)
+  - [Aggregator](#aggregator)
+  - [Operator](#operator)
+  - [Batcher](#batcher)
+  - [Task Sender](#task-sender)
+  - [Deploy Contracts](#deploy-contracts)
+  - [Metrics](#metrics)
+  - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
+  - [Tests](#tests)
+  - [FAQ](#faq)
 
 ## The Project
 
 Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned.
 
-## How to send proofs to testnet
 
-### Dependencies
+
+## How to use the testnet
+
+
+### Requirements
 
 - [Rust](https://www.rust-lang.org/tools/install)
 
@@ -21,7 +41,8 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+cargo run --manifest-path batcher/Cargo.toml \
+ --release -- \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
@@ -31,11 +52,23 @@ cd batcher/client/ && cargo run --release -- \
 **Example**
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+pushd batcher/client/ ; \
+cargo run --release -- \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---con batcher.alignedlayer.com
+--conn batcher.alignedlayer.com ; 
+popd
+```
+
+```bash
+pushd batcher/client/ ; \
+ cargo run --release -- \
+--proving_system SP1 \
+--proof test_files/sp1/sp1_fibonacci.proof \
+--vm_program test_files/sp1/sp1_fibonacci-elf \
+--conn batcher.alignedlayer.com ; 
+popd
 ```
 
 #### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
