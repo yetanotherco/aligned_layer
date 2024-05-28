@@ -51,6 +51,8 @@ operator_start:
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
+operator_register_and_start: operator_full_registration operator_start
+
 bindings:
 	cd contracts && ./generate-go-bindings.sh
 
