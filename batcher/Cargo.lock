@@ -1284,6 +1284,7 @@ dependencies = [
  "futures-util",
  "hex",
  "lambdaworks-crypto",
+ "lazy_static",
  "log",
  "rand",
  "serde",
