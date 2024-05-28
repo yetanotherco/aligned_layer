@@ -34,7 +34,7 @@ anvil_start:
 
 anvil_start_with_block_time:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 5
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 2
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:

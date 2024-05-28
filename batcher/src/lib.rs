@@ -157,49 +157,11 @@ impl Batcher {
 
         if verification_data.verify() {
             self.add_to_batch(verification_data).await;
-        // FIXME(marian): This condition should be removed once we have FFI bindings with Gnark.
-        } else if verification_data.proving_system == ProvingSystemId::Groth16Bn254 {
-            self.add_to_batch(verification_data).await;
         } else {
             // FIXME(marian): Handle this error correctly
             return Err(tokio_tungstenite::tungstenite::Error::Protocol(
                 ProtocolError::HandshakeIncomplete,
             ));
-            // let proof = verification_data.proof.as_slice();
-            // let vm_program_code = verification_data.vm_program_code.as_ref();
-
-            // let response = match verification_data.proving_system {
-            //     types::ProvingSystemId::SP1 => {
-            //         let elf = vm_program_code.expect("VM program code is required");
-
-            //         let elf = elf.as_slice();
-
-            //         self.verify_sp1_proof(proof, elf)
-            //     }
-            //     types::ProvingSystemId::GnarkPlonkBls12_381
-            //     | types::ProvingSystemId::GnarkPlonkBn254
-            //     | types::ProvingSystemId::Groth16Bn254 => {
-            //         let vk = verification_data
-            //             .verification_key
-            //             .as_ref()
-            //             .expect("Verification key is required");
-
-            //         let public_inputs = verification_data
-            //             .pub_input
-            //             .as_ref()
-            //             .expect("Public input is required");
-
-            //         let is_valid =
-            //             verify_gnark(&verification_data.proving_system, proof, public_inputs, vk);
-
-            //         debug!("Proof is valid: {}", is_valid);
-
-            //         if is_valid {
-            //             Ok(())
-            //         } else {
-            //             Err(anyhow::anyhow!("Failed to verify proof"))
-            //         }
-            //     }
         };
 
         info!("Verification data message handled");
@@ -262,12 +224,12 @@ impl Batcher {
         if !self.batch_ready(block_number).await {
             return;
         }
+
         let (batch_bytes, batch_merkle_root) =
             self.process_batch_and_update_state(block_number).await;
 
         let s3_client = self.s3_client.clone();
         let service_manager = self.service_manager.clone();
-        // tokio::spawn(async move {
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: {}", batch_merkle_root_hex);
 
