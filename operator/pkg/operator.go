@@ -335,7 +335,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
-		return verificationResult
+		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
