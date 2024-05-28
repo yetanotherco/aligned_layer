@@ -14,7 +14,7 @@
         </thead>
         <tbody>
           <%= for batch <- @batches do %>
-            <tr class="text-foreground gap-y-2 [&>th]:py-3">
+            <tr class="text-foreground gap-y-2 [&>th]:pt-3">
               <th class="text-left">
                 <a href={"/batches/#{batch.batch_merkle_root}"} class="group">
                   <span
@@ -22,24 +22,7 @@
                     class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80"
                   >
                     <%= Utils.shorten_block_hash(batch.batch_merkle_root) %>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class={[
-                        "w-5 h-5 stroke-foreground group-hover:stroke-foreground/80",
-                        "-translate-x-1 group-hover:translate-x-0"
-                      ]}
-                    >
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                      <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
+                    <.right_arrow />
                   </span>
                 </a>
               </th>

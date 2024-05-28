@@ -281,6 +281,32 @@ defmodule ExplorerWeb.CoreComponents do
     """
   end
 
+  attr :class, :string, default: nil
+
+  def right_arrow(assigns) do
+    ~H"""
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class={[
+        "w-5 h-5 stroke-foreground group-hover:stroke-foreground/80",
+        "-translate-x-1 group-hover:translate-x-0"
+      ]}
+    >
+      <span class="sr-only">Left Arrow Icon</span>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+      <polyline points="12 5 19 12 12 19"></polyline>
+    </svg>
+    """
+  end
+
   @doc """
   Renders an input with label and error messages.
 
