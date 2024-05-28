@@ -51,7 +51,7 @@ defmodule AlignedLayerServiceManager do
 
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
-      |> Ethers.get_logs(fromBlock: get_latest_block_number(-100), toBlock: get_latest_block_number())
+      |> Ethers.get_logs(fromBlock: get_latest_block_number(-1000), toBlock: get_latest_block_number())
 
     case events do
       {:ok, list} -> Utils.get_last_n_items(list, amount)

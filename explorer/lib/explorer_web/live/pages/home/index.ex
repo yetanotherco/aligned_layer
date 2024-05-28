@@ -29,6 +29,7 @@ defmodule ExplorerWeb.Home.Index do
     latest_batches =
       AlignedLayerServiceManager.get_new_batch_events(5)
       |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
+      |> Enum.reverse()
 
     "latest_batches: " |> IO.inspect()
     IO.inspect(latest_batches)
