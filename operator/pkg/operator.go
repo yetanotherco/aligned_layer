@@ -286,7 +286,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		// Extract Proof Bytes
 		proofBytes := make([]byte, halo2kzg.MaxProofSize)
 		copy(proofBytes, verificationData.Proof)
-		proofLen := (uint)(len(verificationData.Proof))
+		proofLen := (uint32)(len(verificationData.Proof))
 
 		// Extract Verification Key Bytes
 		paramsBytes := verificationData.VerificationKey
@@ -294,21 +294,21 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		// Deserialize csLen
 		csLenBuffer := make([]byte, 4)
 		copy(csLenBuffer, paramsBytes[:4])
-		csLen := (uint)(binary.LittleEndian.Uint32(csLenBuffer))
+		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
 
 		// Deserialize vkLen
 		vkLenBuffer := make([]byte, 4)
 		copy(vkLenBuffer, paramsBytes[4:8])
-		vkLen := (uint)(binary.LittleEndian.Uint32(vkLenBuffer))
+		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
 
 		// Deserialize kzgParamLen
 		kzgParamsLenBuffer := make([]byte, 4)
 		copy(kzgParamsLenBuffer, paramsBytes[8:12])
-		kzgParamsLen := (uint)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
+		kzgParamsLen := (uint32)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
 
 		// Extract Constraint System Bytes
 		csBytes := make([]byte, halo2kzg.MaxConstraintSystemSize)
-		csOffset := uint(12)
+		csOffset := uint32(12)
 		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
 
 		// Extract Verification Key Bytes
@@ -325,7 +325,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		publicInput := verificationData.PubInput
 		publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
 		copy(publicInputBytes, publicInput)
-		publicInputLen := (uint)(len(publicInput))
+		publicInputLen := (uint32)(len(publicInput))
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
 			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen, 
