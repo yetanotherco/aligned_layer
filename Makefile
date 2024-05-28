@@ -51,6 +51,8 @@ operator_start:
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
+operator_register_and_start: operator_full_registration operator_start
+
 bindings:
 	cd contracts && ./generate-go-bindings.sh
 
@@ -110,7 +112,6 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 __BATCHER__:
 
 BURST_SIZE=10
-PROVING_SYSTEM?=sp1
 
 ./batcher/.env:
 	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
@@ -126,14 +127,32 @@ build_batcher_client:
 batcher/client/target/release/batcher-client:
 	@cd batcher/client && cargo b --release
 
-batcher_send_sp1_task: batcher/client/target/release/batcher-client
+batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/client/ && cargo run --release -- \
 		--proving_system SP1 \
-		--proof ../../test_files/sp1/sp1_fibonacci.proof \
-		--vm_program ../../test_files/sp1/sp1_fibonacci-elf
+		--proof test_files/sp1/sp1_fibonacci.proof \
+		--vm_program test_files/sp1/sp1_fibonacci-elf
 
-batcher_send_groth16_task: batcher/client/target/release/batcher-client
+batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system GnarkPlonkBn254 \
+		--proof test_files/plonk_bn254/plonk.proof \
+		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
+		--vk test_files/plonk_bn254/plonk.vk
+
+batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system GnarkPlonkBls12_381 \
+		--proof test_files/plonk_bls12_381/plonk.proof \
+		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
+		--vk test_files/plonk_bls12_381/plonk.vk \
+
+
+batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release --  \
 		--proving_system Groth16Bn254 \
