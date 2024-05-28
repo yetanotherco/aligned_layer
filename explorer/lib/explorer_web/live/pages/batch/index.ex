@@ -30,23 +30,25 @@ defmodule ExplorerWeb.Batch.Index do
 
     batchWasResponded = AlignedLayerServiceManager.is_batch_responded(merkle_root)
 
-
     {
       :ok,
       assign(socket,
         merkle_root: merkle_root,
         newBatchInfo: newBatchInfo,
-        batchWasResponded: batchWasResponded
+        batchWasResponded: batchWasResponded,
+        page_title: Utils.shorten_block_hash(merkle_root)
       )
     }
-    rescue
-      ex ->
-        # TODO handle different the 'without 0x prefix' error, for usability
-        if ex.message == "Invalid hex string" or ex.message == "Invalid hex string, missing '0x' prefix" do
-          {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty)}
-        else
-          raise ex
-        end
+  rescue
+    ex ->
+      # TODO handle different the 'without 0x prefix' error, for usability
+      if ex.message == "Invalid hex string" or
+           ex.message == "Invalid hex string, missing '0x' prefix" do
+        {:ok,
+         assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty)}
+      else
+        raise ex
+      end
   end
 
   embed_templates "*"

@@ -253,7 +253,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card_background(assigns) do
     ~H"""
-    <div class={["bg-background border border-foreground/20 rounded-2xl p-4", @class]}>
+    <div class={["bg-card border border-foreground/20 rounded-2xl p-4", @class]}>
       <%= render_slot(@inner_block) %>
     </div>
     """

@@ -8,12 +8,12 @@ defmodule ExplorerWeb.Batches.Index do
     page_size = 7
 
     batches =
-      AlignedLayerServiceManager.get_new_batch_events(page_size * current_page) |>
-      Enum.map(&AlignedLayerServiceManager.extract_new_batch_event_info/1) |>
-      Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1) |>
-      Enum.reverse()
+      AlignedLayerServiceManager.get_new_batch_events(page_size * current_page)
+      |> Enum.map(&AlignedLayerServiceManager.extract_new_batch_event_info/1)
+      |> Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1)
+      |> Enum.reverse()
 
-    {:ok, assign(socket, current_page: current_page, batches: batches)}
+    {:ok, assign(socket, current_page: current_page, batches: batches, page_title: "Batches")}
   end
 
   def get_current_page(params) do
@@ -26,6 +26,6 @@ defmodule ExplorerWeb.Batches.Index do
         if number < 1, do: 1, else: number
     end
   end
-  
+
   embed_templates "*"
 end

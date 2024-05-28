@@ -37,7 +37,8 @@ defmodule ExplorerWeb.Home.Index do
      assign(socket,
        verified_batches: shorthand_verified_batches,
        operators_registered: operators_registered,
-       latest_batches: latest_batches
+       latest_batches: latest_batches,
+       page_title: "Welcome"
      )}
   end
 
