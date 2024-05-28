@@ -45,7 +45,8 @@ async fn main() {
     println!("WebSocket handshake has been successfully completed");
     let (mut ws_write, ws_read) = ws_stream.split();
 
-    let proving_system = get_proving_system_from_str(&args.proving_system_flag);
+    let proving_system = get_proving_system_from_str(&args.proving_system_flag)
+        .expect("Invalid proving system");
 
     // Read proof file
     let proof =
