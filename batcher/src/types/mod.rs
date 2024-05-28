@@ -1,4 +1,5 @@
 use alloy_primitives::Address;
+use anyhow::anyhow;
 use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
 use lazy_static::lazy_static;
 use log::warn;
@@ -115,14 +116,6 @@ impl From<&Vec<VerificationData>> for VerificationCommitmentBatch {
     }
 }
 
-/// BatchInclusionData is the information that is retrieved to the clients once
-/// the verification data sent by them has been processed by Aligned.
-pub struct BatchInclusionData {
-    pub verification_data_commitment: VerificationDataCommitment,
-    pub batch_merkle_root: [u8; 32],
-    pub batch_inclusion_proof: Proof<[u8; 32]>,
-}
-
 impl IsMerkleTreeBackend for VerificationCommitmentBatch {
     type Node = [u8; 32];
     type Data = VerificationDataCommitment;
@@ -146,6 +139,24 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
     }
 }
 
+/// BatchInclusionData is the information that is retrieved to the clients once
+/// the verification data sent by them has been processed by Aligned.
+pub struct BatchInclusionData {
+    pub verification_data_commitment: VerificationDataCommitment,
+    pub batch_merkle_root: [u8; 32],
+    pub batch_inclusion_proof: Proof<[u8; 32]>,
+}
+
+pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
+    match proving_system {
+        "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
+        "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
+        "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
+        "SP1" => Ok(ProvingSystemId::SP1),
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1]", proving_system))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -165,15 +176,5 @@ mod test {
         let expected_parent = "71d8979cbfae9b197a4fbcc7d387b1fae9560e2f284d30b4e90c80f6bc074f57";
 
         assert_eq!(hex::encode(parent), expected_parent)
-    }
-}
-
-pub fn parse_proving_system(proving_system: &str) -> ProvingSystemId {
-    match proving_system {
-        "GnarkPlonkBls12_381" => ProvingSystemId::GnarkPlonkBls12_381,
-        "GnarkPlonkBn254" => ProvingSystemId::GnarkPlonkBn254,
-        "Groth16Bn254" => ProvingSystemId::Groth16Bn254,
-        "SP1" => ProvingSystemId::SP1,
-        _ => panic!("Invalid proving system: {}\nAvailable prooving systems:\n GnarkPlonkBls12_381\n GnarkPlonkBn254\n Groth16Bn254\n SP1", proving_system),
     }
 }

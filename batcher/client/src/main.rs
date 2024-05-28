@@ -63,7 +63,7 @@ async fn main() {
 
     let (mut ws_write, ws_read) = ws_stream.split();
 
-    let proving_system = parse_proving_system(&args.proving_system_flag);
+    let proving_system = parse_proving_system(&args.proving_system_flag).unwrap();
 
     // Read proof file
     let proof = std::fs::read(&args.proof_file_name)
@@ -105,7 +105,6 @@ async fn main() {
     };
 
     let json_data = serde_json::to_string(&verification_data).expect("Failed to serialize task");
-
     for _ in 0..args.repetitions {
         ws_write
             .send(tungstenite::Message::Text(json_data.to_string()))
