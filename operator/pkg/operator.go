@@ -11,10 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/celestiaorg/celestia-node/api/rpc/client"
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
 
-	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
@@ -44,8 +42,6 @@ type Operator struct {
 	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
-	disperser          disperser.DisperserClient
-	celestiaClient     *client.Client
 	metricsReg         *prometheus.Registry
 	metrics            *metrics.Metrics
 	//Socket  string
@@ -95,8 +91,6 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		NewTaskCreatedChan: newTaskCreatedChan,
 		aggRpcClient:       *rpcClient,
 		OperatorId:         operatorId,
-		disperser:          configuration.EigenDADisperserConfig.Disperser,
-		celestiaClient:     configuration.CelestiaConfig.Client,
 		metricsReg:         reg,
 		metrics:            operatorMetrics,
 		// Timeout
