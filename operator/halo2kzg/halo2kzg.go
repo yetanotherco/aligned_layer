@@ -28,23 +28,31 @@ const MaxKzgParamsSize = 4 * 1024;
 const MaxPublicInputSize = 4 * 1024;
 
 func VerifyHalo2KzgProof(
-	proofBuffer [MaxProofSize]byte, proofLen uint, 
-	csBuffer [MaxConstraintSystemSize]byte, csLen uint, 
-	vkBuffer [MaxVerifierKeySize]byte, vkLen uint, 
-	kzgParamBuffer [MaxKzgParamsSize]byte, kzgParamLen uint, 
-	publicInputBuffer [MaxPublicInputSize]byte, publicInputLen uint,
+	proofBuffer [MaxProofSize]byte, proofLen_u32 uint32, 
+	csBuffer [MaxConstraintSystemSize]byte, csLen_u32 uint32, 
+	vkBuffer [MaxVerifierKeySize]byte, vkLen_u32 uint32, 
+	kzgParamBuffer [MaxKzgParamsSize]byte, kzgParamLen_u32 uint32, 
+	publicInputBuffer [MaxPublicInputSize]byte, publicInputLen_u32 uint32,
 ) bool {
+	// Cast data pointers to C-types
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	csPtr := (*C.uchar)(unsafe.Pointer(&csBuffer[0]))
 	vkPtr := (*C.uchar)(unsafe.Pointer(&vkBuffer[0]))
 	kzgParamPtr := (*C.uchar)(unsafe.Pointer(&kzgParamBuffer[0]))
 	publicInputPtr := (*C.uchar)(unsafe.Pointer(&publicInputBuffer[0]))
+	
+	// Cast data lengths to C-Types
+	proofLen := (C.size_t)(proofLen_u32)
+	csLen := (C.size_t)(csLen_u32) 
+	vkLen := (C.size_t)(vkLen_u32)
+	kzgParamLen := (C.size_t)(kzgParamLen_u32)
+	publicInputLen := (C.size_t)(publicInputLen_u32) 
 
 	return (bool)(C.verify_halo2_kzg_proof_ffi(
-		proofPtr, (C.ulonglong)(proofLen), 
-		csPtr, (C.ulonglong)(csLen),
-		vkPtr, (C.ulonglong)(vkLen),
-		kzgParamPtr, (C.ulonglong)(kzgParamLen),
-		publicInputPtr, (C.ulonglong)(publicInputLen)),
+		proofPtr, proofLen, 
+		csPtr, csLen,
+		vkPtr, vkLen,
+		kzgParamPtr, kzgParamLen,
+		publicInputPtr, publicInputLen),
 	)
 }
