@@ -14,7 +14,7 @@ use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::error::ProtocolError;
 use tokio_tungstenite::tungstenite::Message;
-use types::{ProvingSystemId, VerificationCommitmentBatch};
+use types::VerificationCommitmentBatch;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
