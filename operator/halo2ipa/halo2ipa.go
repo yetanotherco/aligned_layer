@@ -29,23 +29,31 @@ const MaxPublicInputSize = 4 * 1024;
 
 //Merge all pointers into one array and send across interface
 func VerifyHalo2IpaProof(
-	proofBuffer [MaxProofSize]byte, proofLen uint, 
-	csBuffer [MaxConstraintSystemSize]byte, csLen uint, 
-	vkBuffer [MaxVerifierKeySize]byte, vkLen uint, 
-	ipaParamBuffer [MaxIpaParamsSize]byte, ipaParamLen uint, 
-	publicInputBuffer [MaxPublicInputSize]byte, publicInputLen uint,
+	proofBuffer [MaxProofSize]byte, proofLen_u32 uint32, 
+	csBuffer [MaxConstraintSystemSize]byte, csLen_u32 uint32, 
+	vkBuffer [MaxVerifierKeySize]byte, vkLen_u32 uint32, 
+	ipaParamBuffer [MaxIpaParamsSize]byte, ipaParamLen_u32 uint32, 
+	publicInputBuffer [MaxPublicInputSize]byte, publicInputLen_u32 uint32,
 ) bool {
+	// Cast data pointers to C-types
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	csPtr := (*C.uchar)(unsafe.Pointer(&csBuffer[0]))
 	vkPtr := (*C.uchar)(unsafe.Pointer(&vkBuffer[0]))
 	ipaParamPtr := (*C.uchar)(unsafe.Pointer(&ipaParamBuffer[0]))
 	publicInputPtr := (*C.uchar)(unsafe.Pointer(&publicInputBuffer[0]))
 
+	// Cast data length to C-types
+	proofLen := (C.size_t)(proofLen_u32)
+	csLen := (C.size_t)(csLen_u32) 
+	vkLen := (C.size_t)(vkLen_u32)
+	ipaParamLen := (C.size_t)(ipaParamLen_u32)
+	publicInputLen := (C.size_t)(publicInputLen_u32) 
+
 	return (bool)(C.verify_halo2_ipa_proof_ffi(
-		proofPtr, (C.ulonglong)(proofLen), 
-		csPtr, (C.ulonglong)(csLen),
-		vkPtr, (C.ulonglong)(vkLen),
-		ipaParamPtr, (C.ulonglong)(ipaParamLen),
-		publicInputPtr, (C.ulonglong)(publicInputLen)),
+		proofPtr, proofLen, 
+		csPtr, csLen,
+		vkPtr, vkLen,
+		ipaParamPtr, ipaParamLen,
+		publicInputPtr, publicInputLen),
 	)
 }

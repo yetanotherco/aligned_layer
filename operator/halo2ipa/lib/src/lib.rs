@@ -40,15 +40,15 @@ pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
 #[no_mangle]
 pub extern "C" fn verify_halo2_ipa_proof_ffi(
 proof_buf: &[u8; MAX_PROOF_SIZE],
-proof_len: u64,
+proof_len: u32,
 cs_buf: &[u8; MAX_CONSTRAINT_SYSTEM_SIZE],
-cs_len: u64,
+cs_len: u32,
 verifier_key_buf: &[u8; MAX_VERIFIER_KEY_SIZE],
-vk_len: u64,
+vk_len: u32,
 ipa_params_buf: &[u8; MAX_IPA_PARAMS_SIZE],
-ipa_params_len: u64,
+ipa_params_len: u32,
 public_input_buf: &[u8; MAX_PUBLIC_INPUT_SIZE],
-public_input_len: u64,
+public_input_len: u32,
 ) -> bool {
     if let Ok(cs) = bincode::deserialize(&cs_buf[..(cs_len as usize)]) {
         if let Ok(vk) = VerifyingKey::<G1Affine>::read(&mut BufReader::new(&verifier_key_buf[..(vk_len as usize)]), SerdeFormat::RawBytes, cs) {
@@ -358,7 +358,6 @@ mod tests {
 
 	#[test]
 	fn verify_halo2_plonk_proof() {
-        //TODO: add verifying halo2 proof with lookups
         // Select Proof Bytes
         let mut proof_buffer = [0u8; MAX_PROOF_SIZE];
         let proof_len = PROOF.len();
@@ -390,7 +389,7 @@ mod tests {
         let public_input_len = PUB_INPUT.len();
         public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
 
-        let result = verify_halo2_ipa_proof_ffi(&proof_buffer, proof_len as u64, &cs_buffer, cs_len as u64, &vk_buffer, vk_len as u64, &ipa_params_buffer, ipa_params_len as u64, &public_input_buffer, public_input_len as u64);
+        let result = verify_halo2_ipa_proof_ffi(&proof_buffer, proof_len as u32, &cs_buffer, cs_len as u32, &vk_buffer, vk_len as u32, &ipa_params_buffer, ipa_params_len as u32, &public_input_buffer, public_input_len as u32);
         assert!(result)
 	}
 
@@ -427,7 +426,7 @@ mod tests {
         let public_input_len = PUB_INPUT.len();
         public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
 
-        let result = verify_halo2_ipa_proof_ffi(&proof_buffer, (proof_len - 1) as u64, &cs_buffer, cs_len as u64, &vk_buffer, vk_len as u64, &ipa_params_buffer, ipa_params_len as u64, &public_input_buffer, public_input_len as u64);
+        let result = verify_halo2_ipa_proof_ffi(&proof_buffer, (proof_len - 1) as u32, &cs_buffer, cs_len as u32, &vk_buffer, vk_len as u32, &ipa_params_buffer, ipa_params_len as u32, &public_input_buffer, public_input_len as u32);
         assert!(!result)
 	}
 }

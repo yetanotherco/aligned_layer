@@ -71,11 +71,11 @@ func TestHalo2IpaProofVerifies(t *testing.T) {
 	}
 
 	if !halo2ipa.VerifyHalo2IpaProof(
-		([halo2ipa.MaxProofSize]byte)(proofBytes), uint(nReadProofBytes), 
-		([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), uint(csLen),
-		([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), uint(vkLen),
-		([halo2ipa.MaxIpaParamsSize]byte)(ipaParamsBytes), uint(ipaParamsLen),
-		([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), uint(nReadPublicInputBytes),
+		([halo2ipa.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes), 
+		([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), uint32(csLen),
+		([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), uint32(vkLen),
+		([halo2ipa.MaxIpaParamsSize]byte)(ipaParamsBytes), uint32(ipaParamsLen),
+		([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), uint32(nReadPublicInputBytes),
 	) {
 		t.Errorf("proof did not verify")
 	}

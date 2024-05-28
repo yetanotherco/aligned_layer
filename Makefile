@@ -410,7 +410,7 @@ build_halo2_ipa_linux:
 	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.so operator/halo2ipa/lib/libhalo2ipa_verifier.so
 	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
 
-test_halo2_ipa_ffi:
+test_halo2_ipa_rust_ffi:
 	@echo "Testing Halo2-KZG Rust FFI source code..."
 	@cd operator/halo2ipa/lib && cargo t --release
 
