@@ -71,11 +71,11 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	}
 
 	if !halo2kzg.VerifyHalo2KzgProof(
-		([halo2kzg.MaxProofSize]byte)(proofBytes), uint(nReadProofBytes), 
-		([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), uint(csLen),
-		([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), uint(vkLen),
-		([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), uint(kzgParamsLen),
-		([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), uint(nReadPublicInputBytes),
+		([halo2kzg.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes), 
+		([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), uint32(csLen),
+		([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), uint32(vkLen),
+		([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), uint32(kzgParamsLen),
+		([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), uint32(nReadPublicInputBytes),
 	) {
 		t.Errorf("proof did not verify")
 	}
