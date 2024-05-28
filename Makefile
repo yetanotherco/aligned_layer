@@ -133,7 +133,7 @@ batcher_send_sp1_task:
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf
 
-batcher_send_groth16_task: batcher/client/target/release/batcher-client
+batcher_send_groth16_task:
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
