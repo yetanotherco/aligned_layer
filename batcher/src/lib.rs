@@ -32,7 +32,6 @@ pub struct Batcher {
     s3_client: S3Client,
     eth_ws_provider: Provider<Ws>,
     service_manager: AlignedLayerServiceManager,
-    // eth_ws_url: String,
     current_batch: Mutex<Vec<VerificationData>>,
     max_block_interval: u64,
     min_batch_size: usize,
