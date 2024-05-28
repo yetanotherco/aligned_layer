@@ -224,12 +224,12 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-		return verificationResult
+		results <- verificationResult
 	case common.Halo2IPA:
 		// Extract Proof Bytes
 		proofBytes := make([]byte, halo2ipa.MaxProofSize)
 		copy(proofBytes, verificationData.Proof)
-		proofLen := (uint)(len(verificationData.Proof))
+		proofLen := (uint32)(len(verificationData.Proof))
 
 		// Extract Verification Key Bytes
 		paramsBytes := verificationData.VerificationKey
@@ -237,21 +237,21 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		// Deserialize csLen
 		csLenBuffer := make([]byte, 4)
 		copy(csLenBuffer, paramsBytes[:4])
-		csLen := (uint)(binary.LittleEndian.Uint32(csLenBuffer))
+		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
 
 		// Deserialize vkLen
 		vkLenBuffer := make([]byte, 4)
 		copy(vkLenBuffer, paramsBytes[4:8])
-		vkLen := (uint)(binary.LittleEndian.Uint32(vkLenBuffer))
+		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
 
 		// Deserialize ipaParamLen
 		IpaParamsLenBuffer := make([]byte, 4)
 		copy(IpaParamsLenBuffer, paramsBytes[8:12])
-		IpaParamsLen := (uint)(binary.LittleEndian.Uint32(IpaParamsLenBuffer))
+		IpaParamsLen := (uint32)(binary.LittleEndian.Uint32(IpaParamsLenBuffer))
 
 		// Extract Constraint System Bytes
-		csBytes := make([]byte, halo2Ipa.MaxConstraintSystemSize)
-		csOffset := uint(12)
+		csBytes := make([]byte, halo2ipa.MaxConstraintSystemSize)
+		csOffset := uint32(12)
 		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
 
 		// Extract Verification Key Bytes
@@ -260,25 +260,25 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
 
 		// Extract ipa Parameter Bytes
-		IpaParamsBytes := make([]byte,(halo2Ipa.MaxipaParamsSize))
+		IpaParamsBytes := make([]byte,(halo2ipa.MaxIpaParamsSize))
 		IpaParamsOffset := vkOffset + vkLen
 		copy(IpaParamsBytes, paramsBytes[IpaParamsOffset:])
 
 		// Extract Public Input Bytes
 		publicInput := verificationData.PubInput
-		publicInputBytes := make([]byte, halo2Ipa.MaxPublicInputSize)
+		publicInputBytes := make([]byte, halo2ipa.MaxPublicInputSize)
 		copy(publicInputBytes, publicInput)
-		publicInputLen := (uint)(len(publicInput))
+		publicInputLen := (uint32)(len(publicInput))
 
-		verificationResult := halo2Ipa.Verifyhalo2ipaProof(
-			([halo2Ipa.MaxProofSize]byte)(proofBytes), proofLen, 
-			([halo2Ipa.MaxConstraintSystemSize]byte)(csBytes), csLen,
-			([halo2Ipa.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
-			([halo2Ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen, 
-			([halo2Ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
+		verificationResult := halo2ipa.VerifyHalo2IpaProof(
+			([halo2ipa.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), csLen,
+			([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
+			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen, 
+			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 
 		o.Logger.Infof("Halo2-ipa proof verification result: %t", verificationResult)
-		return verificationResult
+		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
