@@ -9,18 +9,19 @@ use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Http;
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, StreamExt, TryStreamExt};
+use gnark::verify_gnark;
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use sha3::{Digest, Sha3_256};
 use sp1_sdk::ProverClient;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
+use types::VerificationCommitmentBatch;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
-use crate::gnark::verify_gnark;
-use crate::types::{VerificationBatch, VerificationData};
+use crate::types::VerificationData;
 
 mod config;
 mod eth;
@@ -159,12 +160,13 @@ impl App {
                     .expect("Verification key is required");
 
                 let public_inputs = verification_data
-                    .public_input
+                    .pub_input
                     .as_ref()
                     .expect("Public input is required");
 
                 let is_valid =
                     verify_gnark(&verification_data.proving_system, proof, public_inputs, vk);
+
                 debug!("Proof is valid: {}", is_valid);
 
                 if is_valid {
@@ -249,8 +251,10 @@ impl App {
                 return;
             }
 
-            let batch_merkle_tree: MerkleTree<VerificationBatch> =
-                MerkleTree::build(&current_batch);
+            let batch_commitment = VerificationCommitmentBatch::from(&(*current_batch));
+
+            let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
+                MerkleTree::build(&batch_commitment.0);
 
             let batch_bytes =
                 serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
