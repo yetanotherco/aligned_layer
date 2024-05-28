@@ -1,35 +1,83 @@
-# Aligned Layer
+# Aligned
 
 > [!CAUTION]
 > To be used in testnet only.
 
-Basic repo demoing a Stark/Snark verifier AVS middleware with full EigenLayer integration.
-
 
 ## The Project
 
-Aligned Layer works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned Layer.
+Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned.
 
-## How to send proofs in testnet
+## How to send proofs to testnet
 
-Send SP1 proof:
+### Dependencies
+
+- [Rust](https://www.rust-lang.org/tools/install)
+
+### Run
+
+#### SP1 proof
+
+The SP1 proof needs the proof file and the vm program file.
+
 ```bash
-make batcher_send_sp1_task
+cd batcher/client/ && cargo run --release -- \
+--proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proof <proof_file> \
+--vm_program <vm_program_file> \
+--conn batcher.alignedlayer.com
 ```
 
-Send Groth 16 proof:
+**Example**
+
 ```bash
-make batcher_send_groth16_task
+cd batcher/client/ && cargo run --release -- \
+--proving_system SP1 \
+--proof test_files/sp1/sp1_fibonacci.proof \
+--vm_program test_files/sp1/sp1_fibonacci-elf \
+--con batcher.alignedlayer.com
 ```
 
-Send infinite Groth 16 proofs:
+#### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
+
+The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
+
 ```bash
-make batcher_send_infinite_groth16
+cd batcher/client/ && cargo run --release -- \
+--proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proof <proof_file> \
+--public_input <public_input_file> \
+--vk <verification_key_file> \
+--conn batcher.alignedlayer.com
 ```
 
-Send burst of Groth 16 proofs:
+**Examples**
+
 ```bash
-make batcher_send_burst_groth16
+cd batcher/client/ && cargo run --release -- \
+--proving_system GnarkPlonkBn254 \
+--proof test_files/plonk_bn254/plonk.proof \
+--public_input test_files/plonk_bn254/plonk_pub_input.pub \
+--vk test_files/plonk_bn254/plonk.vk \
+--conn batcher.alignedlayer.com
+```
+
+```bash
+cd batcher/client/ && cargo run --release -- \
+--proving_system GnarkPlonkBls12_381 \
+--proof test_files/plonk_bls12_381/plonk.proof \
+--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
+--vk test_files/plonk_bls12_381/plonk.vk \
+--conn batcher.alignedlayer.com
+```
+
+```bash
+cd batcher/client/ && cargo run --release -- \
+--proving_system Groth16Bn254 \
+--proof test_files/groth16/ineq_1_groth16.proof \
+--public_input test_files/groth16/ineq_1_groth16.pub \
+--vk test_files/groth16/ineq_1_groth16.vk \
+--conn batcher.alignedlayer.com
 ```
 
 ## Setup
@@ -220,13 +268,13 @@ make operator_register_with_aligned_layer CONFIG_FILE=<path_to_config_file>
 
 ### Full Registration in Anvil
 
-To register an operator in EigenLayer and AlignedLayer and deposit strategy tokens in EigenLayer with the default configuration, run:
+To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with the default configuration, run:
 
 ```bash
 make operator_full_registration
 ```
 
-To register an operator in EigenLayer and AlignedLayer and deposit strategy tokens in EigenLayer with a custom configuration, run:
+To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with a custom configuration, run:
 
 ```bash
 make operator_full_registration CONFIG_FILE=<path_to_config_file>
@@ -391,9 +439,11 @@ make batcher_send_burst_groth16
 #### Send specific proof
 
 ```bash
-./batcher/test-client/target/debug/test-client \
-  --proving_system <desired_proving_system> \
-  --proof <proof_file>
+cd batcher/client/ && cargo run --release -- \
+--proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proof <proof_file> \
+--vm_program <vm_program_file> \
+--conn batcher.alignedlayer.com
 ```
 
 #### Optional flags
@@ -536,11 +586,11 @@ Current EigenLayer contracts:
 - [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json)
 - [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/Mainnet_current_deployment.config.json)
 
-### AlignedLayer
+### Aligned
 
 #### Anvil
 
-When changing AlignedLayer contracts, the anvil state needs to be updated with:
+When changing Aligned contracts, the anvil state needs to be updated with:
 
 ```bash
 make anvil_deploy_aligned_contracts
