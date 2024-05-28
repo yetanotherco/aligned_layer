@@ -1,18 +1,52 @@
-<div class="flex flex-col space-y-3 bg-zinc-200 dark:bg-zinc-900 rounded-2xl px-6 py-8 min-h-[40rem] text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
-  <h1 class="text-5xl font-bold">Batches</h1>
-  <%!-- <.table id="tasks" rows={@tasks}>
-    <:col :let={task} label="id"><%= task.taskId %></:col>
-    <:col :let={task} label="Hash"><%= task.transaction_hash %></:col>
-    <:col :let={task} label="block number"><%= task.block_number %></:col>
-    <:col :let={task} label="proof is responded"><%= task.proof_is_responded %></:col>
-    <:col :let={task} label="proof is correct"><%= task.proof_is_correct %></:col>
-  </.table>
-  <div>
-    <.button phx-click={JS.push("previous_page", value: %{current_page: @current_page})}>
-      Previous
+<div class="flex flex-col space-y-3  text-foreground max-w-96 md:max-w-3xl lg:max-w-5xl mx-auto capitalize mb-12">
+  <h1 class="text-5xl font-bold">Latest Batches</h1>
+  <.card class="px-5 pt-6 pb-7" inner_class="text-base space-y-3">
+    <div class="grid grid-cols-4 text-muted-foreground font-normal">
+      <span class="col-span-2">Batch Merkle Root</span>
+      <span class="place-self-end">Block Number</span>
+      <span class="place-self-end">Is verified</span>
+    </div>
+    <%= for batch <- @batches do %>
+      <a href={"/batches/#{batch.batch_merkle_root}"} class="grid grid-cols-4 group">
+        <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
+          <%= Utils.shorten_block_hash(batch.batch_merkle_root) %>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class={[
+              "w-5 h-5 stroke-foreground group-hover:stroke-foreground/80",
+              "-translate-x-1 group-hover:translate-x-0"
+            ]}
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </span>
+        <span class="font-normal place-self-end group-hover:text-foreground/80">
+          <%= batch.task_created_block_number %>
+        </span>
+        <span class={[
+          "font-medium text-base place-self-end mr-4 rounded-full px-1 text-black",
+          case batch.responded do
+            true -> "bg-primary group-hover:bg-primary/80"
+            false -> "bg-secondary group-hover:bg-secondary/80"
+          end
+        ]}>
+          <%= batch.responded %>
+        </span>
+      </a>
+    <% end %>
+  </.card>
+  <a href={"?page=#{@current_page + 1}"}>
+    <.button class="text-muted-foreground flex self-center">
+      Show More
     </.button>
-    <.button phx-click={JS.push("next_page", value: %{current_page: @current_page})}>
-      Next
-    </.button>
-  </div> --%>
+  </a>
 </div>
