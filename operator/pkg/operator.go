@@ -136,7 +136,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			// o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
-				o.Logger.Errorf("Proof in batch did not verify", "err", err)
+				o.Logger.Errorf("Batch did not verify", "err", err)
 				continue
 			}
 			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
