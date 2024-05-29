@@ -14,6 +14,12 @@ run:
 	@echo "Starting the Elixir backend server"
 	./start.sh
 
+build_db:
+	@docker build -t explorer-postgres-image .
+
+run_db:
+	@docker run -d --name explorer-postgres-container -p 5432:5432 explorer-postgres-image
+
 create_env:
 	@echo "Creating environment variables files .env",
 	@cp .env.example .env
