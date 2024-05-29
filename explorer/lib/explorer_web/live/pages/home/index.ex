@@ -31,6 +31,8 @@ defmodule ExplorerWeb.Home.Index do
       |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
       |> Enum.reverse()
 
+    # amount_of_proofs = S3Handler.calculateAmountOfProofs()
+
     "latest_batches: " |> IO.inspect()
     IO.inspect(latest_batches)
 
@@ -39,6 +41,7 @@ defmodule ExplorerWeb.Home.Index do
        verified_batches: shorthand_verified_batches,
        operators_registered: operators_registered,
        latest_batches: latest_batches,
+       amount_of_proofs: 0,
        page_title: "Welcome"
      )}
   end
