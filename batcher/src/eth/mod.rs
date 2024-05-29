@@ -1,4 +1,3 @@
-use std::future::Future;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -53,20 +52,4 @@ pub async fn create_new_task(
         Some(receipt) => Ok(receipt),
         None => Err(anyhow::anyhow!("Receipt not found")),
     }
-}
-
-pub async fn poll_new_blocks<F, Fut>(eth_ws_url: String, callback: F) -> Result<(), anyhow::Error>
-where
-    F: Fn(u64) -> Fut,
-    Fut: Future,
-{
-    let provider = Provider::<Ws>::connect(eth_ws_url).await?;
-    let mut stream = provider.subscribe_blocks().await?;
-    while let Some(block) = stream.next().await {
-        let block_number = block.number.unwrap();
-        let block_number = u64::try_from(block_number).map_err(|err| anyhow::anyhow!(err))?;
-        callback(block_number).await;
-    }
-
-    Ok(())
 }

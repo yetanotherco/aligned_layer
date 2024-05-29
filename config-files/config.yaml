@@ -17,19 +17,10 @@ bls:
   private_key_store_path: "config-files/anvil.bls.key.json"
   private_key_store_password: ""
 
-## EigenDA Configurations
-eigen_da:
-  url: "disperser-holesky.eigenda.xyz"
-
-## Celestia Configurations
-celestia:
-  url: "http://localhost:26658"
-  keystore: "~/.celestia-light-arabica-11"
-
 ## Batcher configurations
 batcher:
-  block_interval: 1
-  batch_size_interval: 3
+  block_interval: 3
+  batch_size_interval: 5
 
 ## Aggregator Configurations
 aggregator:
