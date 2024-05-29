@@ -1,4 +1,4 @@
-name: test-sp1
+name: test-halo2-ipa
 
 on:
   merge_group:
