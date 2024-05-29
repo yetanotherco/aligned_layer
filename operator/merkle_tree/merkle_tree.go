@@ -13,8 +13,8 @@ const (
 	MaxBatchSize = 8301009
 )
 
-func VerifyMerkleTreeBatch(batchBuffer [MaxBatchSize]byte, batchLen uint, merkleRootBuffer [32]byte) bool {
+func VerifyMerkleTreeBatch(batchBuffer [MaxBatchSize]byte, batchLen uint32, merkleRootBuffer [32]byte) bool {
 	batchPtr := (*C.uchar)(unsafe.Pointer(&batchBuffer[0]))
 	merkleRootPtr := (*C.uchar)(unsafe.Pointer(&merkleRootBuffer[0]))
-	return (bool)(C.verify_merkle_tree_batch_ffi(batchPtr, (C.uint)(batchLen), merkleRootPtr))
+	return (bool)(C.verify_merkle_tree_batch_ffi(batchPtr, (C.uint32_t)(batchLen), merkleRootPtr))
 }
