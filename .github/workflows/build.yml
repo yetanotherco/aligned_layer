@@ -19,6 +19,8 @@ jobs:
           cache: false
       - name: Build SP1 bindings
         run: make build_sp1_linux
+      - name: Build Lambdaworks Merkle Tree bindings
+        run: make build_merkle_tree_linux
       - name: Build operator
         run: go build operator/cmd/main.go
       - name: Build aggregator
