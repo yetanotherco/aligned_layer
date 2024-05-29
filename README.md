@@ -3,18 +3,14 @@
 > [!CAUTION]
 > To be used in testnet only.
 
-## Index
+## Table of Contents
 
 - [Aligned](#aligned)
-  - [Index](#index)
+  - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
   - [Local Devnet Setup](#local-devnet-setup)
-  - [Aggregator](#aggregator)
-  - [Operator](#operator)
-  - [Batcher](#batcher)
-  - [Task Sender](#task-sender)
-  - [Deploy Contracts](#deploy-contracts)
+  - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
   - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
   - [Tests](#tests)
@@ -155,7 +151,17 @@ make install_eigenlayer_cli
 
 ### Booting Devnet with Default configs
 
-Run in different terminals the following commands to boot Aligned locally:
+Before starting you need to setup an S3 bucket. More data storage will be tested in the future.
+
+You need to fill the data in:
+
+```batcher/.env```
+
+And you can use this file as an example on how to fill it:
+
+```batcher/.env.example```
+
+After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
 ```bash
 make anvil_start_with_block_time
@@ -182,7 +188,6 @@ make batcher_send_sp1_task
 
 All these proofs are for testing purposes
 
-
 Send 8 proofs each second:
 
 ```bash
@@ -201,10 +206,11 @@ Send an individual Groth 16 proof:
 make batcher_send_groth16_task
 ```
 
-// to review
+### Detailed Testnet Deployment
 
+#### Changing operator keys
 
-### Keystores
+Operator keys can be changed if needed.
 
 To create a keystore, run:
 
@@ -225,9 +231,7 @@ To create a BLS keystore, run:
 eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
 ```
 
-## Aggregator
-
-### Run
+#### Aggregator
 
 If you want to run the aggregator with the default configuration, run:
 
@@ -241,46 +245,13 @@ To start the aggregator with a custom configuration, run:
 make aggregator_start CONFIG_FILE=<path_to_config_file>
 ```
 
-### Config
+#### Operator
 
-There is a default configuration for devnet purposes in `config-files/config.yaml`.
+Operator needs to register in both EigenLayer and Aligned. Then it can start verifying proofs.
 
-The configuration file has the following structure:
+##### Register into EigenLayer
 
-```yaml
-# Common variables for all the services
-# 'production' only prints info and above. 'development' also prints debug
-environment: <production/development>
-aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
-eigen_layer_deployment_config_file_path: <path_to_eigen_layer_deployment_config_file>
-eth_rpc_url: <http_rpc_url>
-eth_ws_url: <ws_rpc_url>
-eigen_metrics_ip_port_address: <ip:port>
-
-## ECDSA Configurations
-ecdsa:
-  private_key_store_path: <path_to_ecdsa_private_key_store>
-  private_key_store_password: <ecdsa_private_key_store_password>
-
-## BLS Configurations
-bls:
-  private_key_store_path: <path_to_bls_private_key_store>
-  private_key_store_password: <bls_private_key_store_password>
-
-## Aggregator Configurations
-aggregator:
-  server_ip_port_address: <ip:port>
-  bls_public_key_compendium_address: 
-  avs_service_manager_address: 
-  enable_metrics: <true/false>
-```
-
-
-## Operator
-
-### Register into EigenLayer
-
-To register an operator in EigenLayer with the default configuration, run:
+To register an operator in EigenLayer Devnet with the default configuration, run:
 
 ```bash
 make operator_register_with_eigen_layer
@@ -292,7 +263,7 @@ To register an operator in EigenLayer with a custom configuration, run:
 make operator_register_with_eigen_layer CONFIG_FILE=<path_to_config_file>
 ```
 
-### Register into Aligned
+##### Register into Aligned
 
 To register an operator in Aligned with the default configuration, run:
 
@@ -306,7 +277,7 @@ To register an operator in Aligned with a custom configuration, run:
 make operator_register_with_aligned_layer CONFIG_FILE=<path_to_config_file>
 ```
 
-### Full Registration in Anvil
+##### Full Registration in Anvil with one command
 
 To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with the default configuration, run:
 
@@ -320,9 +291,7 @@ To register an operator in EigenLayer and Aligned and deposit strategy tokens in
 make operator_full_registration CONFIG_FILE=<path_to_config_file>
 ```
 
-### Deposit Strategy Tokens
-
-#### Anvil
+##### Deposit Strategy Tokens in Anvil
 
 There is an ERC20 token deployed in the Anvil chain to use as strategy token with EigenLayer.
 
@@ -340,7 +309,7 @@ make operator_mint_mock_tokens CONFIG_FILE=<path_to_config_file>
 make operator_deposit_into_mock_strategy CONFIG_FILE=<path_to_config_file>
 ```
 
-#### Holesky/Mainnet
+#### Deposit Strategy tokens in Holesky/Mainnet
 
 EigenLayer strategies are available in [eigenlayer-strategies](https://holesky.eigenlayer.xyz/restake).
 
@@ -348,7 +317,7 @@ For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as
 
 To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/stage-2-testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
 
-### Config
+#### Config
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 Also, there are 3 different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
@@ -391,7 +360,7 @@ signer_type: local_keystore
 chain_id: <chain_id>
 ```
 
-### Run
+#### Run
 
 If you want to run the operator with the default configuration, run:
 
@@ -406,9 +375,10 @@ make operator_start CONFIG_FILE=<path_to_config_file>
 ```
 
 
-## Batcher
+### Batcher
 
-### Config
+#### Config
+
 To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/`).
 
 The necessary environment variables are:
@@ -442,13 +412,13 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
-### Run
+#### Run
 
 ```bash
 make batcher_start
 ```
 
-### Send task
+### Send tasks
 
 #### Sending a Task to the Batcher using our Rust TaskSender CLI
 
@@ -490,9 +460,9 @@ cd batcher/client/ && cargo run --release -- \
 ```
 
 
-## Task Sender
+### Task Sender
 
-### Config
+#### Config
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 
@@ -528,7 +498,7 @@ To send PLONK BLS12_381 proofs in loop, run:
 make send_plonk_bls12_381_proof_loop
 ```
 
-### Send PLONK BN254 proof
+#### Send PLONK BN254 proof
 
 To send a single PLONK BN254 proof, run:
 
@@ -542,7 +512,7 @@ To send PLONK BN254 proofs in loop, run:
 make send_plonk_bn254_proof_loop
 ```
 
-### Send Groth 16 BN254 proof
+#### Send Groth 16 BN254 proof
 
 To send a single Groth 16 BN254 proof, run:
 
@@ -562,7 +532,7 @@ To send different Groth 16 BN254 proofs in loop, run:
 make send_infinite_groth16_bn254_proof
 ```
 
-### Send SP1 proof
+#### Send SP1 proof
 
 To send a single SP1 proof, run:
 
@@ -570,7 +540,7 @@ To send a single SP1 proof, run:
 make send_sp1_proof
 ```
 
-### Send a specific proof
+#### Send a specific proof
 
 ```bash
 go run task_sender/cmd/main.go send-task \
@@ -583,7 +553,7 @@ go run task_sender/cmd/main.go send-task \
 2>&1 | zap-pretty
 ```
 
-### Send a specific proof in loop
+#### Send a specific proof in loop
 
 ```bash
 go run task_sender/cmd/main.go loop-tasks
@@ -596,13 +566,11 @@ go run task_sender/cmd/main.go loop-tasks
     --interval <interval-in-seconds>
 ```
 
-## Deploy Contracts
+## Deploying Aligned Contracts to Holesky or Testnet
 
-### EigenLayer
+### Eigenlayer Contracts: Anvil 
 
-#### Anvil
-
-When changing EigenLayer contracts, the anvil state needs to be updated with:
+If EigenLayer contracts change, the anvil state needs to be updated with:
 
 ```bash
 make anvil_deploy_eigen_contracts
@@ -614,16 +582,15 @@ You will also need to redeploy the MockStrategy & MockERC20 contracts:
 make anvil_deploy_mock_strategy
 ```
 
-#### Holesky/Mainnet
+### Eigenlayer Contracts: Holesky/Mainnet
 
-Current EigenLayer contracts:
+These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
 - [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json)
 - [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/Mainnet_current_deployment.config.json)
 
-### Aligned
 
-#### Anvil
+### Aligned Contracts: Anvil
 
 When changing Aligned contracts, the anvil state needs to be updated with:
 
@@ -631,7 +598,7 @@ When changing Aligned contracts, the anvil state needs to be updated with:
 make anvil_deploy_aligned_contracts
 ```
 
-#### Holesky/Mainnet
+#### Aligned Contracts: Holesky/Mainnet
 
 To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same directory as the deployment script (`contracts/scripts/`).
 
