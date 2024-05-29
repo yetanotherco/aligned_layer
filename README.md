@@ -713,6 +713,48 @@ To run the go tests
 make test
 ```
 
+# Verify Proofs
+
+## SP1
+
+### Dependencies
+This guide assumes that:
+- sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
+- sp1 project to generate the proofs (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
+- aligned layer repository cloned:
+    ```bash
+    git clone https://github.com/yetanotherco/aligned_layer.git
+    ```
+
+### How to generate a proof
+
+> AlignedLayer only verifies SP1 in compressed version. 
+> You can check you are using compressed by opening script/src/main.rs
+and check that the proof is generated with `client.prove_compressed` instead of `client.prove`.
+
+First, open a terminal and navigate to the script folder in the sp1 project directory 
+
+Then, run the following command to generate a proof:
+```bash
+cargo run --release
+```
+
+### How to get the proof verified by AlignedLayer
+
+After generating the proof, you will have to find two different files:
+- proof file: usually found under `script` directory, with the name `proof.json` or similar
+- elf file: usually found under `program/elf/` directory
+
+Then, you can send the proof to the AlignedLayer network by running the following command
+from `batcher/client` folder inside the AlignedLayer repository directory:
+
+```bash
+cargo run --release -- \
+--proving_system SP1 \
+--proof <proof_path> \
+--vm_program <vm_program_path> \
+--conn batcher.alignedlayer.com
+```
 
 ## FAQ
 
