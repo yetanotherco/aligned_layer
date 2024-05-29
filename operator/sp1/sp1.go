@@ -15,8 +15,8 @@ const MaxProofSize = 2 * 1024 * 1024
 // MaxElfBufferSize 1 MB
 const MaxElfBufferSize = 1024 * 1024
 
-func VerifySp1Proof(proofBuffer [MaxProofSize]byte, proofLen uint, elfBuffer [MaxElfBufferSize]byte, elfLen uint) bool {
+func VerifySp1Proof(proofBuffer [MaxProofSize]byte, proofLen uint32, elfBuffer [MaxElfBufferSize]byte, elfLen uint32) bool {
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
-	return (bool)(C.verify_sp1_proof_ffi(proofPtr, (C.ulonglong)(proofLen), elfPtr, (C.ulonglong)(elfLen)))
+	return (bool)(C.verify_sp1_proof_ffi(proofPtr, (C.uint32_t)(proofLen), elfPtr, (C.uint32_t)(elfLen)))
 }
