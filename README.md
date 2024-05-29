@@ -753,7 +753,7 @@ cargo run --release -- \
 --proving_system SP1 \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
---conn batcher.alignedlayer.com
+--conn ws://batcher.alignedlayer.com
 ```
 
 ## FAQ
