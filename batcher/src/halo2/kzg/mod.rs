@@ -18,44 +18,34 @@ use halo2_proofs::{
 };
 use halo2curves::bn256::{Bn256, Fr, G1Affine};
 
-//TODO: remove these????
-// MaxConstraintSystemSize 2KB
-pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
-
-// MaxVerificationKeySize 1KB
-pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
-
-// MaxKzgParamsSize 4KB
-pub const MAX_KZG_PARAMS_SIZE: usize = 4 * 1024;
-
 pub fn verify_halo2_kzg(
     proof: &[u8],
     public_input: &[u8],
     verification_key: &[u8],
 ) -> bool {
-        let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
+        let mut cs_buffer = Vec::new();
         let cs_len_buf: [u8; 4] = verification_key[..4].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
         let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
         let cs_offset = 12;
         cs_buffer[..cs_len].clone_from_slice(&verification_key[cs_offset..(cs_offset + cs_len)]);
 
         // Select Verifier Key Bytes
-        let mut vk_buffer = [0u8; MAX_VERIFIER_KEY_SIZE];
+        let mut vk_buffer = Vec::new();
         let vk_len_buf: [u8; 4] = verification_key[4..8].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
         let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
         let vk_offset = cs_offset + cs_len;
         vk_buffer[..vk_len].clone_from_slice(&verification_key[vk_offset..(vk_offset + vk_len)]);
 
         // Select KZG Params Bytes
-        let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
+        let mut kzg_params_buffer = Vec::new();
         let kzg_len_buf: [u8; 4] = verification_key[8..12].try_into().map_err(|_| "Failed to convert slice to [u8; 4]").unwrap();
         let kzg_params_len = u32::from_le_bytes(kzg_len_buf) as usize;
         let kzg_offset = vk_offset + vk_len;
         kzg_params_buffer[..kzg_params_len].clone_from_slice(&verification_key[kzg_offset..]);
 
-        if let Ok(cs) = bincode::deserialize(&cs_buffer[..cs_len]) {
-            if let Ok(vk) = VerifyingKey::<G1Affine>::read(&mut BufReader::new(&vk_buffer[..vk_len]), SerdeFormat::RawBytes, cs) {
-                if let Ok(params) = Params::read::<_>(&mut BufReader::new(&kzg_params_buffer[..kzg_params_len])) {
+        if let Ok(cs) = bincode::deserialize(&cs_buffer[..]) {
+            if let Ok(vk) = VerifyingKey::<G1Affine>::read(&mut BufReader::new(&vk_buffer[..]), SerdeFormat::RawBytes, cs) {
+                if let Ok(params) = Params::read::<_>(&mut BufReader::new(&kzg_params_buffer[..])) {
                     if let Ok(res) = read_fr(&public_input[..]) {
                         let strategy = SingleStrategy::new(&params);
                         let instances = res.as_slice();
