@@ -206,6 +206,22 @@ batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/batcher-clien
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
 		--vk test_files/halo2_ipa/params.bin \
+
+batcher_send_halo2_kzg_task: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2KZG \
+		--proof test_files/halo2_kzg/proof.bin \
+		--public_input test_files/halo2_kzg/pub_input.bin \
+		--vk test_files/halo2_kzg/params.bin \
+
+batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2KZG \
+		--proof test_files/halo2_kzg/proof.bin \
+		--public_input test_files/halo2_kzg/pub_input.bin \
+		--vk test_files/halo2_kzg/params.bin \
 		--repetitions 5
 
 __TASK_SENDERS__:
@@ -327,6 +343,24 @@ send_halo2_ipa_proof_loop: ## Send a Halo2 IPA proof using the task sender every
 		--proof task_sender/test_examples/halo2_ipa/proof.bin \
 		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
 		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
+
+send_halo2_kzg_proof: ## Send a Halo2 KZG proof using the task sender
+	@echo "Sending Halo2 KZG proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system halo2_kzg \
+		--proof task_sender/test_examples/halo2_kzg/proof.bin \
+		--public-input task_sender/test_examples/halo2_kzg/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_kzg/params.bin \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
+
+send_halo2_kzg_proof_loop: ## Send a Halo2 KZG proof using the task sender every 10 seconds
+	@echo "Sending Halo2 KZG proof in a loop every 10 seconds..."
+	@go run task_sender/cmd/main.go loop-tasks \
+		--proving-system halo2_kzg \
+		--proof task_sender/test_examples/halo2_kzg/proof.bin \
+		--public-input task_sender/test_examples/halo2_kzg/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_kzg/params.bin \
 		--config config-files/config.yaml \
 		--interval 10 \
 		2>&1 | zap-pretty

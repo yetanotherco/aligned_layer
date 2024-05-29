@@ -8,6 +8,7 @@ use sha3::{Digest, Keccak256};
 use sp1_sdk::ProverClient;
 
 use crate::gnark::verify_gnark;
+use crate::halo2::kzg::verify_halo2_kzg;
 use crate::halo2::ipa::verify_halo2_ipa;
 
 lazy_static! {
@@ -21,6 +22,7 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
+    Halo2KZG
     Halo2IPA,
 }
 
@@ -43,8 +45,18 @@ impl VerificationData {
                 }
                 warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
                 false
-            }
+            },
+            ProvingSystemId::Halo2KZG => {
+                let vk = &self
+                    .verification_key
+                    .as_ref()
+                    .expect("Verification key is required");
 
+                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let is_valid = verify_halo2_kzg(&self.proof, pub_input, vk);
+                debug!("Halo2-KZG proof is valid: {}", is_valid);
+                is_valid
+            },
             ProvingSystemId::Halo2IPA => {
                 let vk = &self
                     .verification_key
