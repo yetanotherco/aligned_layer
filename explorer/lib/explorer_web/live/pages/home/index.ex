@@ -31,10 +31,15 @@ defmodule ExplorerWeb.Home.Index do
       |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
       |> Enum.reverse()
 
-    # amount_of_proofs = S3Handler.calculateAmountOfProofs()
 
-    "latest_batches: " |> IO.inspect()
-    IO.inspect(latest_batches)
+    # Explorer.Repo.insert_all(Batches, BatchDataPointer.)
+    # "AlignedLayerServiceManager.get_new_batch_events()" |> IO.inspect()
+    # AlignedLayerServiceManager.get_new_batch_events() |> IO.inspect()
+
+    amount_of_proofs = Explorer.Repo.aggregate(Batches, :count, :amount_of_proofs)
+
+    "amount_of_proofs" |> IO.inspect()
+    amount_of_proofs |> IO.inspect()
 
     {:ok,
      assign(socket,

@@ -21,6 +21,11 @@ config :explorer, ExplorerWeb.Endpoint,
   pubsub_server: Explorer.PubSub,
   live_view: [signing_salt: "XkOXIXZ0"]
 
+# Configures the database
+config :explorer,
+  ecto_repos: [Explorer.Repo],
+  env: Mix.env()
+
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

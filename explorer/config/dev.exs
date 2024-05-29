@@ -21,9 +21,9 @@ config :explorer, ExplorerWeb.Endpoint,
 
 
 # TODO config .env
-# Configure your database
+# Configure database
 config :explorer, Explorer.Repo,
-    database: System.get_env("DB_NAME", "explorer_dev"),
+    database: System.get_env("DB_NAME", "explorer_db"),
     username: System.get_env("DB_USER", "explorer_user"),
     password: System.get_env("DB_PASS", "explorer_pass"),
     hostname: System.get_env("DB_HOST", "localhost"),
