@@ -132,7 +132,8 @@ batcher_send_sp1_task:
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
-		--vm_program test_files/sp1/sp1_fibonacci-elf
+		--vm_program test_files/sp1/sp1_fibonacci-elf \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_sp1_burst_5:
 	@echo "Sending SP1 fibonacci task to Batcher..."
@@ -140,7 +141,8 @@ batcher_send_sp1_burst_5:
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
-		--repetitions 5
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -148,7 +150,8 @@ batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
-		--vk test_files/plonk_bn254/plonk.vk
+		--vk test_files/plonk_bn254/plonk.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -157,6 +160,7 @@ batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 		--vk test_files/plonk_bls12_381/plonk.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 
 batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
@@ -165,7 +169,8 @@ batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
-		--vk test_files/groth16/ineq_1_groth16.vk
+		--vk test_files/groth16/ineq_1_groth16.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_groth16_burst_5: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -174,7 +179,8 @@ batcher_send_groth16_burst_5: batcher/client/target/release/batcher-client
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
 		--vk test_files/groth16/ineq_1_groth16.vk \
-		--repetitions 5
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
