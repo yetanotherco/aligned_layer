@@ -88,6 +88,7 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 
 func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	txOpts := w.Signer.GetTxOpts()
+	txOpts.GasLimit = 500_000 // TODO(juli): This is a temporary fix to avoid out of gas errors. Goethereum is underestimating the gas limit for this tx.
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
