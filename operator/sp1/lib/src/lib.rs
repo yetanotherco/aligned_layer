@@ -18,6 +18,7 @@ pub extern "C" fn verify_sp1_proof_ffi(
 
     if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len]) {
         let (_pk, vk) = PROVER_CLIENT.setup(real_elf);
+
         return PROVER_CLIENT.verify_compressed(&proof, &vk).is_ok();
     }
 
@@ -29,9 +30,9 @@ mod tests {
     use super::*;
 
     const PROOF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/sp1/sp1_fibonacci.proof");
+        include_bytes!("../../../../task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof");
     const ELF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf");
+        include_bytes!("../../../../task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf");
 
     #[test]
     fn verify_sp1_proof_with_elf_works() {
@@ -57,7 +58,7 @@ mod tests {
         let elf_size = ELF.len();
         elf_buffer[..elf_size].clone_from_slice(ELF);
 
-        let result = verify_sp1_proof_ffi(&proof_buffer, proof_size - 1, &elf_buffer, elf_size);
+        let result = verify_sp1_proof_ffi(&proof_buffer, proof_size-1, &elf_buffer, elf_size);
         assert!(!result)
     }
 }
