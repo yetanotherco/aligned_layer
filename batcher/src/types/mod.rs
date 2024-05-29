@@ -45,7 +45,7 @@ impl VerificationData {
                 }
                 warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
                 false
-            },
+            }
             ProvingSystemId::Halo2KZG => {
                 let vk = &self
                     .verification_key
