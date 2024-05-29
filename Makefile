@@ -122,68 +122,68 @@ batcher_start: ./aligned-batcher/.env
 
 
 build_batcher_client:
-	@cd aligned-batcher/client && cargo b --release
+	@cd aligned-batcher/aligned-batcher-client && cargo b --release
 
-aligned-batcher/client/target/release/batcher-client:
-	@cd aligned-batcher/client && cargo b --release
+aligned-batcher/aligned-batcher-client/target/release/batcher-client:
+	@cd aligned-batcher/aligned-batcher-client && cargo b --release
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd aligned-batcher/client/ && cargo run --release -- \
+	@cd aligned-batcher/aligned-batcher-client/ && cargo run --release -- \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf
 
 batcher_send_sp1_burst_5:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd aligned-batcher/client/ && cargo run --release -- \
+	@cd aligned-batcher/aligned-batcher-client/ && cargo run --release -- \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
 		--repetitions 5
 
-batcher_send_plonk_bn254_task: aligned-batcher/client/target/release/batcher-client
+batcher_send_plonk_bn254_task: aligned-batcher/aligned-batcher-client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd aligned-batcher/client/ && cargo run --release -- \
+	@cd aligned-batcher/aligned-batcher-client/ && cargo run --release -- \
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
 		--vk test_files/plonk_bn254/plonk.vk
 
-batcher_send_plonk_bls12_381_task: aligned-batcher/client/target/release/batcher-client
+batcher_send_plonk_bls12_381_task: aligned-batcher/aligned-batcher-client/target/release/batcher-client
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd aligned-batcher/client/ && cargo run --release -- \
+	@cd aligned-batcher/aligned-batcher-client/ && cargo run --release -- \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 		--vk test_files/plonk_bls12_381/plonk.vk \
 
 
-batcher_send_groth16_bn254_task: aligned-batcher/client/target/release/batcher-client
+batcher_send_groth16_bn254_task: aligned-batcher/aligned-batcher-client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd aligned-batcher/client/ && cargo run --release -- \
+	@cd aligned-batcher/aligned-batcher-client/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
 		--vk test_files/groth16/ineq_1_groth16.vk
 
-batcher_send_groth16_burst_5: aligned-batcher/client/target/release/batcher-client
+batcher_send_groth16_burst_5: aligned-batcher/aligned-batcher-client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd aligned-batcher/client/ && cargo run --release -- \
+	@cd aligned-batcher/aligned-batcher-client/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
 		--vk test_files/groth16/ineq_1_groth16.vk \
 		--repetitions 5
 
-batcher_send_infinite_groth16: ./aligned-batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+batcher_send_infinite_groth16: ./aligned-batcher/aligned-batcher-client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
-	@./aligned-batcher/client/send_infinite_tasks.sh 4
+	@./aligned-batcher/aligned-batcher-client/send_infinite_tasks.sh 4
 
 batcher_send_burst_groth16: build_batcher_client
 	@echo "Sending a burst of tasks to Batcher..."
-	@./aligned-batcher/client/send_burst_tasks.sh $(BURST_SIZE)
+	@./aligned-batcher/aligned-batcher-client/send_burst_tasks.sh $(BURST_SIZE)
 
 __TASK_SENDERS__:
  # TODO add a default proving system
