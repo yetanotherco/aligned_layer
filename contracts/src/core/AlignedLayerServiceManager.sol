@@ -23,11 +23,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
 
     // EVENTS
-    
-    // Batch index is used to simplify coordination with BlsAggregator service on Aggregator
     event NewBatch(
         bytes32 indexed batchMerkleRoot,
-        uint32 indexed batchIndex,
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
@@ -38,8 +35,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         uint32 taskCreatedBlock;
         bool responded;
     }
-
-    uint32 nextBatchIdx;
 
     /* STORAGE */
     mapping(bytes32 => BatchState) public batchesState;
@@ -56,7 +51,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             __stakeRegistry
         )
     {
-        nextBatchIdx = 0;
         _disableInitializers();
     }
 
@@ -92,9 +86,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
         batchesState[batchMerkleRoot] = batchState;
 
-        emit NewBatch(batchMerkleRoot, nextBatchIdx, uint32(block.number), batchDataPointer);
-        
-        nextBatchIdx = nextBatchIdx + 1;
+        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
     }
 
     function respondToTask(

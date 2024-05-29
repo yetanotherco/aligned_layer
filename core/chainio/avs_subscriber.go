@@ -44,7 +44,7 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 
 func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) event.Subscription {
 	sub, err := s.AvsContractBindings.ServiceManager.WatchNewBatch(
-		&bind.WatchOpts{}, newTaskCreatedChan, nil, nil,
+		&bind.WatchOpts{}, newTaskCreatedChan, nil,
 	)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)

@@ -54,6 +54,11 @@ type Aggregator struct {
 	batchesIdxByRoot      map[[32]byte]uint32
 	batchesIdxByRootMutex *sync.Mutex
 
+	// This task index is to communicate with the local BLS
+	// Service. In case of a reboot it can start from 0 again
+	nextBatchIndex      uint32
+	nextBatchIndexMutex *sync.Mutex
+
 	OperatorTaskResponses map[[32]byte]*TaskResponsesWithStatus
 	// Mutex to protect the taskResponses map
 	batchesResponseMutex *sync.Mutex
@@ -112,6 +117,8 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	reg := prometheus.NewRegistry()
 	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
 
+	nextBatchIndex := uint32(0)
+
 	aggregator := Aggregator{
 		AggregatorConfig: &aggregatorConfig,
 		avsReader:        avsReader,
@@ -124,6 +131,9 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 		batchesIdxByRoot:      batchesIdxByRoot,
 		batchesIdxByRootMutex: &sync.Mutex{},
+
+		nextBatchIndex:      nextBatchIndex,
+		nextBatchIndexMutex: &sync.Mutex{},
 
 		OperatorTaskResponses: operatorTaskResponses,
 		batchesResponseMutex:  &sync.Mutex{},
@@ -208,8 +218,12 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 }
 
 // BatchIndex
-func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32, batchIndex uint32) {
+func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
+
+	agg.nextBatchIndexMutex.Lock()
+	batchIndex := agg.nextBatchIndex
+	agg.nextBatchIndexMutex.Unlock()
 
 	// --- UPDATE BATCH - INDEX CACHES ---
 
@@ -232,7 +246,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	agg.batchesIdxByRoot[batchMerkleRoot] = batchIndex
 	agg.batchesIdxByRootMutex.Unlock()
 
-	// UPDATE TASK RESPONSES
+	// --- UPDATE TASK RESPONSES ---
 
 	agg.batchesResponseMutex.Lock()
 	agg.OperatorTaskResponses[batchMerkleRoot] = &TaskResponsesWithStatus{
@@ -245,6 +259,12 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
 	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+
+	// --- INCREASE TASK INDEX ---
+
+	agg.nextBatchIndexMutex.Lock()
+	agg.nextBatchIndex = agg.nextBatchIndex + 1
+	agg.nextBatchIndexMutex.Unlock()
 
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
