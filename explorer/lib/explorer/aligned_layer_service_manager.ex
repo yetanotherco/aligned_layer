@@ -143,12 +143,11 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  # def cross_event_with_response({status, %NewBatchInfo{new_batch: %NewBatchEvent{batchMerkleRoot: merkle_root}}}) do
-  def cross_event_with_response({status, new_batch_info}) do
+  def cross_event_with_response({_status, new_batch_info}) do
     new_batch = new_batch_info.new_batch
     # "new_batch_info" |> IO.inspect()
     # new_batch_info |> IO.inspect()
-    batch_page_item = %BatchPageItem{
+    %BatchPageItem{
       batch_merkle_root: new_batch.batchMerkleRoot,
       task_created_block_number: new_batch.taskCreatedBlock,
       task_created_tx_hash: new_batch.batchDataPointer,
@@ -158,5 +157,5 @@ defmodule AlignedLayerServiceManager do
       responded: is_batch_responded(new_batch.batchMerkleRoot)
     }
   end
-  
+
 end

@@ -29,7 +29,7 @@ defmodule Utils do
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
     hex = case hex_string do
-      "0x" <> _ -> String.slice(hex_string, 2..-1)
+      "0x" <> _ -> String.slice(hex_string, 2..-1//1)
       _ -> raise "Invalid hex string, missing '0x' prefix"
     end
 
@@ -46,5 +46,5 @@ defmodule Utils do
     |> Enum.take(n)
     |> Enum.reverse()
   end
-  
+
 end
