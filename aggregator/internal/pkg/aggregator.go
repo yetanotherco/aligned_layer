@@ -44,18 +44,21 @@ type Aggregator struct {
 
 	// BLS Signature Service returns an Index
 	// Since our ID is not an idx, we build this cache
-	// This information can also be recovered
-	// from the events in the blockchain
+	// Note: In case of a reboot, this doesn't need to be loaded,
+	// and can start from zero
 	batchesRootByIdx      map[uint32][32]byte
 	batchesRootByIdxMutex *sync.Mutex
 
 	// This is the counterpart,
 	// to use when we have the batch but not the index
+	// Note: In case of a reboot, this doesn't need to be loaded,
+	// and can start from zero
 	batchesIdxByRoot      map[[32]byte]uint32
 	batchesIdxByRootMutex *sync.Mutex
 
 	// This task index is to communicate with the local BLS
-	// Service. In case of a reboot it can start from 0 again
+	// Service.
+	// Note: In case of a reboot it can start from 0 again
 	nextBatchIndex      uint32
 	nextBatchIndexMutex *sync.Mutex
 
