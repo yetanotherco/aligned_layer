@@ -1,8 +1,17 @@
 use alloy_primitives::Address;
 use anyhow::anyhow;
 use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
+use lazy_static::lazy_static;
+use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+use sp1_sdk::ProverClient;
+
+use crate::gnark::verify_gnark;
+
+lazy_static! {
+    static ref SP1_PROVER_CLIENT: ProverClient = ProverClient::new();
+}
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 pub enum ProvingSystemId {
@@ -21,6 +30,43 @@ pub struct VerificationData {
     pub verification_key: Option<Vec<u8>>,
     pub vm_program_code: Option<Vec<u8>>,
     pub proof_generator_addr: Address,
+}
+
+impl VerificationData {
+    pub fn verify(&self) -> bool {
+        match self.proving_system {
+            ProvingSystemId::SP1 => {
+                if let Some(elf) = &self.vm_program_code {
+                    return verify_sp1_proof(self.proof.as_slice(), elf.as_slice());
+                }
+                warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
+                false
+            }
+
+            ProvingSystemId::GnarkPlonkBls12_381
+            | ProvingSystemId::GnarkPlonkBn254
+            | ProvingSystemId::Groth16Bn254 => {
+                let vk = &self
+                    .verification_key
+                    .as_ref()
+                    .expect("Verification key is required");
+
+                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let is_valid = verify_gnark(&self.proving_system, &self.proof, pub_input, vk);
+                debug!("Gnark proof is valid: {}", is_valid);
+                is_valid
+            }
+        }
+    }
+}
+
+fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
+    let (_pk, vk) = SP1_PROVER_CLIENT.setup(elf);
+    if let Ok(proof) = bincode::deserialize(proof) {
+        return SP1_PROVER_CLIENT.verify(&proof, &vk).is_ok();
+    }
+
+    false
 }
 
 #[derive(Debug, Default)]
@@ -82,14 +128,6 @@ impl From<&Vec<VerificationData>> for VerificationCommitmentBatch {
     }
 }
 
-/// BatchInclusionData is the information that is retrieved to the clients once
-/// the verification data sent by them has been processed by Aligned.
-pub struct BatchInclusionData {
-    pub verification_data_commitment: VerificationDataCommitment,
-    pub batch_merkle_root: [u8; 32],
-    pub batch_inclusion_proof: Proof<[u8; 32]>,
-}
-
 impl IsMerkleTreeBackend for VerificationCommitmentBatch {
     type Node = [u8; 32];
     type Data = VerificationDataCommitment;
@@ -113,6 +151,24 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
     }
 }
 
+/// BatchInclusionData is the information that is retrieved to the clients once
+/// the verification data sent by them has been processed by Aligned.
+pub struct BatchInclusionData {
+    pub verification_data_commitment: VerificationDataCommitment,
+    pub batch_merkle_root: [u8; 32],
+    pub batch_inclusion_proof: Proof<[u8; 32]>,
+}
+
+pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
+    match proving_system {
+        "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
+        "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
+        "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
+        "SP1" => Ok(ProvingSystemId::SP1),
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1]", proving_system))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -132,15 +188,5 @@ mod test {
         let expected_parent = "71d8979cbfae9b197a4fbcc7d387b1fae9560e2f284d30b4e90c80f6bc074f57";
 
         assert_eq!(hex::encode(parent), expected_parent)
-    }
-}
-
-pub fn get_proving_system_from_str(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
-    match proving_system {
-        "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
-        "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
-        "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
-        "SP1" => Ok(ProvingSystemId::SP1),
-        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1]", proving_system))
     }
 }

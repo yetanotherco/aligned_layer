@@ -287,11 +287,7 @@ defmodule ExplorerWeb.CoreComponents do
     ~H"""
     <.icon
       name="hero-arrow-right-solid"
-      class={[
-        "size-4 stroke-foreground group-hover:stroke-foreground/80",
-        "-translate-x-1 group-hover:translate-x-0 duration-150 transition-all",
-        @class
-      ]}
+      class="size-4 stroke-foreground group-hover:stroke-foreground/80 -translate-x-1 group-hover:translate-x-0 duration-150 transition-all"
     />
     """
   end

@@ -145,8 +145,6 @@ defmodule AlignedLayerServiceManager do
 
   def cross_event_with_response({_status, new_batch_info}) do
     new_batch = new_batch_info.new_batch
-    # "new_batch_info" |> IO.inspect()
-    # new_batch_info |> IO.inspect()
     %BatchPageItem{
       batch_merkle_root: new_batch.batchMerkleRoot,
       task_created_block_number: new_batch.taskCreatedBlock,
