@@ -22,5 +22,3 @@ go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/cmd/main.go
   --proof task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.proof \
   --public_input task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.pub \
   --vk task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.vk
-
-

@@ -116,10 +116,9 @@ BURST_SIZE=5
 ./batcher/.env:
 	@echo "To start the Batcher ./batcher/.env needs to be manually set"; false;
 
-batcher_start: ./batcher/.env
+batcher_start: batcher/aligned-batcher/.env
 	@echo "Starting Batcher..."
-	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
-
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/aligned-batcher/.env
 
 build_batcher_client:
 	@cd batcher/aligned-batcher-client && cargo b --release
@@ -157,7 +156,6 @@ batcher_send_plonk_bls12_381_task: batcher/aligned-batcher-client/target/release
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 		--vk test_files/plonk_bls12_381/plonk.vk \
-
 
 batcher_send_groth16_bn254_task: batcher/aligned-batcher-client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."

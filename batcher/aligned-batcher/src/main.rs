@@ -6,7 +6,7 @@ use std::sync::Arc;
 use clap::Parser;
 use env_logger::Env;
 
-use batcher::Batcher;
+use aligned_batcher::Batcher;
 use tokio::sync::broadcast;
 use tokio_tungstenite::tungstenite::Message;
 

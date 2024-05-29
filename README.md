@@ -21,7 +21,7 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+cd batcher/aligned-batcher-client/ && cargo run --release -- \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
@@ -31,7 +31,7 @@ cd batcher/client/ && cargo run --release -- \
 **Example**
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+cd batcher/aligned-batcher-client/ && cargo run --release -- \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -43,7 +43,7 @@ cd batcher/client/ && cargo run --release -- \
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+cd batcher/aligned-batcher-client/ && cargo run --release -- \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
@@ -54,7 +54,7 @@ cd batcher/client/ && cargo run --release -- \
 **Examples**
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+cd batcher/aligned-batcher-client/ && cargo run --release -- \
 --proving_system GnarkPlonkBn254 \
 --proof test_files/plonk_bn254/plonk.proof \
 --public_input test_files/plonk_bn254/plonk_pub_input.pub \
@@ -63,7 +63,7 @@ cd batcher/client/ && cargo run --release -- \
 ```
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+cd batcher/aligned-batcher-client/ && cargo run --release -- \
 --proving_system GnarkPlonkBls12_381 \
 --proof test_files/plonk_bls12_381/plonk.proof \
 --public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -72,7 +72,7 @@ cd batcher/client/ && cargo run --release -- \
 ```
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+cd batcher/aligned-batcher-client/ && cargo run --release -- \
 --proving_system Groth16Bn254 \
 --proof test_files/groth16/ineq_1_groth16.proof \
 --public_input test_files/groth16/ineq_1_groth16.pub \
@@ -381,7 +381,7 @@ The necessary environment variables are:
 | AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
 | RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
 
-You can find an example `.env` file in [.env.example](batcher/.env.example)
+You can find an example `.env` file in [.env.example](batcher/aligned-batcher/.env.example)
 
 You can configure the batcher in `config-files/config.yaml`:
 
@@ -442,7 +442,7 @@ The SP1 proof needs the proof file and the vm program file.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+cd batcher/aligned-batcher-client/ && cargo run --release -- \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public-input <public_input_file> \

@@ -1,4 +1,4 @@
-use crate::types::ProvingSystemId;
+use crate::ProvingSystemId;
 
 #[repr(C)]
 pub struct GoSlice {

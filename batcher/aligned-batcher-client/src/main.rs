@@ -5,8 +5,7 @@ use env_logger::Env;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use log::{info, warn};
 use tokio_tungstenite::connect_async;
-
-use batcher::types::{parse_proving_system, VerificationData};
+use aligned_batcher_lib::{parse_proving_system, VerificationData};
 
 use clap::Parser;
 
