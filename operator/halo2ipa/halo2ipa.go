@@ -43,11 +43,11 @@ func VerifyHalo2IpaProof(
 	publicInputPtr := (*C.uchar)(unsafe.Pointer(&publicInputBuffer[0]))
 
 	// Cast data length to C-types
-	proofLen := (C.size_t)(proofLen_u32)
-	csLen := (C.size_t)(csLen_u32) 
-	vkLen := (C.size_t)(vkLen_u32)
-	ipaParamLen := (C.size_t)(ipaParamLen_u32)
-	publicInputLen := (C.size_t)(publicInputLen_u32) 
+	proofLen := (C.uint32_t)(proofLen_u32)
+	csLen := (C.uint32_t)(csLen_u32) 
+	vkLen := (C.uint32_t)(vkLen_u32)
+	ipaParamLen := (C.uint32_t)(ipaParamLen_u32)
+	publicInputLen := (C.uint32_t)(publicInputLen_u32) 
 
 	return (bool)(C.verify_halo2_ipa_proof_ffi(
 		proofPtr, proofLen, 
