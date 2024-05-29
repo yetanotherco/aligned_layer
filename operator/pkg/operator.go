@@ -12,7 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
-	"github.com/celestiaorg/celestia-node/api/rpc/client"
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
