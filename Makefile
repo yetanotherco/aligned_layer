@@ -185,6 +185,23 @@ batcher_send_burst_groth16: build_batcher_client
 	@echo "Sending a burst of tasks to Batcher..."
 	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
 
+batcher_send_halo2_ipa_task: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2IPA \
+		--proof test_files/halo2_ipa/proof.bin \
+		--public_input test_files/halo2_ipa/pub_input.bin \
+		--vk test_files/halo2_ipa/params.bin \
+
+batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2IPA \
+		--proof test_files/halo2_ipa/proof.bin \
+		--public_input test_files/halo2_ipa/pub_input.bin \
+		--vk test_files/halo2_ipa/params.bin \
+		--repetitions 5
+
 __TASK_SENDERS__:
  # TODO add a default proving system
 
@@ -286,6 +303,27 @@ send_sp1_proof:
     		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
     		2>&1 | zap-pretty
+
+send_halo2_ipa_proof: ## Send a Halo2 IPA proof using the task sender
+	@echo "Sending Halo2 IPA proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system halo2_ipa \
+		--proof task_sender/test_examples/halo2_ipa/proof.bin \
+		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
+
+send_halo2_ipa_proof_loop: ## Send a Halo2 IPA proof using the task sender every 10 seconds
+	@echo "Sending Halo2 IPA proof in a loop every 10 seconds..."
+	@go run task_sender/cmd/main.go loop-tasks \
+		--proving-system halo2_ipa \
+		--proof task_sender/test_examples/halo2_ipa/proof.bin \
+		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
+		--config config-files/config.yaml \
+		--interval 10 \
+		2>&1 | zap-pretty
 
 __METRICS__:
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
