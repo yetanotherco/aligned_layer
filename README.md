@@ -713,6 +713,49 @@ To run the go tests
 make test
 ```
 
+# Verify Proofs
+
+## Gnark Plonk
+
+### Dependencies
+This guide assumes that:
+- Gnark library is installed. If not, install it using the following command inside your Go module:
+```bash
+go get github.com/consensys/gnark@latest
+```
+- gnark project to generate the proofs,  instructions[ here](https://docs.gnark.consensys.io/category/how-to)
+
+- aligned layer repository cloned:
+
+ ```bash
+     git clone https://github.com/yetanotherco/aligned_layer.git
+```
+### How to generate a proof
+
+Open a terminal and navigate to the gnark project directory. Then, run the following command to generate the proof:
+
+```bash
+go run circuit.go
+```
+Make sure that you include serialization of the proof, public input, and verification key in the circuit.go file
+
+### How to get the proof verified by AlignedLayer
+
+After generating the proof, you will have to have three different files:
+ - proof file
+ - verification key file
+ - public input file
+
+ Then, you can send the proof to the AlignedLayer network by running the following command
+ from `batcher/client` folder inside the AlignedLayer repository directory:
+
+ ```bash
+ cargo run --release -- \
+ --proving_system GnarkPlonkBn254 \
+ --proof <proof_path> \
+ --public_input <public_input_path> \
+ --vk <verification_key_path> \
+ ```
 
 ## FAQ
 
