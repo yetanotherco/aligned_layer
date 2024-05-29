@@ -34,7 +34,7 @@ anvil_start:
 
 anvil_start_with_block_time:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 2
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 1
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
@@ -174,7 +174,7 @@ batcher_send_groth16_burst_5: batcher/client/target/release/batcher-client
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
 		--vk test_files/groth16/ineq_1_groth16.vk \
-		--repetitions 5
+		--repetitions 10
 
 batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs

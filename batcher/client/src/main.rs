@@ -1,6 +1,9 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    time::{self, Duration},
+};
 
-use alloy_primitives::Address;
+use alloy_primitives::{hex, Address};
 use env_logger::Env;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use log::{info, warn};
@@ -106,6 +109,7 @@ async fn main() {
 
     let json_data = serde_json::to_string(&verification_data).expect("Failed to serialize task");
     for _ in 0..args.repetitions {
+        std::thread::sleep(Duration::from_millis(100));
         ws_write
             .send(tungstenite::Message::Text(json_data.to_string()))
             .await
@@ -113,10 +117,11 @@ async fn main() {
     }
 
     ws_read
-        .try_filter(|msg| future::ready(msg.is_text()))
+        .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
         .for_each(|msg| async move {
-            let data = msg.unwrap().into_text().unwrap();
-            info!("Batch merkle root received: {}", data);
+            let data = msg.unwrap().into_data();
+            let batch_merkle_root = hex::encode(data);
+            info!("Batch merkle root received: {}", batch_merkle_root);
         })
         .await;
 

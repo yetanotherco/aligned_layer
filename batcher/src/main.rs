@@ -49,27 +49,27 @@ async fn main() -> Result<(), IoError> {
     // A broadcast channel transmitter is created so that when the block listener checks that a batch
     // is ready to be submitted, the information about the merkle root of the batch is transmitted to
     // the the websocket connections to respond to clients.
-    let (tx, _) = broadcast::channel::<Message>(10);
-    let tx = Arc::new(tx);
+    // let (tx, _) = broadcast::channel::<Message>(10);
+    // let tx = Arc::new(tx);
 
     // `connections_tx` is passed to the  connections listener task so that each new
     // connections subscribes to this transmitter and waits to receive the batch merkle root
     // once it is processed
-    let connections_tx = tx.clone();
+    // let connections_tx = tx.clone();
 
     // `blocks_tx` is passed to the blocks listener so that when a batch is processed, its
     // merkle root is transmitted to the websocket connections
-    let blocks_tx = tx.clone();
+    // let blocks_tx = tx.clone();
 
     // spawn thread listening to blocks
     tokio::spawn({
         let app = batcher.clone();
         async move {
-            app.listen_new_blocks(blocks_tx).await.unwrap();
+            app.listen_new_blocks().await.unwrap();
         }
     });
 
-    batcher.listen_connections(&addr, connections_tx).await;
+    batcher.listen_connections(&addr).await;
 
     Ok(())
 }
