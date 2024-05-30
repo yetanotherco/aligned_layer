@@ -90,7 +90,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "sha3",
+ "sha3 0.10.8",
  "tokio",
  "tokio-tungstenite 0.21.0",
 ]
@@ -123,6 +123,10 @@ dependencies = [
  "alloy-primitives",
  "anyhow",
  "bincode",
+ "ff 0.13.0",
+ "halo2_backend",
+ "halo2_proofs 0.3.0",
+ "halo2curves",
  "hex",
  "lazy_static",
  "log",
@@ -1421,12 +1425,28 @@ source = "git+https://github.com/sp1-patches/BLAKE3.git?branch=patch-blake3_zkvm
 
 [[package]]
 name = "block-buffer"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
+dependencies = [
+ "block-padding",
+ "generic-array 0.14.7",
+]
+
+[[package]]
+name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array 0.14.7",
 ]
+
+[[package]]
+name = "block-padding"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 
 [[package]]
 name = "bls12_381"
@@ -1436,7 +1456,7 @@ checksum = "a3c196a77437e7cc2fb515ce413a6401291578b5afc8ecb29a3c7ab957f05941"
 dependencies = [
  "ff 0.12.1",
  "group 0.12.1",
- "pairing",
+ "pairing 0.22.0",
  "rand_core",
  "subtle",
 ]
@@ -1695,7 +1715,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "sha2",
- "sha3",
+ "sha3 0.10.8",
  "thiserror",
 ]
 
@@ -2053,7 +2073,7 @@ version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
- "block-buffer",
+ "block-buffer 0.10.4",
  "const-oid",
  "crypto-common",
  "subtle",
@@ -2234,7 +2254,7 @@ dependencies = [
  "rand",
  "rlp",
  "serde",
- "sha3",
+ "sha3 0.10.8",
  "zeroize",
 ]
 
@@ -2306,7 +2326,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sha3",
+ "sha3 0.10.8",
  "thiserror",
  "uuid 0.8.2",
 ]
@@ -2323,7 +2343,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "sha3",
+ "sha3 0.10.8",
  "thiserror",
  "uint",
 ]
@@ -3021,7 +3041,49 @@ version = "0.1.0-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a23c779b38253fe1538102da44ad5bd5378495a61d2c4ee18d64eaa61ae5995"
 dependencies = [
- "halo2_proofs",
+ "halo2_proofs 0.1.0",
+]
+
+[[package]]
+name = "halo2_backend"
+version = "0.3.0"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?branch=feat/serde_constraint_system#f918881d3b2df8346f7e3617652f5d8164dcd692"
+dependencies = [
+ "blake2b_simd",
+ "ff 0.13.0",
+ "group 0.13.0",
+ "halo2_middleware",
+ "halo2curves",
+ "rand_chacha",
+ "rand_core",
+ "rayon",
+ "serde",
+ "sha3 0.9.1",
+ "tracing",
+]
+
+[[package]]
+name = "halo2_frontend"
+version = "0.3.0"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?branch=feat/serde_constraint_system#f918881d3b2df8346f7e3617652f5d8164dcd692"
+dependencies = [
+ "blake2b_simd",
+ "ff 0.13.0",
+ "group 0.13.0",
+ "halo2_middleware",
+ "halo2curves",
+ "tracing",
+]
+
+[[package]]
+name = "halo2_middleware"
+version = "0.3.0"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?branch=feat/serde_constraint_system#f918881d3b2df8346f7e3617652f5d8164dcd692"
+dependencies = [
+ "ff 0.13.0",
+ "halo2curves",
+ "rayon",
+ "serde",
 ]
 
 [[package]]
@@ -3036,6 +3098,46 @@ dependencies = [
  "pasta_curves 0.4.1",
  "rand_core",
  "rayon",
+]
+
+[[package]]
+name = "halo2_proofs"
+version = "0.3.0"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?branch=feat/serde_constraint_system#f918881d3b2df8346f7e3617652f5d8164dcd692"
+dependencies = [
+ "bincode",
+ "group 0.13.0",
+ "halo2_backend",
+ "halo2_frontend",
+ "halo2_middleware",
+ "halo2curves",
+ "rand_core",
+ "serde",
+]
+
+[[package]]
+name = "halo2curves"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db81d01d0bbfec9f624d7590fc6929ee2537a64ec1e080d8f8c9e2d2da291405"
+dependencies = [
+ "blake2b_simd",
+ "ff 0.13.0",
+ "group 0.13.0",
+ "hex",
+ "lazy_static",
+ "num-bigint 0.4.5",
+ "num-traits",
+ "pairing 0.23.0",
+ "pasta_curves 0.5.1",
+ "paste",
+ "rand",
+ "rand_core",
+ "rayon",
+ "serde",
+ "serde_arrays",
+ "static_assertions",
+ "subtle",
 ]
 
 [[package]]
@@ -3675,7 +3777,7 @@ dependencies = [
  "lambdaworks-math",
  "serde",
  "sha2",
- "sha3",
+ "sha3 0.10.8",
 ]
 
 [[package]]
@@ -4081,6 +4183,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
+name = "opaque-debug"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
+
+[[package]]
 name = "open-fastrlp"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4434,6 +4542,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pairing"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81fec4625e73cf41ef4bb6846cafa6d44736525f442ba45e407c4a000a13996f"
+dependencies = [
+ "group 0.13.0",
+]
+
+[[package]]
 name = "parity-scale-codec"
 version = "3.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4517,8 +4634,10 @@ dependencies = [
  "blake2b_simd",
  "ff 0.13.0",
  "group 0.13.0",
+ "hex",
  "lazy_static",
  "rand",
+ "serde",
  "static_assertions",
  "subtle",
 ]
@@ -5583,6 +5702,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_arrays"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38636132857f68ec3d5f3eb121166d2af33cb55174c4d5ff645db6165cbef0fd"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_derive"
 version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5723,6 +5851,18 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest 0.10.7",
+]
+
+[[package]]
+name = "sha3"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f81199417d4e5de3f04b1e871023acea7389672c4135918f05aa9cbf2f2fa809"
+dependencies = [
+ "block-buffer 0.9.0",
+ "digest 0.9.0",
+ "keccak",
+ "opaque-debug",
 ]
 
 [[package]]
@@ -7463,7 +7603,7 @@ dependencies = [
  "rand",
  "serde",
  "sha2",
- "sha3",
+ "sha3 0.10.8",
  "subtle",
 ]
 
