@@ -811,31 +811,33 @@ cargo run --release -- \
 
 ### Dependencies
 This guide assumes that:
-- You have developed a Halo2 circuit using Aligned Layers fork of the [Halo2](https://github.com/yetanotherco/yet-another-halo2-fork) proving system.
+- You have experience developing a circuit in Halo2.
+- You are using Aligned Layers [fork](https://github.com/yetanotherco/yet-another-halo2-fork) of Privacy & Scaling Explorations [Halo2](https://github.com/privacy-scaling-explorations/halo2) proving system to construct your Halo2 circuit.
 
 ### How to generate a proof
 
-> AlignedLayer can verify proof of unique Halo2 circuit via using a circuit serialization format.
-> AligedLayers Halo2 fork abstracts away the complexity of serializing your Halo2 circuit by using `prove_and_serialize_circuit_kzg()` and `prove_and_serialize_circuit_ipa()` based on which proof system you would like to use.
+> AlignedLayer can verify proofs of Halo2 circuit. To accomplish this the circuit must be serialized along with the proof, public inputs, and verifier key.
 
-First, ensure your circuit is defined within a executable function is rust and compiles for use in the Halo2 proving system. Then within your executable pass your `circuit: Circuit`, as well as generated `params: Params`, and `pk: ProverKey` for your proof into `prove_and_serialize_circuit_kzg()` or `prove_and_serialize_circuit_ipa()` depending on which commitment scheme you would like to use within Halo2.
+> AligedLayer maintains a Halo2 fork with functions that abstract away the complexity of serializing your Halo2 circuit. Currently AlignedLayer supports verifying Halo2 proofs using the [SHPLONK](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/poly/kzg/multiopen/shplonk/verifier.rs) and [IPA](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/poly/ipa/multiopen/verifier.rs#L18) backends for Halo2. Proving and serializing your circuit is exposed for convience via [prove_and_serialize_circuit_kzg()](https://github.com/yetanotherco/yet-another-halo2-fork/blob/feat/serde_constraint_system/halo2_proofs/src/plonk/prover.rs#L213) and [prove_and_serialize_circuit_ipa()](https://github.com/yetanotherco/yet-another-halo2-fork/blob/feat/serde_constraint_system/halo2_proofs/src/plonk/prover.rs#L129).
 
-Then, run the following command to generate a serialized proof:
+First, ensure your circuit is defined within a executable in rust and compiles for use in the Halo2 proving system. Then within your executable pass your [circuit](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_frontend/src/plonk/circuit.rs#L243), as well as generated [params](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/poly/commitment.rs), and [pk](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/plonk.rs) for your proof into [prove_and_serialize_circuit_kzg()](https://github.com/yetanotherco/yet-another-halo2-fork/blob/feat/serde_constraint_system/halo2_proofs/src/plonk/prover.rs#L213) or [prove_and_serialize_circuit_ipa()](https://github.com/yetanotherco/yet-another-halo2-fork/blob/feat/serde_constraint_system/halo2_proofs/src/plonk/prover.rs#L129) depending on which commitment scheme you would like to prove your Halo2 circuit with.
+
+Compile and run your halo2 project and generate a serialized proof:
 ```bash
 cargo run --release
 ```
 
-Both of these functions generate a proof based on the provided inputs, verify the proof using the same verifier hosted on AlignedLayer to ensure the verification is successful, and serializes the circuit, provided parameters, proof, and public input to be used on AlignedLayer.
+Both of the functions above generate a proof based on the provided public inputs, verify that proof with same verifier used on AlignedLayer, and serialize the circuit, provided parameters, proof, and public input to file to be sent to AlignedLayer.
 
 ### How to get the proof verified by AlignedLayer
 
-After generating your serialized proof, you will have to find three different files:
-- proof file: found under `./proof_files/proof.bin` directory, which contains the serialized proof.
-- parameters file: found under `./proof_files/params.bin`, which contains the public parameters, verifier key, and serialized circuit description.
-- public input file: found under `./proof_files/public_input.bin`, which contains the witness/instance/public inputs passed into the circuit.
+After generating your serialized proof, you will have three different files within a generated `proof_files` directory within your project:
+- **proof file**: found under `./proof_files/proof.bin` directory, which contains the serialized proof.
+- **parameters file**: found under `./proof_files/params.bin`, which contains the public parameters, verifier key, and serialized circuit description.
+- **public input file**: found under `./proof_files/public_input.bin`, which contains the public inputs passed into the circuit.
 
-Then, you can send the proof to the AlignedLayer network by running the following command
-from `batcher/client` folder for Halo2 with the KZG and IPA backend respectively inside the AlignedLayer repository directory:
+Then, to verify your proof on aligned, you can send send these files to the AlignedLayer network by running the following command
+from the `batcher/client` respectively inside the AlignedLayer repository directory:
 
 ```bash
 cargo run --release -- \
@@ -843,7 +845,7 @@ cargo run --release -- \
   --proof <proof_path> \
   --public_input <public_input_path> \
   --vk <params_path> \
-  --conn ws://batcher.alignedlayer.com
+  --conn <<ws://batcher.alignedlayer.com>:<ws://localhost:8080>>
 ```
 
 ## FAQ
