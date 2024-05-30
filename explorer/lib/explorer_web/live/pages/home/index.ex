@@ -31,9 +31,6 @@ defmodule ExplorerWeb.Home.Index do
       |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
       |> Enum.reverse()
 
-    "latest_batches: " |> IO.inspect()
-    IO.inspect(latest_batches)
-
     {:ok,
      assign(socket,
        verified_batches: shorthand_verified_batches,
