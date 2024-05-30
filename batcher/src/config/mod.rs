@@ -10,6 +10,8 @@ pub struct ECDSAConfig {
 pub struct BatcherConfigFromYaml {
     pub block_interval: u64,
     pub batch_size_interval: usize,
+    pub max_proof_size: usize,
+    pub max_batch_size: usize,
 }
 
 #[derive(Debug, Deserialize)]
