@@ -738,7 +738,7 @@ Eigenlayer contract deployment is almost the same as the EigenLayer contract dep
 
 ### Running for local devnet
 
-```make run_explorer_for_devnet```
+```make run_devnet_explorer```
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
