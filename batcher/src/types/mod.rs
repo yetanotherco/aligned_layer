@@ -51,8 +51,11 @@ impl VerificationData {
                     .verification_key
                     .as_ref()
                     .expect("Verification key is required");
+                println!("{:?}", vk.len());
 
                 let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                println!("{:?}", pub_input.len());
+                println!("{:?}", &self.proof.len());
                 let is_valid = verify_halo2_kzg(&self.proof, pub_input, vk);
                 debug!("Halo2-KZG proof is valid: {}", is_valid);
                 is_valid
@@ -190,8 +193,9 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
         "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
         "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
         "SP1" => Ok(ProvingSystemId::SP1),
+        "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
         "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
-        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2IPA]", proving_system))
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA]", proving_system))
     }
 }
 

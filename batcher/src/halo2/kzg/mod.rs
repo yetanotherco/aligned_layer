@@ -12,8 +12,25 @@ use halo2_proofs::{
 use halo2curves::bn256::{Bn256, Fr, G1Affine};
 use std::io::{BufReader, ErrorKind, Read};
 
+//TODO(pat): refactor halo2 verification to a common create to eliminate deduplicated code.
+
+// MaxProofSize 4KB
+pub const MAX_PROOF_SIZE: usize = 4 * 1024;
+
+// MaxConstraintSystemSize 2KB
+pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
+
+// MaxVerificationKeySize 1KB
+pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
+
+// MaxKzgParamsSize 4KB
+pub const MAX_KZG_PARAMS_SIZE: usize = 4 * 1024;
+
+// MaxPublicInputSize 4KB
+pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
+
 pub fn verify_halo2_kzg(proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
-    let mut cs_buffer = Vec::new();
+    let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
     let cs_len_buf: [u8; 4] = verification_key[..4]
         .try_into()
         .map_err(|_| "Failed to convert slice to [u8; 4]")
@@ -23,7 +40,7 @@ pub fn verify_halo2_kzg(proof: &[u8], public_input: &[u8], verification_key: &[u
     cs_buffer[..cs_len].clone_from_slice(&verification_key[cs_offset..(cs_offset + cs_len)]);
 
     // Select Verifier Key Bytes
-    let mut vk_buffer = Vec::new();
+    let mut vk_buffer = [0u8; MAX_VERIFIER_KEY_SIZE];
     let vk_len_buf: [u8; 4] = verification_key[4..8]
         .try_into()
         .map_err(|_| "Failed to convert slice to [u8; 4]")
@@ -33,7 +50,7 @@ pub fn verify_halo2_kzg(proof: &[u8], public_input: &[u8], verification_key: &[u
     vk_buffer[..vk_len].clone_from_slice(&verification_key[vk_offset..(vk_offset + vk_len)]);
 
     // Select KZG Params Bytes
-    let mut kzg_params_buffer = Vec::new();
+    let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
     let kzg_len_buf: [u8; 4] = verification_key[8..12]
         .try_into()
         .map_err(|_| "Failed to convert slice to [u8; 4]")
