@@ -7,8 +7,6 @@ use clap::Parser;
 use env_logger::Env;
 
 use batcher::Batcher;
-use tokio::sync::broadcast;
-use tokio_tungstenite::tungstenite::Message;
 
 /// Batcher main flow:
 /// There are two main tasks spawned: `listen_connections` and `listen_new_blocks`
@@ -46,22 +44,7 @@ async fn main() -> Result<(), IoError> {
 
     let addr = format!("localhost:{}", port);
 
-    // A broadcast channel transmitter is created so that when the block listener checks that a batch
-    // is ready to be submitted, the information about the merkle root of the batch is transmitted to
-    // the the websocket connections to respond to clients.
-    // let (tx, _) = broadcast::channel::<Message>(10);
-    // let tx = Arc::new(tx);
-
-    // `connections_tx` is passed to the  connections listener task so that each new
-    // connections subscribes to this transmitter and waits to receive the batch merkle root
-    // once it is processed
-    // let connections_tx = tx.clone();
-
-    // `blocks_tx` is passed to the blocks listener so that when a batch is processed, its
-    // merkle root is transmitted to the websocket connections
-    // let blocks_tx = tx.clone();
-
-    // spawn thread listening to blocks
+    // spawn task to listening for incoming blocks
     tokio::spawn({
         let app = batcher.clone();
         async move {
