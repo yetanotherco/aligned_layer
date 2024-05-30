@@ -472,6 +472,7 @@ cd batcher/aligned-batcher-client/ && cargo run --release -- \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
+--conn batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr>
 ```
 
