@@ -184,6 +184,8 @@ If you need to start again the operator, and it's already registered, use:
 make operator_start
 ```
 
+If you want to start the explorer for the devnet, see how to run it using it's [documentation](#explorer) below.
+
 ### Send test proofs to batcher for testing
 
 All these proofs are for testing purposes
@@ -770,7 +772,6 @@ make batcher_send_sp1_task
 This will send 10 SP1 tasks, 5 Groth16 tasks, and 5 SP1 tasks to the devnet.
 
 </details>
-
 
 ## Tests
 
