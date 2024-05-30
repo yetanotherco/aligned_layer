@@ -155,6 +155,22 @@ Install eigenlayer-cli:
 make install_eigenlayer_cli
 ```
 
+#### Building FFIs
+
+##### For macOS:
+To build all FFIs for macOS environments, run the following command in your terminal:
+  ```bash
+  make build_all_ffis_macos
+  ```
+This command compiles all necessary Rust libraries into dynamic libraries (.dylib files) that can be used in macOS applications
+
+##### For Linux:
+To build all FFIs for Linux environments, use this command:
+```bash
+make build_all_ffis_linux
+```
+This will compile all necessary Rust libraries into .so files (shared objects) that are usable within Linux applications.
+
 ### Booting Devnet with Default configs
 
 Before starting you need to setup an S3 bucket. More data storage will be tested in the future.
