@@ -154,7 +154,6 @@ Install eigenlayer-cli:
 ```bash
 make install_eigenlayer_cli
 ```
-
 #### Building FFIs
 
 ##### For macOS:
@@ -174,6 +173,7 @@ This will compile all necessary Rust libraries into .so files (shared objects) t
 ### Booting Devnet with Default configs
 
 Before starting you need to setup an S3 bucket. More data storage will be tested in the future.
+
 
 You need to fill the data in:
 
