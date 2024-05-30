@@ -43,13 +43,8 @@ defmodule ExplorerWeb.Batch.Index do
   rescue
     ex ->
       # TODO handle different the 'without 0x prefix' error, for usability
-      if ex.message == "Invalid hex string" or
-           ex.message == "Invalid hex string, missing '0x' prefix" do
-        {:ok,
-         assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty)}
-      else
-        raise ex
-      end
+      # ex.message == "Invalid hex string" or ex.message == "Invalid hex string, missing '0x' prefix" do
+      {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty)}
   end
 
   embed_templates "*"
