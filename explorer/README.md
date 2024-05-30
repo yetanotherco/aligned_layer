@@ -11,13 +11,7 @@
 
 ### Set up environment variables
 
-Run the following command to set up the environment variables:
-
-```sh
-make create_env
-```
-
-This will create a `.env` file in the `/explorer` directory of the project. The `.env` file will contain the following variables:
+Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
 
 | Variable | Description |
 | -------- | ----------- |

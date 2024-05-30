@@ -10,11 +10,11 @@ deps:
 	@echo "Installing Elixir code dependencies"
 	@mix setup
 
-run:
-	@echo "Starting the Elixir backend server"
+dashboard_for_devnet: 
+	@mix setup
+	@cp .env.dev .env
 	./start.sh
 
-create_env:
-	@echo "Creating environment variables files .env",
-	@cp .env.example .env
-	@echo "Environment variables files created successfully!"
+run: 
+	@echo "Starting the Elixir backend server"
+	./start.sh
