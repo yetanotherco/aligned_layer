@@ -10,4 +10,4 @@ sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.4-testn
 libc = "0.2.155"
 
 [lib]
-crate-type = ["cdylib", "staticlib", "lib"]
+crate-type = ["cdylib"]
