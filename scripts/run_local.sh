@@ -15,7 +15,7 @@ export AGGREGATOR_PID=$!
 
 sleep 3
 
-echo "Registering Operator"
+echo "Registering and Starting Operator"
 make operator_register_and_start > /dev/null 2>&1 &
 
 export OPERATOR_PID=$!
@@ -28,22 +28,7 @@ export BATCHER_PID=$!
 
 sleep 50
 
-echo "Sending 15 tasks to Batcher"
-make batcher_send_sp1_task
-make batcher_send_sp1_task
-make batcher_send_sp1_task
-make batcher_send_sp1_task
-make batcher_send_sp1_task
-make batcher_send_groth16_task
-make batcher_send_groth16_task
-make batcher_send_groth16_task
-make batcher_send_groth16_task
-make batcher_send_groth16_task
-make batcher_send_sp1_task
-make batcher_send_groth16_task
-make batcher_send_sp1_task
-make batcher_send_groth16_task
-make batcher_send_sp1_task
+make batcher_send_burst_groth16
 
 echo "Ready"
 read  -n 1 -p "Press anything to stop execution of Anvil, Aggregator, Operator and Batcher" wait

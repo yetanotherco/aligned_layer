@@ -132,7 +132,8 @@ batcher_send_sp1_task:
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
-		--vm_program test_files/sp1/sp1_fibonacci-elf
+		--vm_program test_files/sp1/sp1_fibonacci-elf \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_sp1_burst_5:
 	@echo "Sending SP1 fibonacci task to Batcher..."
@@ -140,7 +141,8 @@ batcher_send_sp1_burst_5:
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
-		--repetitions 5
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -148,7 +150,8 @@ batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
-		--vk test_files/plonk_bn254/plonk.vk
+		--vk test_files/plonk_bn254/plonk.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -157,6 +160,7 @@ batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 		--vk test_files/plonk_bls12_381/plonk.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 
 batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
@@ -165,7 +169,8 @@ batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
-		--vk test_files/groth16/ineq_1_groth16.vk
+		--vk test_files/groth16/ineq_1_groth16.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_groth16_burst_5: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -174,7 +179,8 @@ batcher_send_groth16_burst_5: batcher/client/target/release/batcher-client
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
 		--vk test_files/groth16/ineq_1_groth16.vk \
-		--repetitions 5
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
@@ -184,6 +190,23 @@ batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ##
 batcher_send_burst_groth16: build_batcher_client
 	@echo "Sending a burst of tasks to Batcher..."
 	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
+
+batcher_send_halo2_ipa_task: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2IPA \
+		--proof test_files/halo2_ipa/proof.bin \
+		--public_input test_files/halo2_ipa/pub_input.bin \
+		--vk test_files/halo2_ipa/params.bin \
+
+batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2IPA \
+		--proof test_files/halo2_ipa/proof.bin \
+		--public_input test_files/halo2_ipa/pub_input.bin \
+		--vk test_files/halo2_ipa/params.bin \
+		--repetitions 5
 
 __TASK_SENDERS__:
  # TODO add a default proving system
@@ -286,6 +309,27 @@ send_sp1_proof:
     		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
     		2>&1 | zap-pretty
+
+send_halo2_ipa_proof: ## Send a Halo2 IPA proof using the task sender
+	@echo "Sending Halo2 IPA proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system halo2_ipa \
+		--proof task_sender/test_examples/halo2_ipa/proof.bin \
+		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
+
+send_halo2_ipa_proof_loop: ## Send a Halo2 IPA proof using the task sender every 10 seconds
+	@echo "Sending Halo2 IPA proof in a loop every 10 seconds..."
+	@go run task_sender/cmd/main.go loop-tasks \
+		--proving-system halo2_ipa \
+		--proof task_sender/test_examples/halo2_ipa/proof.bin \
+		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
+		--config config-files/config.yaml \
+		--interval 10 \
+		2>&1 | zap-pretty
 
 __METRICS__:
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
@@ -398,3 +442,70 @@ test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
+
+__HALO2_IPA_FFI__: ##
+build_halo2_ipa_macos:
+	@cd operator/halo2ipa/lib && cargo build --release
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.dylib operator/halo2ipa/lib/libhalo2ipa_verifier.dylib
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
+
+build_halo2_ipa_linux:
+	@cd operator/halo2ipa/lib && cargo build --release
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.so operator/halo2ipa/lib/libhalo2ipa_verifier.so
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
+
+test_halo2_ipa_rust_ffi:
+	@echo "Testing Halo2-KZG Rust FFI source code..."
+	@cd operator/halo2ipa/lib && cargo t --release
+
+test_halo2_ipa_go_bindings_macos: build_halo2_ipa_macos
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2ipa/... -v
+
+test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2ipa/... -v
+
+generate_halo2_ipa_proof:
+	@cd task_sender/test_examples/halo2_ipa && \
+	cargo clean && \
+	rm params.bin proof.bin pub_input.bin && \
+	RUST_LOG=info cargo run --release && \
+	echo "Generating halo2 plonk proof..." && \
+	echo "Generated halo2 plonk proof!"
+	
+__EXPLORER__:
+run_devnet_explorer: 
+	@cd explorer/ && \
+		mix setup && \
+		cp .env.dev .env && \
+		./start.sh
+
+run_explorer:
+	@cd explorer/ && \
+		mix setup && \
+		./start.sh
+
+build_db:
+	@cd explorer && \
+		docker build -t explorer-postgres-image .
+
+# docker run creates a new container
+run_db: clean_db
+	@cd explorer && \
+		docker run --name explorer-postgres-container -p 5432:5432 explorer-postgres-image
+
+# docker start starts (or continues execution of) an existing container
+start_db:
+	@cd explorer && \
+		docker start explorer-postgres-container
+
+clean_db:
+	@cd explorer && \
+		docker stop explorer-postgres-container || true  && \
+		docker rm explorer-postgres-container || true
+
+# TODO:
+# hacer con docker compose
+# a futuro correr bd y explorer en un solo docker
+# a futuro que la bdd haga backups

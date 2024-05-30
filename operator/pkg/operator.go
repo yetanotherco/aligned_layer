@@ -3,15 +3,18 @@ package operator
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/yetanotherco/aligned_layer/metrics"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/yetanotherco/aligned_layer/metrics"
+
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -130,17 +133,15 @@ func (o *Operator) Start(ctx context.Context) error {
 			// o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
-				o.Logger.Errorf("Proof in batch did not verify", "err", err)
-				// FIXME(marian): This is not how we should handle this error. Just doing this for fast iteration and debug
-				panic("Proof did not verify")
+				o.Logger.Errorf("Batch did not verify", "err", err)
+				continue
 			}
 			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
 
 			signedTaskResponse := types.SignedTaskResponse{
-				BatchMerkleRoot:  newBatchLog.BatchMerkleRoot,
-				TaskCreatedBlock: newBatchLog.TaskCreatedBlock,
-				BlsSignature:     *responseSignature,
-				OperatorId:       o.OperatorId,
+				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+				BlsSignature:    *responseSignature,
+				OperatorId:      o.OperatorId,
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
@@ -160,7 +161,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
-		return nil
+		return err
 	}
 
 	verificationDataBatchLen := len(verificationDataBatch)
@@ -222,7 +223,60 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
+		results <- verificationResult
+	case common.Halo2IPA:
+		// Extract Proof Bytes
+		proofBytes := make([]byte, halo2ipa.MaxProofSize)
+		copy(proofBytes, verificationData.Proof)
+		proofLen := (uint32)(len(verificationData.Proof))
 
+		// Extract Verification Key Bytes
+		paramsBytes := verificationData.VerificationKey
+
+		// Deserialize csLen
+		csLenBuffer := make([]byte, 4)
+		copy(csLenBuffer, paramsBytes[:4])
+		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
+
+		// Deserialize vkLen
+		vkLenBuffer := make([]byte, 4)
+		copy(vkLenBuffer, paramsBytes[4:8])
+		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
+
+		// Deserialize ipaParamLen
+		IpaParamsLenBuffer := make([]byte, 4)
+		copy(IpaParamsLenBuffer, paramsBytes[8:12])
+		IpaParamsLen := (uint32)(binary.LittleEndian.Uint32(IpaParamsLenBuffer))
+
+		// Extract Constraint System Bytes
+		csBytes := make([]byte, halo2ipa.MaxConstraintSystemSize)
+		csOffset := uint32(12)
+		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
+
+		// Extract Verification Key Bytes
+		vkBytes := make([]byte, halo2ipa.MaxVerifierKeySize)
+		vkOffset := csOffset + csLen
+		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
+
+		// Extract ipa Parameter Bytes
+		IpaParamsBytes := make([]byte,(halo2ipa.MaxIpaParamsSize))
+		IpaParamsOffset := vkOffset + vkLen
+		copy(IpaParamsBytes, paramsBytes[IpaParamsOffset:])
+
+		// Extract Public Input Bytes
+		publicInput := verificationData.PubInput
+		publicInputBytes := make([]byte, halo2ipa.MaxPublicInputSize)
+		copy(publicInputBytes, publicInput)
+		publicInputLen := (uint32)(len(publicInput))
+
+		verificationResult := halo2ipa.VerifyHalo2IpaProof(
+			([halo2ipa.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), csLen,
+			([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
+			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen, 
+			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
+
+		o.Logger.Infof("Halo2-ipa proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
