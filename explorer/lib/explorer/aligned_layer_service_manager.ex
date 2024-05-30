@@ -78,7 +78,6 @@ defmodule AlignedLayerServiceManager do
     data = event |> Map.get(:data)
     topics_raw = event |> Map.get(:topics_raw)
 
-    # TODO verify this
     new_batch = %NewBatchEvent{
       batchMerkleRoot: topics_raw |> Enum.at(1),
       taskCreatedBlock: data |> Enum.at(0),
@@ -120,7 +119,6 @@ defmodule AlignedLayerServiceManager do
   defp extract_batch_verified_event_info(event) do
     data = event |> Map.get(:data) |> List.first()
 
-    # TODO verify this
     batch_verified = %BatchVerifiedEvent{
       batchMerkleRoot: data |> elem(0)
     }
