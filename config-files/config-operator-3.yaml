@@ -25,6 +25,8 @@ operator:
   delegation_approver_address: "0x0000000000000000000000000000000000000000"
   staker_opt_out_window_blocks: 0
   metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+  max_batch_size: 268435456 # 256 MiB
+
 # Operators variables needed for register it in EigenLayer
 el_delegation_manager_address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
 private_key_store_path: config-files/devnet/keys/operator-3.ecdsa.key.json
