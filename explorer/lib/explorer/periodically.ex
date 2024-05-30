@@ -12,12 +12,16 @@ defmodule Explorer.Periodically do
 
   def handle_info(:work, state) do
       batches =
-        AlignedLayerServiceManager.get_new_batch_events(page_size * current_page)
-        |> Enum.map(&AlignedLayerServiceManager.extract_new_batch_event_info/1)
-        |> Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1)
-        |> Enum.reverse()
+        AlignedLayerServiceManager.get_new_batch_events() |>
+        Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1) |>
+        Enum.map(fn batch -> Utils.extract_batch_data_pointer_info(batch) end) |>
+        Enum.map(&Batches.cast_to_batches/1) |>
+        Enum.map(&Map.from_struct/1) |>
+        Enum.map(fn batch -> Ecto.Changeset.cast(%Batches{}, batch, [:merkle_root, :amount_of_proofs, :is_verified]) end) |>
+        Enum.map(fn changeset -> Explorer.Repo.insert(changeset) end)
 
-      # TODO read the data pointers from the new data
+      "batches" |> IO.inspect()
+      batches |> IO.inspect()
 
       schedule_work() # Reschedule once more
       {:noreply, state}
@@ -25,7 +29,7 @@ defmodule Explorer.Periodically do
 
   defp schedule_work() do
       "IN SCHEDULE_WORK" |> IO.inspect()
-      Process.send_after(self(), :work, 10 * 1000) # 10 seconds
+      Process.send_after(self(), :work, 5 * 1000) # 10 seconds
   end
 
 end

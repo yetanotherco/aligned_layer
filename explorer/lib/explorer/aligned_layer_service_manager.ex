@@ -75,15 +75,15 @@ defmodule AlignedLayerServiceManager do
   end
 
   def extract_new_batch_event_info(event) do
-    data = event |> Map.get(:data)
-    topics_raw = event |> Map.get(:topics_raw)
+    # data = event |> Map.get(:data)
+    # topics_raw = event |> Map.get(:topics_raw)
 
-    # TODO verify this
-    new_batch = %NewBatchEvent{
-      batchMerkleRoot: topics_raw |> Enum.at(1),
-      taskCreatedBlock: data |> Enum.at(0),
-      batchDataPointer: data |> Enum.at(1)
-    }
+    # new_batch = %NewBatchEvent{
+    #   batchMerkleRoot: topics_raw |> Enum.at(1),
+    #   taskCreatedBlock: data |> Enum.at(0),
+    #   batchDataPointer: data |> Enum.at(1)
+    # }
+    new_batch = parse_new_batch_event(event)
 
     {:ok,
      %NewBatchInfo{
@@ -93,6 +93,17 @@ defmodule AlignedLayerServiceManager do
        transaction_hash: event |> Map.get(:transaction_hash),
        new_batch: new_batch
      }}
+  end
+
+  def parse_new_batch_event(%Ethers.Event{} = new_batch_event) do
+    data = new_batch_event |> Map.get(:data)
+    topics_raw = new_batch_event |> Map.get(:topics_raw)
+
+    %NewBatchEvent{
+      batchMerkleRoot: topics_raw |> Enum.at(1),
+      taskCreatedBlock: data |> Enum.at(0),
+      batchDataPointer: data |> Enum.at(1)
+    }
   end
 
   def get_batch_verified_events() do
@@ -143,7 +154,7 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def cross_event_with_response({_status, new_batch_info}) do
+  def cross_event_with_response({_status, %NewBatchInfo{} = new_batch_info}) do
     new_batch = new_batch_info.new_batch
     %BatchPageItem{
       batch_merkle_root: new_batch.batchMerkleRoot,
@@ -153,6 +164,15 @@ defmodule AlignedLayerServiceManager do
       task_responded_tx_hash: nil,
       batch_data_pointer: new_batch.batchDataPointer,
       responded: is_batch_responded(new_batch.batchMerkleRoot)
+    }
+  end
+
+  def cross_event_with_response( %Ethers.Event{} = new_batch_event) do
+    new_batch = parse_new_batch_event(new_batch_event)
+    %Batch{
+      batch_merkle_root: new_batch.batchMerkleRoot,
+      batch_data_pointer: new_batch.batchDataPointer,
+      is_verified: is_batch_responded(new_batch.batchMerkleRoot)
     }
   end
 

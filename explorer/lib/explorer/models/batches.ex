@@ -20,4 +20,12 @@ defmodule Batches do
     |> validate_format(:merkle_root, ~r/0x[a-fA-F0-9]{64}/)
     |> unique_constraint(:merkle_root)
   end
+
+  def cast_to_batches(%BatchDB{} = batch_db) do
+    %Batches{
+      merkle_root: batch_db.batch_merkle_root,
+      amount_of_proofs: batch_db.amount_of_proofs,
+      is_verified: batch_db.is_verified
+    }
+  end
 end
