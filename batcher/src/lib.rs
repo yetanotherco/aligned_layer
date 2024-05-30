@@ -40,15 +40,17 @@ pub struct Batcher {
 }
 
 struct ConnectionState {
-    inner: Option<Receiver<Message>>,
-    num_responses: u32,
+    inner: Mutex<Option<Receiver<Message>>>,
+    received_msgs: Mutex<usize>,
+    responded_msgs: Mutex<usize>,
 }
 
 impl ConnectionState {
     pub fn new() -> Self {
         ConnectionState {
-            inner: None,
-            num_responses: 0,
+            inner: Mutex::new(None),
+            received_msgs: Mutex::new(0),
+            responded_msgs: Mutex::new(0),
         }
     }
 }
@@ -144,29 +146,32 @@ impl Batcher {
         debug!("WebSocket connection established: {}", addr);
         let (mut outgoing, incoming) = ws_stream.split();
 
-        let connection_state = Arc::new(Mutex::new(ConnectionState::new()));
+        let conn_state = Arc::new(ConnectionState::new());
         let notify = Arc::new(Notify::new());
 
         let get_incoming = incoming
             .try_filter(|msg| future::ready(msg.is_text()))
             .try_for_each(|msg| {
                 self.clone()
-                    .handle_message(msg, connection_state.clone(), notify.clone())
+                    .handle_message(msg, conn_state.clone(), notify.clone())
             });
 
         let send_outgoing = async {
-            notify.notified().await;
-            let mut conn_state_lock = connection_state.lock().await;
-            if let Some(rx) = &mut conn_state_lock.inner {
-                let msg = rx.recv().await.unwrap();
-                outgoing.send(msg).await.unwrap();
-                // outgoing.close().await.unwrap();
+            loop {
+                let mut rx_lock = conn_state.inner.lock().await;
+                if let Some(rx) = &mut (*rx_lock) {
+                    // if let Some(rx) = &mut rx_ {
+                    let msg = rx.recv().await.unwrap();
+                    outgoing.send(msg).await.unwrap();
 
-                // reset the receiver
-                conn_state_lock.inner = None;
-                conn_state_lock.num_responses -= 1;
-                if conn_state_lock.num_responses == 0 {
-                    outgoing.close().await.unwrap();
+                    // reset the receiver
+                    *rx_lock = None;
+
+                    if *conn_state.responded_msgs.lock().await
+                        == *conn_state.received_msgs.lock().await
+                    {
+                        outgoing.close().await.unwrap();
+                    }
                 }
             }
         };
@@ -180,9 +185,13 @@ impl Batcher {
     async fn handle_message(
         self: Arc<Self>,
         message: Message,
-        conn_state: Arc<Mutex<ConnectionState>>,
+        conn_state: Arc<ConnectionState>,
         notifier: Arc<Notify>,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
+        {
+            *conn_state.received_msgs.lock().await += 1
+        }
+
         // Deserialize task from message
         let verification_data: VerificationData =
             serde_json::from_str(message.to_text().expect("Message is not text"))
@@ -206,17 +215,19 @@ impl Batcher {
     async fn add_to_batch(
         self: Arc<Self>,
         verification_data: VerificationData,
-        conn_state: Arc<Mutex<ConnectionState>>,
+        conn_state: Arc<ConnectionState>,
         notifier: Arc<Notify>,
     ) {
         info!("Adding verification data to batch...");
         let mut current_batch = self.current_batch.lock().await;
         current_batch.push(verification_data);
-        info!("THE BATCH LOCK IS NOT THE PROBLEM");
-        if let Ok(mut conn_state_lock) = conn_state.try_lock() {
-            if conn_state_lock.inner.is_none() {
-                conn_state_lock.inner = Some(self.broadcast_tx.lock().await.subscribe());
-                conn_state_lock.num_responses += 1;
+
+        let mut responded_msgs_lock = conn_state.responded_msgs.lock().await;
+        *responded_msgs_lock += 1;
+
+        if let Ok(mut rx) = conn_state.inner.try_lock() {
+            if rx.is_none() {
+                *rx = Some(self.broadcast_tx.lock().await.subscribe());
                 notifier.notify_one();
             }
         }
@@ -230,7 +241,11 @@ impl Batcher {
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
     async fn batch_ready(&self, block_number: u64) -> bool {
-        let current_batch_size = self.current_batch.lock().await.len();
+        let current_batch_lock = self.current_batch.lock().await;
+        let current_batch_size = current_batch_lock.len();
+
+        let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
+
         // FIXME(marian): This condition should be changed to current_batch_size == 0
         // once the bug in Lambdaworks merkle tree is fixed.
         if current_batch_size < 2 {
@@ -238,13 +253,12 @@ impl Batcher {
             return false;
         }
 
-        let last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
         if current_batch_size < self.min_batch_size
-            && block_number < *last_uploaded_batch_block + self.max_block_interval
+            && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
         {
             info!(
                 "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch size: {} - Minimum batch size: {}",
-                block_number, *last_uploaded_batch_block, current_batch_size, self.min_batch_size
+                block_number, *last_uploaded_batch_block_lock, current_batch_size, self.min_batch_size
             );
             return false;
         }
@@ -256,6 +270,8 @@ impl Batcher {
         let mut current_batch = self.current_batch.lock().await;
         let mut broadcast_tx = self.broadcast_tx.lock().await;
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+
+        info!("Finalizing batch. Size: {}", current_batch.len());
 
         let batch_commitment = VerificationCommitmentBatch::from(&(*current_batch));
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
