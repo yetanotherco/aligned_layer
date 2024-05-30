@@ -26,7 +26,6 @@ pub const MAX_IPA_PARAMS_SIZE: usize = 4 * 1024;
 // MaxPublicInputSize 4KB
 pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
 
-
 pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
     let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
     let cs_len_buf: [u8; 4] = verification_key[..4]
