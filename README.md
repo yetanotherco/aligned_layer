@@ -62,7 +62,7 @@ cargo run -- \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn batcher.alignedlayer.com \
+--conn <batcher_url> \
 --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 popd
 ```
