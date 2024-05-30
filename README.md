@@ -179,9 +179,10 @@ make operator_register_and_start
 make batcher_start
 ```
 
-Send SP1 proof:
+If you need to start again the operator, and it's already registered, use:
+
 ```bash
-make batcher_send_sp1_task
+make operator_start
 ```
 
 ### Send test proofs to batcher for testing
@@ -204,6 +205,12 @@ Send an individual Groth 16 proof:
 
 ```bash
 make batcher_send_groth16_task
+```
+
+To send send an individual test SP1 proof:
+
+```bash
+make batcher_send_sp1_task
 ```
 
 ### Detailed Testnet Deployment
