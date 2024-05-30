@@ -4635,7 +4635,6 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "lazy_static",
- "libc",
  "sp1-sdk",
 ]
 
