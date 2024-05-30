@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    time::{self, Duration},
-};
+use std::{path::PathBuf, time::Duration};
 
 use alloy_primitives::{hex, Address};
 use env_logger::Env;
@@ -59,7 +56,6 @@ struct Args {
         default_value = "."
     )]
     proof_generator_addr: String,
-
 }
 
 #[tokio::main]
@@ -102,7 +98,8 @@ async fn main() {
         warn!("No VM program code file provided, continuing without VM program code...");
     }
 
-    let proof_generator_addr: Address = Address::parse_checksummed(&args.proof_generator_addr, None).unwrap();
+    let proof_generator_addr: Address =
+        Address::parse_checksummed(&args.proof_generator_addr, None).unwrap();
 
     let verification_data = VerificationData {
         proving_system,
