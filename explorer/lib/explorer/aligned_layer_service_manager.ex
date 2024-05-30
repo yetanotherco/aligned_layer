@@ -35,7 +35,7 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def get_new_batch_events(merkle_root) when is_binary(merkle_root) do
+  def get_new_batch_events(%{merkle_root: merkle_root}) when is_binary(merkle_root) do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(Utils.string_to_bytes32(merkle_root))
       |> Ethers.get_logs(fromBlock: 0)
@@ -47,17 +47,32 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def get_new_batch_events(amount) when is_integer(amount) do
-
+  def get_new_batch_events(%{amount: amount}) when is_integer(amount) do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
       |> Ethers.get_logs(fromBlock: get_latest_block_number(-10000), toBlock: get_latest_block_number())
 
     case events do
       {:ok, list} -> Utils.get_last_n_items(list, amount)
-      {:error, _} -> raise("Error fetching events")
+      {:error, reason} -> raise("Error fetching events: #{Map.get(reason, "message")}")
     end
+  end
 
+  def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
+    "fromBlock" |> IO.inspect()
+    fromBlock |> IO.inspect()
+    "toBlock" |> IO.inspect()
+    toBlock |> IO.inspect()
+
+    events =
+      AlignedLayerServiceManager.EventFilters.new_batch(nil)
+      |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
+
+    case events do
+      {:ok, []} -> []
+      {:ok, list} -> list
+      {:error, reason } -> raise("Error fetching events: #{Map.get(reason, "message")}")
+    end
   end
 
   def get_latest_block_number() do
@@ -131,7 +146,6 @@ defmodule AlignedLayerServiceManager do
   defp extract_batch_verified_event_info(event) do
     data = event |> Map.get(:data) |> List.first()
 
-    # TODO verify this
     batch_verified = %BatchVerifiedEvent{
       batchMerkleRoot: data |> elem(0)
     }
@@ -154,7 +168,8 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def cross_event_with_response({_status, %NewBatchInfo{} = new_batch_info}) do
+  # find_if_batch_was_responded
+  def find_if_batch_was_responded({_status, %NewBatchInfo{} = new_batch_info}) do
     new_batch = new_batch_info.new_batch
     %BatchPageItem{
       batch_merkle_root: new_batch.batchMerkleRoot,
@@ -167,7 +182,7 @@ defmodule AlignedLayerServiceManager do
     }
   end
 
-  def cross_event_with_response( %Ethers.Event{} = new_batch_event) do
+  def find_if_batch_was_responded( %Ethers.Event{} = new_batch_event) do
     new_batch = parse_new_batch_event(new_batch_event)
     %Batch{
       batch_merkle_root: new_batch.batchMerkleRoot,

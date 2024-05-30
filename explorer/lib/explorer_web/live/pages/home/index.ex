@@ -27,14 +27,9 @@ defmodule ExplorerWeb.Home.Index do
     operators_registered = get_operators_registered()
 
     latest_batches =
-      AlignedLayerServiceManager.get_new_batch_events(5)
+      AlignedLayerServiceManager.get_new_batch_events(%{amount: 5})
       |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
       |> Enum.reverse()
-
-
-    # Explorer.Repo.insert_all(Batches, BatchDataPointer.)
-    # "AlignedLayerServiceManager.get_new_batch_events()" |> IO.inspect()
-    # AlignedLayerServiceManager.get_new_batch_events() |> IO.inspect()
 
     amount_of_proofs = Explorer.Repo.aggregate(Batches, :count, :amount_of_proofs)
 

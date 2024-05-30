@@ -13,7 +13,7 @@ defmodule ExplorerWeb.Batch.Index do
     end
 
     newBatchInfo =
-      case AlignedLayerServiceManager.get_new_batch_events(merkle_root) do
+      case AlignedLayerServiceManager.get_new_batch_events(%{merkle_root: merkle_root}) do
         {:error, reason} ->
           Logger.error("batch detail error: ", reason)
           {:error, reason}

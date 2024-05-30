@@ -1,7 +1,10 @@
 defmodule Explorer.Periodically do
   use GenServer
 
+  # @last_read_block_number :last_read_block_number
+
   def start_link(_) do
+      # GenServer.start_link(__MODULE__, %{@last_read_block_number => 0})
       GenServer.start_link(__MODULE__, %{})
   end
 
@@ -11,9 +14,10 @@ defmodule Explorer.Periodically do
   end
 
   def handle_info(:work, state) do
+      # last_read_block_number = @last_read_block_number
       batches =
-        AlignedLayerServiceManager.get_new_batch_events() |>
-        Enum.map(&AlignedLayerServiceManager.cross_event_with_response/1) |>
+        AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: 0, toBlock: 1000}) |>
+        Enum.map(&AlignedLayerServiceManager.find_if_batch_was_responded/1) |>
         Enum.map(fn batch -> Utils.extract_batch_data_pointer_info(batch) end) |>
         Enum.map(&Batches.cast_to_batches/1) |>
         Enum.map(&Map.from_struct/1) |>
@@ -28,7 +32,6 @@ defmodule Explorer.Periodically do
   end
 
   defp schedule_work() do
-      "IN SCHEDULE_WORK" |> IO.inspect()
       Process.send_after(self(), :work, 5 * 1000) # 10 seconds
   end
 
