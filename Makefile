@@ -468,9 +468,13 @@ generate_halo2_ipa_proof:
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
 __DASHBOARD__:
-
-dashboard_for_devnet: 
+run_devnet_explorer: 
 	@cd explorer/ && \
 		mix setup && \
 		cp .env.dev .env && \
+		./start.sh
+
+run_explorer:
+	@cd explorer/ && \
+		mix setup && \
 		./start.sh

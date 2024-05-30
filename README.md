@@ -13,14 +13,13 @@
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
   - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
+  - [Explorer](#explorer)
   - [Tests](#tests)
   - [FAQ](#faq)
 
 ## The Project
 
 Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned.
-
-
 
 ## How to use the testnet
 
@@ -719,6 +718,60 @@ The state is backuped on ```contracts/scripts/anvil/state```.
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
 
 
+##  Explorer
+### Requirements
+
+- [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
+- [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
+- [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
+- [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
+
+### Running for local devnet
+
+```make run_devnet_explorer```
+
+Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+You can access to a tasks information by visiting `localhost:4000/tasks/:id`.
+
+### Run with custom env / other devnets
+
+Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
+
+| Variable | Description |
+| -------- | ----------- |
+| `RPC_URL` | The RPC URL of the network you want to connect to. |
+| `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
+
+```make run_explorer```
+
+
+### Send example data
+
+If you want to have some data to see on it, and you haven't booted a task sender that periodically sends proofs, you can use
+
+```sh
+make batcher_send_sp1_task
+make batcher_send_sp1_task
+make batcher_send_sp1_task
+make batcher_send_sp1_task
+make batcher_send_sp1_task
+make batcher_send_groth16_task
+make batcher_send_groth16_task
+make batcher_send_groth16_task
+make batcher_send_groth16_task
+make batcher_send_groth16_task
+make batcher_send_sp1_task
+make batcher_send_groth16_task
+make batcher_send_sp1_task
+make batcher_send_groth16_task
+make batcher_send_sp1_task
+```
+
+This will send 10 SP1 tasks, 5 Groth16 tasks, and 5 SP1 tasks to the devnet.
+
+</details>
+
+
 ## Tests
 
 To run the go tests
@@ -726,7 +779,6 @@ To run the go tests
 ```bash
 make test
 ```
-
 
 ## FAQ
 
