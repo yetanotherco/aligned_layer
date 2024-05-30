@@ -277,11 +277,8 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen, 
 			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 
-		o.Logger.Infof("Halo2-ipa proof verification result: %t", verificationResult)		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
+		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
+		results <- verificationResult
 	case common.Halo2KZG:
 		// Extract Proof Bytes
 		proofBytes := make([]byte, halo2kzg.MaxProofSize)
