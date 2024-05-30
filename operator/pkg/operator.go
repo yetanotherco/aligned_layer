@@ -6,11 +6,12 @@ import (
 	"encoding/binary"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/yetanotherco/aligned_layer/metrics"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/yetanotherco/aligned_layer/metrics"
 
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
 	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
@@ -139,10 +140,9 @@ func (o *Operator) Start(ctx context.Context) error {
 			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
 
 			signedTaskResponse := types.SignedTaskResponse{
-				BatchMerkleRoot:  newBatchLog.BatchMerkleRoot,
-				TaskCreatedBlock: newBatchLog.TaskCreatedBlock,
-				BlsSignature:     *responseSignature,
-				OperatorId:       o.OperatorId,
+				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+				BlsSignature:    *responseSignature,
+				OperatorId:      o.OperatorId,
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
