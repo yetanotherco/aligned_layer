@@ -231,11 +231,9 @@ impl Batcher {
         let mut broadcast_tx = self.broadcast_tx.lock().await;
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
 
-        // info!("Finalizing batch. Size: {}", current_batch.len());
         let mut batch_bytes =
             serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
-        // -----------
         let batch_to_send;
         if batch_bytes.len() > self.max_batch_size {
             let mut current_batch_end = 0; // not inclusive
@@ -265,8 +263,8 @@ impl Batcher {
             batch_to_send = current_batch.clone();
             current_batch.clear();
         }
-        // -----------
 
+        info!("Finalizing batch. Size: {}", batch_to_send.len());
         let batch_commitment = VerificationCommitmentBatch::from(&batch_to_send);
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
             MerkleTree::build(&batch_commitment.0);
@@ -283,7 +281,8 @@ impl Batcher {
             warn!("No connections awaiting for anwsers. Reseting batch state and continuing...");
         }
 
-        // update batcher state (clear current batch and update last uploaded batch block)
+        // update batcher state: clear current batch, update last uploaded batch block and reset
+        // the transmitter
         current_batch.clear();
         *last_uploaded_batch_block = block_number;
         let (new_broadcast_tx, _) = broadcast::channel(10);
