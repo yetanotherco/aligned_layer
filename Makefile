@@ -473,7 +473,8 @@ generate_halo2_ipa_proof:
 	RUST_LOG=info cargo run --release && \
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
-__DASHBOARD__:
+	
+__EXPLORER__:
 run_devnet_explorer: 
 	@cd explorer/ && \
 		mix setup && \
