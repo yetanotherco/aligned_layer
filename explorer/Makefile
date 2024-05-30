@@ -10,11 +10,11 @@ deps:
 	@echo "Installing Elixir code dependencies"
 	@mix setup
 
-dashboard_for_devnet: 
+run_explorer_for_devnet: 
 	@mix setup
 	@cp .env.dev .env
 	./start.sh
 
-run: 
+run_explorer: 
 	@echo "Starting the Elixir backend server"
 	./start.sh

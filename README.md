@@ -730,10 +730,10 @@ Eigenlayer contract deployment is almost the same as the EigenLayer contract dep
 
 ### Running for local devnet
 
-```make run_devnet_explorer```
+```make run_explorer_for_devnet```
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
-You can access to a tasks information by visiting `localhost:4000/tasks/:id`.
+You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
 
 ### Run with custom env / other devnets
 
@@ -749,27 +749,11 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 
 ### Send example data
 
-If you want to have some data to see on it, and you haven't booted a task sender that periodically sends proofs, you can use
+If you want to have some data to see on it, you can start our infinite task sender, which will constantly send new proofs to the batcher.
 
 ```sh
-make batcher_send_sp1_task
-make batcher_send_sp1_task
-make batcher_send_sp1_task
-make batcher_send_sp1_task
-make batcher_send_sp1_task
-make batcher_send_groth16_task
-make batcher_send_groth16_task
-make batcher_send_groth16_task
-make batcher_send_groth16_task
-make batcher_send_groth16_task
-make batcher_send_sp1_task
-make batcher_send_groth16_task
-make batcher_send_sp1_task
-make batcher_send_groth16_task
-make batcher_send_sp1_task
+make batcher_send_burst_groth16
 ```
-
-This will send 10 SP1 tasks, 5 Groth16 tasks, and 5 SP1 tasks to the devnet.
 
 </details>
 
