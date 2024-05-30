@@ -6,8 +6,7 @@ import (
 )
 
 type SignedTaskResponse struct {
-	BatchMerkleRoot  [32]byte
-	TaskCreatedBlock uint32
-	BlsSignature     bls.Signature
-	OperatorId       eigentypes.OperatorId
+	BatchMerkleRoot [32]byte
+	BlsSignature    bls.Signature
+	OperatorId      eigentypes.OperatorId
 }

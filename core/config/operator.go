@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/celestiaorg/celestia-node/api/rpc/perms"
 	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"os"
@@ -14,8 +13,6 @@ type OperatorConfig struct {
 	EcdsaConfig                  *EcdsaConfig
 	BlsConfig                    *BlsConfig
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
-	EigenDADisperserConfig       *EigenDAConfig
-	CelestiaConfig               *CelestiaConfig
 
 	Operator struct {
 		AggregatorServerIpPortAddress string
@@ -75,17 +72,11 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		log.Fatal("Error reading operator config: ", err)
 	}
 
-	eigenDADisperserConfig := NewEigenDAConfig(configFilePath)
-
-	celestiaConfig := NewCelestiaConfig(configFilePath, perms.ReadPerms)
-
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
 		EcdsaConfig:                  ecdsaConfig,
 		BlsConfig:                    blsConfig,
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
-		EigenDADisperserConfig:       eigenDADisperserConfig,
-		CelestiaConfig:               celestiaConfig,
 		Operator: struct {
 			AggregatorServerIpPortAddress string
 			Address                       common.Address

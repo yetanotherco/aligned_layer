@@ -23,6 +23,7 @@ use crate::types::VerificationData;
 mod config;
 mod eth;
 pub mod gnark;
+pub mod halo2;
 pub mod s3;
 pub mod types;
 
