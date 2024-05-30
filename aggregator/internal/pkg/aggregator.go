@@ -263,7 +263,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 
 	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
 
-	// --- INCREASE TASK INDEX ---
+	// --- INCREASE BATCH INDEX ---
 
 	agg.nextBatchIndexMutex.Lock()
 	agg.nextBatchIndex = agg.nextBatchIndex + 1
