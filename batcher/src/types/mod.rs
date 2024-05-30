@@ -8,6 +8,7 @@ use sha3::{Digest, Keccak256};
 use sp1_sdk::ProverClient;
 
 use crate::gnark::verify_gnark;
+use crate::halo2::ipa::verify_halo2_ipa;
 
 lazy_static! {
     static ref SP1_PROVER_CLIENT: ProverClient = ProverClient::new();
@@ -20,6 +21,7 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
+    Halo2IPA,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -43,6 +45,17 @@ impl VerificationData {
                 false
             }
 
+            ProvingSystemId::Halo2IPA => {
+                let vk = &self
+                    .verification_key
+                    .as_ref()
+                    .expect("Verification key is required");
+
+                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let is_valid = verify_halo2_ipa(&self.proof, pub_input, vk);
+                debug!("Halo2-IPA proof is valid: {}", is_valid);
+                is_valid
+            }
             ProvingSystemId::GnarkPlonkBls12_381
             | ProvingSystemId::GnarkPlonkBn254
             | ProvingSystemId::Groth16Bn254 => {
@@ -165,7 +178,8 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
         "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
         "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
         "SP1" => Ok(ProvingSystemId::SP1),
-        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1]", proving_system))
+        "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2IPA]", proving_system))
     }
 }
 
