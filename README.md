@@ -291,7 +291,7 @@ To register an operator in EigenLayer and Aligned and deposit strategy tokens in
 make operator_full_registration CONFIG_FILE=<path_to_config_file>
 ```
 
-##### Deposit Strategy Tokens in Anvil
+##### Deposit Strategy Tokens in Anvil local devnet
 
 There is an ERC20 token deployed in the Anvil chain to use as strategy token with EigenLayer.
 
