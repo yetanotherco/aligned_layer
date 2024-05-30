@@ -26,7 +26,7 @@ defmodule AlignedLayerServiceManager do
   def get_new_batch_events() do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
-      |> Ethers.get_logs(fromBlock: 0)
+      |> Ethers.get_logs(fromBlock: 1600000)
 
     case events do
       {:ok, []} -> []
@@ -38,7 +38,7 @@ defmodule AlignedLayerServiceManager do
   def get_new_batch_events(merkle_root) when is_binary(merkle_root) do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(Utils.string_to_bytes32(merkle_root))
-      |> Ethers.get_logs(fromBlock: 0)
+      |> Ethers.get_logs(fromBlock: 1600000)
 
     case events do
       {:error, reason} -> {:empty, reason}
@@ -96,7 +96,7 @@ defmodule AlignedLayerServiceManager do
 
   def get_batch_verified_events() do
     events =
-      AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 0)
+      AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 1600000)
 
     case events do
       {:ok, list} -> {:ok, list}
@@ -107,7 +107,7 @@ defmodule AlignedLayerServiceManager do
   def get_batch_verified_events(merkle_root) do
     events =
       AlignedLayerServiceManager.EventFilters.batch_verified(merkle_root)
-      |> Ethers.get_logs(fromBlock: 0)
+      |> Ethers.get_logs(fromBlock: 1600000)
 
     case events do
       {:error, reason} -> {:empty, reason}
