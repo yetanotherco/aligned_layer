@@ -49,6 +49,7 @@ defmodule ExplorerWeb.Home.Index do
   defp get_verified_batches_count() do
     AlignedLayerServiceManager.get_batch_verified_events()
     |> (fn
+          {:ok, nil} -> 0
           {:ok, list} -> Enum.count(list)
           {:error, _} -> 0
         end).()
