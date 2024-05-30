@@ -1,7 +1,6 @@
+use std::slice;
 use sp1_sdk::ProverClient;
 use lazy_static::lazy_static;
-pub const MAX_PROOF_SIZE: usize = 2 * 1024 * 1024;
-pub const MAX_ELF_BUFFER_SIZE: usize = 1024 * 1024;
 
 lazy_static! {
     static ref PROVER_CLIENT: ProverClient = ProverClient::new();
@@ -9,15 +8,25 @@ lazy_static! {
 
 #[no_mangle]
 pub extern "C" fn verify_sp1_proof_ffi(
-    proof_bytes: &[u8; MAX_PROOF_SIZE],
-    proof_len: usize,
-    elf_bytes: &[u8; MAX_ELF_BUFFER_SIZE],
-    elf_len: usize,
+    proof_bytes: *const u8,
+    proof_len: u32,
+    elf_bytes: *const u8,
+    elf_len: u32,
 ) -> bool {
-    let real_elf = &elf_bytes[0..elf_len];
+    let proof_bytes = unsafe {
+        assert!(!proof_bytes.is_null());
 
-    if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len]) {
-        let (_pk, vk) = PROVER_CLIENT.setup(real_elf);
+        slice::from_raw_parts(proof_bytes, proof_len as usize)
+    };
+
+    let elf_bytes = unsafe {
+        assert!(!elf_bytes.is_null());
+
+        slice::from_raw_parts(elf_bytes, elf_len as usize)
+    };
+
+    if let Ok(proof) = bincode::deserialize(proof_bytes) {
+        let (_pk, vk) = PROVER_CLIENT.setup(elf_bytes);
 
         return PROVER_CLIENT.verify_compressed(&proof, &vk).is_ok();
     }
@@ -36,29 +45,27 @@ mod tests {
 
     #[test]
     fn verify_sp1_proof_with_elf_works() {
-        let mut proof_buffer = [0u8; MAX_PROOF_SIZE];
-        let proof_size = PROOF.len();
-        proof_buffer[..proof_size].clone_from_slice(PROOF);
+        let proof_bytes = PROOF.as_ptr();
+        println!("actual proof len: {:?}", PROOF.len());
+        let elf_bytes = ELF.as_ptr();
+        println!("actual elf len: {:?}", ELF.len());
 
-        let mut elf_buffer = [0u8; MAX_ELF_BUFFER_SIZE];
-        let elf_size = ELF.len();
-        elf_buffer[..elf_size].clone_from_slice(ELF);
-
-        let result = verify_sp1_proof_ffi(&proof_buffer, proof_size, &elf_buffer, elf_size);
+        let result = verify_sp1_proof_ffi(proof_bytes, PROOF.len() as u32, elf_bytes, ELF.len() as u32);
         assert!(result)
     }
 
     #[test]
     fn verify_sp1_aborts_with_bad_proof() {
-        let mut proof_buffer = [42u8; super::MAX_PROOF_SIZE];
-        let proof_size = PROOF.len();
-        proof_buffer[..proof_size].clone_from_slice(PROOF);
+        let mut proof_buffer = [42u8; PROOF.len()];
+        proof_buffer.clone_from_slice(PROOF);
 
-        let mut elf_buffer = [0u8; MAX_ELF_BUFFER_SIZE];
-        let elf_size = ELF.len();
-        elf_buffer[..elf_size].clone_from_slice(ELF);
+        let mut elf_buffer = [42u8; ELF.len()];
+        elf_buffer.clone_from_slice(ELF);
 
-        let result = verify_sp1_proof_ffi(&proof_buffer, proof_size-1, &elf_buffer, elf_size);
+        let proof_bytes = proof_buffer.as_ptr();
+        let elf_bytes = elf_buffer.as_ptr();
+
+        let result = verify_sp1_proof_ffi(proof_bytes, (PROOF.len() - 1) as u32, elf_bytes, ELF.len() as u32);
         assert!(!result)
     }
 }
