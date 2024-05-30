@@ -350,7 +350,7 @@ build_binaries:
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
 	@echo "Task sender built into /task_sender/build/aligned-task-sender"
 
-boot_pregenerated:
+run_local:
 	./scripts/run_local.sh
 
 __SP1_FFI__: ##
