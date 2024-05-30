@@ -42,23 +42,33 @@ type Aggregator struct {
 	taskSubscriber        event.Subscription
 	blsAggregationService blsagg.BlsAggregationService
 
-	// Using map here instead of slice to allow for easy lookup of tasks, when aggregator is restarting,
-	// its easier to get the task from the map instead of filling the slice again
-	tasks map[uint32][32]byte
-	// Mutex to protect the tasks map
-	tasksMutex *sync.Mutex
+	// BLS Signature Service returns an Index
+	// Since our ID is not an idx, we build this cache
+	// Note: In case of a reboot, this doesn't need to be loaded,
+	// and can start from zero
+	batchesRootByIdx      map[uint32][32]byte
+	batchesRootByIdxMutex *sync.Mutex
+
+	// This is the counterpart,
+	// to use when we have the batch but not the index
+	// Note: In case of a reboot, this doesn't need to be loaded,
+	// and can start from zero
+	batchesIdxByRoot      map[[32]byte]uint32
+	batchesIdxByRootMutex *sync.Mutex
+
+	// This task index is to communicate with the local BLS
+	// Service.
+	// Note: In case of a reboot it can start from 0 again
+	nextBatchIndex      uint32
+	nextBatchIndexMutex *sync.Mutex
 
 	OperatorTaskResponses map[[32]byte]*TaskResponsesWithStatus
 	// Mutex to protect the taskResponses map
-	taskResponsesMutex *sync.Mutex
-	logger             logging.Logger
+	batchesResponseMutex *sync.Mutex
+	logger               logging.Logger
 
-	// FIXME(marian): This is a hacky workaround to send some sensible index to the BLS aggregation service,
-	// which needs a task index.
-	taskCounter      uint32
-	taskCounterMutex *sync.Mutex
-	metricsReg       *prometheus.Registry
-	metrics          *metrics.Metrics
+	metricsReg *prometheus.Registry
+	metrics    *metrics.Metrics
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -79,7 +89,9 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	tasks := make(map[uint32][32]byte)
+	batchesRootByIdx := make(map[uint32][32]byte)
+	batchesIdxByRoot := make(map[[32]byte]uint32)
+
 	operatorTaskResponses := make(map[[32]byte]*TaskResponsesWithStatus, 0)
 
 	chainioConfig := sdkclients.BuildAllConfig{
@@ -104,27 +116,32 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.AvsRegistryReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, logger)
 
-	// Explicitly initializing this value just in case.
-	taskCounter := uint32(0)
-
 	// Metrics
 	reg := prometheus.NewRegistry()
 	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
 
+	nextBatchIndex := uint32(0)
+
 	aggregator := Aggregator{
-		AggregatorConfig:      &aggregatorConfig,
-		avsReader:             avsReader,
-		avsSubscriber:         avsSubscriber,
-		avsWriter:             avsWriter,
-		NewBatchChan:          newBatchChan,
-		tasks:                 tasks,
-		tasksMutex:            &sync.Mutex{},
+		AggregatorConfig: &aggregatorConfig,
+		avsReader:        avsReader,
+		avsSubscriber:    avsSubscriber,
+		avsWriter:        avsWriter,
+		NewBatchChan:     newBatchChan,
+
+		batchesRootByIdx:      batchesRootByIdx,
+		batchesRootByIdxMutex: &sync.Mutex{},
+
+		batchesIdxByRoot:      batchesIdxByRoot,
+		batchesIdxByRootMutex: &sync.Mutex{},
+
+		nextBatchIndex:      nextBatchIndex,
+		nextBatchIndexMutex: &sync.Mutex{},
+
 		OperatorTaskResponses: operatorTaskResponses,
-		taskResponsesMutex:    &sync.Mutex{},
+		batchesResponseMutex:  &sync.Mutex{},
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
-		taskCounter:           taskCounter,
-		taskCounterMutex:      &sync.Mutex{},
 		metricsReg:            reg,
 		metrics:               aggregatorMetrics,
 	}
@@ -193,9 +210,9 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 		"taskIndex", blsAggServiceResp.TaskIndex,
 	)
 
-	agg.tasksMutex.Lock()
-	batchMerkleRoot := agg.tasks[blsAggServiceResp.TaskIndex]
-	agg.tasksMutex.Unlock()
+	agg.batchesRootByIdxMutex.Lock()
+	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+	agg.batchesRootByIdxMutex.Unlock()
 
 	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
@@ -206,31 +223,51 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
 
-	agg.taskCounterMutex.Lock()
-	agg.taskCounter++
-	agg.taskCounterMutex.Unlock()
+	agg.nextBatchIndexMutex.Lock()
+	batchIndex := agg.nextBatchIndex
+	agg.nextBatchIndexMutex.Unlock()
 
-	agg.tasksMutex.Lock()
-	if _, ok := agg.tasks[agg.taskCounter]; ok {
-		agg.logger.Warn("Task already exists", "taskIndex", agg.taskCounter)
-		agg.tasksMutex.Unlock()
+	// --- UPDATE BATCH - INDEX CACHES ---
+
+	agg.batchesRootByIdxMutex.Lock()
+	if _, ok := agg.batchesRootByIdx[batchIndex]; ok {
+		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
+		agg.batchesRootByIdxMutex.Unlock()
 		return
 	}
-	agg.tasks[agg.taskCounter] = batchMerkleRoot
-	agg.tasksMutex.Unlock()
+	agg.batchesRootByIdx[batchIndex] = batchMerkleRoot
+	agg.batchesRootByIdxMutex.Unlock()
 
-	agg.taskResponsesMutex.Lock()
+	agg.batchesIdxByRootMutex.Lock()
+	// This shouldn't happen, since both maps are updated together
+	if _, ok := agg.batchesIdxByRoot[batchMerkleRoot]; ok {
+		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
+		agg.batchesRootByIdxMutex.Unlock()
+		return
+	}
+	agg.batchesIdxByRoot[batchMerkleRoot] = batchIndex
+	agg.batchesIdxByRootMutex.Unlock()
+
+	// --- UPDATE TASK RESPONSES ---
+
+	agg.batchesResponseMutex.Lock()
 	agg.OperatorTaskResponses[batchMerkleRoot] = &TaskResponsesWithStatus{
 		taskResponses:       make([]types.SignedTaskResponse, 0),
 		submittedToEthereum: false,
 	}
-	agg.taskResponsesMutex.Unlock()
+	agg.batchesResponseMutex.Unlock()
 
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	// FIXME(marian): Hardcoded value of timeToExpiry to 100s. How should be get this value?
-	err := agg.blsAggregationService.InitializeNewTask(agg.taskCounter, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+
+	// --- INCREASE BATCH INDEX ---
+
+	agg.nextBatchIndexMutex.Lock()
+	agg.nextBatchIndex = agg.nextBatchIndex + 1
+	agg.nextBatchIndexMutex.Unlock()
+
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
