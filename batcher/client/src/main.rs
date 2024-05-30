@@ -109,11 +109,14 @@ async fn main() {
 
     let json_data = serde_json::to_string(&verification_data).expect("Failed to serialize task");
     for _ in 0..args.repetitions {
-        std::thread::sleep(Duration::from_millis(100));
+        // NOTE(marian): This sleep is only for ease of testing interactions between client and batcher,
+        // it can be removed.
+        std::thread::sleep(Duration::from_millis(500));
         ws_write
             .send(tungstenite::Message::Text(json_data.to_string()))
             .await
             .unwrap();
+        info!("Message sent...")
     }
 
     ws_read

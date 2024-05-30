@@ -4,15 +4,15 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aws_sdk_s3::client::Client as S3Client;
-use connection::Connection;
+use connection::ConnectionState;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
-use futures_util::{future, pin_mut, SinkExt, StreamExt, TryStreamExt};
+use futures_util::{future, pin_mut, StreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast::{self, Sender};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, MutexGuard};
 use tokio_tungstenite::tungstenite::error::ProtocolError;
 use tokio_tungstenite::tungstenite::Message;
 use types::VerificationCommitmentBatch;
@@ -74,7 +74,7 @@ impl Batcher {
         .expect("Failed to get Aligned service manager contract");
 
         // A broadcast channel transmitter is created so that when the block listener checks that a batch
-        // is ready to be submitted, the information about the merkle root of the batch is transmitted to
+        // is ready to be submitted, the merkle root of the batch is transmitted to
         // the the websocket connections to respond to clients.
         let (broadcast_tx, _) = broadcast::channel::<Message>(10);
         let broadcast_tx = Mutex::new(broadcast_tx);
@@ -127,31 +127,10 @@ impl Batcher {
         debug!("WebSocket connection established: {}", addr);
         let (mut outgoing, incoming) = ws_stream.split();
 
-        let conn_state = Arc::new(Connection::new());
+        let conn_state = Arc::new(ConnectionState::new());
 
-        let get_incoming = incoming
-            .try_filter(|msg| future::ready(msg.is_text()))
-            .try_for_each(|msg| self.clone().handle_message(msg, conn_state.clone()));
-
-        let send_outgoing = async {
-            loop {
-                let mut rx_lock = conn_state.rx.lock().await;
-                if let Some(rx) = &mut (*rx_lock) {
-                    // if let Some(rx) = &mut rx_ {
-                    let msg = rx.recv().await.unwrap();
-                    outgoing.send(msg).await.unwrap();
-
-                    // reset the receiver
-                    *rx_lock = None;
-
-                    if *conn_state.responded_msgs.lock().await
-                        == *conn_state.received_msgs.lock().await
-                    {
-                        outgoing.close().await.unwrap();
-                    }
-                }
-            }
-        };
+        let get_incoming = conn_state.process_new_messages(self.clone(), incoming);
+        let send_outgoing = conn_state.send_response(&mut outgoing);
 
         pin_mut!(get_incoming, send_outgoing);
         future::select(get_incoming, send_outgoing).await;
@@ -159,14 +138,13 @@ impl Batcher {
         info!("{} disconnected", &addr);
     }
 
+    /// Handle an individual message from the client.
     async fn handle_message(
         self: Arc<Self>,
         message: Message,
-        conn_state: Arc<Connection>,
+        conn_state: &ConnectionState,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
-        {
-            *conn_state.received_msgs.lock().await += 1
-        }
+        conn_state.update_received_msg_count().await;
 
         // Deserialize task from message
         let verification_data: VerificationData =
@@ -187,23 +165,20 @@ impl Batcher {
         Ok(())
     }
 
+    /// Adds verification data to the current batch.
     async fn add_to_batch(
         self: Arc<Self>,
         verification_data: VerificationData,
-        conn_state: Arc<Connection>,
+        conn_state: &ConnectionState,
     ) {
         info!("Adding verification data to batch...");
         let mut current_batch = self.current_batch.lock().await;
         current_batch.push(verification_data);
 
-        let mut responded_msgs_lock = conn_state.responded_msgs.lock().await;
-        *responded_msgs_lock += 1;
-
-        if let Ok(mut rx) = conn_state.rx.try_lock() {
-            if rx.is_none() {
-                *rx = Some(self.broadcast_tx.lock().await.subscribe());
-            }
-        }
+        // The data has been added to the batch, so the responded messages counter is updated
+        conn_state.update_responded_msg_count().await;
+        // The connection subscribes to the processed batch channel if if was not already subscribed
+        conn_state.maybe_subscribe(self.clone()).await;
         info!("Current batch size: {}", current_batch.len());
     }
 
@@ -213,9 +188,12 @@ impl Batcher {
     ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
-    async fn batch_ready(&self, block_number: u64) -> bool {
+    /// If the batch is ready to be submitted, a MutexGuard of it is returned so it can be processed in a thread-safe
+    /// manner.
+    async fn batch_ready(&self, block_number: u64) -> Option<MutexGuard<Vec<VerificationData>>> {
         let current_batch_lock = self.current_batch.lock().await;
         let current_batch_size = current_batch_lock.len();
+        info!("Batch size in batch_ready function: {}", current_batch_size);
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
@@ -223,7 +201,7 @@ impl Batcher {
         // once the bug in Lambdaworks merkle tree is fixed.
         if current_batch_size < 2 {
             info!("Current batch is empty or size 1. Waiting for more proofs...");
-            return false;
+            return None;
         }
 
         if current_batch_size < self.min_batch_size
@@ -233,14 +211,18 @@ impl Batcher {
                 "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch size: {} - Minimum batch size: {}",
                 block_number, *last_uploaded_batch_block_lock, current_batch_size, self.min_batch_size
             );
-            return false;
+            return None;
         }
 
-        true
+        Some(current_batch_lock)
     }
 
-    async fn process_batch_and_update_state(&self, block_number: u64) -> (Vec<u8>, [u8; 32]) {
-        let mut current_batch = self.current_batch.lock().await;
+    async fn process_batch_and_update_state<'a>(
+        &'a self,
+        block_number: u64,
+        current_batch: MutexGuard<'a, Vec<VerificationData>>,
+    ) {
+        let mut current_batch = current_batch;
         let mut broadcast_tx = self.broadcast_tx.lock().await;
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
 
@@ -269,13 +251,14 @@ impl Batcher {
         *last_uploaded_batch_block = block_number;
         let (new_broadcast_tx, _) = broadcast::channel(10);
         *broadcast_tx = new_broadcast_tx;
-
-        (batch_bytes, batch_merkle_tree.root)
     }
 
+    /// Receives new block numbers, checks if conditions are met for submission and
+    /// processes the batch.
     async fn handle_new_block(&self, block_number: u64) {
-        if self.batch_ready(block_number).await {
-            self.process_batch_and_update_state(block_number).await;
+        if let Some(current_batch) = self.batch_ready(block_number).await {
+            self.process_batch_and_update_state(block_number, current_batch)
+                .await;
         }
     }
 

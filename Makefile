@@ -34,7 +34,7 @@ anvil_start:
 
 anvil_start_with_block_time:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 1
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 3
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
@@ -120,7 +120,6 @@ batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
-
 build_batcher_client:
 	@cd batcher/client && cargo b --release
 
@@ -134,13 +133,13 @@ batcher_send_sp1_task:
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf
 
-batcher_send_sp1_burst_5:
+batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
-		--repetitions 5
+		--repetitions 15
 
 batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -150,6 +149,15 @@ batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
 		--vk test_files/plonk_bn254/plonk.vk
 
+batcher_send_plonk_bn254_burst: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system GnarkPlonkBn254 \
+		--proof test_files/plonk_bn254/plonk.proof \
+		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
+		--vk test_files/plonk_bn254/plonk.vk \
+		--repetitions 15
+
 batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
@@ -157,6 +165,15 @@ batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 		--vk test_files/plonk_bls12_381/plonk.vk \
+
+batcher_send_plonk_bls12_381_burst: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system GnarkPlonkBls12_381 \
+		--proof test_files/plonk_bls12_381/plonk.proof \
+		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
+		--vk test_files/plonk_bls12_381/plonk.vk \
+		--repetitions 15
 
 
 batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
@@ -167,7 +184,7 @@ batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
 		--public_input test_files/groth16/ineq_1_groth16.pub \
 		--vk test_files/groth16/ineq_1_groth16.vk
 
-batcher_send_groth16_burst_5: batcher/client/target/release/batcher-client
+batcher_send_groth16_burst: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
