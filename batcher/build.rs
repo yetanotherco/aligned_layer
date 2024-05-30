@@ -20,5 +20,17 @@ fn main() {
         "cargo:rustc-link-search=native={}",
         out_dir.to_str().unwrap()
     );
+    // add link flags if linux
+    // -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+
+    if cfg!(target_os = "linux") {
+        println!("cargo:rustc-link-lib=dylib=dl");
+        println!("cargo:rustc-link-lib=dylib=rt");
+        println!("cargo:rustc-link-lib=dylib=m");
+        println!("cargo:rustc-link-lib=dylib=ssl");
+        println!("cargo:rustc-link-lib=dylib=crypto");
+        println!("cargo:rustc-link-arg=-Wl,--allow-multiple-definition");
+    }
+
     println!("cargo:rustc-link-lib=static=go");
 }
