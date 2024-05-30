@@ -8,7 +8,7 @@ defmodule AlignedLayerServiceManager do
 
   case status do
     :ok -> Logger.debug("File read successfully")
-    :error -> raise("Config file not read successfully, did you run make create-env ?")
+    :error -> raise("Config file not read successfully, did you run make create-env ?\nIf you did, make sure eigenlayer config file is correctly stored")
   end
 
   @aligned_layer_service_manager_address Jason.decode!(config_json_string)
