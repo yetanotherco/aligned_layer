@@ -178,7 +178,8 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
         "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
         "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
         "SP1" => Ok(ProvingSystemId::SP1),
-        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1]", proving_system))
+        "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2IPA]", proving_system))
     }
 }
 
