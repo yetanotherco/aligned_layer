@@ -26,5 +26,5 @@ jobs:
             go-version: '1.22'
             cache: false
 
-        - name: Test SP1 go bindings
+        - name: Test Risc Zero go bindings
           run: make test_risc_zero_go_bindings_linux
