@@ -9,13 +9,70 @@
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
+    - [Requirements](#requirements)
+    - [Run](#run)
+      - [SP1 proof](#sp1-proof)
+      - [GnarkPlonkBn254, GnarkPlonkBls12\_381 and Groth16Bn254](#gnarkplonkbn254-gnarkplonkbls12_381-and-groth16bn254)
   - [Local Devnet Setup](#local-devnet-setup)
+    - [Dependencies](#dependencies)
+    - [Booting Devnet with Default configs](#booting-devnet-with-default-configs)
+    - [Send test proofs to batcher for testing](#send-test-proofs-to-batcher-for-testing)
+    - [Detailed Testnet Deployment](#detailed-testnet-deployment)
+      - [Changing operator keys](#changing-operator-keys)
+      - [Aggregator](#aggregator)
+      - [Operator](#operator)
+        - [Register into EigenLayer](#register-into-eigenlayer)
+        - [Register into Aligned](#register-into-aligned)
+        - [Full Registration in Anvil with one command](#full-registration-in-anvil-with-one-command)
+        - [Deposit Strategy Tokens in Anvil local devnet](#deposit-strategy-tokens-in-anvil-local-devnet)
+      - [Deposit Strategy tokens in Holesky/Mainnet](#deposit-strategy-tokens-in-holeskymainnet)
+      - [Config Testnet Deployment](#config-testnet-deployment)
+      - [Run Testnet Deployment](#run-testnet-deployment)
+    - [Batcher](#batcher)
+      - [Config Batcher](#config-batcher)
+      - [Run Batcher](#run-batcher)
+    - [Send tasks](#send-tasks)
+      - [Sending a Task to the Batcher using our Rust TaskSender CLI](#sending-a-task-to-the-batcher-using-our-rust-tasksender-cli)
+      - [Send one SP1 proof](#send-one-sp1-proof)
+      - [Send one Groth 16 proof](#send-one-groth-16-proof)
+      - [Send infinite Groth 16 proofs](#send-infinite-groth-16-proofs)
+      - [Send burst of Groth 16 proofs](#send-burst-of-groth-16-proofs)
+      - [Send specific proof](#send-specific-proof)
+    - [Task Sender](#task-sender)
+      - [Config Task Sender](#config-task-sender)
+    - [Send PLONK BLS12\_381 proof](#send-plonk-bls12_381-proof)
+      - [Send PLONK BN254 proof](#send-plonk-bn254-proof)
+      - [Send Groth 16 BN254 proof](#send-groth-16-bn254-proof)
+      - [Send SP1 proof](#send-sp1-proof)
+      - [Send a specific proof](#send-a-specific-proof)
+      - [Send a specific proof in loop](#send-a-specific-proof-in-loop)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
+    - [Eigenlayer Contracts: Anvil](#eigenlayer-contracts-anvil)
+    - [Eigenlayer Contracts: Holesky/Mainnet](#eigenlayer-contracts-holeskymainnet)
+    - [Aligned Contracts: Anvil](#aligned-contracts-anvil)
+      - [Aligned Contracts: Holesky/Mainnet](#aligned-contracts-holeskymainnet)
+    - [Bindings](#bindings)
+    - [Deployment](#deployment)
   - [Metrics](#metrics)
+    - [Aggregator Metrics](#aggregator-metrics)
   - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
-  - [Explorer](#explorer)
   - [Tests](#tests)
+  - [Explorer](#explorer)
+    - [Minium Requirements](#minium-requirements)
+    - [Running for local devnet](#running-for-local-devnet)
+    - [Run with custom env / other devnets](#run-with-custom-env--other-devnets)
+    - [Send example data](#send-example-data)
   - [FAQ](#faq)
+    - [What is the objective of Aligned?](#what-is-the-objective-of-aligned)
+    - [Why do we need a ZK verification layer?](#why-do-we-need-a-zk-verification-layer)
+    - [What are the use cases of Aligned?](#what-are-the-use-cases-of-aligned)
+    - [Why build on top of Ethereum?](#why-build-on-top-of-ethereum)
+    - [Why not do this directly on top of Ethereum?](#why-not-do-this-directly-on-top-of-ethereum)
+    - [Why not make Aligned a ZK L1?](#why-not-make-aligned-a-zk-l1)
+    - [Why not a ZK L2?](#why-not-a-zk-l2)
+    - [Why EigenLayer?](#why-eigenlayer)
+    - [Will you aggregate proofs?](#will-you-aggregate-proofs)
+    - [How does it compare to the Polygon aggregation layer?](#how-does-it-compare-to-the-polygon-aggregation-layer)
 
 ## The Project
 
@@ -43,7 +100,7 @@ cargo run --  \
 --proof_generator_addr <proof_generator_addr>
 ```
 
-**Example**
+**Example**:
 
 ```bash
 pushd batcher/client/ ; \
@@ -83,7 +140,7 @@ cargo run -- \
 popd
 ```
 
-**Examples**
+**Examples**:
 
 ```bash
 pushd batcher/client/ ; \
@@ -332,7 +389,7 @@ For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as
 
 To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/stage-2-testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
 
-#### Config
+#### Config Testnet Deployment
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 Also, there are 3 different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
@@ -375,7 +432,7 @@ signer_type: local_keystore
 chain_id: <chain_id>
 ```
 
-#### Run
+#### Run Testnet Deployment
 
 If you want to run the operator with the default configuration, run:
 
@@ -389,10 +446,9 @@ To start the operator with a custom configuration, run:
 make operator_start CONFIG_FILE=<path_to_config_file>
 ```
 
-
 ### Batcher
 
-#### Config
+#### Config Batcher
 
 To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/`).
 
@@ -427,7 +483,7 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
-#### Run
+#### Run Batcher
 
 ```bash
 make batcher_start
@@ -475,10 +531,9 @@ cd batcher/client/ && cargo run --release -- \
 --proof_generator_addr <proof_generator_addr>
 ```
 
-
 ### Task Sender
 
-#### Config
+#### Config Task Sender
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 
@@ -584,7 +639,7 @@ go run task_sender/cmd/main.go loop-tasks
 
 ## Deploying Aligned Contracts to Holesky or Testnet
 
-### Eigenlayer Contracts: Anvil 
+### Eigenlayer Contracts: Anvil
 
 If EigenLayer contracts change, the anvil state needs to be updated with:
 
@@ -604,7 +659,6 @@ These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
 - [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json)
 - [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/Mainnet_current_deployment.config.json)
-
 
 ### Aligned Contracts: Anvil
 
@@ -664,6 +718,7 @@ You can find an example config file in `contracts/script/deploy/config/holesky/a
 ### Bindings
 
 Also make sure to re-generate the Go smart contract bindings:
+
 ```bash
 make bindings
 ```
@@ -675,7 +730,6 @@ To build go binaries run:
 ```bash
 make build_binaries
 ```
-
 
 ## Metrics
 
@@ -698,7 +752,6 @@ If you want to install Prometheus and Grafana manually, you can follow the instr
 To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
 
 To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
-
 
 ## Notes on project creation / devnet deployment
 
@@ -727,9 +780,17 @@ The state is backuped on ```contracts/scripts/anvil/state```.
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
 
+## Tests
 
-##  Explorer
-### Requirements
+To run the go tests
+
+```bash
+make test
+```
+
+## Explorer
+
+### Minium Requirements
 
 - [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
@@ -751,9 +812,9 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 | -------- | ----------- |
 | `RPC_URL` | The RPC URL of the network you want to connect to. |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
+| `PHX_HOST` | The host URL where the Phoenix server will be running. |
 
 ```make run_explorer```
-
 
 ### Send example data
 
@@ -764,14 +825,6 @@ make batcher_send_burst_groth16
 ```
 
 </details>
-
-## Tests
-
-To run the go tests
-
-```bash
-make test
-```
 
 ## FAQ
 

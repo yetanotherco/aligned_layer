@@ -10,7 +10,7 @@
       Block Hash: <span class="break-all font-normal"><%= @newBatchInfo.block_hash %></span>
       Block Number: <span class="break-all font-normal"><%= @newBatchInfo.block_number %></span>
       Transaction Hash:
-      <span class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></span>
+      <a href={"https://holesky.etherscan.io/tx/#{@newBatchInfo.transaction_hash}"} class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></a>
     </.card>
   <% else %>
     <div class="flex flex-col space-y-6 justify-center grow relative text-center">
