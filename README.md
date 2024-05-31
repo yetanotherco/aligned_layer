@@ -811,7 +811,7 @@ cargo run --release -- \
 --proving_system SP1 \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
---conn ws://batcher.alignedlayer.com \
+--conn wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr>
 ```
 
