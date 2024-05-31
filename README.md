@@ -812,6 +812,7 @@ cargo run --release -- \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
 --conn ws://batcher.alignedlayer.com
+--proof_generator_addr <proof_generator_addr>
 ```
 
 ## FAQ
