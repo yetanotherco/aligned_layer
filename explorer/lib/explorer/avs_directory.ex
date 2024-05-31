@@ -28,6 +28,6 @@ defmodule AVSDirectory do
       nil,
       AlignedLayerServiceManager.get_aligned_layer_service_manager_address()
     )
-    |> Ethers.get_logs(fromBlock: 0)
+    |> Ethers.get_logs(fromBlock: 1600000)
   end
 end

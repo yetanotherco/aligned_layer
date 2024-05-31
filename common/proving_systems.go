@@ -12,6 +12,7 @@ const (
 	GnarkPlonkBn254
 	Groth16Bn254
 	SP1
+	Halo2KZG
 	Halo2IPA
 )
 
@@ -29,6 +30,8 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Groth16Bn254, nil
 	case "SP1":
 		return SP1, nil
+	case "Halo2KZG":
+		return Halo2KZG, nil
 	case "Halo2IPA":
 		return Halo2IPA, nil
 	}
@@ -46,6 +49,8 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "Groth16Bn254", nil
 	case SP1:
 		return "SP1", nil
+	case Halo2KZG:
+		return "Halo2KZG", nil
 	case Halo2IPA:
 		return "Halo2IPA", nil
 	}

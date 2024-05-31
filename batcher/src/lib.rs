@@ -217,7 +217,6 @@ impl Batcher {
     async fn process_batch_and_update_state(&self, block_number: u64) -> (Vec<u8>, [u8; 32]) {
         let mut current_batch = self.current_batch.lock().await;
 
-
         let mut batch_bytes =
             serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
@@ -236,13 +235,17 @@ impl Batcher {
                 }
             }
 
-            debug!("Batch size exceeds max batch size, splitting batch at index: {}", current_batch_end);
-            batch_to_send = current_batch.drain(..current_batch_end)
-                .collect::<Vec<_>>();
+            debug!(
+                "Batch size exceeds max batch size, splitting batch at index: {}",
+                current_batch_end
+            );
+            batch_to_send = current_batch.drain(..current_batch_end).collect::<Vec<_>>();
 
-            info!("# of Elements remaining for next batch: {}", current_batch.len());
-            batch_bytes = serde_json::to_vec(&batch_to_send)
-                .expect("Failed to serialize batch");
+            info!(
+                "# of Elements remaining for next batch: {}",
+                current_batch.len()
+            );
+            batch_bytes = serde_json::to_vec(&batch_to_send).expect("Failed to serialize batch");
         } else {
             batch_to_send = current_batch.clone();
             current_batch.clear();
