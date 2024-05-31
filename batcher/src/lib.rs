@@ -23,6 +23,7 @@ use crate::types::VerificationData;
 mod config;
 mod eth;
 pub mod gnark;
+pub mod halo2;
 pub mod s3;
 pub mod types;
 
@@ -35,6 +36,8 @@ pub struct Batcher {
     current_batch: Mutex<Vec<VerificationData>>,
     max_block_interval: u64,
     min_batch_size: usize,
+    max_proof_size: usize,
+    max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
 }
 
@@ -77,6 +80,8 @@ impl Batcher {
             current_batch: Mutex::new(Vec::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_size: config.batcher.batch_size_interval,
+            max_proof_size: config.batcher.max_proof_size,
+            max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
         }
     }
@@ -154,7 +159,7 @@ impl Batcher {
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
-        if verification_data.verify() {
+        if verification_data.proof.len() <= self.max_proof_size && verification_data.verify() {
             self.add_to_batch(verification_data).await;
         } else {
             // FIXME(marian): Handle this error correctly
@@ -206,14 +211,43 @@ impl Batcher {
 
     async fn process_batch_and_update_state(&self, block_number: u64) -> (Vec<u8>, [u8; 32]) {
         let mut current_batch = self.current_batch.lock().await;
-        let batch_commitment = VerificationCommitmentBatch::from(&(*current_batch));
-        let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-            MerkleTree::build(&batch_commitment.0);
-        let batch_bytes =
+
+
+        let mut batch_bytes =
             serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
 
-        // update batcher state (clear current batch and update last uploaded batch block)
-        current_batch.clear();
+        let batch_to_send;
+        if batch_bytes.len() > self.max_batch_size {
+            let mut current_batch_end = 0; // not inclusive
+            let mut current_batch_size = 0;
+            for (i, verification_data) in current_batch.iter().enumerate() {
+                let verification_data_bytes = serde_json::to_vec(verification_data)
+                    .expect("Failed to serialize verification data");
+
+                current_batch_size += verification_data_bytes.len();
+                if current_batch_size > self.max_batch_size {
+                    current_batch_end = i;
+                    break;
+                }
+            }
+
+            debug!("Batch size exceeds max batch size, splitting batch at index: {}", current_batch_end);
+            batch_to_send = current_batch.drain(..current_batch_end)
+                .collect::<Vec<_>>();
+
+            info!("# of Elements remaining for next batch: {}", current_batch.len());
+            batch_bytes = serde_json::to_vec(&batch_to_send)
+                .expect("Failed to serialize batch");
+        } else {
+            batch_to_send = current_batch.clone();
+            current_batch.clear();
+        }
+
+        let batch_commitment = VerificationCommitmentBatch::from(&batch_to_send);
+        let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
+            MerkleTree::build(&batch_commitment.0);
+
+        // update batcher state (update last uploaded batch block)
         *self.last_uploaded_batch_block.lock().await = block_number;
 
         (batch_bytes, batch_merkle_tree.root)
