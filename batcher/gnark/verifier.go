@@ -36,7 +36,7 @@ func verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBy
 		log.Printf("Error: proof, public input or verification key is nil or empty.")
 		return false
 	}
-	
+
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
