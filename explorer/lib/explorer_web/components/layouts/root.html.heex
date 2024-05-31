@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <%!-- Title --%>
-    <.live_title suffix=" · Aligned Layer">
-      <%= assigns[:page_title] || "Explorer" %>
+    <.live_title suffix=" · Aligned Explorer">
+      <%= assigns[:page_title] || "Explore" %>
     </.live_title>
     <%!-- Description --%>
     <meta
@@ -45,7 +45,7 @@
       }  
     </script>
   </head>
-  <body class="antialiased bg-gray-100 dark:bg-gray-950">
+  <body class="antialiased bg-gray-100 dark:bg-zinc-950">
     <%= @inner_content %>
   </body>
 </html>
