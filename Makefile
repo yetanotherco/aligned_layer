@@ -144,6 +144,10 @@ batcher_send_sp1_burst_5:
 		--repetitions 5 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+batcher_send_infinite_sp1:
+	@echo "Sending infinite SP1 fibonacci task to Batcher..."
+	@./batcher/client/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
+
 batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
