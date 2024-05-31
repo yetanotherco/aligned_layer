@@ -28,7 +28,7 @@ func TestFibonacciSp1ProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 
-	if !sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), uint(nReadProofBytes), ([sp1.MaxElfBufferSize]byte)(elfBytes), uint(nReadElfBytes)) {
+	if !sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes), ([sp1.MaxElfBufferSize]byte)(elfBytes), uint32(nReadElfBytes)) {
 		t.Errorf("proof did not verify")
 	}
 }
