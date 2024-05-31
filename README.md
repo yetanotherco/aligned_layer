@@ -611,6 +611,12 @@ These contracts are not deployed by Aligned. Current EigenLayer contracts:
 When changing Aligned contracts, the anvil state needs to be updated with:
 
 ```bash
+make anvil_deploy_aligned_contracts
+```
+
+To test the upgrade script in the local devnet, run:
+
+```bash
 make anvil_upgrade_aligned_contracts
 ```
 
@@ -662,6 +668,14 @@ You need to complete the `DEPLOY_CONFIG_PATH` file with the following informatio
 ```
 
 You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
+
+To upgrade the contracts in Testnet/Mainnet, run:
+
+```bash
+make upgrade_aligned_contracts
+```
+
+Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key (It should start with 0x). Also, make sure the **EXISTING_DEPLOYMENT_INFO_PATH** and the **DEPLOY_CONFIG_PATH** env variables are set to the Eigen Layer output and the Aligned Layer output respectively.
 
 ### Bindings
 
