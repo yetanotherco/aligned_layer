@@ -59,12 +59,12 @@ impl VerificationData {
             ProvingSystemId::GnarkPlonkBls12_381
             | ProvingSystemId::GnarkPlonkBn254
             | ProvingSystemId::Groth16Bn254 => {
-                let vk = &self
+                let vk = self
                     .verification_key
                     .as_ref()
                     .expect("Verification key is required");
 
-                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let pub_input = self.pub_input.as_ref().expect("Public input is required");
                 let is_valid = verify_gnark(&self.proving_system, &self.proof, pub_input, vk);
                 debug!("Gnark proof is valid: {}", is_valid);
                 is_valid
