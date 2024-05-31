@@ -190,6 +190,11 @@ impl Batcher {
         let current_batch_size = self.current_batch.lock().await.len();
         // FIXME(marian): This condition should be changed to current_batch_size == 0
         // once the bug in Lambdaworks merkle tree is fixed.
+
+        if block_number % 5 != 0 {
+            return false;
+        }
+
         if current_batch_size < 2 {
             info!("Current batch is empty or size 1. Waiting for more proofs...");
             return false;
