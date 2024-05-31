@@ -304,7 +304,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   def a(assigns) do
     ~H"""
-    <a class={["hover:underline font-medium	after:content-['↗'] hover:after:content-['→']", @class]} {@rest}>
+    <a class={["hover:underline font-medium	after:content-['↗'] hover:after:content-['→'] transition-all duration-150", @class]} {@rest}>
       <%= render_slot(@inner_block) %>
     </a>
     """
