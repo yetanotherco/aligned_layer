@@ -196,6 +196,7 @@ batcher_send_halo2_ipa_task:
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
 		--vk test_files/halo2_ipa/params.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_halo2_ipa_task_burst_5:
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
@@ -204,7 +205,8 @@ batcher_send_halo2_ipa_task_burst_5:
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
 		--vk test_files/halo2_ipa/params.bin \
-		--repetitions 5
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 __TASK_SENDERS__:
  # TODO add a default proving system
