@@ -208,6 +208,25 @@ batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/batcher-clien
 		--vk test_files/halo2_ipa/params.bin \
 		--repetitions 5
 
+batcher_send_halo2_kzg_task: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2KZG \
+		--proof test_files/halo2_kzg/proof.bin \
+		--public_input test_files/halo2_kzg/pub_input.bin \
+		--vk test_files/halo2_kzg/params.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2KZG \
+		--proof test_files/halo2_kzg/proof.bin \
+		--public_input test_files/halo2_kzg/pub_input.bin \
+		--vk test_files/halo2_kzg/params.bin \
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 __TASK_SENDERS__:
  # TODO add a default proving system
 
@@ -331,6 +350,27 @@ send_halo2_ipa_proof_loop: ## Send a Halo2 IPA proof using the task sender every
 		--interval 10 \
 		2>&1 | zap-pretty
 
+send_halo2_kzg_proof: ## Send a Halo2 KZG proof using the task sender
+	@echo "Sending Halo2 KZG proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system halo2_kzg \
+		--proof task_sender/test_examples/halo2_kzg/proof.bin \
+		--public-input task_sender/test_examples/halo2_kzg/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_kzg/params.bin \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
+
+send_halo2_kzg_proof_loop: ## Send a Halo2 KZG proof using the task sender every 10 seconds
+	@echo "Sending Halo2 KZG proof in a loop every 10 seconds..."
+	@go run task_sender/cmd/main.go loop-tasks \
+		--proving-system halo2_kzg \
+		--proof task_sender/test_examples/halo2_kzg/proof.bin \
+		--public-input task_sender/test_examples/halo2_kzg/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_kzg/params.bin \
+		--config config-files/config.yaml \
+		--interval 10 \
+		2>&1 | zap-pretty
+
 __METRICS__:
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
@@ -442,6 +482,37 @@ test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
+
+__HALO2_KZG_FFI__: ##
+build_halo2_kzg_macos:
+	@cd operator/halo2kzg/lib && cargo build --release
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.dylib operator/halo2kzg/lib/libhalo2kzg_verifier.dylib
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
+
+build_halo2_kzg_linux:
+	@cd operator/halo2kzg/lib && cargo build --release
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.so operator/halo2kzg/lib/libhalo2kzg_verifier.so
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
+
+test_halo2_kzg_rust_ffi:
+	@echo "Testing Halo2-KZG Rust FFI source code..."
+	@cd operator/halo2kzg/lib && cargo t --release
+
+test_halo2_kzg_go_bindings_macos: build_halo2_kzg_macos
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2kzg/... -v
+
+test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2kzg/... -v
+
+generate_halo2_kzg_proof:
+	@cd task_sender/test_examples/halo2_kzg && \
+	cargo clean && \
+	rm params.bin proof.bin pub_input.bin && \
+	RUST_LOG=info cargo run --release && \
+	echo "Generating halo2 plonk proof..." && \
+	echo "Generated halo2 plonk proof!"
 
 __HALO2_IPA_FFI__: ##
 build_halo2_ipa_macos:
