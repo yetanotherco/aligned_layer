@@ -46,7 +46,7 @@ The SP1 proof needs the proof file and the vm program file.
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
---conn batcher.alignedlayer.com \
+--conn wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr>
 ```
 
@@ -57,7 +57,7 @@ The SP1 proof needs the proof file and the vm program file.
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn batcher.alignedlayer.com \
+--conn wss://batcher.alignedlayer.com \
 --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ; 
 ```
 
@@ -66,7 +66,7 @@ The SP1 proof needs the proof file and the vm program file.
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn batcher.alignedlayer.com \
+--conn wss://batcher.alignedlayer.com \
 --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 ```
 
@@ -80,7 +80,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
---conn batcher.alignedlayer.com \
+--conn wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> ;
 ```
 
@@ -92,7 +92,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 --proof test_files/plonk_bn254/plonk.proof \
 --public_input test_files/plonk_bn254/plonk_pub_input.pub \
 --vk test_files/plonk_bn254/plonk.vk \
---conn batcher.alignedlayer.com \
+--conn wss://batcher.alignedlayer.com \
 --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 ```
 
@@ -102,7 +102,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 --proof test_files/plonk_bls12_381/plonk.proof \
 --public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 --vk test_files/plonk_bls12_381/plonk.vk \
---conn batcher.alignedlayer.com \
+--conn wss://batcher.alignedlayer.com \
 --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 ```
 
@@ -112,7 +112,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 --proof test_files/groth16/ineq_1_groth16.proof \
 --public_input test_files/groth16/ineq_1_groth16.pub \
 --vk test_files/groth16/ineq_1_groth16.vk \
---conn batcher.alignedlayer.com \
+--conn wss://batcher.alignedlayer.com \
 --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 ```
 
