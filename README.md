@@ -13,14 +13,13 @@
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
   - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
+  - [Explorer](#explorer)
   - [Tests](#tests)
   - [FAQ](#faq)
 
 ## The Project
 
 Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned.
-
-
 
 ## How to use the testnet
 
@@ -40,7 +39,8 @@ cargo run --  \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
---conn batcher.alignedlayer.com
+--conn batcher.alignedlayer.com \
+--proof_generator_addr <proof_generator_addr>
 ```
 
 **Example**
@@ -51,7 +51,8 @@ cargo run -- \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn batcher.alignedlayer.com ; 
+--conn batcher.alignedlayer.com \
+--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ; 
 popd
 ```
 
@@ -61,7 +62,8 @@ cargo run -- \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn batcher.alignedlayer.com ; \
+--conn batcher.alignedlayer.com \
+--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 popd
 ```
 
@@ -76,7 +78,8 @@ cargo run -- \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
---conn batcher.alignedlayer.com ;
+--conn batcher.alignedlayer.com \
+--proof_generator_addr <proof_generator_addr> ;
 popd
 ```
 
@@ -89,7 +92,8 @@ cargo run --release -- \
 --proof test_files/plonk_bn254/plonk.proof \
 --public_input test_files/plonk_bn254/plonk_pub_input.pub \
 --vk test_files/plonk_bn254/plonk.vk \
---conn batcher.alignedlayer.com ;
+--conn batcher.alignedlayer.com \
+--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 popd
 ```
 
@@ -100,7 +104,8 @@ cargo run -- \
 --proof test_files/plonk_bls12_381/plonk.proof \
 --public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 --vk test_files/plonk_bls12_381/plonk.vk \
---conn batcher.alignedlayer.com ;
+--conn batcher.alignedlayer.com \
+--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 popd
 ```
 
@@ -111,7 +116,8 @@ cargo run -- \
 --proof test_files/groth16/ineq_1_groth16.proof \
 --public_input test_files/groth16/ineq_1_groth16.pub \
 --vk test_files/groth16/ineq_1_groth16.vk \
---conn batcher.alignedlayer.com
+--conn batcher.alignedlayer.com \
+--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
 popd
 ```
 
@@ -184,6 +190,8 @@ If you need to start again the operator, and it's already registered, use:
 ```bash
 make operator_start
 ```
+
+If you want to start the explorer for the devnet, see how to run it using it's [documentation](#explorer) below.
 
 ### Send test proofs to batcher for testing
 
@@ -464,6 +472,7 @@ cd batcher/client/ && cargo run --release -- \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
+--proof_generator_addr <proof_generator_addr>
 ```
 
 
@@ -718,6 +727,41 @@ The state is backuped on ```contracts/scripts/anvil/state```.
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
 
+
+##  Explorer
+### Requirements
+
+- [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
+- [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
+- [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
+- [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
+
+### Running for local devnet
+
+```make run_devnet_explorer```
+
+Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
+
+### Run with custom env / other devnets
+
+Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
+
+| Variable | Description |
+| -------- | ----------- |
+| `RPC_URL` | The RPC URL of the network you want to connect to. |
+| `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
+
+```make run_explorer```
+
+
+### Send example data
+
+If you want to have some data to see on it, you can start our infinite task sender, which will constantly send new proofs to the batcher.
+
+```sh
+make batcher_send_burst_groth16
+```
 
 ## Tests
 

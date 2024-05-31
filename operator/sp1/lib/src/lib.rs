@@ -22,12 +22,12 @@ pub extern "C" fn verify_sp1_proof_ffi(
         assert!(!elf_bytes.is_null());
         slice::from_raw_parts(elf_bytes, elf_len as usize)
     };
-    
+
     if let Ok(proof) = bincode::deserialize(proof_bytes) {
         let (_pk, vk) = PROVER_CLIENT.setup(elf_bytes);
         return PROVER_CLIENT.verify_compressed(&proof, &vk).is_ok();
     }
-    
+
     false
 }
 

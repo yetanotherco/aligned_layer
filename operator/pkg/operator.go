@@ -212,8 +212,8 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- verificationResult
 
 	case common.SP1:
-		proofLen := (uint)(len(verificationData.Proof))
-		elfLen := (uint)(len(verificationData.VmProgramCode))
+		proofLen := (uint32)(len(verificationData.Proof))
+		elfLen := (uint32)(len(verificationData.VmProgramCode))
 
 		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)

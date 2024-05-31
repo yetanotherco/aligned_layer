@@ -5,10 +5,10 @@ pub const MAX_RECEIPT_SIZE: usize = 215523;
 #[no_mangle]
 pub extern "C" fn verify_risc_zero_receipt_ffi(
     receipt_bytes: &[u8; MAX_RECEIPT_SIZE],
-    receipt_len: usize,
+    receipt_len: u32,
     image_id: &[u32; 8],
 ) -> bool {
-    if let Ok(receipt) = bincode::deserialize::<Receipt>(&receipt_bytes[..receipt_len]) {
+    if let Ok(receipt) = bincode::deserialize::<Receipt>(&receipt_bytes[..receipt_len as usize]) {
         return receipt.verify(*image_id).is_ok();
     }
     false
@@ -24,7 +24,7 @@ mod tests {
 
     #[test]
     fn verify_risc_zero_receipt_with_image_id_works() {
-        const RECEIPT_SIZE: usize = RECEIPT.len();
+        const RECEIPT_SIZE: u32 = RECEIPT.len() as u32;
         let mut receipt_buffer = [0u8; super::MAX_RECEIPT_SIZE];
         receipt_buffer[..RECEIPT_SIZE].clone_from_slice(RECEIPT);
 
@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn verify_risc_zero_aborts_with_bad_proof() {
-        const RECEIPT_SIZE: usize = RECEIPT.len();
+        const RECEIPT_SIZE: u32 = RECEIPT.len() as u32;
         let mut receipt_buffer = [42u8; super::MAX_RECEIPT_SIZE];
         receipt_buffer[..RECEIPT_SIZE].clone_from_slice(RECEIPT);
 
