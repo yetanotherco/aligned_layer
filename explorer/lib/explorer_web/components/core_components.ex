@@ -281,6 +281,9 @@ defmodule ExplorerWeb.CoreComponents do
     """
   end
 
+  @doc """
+    Renders an arrow icon.
+  """
   attr :class, :string, default: nil
 
   def right_arrow(assigns) do
@@ -289,6 +292,21 @@ defmodule ExplorerWeb.CoreComponents do
       name="hero-arrow-right-solid"
       class="size-4 stroke-foreground group-hover:stroke-foreground/80 -translate-x-1 group-hover:translate-x-0 duration-150 transition-all"
     />
+    """
+  end
+
+  @doc """
+    Renders an anchor tag.
+  """
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(href target)
+  slot :inner_block, default: nil
+
+  def a(assigns) do
+    ~H"""
+    <a class={["hover:underline font-medium	after:content-['↗'] hover:after:content-['→']", @class]} {@rest}>
+      <%= render_slot(@inner_block) %>
+    </a>
     """
   end
 

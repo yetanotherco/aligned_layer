@@ -6,11 +6,11 @@
       inner_class="font-semibold inline-flex flex-col text-base gap-y-2"
     >
       Merkle Root Hash: <span class="break-all font-normal"><%= @merkle_root %></span>
-      Address: <span class="break-all font-normal"><%= @newBatchInfo.address %></span>
       Block Hash: <span class="break-all font-normal"><%= @newBatchInfo.block_hash %></span>
-      Block Number: <span class="break-all font-normal"><%= @newBatchInfo.block_number %></span>
+      Block Number: <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/block/#{@newBatchInfo.block_number}"}  class="break-all font-normal"><%= @newBatchInfo.block_number %></.a>
       Transaction Hash:
-      <a href={"https://holesky.etherscan.io/tx/#{@newBatchInfo.transaction_hash}"} class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></a>
+      <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/tx/#{@newBatchInfo.transaction_hash}"} class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></.a>
+      Aligned Contract Address: <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/address/#{@newBatchInfo.address}"} class="break-all font-normal"><%= @newBatchInfo.address %></.a>
     </.card>
   <% else %>
     <div class="flex flex-col space-y-6 justify-center grow relative text-center">
