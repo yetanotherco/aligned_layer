@@ -215,6 +215,7 @@ batcher_send_halo2_kzg_task: batcher/client/target/release/batcher-client
 		--proof test_files/halo2_kzg/proof.bin \
 		--public_input test_files/halo2_kzg/pub_input.bin \
 		--vk test_files/halo2_kzg/params.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-client
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
@@ -223,7 +224,8 @@ batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-clien
 		--proof test_files/halo2_kzg/proof.bin \
 		--public_input test_files/halo2_kzg/pub_input.bin \
 		--vk test_files/halo2_kzg/params.bin \
-		--repetitions 5
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 __TASK_SENDERS__:
  # TODO add a default proving system
