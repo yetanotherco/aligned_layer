@@ -9,6 +9,7 @@ use sp1_sdk::ProverClient;
 
 use crate::gnark::verify_gnark;
 use crate::halo2::ipa::verify_halo2_ipa;
+use crate::halo2::kzg::verify_halo2_kzg;
 
 lazy_static! {
     static ref SP1_PROVER_CLIENT: ProverClient = ProverClient::new();
@@ -21,6 +22,7 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
+    Halo2KZG,
     Halo2IPA,
 }
 
@@ -44,7 +46,17 @@ impl VerificationData {
                 warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
                 false
             }
+            ProvingSystemId::Halo2KZG => {
+                let vk = &self
+                    .verification_key
+                    .as_ref()
+                    .expect("Verification key is required");
 
+                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let is_valid = verify_halo2_kzg(&self.proof, pub_input, vk);
+                debug!("Halo2-KZG proof is valid: {}", is_valid);
+                is_valid
+            }
             ProvingSystemId::Halo2IPA => {
                 let vk = &self
                     .verification_key
@@ -59,12 +71,12 @@ impl VerificationData {
             ProvingSystemId::GnarkPlonkBls12_381
             | ProvingSystemId::GnarkPlonkBn254
             | ProvingSystemId::Groth16Bn254 => {
-                let vk = &self
+                let vk = self
                     .verification_key
                     .as_ref()
                     .expect("Verification key is required");
 
-                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let pub_input = self.pub_input.as_ref().expect("Public input is required");
                 let is_valid = verify_gnark(&self.proving_system, &self.proof, pub_input, vk);
                 debug!("Gnark proof is valid: {}", is_valid);
                 is_valid
@@ -179,7 +191,8 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
         "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
         "SP1" => Ok(ProvingSystemId::SP1),
         "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
-        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2IPA]", proving_system))
+        "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA]", proving_system))
     }
 }
 
