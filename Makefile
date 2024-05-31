@@ -553,6 +553,7 @@ build_all_ffis_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_risc_zero_macos
 #	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_halo2_ipa_macos
+	@$(MAKE) build_halo2_kzg_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffis_linux: ## Build all FFIs for Linux
