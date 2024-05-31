@@ -1,0 +1,4 @@
+github.com/consensys/gnark v0.9.0/go.mod h1:Sy9jJjIaGJFfNeupyNOR9Ei2IbAB6cfCO78DfG27YvM=
+github.com/consensys/gnark v0.10.0/go.mod h1:VJU5JrrhZorbfDH+EUjcuFWr2c5z19tHPh8D6KVQksU=
+github.com/consensys/gnark-crypto v0.12.1/go.mod h1:v2Gy7L/4ZRosZ7Ivs+9SfUDr0f5UlG+EM5t7MPHiLuY=
+github.com/consensys/gnark-crypto v0.12.2-0.20240215234832-d72fcb379d3e/go.mod h1:wKqwsieaKPThcFkHe0d0zMsbHEUWFmZcG7KBCse210o=

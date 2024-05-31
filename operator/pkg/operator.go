@@ -215,12 +215,12 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 	case common.SP1:
 		proofBytes := make([]byte, sp1.MaxProofSize)
 		copy(proofBytes, verificationData.Proof)
-		proofLen := (uint)(len(verificationData.Proof))
+		proofLen := (uint32)(len(verificationData.Proof))
 
 		elf := verificationData.VmProgramCode
 		elfBytes := make([]byte, sp1.MaxElfBufferSize)
 		copy(elfBytes, elf)
-		elfLen := (uint)(len(elf))
+		elfLen := (uint32)(len(elf))
 
 		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
