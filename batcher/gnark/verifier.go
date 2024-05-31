@@ -29,6 +29,14 @@ func VerifyGroth16ProofBN254(proofBytes []byte, pubInputBytes []byte, verificati
 
 // verifyPlonkProof contains the common proof verification logic.
 func verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+	if  proofBytes == nil || len(proofBytes) == 0 ||
+		pubInputBytes == nil || len(pubInputBytes) == 0 ||
+		verificationKeyBytes == nil || len(verificationKeyBytes) == 0 {
+
+		log.Printf("Error: proof, public input or verification key is nil or empty.")
+		return false
+	}
+	
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
@@ -60,7 +68,17 @@ func verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBy
 
 // verifyGroth16Proof contains the common proof verification logic.
 func verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+	// Check not nil proof
+	if  proofBytes == nil || len(proofBytes) == 0 ||
+		pubInputBytes == nil || len(pubInputBytes) == 0 ||
+		verificationKeyBytes == nil || len(verificationKeyBytes) == 0 {
+
+		log.Printf("Error: proof, public input or verification key is nil or empty.")
+		return false
+	}
+
 	proofReader := bytes.NewReader(proofBytes)
+
 	proof := groth16.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
 		log.Printf("Could not deserialize proof: %v", err)
