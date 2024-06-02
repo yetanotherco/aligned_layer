@@ -1,14 +1,20 @@
-use std::{path::PathBuf, time::Duration};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use alloy_primitives::Address;
 use env_logger::Env;
-use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
+use futures_util::{
+    future,
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt, TryStreamExt,
+};
 use log::{info, warn};
-use tokio_tungstenite::connect_async;
+use tokio::{net::TcpStream, sync::Mutex};
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 use batcher::types::{parse_proving_system, BatchInclusionData, VerificationData};
 
 use clap::Parser;
+use tungstenite::Message;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -48,7 +54,7 @@ struct Args {
         long = "repetitions",
         default_value = "1"
     )]
-    repetitions: u32,
+    repetitions: usize,
 
     #[arg(
         name = "Proof generator address",
@@ -122,19 +128,46 @@ async fn main() {
         info!("Message sent...")
     }
 
+    let num_responses = Arc::new(Mutex::new(0));
+    let ws_write = Arc::new(Mutex::new(ws_write));
+
+    receive(ws_read, ws_write, args.repetitions, num_responses).await;
+    // ws_read
+    //     .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
+    //     .for_each(|msg| async move {
+    //         let num_responses_lock = num_responses.lock().await;
+    //         let data = msg.unwrap().into_data();
+    //         let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
+    //         info!("Batcher response received: {}", deserialized_data);
+    //     })
+    //     .await;
+
+    // info!("Closing connection...");
+    // ws_write
+    //     .close()
+    //     .await
+    //     .expect("Failed to close WebSocket connection");
+}
+
+async fn receive(
+    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    total_messages: usize,
+    num_responses: Arc<Mutex<usize>>,
+) {
     ws_read
         .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
-        .for_each(|msg| async move {
+        .for_each(|msg| async {
+            let mut num_responses_lock = num_responses.lock().await;
+            *num_responses_lock += 1;
             let data = msg.unwrap().into_data();
             let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
-
             info!("Batcher response received: {}", deserialized_data);
+
+            if *num_responses_lock == total_messages {
+                info!("All messages responded. Closing connection...");
+                ws_write.lock().await.close().await.unwrap();
+            }
         })
         .await;
-
-    info!("Closing connection...");
-    ws_write
-        .close()
-        .await
-        .expect("Failed to close WebSocket connection");
 }

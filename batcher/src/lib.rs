@@ -134,10 +134,8 @@ impl Batcher {
                 info!("Client {} reset connection", &addr)
             }
             Err(e) => error!("Unexpected error: {}", e),
-            Ok(_) => (),
+            Ok(_) => info!("{} disconnected", &addr),
         }
-
-        info!("{} disconnected", &addr);
     }
 
     /// Handle an individual message from the client.
@@ -172,13 +170,12 @@ impl Batcher {
         verification_data: VerificationData,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) {
-        info!("Adding verification data to batch...");
-        let mut current_batch_lock = self.batch_queue.lock().await;
+        let mut batch_queue_lock = self.batch_queue.lock().await;
+        info!("Calculating verification data commitments...");
         let verification_data_comm = verification_data.clone().into();
-
-        current_batch_lock.push((verification_data, verification_data_comm, ws_conn_sink));
-
-        info!("Current batch size: {}", current_batch_lock.len());
+        info!("Adding verification data to batch...");
+        batch_queue_lock.push((verification_data, verification_data_comm, ws_conn_sink));
+        info!("Current batch queue length: {}", batch_queue_lock.len());
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
@@ -187,27 +184,25 @@ impl Batcher {
     ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
-    /// If the batch is ready to be submitted, a MutexGuard of it is returned so it can be processed in a thread-safe
-    /// manner.
     async fn is_batch_ready(&self, block_number: u64) -> bool {
-        let current_batch_lock = self.batch_queue.lock().await;
-        let current_batch_size = current_batch_lock.len();
+        let batch_queue_lock = self.batch_queue.lock().await;
+        let current_batch_len = batch_queue_lock.len();
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
         // FIXME(marian): This condition should be changed to current_batch_size == 0
         // once the bug in Lambdaworks merkle tree is fixed.
-        if current_batch_size < 2 {
-            info!("Current batch is empty or size 1. Waiting for more proofs...");
+        if current_batch_len < 2 {
+            info!("Current batch is empty or length 1. Waiting for more proofs...");
             return false;
         }
 
-        if current_batch_size < self.min_batch_len
+        if current_batch_len < self.min_batch_len
             && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
         {
             info!(
-                "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch size: {} - Minimum batch size: {}",
-                block_number, *last_uploaded_batch_block_lock, current_batch_size, self.min_batch_len
+                "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
+                block_number, *last_uploaded_batch_block_lock, current_batch_len, self.min_batch_len
             );
             return false;
         }

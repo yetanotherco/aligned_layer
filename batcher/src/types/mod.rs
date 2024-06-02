@@ -139,7 +139,7 @@ impl From<VerificationData> for VerificationDataCommitment {
 }
 
 #[derive(Clone, Default)]
-pub struct VerificationCommitmentBatch(());
+pub struct VerificationCommitmentBatch;
 impl IsMerkleTreeBackend for VerificationCommitmentBatch {
     type Node = [u8; 32];
     type Data = VerificationDataCommitment;
@@ -199,8 +199,8 @@ impl fmt::Display for BatchInclusionData {
             f,
             "
 Batch inclusion response {{
-    * batch merkle root: {}
-    * proof commitment: {}
+    ○ batch merkle root: {}
+    ○ proof commitment: {}
 }}",
             merkle_root, proof_comm
         )
