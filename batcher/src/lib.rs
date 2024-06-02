@@ -4,17 +4,17 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aws_sdk_s3::client::Client as S3Client;
-use connection::ConnectionState;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
-use futures_util::{future, pin_mut, StreamExt};
+use futures_util::stream::{self, SplitSink};
+use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::broadcast::{self, Sender};
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::error::ProtocolError;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::WebSocketStream;
 use types::VerificationCommitmentBatch;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -35,13 +35,19 @@ pub struct Batcher {
     s3_client: S3Client,
     eth_ws_provider: Provider<Ws>,
     service_manager: AlignedLayerServiceManager,
-    current_batch: Mutex<Vec<VerificationData>>,
+    // message_queue / proof_queue / batch_queue
+    // VerificationData, subscriber/splitWebSocket
+    batch_queue: Mutex<
+        Vec<(
+            VerificationData,
+            Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+        )>,
+    >,
     max_block_interval: u64,
-    min_batch_size: usize,
+    min_batch_len: usize,
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
-    broadcast_tx: Mutex<Sender<Message>>,
 }
 
 impl Batcher {
@@ -76,23 +82,16 @@ impl Batcher {
         .await
         .expect("Failed to get Aligned service manager contract");
 
-        // A broadcast channel transmitter is created so that when the block listener checks that a batch
-        // is ready to be submitted, the merkle root of the batch is transmitted to
-        // the the websocket connections to respond to clients.
-        let (broadcast_tx, _) = broadcast::channel::<Message>(10);
-        let broadcast_tx = Mutex::new(broadcast_tx);
-
         Self {
             s3_client,
             eth_ws_provider,
             service_manager,
-            current_batch: Mutex::new(Vec::new()),
+            batch_queue: Mutex::new(Vec::new()),
             max_block_interval: config.batcher.block_interval,
-            min_batch_size: config.batcher.batch_size_interval,
+            min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
-            broadcast_tx,
         }
     }
 
@@ -111,10 +110,10 @@ impl Batcher {
     pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), anyhow::Error> {
         let mut stream = self.eth_ws_provider.subscribe_blocks().await?;
         while let Some(block) = stream.next().await {
-            info!("Received new block");
             let batcher = self.clone();
             let block_number = block.number.unwrap();
             let block_number = u64::try_from(block_number).unwrap();
+            info!("Received new block: {}", block_number);
             tokio::spawn(async move {
                 batcher.handle_new_block(block_number).await;
             });
@@ -130,15 +129,15 @@ impl Batcher {
             .expect("Error during the websocket handshake occurred");
 
         debug!("WebSocket connection established: {}", addr);
-        let (mut outgoing, incoming) = ws_stream.split();
+        let (outgoing, incoming) = ws_stream.split();
 
-        let conn_state = Arc::new(ConnectionState::new());
+        let outgoing = Arc::new(RwLock::new(outgoing));
 
-        let get_incoming = conn_state.process_new_messages(self.clone(), incoming);
-        let send_outgoing = conn_state.send_response(&mut outgoing);
-
-        pin_mut!(get_incoming, send_outgoing);
-        future::select(get_incoming, send_outgoing).await;
+        incoming
+            .try_filter(|msg| future::ready(msg.is_text()))
+            .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
+            .await
+            .unwrap();
 
         info!("{} disconnected", &addr);
     }
@@ -147,17 +146,16 @@ impl Batcher {
     async fn handle_message(
         self: Arc<Self>,
         message: Message,
-        conn_state: &ConnectionState,
+        ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
-        conn_state.update_received_msg_count().await;
-
         // Deserialize task from message
         let verification_data: VerificationData =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
         if verification_data.proof.len() <= self.max_proof_size && verification_data.verify() {
-            self.add_to_batch(verification_data, conn_state).await;
+            self.add_to_batch(verification_data, ws_conn_sink.clone())
+                .await;
         } else {
             // FIXME(marian): Handle this error correctly
             return Err(tokio_tungstenite::tungstenite::Error::Protocol(
@@ -174,17 +172,19 @@ impl Batcher {
     async fn add_to_batch(
         self: Arc<Self>,
         verification_data: VerificationData,
-        conn_state: &ConnectionState,
+        ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) {
         info!("Adding verification data to batch...");
-        let mut current_batch = self.current_batch.lock().await;
-        current_batch.push(verification_data);
+        let mut current_batch_lock = self.batch_queue.lock().await;
+
+        current_batch_lock.push((verification_data, ws_conn_sink));
 
         // The data has been added to the batch, so the responded messages counter is updated
-        conn_state.update_responded_msg_count().await;
+        // conn_state.update_responded_msg_count().await;
+
         // The connection subscribes to the processed batch channel if if was not already subscribed
-        conn_state.maybe_subscribe(self.clone()).await;
-        info!("Current batch size: {}", current_batch.len());
+        // conn_state.maybe_subscribe(self.clone()).await;
+        info!("Current batch size: {}", current_batch_lock.len());
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
@@ -195,8 +195,8 @@ impl Batcher {
     /// an empty batch, even if the block interval has been reached.
     /// If the batch is ready to be submitted, a MutexGuard of it is returned so it can be processed in a thread-safe
     /// manner.
-    async fn batch_ready(&self, block_number: u64) -> Option<MutexGuard<Vec<VerificationData>>> {
-        let current_batch_lock = self.current_batch.lock().await;
+    async fn is_batch_ready(&self, block_number: u64) -> bool {
+        let current_batch_lock = self.batch_queue.lock().await;
         let current_batch_size = current_batch_lock.len();
         info!("Batch size in batch_ready function: {}", current_batch_size);
 
@@ -206,40 +206,46 @@ impl Batcher {
         // once the bug in Lambdaworks merkle tree is fixed.
         if current_batch_size < 2 {
             info!("Current batch is empty or size 1. Waiting for more proofs...");
-            return None;
+            return false;
         }
 
-        if current_batch_size < self.min_batch_size
+        if current_batch_size < self.min_batch_len
             && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
         {
             info!(
                 "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch size: {} - Minimum batch size: {}",
-                block_number, *last_uploaded_batch_block_lock, current_batch_size, self.min_batch_size
+                block_number, *last_uploaded_batch_block_lock, current_batch_size, self.min_batch_len
             );
-            return None;
+            return false;
         }
-
-        Some(current_batch_lock)
+        return true;
     }
 
-    async fn process_batch_and_update_state<'a>(
-        &'a self,
-        block_number: u64,
-        current_batch: MutexGuard<'a, Vec<VerificationData>>,
-    ) {
-        let mut current_batch = current_batch;
-        let mut broadcast_tx = self.broadcast_tx.lock().await;
+    async fn finalize_batch(&self, block_number: u64) {
+        let mut batch_queue_lock = self.batch_queue.lock().await;
+        let finalized_batch = batch_queue_lock.clone();
+        batch_queue_lock.clear();
+
+        // We release the so the process listening for new proofs
+        // can start queuein again
+        drop(batch_queue_lock);
+
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+        let mut batch_verification_data: Vec<VerificationData> = finalized_batch
+            .clone()
+            .into_iter()
+            .map(|(data, _)| data)
+            .collect();
 
-        let mut batch_bytes =
-            serde_json::to_vec(current_batch.as_slice()).expect("Failed to serialize batch");
+        let mut batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
+            .expect("Failed to serialize batch");
 
-        let batch_to_send;
+        let batch_to_send: Vec<VerificationData>;
         if batch_bytes.len() > self.max_batch_size {
             let mut current_batch_end = 0; // not inclusive
             let mut current_batch_size = 0;
-            for (i, verification_data) in current_batch.iter().enumerate() {
-                let verification_data_bytes = serde_json::to_vec(verification_data)
+            for (i, verification_data) in batch_verification_data.iter().enumerate() {
+                let verification_data_bytes = serde_json::to_vec(&verification_data)
                     .expect("Failed to serialize verification data");
 
                 current_batch_size += verification_data_bytes.len();
@@ -252,53 +258,93 @@ impl Batcher {
                 "Batch size exceeds max batch size, splitting batch at index: {}",
                 current_batch_end
             );
-            batch_to_send = current_batch.drain(..current_batch_end).collect::<Vec<_>>();
+            batch_to_send = batch_verification_data.drain(..current_batch_end).collect();
 
             info!(
-                "# of Elements remaining for next batch: {}",
-                current_batch.len()
+                "Number of elements remaining for next batch: {}",
+                finalized_batch.len()
             );
             batch_bytes = serde_json::to_vec(&batch_to_send).expect("Failed to serialize batch");
-        } else {
-            batch_to_send = current_batch.clone();
-            current_batch.clear();
         }
 
-        info!("Finalizing batch. Size: {}", batch_to_send.len());
-        let batch_commitment = VerificationCommitmentBatch::from(&batch_to_send);
+        info!("Finalizing batch. Size: {}", finalized_batch.len());
+        let batch_commitment = VerificationCommitmentBatch::from(&batch_verification_data);
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
             MerkleTree::build(&batch_commitment.0);
 
         self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
             .await;
-
-        // The only possible way this can fail is when there are no subscribed receivers left,
-        // so we just log a warning and continue
-        if broadcast_tx
-            .send(Message::Binary(batch_merkle_tree.root.to_vec()))
-            .is_err()
-        {
-            warn!("No connections awaiting for anwsers. Reseting batch state and continuing...");
-        }
-
-        // update batcher state: clear current batch, update last uploaded batch block and reset
-        // the transmitter
-        current_batch.clear();
         *last_uploaded_batch_block = block_number;
-        let (new_broadcast_tx, _) = broadcast::channel(10);
-        *broadcast_tx = new_broadcast_tx;
+
+        stream::iter(finalized_batch.iter())
+            .for_each(|(_, ws_sink)| async move {
+                ws_sink
+                    .write()
+                    .await
+                    .send(Message::binary(batch_merkle_tree.root.to_vec()))
+                    .await
+                    .unwrap();
+                info!("Message sent");
+            })
+            .await;
     }
 
-    /// Receives new block numbers, checks if conditions are met for submission and
-    /// processes the batch.
-    async fn handle_new_block(&self, block_number: u64) {
-        if let Some(current_batch) = self.batch_ready(block_number).await {
-            self.process_batch_and_update_state(block_number, current_batch)
+    /*
+        async fn send_to_all<'a>(
+            &self,
+            current_batch: &mut MutexGuard<
+                'a,
+                Vec<(
+                    VerificationData,
+                    Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+                )>,
+            >,
+            batch_merkle_root: &[u8; 32],
+        ) {
+            let batch = current_batch.clone();
+            batch.clear();
+
+            let stream = stream::iter(current_batch.drain(..));
+            info!("Sending response to all connected clients!!!!");
+
+            // TODO(marian): We should also include de VerificationDataCommitment into the response
+            stream
+                .for_each(|(_, ws_sink)| async move {
+                    ws_sink
+                        .write()
+                        .await
+                        .send(Message::binary(batch_merkle_root.to_vec()))
+                        .await
+                        .unwrap();
+                    info!("Message sent");
+                })
                 .await;
+            info!("Won't print. Deadlock");
+
+            // let mut ws_sinks_lock = self.peer_sink_map.lock().await;
+            // let stream = stream::iter(ws_sinks_lock.drain());
+            // stream
+            //     .for_each(|(_, ws_sink)| async move {
+            //         ws_sink
+            //             .write()
+            //             .await
+            //             .send(Message::Binary(batch_merkle_root.to_vec()))
+            //             .await
+            //             .unwrap()
+            //     })
+            //     .await;
+            // assert!(ws_sinks_lock.is_empty());
+        }
+    */
+    /// Receives new block numbers, checks if conditions are met for submission and
+    /// finalizes the batch.
+    async fn handle_new_block(&self, block_number: u64) {
+        if self.is_batch_ready(block_number).await {
+            self.finalize_batch(block_number).await;
         }
     }
 
-    /// Post to batch to s3 and submit new task to Ethereum
+    /// Post batch to s3 and submit new task to Ethereum
     async fn submit_batch(&self, batch_bytes: &[u8], batch_merkle_root: &[u8; 32]) {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
@@ -311,8 +357,8 @@ impl Batcher {
             .expect("Failed to upload object to S3");
 
         info!("Batch sent to S3 with name: {}", file_name);
-        info!("Uploading batch to contract");
 
+        info!("Uploading batch to contract");
         let service_manager = &self.service_manager;
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
         match eth::create_new_task(service_manager, *batch_merkle_root, batch_data_pointer).await {
