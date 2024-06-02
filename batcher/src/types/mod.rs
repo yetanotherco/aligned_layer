@@ -1,5 +1,8 @@
+use std::fmt;
+
 use alloy_primitives::Address;
 use anyhow::anyhow;
+use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
 use lazy_static::lazy_static;
 use log::{debug, warn};
@@ -84,7 +87,7 @@ fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
     false
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
     pub pub_input_commitment: [u8; 32],
@@ -94,8 +97,8 @@ pub struct VerificationDataCommitment {
     pub proof_generator_addr: [u8; 20],
 }
 
-impl From<&VerificationData> for VerificationDataCommitment {
-    fn from(verification_data: &VerificationData) -> Self {
+impl From<VerificationData> for VerificationDataCommitment {
+    fn from(verification_data: VerificationData) -> Self {
         let mut hasher = Keccak256::new();
 
         // compute proof commitment
@@ -135,14 +138,8 @@ impl From<&VerificationData> for VerificationDataCommitment {
     }
 }
 
-#[derive(Default)]
-pub struct VerificationCommitmentBatch(pub Vec<VerificationDataCommitment>);
-impl From<&Vec<VerificationData>> for VerificationCommitmentBatch {
-    fn from(verification_data_batch: &Vec<VerificationData>) -> Self {
-        VerificationCommitmentBatch(verification_data_batch.iter().map(|vd| vd.into()).collect())
-    }
-}
-
+#[derive(Clone, Default)]
+pub struct VerificationCommitmentBatch(());
 impl IsMerkleTreeBackend for VerificationCommitmentBatch {
     type Node = [u8; 32];
     type Data = VerificationDataCommitment;
@@ -168,10 +165,46 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
 
 /// BatchInclusionData is the information that is retrieved to the clients once
 /// the verification data sent by them has been processed by Aligned.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BatchInclusionData {
     pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
+}
+
+impl BatchInclusionData {
+    pub fn new(
+        verification_data_commitment: &VerificationDataCommitment,
+        verification_data_batch_index: usize,
+        batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
+    ) -> Self {
+        let batch_inclusion_proof = batch_merkle_tree
+            .get_proof_by_pos(verification_data_batch_index)
+            .unwrap();
+
+        BatchInclusionData {
+            verification_data_commitment: verification_data_commitment.clone(),
+            batch_merkle_root: batch_merkle_tree.root.clone(),
+            batch_inclusion_proof,
+        }
+    }
+}
+
+impl fmt::Display for BatchInclusionData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let proof_comm = hex::encode(self.verification_data_commitment.proof_commitment);
+        let merkle_root = hex::encode(self.batch_merkle_root);
+
+        write!(
+            f,
+            "
+Batch inclusion response {{
+    * batch merkle root: {}
+    * proof commitment: {}
+}}",
+            merkle_root, proof_comm
+        )
+    }
 }
 
 pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {

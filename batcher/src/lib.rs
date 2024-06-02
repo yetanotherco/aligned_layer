@@ -13,9 +13,10 @@ use log::{debug, error, info};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::error::ProtocolError;
-use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
-use types::VerificationCommitmentBatch;
+use types::batch_queue::BatchQueue;
+use types::{BatchInclusionData, VerificationCommitmentBatch, VerificationDataCommitment};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
@@ -35,14 +36,7 @@ pub struct Batcher {
     s3_client: S3Client,
     eth_ws_provider: Provider<Ws>,
     service_manager: AlignedLayerServiceManager,
-    // message_queue / proof_queue / batch_queue
-    // VerificationData, subscriber/splitWebSocket
-    batch_queue: Mutex<
-        Vec<(
-            VerificationData,
-            Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-        )>,
-    >,
+    batch_queue: Mutex<BatchQueue>,
     max_block_interval: u64,
     min_batch_len: usize,
     max_proof_size: usize,
@@ -86,7 +80,7 @@ impl Batcher {
             s3_client,
             eth_ws_provider,
             service_manager,
-            batch_queue: Mutex::new(Vec::new()),
+            batch_queue: Mutex::new(BatchQueue::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
@@ -132,12 +126,17 @@ impl Batcher {
         let (outgoing, incoming) = ws_stream.split();
 
         let outgoing = Arc::new(RwLock::new(outgoing));
-
-        incoming
+        match incoming
             .try_filter(|msg| future::ready(msg.is_text()))
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
-            .unwrap();
+        {
+            Err(Error::Protocol(ProtocolError::ResetWithoutClosingHandshake)) => {
+                info!("Client {} reset connection", &addr)
+            }
+            Err(e) => error!("Unexpected error: {}", e),
+            Ok(_) => (),
+        }
 
         info!("{} disconnected", &addr);
     }
@@ -176,14 +175,10 @@ impl Batcher {
     ) {
         info!("Adding verification data to batch...");
         let mut current_batch_lock = self.batch_queue.lock().await;
+        let verification_data_comm = verification_data.clone().into();
 
-        current_batch_lock.push((verification_data, ws_conn_sink));
+        current_batch_lock.push((verification_data, verification_data_comm, ws_conn_sink));
 
-        // The data has been added to the batch, so the responded messages counter is updated
-        // conn_state.update_responded_msg_count().await;
-
-        // The connection subscribes to the processed batch channel if if was not already subscribed
-        // conn_state.maybe_subscribe(self.clone()).await;
         info!("Current batch size: {}", current_batch_lock.len());
     }
 
@@ -198,7 +193,6 @@ impl Batcher {
     async fn is_batch_ready(&self, block_number: u64) -> bool {
         let current_batch_lock = self.batch_queue.lock().await;
         let current_batch_size = current_batch_lock.len();
-        info!("Batch size in batch_ready function: {}", current_batch_size);
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
@@ -226,15 +220,14 @@ impl Batcher {
         let finalized_batch = batch_queue_lock.clone();
         batch_queue_lock.clear();
 
-        // We release the so the process listening for new proofs
-        // can start queuein again
+        // The lock is released so that new proofs can be added to the batch
         drop(batch_queue_lock);
 
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
         let mut batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
             .into_iter()
-            .map(|(data, _)| data)
+            .map(|(data, _, _)| data)
             .collect();
 
         let mut batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
@@ -268,74 +261,24 @@ impl Batcher {
         }
 
         info!("Finalizing batch. Size: {}", finalized_batch.len());
-        let batch_commitment = VerificationCommitmentBatch::from(&batch_verification_data);
+        let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
+            .clone()
+            .into_iter()
+            .map(|(_, data_comm, _)| data_comm)
+            .collect();
+
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-            MerkleTree::build(&batch_commitment.0);
+            MerkleTree::build(&batch_data_comm);
 
         self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
             .await;
+
+        // update last uploaded batch block
         *last_uploaded_batch_block = block_number;
 
-        stream::iter(finalized_batch.iter())
-            .for_each(|(_, ws_sink)| async move {
-                ws_sink
-                    .write()
-                    .await
-                    .send(Message::binary(batch_merkle_tree.root.to_vec()))
-                    .await
-                    .unwrap();
-                info!("Message sent");
-            })
-            .await;
+        send_responses(finalized_batch, &batch_merkle_tree).await;
     }
 
-    /*
-        async fn send_to_all<'a>(
-            &self,
-            current_batch: &mut MutexGuard<
-                'a,
-                Vec<(
-                    VerificationData,
-                    Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-                )>,
-            >,
-            batch_merkle_root: &[u8; 32],
-        ) {
-            let batch = current_batch.clone();
-            batch.clear();
-
-            let stream = stream::iter(current_batch.drain(..));
-            info!("Sending response to all connected clients!!!!");
-
-            // TODO(marian): We should also include de VerificationDataCommitment into the response
-            stream
-                .for_each(|(_, ws_sink)| async move {
-                    ws_sink
-                        .write()
-                        .await
-                        .send(Message::binary(batch_merkle_root.to_vec()))
-                        .await
-                        .unwrap();
-                    info!("Message sent");
-                })
-                .await;
-            info!("Won't print. Deadlock");
-
-            // let mut ws_sinks_lock = self.peer_sink_map.lock().await;
-            // let stream = stream::iter(ws_sinks_lock.drain());
-            // stream
-            //     .for_each(|(_, ws_sink)| async move {
-            //         ws_sink
-            //             .write()
-            //             .await
-            //             .send(Message::Binary(batch_merkle_root.to_vec()))
-            //             .await
-            //             .unwrap()
-            //     })
-            //     .await;
-            // assert!(ws_sinks_lock.is_empty());
-        }
-    */
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) {
@@ -366,4 +309,26 @@ impl Batcher {
             Err(e) => error!("Failed to create batch verification task: {}", e),
         }
     }
+}
+
+async fn send_responses(
+    finalized_batch: BatchQueue,
+    batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
+) {
+    stream::iter(finalized_batch.iter())
+        .enumerate()
+        .for_each(|(vd_batch_idx, (_, vdc, ws_sink))| async move {
+            let response = BatchInclusionData::new(vdc, vd_batch_idx, batch_merkle_tree);
+            let serialized_response =
+                serde_json::to_vec(&response).expect("Could not serialize response");
+            ws_sink
+                .write()
+                .await
+                .send(Message::binary(serialized_response))
+                .await
+                .unwrap();
+
+            info!("Response sent");
+        })
+        .await;
 }

@@ -1,12 +1,12 @@
 use std::{path::PathBuf, time::Duration};
 
-use alloy_primitives::{hex, Address};
+use alloy_primitives::Address;
 use env_logger::Env;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use log::{info, warn};
 use tokio_tungstenite::connect_async;
 
-use batcher::types::{parse_proving_system, VerificationData};
+use batcher::types::{parse_proving_system, BatchInclusionData, VerificationData};
 
 use clap::Parser;
 
@@ -126,8 +126,9 @@ async fn main() {
         .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
         .for_each(|msg| async move {
             let data = msg.unwrap().into_data();
-            let batch_merkle_root = hex::encode(data);
-            info!("Batch merkle root received: {}", batch_merkle_root);
+            let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
+
+            info!("Batcher response received: {}", deserialized_data);
         })
         .await;
 
