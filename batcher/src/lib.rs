@@ -23,7 +23,6 @@ use crate::eth::AlignedLayerServiceManager;
 use crate::types::VerificationData;
 
 mod config;
-mod connection;
 mod eth;
 pub mod gnark;
 pub mod halo2;
