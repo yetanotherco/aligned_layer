@@ -132,21 +132,6 @@ async fn main() {
     let ws_write = Arc::new(Mutex::new(ws_write));
 
     receive(ws_read, ws_write, args.repetitions, num_responses).await;
-    // ws_read
-    //     .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
-    //     .for_each(|msg| async move {
-    //         let num_responses_lock = num_responses.lock().await;
-    //         let data = msg.unwrap().into_data();
-    //         let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
-    //         info!("Batcher response received: {}", deserialized_data);
-    //     })
-    //     .await;
-
-    // info!("Closing connection...");
-    // ws_write
-    //     .close()
-    //     .await
-    //     .expect("Failed to close WebSocket connection");
 }
 
 async fn receive(
