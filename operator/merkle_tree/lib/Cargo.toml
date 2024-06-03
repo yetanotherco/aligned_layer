@@ -11,6 +11,6 @@ lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
 hex = "0.4.3"
 sha3 = "0.10.8"
 batcher = {path = "../../../batcher"}
-
+alloy-primitives = "0.7.4"
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
