@@ -19,6 +19,12 @@ jobs:
           cache: false
       - name: Build SP1 bindings
         run: make build_sp1_linux
+      - name: Build Risc Zero go bindings
+        run: make build_risc_zero_linux
+      - name: Build Halo2-KZG bindings
+        run: make build_halo2_kzg_linux
+      - name: Build Halo2-IPA bindings
+        run: make build_halo2_ipa_linux
       - name: Build operator
         run: go build operator/cmd/main.go
       - name: Build aggregator
