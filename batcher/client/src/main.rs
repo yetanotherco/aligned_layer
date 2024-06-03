@@ -7,7 +7,7 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
-use log::{info, warn};
+use log::info;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
@@ -87,21 +87,21 @@ async fn main() {
     if let Ok(data) = std::fs::read(args.pub_input_file_name) {
         pub_input = Some(data);
     } else {
-        warn!("No public input file provided, continuing without public input...");
+        info!("No public input file provided, continuing without public input...");
     }
 
     let mut verification_key: Option<Vec<u8>> = None;
     if let Ok(data) = std::fs::read(args.verification_key_file_name) {
         verification_key = Some(data);
     } else {
-        warn!("No verification key file provided, continuing without verification key...");
+        info!("No verification key file provided, continuing without verification key...");
     }
 
     let mut vm_program_code: Option<Vec<u8>> = None;
     if let Ok(data) = std::fs::read(args.vm_program_code_file_name) {
         vm_program_code = Some(data);
     } else {
-        warn!("No VM program code file provided, continuing without VM program code...");
+        info!("No VM program code file provided, continuing without VM program code...");
     }
 
     let proof_generator_addr: Address =
