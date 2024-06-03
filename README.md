@@ -28,6 +28,12 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 - [Rust](https://www.rust-lang.org/tools/install)
 
+To install the batcher client to send proofs in the testnet, run: 
+
+```bash
+make install_batcher_client
+```
+
 ### Run
 
 #### SP1 proof
@@ -35,36 +41,30 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-pushd batcher/client/ ; \
-cargo run --  \
+batcher-client \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr] ;
-popd
+--proof_generator_addr [proof_generator_addr]
 ```
 
 **Example**
 
 ```bash
-pushd batcher/client/ ; \
-cargo run -- \
+batcher-client \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com ;
-popd
+--conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
-pushd batcher/client/ ; \
-cargo run -- \
+batcher-client \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com ;
-popd
+--conn wss://batcher.alignedlayer.com
 ```
 
 #### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
@@ -72,50 +72,42 @@ popd
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-pushd batcher/client/ ; \
-cargo run -- \
+batcher-client \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr] ;
-popd
+--proof_generator_addr [proof_generator_addr]
 ```
 
 **Examples**
 
 ```bash
-pushd batcher/client/ ; \
-cargo run --release -- \
+batcher-client \
 --proving_system GnarkPlonkBn254 \
 --proof test_files/plonk_bn254/plonk.proof \
 --public_input test_files/plonk_bn254/plonk_pub_input.pub \
 --vk test_files/plonk_bn254/plonk.vk \
---conn wss://batcher.alignedlayer.com ;
-popd
+--conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
-pushd batcher/client/ ; \
-cargo run -- \
+batcher-client \
 --proving_system GnarkPlonkBls12_381 \
 --proof test_files/plonk_bls12_381/plonk.proof \
 --public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 --vk test_files/plonk_bls12_381/plonk.vk \
---conn wss://batcher.alignedlayer.com ;
-popd
+--conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
-pushd batcher/client/ ; \ 
-cargo run -- \
+batcher-client \
 --proving_system Groth16Bn254 \
 --proof test_files/groth16/ineq_1_groth16.proof \
 --public_input test_files/groth16/ineq_1_groth16.pub \
 --vk test_files/groth16/ineq_1_groth16.vk \
---conn wss://batcher.alignedlayer.com ;
-popd
+--conn wss://batcher.alignedlayer.com
 ```
 
 ## Local Devnet Setup
@@ -163,7 +155,6 @@ make build_all_ffi
 ### Booting Devnet with Default configs
 
 Before starting you need to setup an S3 bucket. More data storage will be tested in the future.
-
 
 You need to fill the data in:
 
@@ -221,7 +212,7 @@ Send an individual Groth 16 proof:
 make batcher_send_groth16_task
 ```
 
-To send send an individual test SP1 proof:
+To send an individual test SP1 proof:
 
 ```bash
 make batcher_send_sp1_task
@@ -468,11 +459,17 @@ make batcher_send_burst_groth16
 
 #### Send specific proof
 
+To install the batcher client to send a specific proof, run:
+
+```bash
+make install_batcher_client
+```
+
 The SP1 proof needs the proof file and the vm program file.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-cd batcher/client/ && cargo run --release -- \
+batcher-client \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public-input <public_input_file> \
@@ -680,7 +677,6 @@ To build go binaries run:
 make build_binaries
 ```
 
-
 ## Metrics
 
 ### Aggregator Metrics
@@ -702,7 +698,6 @@ If you want to install Prometheus and Grafana manually, you can follow the instr
 To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
 
 To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
-
 
 ## Explorer
 
@@ -740,7 +735,6 @@ If you want to have some data to see on it, you can start our infinite task send
 make batcher_send_burst_groth16
 ```
 
-
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
@@ -768,7 +762,6 @@ The state is backuped on ```contracts/scripts/anvil/state```.
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
 
-
 ## Tests
 
 To run the go tests
@@ -776,7 +769,6 @@ To run the go tests
 ```bash
 make test
 ```
-
 
 ## Verify Proofs
 
@@ -821,7 +813,6 @@ cargo run --release -- \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr]
 ```
-
 
 ## FAQ
 
