@@ -15,6 +15,7 @@
   - [Explorer](#explorer)
   - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
   - [Tests](#tests)
+  - [Verify Proofs](#verify-proofs)
   - [FAQ](#faq)
 
 ## The Project
@@ -124,39 +125,32 @@ Ensure you have the following installed:
 - [jq](https://jqlang.github.io/jq/)
 - [yq](https://github.com/mikefarah/yq)
 
-Install zap-pretty and abigen:
+To install [Go](https://go.dev/doc/install), [Rust](https://www.rust-lang.org/tools/install), [jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) go to the provided links and follow the instructions.
+
+Install Go dependencies ([zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git)):
 
 ```bash
-make deps
+make go_deps
 ```
 
-Install foundry:
+Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
 
 ```bash
 make install_foundry
 foundryup
 ```
 
-Install eigenlayer-cli:
+Install necessary submodules and build all the FFIs for your OS:
 
 ```bash
-make install_eigenlayer_cli
+make deps
 ```
-#### Building FFIs
 
-##### For macOS:
-To build all FFIs for macOS environments, run the following command in your terminal:
-  ```bash
-  make build_all_ffis_macos
-  ```
-This command compiles all necessary Rust libraries into dynamic libraries (.dylib files) that can be used in macOS applications
+If you want to rebuild the FFIs you can use:
 
-##### For Linux:
-To build all FFIs for Linux environments, use this command:
 ```bash
-make build_all_ffis_linux
+make build_all_ffi
 ```
-This will compile all necessary Rust libraries into .so files (shared objects) that are usable within Linux applications.
 
 ### Booting Devnet with Default configs
 
