@@ -5,11 +5,11 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 
 ifeq ($(OS),Linux)
-	BUILD_ALL_FFIS = $(MAKE) build_all_ffi_linux
+	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
 endif
 
 ifeq ($(OS),Darwin)
-	BUILD_ALL_FFIS = $(MAKE) build_all_ffi_macos
+	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
 
 help:
@@ -561,7 +561,7 @@ generate_halo2_ipa_proof:
 __BUILD_ALL_FFI__:
 
 build_all_ffi: ## Build all FFIs
-	$(BUILD_ALL_FFIS)
+	$(BUILD_ALL_FFI)
 	@echo "Created FFIs"
 
 build_all_ffi_macos: ## Build all FFIs for macOS
