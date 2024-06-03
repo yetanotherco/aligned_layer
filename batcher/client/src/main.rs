@@ -53,8 +53,8 @@ struct Args {
     #[arg(
         name = "Proof generator address",
         long = "proof_generator_addr",
-        default_value = "."
-    )]
+        default_value = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+    )] // defaults to anvil address 1
     proof_generator_addr: String,
 
 }
