@@ -751,7 +751,7 @@ Open a terminal and navigate to the gnark project directory. Then, run the follo
 ```bash
 go run circuit.go
 ```
-Make sure that you include serialization of the proof, public input, and verification key in the circuit.go file
+Make sure that you include serialization of the proof, public input, and verification key in the circuit.go file.f you encounter any issues with serialization, you can refer to our detailed guide [here](https://hackmd.io/@xr7wfZ30Q3eKDrtinAJaOQ/B1cp2nV4A)
 
 ### How to get the proof verified by AlignedLayer
 
@@ -759,6 +759,7 @@ After generating the proof, you will have to have three different files:
  - proof file
  - verification key file
  - public input file
+
 
  Then, you can send the proof to the AlignedLayer network by running the following command
  from `batcher/client` folder inside the AlignedLayer repository directory:
