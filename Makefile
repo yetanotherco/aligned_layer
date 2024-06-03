@@ -16,18 +16,18 @@ help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 deps: ## Install deps
-	@echo "Installing necessary dependencies..."
+	@echo "Installing dependencies..."
 	git submodule update --init --recursive
+	$(MAKE) build_all_ffis
+
+go_deps:
+	@echo "Installing Go dependencies..."
 	go install github.com/maoueh/zap-pretty@latest
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-	$(MAKE) install_eigenlayer_cli
-	$(MAKE) build_all_ffis
+	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
 install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
-
-install_eigenlayer_cli:
-	@go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."

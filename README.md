@@ -136,19 +136,25 @@ Ensure you have the following installed:
 - [jq](https://jqlang.github.io/jq/)
 - [yq](https://github.com/mikefarah/yq)
 
-To install Go, Rust, jq and yq go to the links above and follow the provided instructions.
+To install [Go](https://go.dev/doc/install), [Rust](https://www.rust-lang.org/tools/install), [jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) go to the provided links and follow the instructions.
 
-Install necessary submodules, zap-pretty, abigen, eigenlayer-cli and build all the FFIs for your OS:
+Install Go dependencies ([zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git)):
 
 ```bash
-make deps
+make go_deps
 ```
 
-Install foundry:
+Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
 
 ```bash
 make install_foundry
 foundryup
+```
+
+Install necessary submodules and build all the FFIs for your OS:
+
+```bash
+make deps
 ```
 
 #### Building FFIs
