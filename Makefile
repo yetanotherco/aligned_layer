@@ -127,6 +127,9 @@ __BATCHER__:
 
 BURST_SIZE=5
 
+batcher-client:
+	@cargo +nightly-2024-04-17 install --path batcher/client
+
 ./batcher/.env:
 	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
 
@@ -249,6 +252,15 @@ batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-clien
 
 __TASK_SENDERS__:
  # TODO add a default proving system
+
+proof: batcher-client generate_sp1_fibonacci_proof
+
+submit_proof:
+	@time batcher-client \
+		--proving_system SP1 \
+		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
+        --vm_program task_sender/test_examples/sp1/elf \
+		--conn wss://batcher.alignedlayer.com
 
 send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sender
 	@echo "Sending PLONK BLS12_381 proof..."

@@ -26,15 +26,29 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 ### Requirements
 
-- [Rust](https://www.rust-lang.org/tools/install)
+Install [Rust](https://www.rust-lang.org/tools/install), following the instructions on the provided link.
 
-To install the batcher client to send proofs in the testnet, run: 
+### Try it yourself
+
+Clone the repo:
 
 ```bash
-make install_batcher_client
+git clone git@github.com:yetanotherco/aligned_layer.git || git clone https://github.com/yetanotherco/aligned_layer.git
 ```
 
-### Run
+Generate a proof:
+
+```bash
+make proof
+```
+
+Send a proof:
+
+```bash
+make submit_proof
+```
+
+### Run with your own proofs
 
 #### SP1 proof
 
