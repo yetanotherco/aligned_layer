@@ -33,8 +33,6 @@ To install the batcher client to send proofs in the testnet, run:
 make install_batcher_client
 ```
 
-This command will build and install the batcher-client binary to your local Cargo bin directory. It is commonly located at `~/.cargo/bin`.
-
 ### Run
 
 #### SP1 proof
@@ -42,7 +40,7 @@ This command will build and install the batcher-client binary to your local Carg
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-~/.cargo/bin/batcher-client \
+batcher-client \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
@@ -53,7 +51,7 @@ The SP1 proof needs the proof file and the vm program file.
 **Example**
 
 ```bash
-~/.cargo/bin/batcher-client \
+batcher-client \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -62,7 +60,7 @@ The SP1 proof needs the proof file and the vm program file.
 ```
 
 ```bash
-~/.cargo/bin/batcher-client \
+batcher-client \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -75,7 +73,7 @@ The SP1 proof needs the proof file and the vm program file.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-~/.cargo/bin/batcher-client \
+batcher-client \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
@@ -87,7 +85,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 **Examples**
 
 ```bash
-~/.cargo/bin/batcher-client \
+batcher-client \
 --proving_system GnarkPlonkBn254 \
 --proof test_files/plonk_bn254/plonk.proof \
 --public_input test_files/plonk_bn254/plonk_pub_input.pub \
@@ -97,7 +95,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 ```
 
 ```bash
-~/.cargo/bin/batcher-client \
+batcher-client \
 --proving_system GnarkPlonkBls12_381 \
 --proof test_files/plonk_bls12_381/plonk.proof \
 --public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -107,7 +105,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 ```
 
 ```bash
-~/.cargo/bin/batcher-client \
+batcher-client \
 --proving_system Groth16Bn254 \
 --proof test_files/groth16/ineq_1_groth16.proof \
 --public_input test_files/groth16/ineq_1_groth16.pub \
@@ -464,13 +462,11 @@ To install the batcher client to send a specific proof, run:
 make install_batcher_client
 ```
 
-This command will build and install the batcher-client binary to your local Cargo bin directory. It is commonly located at `~/.cargo/bin`.
-
 The SP1 proof needs the proof file and the vm program file.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-~/.cargo/bin/batcher-client \
+batcher-client \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public-input <public_input_file> \
