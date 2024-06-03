@@ -18,7 +18,7 @@ while true
 do
     echo "Generating proof $counter"
     random_addr=$(python3 ./send_infinite_sp1_tasks/generate_address.py)
-    echo "Random addr: $random_addr"
+    echo "Random address: $random_addr"
 
     batcher-client \
     --proving_system SP1 \
