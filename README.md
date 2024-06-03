@@ -332,7 +332,7 @@ For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as
 
 To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/stage-2-testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
 
-#### Config Testnet Deployment
+#### Config
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 Also, there are 3 different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
@@ -375,7 +375,7 @@ signer_type: local_keystore
 chain_id: <chain_id>
 ```
 
-#### Run Testnet Deployment
+#### Run
 
 If you want to run the operator with the default configuration, run:
 
@@ -391,7 +391,7 @@ make operator_start CONFIG_FILE=<path_to_config_file>
 
 ### Batcher
 
-#### Config Batcher
+#### Config
 
 To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/`).
 
@@ -426,7 +426,7 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
-#### Run Batcher
+#### Run
 
 ```bash
 make batcher_start
@@ -476,7 +476,7 @@ cd batcher/client/ && cargo run --release -- \
 
 ### Task Sender
 
-#### Config Task Sender
+#### Config
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 
