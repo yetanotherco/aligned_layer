@@ -11,5 +11,3 @@ pgo-data.profdata
 # MacOS nuisances
 .DS_Store
 
-# Proofs
-**/sp1_fibonacci.proof
