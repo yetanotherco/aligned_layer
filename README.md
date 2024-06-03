@@ -392,7 +392,6 @@ To start the operator with a custom configuration, run:
 make operator_start CONFIG_FILE=<path_to_config_file>
 ```
 
-
 ### Batcher
 
 #### Config
@@ -684,7 +683,6 @@ To build go binaries run:
 make build_binaries
 ```
 
-
 ## Metrics
 
 ### Aggregator Metrics
@@ -706,7 +704,6 @@ If you want to install Prometheus and Grafana manually, you can follow the instr
 To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
 
 To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
-
 
 ## Explorer
 
@@ -744,7 +741,6 @@ If you want to have some data to see on it, you can start our infinite task send
 make batcher_send_burst_groth16
 ```
 
-
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
@@ -772,7 +768,6 @@ The state is backuped on ```contracts/scripts/anvil/state```.
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
 
-
 ## Tests
 
 To run the go tests
@@ -780,7 +775,6 @@ To run the go tests
 ```bash
 make test
 ```
-
 
 ## Verify Proofs
 
@@ -825,7 +819,6 @@ cargo run --release -- \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr]
 ```
-
 
 ## FAQ
 
