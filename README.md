@@ -56,7 +56,7 @@ batcher-client \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com ;
+--conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
@@ -212,7 +212,7 @@ Send an individual Groth 16 proof:
 make batcher_send_groth16_task
 ```
 
-To send send an individual test SP1 proof:
+To send an individual test SP1 proof:
 
 ```bash
 make batcher_send_sp1_task
