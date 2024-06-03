@@ -54,19 +54,19 @@
       inner_class="text-ellipsis overflow-hidden text-lg flex flex-col space-y-1"
       title="Recent Batches"
     >
-      <a
-        href="/batches"
+      <.link
+        navigate={~p"/batches"}
         class="absolute top-4 right-5 hover:underline font-medium text-muted-foreground capitaliz text-sm"
       >
         View All
-      </a>
+      </.link>
       <%= for batch <- @latest_batches do %>
-        <a class="flex justify-between group" href={"/batches/#{batch}"}>
+        <.link class="flex justify-between group" navigate={~p"/batches/#{batch}"}>
           <span class="group-hover:text-foreground/80" title={batch}>
             <%= Utils.shorten_block_hash(batch) %>
           </span>
           <.right_arrow />
-        </a>
+        </.link>
       <% end %>
     </.card>
   <% end %>
