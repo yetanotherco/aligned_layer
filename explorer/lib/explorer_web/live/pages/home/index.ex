@@ -22,8 +22,6 @@ defmodule ExplorerWeb.Home.Index do
   def mount(_, _, socket) do
     verified_batches = get_verified_batches_count()
 
-    shorthand_verified_batches = Utils.convert_number_to_shorthand(verified_batches)
-
     operators_registered = get_operators_registered()
 
     latest_batches =
@@ -38,7 +36,7 @@ defmodule ExplorerWeb.Home.Index do
 
     {:ok,
      assign(socket,
-       verified_batches: shorthand_verified_batches,
+       verified_batches: verified_batches,
        operators_registered: operators_registered,
        latest_batches: latest_batches,
        amount_of_proofs: 0,

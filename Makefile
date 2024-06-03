@@ -1,20 +1,34 @@
 .PHONY: help tests
 
+OS := $(shell uname -s)
+
 CONFIG_FILE?=config-files/config.yaml
+
+ifeq ($(OS),Linux)
+	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
+endif
+
+ifeq ($(OS),Darwin)
+	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
+endif
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-deps: ## Install deps
+submodules:
 	git submodule update --init --recursive
+	@echo "Updated submodules"
+
+deps: submodules build_all_ffi ## Install deps
+
+go_deps:
+	@echo "Installing Go dependencies..."
 	go install github.com/maoueh/zap-pretty@latest
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
 install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
-
-install_eigenlayer_cli:
-	@go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
@@ -120,6 +134,8 @@ batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
+install_batcher_client:
+	@cargo +nightly-2024-04-17 install --path batcher/client
 
 build_batcher_client:
 	@cd batcher/client && cargo b --release
@@ -143,6 +159,10 @@ batcher_send_sp1_burst_5:
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
 		--repetitions 5 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_infinite_sp1:
+	@echo "Sending infinite SP1 fibonacci task to Batcher..."
+	@./batcher/client/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
 
 batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -542,9 +562,34 @@ generate_halo2_ipa_proof:
 	RUST_LOG=info cargo run --release && \
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
-	
+
+
+__BUILD_ALL_FFI__:
+
+build_all_ffi: ## Build all FFIs
+	$(BUILD_ALL_FFI)
+	@echo "Created FFIs"
+
+build_all_ffi_macos: ## Build all FFIs for macOS
+	@echo "Building all FFIs for macOS..."
+	@$(MAKE) build_sp1_macos
+	@$(MAKE) build_risc_zero_macos
+#	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_halo2_ipa_macos
+	@$(MAKE) build_halo2_kzg_macos
+	@echo "All macOS FFIs built successfully."
+
+build_all_ffi_linux: ## Build all FFIs for Linux
+	@echo "Building all FFIs for Linux..."
+	@$(MAKE) build_sp1_linux
+	@$(MAKE) build_risc_zero_linux
+#	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_halo2_ipa_linux
+	@echo "All Linux FFIs built successfully."
+
+
 __EXPLORER__:
-run_devnet_explorer: 
+run_devnet_explorer:
 	@cd explorer/ && \
 		mix setup && \
 		cp .env.dev .env && \
