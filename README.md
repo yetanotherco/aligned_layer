@@ -12,9 +12,9 @@
   - [Local Devnet Setup](#local-devnet-setup)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
+  - [Explorer](#explorer)
   - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
   - [Tests](#tests)
-  - [Explorer](#explorer)
   - [FAQ](#faq)
 
 ## The Project
@@ -696,40 +696,6 @@ To install Prometheus, you can follow the instructions on the [official website]
 
 To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
 
-## Notes on project creation / devnet deployment
-
-Eigenlayer middleware was installed as a submodule with:
-
-```sh
-mkdir contracts
-cd contacts
-forge init . --no-commit
-forge install Layr-Labs/eigenlayer-middleware@mainnet
-```
-
-Then to solve the issue <https://github.com/Layr-Labs/eigenlayer-middleware/issues/229>, we changed it to:
-
-```forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit```
-
-As soon as it gets fixed in mainnet we can revert it.
-
-Base version of middleware used is ```7229f2b```.
-
-The script to initialize the devnet can be found on  ```contracts/scripts/anvil```.
-
-The addresses of the relevant contracts after running the anvil script is dumped on ```contracts/script/output/devnet```.
-
-The state is backuped on ```contracts/scripts/anvil/state```.
-
-Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
-
-## Tests
-
-To run the go tests
-
-```bash
-make test
-```
 
 ## Explorer
 
@@ -769,6 +735,41 @@ make batcher_send_burst_groth16
 
 </details>
 
+
+## Notes on project creation / devnet deployment
+
+Eigenlayer middleware was installed as a submodule with:
+
+```sh
+mkdir contracts
+cd contacts
+forge init . --no-commit
+forge install Layr-Labs/eigenlayer-middleware@mainnet
+```
+
+Then to solve the issue <https://github.com/Layr-Labs/eigenlayer-middleware/issues/229>, we changed it to:
+
+```forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit```
+
+As soon as it gets fixed in mainnet we can revert it.
+
+Base version of middleware used is ```7229f2b```.
+
+The script to initialize the devnet can be found on  ```contracts/scripts/anvil```.
+
+The addresses of the relevant contracts after running the anvil script is dumped on ```contracts/script/output/devnet```.
+
+The state is backuped on ```contracts/scripts/anvil/state```.
+
+Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
+
+## Tests
+
+To run the go tests
+
+```bash
+make test
+```
 ## FAQ
 
 ### What is the objective of Aligned?
