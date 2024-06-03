@@ -15,6 +15,7 @@
   - [Explorer](#explorer)
   - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
   - [Tests](#tests)
+  - [Verify Proofs](#verify-proofs)
   - [FAQ](#faq)
 
 ## The Project
@@ -155,6 +156,12 @@ Install necessary submodules and build all the FFIs for your OS:
 
 ```bash
 make deps
+```
+
+If you want to rebuild the FFIs you can use:
+
+```bash
+make build_all_ffi_macos
 ```
 
 ### Booting Devnet with Default configs
