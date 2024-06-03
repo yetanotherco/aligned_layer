@@ -184,8 +184,11 @@ impl Batcher {
     ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
-    async fn is_batch_ready(&self, block_number: u64) -> bool {
-        let batch_queue_lock = self.batch_queue.lock().await;
+    /// Once the batch is ready to be finalized, a copy of it is made to be passed to the `finalize_batch` function
+    /// and the current batch queue is cleared so that new data can be added to the batch while the old one is being
+    /// processed.
+    async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
+        let mut batch_queue_lock = self.batch_queue.lock().await;
         let current_batch_len = batch_queue_lock.len();
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
@@ -194,7 +197,7 @@ impl Batcher {
         // once the bug in Lambdaworks merkle tree is fixed.
         if current_batch_len < 2 {
             info!("Current batch is empty or length 1. Waiting for more proofs...");
-            return false;
+            return None;
         }
 
         if current_batch_len < self.min_batch_len
@@ -204,19 +207,20 @@ impl Batcher {
                 "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
                 block_number, *last_uploaded_batch_block_lock, current_batch_len, self.min_batch_len
             );
-            return false;
+            return None;
         }
-        return true;
-    }
 
-    async fn finalize_batch(&self, block_number: u64) {
-        let mut batch_queue_lock = self.batch_queue.lock().await;
+        // A copy of the batch is made to be returned and the current batch is cleared
         let finalized_batch = batch_queue_lock.clone();
         batch_queue_lock.clear();
 
-        // The lock is released so that new proofs can be added to the batch
-        drop(batch_queue_lock);
+        Some(finalized_batch)
+    }
 
+    /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
+    /// to s3, creates new task in Aligned contract and sends responses to all clients that added proofs
+    /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
+    async fn finalize_batch(&self, block_number: u64, finalized_batch: BatchQueue) {
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
         let mut batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
@@ -276,8 +280,8 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) {
-        if self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number).await;
+        if let Some(finalized_batch) = self.is_batch_ready(block_number).await {
+            self.finalize_batch(block_number, finalized_batch).await;
         }
     }
 
