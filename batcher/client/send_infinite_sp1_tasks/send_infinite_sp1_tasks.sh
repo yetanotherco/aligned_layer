@@ -20,11 +20,11 @@ do
     random_addr=$(python3 ./send_infinite_sp1_tasks/generate_address.py)
     echo "Random addr: $random_addr"
 
-    cargo run --release -- \
-        --proving_system SP1 \
-        --proof test_files/sp1/sp1_fibonacci.proof \
-        --vm_program test_files/sp1/sp1_fibonacci-elf \
-        --proof_generator_addr "$random_addr"
+    batcher-client \
+    --proving_system SP1 \
+    --proof test_files/sp1/sp1_fibonacci.proof \
+    --vm_program test_files/sp1/sp1_fibonacci-elf \
+    --proof_generator_addr "$random_addr"
 
     sleep "$timer"
     counter=$((counter + 1))
