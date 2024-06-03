@@ -407,12 +407,10 @@ __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build --release
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
-	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
 build_sp1_linux:
 	@cd operator/sp1/lib && cargo build --release
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
-	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
 test_sp1_rust_ffi:
 	@echo "Testing SP1 Rust FFI source code..."
