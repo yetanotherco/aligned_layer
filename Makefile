@@ -545,6 +545,25 @@ generate_halo2_ipa_proof:
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
 	
+
+__BUILD_ALL_FFI__:
+build_all_ffis_macos: ## Build all FFIs for macOS 
+	@echo "Building all FFIs for macOS..."
+	@$(MAKE) build_sp1_macos
+	@$(MAKE) build_risc_zero_macos
+#	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_halo2_ipa_macos
+	@$(MAKE) build_halo2_kzg_macos
+	@echo "All macOS FFIs built successfully."
+
+build_all_ffis_linux: ## Build all FFIs for Linux
+	@echo "Building all FFIs for Linux..."
+	@$(MAKE) build_sp1_linux
+	@$(MAKE) build_risc_zero_linux
+#	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_halo2_ipa_linux
+	@echo "All Linux FFIs built successfully."
+
 __EXPLORER__:
 run_devnet_explorer: 
 	@cd explorer/ && \

@@ -12,8 +12,8 @@
   - [Local Devnet Setup](#local-devnet-setup)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
-  - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
   - [Explorer](#explorer)
+  - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
   - [Tests](#tests)
   - [FAQ](#faq)
 
@@ -45,7 +45,7 @@ batcher-client \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr <proof_generator_addr>
+--proof_generator_addr [proof_generator_addr]
 ```
 
 **Example**
@@ -55,8 +55,7 @@ batcher-client \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com \
---proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ; 
+--conn wss://batcher.alignedlayer.com ;
 ```
 
 ```bash
@@ -64,8 +63,7 @@ batcher-client \
 --proving_system SP1 \
 --proof test_files/sp1/sp1_fibonacci.proof \
 --vm_program test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com \
---proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
+--conn wss://batcher.alignedlayer.com
 ```
 
 #### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
@@ -79,7 +77,7 @@ batcher-client \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr <proof_generator_addr> ;
+--proof_generator_addr [proof_generator_addr]
 ```
 
 **Examples**
@@ -90,8 +88,7 @@ batcher-client \
 --proof test_files/plonk_bn254/plonk.proof \
 --public_input test_files/plonk_bn254/plonk_pub_input.pub \
 --vk test_files/plonk_bn254/plonk.vk \
---conn wss://batcher.alignedlayer.com \
---proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
+--conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
@@ -100,8 +97,7 @@ batcher-client \
 --proof test_files/plonk_bls12_381/plonk.proof \
 --public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 --vk test_files/plonk_bls12_381/plonk.vk \
---conn wss://batcher.alignedlayer.com \
---proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
+--conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
@@ -110,8 +106,7 @@ batcher-client \
 --proof test_files/groth16/ineq_1_groth16.proof \
 --public_input test_files/groth16/ineq_1_groth16.pub \
 --vk test_files/groth16/ineq_1_groth16.vk \
---conn wss://batcher.alignedlayer.com \
---proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 ;
+--conn wss://batcher.alignedlayer.com
 ```
 
 ## Local Devnet Setup
@@ -147,6 +142,21 @@ Install eigenlayer-cli:
 ```bash
 make install_eigenlayer_cli
 ```
+#### Building FFIs
+
+##### For macOS:
+To build all FFIs for macOS environments, run the following command in your terminal:
+  ```bash
+  make build_all_ffis_macos
+  ```
+This command compiles all necessary Rust libraries into dynamic libraries (.dylib files) that can be used in macOS applications
+
+##### For Linux:
+To build all FFIs for Linux environments, use this command:
+```bash
+make build_all_ffis_linux
+```
+This will compile all necessary Rust libraries into .so files (shared objects) that are usable within Linux applications.
 
 ### Booting Devnet with Default configs
 
@@ -471,9 +481,8 @@ batcher-client \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
---proof_generator_addr <proof_generator_addr>
+--proof_generator_addr [proof_generator_addr]
 ```
-
 
 ### Task Sender
 
@@ -583,7 +592,7 @@ go run task_sender/cmd/main.go loop-tasks
 
 ## Deploying Aligned Contracts to Holesky or Testnet
 
-### Eigenlayer Contracts: Anvil 
+### Eigenlayer Contracts: Anvil
 
 If EigenLayer contracts change, the anvil state needs to be updated with:
 
@@ -603,7 +612,6 @@ These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
 - [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json)
 - [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/Mainnet_current_deployment.config.json)
-
 
 ### Aligned Contracts: Anvil
 
@@ -663,6 +671,7 @@ You can find an example config file in `contracts/script/deploy/config/holesky/a
 ### Bindings
 
 Also make sure to re-generate the Go smart contract bindings:
+
 ```bash
 make bindings
 ```
@@ -699,6 +708,43 @@ To install Prometheus, you can follow the instructions on the [official website]
 To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
 
 
+## Explorer
+
+### Minimum Requirements
+
+- [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
+- [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
+- [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
+- [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
+
+### Running for local devnet
+
+```make run_devnet_explorer```
+
+Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
+
+### Run with custom env / other devnets
+
+Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
+
+| Variable | Description |
+| -------- | ----------- |
+| `RPC_URL` | The RPC URL of the network you want to connect to. |
+| `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
+| `PHX_HOST` | The host URL where the Phoenix server will be running. |
+
+```make run_explorer```
+
+### Send example data
+
+If you want to have some data to see on it, you can start our infinite task sender, which will constantly send new proofs to the batcher.
+
+```sh
+make batcher_send_burst_groth16
+```
+
+
 ## Notes on project creation / devnet deployment
 
 Eigenlayer middleware was installed as a submodule with:
@@ -727,41 +773,6 @@ The state is backuped on ```contracts/scripts/anvil/state```.
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
 
 
-##  Explorer
-### Requirements
-
-- [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
-- [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
-- [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
-- [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
-
-### Running for local devnet
-
-```make run_devnet_explorer```
-
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
-You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
-
-### Run with custom env / other devnets
-
-Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
-
-| Variable | Description |
-| -------- | ----------- |
-| `RPC_URL` | The RPC URL of the network you want to connect to. |
-| `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
-
-```make run_explorer```
-
-
-### Send example data
-
-If you want to have some data to see on it, you can start our infinite task sender, which will constantly send new proofs to the batcher.
-
-```sh
-make batcher_send_burst_groth16
-```
-
 ## Tests
 
 To run the go tests
@@ -770,11 +781,12 @@ To run the go tests
 make test
 ```
 
-# Verify Proofs
 
-## SP1
+## Verify Proofs
 
-### Dependencies
+### SP1
+
+#### Dependencies
 This guide assumes that:
 - sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
 - sp1 project to generate the proofs (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
@@ -783,7 +795,7 @@ This guide assumes that:
     git clone https://github.com/yetanotherco/aligned_layer.git
     ```
 
-### How to generate a proof
+#### How to generate a proof
 
 > AlignedLayer only verifies SP1 in compressed version. 
 > You can check you are using compressed by opening script/src/main.rs
@@ -796,7 +808,7 @@ Then, run the following command to generate a proof:
 cargo run --release
 ```
 
-### How to get the proof verified by AlignedLayer
+#### How to get the proof verified by AlignedLayer
 
 After generating the proof, you will have to find two different files:
 - proof file: usually found under `script` directory, with the name `proof.json` or similar
@@ -811,8 +823,9 @@ cargo run --release -- \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr <proof_generator_addr>
+--proof_generator_addr [proof_generator_addr]
 ```
+
 
 ## FAQ
 
