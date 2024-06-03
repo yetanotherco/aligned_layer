@@ -40,7 +40,8 @@ cargo run --  \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] ;
+popd
 ```
 
 **Example**
