@@ -161,7 +161,7 @@ make deps
 If you want to rebuild the FFIs you can use:
 
 ```bash
-make build_all_ffi_macos
+make build_all_ffi
 ```
 
 ### Booting Devnet with Default configs

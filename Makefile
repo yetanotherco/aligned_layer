@@ -5,20 +5,21 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 
 ifeq ($(OS),Linux)
-	BUILD_ALL_FFIS = $(MAKE) build_all_ffis_linux
+	BUILD_ALL_FFIS = $(MAKE) build_all_ffi_linux
 endif
 
 ifeq ($(OS),Darwin)
-	BUILD_ALL_FFIS = $(MAKE) build_all_ffis_macos
+	BUILD_ALL_FFIS = $(MAKE) build_all_ffi_macos
 endif
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-deps: ## Install deps
-	@echo "Installing dependencies..."
+submodules:
 	git submodule update --init --recursive
-	$(MAKE) build_all_ffis
+	@echo "Updated submodules"
+
+deps: submodules build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
@@ -559,10 +560,11 @@ generate_halo2_ipa_proof:
 
 __BUILD_ALL_FFI__:
 
-build_all_ffis: ## Build all FFIs
+build_all_ffi: ## Build all FFIs
 	$(BUILD_ALL_FFIS)
+	@echo "Created FFIs"
 
-build_all_ffis_macos: ## Build all FFIs for macOS
+build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
@@ -571,7 +573,7 @@ build_all_ffis_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_halo2_kzg_macos
 	@echo "All macOS FFIs built successfully."
 
-build_all_ffis_linux: ## Build all FFIs for Linux
+build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
