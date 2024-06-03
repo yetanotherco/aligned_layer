@@ -136,7 +136,9 @@ Ensure you have the following installed:
 - [jq](https://jqlang.github.io/jq/)
 - [yq](https://github.com/mikefarah/yq)
 
-Install zap-pretty and abigen:
+To install Go, Rust, jq and yq go to the links above and follow the provided instructions.
+
+Install necessary submodules, zap-pretty, abigen, eigenlayer-cli and build all the FFIs for your OS:
 
 ```bash
 make deps
@@ -149,11 +151,6 @@ make install_foundry
 foundryup
 ```
 
-Install eigenlayer-cli:
-
-```bash
-make install_eigenlayer_cli
-```
 #### Building FFIs
 
 ##### For macOS:

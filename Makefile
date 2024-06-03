@@ -5,46 +5,29 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 
 ifeq ($(OS),Linux)
-	JQ_INSTALL_CMD = sudo apt-get install jq
-	YQ_INSTALL_CMD = export VERSION=v4.43.1 \
-                     export BINARY=yq_linux_amd64 \
-                     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -O - | \
-                       tar xz && mv ${BINARY} /usr/bin/yq
+	BUILD_ALL_FFIS = $(MAKE) build_all_ffis_linux
 endif
 
 ifeq ($(OS),Darwin)
-	JQ_INSTALL_CMD = brew install jq
-	YQ_INSTALL_CMD = brew install yq
+	BUILD_ALL_FFIS = $(MAKE) build_all_ffis_macos
 endif
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 deps: ## Install deps
+	@echo "Installing necessary dependencies..."
 	git submodule update --init --recursive
 	go install github.com/maoueh/zap-pretty@latest
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+	$(MAKE) install_eigenlayer_cli
+	$(MAKE) build_all_ffis
 
 install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
 install_eigenlayer_cli:
 	@go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
-
-install_jq:
-	$(JQ_INSTALL_CMD)
-
-install_yq:
-	$(YQ_INSTALL_CMD)
-
-deps: ## Install deps
-	git submodule update --init --recursive
-	go install github.com/maoueh/zap-pretty@latest
-	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-	make install_foundry
-	make install_eigenlayer-cli
-	make install_jq
-	make install_yq
 
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
@@ -575,6 +558,10 @@ generate_halo2_ipa_proof:
 
 
 __BUILD_ALL_FFI__:
+
+build_all_ffis: ## Build all FFIs
+	$(BUILD_ALL_FFIS)
+
 build_all_ffis_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
