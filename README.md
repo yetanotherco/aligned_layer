@@ -699,7 +699,7 @@ To install Grafana, you can follow the instructions on the [official website](ht
 
 ## Explorer
 
-### Minium Requirements
+### Minimum Requirements
 
 - [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
