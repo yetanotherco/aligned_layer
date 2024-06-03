@@ -14,6 +14,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -212,16 +213,10 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- verificationResult
 
 	case common.SP1:
-		proofBytes := make([]byte, sp1.MaxProofSize)
-		copy(proofBytes, verificationData.Proof)
-		proofLen := (uint)(len(verificationData.Proof))
+		proofLen := (uint32)(len(verificationData.Proof))
+		elfLen := (uint32)(len(verificationData.VmProgramCode))
 
-		elf := verificationData.VmProgramCode
-		elfBytes := make([]byte, sp1.MaxElfBufferSize)
-		copy(elfBytes, elf)
-		elfLen := (uint)(len(elf))
-
-		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
+		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2IPA:
@@ -276,7 +271,61 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen, 
 			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 
-		o.Logger.Infof("Halo2-ipa proof verification result: %t", verificationResult)
+		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
+		results <- verificationResult
+	case common.Halo2KZG:
+		// Extract Proof Bytes
+		proofBytes := make([]byte, halo2kzg.MaxProofSize)
+		copy(proofBytes, verificationData.Proof)
+		proofLen := (uint32)(len(verificationData.Proof))
+
+		// Extract Verification Key Bytes
+		paramsBytes := verificationData.VerificationKey
+
+		// Deserialize csLen
+		csLenBuffer := make([]byte, 4)
+		copy(csLenBuffer, paramsBytes[:4])
+		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
+
+		// Deserialize vkLen
+		vkLenBuffer := make([]byte, 4)
+		copy(vkLenBuffer, paramsBytes[4:8])
+		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
+
+		// Deserialize kzgParamLen
+		kzgParamsLenBuffer := make([]byte, 4)
+		copy(kzgParamsLenBuffer, paramsBytes[8:12])
+		kzgParamsLen := (uint32)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
+
+		// Extract Constraint System Bytes
+		csBytes := make([]byte, halo2kzg.MaxConstraintSystemSize)
+		csOffset := uint32(12)
+		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
+
+		// Extract Verification Key Bytes
+		vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
+		vkOffset := csOffset + csLen
+		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
+
+		// Extract Kzg Parameter Bytes
+		kzgParamsBytes := make([]byte,(halo2kzg.MaxKzgParamsSize))
+		kzgParamsOffset := vkOffset + vkLen
+		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:])
+
+		// Extract Public Input Bytes
+		publicInput := verificationData.PubInput
+		publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
+		copy(publicInputBytes, publicInput)
+		publicInputLen := (uint32)(len(publicInput))
+
+		verificationResult := halo2kzg.VerifyHalo2KzgProof(
+			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), csLen,
+			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
+			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen, 
+			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
+
+		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
