@@ -29,6 +29,7 @@ pub enum ProvingSystemId {
     SP1,
     Halo2KZG,
     Halo2IPA,
+    Jolt,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -51,7 +52,13 @@ impl VerificationData {
                 warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
                 false
             }
-            ProvingSystemId::Halo2KZG => {
+            ProvingSystemId::Jolt => {
+                if let Some(elf) = &self.vm_program_code {
+                    return verify_jolt_proof(self.proof.as_slice(), elf.as_slice());
+                }
+                warn!("Trying to verify Jolt proof but ____ was not provided. Returning false");
+                false
+            }            ProvingSystemId::Halo2KZG => {
                 let vk = &self
                     .verification_key
                     .as_ref()
@@ -105,6 +112,11 @@ fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
 
     false
 }
+
+fn verify_jolt_proof(proof: &[u8], elf: &[u8]) -> bool {
+    todo!()
+}
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationDataCommitment {
@@ -233,8 +245,9 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
         "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
         "SP1" => Ok(ProvingSystemId::SP1),
         "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
+        "Jolt" => Ok(ProvingSystemId::Jolt),
         "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
-        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA]", proving_system))
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA, Jolt]", proving_system))
     }
 }
 

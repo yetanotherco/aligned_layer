@@ -19,6 +19,8 @@ jobs:
           cache: false
       - name: Build SP1 bindings
         run: make build_sp1_linux
+      - name: Build Jolt bindings
+        run: make build_jolt_linux
       - name: Build Risc Zero go bindings
         run: make build_risc_zero_linux
       - name: Build Halo2-KZG bindings
