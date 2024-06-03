@@ -11,20 +11,12 @@ jobs:
     test:
       runs-on: ubuntu-latest
       steps:
-        - name: Clear device space
-          run: |
-            sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-            sudo rm -rf /usr/local/lib/android
-            sudo rm -rf /opt/ghc
-            sudo rm -rf /usr/local/.ghcup
-            sudo rm -rf /usr/share/dotnet
-            sudo rm -rf /opt/ghc
-            sudo rm -rf "/usr/local/share/boost"
         - uses: actions/checkout@v4
         - uses: actions/setup-go@v5
           with:
             go-version: '1.22'
             cache: false
-
+        - name: Test SP1 Rust
+          run: make test_sp1_rust_ffi
         - name: Test SP1 go bindings
-          run: make test-sp1-go-bindings-linux
+          run: make test_sp1_go_bindings_linux

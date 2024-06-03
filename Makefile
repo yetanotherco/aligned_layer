@@ -3,7 +3,6 @@
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
-DA_SOLUTION=calldata
 
 ifeq ($(OS),Linux)
 	JQ_INSTALL_CMD = sudo apt-get install jq
@@ -21,57 +20,68 @@ endif
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-install-foundry:
+deps: ## Install deps
+	git submodule update --init --recursive
+	go install github.com/maoueh/zap-pretty@latest
+	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
+
+install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
-install-eigenlayer-cli:
+install_eigenlayer_cli:
 	@go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
-install-jq:
+install_jq:
 	$(JQ_INSTALL_CMD)
 
-install-yq:
+install_yq:
 	$(YQ_INSTALL_CMD)
 
 deps: ## Install deps
 	git submodule update --init --recursive
 	go install github.com/maoueh/zap-pretty@latest
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-	make install-foundry
-	make install-eigenlayer-cli
-	make install-jq
-	make install-yq
+	make install_foundry
+	make install_eigenlayer-cli
+	make install_jq
+	make install_yq
 
-anvil-deploy-eigen-contracts:
+anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
-anvil-deploy-mock-strategy:
+anvil_deploy_mock_strategy:
 	@echo "Deploying Mock Strategy..."
 	. contracts/scripts/anvil/deploy_mock_strategy.sh
 
-anvil-deploy-aligned-contracts:
+anvil_deploy_aligned_contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
 
-anvil-start:
+anvil_start:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json 
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
+
+anvil_start_with_block_time:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 2
 
 # TODO: Allow enviroment variables / different configuration files
-aggregator-start:
+aggregator_start:
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
-aggregator-send-dummy-responses:
+aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
-operator-start:
+operator_start:
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
+
+operator_register_and_start: operator_full_registration operator_start
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh
@@ -80,32 +90,32 @@ test:
 	go test ./...
 
 
-get-delegation-manager-address:
+get_delegation_manager_address:
 	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
 
-operator-generate-keys:
+operator_generate_keys:
 	@echo "Generating BLS keys"
 	eigenlayer operator keys create --key-type bls --insecure operator
 	@echo "Generating ECDSA keys"
 	eigenlayer operator keys create --key-type ecdsa --insecure operator
 
-operator-generate-config:
+operator_generate_config:
 	@echo "Generating operator config"
 	eigenlayer operator config create
 
-operator-get-eth:
+operator_get_eth:
 	@echo "Sending funds to operator address on devnet"
 	@. ./scripts/fund_operator_devnet.sh
 
-operator-register-with-eigen-layer:
+operator_register_with_eigen_layer:
 	@echo "Registering operator with EigenLayer"
 	@echo "" | eigenlayer operator register $(CONFIG_FILE)
 
-operator-mint-mock-tokens:
+operator_mint_mock_tokens:
 	@echo "Minting tokens"
 	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
 
-operator-deposit-into-mock-strategy:
+operator_deposit_into_mock_strategy:
 	@echo "Depositing into strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
 
@@ -114,25 +124,143 @@ operator-deposit-into-mock-strategy:
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 1000
 
-operator-deposit-into-strategy:
+operator_deposit_into_strategy:
 	@echo "Depositing into strategy"
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--amount 1000
 
-operator-register-with-aligned-layer:
+operator_register_with_aligned_layer:
 	@echo "Registering operator with AlignedLayer"
 	@go run operator/cmd/main.go register \
 		--config $(CONFIG_FILE)
 
-operator-deposit-and-register: operator-deposit-into-strategy operator-register-with-aligned-layer
+operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-operator-full-registration: operator-get-eth operator-register-with-eigen-layer operator-mint-mock-tokens operator-deposit-into-mock-strategy operator-register-with-aligned-layer
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_register_with_aligned_layer
+
+__BATCHER__:
+
+BURST_SIZE=5
+
+./batcher/.env:
+	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
+
+batcher_start: ./batcher/.env
+	@echo "Starting Batcher..."
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
+
+
+build_batcher_client:
+	@cd batcher/client && cargo b --release
+
+batcher/client/target/release/batcher-client:
+	@cd batcher/client && cargo b --release
+
+batcher_send_sp1_task:
+	@echo "Sending SP1 fibonacci task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system SP1 \
+		--proof test_files/sp1/sp1_fibonacci.proof \
+		--vm_program test_files/sp1/sp1_fibonacci-elf \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_sp1_burst_5:
+	@echo "Sending SP1 fibonacci task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system SP1 \
+		--proof test_files/sp1/sp1_fibonacci.proof \
+		--vm_program test_files/sp1/sp1_fibonacci-elf \
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system GnarkPlonkBn254 \
+		--proof test_files/plonk_bn254/plonk.proof \
+		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
+		--vk test_files/plonk_bn254/plonk.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system GnarkPlonkBls12_381 \
+		--proof test_files/plonk_bls12_381/plonk.proof \
+		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
+		--vk test_files/plonk_bls12_381/plonk.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+
+batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Groth16Bn254 \
+		--proof test_files/groth16/ineq_1_groth16.proof \
+		--public_input test_files/groth16/ineq_1_groth16.pub \
+		--vk test_files/groth16/ineq_1_groth16.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_groth16_burst_5: batcher/client/target/release/batcher-client
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Groth16Bn254 \
+		--proof test_files/groth16/ineq_1_groth16.proof \
+		--public_input test_files/groth16/ineq_1_groth16.pub \
+		--vk test_files/groth16/ineq_1_groth16.vk \
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
+	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
+	@./batcher/client/send_infinite_tasks.sh 4
+
+batcher_send_burst_groth16: build_batcher_client
+	@echo "Sending a burst of tasks to Batcher..."
+	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
+
+batcher_send_halo2_ipa_task: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2IPA \
+		--proof test_files/halo2_ipa/proof.bin \
+		--public_input test_files/halo2_ipa/pub_input.bin \
+		--vk test_files/halo2_ipa/params.bin \
+
+batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2IPA \
+		--proof test_files/halo2_ipa/proof.bin \
+		--public_input test_files/halo2_ipa/pub_input.bin \
+		--vk test_files/halo2_ipa/params.bin \
+		--repetitions 5
+
+batcher_send_halo2_kzg_task: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2KZG \
+		--proof test_files/halo2_kzg/proof.bin \
+		--public_input test_files/halo2_kzg/pub_input.bin \
+		--vk test_files/halo2_kzg/params.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-client
+	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
+	@cd batcher/client/ && cargo run --release -- \
+		--proving_system Halo2KZG \
+		--proof test_files/halo2_kzg/proof.bin \
+		--public_input test_files/halo2_kzg/pub_input.bin \
+		--vk test_files/halo2_kzg/params.bin \
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 __TASK_SENDERS__:
  # TODO add a default proving system
 
-send-plonk_bls12_381-proof: ## Send a PLONK BLS12_381 proof using the task sender
+send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sender
 	@echo "Sending PLONK BLS12_381 proof..."
 	@go run task_sender/cmd/main.go send-task \
 		--proving-system plonk_bls12_381 \
@@ -141,10 +269,9 @@ send-plonk_bls12_381-proof: ## Send a PLONK BLS12_381 proof using the task sende
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
-send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
+send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
 	@echo "Sending PLONK BLS12_381 proof in a loop every 10 seconds..."
 	@go run task_sender/cmd/main.go loop-tasks \
 		--proving-system plonk_bls12_381 \
@@ -153,15 +280,14 @@ send-plonk_bls12_381-proof-loop: ## Send a PLONK BLS12_381 proof using the task 
 		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
-generate-plonk_bls12_381-proof: ## Run the gnark_plonk_bls12_381_script
+generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
 	@echo "Running gnark_plonk_bls12_381 script..."
 	@go run task_sender/test_examples/gnark_plonk_bls12_381_script/main.go
 
 
-send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
+send_plonk_bn254_proof: ## Send a PLONK BN254 proof using the task sender
 	@echo "Sending PLONK BN254 proof..."
 	@go run task_sender/cmd/main.go send-task \
 		--proving-system plonk_bn254 \
@@ -169,10 +295,9 @@ send-plonk_bn254-proof: ## Send a PLONK BN254 proof using the task sender
 		--public-input task_sender/test_examples/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
-send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
+send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
 	@echo "Sending PLONK BN254 proof in a loop every 10 seconds..."
 	@go run task_sender/cmd/main.go loop-tasks \
 		--proving-system plonk_bn254 \
@@ -181,70 +306,281 @@ send-plonk_bn254-proof-loop: ## Send a PLONK BN254 proof using the task sender e
 		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
 		--config config-files/config.yaml \
 		--interval 10 \
-		--da $(DA_SOLUTION) \
 		2>&1 | zap-pretty
 
-generate-plonk_bn254-proof: ## Run the gnark_plonk_bn254_script
+generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_plonk_bn254 script..."
 	@go run task_sender/test_examples/gnark_plonk_bn254_script/main.go
 
-send-sp1-proof:
+send_groth16_bn254_proof: ## Send a Groth16 BN254 proof using the task sender
+	@echo "Sending GROTH16 BN254 proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system groth16_bn254 \
+		--proof task_sender/test_examples/gnark_groth16_bn254_script/plonk.proof \
+		--public-input task_sender/test_examples/gnark_groth16_bn254_script/plonk_pub_input.pub \
+		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
+		--config config-files/config.yaml \
+		--quorum-threshold 98 \
+		2>&1 | zap-pretty
+
+send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task sender every 10 seconds
+	@echo "Sending GROTH16 BN254 proof in a loop every 10 seconds..."
+	@go run task_sender/cmd/main.go loop-tasks \
+		--proving-system groth16_bn254 \
+		--proof task_sender/test_examples/gnark_groth16_bn254_script/plonk.proof \
+		--public-input task_sender/test_examples/gnark_groth16_bn254_script/plonk_pub_input.pub \
+		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
+		--config config-files/config.yaml \
+		--interval 10 \
+		2>&1 | zap-pretty
+
+send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+	@echo "Sending a different GROTH16 BN254 proof in a loop every 3 seconds..."
+	@go run task_sender/cmd/main.go infinite-tasks \
+		--proving-system groth16_bn254 \
+		--config config-files/config.yaml \
+		--interval 3 \
+		2>&1 | zap-pretty
+
+
+generate_groth16_proof: ## Run the gnark_plonk_bn254_script
+	@echo "Running gnark_groth_bn254 script..."
+	@go run task_sender/test_examples/gnark_groth16_bn254_script/main.go
+
+generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
+	@echo "Running gnark_groth_bn254_ineq script..."
+	@go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/main.go 1
+
+send_sp1_proof:
 	@go run task_sender/cmd/main.go send-task \
     		--proving-system sp1 \
     		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
     		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
     		--config config-files/config.yaml \
-    		--da $(DA_SOLUTION) \
     		2>&1 | zap-pretty
 
+send_halo2_ipa_proof: ## Send a Halo2 IPA proof using the task sender
+	@echo "Sending Halo2 IPA proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system halo2_ipa \
+		--proof task_sender/test_examples/halo2_ipa/proof.bin \
+		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
+
+send_halo2_ipa_proof_loop: ## Send a Halo2 IPA proof using the task sender every 10 seconds
+	@echo "Sending Halo2 IPA proof in a loop every 10 seconds..."
+	@go run task_sender/cmd/main.go loop-tasks \
+		--proving-system halo2_ipa \
+		--proof task_sender/test_examples/halo2_ipa/proof.bin \
+		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
+		--config config-files/config.yaml \
+		--interval 10 \
+		2>&1 | zap-pretty
+
+send_halo2_kzg_proof: ## Send a Halo2 KZG proof using the task sender
+	@echo "Sending Halo2 KZG proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system halo2_kzg \
+		--proof task_sender/test_examples/halo2_kzg/proof.bin \
+		--public-input task_sender/test_examples/halo2_kzg/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_kzg/params.bin \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
+
+send_halo2_kzg_proof_loop: ## Send a Halo2 KZG proof using the task sender every 10 seconds
+	@echo "Sending Halo2 KZG proof in a loop every 10 seconds..."
+	@go run task_sender/cmd/main.go loop-tasks \
+		--proving-system halo2_kzg \
+		--proof task_sender/test_examples/halo2_kzg/proof.bin \
+		--public-input task_sender/test_examples/halo2_kzg/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_kzg/params.bin \
+		--config config-files/config.yaml \
+		--interval 10 \
+		2>&1 | zap-pretty
+
+__METRICS__:
+run_metrics: ## Run metrics using metrics-docker-compose.yaml
+	@echo "Running metrics..."
+	@docker-compose -f metrics-docker-compose.yaml up
+
 __DEPLOYMENT__:
-deploy-aligned-contracts: ## Deploy Aligned Contracts
+deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
 
-build-aligned-contracts:
+build_aligned_contracts:
 	@cd contracts/src/core && forge build
 
 __BUILD__:
-build-binaries:
+build_binaries:
 	@echo "Building aggregator..."
 	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
-	@echo "Aggregator built into /aggregator/build/aligned-aggregator" 
+	@echo "Aggregator built into /aggregator/build/aligned-aggregator"
 	@echo "Building aligned layer operator..."
 	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
-	@echo "Aligned layer operator built into /operator/build/aligned-operator" 
+	@echo "Aligned layer operator built into /operator/build/aligned-operator"
 	@echo "Building task sender.."
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
-	@echo "Task sender built into /task_sender/build/aligned-task-sender" 
+	@echo "Task sender built into /task_sender/build/aligned-task-sender"
+
+run_local:
+	./scripts/run_local.sh
 
 __SP1_FFI__: ##
-build-sp1-macos:
+build_sp1_macos:
 	@cd operator/sp1/lib && cargo build --release
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
-	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
-build-sp1-linux:
+build_sp1_linux:
 	@cd operator/sp1/lib && cargo build --release
 	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
-	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.a operator/sp1/lib/libsp1_verifier.a
 
-test-sp1-rust-ffi:
+test_sp1_rust_ffi:
 	@echo "Testing SP1 Rust FFI source code..."
 	@cd operator/sp1/lib && RUST_MIN_STACK=83886080 cargo t --release
 
-test-sp1-go-bindings-macos: build-sp1-macos
+test_sp1_go_bindings_macos: build_sp1_macos
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
-test-sp1-go-bindings-linux: build-sp1-linux
+test_sp1_go_bindings_linux: build_sp1_linux
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
 # @cp -r task_sender/test_examples/sp1/fibonacci_proof_generator/script/elf task_sender/test_examples/sp1/
-generate-sp1-fibonacci-proof:
+generate_sp1_fibonacci_proof:
 	@cd task_sender/test_examples/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
 
+__RISC_ZERO_FFI__: ##
+build_risc_zero_macos:
+	@cd operator/risc_zero/lib && cargo build --release
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
 
+build_risc_zero_linux:
+	@cd operator/risc_zero/lib && cargo build --release
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
+	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
+
+test_risc_zero_rust_ffi:
+	@echo "Testing RISC Zero Rust FFI source code..."
+	@cd operator/risc_zero/lib && cargo test --release
+
+test_risc_zero_go_bindings_macos: build_risc_zero_macos
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero/... -v
+
+test_risc_zero_go_bindings_linux: build_risc_zero_linux
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/risc_zero/... -v
+
+generate_risc_zero_fibonacci_proof:
+	@cd task_sender/test_examples/risc_zero/fibonacci_proof_generator && \
+		cargo clean && \
+		rm -f risc_zero_fibonacci.proof && \
+		RUST_LOG=info cargo run --release && \
+		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
+		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"
+
+__MERKLE_TREE_FFI__: ##
+build_merkle_tree_macos:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+build_merkle_tree_linux:
+	@cd operator/merkle_tree/lib && cargo build --release
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
+	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+
+test_merkle_tree_rust_ffi:
+	@echo "Testing Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree/... -v
+
+__HALO2_KZG_FFI__: ##
+build_halo2_kzg_macos:
+	@cd operator/halo2kzg/lib && cargo build --release
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.dylib operator/halo2kzg/lib/libhalo2kzg_verifier.dylib
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
+
+build_halo2_kzg_linux:
+	@cd operator/halo2kzg/lib && cargo build --release
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.so operator/halo2kzg/lib/libhalo2kzg_verifier.so
+	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
+
+test_halo2_kzg_rust_ffi:
+	@echo "Testing Halo2-KZG Rust FFI source code..."
+	@cd operator/halo2kzg/lib && cargo t --release
+
+test_halo2_kzg_go_bindings_macos: build_halo2_kzg_macos
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2kzg/... -v
+
+test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2kzg/... -v
+
+generate_halo2_kzg_proof:
+	@cd task_sender/test_examples/halo2_kzg && \
+	cargo clean && \
+	rm params.bin proof.bin pub_input.bin && \
+	RUST_LOG=info cargo run --release && \
+	echo "Generating halo2 plonk proof..." && \
+	echo "Generated halo2 plonk proof!"
+
+__HALO2_IPA_FFI__: ##
+build_halo2_ipa_macos:
+	@cd operator/halo2ipa/lib && cargo build --release
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.dylib operator/halo2ipa/lib/libhalo2ipa_verifier.dylib
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
+
+build_halo2_ipa_linux:
+	@cd operator/halo2ipa/lib && cargo build --release
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.so operator/halo2ipa/lib/libhalo2ipa_verifier.so
+	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
+
+test_halo2_ipa_rust_ffi:
+	@echo "Testing Halo2-KZG Rust FFI source code..."
+	@cd operator/halo2ipa/lib && cargo t --release
+
+test_halo2_ipa_go_bindings_macos: build_halo2_ipa_macos
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2ipa/... -v
+
+test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
+	@echo "Testing Halo2-KZG Go bindings..."
+	go test ./operator/halo2ipa/... -v
+
+generate_halo2_ipa_proof:
+	@cd task_sender/test_examples/halo2_ipa && \
+	cargo clean && \
+	rm params.bin proof.bin pub_input.bin && \
+	RUST_LOG=info cargo run --release && \
+	echo "Generating halo2 plonk proof..." && \
+	echo "Generated halo2 plonk proof!"
+
+__EXPLORER__:
+run_devnet_explorer:
+	@cd explorer/ && \
+		mix setup && \
+		cp .env.dev .env && \
+		./start.sh
+
+run_explorer:
+	@cd explorer/ && \
+		mix setup && \
+		./start.sh

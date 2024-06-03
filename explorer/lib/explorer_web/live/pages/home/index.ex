@@ -1,58 +1,73 @@
-defmodule ExplorerWeb.HomeLive.Index do
+defmodule ExplorerWeb.Home.Index do
+  require Logger
   use ExplorerWeb, :live_view
 
-  def handle_event("search_task", %{"task" => task_params}, socket) do
-    task_id = Map.get(task_params, "id")
-    is_task_id_valid = String.match?(task_id, ~r/^\d+$/)
+  def handle_event("search_batch", %{"batch" => batch_params}, socket) do
+    batch_merkle_root = Map.get(batch_params, "merkle_root")
+    is_batch_merkle_root_valid = String.match?(batch_merkle_root, ~r/^0x[a-fA-F0-9]+$/)
 
-    if not is_task_id_valid do
-      {:noreply, assign(socket, error: "Invalid task ID")}
+    if not is_batch_merkle_root_valid do
+      {:noreply,
+       socket
+       |> assign(batch_merkle_root: batch_merkle_root)
+       |> put_flash(
+         :error,
+         "Please enter a valid proof batch hash, these should be hex values (0x69...)."
+       )}
     else
-      {:noreply, redirect(socket, to: "/tasks/#{task_id}")}
+      {:noreply, redirect(socket, to: "/batches/#{batch_merkle_root}")}
     end
   end
 
-  def render(assigns) do
-    ~H"""
-    <div class="flex flex-col items-center justify-center w-full min-h-[30rem] relative max-w-96 mx-auto">
-      <div class="text-center text-primary mb-8 z-10">
-        <h1 class="text-5xl font-medium tracking-tighter drop-shadow">Aligned Explorer</h1>
-      </div>
-      <form phx-submit="search_task" class="flex items-center w-full max-w-md gap-2 z-10">
-        <input
-          class="shadow-md flex h-10 w-full ring-offset-background file:border-0 text-foreground file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:ring-gray-300"
-          type="search"
-          placeholder="Search operator task..."
-          name="task[id]"
-        />
-        <button
-          type="submit"
-          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-card hover:text-accent-foreground h-10 w-10 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-800 border border-foreground dark:border-gray-800"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="w-5 h-5 stroke-foreground"
-          >
-            <circle cx="11" cy="11" r="8"></circle>
-            <path d="m21 21-4.3-4.3"></path>
-          </svg>
-          <span class="sr-only">Search</span>
-        </button>
-      </form>
-      <img
-        class="absolute z-0 w-80 rounded-xl mx-auto blur-sm"
-        alt="block not found"
-        src={~p"/images/hero.jpeg"}
-      />
-    </div>
-    """
+  def mount(_, _, socket) do
+    verified_batches = get_verified_batches_count()
+
+    shorthand_verified_batches = Utils.convert_number_to_shorthand(verified_batches)
+
+    operators_registered = get_operators_registered()
+
+    latest_batches =
+      AlignedLayerServiceManager.get_new_batch_events(5)
+      |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
+      |> Enum.reverse()
+
+    {:ok,
+     assign(socket,
+       verified_batches: shorthand_verified_batches,
+       operators_registered: operators_registered,
+       latest_batches: latest_batches,
+       page_title: "Welcome"
+     )}
   end
+
+  defp get_verified_batches_count() do
+    AlignedLayerServiceManager.get_batch_verified_events()
+    |> (fn
+          {:ok, nil} -> 0
+          {:ok, list} -> Enum.count(list)
+          {:error, _} -> 0
+        end).()
+  end
+
+  # tail-call recursion
+  defp count_operators_registered(list), do: sum_operators_registered(list, 0)
+  defp sum_operators_registered([], val), do: val
+
+  defp sum_operators_registered([head | tail], val),
+    do: sum_operators_registered(tail, evaluate_operator(head, val))
+
+  defp evaluate_operator(event, val) do
+    # registered or unregistered
+    case event.data |> hd() == 1 do
+      true -> val + 1
+      false -> val - 1
+    end
+  end
+
+  def get_operators_registered() do
+    AVSDirectory.get_operator_status_updated_events()
+    |> (fn {status, data} when status == :ok -> count_operators_registered(data) end).()
+  end
+
+  embed_templates "*"
 end

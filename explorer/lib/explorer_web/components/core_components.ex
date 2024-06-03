@@ -115,7 +115,8 @@ defmodule ExplorerWeb.CoreComponents do
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
       class={[
-        "fixed top-2 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
+        "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
+        "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
         @kind == :info && "bg-emerald-50 text-emerald-800 ring-emerald-500 fill-cyan-900",
         @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900"
       ]}
@@ -231,14 +232,63 @@ defmodule ExplorerWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 hover:bg-zinc-700 py-2 px-3",
-        "text-sm font-semibold leading-6 text-white active:text-white/80",
+        "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
+        "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
+        "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
+        "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
         @class
       ]}
       {@rest}
     >
       <%= render_slot(@inner_block) %>
     </button>
+    """
+  end
+
+  @doc """
+    Renders a card background.
+  """
+  attr :class, :string, default: nil
+  slot :inner_block, default: nil
+
+  def card_background(assigns) do
+    ~H"""
+    <div class={["bg-card border border-foreground/20 rounded-2xl p-4", @class]}>
+      <%= render_slot(@inner_block) %>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a card with a title and content.
+  """
+  attr :class, :string, default: nil
+  attr :title, :string, default: nil
+  attr :inner_class, :string, default: nil
+
+  slot :inner_block, default: nil
+
+  def card(assigns) do
+    ~H"""
+    <.card_background class={@class}>
+      <h2 class="font-medium text-muted-foreground capitalize">
+        <%= @title %>
+      </h2>
+      <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
+        <%= render_slot(@inner_block) %>
+      </span>
+    </.card_background>
+    """
+  end
+
+  attr :class, :string, default: nil
+
+  def right_arrow(assigns) do
+    ~H"""
+    <.icon
+      name="hero-arrow-right-solid"
+      class="size-4 stroke-foreground group-hover:stroke-foreground/80 -translate-x-1 group-hover:translate-x-0 duration-150 transition-all"
+    />
     """
   end
 
@@ -476,11 +526,11 @@ defmodule ExplorerWeb.CoreComponents do
 
     ~H"""
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] mt-11 sm:w-full">
-        <thead class="text-sm text-left leading-6 text-zinc-500">
+      <table class="w-[40rem] sm:w-full z-10">
+        <thead class="text-sm text-left leading-6 text-foreground">
           <tr>
-            <th :for={col <- @col} class="p-0 pb-4 pr-6 font-normal"><%= col[:label] %></th>
-            <th :if={@action != []} class="relative p-0 pb-4">
+            <th :for={col <- @col} class="p-0 pb-4 px-3 font-normal"><%= col[:label] %></th>
+            <th :if={@action != []} class="p-0 pb-4">
               <span class="sr-only"><%= gettext("Actions") %></span>
             </th>
           </tr>
@@ -488,27 +538,25 @@ defmodule ExplorerWeb.CoreComponents do
         <tbody
           id={@id}
           phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="relative divide-y divide-zinc-100 border-t border-zinc-200 text-sm leading-6 text-zinc-700"
+          class="divide-y divide-muted border-t border-foreground text-sm leading-6 text-muted-foreground"
         >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-zinc-50">
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-foreground/10">
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
-              class={["relative p-0", @row_click && "hover:cursor-pointer"]}
+              class={["p-0", @row_click && "hover:cursor-pointer"]}
             >
-              <div class="block py-4 pr-6">
-                <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-zinc-50 sm:rounded-l-xl" />
-                <span class={["relative", i == 0 && "font-semibold text-zinc-900"]}>
+              <div class="block py-4 px-3">
+                <span class={[i == 0 && "text-muted-foreground"]}>
                   <%= render_slot(col, @row_item.(row)) %>
                 </span>
               </div>
             </td>
-            <td :if={@action != []} class="relative w-14 p-0">
-              <div class="relative whitespace-nowrap py-4 text-right text-sm font-medium">
-                <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-zinc-50 sm:rounded-r-xl" />
+            <td :if={@action != []} class="w-14 p-0">
+              <div class="whitespace-nowrap py-4 text-right text-sm font-medium">
                 <span
                   :for={action <- @action}
-                  class="relative ml-4 font-semibold leading-6 text-zinc-900 hover:text-zinc-700"
+                  class="ml-4 font-semibold leading-6 text-muted-foreground"
                 >
                   <%= render_slot(action, @row_item.(row)) %>
                 </span>

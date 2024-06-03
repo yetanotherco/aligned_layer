@@ -3,20 +3,25 @@ package operator
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
-	"github.com/celestiaorg/celestia-node/api/rpc/client"
-	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/yetanotherco/aligned_layer/metrics"
 
-	"github.com/Layr-Labs/eigenda/api/grpc/disperser"
+	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
+	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
+
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -25,8 +30,6 @@ import (
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/types"
-	"github.com/yetanotherco/aligned_layer/core/utils"
-	"golang.org/x/crypto/sha3"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
@@ -40,11 +43,11 @@ type Operator struct {
 	KeyPair            *bls.KeyPair
 	OperatorId         eigentypes.OperatorId
 	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated
+	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
-	disperser          disperser.DisperserClient
-	celestiaClient     *client.Client
+	metricsReg         *prometheus.Registry
+	metrics            *metrics.Metrics
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -70,7 +73,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated)
+	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
@@ -79,6 +82,11 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 
 	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
 	address := configuration.Operator.Address
+
+	// Metrics
+	reg := prometheus.NewRegistry()
+	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
+
 	operator := &Operator{
 		Config:             configuration,
 		Logger:             logger,
@@ -87,8 +95,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		NewTaskCreatedChan: newTaskCreatedChan,
 		aggRpcClient:       *rpcClient,
 		OperatorId:         operatorId,
-		disperser:          configuration.EigenDADisperserConfig.Disperser,
-		celestiaClient:     configuration.CelestiaConfig.Client,
+		metricsReg:         reg,
+		metrics:            operatorMetrics,
 		// Timeout
 		// Socket
 	}
@@ -103,27 +111,38 @@ func (o *Operator) SubscribeToNewTasks() event.Subscription {
 
 func (o *Operator) Start(ctx context.Context) error {
 	sub := o.SubscribeToNewTasks()
+
+	var metricsErrChan <-chan error
+	if o.Config.Operator.EnableMetrics {
+		metricsErrChan = o.metrics.Start(ctx, o.metricsReg)
+	} else {
+		metricsErrChan = make(chan error, 1)
+	}
+
 	for {
 		select {
 		case <-context.Background().Done():
 			o.Logger.Info("Operator shutting down...")
 			return nil
+		case err := <-metricsErrChan:
+			o.Logger.Fatal("Metrics server failed", "err", err)
 		case err := <-sub.Err():
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
-		case newTaskCreatedLog := <-o.NewTaskCreatedChan:
-			o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
-			taskResponse := o.ProcessNewTaskCreatedLog(newTaskCreatedLog)
-			responseSignature, err := o.SignTaskResponse(taskResponse)
+		case newBatchLog := <-o.NewTaskCreatedChan:
+			// o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
+			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
-				o.Logger.Errorf("Could not sign task response", "err", err)
+				o.Logger.Errorf("Batch did not verify", "err", err)
+				continue
 			}
+			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
 
 			signedTaskResponse := types.SignedTaskResponse{
-				TaskResponse: *taskResponse,
-				BlsSignature: *responseSignature,
-				OperatorId:   o.OperatorId,
+				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+				BlsSignature:    *responseSignature,
+				OperatorId:      o.OperatorId,
 			}
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
@@ -134,85 +153,183 @@ func (o *Operator) Start(ctx context.Context) error {
 
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
-func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *servicemanager.ContractAlignedLayerServiceManagerNewTaskCreated) *servicemanager.AlignedLayerServiceManagerTaskResponse {
+func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
 
-	var proof []byte
-	var err error
+	o.Logger.Info("Received new batch with proofs to verify",
+		"batch merkle root", newBatchLog.BatchMerkleRoot,
+	)
 
-	switch newTaskCreatedLog.Task.DAPayload.Solution {
-	case common.Calldata:
-		proof = newTaskCreatedLog.Task.DAPayload.ProofAssociatedData
-	case common.EigenDA:
-		proof, err = o.getProofFromEigenDA(newTaskCreatedLog.Task.DAPayload.ProofAssociatedData, newTaskCreatedLog.Task.DAPayload.Index)
-		if err != nil {
-			o.Logger.Errorf("Could not get proof from EigenDA: %v", err)
-			return nil
-		}
-	case common.Celestia:
-		proof, err = o.getProofFromCelestia(newTaskCreatedLog.Task.DAPayload.Index, o.Config.CelestiaConfig.Namespace, newTaskCreatedLog.Task.DAPayload.ProofAssociatedData)
-		if err != nil {
-			o.Logger.Errorf("Could not get proof from Celestia: %v", err)
+	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer)
+	if err != nil {
+		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
+		return err
+	}
+
+	verificationDataBatchLen := len(verificationDataBatch)
+	results := make(chan bool, verificationDataBatchLen)
+	var wg sync.WaitGroup
+	wg.Add(verificationDataBatchLen)
+	for _, verificationData := range verificationDataBatch {
+		go func(data VerificationData) {
+			defer wg.Done()
+			o.verify(data, results)
+			o.metrics.IncOperatorTaskResponses()
+		}(verificationData)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if !result {
+			o.Logger.Error("Proof did not verify")
 			return nil
 		}
 	}
 
-	proofLen := (uint)(len(proof))
+	return nil
+}
 
-	pubInput := newTaskCreatedLog.Task.PubInput
+func (o *Operator) verify(verificationData VerificationData, results chan bool) {
+	switch verificationData.ProvingSystemId {
+	case common.GnarkPlonkBls12_381:
+		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
+		o.Logger.Infof("PLONK BLS12-381 proof verification result: %t", verificationResult)
 
-	provingSystemId := newTaskCreatedLog.Task.ProvingSystemId
+		results <- verificationResult
 
-	o.Logger.Info("Received new task with proof to verify",
-		"proof length", proofLen,
-		"proof first bytes", "0x"+hex.EncodeToString(proof[0:8]),
-		"proof last bytes", "0x"+hex.EncodeToString(proof[proofLen-8:proofLen]),
-		"task index", newTaskCreatedLog.TaskIndex,
-		"task created block", newTaskCreatedLog.Task.TaskCreatedBlock,
-	)
-
-	switch provingSystemId {
-	case uint16(common.GnarkPlonkBls12_381):
-		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		verificationResult := o.verifyPlonkProofBLS12_381(proof, pubInput, verificationKey)
-
-		o.Logger.Infof("PLONK BLS12_381 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
-
-	case uint16(common.GnarkPlonkBn254):
-		verificationKey := newTaskCreatedLog.Task.VerificationKey
-		verificationResult := o.verifyPlonkProofBN254(proof, pubInput, verificationKey)
-
+	case common.GnarkPlonkBn254:
+		verificationResult := o.verifyPlonkProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
 
-	case uint16(common.SP1):
-		proofBytes := make([]byte, sp1.MaxProofSize)
-		copy(proofBytes, proof)
+		results <- verificationResult
 
-		elf := newTaskCreatedLog.Task.PubInput
-		elfBytes := make([]byte, sp1.MaxElfBufferSize)
-		copy(elfBytes, elf)
-		elfLen := (uint)(len(elf))
+	case common.Groth16Bn254:
+		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 
-		verificationResult := sp1.VerifySp1Proof(([sp1.MaxProofSize]byte)(proofBytes), proofLen, ([sp1.MaxElfBufferSize]byte)(elfBytes), elfLen)
+		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
+		results <- verificationResult
 
+	case common.SP1:
+		proofLen := (uint32)(len(verificationData.Proof))
+		elfLen := (uint32)(len(verificationData.VmProgramCode))
+
+		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-		taskResponse := &servicemanager.AlignedLayerServiceManagerTaskResponse{
-			TaskIndex:      newTaskCreatedLog.TaskIndex,
-			ProofIsCorrect: verificationResult,
-		}
-		return taskResponse
+		results <- verificationResult
+	case common.Halo2IPA:
+		// Extract Proof Bytes
+		proofBytes := make([]byte, halo2ipa.MaxProofSize)
+		copy(proofBytes, verificationData.Proof)
+		proofLen := (uint32)(len(verificationData.Proof))
+
+		// Extract Verification Key Bytes
+		paramsBytes := verificationData.VerificationKey
+
+		// Deserialize csLen
+		csLenBuffer := make([]byte, 4)
+		copy(csLenBuffer, paramsBytes[:4])
+		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
+
+		// Deserialize vkLen
+		vkLenBuffer := make([]byte, 4)
+		copy(vkLenBuffer, paramsBytes[4:8])
+		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
+
+		// Deserialize ipaParamLen
+		IpaParamsLenBuffer := make([]byte, 4)
+		copy(IpaParamsLenBuffer, paramsBytes[8:12])
+		IpaParamsLen := (uint32)(binary.LittleEndian.Uint32(IpaParamsLenBuffer))
+
+		// Extract Constraint System Bytes
+		csBytes := make([]byte, halo2ipa.MaxConstraintSystemSize)
+		csOffset := uint32(12)
+		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
+
+		// Extract Verification Key Bytes
+		vkBytes := make([]byte, halo2ipa.MaxVerifierKeySize)
+		vkOffset := csOffset + csLen
+		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
+
+		// Extract ipa Parameter Bytes
+		IpaParamsBytes := make([]byte,(halo2ipa.MaxIpaParamsSize))
+		IpaParamsOffset := vkOffset + vkLen
+		copy(IpaParamsBytes, paramsBytes[IpaParamsOffset:])
+
+		// Extract Public Input Bytes
+		publicInput := verificationData.PubInput
+		publicInputBytes := make([]byte, halo2ipa.MaxPublicInputSize)
+		copy(publicInputBytes, publicInput)
+		publicInputLen := (uint32)(len(publicInput))
+
+		verificationResult := halo2ipa.VerifyHalo2IpaProof(
+			([halo2ipa.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), csLen,
+			([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
+			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen, 
+			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
+
+		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
+		results <- verificationResult
+	case common.Halo2KZG:
+		// Extract Proof Bytes
+		proofBytes := make([]byte, halo2kzg.MaxProofSize)
+		copy(proofBytes, verificationData.Proof)
+		proofLen := (uint32)(len(verificationData.Proof))
+
+		// Extract Verification Key Bytes
+		paramsBytes := verificationData.VerificationKey
+
+		// Deserialize csLen
+		csLenBuffer := make([]byte, 4)
+		copy(csLenBuffer, paramsBytes[:4])
+		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
+
+		// Deserialize vkLen
+		vkLenBuffer := make([]byte, 4)
+		copy(vkLenBuffer, paramsBytes[4:8])
+		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
+
+		// Deserialize kzgParamLen
+		kzgParamsLenBuffer := make([]byte, 4)
+		copy(kzgParamsLenBuffer, paramsBytes[8:12])
+		kzgParamsLen := (uint32)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
+
+		// Extract Constraint System Bytes
+		csBytes := make([]byte, halo2kzg.MaxConstraintSystemSize)
+		csOffset := uint32(12)
+		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
+
+		// Extract Verification Key Bytes
+		vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
+		vkOffset := csOffset + csLen
+		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
+
+		// Extract Kzg Parameter Bytes
+		kzgParamsBytes := make([]byte,(halo2kzg.MaxKzgParamsSize))
+		kzgParamsOffset := vkOffset + vkLen
+		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:])
+
+		// Extract Public Input Bytes
+		publicInput := verificationData.PubInput
+		publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
+		copy(publicInputBytes, publicInput)
+		publicInputLen := (uint32)(len(publicInput))
+
+		verificationResult := halo2kzg.VerifyHalo2KzgProof(
+			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), csLen,
+			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
+			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen, 
+			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
+
+		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
+		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
-		return nil
+		results <- false
 	}
 }
 
@@ -224,6 +341,11 @@ func (o *Operator) verifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []
 // VerifyPlonkProofBN254 verifies a PLONK proof using BN254 curve.
 func (o *Operator) verifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
+}
+
+// VerifyGroth16ProofBN254 verifies a GROTH16 proof using BN254 curve.
+func (o *Operator) verifyGroth16ProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	return o.verifyGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
 // verifyPlonkProof contains the common proof verification logic.
@@ -257,17 +379,38 @@ func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	return err == nil
 }
 
-func (o *Operator) SignTaskResponse(taskResponse *servicemanager.AlignedLayerServiceManagerTaskResponse) (*bls.Signature, error) {
-	encodedResponseBytes, err := utils.AbiEncodeTaskResponse(*taskResponse)
-	if err != nil {
-		return nil, err
+// verifyGroth16Proof contains the common proof verification logic.
+func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+	proofReader := bytes.NewReader(proofBytes)
+	proof := groth16.NewProof(curve)
+	if _, err := proof.ReadFrom(proofReader); err != nil {
+		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		return false
 	}
 
-	var taskResponseDigest [32]byte
-	hasher := sha3.NewLegacyKeccak256()
-	hasher.Write(encodedResponseBytes)
-	copy(taskResponseDigest[:], hasher.Sum(nil)[:32])
+	pubInputReader := bytes.NewReader(pubInputBytes)
+	pubInput, err := witness.New(curve.ScalarField())
+	if err != nil {
+		o.Logger.Errorf("Error instantiating witness: %v", err)
+		return false
+	}
+	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
+		o.Logger.Errorf("Could not read Groth16 public input: %v", err)
+		return false
+	}
 
-	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(taskResponseDigest)
-	return &responseSignature, nil
+	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
+	verificationKey := groth16.NewVerifyingKey(curve)
+	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
+		o.Logger.Errorf("Could not read Groth16 verifying key from bytes: %v", err)
+		return false
+	}
+
+	err = groth16.Verify(proof, verificationKey, pubInput)
+	return err == nil
+}
+
+func (o *Operator) SignTaskResponse(batchMerkleRoot [32]byte) *bls.Signature {
+	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchMerkleRoot)
+	return &responseSignature
 }

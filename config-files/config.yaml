@@ -17,14 +17,12 @@ bls:
   private_key_store_path: "config-files/anvil.bls.key.json"
   private_key_store_password: ""
 
-## EigenDA Configurations
-eigen_da_disperser:
-  url: "disperser-holesky.eigenda.xyz"
-
-## Celestia Configurations
-celestia:
-  url: "http://localhost:26658"
-  keystore: "~/.celestia-light-arabica-11"
+## Batcher configurations
+batcher:
+  block_interval: 3
+  batch_size_interval: 999999999
+  max_proof_size: 67108864 # 64 MiB
+  max_batch_size: 268435456 # 256 MiB
 
 ## Aggregator Configurations
 aggregator:
@@ -32,6 +30,7 @@ aggregator:
   bls_public_key_compendium_address: 0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44
   avs_service_manager_address: 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690
   enable_metrics: true
+  metrics_ip_port_address: localhost:9091
 
 ## Operator Configurations
 operator:
@@ -41,6 +40,9 @@ operator:
   delegation_approver_address: "0x0000000000000000000000000000000000000000"
   staker_opt_out_window_blocks: 0
   metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+  enable_metrics: true
+  metrics_ip_port_address: localhost:9092
+  max_batch_size: 268435456 # 256 MiB
 # Operators variables needed for register it in EigenLayer
 el_delegation_manager_address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
 private_key_store_path: config-files/anvil.ecdsa.key.json
