@@ -127,9 +127,6 @@ __BATCHER__:
 
 BURST_SIZE=5
 
-batcher-client:
-	@cargo +nightly-2024-04-17 install --path batcher/client
-
 ./batcher/.env:
 	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
 
@@ -253,7 +250,7 @@ batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-clien
 __TASK_SENDERS__:
  # TODO add a default proving system
 
-proof: batcher-client generate_sp1_fibonacci_proof
+proof: install_batcher_client generate_sp1_fibonacci_proof
 
 submit_proof:
 	@time batcher-client \
