@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
-use alloy_primitives::Address;
+use alloy_primitives::{Address, hex};
 use env_logger::Env;
 use futures_util::{
     future,
@@ -148,6 +148,12 @@ async fn receive(
             let data = msg.unwrap().into_data();
             let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
             info!("Batcher response received: {}", deserialized_data);
+
+            let batch_merkle_root_hex = hex::encode(deserialized_data.batch_merkle_root);
+            info!(
+                "See the batch in the explorer: https://explorer.alignedlayer.com/batches/0x{}",
+                batch_merkle_root_hex
+            );
 
             if *num_responses_lock == total_messages {
                 info!("All messages responded. Closing connection...");
