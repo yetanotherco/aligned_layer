@@ -210,6 +210,25 @@ impl Batcher {
             return None;
         }
 
+        let current_batch_size = batch_queue_lock
+            .iter()
+            .fold(0, |acc, (vd, _, _)| acc + std::mem::size_of_val(vd));
+
+        if current_batch_size > self.max_batch_size {
+            info!("Batch max size exceded. Splitting current batch...");
+            let mut acc_batch_size = 0;
+            let mut finalized_batch_idx = 0;
+            for (idx, (verification_data, _, _)) in batch_queue_lock.iter().enumerate() {
+                acc_batch_size += std::mem::size_of_val(verification_data);
+                if acc_batch_size > self.max_batch_size {
+                    finalized_batch_idx = idx;
+                    break;
+                }
+            }
+            let finalized_batch = batch_queue_lock.drain(..finalized_batch_idx).collect();
+            return Some(finalized_batch);
+        }
+
         // A copy of the batch is made to be returned and the current batch is cleared
         let finalized_batch = batch_queue_lock.clone();
         batch_queue_lock.clear();
@@ -222,41 +241,14 @@ impl Batcher {
     /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(&self, block_number: u64, finalized_batch: BatchQueue) {
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
-        let mut batch_verification_data: Vec<VerificationData> = finalized_batch
+        let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
             .into_iter()
             .map(|(data, _, _)| data)
             .collect();
 
-        let mut batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
+        let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
             .expect("Failed to serialize batch");
-
-        let batch_to_send: Vec<VerificationData>;
-        if batch_bytes.len() > self.max_batch_size {
-            let mut current_batch_end = 0; // not inclusive
-            let mut current_batch_size = 0;
-            for (i, verification_data) in batch_verification_data.iter().enumerate() {
-                let verification_data_bytes = serde_json::to_vec(&verification_data)
-                    .expect("Failed to serialize verification data");
-
-                current_batch_size += verification_data_bytes.len();
-                if current_batch_size > self.max_batch_size {
-                    current_batch_end = i;
-                    break;
-                }
-            }
-            debug!(
-                "Batch size exceeds max batch size, splitting batch at index: {}",
-                current_batch_end
-            );
-            batch_to_send = batch_verification_data.drain(..current_batch_end).collect();
-
-            info!(
-                "Number of elements remaining for next batch: {}",
-                finalized_batch.len()
-            );
-            batch_bytes = serde_json::to_vec(&batch_to_send).expect("Failed to serialize batch");
-        }
 
         info!("Finalizing batch. Size: {}", finalized_batch.len());
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
@@ -280,7 +272,7 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) {
-        if let Some(finalized_batch) = self.is_batch_ready(block_number).await {
+        while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
             self.finalize_batch(block_number, finalized_batch).await;
         }
     }

@@ -20,9 +20,10 @@ bls:
 ## Batcher configurations
 batcher:
   block_interval: 3
-  batch_size_interval: 5
+  batch_size_interval: 10
   max_proof_size: 67108864 # 64 MiB
-  max_batch_size: 268435456 # 256 MiB
+  max_batch_size: 512 # 256 MiB
+  # max_batch_size: 268435456 # 256 MiB
 
 ## Aggregator Configurations
 aggregator:
