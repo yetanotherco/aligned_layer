@@ -184,9 +184,10 @@ impl Batcher {
     ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
-    /// Once the batch is ready to be finalized, a copy of it is made to be passed to the `finalize_batch` function
-    /// and the current batch queue is cleared so that new data can be added to the batch while the old one is being
-    /// processed.
+    /// Once the batch meets the conditions for submission, it check if it needs to be splitted into smaller batches,
+    /// depending on the configured maximum batch size. The batch is splitted at the index where the max size is surpassed,
+    /// and all the elements up to that index are copied and cleared from the batch queue. The copy is then passed to the
+    /// `finalize_batch` function.
     async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
         let mut batch_queue_lock = self.batch_queue.lock().await;
         let current_batch_len = batch_queue_lock.len();
@@ -210,9 +211,12 @@ impl Batcher {
             return None;
         }
 
-        let current_batch_size = batch_queue_lock
+        let batch_verification_data: Vec<VerificationData> = batch_queue_lock
             .iter()
-            .fold(0, |acc, (vd, _, _)| acc + std::mem::size_of_val(vd));
+            .map(|(vd, _, _)| vd.clone())
+            .collect();
+
+        let current_batch_size = serde_json::to_vec(&batch_verification_data).unwrap().len();
 
         // check if the current batch needs to be splitted into smaller batches
         if current_batch_size > self.max_batch_size {
@@ -220,7 +224,7 @@ impl Batcher {
             let mut acc_batch_size = 0;
             let mut finalized_batch_idx = 0;
             for (idx, (verification_data, _, _)) in batch_queue_lock.iter().enumerate() {
-                acc_batch_size += std::mem::size_of_val(verification_data);
+                acc_batch_size += serde_json::to_vec(verification_data).unwrap().len();
                 if acc_batch_size > self.max_batch_size {
                     finalized_batch_idx = idx;
                     break;
