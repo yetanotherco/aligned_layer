@@ -86,7 +86,37 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 }
 
 func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-g}
+	txOpts := w.Signer.GetTxOpts()
+	txOpts.NoSend = true // simulate the transaction
+	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+	if err != nil {
+		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
+		return nil, err
+	}
+
+	// Send the transaction
+	txOpts.NoSend = false
+	txOpts.GasLimit = uint64(float64(tx.Gas()) * 1.1) // Add 10% to the gas limit
+	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+	if err != nil {
+		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
+		return nil, err
+	}
+
+	receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
+	if err != nil {
+		return nil, err
+	}
+
+	taskRespondedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseBatchVerified(*receipt.Logs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME(marian): Dummy log to check integration with the contract
+	w.logger.Infof("TASK RESPONDED EVENT: %+v", taskRespondedEvent)
+	return receipt, nil
+}
 
 // func (w *AvsWriter) RaiseChallenge(
 // 	ctx context.Context,
