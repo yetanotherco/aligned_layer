@@ -96,7 +96,7 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 
 	// Send the transaction
 	txOpts.NoSend = false
-	txOpts.GasLimit = uint64(float64(tx.Gas()) * 1.1) // Add 10% to the gas limit
+	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
 	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
