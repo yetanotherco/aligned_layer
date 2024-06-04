@@ -74,4 +74,11 @@ defmodule Utils do
       is_verified: batch.is_verified
     }
   end
+
+  def extract_amount_of_proofs(%{batchDataPointer: batchDataPointer}) do
+    case Utils.fetch_batch_data_pointer(batchDataPointer) do
+      {:ok, batch_json} -> Utils.get_amount_of_proofs({:ok, batch_json})
+      {:error, _} -> 0
+    end
+  end
 end

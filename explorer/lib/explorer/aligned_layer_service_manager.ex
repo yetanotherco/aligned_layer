@@ -26,7 +26,7 @@ defmodule AlignedLayerServiceManager do
   def get_new_batch_events() do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
-      |> Ethers.get_logs(fromBlock: 1600000)
+      |> Ethers.get_logs(fromBlock: 0)
 
     case events do
       {:ok, []} -> []
@@ -38,7 +38,7 @@ defmodule AlignedLayerServiceManager do
   def get_new_batch_events(%{merkle_root: merkle_root}) when is_binary(merkle_root) do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(Utils.string_to_bytes32(merkle_root))
-      |> Ethers.get_logs(fromBlock: 1600000)
+      |> Ethers.get_logs(fromBlock: 0)
 
     case events do
       {:error, reason} -> {:empty, reason}
@@ -59,11 +59,6 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
-    "fromBlock" |> IO.inspect()
-    fromBlock |> IO.inspect()
-    "toBlock" |> IO.inspect()
-    toBlock |> IO.inspect()
-
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
@@ -90,14 +85,6 @@ defmodule AlignedLayerServiceManager do
   end
 
   def extract_new_batch_event_info(event) do
-    # data = event |> Map.get(:data)
-    # topics_raw = event |> Map.get(:topics_raw)
-
-    # new_batch = %NewBatchEvent{
-    #   batchMerkleRoot: topics_raw |> Enum.at(1),
-    #   taskCreatedBlock: data |> Enum.at(0),
-    #   batchDataPointer: data |> Enum.at(1)
-    # }
     new_batch = parse_new_batch_event(event)
 
     {:ok,
@@ -123,7 +110,7 @@ defmodule AlignedLayerServiceManager do
 
   def get_batch_verified_events() do
     events =
-      AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 1600000)
+      AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 0)
 
     case events do
       {:ok, list} -> {:ok, list}
@@ -134,7 +121,7 @@ defmodule AlignedLayerServiceManager do
   def get_batch_verified_events(merkle_root) do
     events =
       AlignedLayerServiceManager.EventFilters.batch_verified(merkle_root)
-      |> Ethers.get_logs(fromBlock: 1600000)
+      |> Ethers.get_logs(fromBlock: 0)
 
     case events do
       {:error, reason} -> {:empty, reason}
@@ -189,6 +176,16 @@ defmodule AlignedLayerServiceManager do
       batch_data_pointer: new_batch.batchDataPointer,
       is_verified: is_batch_responded(new_batch.batchMerkleRoot)
     }
+  end
+
+  def get_amount_of_proofs(%{merkle_root: merkle_root}) when is_binary(merkle_root) do
+    "in get_amount_of_proofs" |> IO.inspect()
+    case get_new_batch_events(%{merkle_root: merkle_root}) do
+      {:error, reason} -> raise "Error fetching events: #{reason}"
+      {:empty, _} -> 0
+      {:ok, %NewBatchInfo{new_batch: %NewBatchEvent{batchDataPointer: batchDataPointer}}} ->
+        Utils.extract_amount_of_proofs(%{batchDataPointer: batchDataPointer})
+    end
   end
 
 end

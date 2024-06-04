@@ -29,17 +29,14 @@ defmodule ExplorerWeb.Home.Index do
       |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
       |> Enum.reverse()
 
-    amount_of_proofs = Explorer.Repo.aggregate(Batches, :count, :amount_of_proofs)
-
-    "amount_of_proofs" |> IO.inspect()
-    amount_of_proofs |> IO.inspect()
+    amount_of_proofs = Explorer.Repo.aggregate(Batches, :sum, :amount_of_proofs)
 
     {:ok,
      assign(socket,
        verified_batches: verified_batches,
        operators_registered: operators_registered,
        latest_batches: latest_batches,
-       amount_of_proofs: 0,
+       amount_of_proofs: amount_of_proofs,
        page_title: "Welcome"
      )}
   end

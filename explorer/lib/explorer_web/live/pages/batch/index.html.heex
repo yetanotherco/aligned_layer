@@ -10,6 +10,7 @@
       Block Number: <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/block/#{@newBatchInfo.block_number}"}  class="break-all font-normal"><%= @newBatchInfo.block_number %></.a>
       Transaction Hash:
       <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/tx/#{@newBatchInfo.transaction_hash}"} class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></.a>
+      Amount of Proofs in this Batch: <span class="break-all font-normal"><%= @amount_of_proofs %></span>
       Aligned Contract Address: <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/address/#{@newBatchInfo.address}"} class="break-all font-normal"><%= @newBatchInfo.address %></.a>
     </.card>
   <% else %>
