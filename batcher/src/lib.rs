@@ -189,6 +189,7 @@ impl Batcher {
     /// processed.
     async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
         let mut batch_queue_lock = self.batch_queue.lock().await;
+
         let current_batch_len = batch_queue_lock.len();
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
@@ -208,6 +209,22 @@ impl Batcher {
                 block_number, *last_uploaded_batch_block_lock, current_batch_len, self.min_batch_len
             );
             return None;
+        }
+
+        let current_batch_size = batch_queue_lock
+            .iter()
+            .fold(0, |acc, (vd, _, _)| acc + std::mem::size_of_val(vd));
+
+        if current_batch_size > self.max_batch_size {
+            let mut acc_batch_size = 0;
+            let mut finalized_batch_idx = 0;
+            for (idx, (verification_data, _, _)) in batch_queue_lock.iter().enumerate() {
+                acc_batch_size += std::mem::size_of_val(verification_data);
+                finalized_batch_idx = idx;
+                if acc_batch_size > self.max_batch_size {
+                    break;
+                }
+            }
         }
 
         // A copy of the batch is made to be returned and the current batch is cleared
@@ -255,10 +272,11 @@ impl Batcher {
                 "Number of elements remaining for next batch: {}",
                 finalized_batch.len()
             );
+
             batch_bytes = serde_json::to_vec(&batch_to_send).expect("Failed to serialize batch");
         }
 
-        info!("Finalizing batch. Size: {}", finalized_batch.len());
+        info!("Finalizing batch. Size: {}", .len());
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
             .clone()
             .into_iter()
@@ -308,6 +326,8 @@ impl Batcher {
         }
     }
 }
+
+fn split_at_index()
 
 async fn send_responses(
     finalized_batch: BatchQueue,
