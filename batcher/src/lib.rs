@@ -164,7 +164,7 @@ impl Batcher {
         Ok(())
     }
 
-    /// Adds verification data to the current batch.
+    /// Adds verification data to the current batch queue.
     async fn add_to_batch(
         self: Arc<Self>,
         verification_data: VerificationData,
