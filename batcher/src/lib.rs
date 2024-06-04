@@ -214,6 +214,7 @@ impl Batcher {
             .iter()
             .fold(0, |acc, (vd, _, _)| acc + std::mem::size_of_val(vd));
 
+        // check if the current batch needs to be splitted into smaller batches
         if current_batch_size > self.max_batch_size {
             info!("Batch max size exceded. Splitting current batch...");
             let mut acc_batch_size = 0;
@@ -225,7 +226,7 @@ impl Batcher {
                     break;
                 }
             }
-            let finalized_batch = batch_queue_lock.drain(..finalized_batch_idx).collect();
+            let finalized_batch = batch_queue_lock.drain(..=finalized_batch_idx).collect();
             return Some(finalized_batch);
         }
 
