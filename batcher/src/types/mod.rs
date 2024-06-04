@@ -53,8 +53,8 @@ impl VerificationData {
                 false
             }
             ProvingSystemId::Jolt => {
-                if let Some(elf) = &self.vm_program_code {
-                    return verify_jolt_proof(self.proof.as_slice(), elf.as_slice());
+                if let Some(_input) = &self.vm_program_code {
+                    return verify_jolt_proof(self.proof.as_slice(), _input.as_slice());
                 }
                 warn!("Trying to verify Jolt proof but ____ was not provided. Returning false");
                 false
@@ -113,7 +113,7 @@ fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
     false
 }
 
-fn verify_jolt_proof(proof: &[u8], elf: &[u8]) -> bool {
+fn verify_jolt_proof(_proof: &[u8], _input: &[u8]) -> bool {
     todo!()
 }
 

@@ -502,6 +502,29 @@ generate_risc_zero_fibonacci_proof:
 		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
 		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"
 
+__JOLT_FFI__: ##
+build_jolt_macos:
+	@cd operator/jolt/lib && cargo build --release
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.dylib operator/jolt/lib/libjolt_verifier_ffi.dylib
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.a operator/jolt/lib/libjolt_verifier_ffi.a
+
+build_jolt_linux:
+	@cd operator/jolt/lib && cargo build --release
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.so operator/jolt/lib/libjolt_verifier_ffi.so
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.a operator/jolt/lib/libjolt_verifier_ffi.a
+
+test_jolt_rust_ffi:
+	@echo "Testing Jolt Rust FFI source code..."
+	@cd operator/jolt/lib && cargo test --release
+
+test_jolt_go_bindings_macos: build_risc_zero_macos
+	@echo "Testing JOLT Go bindings..."
+	go test ./operator/jolt/... -v
+
+test_jolt_go_bindings_linux: build_risc_zero_linux
+	@echo "Testing Jolt Go bindings..."
+	go test ./operator/jolt/... -v
+
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
 	@cd operator/merkle_tree/lib && cargo build --release

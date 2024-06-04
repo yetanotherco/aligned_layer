@@ -1,23 +1,18 @@
 use lazy_static::lazy_static;
 pub const MAX_PROOF_SIZE: usize = 2 * 1024 * 1024;
-pub const MAX_ELF_BUFFER_SIZE: usize = 1024 * 1024;
-
-lazy_static! {
-    static ref PROVER_CLIENT: ProverClient = ProverClient::new();
-}
+pub const MAX_INFO_BUFFER_SIZE: usize = 1024 * 1024;
 
 #[no_mangle]
 pub extern "C" fn verify_jolt_proof_ffi(
     proof_bytes: &[u8; MAX_PROOF_SIZE],
     proof_len: u32,
-    elf_bytes: &[u8; MAX_ELF_BUFFER_SIZE],
-    elf_len: u32,
+    info_bytes: &[u8; MAX_INFO_BUFFER_SIZE],
+    info_len: u32,
 ) -> bool {
-    let real_elf = &elf_bytes[0..elf_len as usize];
+    let real_info = &elf_bytes[0..elf_len as usize];
 
     if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len as usize]) {
-        let (_pk, vk) = PROVER_CLIENT.setup(real_elf);
-        return PROVER_CLIENT.verify(&proof, &vk).is_ok();
+        return true
     }
 
     false
