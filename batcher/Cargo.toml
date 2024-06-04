@@ -42,3 +42,4 @@ rand = "0.8.5"
 serde_yaml = "0.9.34"
 alloy-primitives = { version = "0.7.4", features = ["serde"] }
 lazy_static = "1.4.0"
+jolt-core = {git = "https://github.com/PatStiles/Lasso.git", branch = "feat/verifier_client"}
