@@ -793,7 +793,7 @@ Open a terminal and navigate to the gnark project directory. Then, run the follo
 ```bash
 go run circuit.go
 ```
-Make sure that you include serialization of the proof, public input, and verification key in the circuit.go file.If you encounter any issues with serialization, you can refer to our [detailed guide](Docs.md)
+Make sure that you include serialization of the proof, public input, and verification key in the circuit.go file.If you encounter any issues with serialization, you can refer to our [detailed guide](docs/gnark_example.md)
 
 ### How to get the proof verified by AlignedLayer
 
