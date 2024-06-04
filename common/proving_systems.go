@@ -34,7 +34,7 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 	case "Halo2KZG":
 		return Halo2KZG, nil
 	case "Jolt":
-		return SP1, nil
+		return Jolt, nil
 	case "Halo2IPA":
 		return Halo2IPA, nil
 	}
