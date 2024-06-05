@@ -276,7 +276,7 @@ impl Batcher {
             batch_bytes = serde_json::to_vec(&batch_to_send).expect("Failed to serialize batch");
         }
 
-        info!("Finalizing batch. Size: {}", .len());
+        // info!("Finalizing batch. Size: {}", .len());
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
             .clone()
             .into_iter()
@@ -286,11 +286,11 @@ impl Batcher {
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
             MerkleTree::build(&batch_data_comm);
 
+        // update last uploaded batch block before submitting the batch because if it fails we need to update it anyway
+        *last_uploaded_batch_block = block_number;
+
         self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
             .await;
-
-        // update last uploaded batch block
-        *last_uploaded_batch_block = block_number;
 
         send_responses(finalized_batch, &batch_merkle_tree).await;
     }
@@ -327,7 +327,7 @@ impl Batcher {
     }
 }
 
-fn split_at_index()
+// fn split_at_index()
 
 async fn send_responses(
     finalized_batch: BatchQueue,
