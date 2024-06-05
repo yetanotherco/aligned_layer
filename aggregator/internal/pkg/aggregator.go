@@ -43,23 +43,23 @@ type Aggregator struct {
 	// Since our ID is not an idx, we build this cache
 	// Note: In case of a reboot, this doesn't need to be loaded,
 	// and can start from zero
-	batchesRootByIdx      map[uint32][32]byte
+	batchesRootByIdx map[uint32][32]byte
 
 	// This is the counterpart,
 	// to use when we have the batch but not the index
 	// Note: In case of a reboot, this doesn't need to be loaded,
 	// and can start from zero
-	batchesIdxByRoot      map[[32]byte]uint32
+	batchesIdxByRoot map[[32]byte]uint32
 
 	// This task index is to communicate with the local BLS
 	// Service.
 	// Note: In case of a reboot it can start from 0 again
-	nextBatchIndex      uint32
+	nextBatchIndex uint32
 
 	// Mutex to protect batchesRootByIdx, batchesIdxByRoot and nextBatchIndex
-	taskMutex 			*sync.Mutex
+	taskMutex *sync.Mutex
 
-	logger               logging.Logger
+	logger logging.Logger
 
 	metricsReg *prometheus.Registry
 	metrics    *metrics.Metrics
@@ -121,10 +121,10 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsWriter:        avsWriter,
 		NewBatchChan:     newBatchChan,
 
-		batchesRootByIdx:      batchesRootByIdx,
-		batchesIdxByRoot:      batchesIdxByRoot,
-		nextBatchIndex:      nextBatchIndex,
-		taskMutex: &sync.Mutex{},
+		batchesRootByIdx: batchesRootByIdx,
+		batchesIdxByRoot: batchesIdxByRoot,
+		nextBatchIndex:   nextBatchIndex,
+		taskMutex:        &sync.Mutex{},
 
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
@@ -197,7 +197,9 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	)
 
 	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
 	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
@@ -210,6 +212,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
 
 	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Adding new task")
 
 	batchIndex := agg.nextBatchIndex
 
@@ -217,6 +220,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	if _, ok := agg.batchesRootByIdx[batchIndex]; ok {
 		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
 		agg.taskMutex.Unlock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unocked Resources: Adding new task")
 		return
 	}
 
@@ -225,6 +229,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	if _, ok := agg.batchesIdxByRoot[batchMerkleRoot]; ok {
 		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
 		agg.taskMutex.Unlock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unocked Resources: Adding new task")
 		return
 	}
 
@@ -243,5 +248,6 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	agg.nextBatchIndex = agg.nextBatchIndex + 1
 
 	agg.taskMutex.Unlock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unocked Resources: Adding new task")
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", batchMerkleRoot)
 }

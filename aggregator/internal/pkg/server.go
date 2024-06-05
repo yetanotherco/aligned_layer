@@ -46,19 +46,23 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
 
-
 	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
 	taskIndex, ok := agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
 	if !ok {
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources")
 		agg.taskMutex.Unlock()
 		return fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
 	}
-	agg.taskMutex.Unlock()
 
 	err := agg.blsAggregationService.ProcessNewSignature(
 		context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
 		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 	)
+
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Task response processing finished")
+	agg.taskMutex.Unlock()
+
 	if err != nil {
 		agg.logger.Warnf("BLS aggregation service error: %s", err)
 		*reply = 1
