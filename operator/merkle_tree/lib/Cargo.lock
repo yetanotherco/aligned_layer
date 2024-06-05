@@ -3806,6 +3806,7 @@ checksum = "2145869435ace5ea6ea3d35f59be559317ec9a0d04e1812d5f185a87b6d36f1a"
 name = "merkle_tree"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives",
  "batcher",
  "bincode",
  "hex",

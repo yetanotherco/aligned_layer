@@ -41,7 +41,7 @@ mod tests {
     use std::io::Read;
 
     #[test]
-    fn test_verify_merkle_tree_batch_ffi() {
+    fn test_verify_batch_merkle_root_ffi_works() {
         let path = "./test_files/7a3d9215cfac21a4b0e94382e53a9f26bc23ed990f9c850a31ccf3a65aec1466.json";
 
         let mut file = File::open(path).unwrap();
@@ -58,7 +58,7 @@ mod tests {
     }
 
     #[test]
-    fn test_verify_merkle_tree_batch_ffi_bad_proof() {
+    fn test_verify_batch_merkle_root_ffi_bad_proof() {
         let path = "./test_files/7a3d9215cfac21a4b0e94382e53a9f26bc23ed990f9c850a31ccf3a65aec1466.json";
         let mut file = File::open(path).unwrap();
         let mut bytes_vec = Vec::new();
