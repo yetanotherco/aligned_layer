@@ -51,11 +51,11 @@ impl Batcher {
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
-        let eth_ws_provider = Provider::connect_with_reconnects(
-            &config.eth_ws_url, config.batcher.eth_ws_reconnects)
-            .await
-            .expect("Failed to get ethereum websocket provider");
-        
+        let eth_ws_provider =
+            Provider::connect_with_reconnects(&config.eth_ws_url, config.batcher.eth_ws_reconnects)
+                .await
+                .expect("Failed to get ethereum websocket provider");
+
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
@@ -232,7 +232,7 @@ impl Batcher {
                     break;
                 }
             }
-            let finalized_batch = batch_queue_lock.drain(..=finalized_batch_idx).collect();
+            let finalized_batch = batch_queue_lock.drain(..finalized_batch_idx).collect();
             return Some(finalized_batch);
         }
 
