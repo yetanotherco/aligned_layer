@@ -46,8 +46,8 @@
     <%= @verified_batches %>
   </.card>
   <.card title="Verified Proofs">
-    <%= if @amount_of_proofs do %>
-      <%= @amount_of_proofs %>+
+    <%= if @amount_of_proofs != :empty do %>
+      <%= @amount_of_proofs %>
     <% else %>
       0
     <% end %>

@@ -788,7 +788,7 @@ The DB will be available on `localhost:5432` and it will be ran on every `make r
 
 ### Running for local devnet
 
-To run the explorer for the local devnet (see local devnet setup), you'll need to have the devnet running and the DB setup.
+To run the explorer for the local devnet (see [local devnet setup](#local-devnet-setup)), you'll need to have the devnet running and the DB setup.
 
 To run the explorer, just run:
 
