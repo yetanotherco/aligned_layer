@@ -12,6 +12,7 @@ pub struct BatcherConfigFromYaml {
     pub batch_size_interval: usize,
     pub max_proof_size: usize,
     pub max_batch_size: usize,
+    pub eth_ws_reconnects: usize,
 }
 
 #[derive(Debug, Deserialize)]

@@ -51,10 +51,11 @@ impl Batcher {
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
-        let eth_ws_provider = Provider::connect(&config.eth_ws_url)
+        let eth_ws_provider = Provider::connect_with_reconnects(
+            &config.eth_ws_url, config.batcher.eth_ws_reconnects)
             .await
             .expect("Failed to get ethereum websocket provider");
-
+        
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
@@ -102,6 +103,7 @@ impl Batcher {
 
     pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), anyhow::Error> {
         let mut stream = self.eth_ws_provider.subscribe_blocks().await?;
+
         while let Some(block) = stream.next().await {
             let batcher = self.clone();
             let block_number = block.number.unwrap();
