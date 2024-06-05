@@ -19,7 +19,7 @@ func TestVerifyMerkleTreeBatch(t *testing.T) {
 		t.Fatalf("Error reading batch file: %v", err)
 	}
 
-	hexMerkleRootStr := "7a3d9215cfac21a4b0e94382e53a9f26bc23ed990f9c850a31ccf3a65aec1466"
+	hexMerkleRootStr := "66f2b058f5eaceff958a1feff5edf225be9a422c1121bc7ba4fceea2549fac02"
 
 	byteSliceFromMerkleRoot, err := hex.DecodeString(hexMerkleRootStr)
 	if err != nil {
