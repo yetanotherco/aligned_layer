@@ -12,13 +12,14 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-const maxRetries = 10
+const maxRetries = 25
+const sleepTime = 5 * time.Second
 
 func WaitForTransactionReceipt(client eth.Client, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
 	for i := 0; i < maxRetries; i++ {
 		receipt, err := client.TransactionReceipt(ctx, txHash)
 		if err != nil {
-			time.Sleep(2 * time.Second)
+			time.Sleep(sleepTime)
 		} else {
 			return receipt, nil
 		}

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use alloy_primitives::Address;
 use env_logger::Env;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
-use log::{info, warn};
+use log::{info};
 use tokio_tungstenite::connect_async;
 
 use batcher::types::{parse_proving_system, VerificationData};
@@ -49,6 +49,14 @@ struct Args {
         default_value = "1"
     )]
     repetitions: u32,
+
+    #[arg(
+        name = "Proof generator address",
+        long = "proof_generator_addr",
+        default_value = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+    )] // defaults to anvil address 1
+    proof_generator_addr: String,
+
 }
 
 #[tokio::main]
@@ -74,26 +82,24 @@ async fn main() {
     if let Ok(data) = std::fs::read(args.pub_input_file_name) {
         pub_input = Some(data);
     } else {
-        warn!("No public input file provided, continuing without public input...");
+        info!("No public input file provided, continuing without public input...");
     }
 
     let mut verification_key: Option<Vec<u8>> = None;
     if let Ok(data) = std::fs::read(args.verification_key_file_name) {
         verification_key = Some(data);
     } else {
-        warn!("No verification key file provided, continuing without verification key...");
+        info!("No verification key file provided, continuing without verification key...");
     }
 
     let mut vm_program_code: Option<Vec<u8>> = None;
     if let Ok(data) = std::fs::read(args.vm_program_code_file_name) {
         vm_program_code = Some(data);
     } else {
-        warn!("No VM program code file provided, continuing without VM program code...");
+        info!("No VM program code file provided, continuing without VM program code...");
     }
 
-    // FIXME(marian): Dummy address for testing, this should be get by parameter
-    let addr_str = "0x66f9664f97F2b50F62D13eA064982f936dE76657";
-    let proof_generator_addr: Address = Address::parse_checksummed(addr_str, None).unwrap();
+    let proof_generator_addr: Address = Address::parse_checksummed(&args.proof_generator_addr, None).unwrap();
 
     let verification_data = VerificationData {
         proving_system,

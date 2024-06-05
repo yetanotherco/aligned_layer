@@ -50,24 +50,23 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		return fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
 	}
 
-	// TODO: Check if the task response is valid
-	agg.taskResponsesMutex.Lock()
+	agg.batchesResponseMutex.Lock()
 	taskResponses := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]
 	taskResponses.taskResponses = append(
 		agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot].taskResponses,
 		*signedTaskResponse)
-	agg.taskResponsesMutex.Unlock()
+	agg.batchesResponseMutex.Unlock()
 
-	agg.taskCounterMutex.Lock()
-	taskIndex := agg.taskCounter
-	agg.taskCounterMutex.Unlock()
+	agg.batchesIdxByRootMutex.Lock()
+	taskIndex := agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
+	agg.batchesIdxByRootMutex.Unlock()
 
 	err := agg.blsAggregationService.ProcessNewSignature(
 		context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
 		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 	)
 	if err != nil {
-		agg.logger.Errorf("BLS aggregation service error: %s", err)
+		agg.logger.Warnf("BLS aggregation service error: %s", err)
 		*reply = 1
 		return err
 	}

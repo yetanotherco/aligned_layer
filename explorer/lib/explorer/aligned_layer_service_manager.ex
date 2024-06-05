@@ -5,144 +5,153 @@ defmodule AlignedLayerServiceManager do
     "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
 
   {status, config_json_string} = File.read(file_path)
+
   case status do
     :ok -> Logger.debug("File read successfully")
-    :error -> raise("Config file not read successfully, did you run make create-env ?")
+    :error -> raise("Config file not read successfully, did you run make create-env ?\nIf you did, make sure eigenlayer config file is correctly stored")
   end
+
+  @aligned_layer_service_manager_address Jason.decode!(config_json_string)
+                                         |> Map.get("addresses")
+                                         |> Map.get("alignedLayerServiceManager")
 
   use Ethers.Contract,
-  abi_file: "lib/abi/AlignedLayerServiceManager.json",
-  default_address: Jason.decode!(config_json_string) |> Map.get("addresses") |> Map.get("alignedLayerServiceManager")
+    abi_file: "lib/abi/AlignedLayerServiceManager.json",
+    default_address: @aligned_layer_service_manager_address
 
   def get_aligned_layer_service_manager_address() do
-    file_path =
-      "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
-
-    {status, config_json_string} = File.read(file_path)
-    case status do
-      :ok -> Logger.debug("File read successfully")
-      :error -> raise("Config file not read successfully, did you run make create-env ?")
-    end
-
-    Jason.decode!(config_json_string)
-      |> Map.get("addresses")
-      |> Map.get("alignedLayerServiceManager")
+    @aligned_layer_service_manager_address
   end
 
-  def get_task_created_event(task_id) do
-    if not is_integer(task_id) do
-      {:empty, "task_id must be an integer"}
-    end
-
+  def get_new_batch_events() do
     events =
-      AlignedLayerServiceManager.EventFilters.new_task_created(task_id)
-      |> Ethers.get_logs(fromBlock: 0)
+      AlignedLayerServiceManager.EventFilters.new_batch(nil)
+      |> Ethers.get_logs(fromBlock: 1600000)
+
+    case events do
+      {:ok, []} -> []
+      {:ok, list} -> list
+      {:error, _} -> raise("Error fetching events")
+    end
+  end
+
+  def get_new_batch_events(merkle_root) when is_binary(merkle_root) do
+    events =
+      AlignedLayerServiceManager.EventFilters.new_batch(Utils.string_to_bytes32(merkle_root))
+      |> Ethers.get_logs(fromBlock: 1600000)
 
     case events do
       {:error, reason} -> {:empty, reason}
       {_, []} -> {:empty, "No task found"}
-      {:ok, event} -> extract_events_info(event |> List.first())
+      {:ok, event} -> extract_new_batch_event_info(event |> List.first())
     end
   end
 
-  defp extract_events_info(event) do
-    data = event |> Map.get(:data) |> List.first()
+  def get_new_batch_events(amount) when is_integer(amount) do
 
-    da_payload = %Explorer.DAPayload{
-      solution: data |> elem(1) |> elem(0), #int
-      proof_associated_data: data |> elem(1) |> elem(1), #bytes
-      index: data |> elem(1) |> elem(2) #uint64
-    }
+    events =
+      AlignedLayerServiceManager.EventFilters.new_batch(nil)
+      |> Ethers.get_logs(fromBlock: get_latest_block_number(-1000), toBlock: get_latest_block_number())
 
-    <<quorum_number::8>> = data |> elem(5)
-    <<quorumThresholdPercentages::8>> = data |> elem(6)
-    task = %Explorer.AlignedTask{
-      provingSystemId: data |> elem(0), #int
-      da_payload: da_payload, #%DAPayload{},
-      pubInput: data |> elem(2), #int
-      verificationKey: data |> elem(3), #bytes
-      taskCreatedBlock: data |> elem(4), #uint32
-      quorumNumbers: quorum_number, #bytes
-      quorumThresholdPercentages: quorumThresholdPercentages, #bytes
-      fee: data |> elem(7) #uint256
+    case events do
+      {:ok, list} -> Utils.get_last_n_items(list, amount)
+      {:error, _} -> raise("Error fetching events")
+    end
+
+  end
+
+  def get_latest_block_number() do
+    {:ok, num} = Ethers.current_block_number()
+    num
+  end
+
+  def get_latest_block_number(less) when is_integer(less) do
+    {:ok, num} = Ethers.current_block_number()
+    case num - abs(less) do #this allows passing negative number as param, which makes it easier to code
+      r when r > 0 -> r
+      r when r <= 0 -> 1
+      _ -> raise("Error fetching latest block number")
+    end
+  end
+
+  def extract_new_batch_event_info(event) do
+    data = event |> Map.get(:data)
+    topics_raw = event |> Map.get(:topics_raw)
+
+    new_batch = %NewBatchEvent{
+      batchMerkleRoot: topics_raw |> Enum.at(1),
+      taskCreatedBlock: data |> Enum.at(0),
+      batchDataPointer: data |> Enum.at(1)
     }
 
     {:ok,
-      %AlignedTaskCreatedInfo{
-        address: event |> Map.get(:address),
-        block_hash: event |> Map.get(:block_hash),
-        block_number: event |> Map.get(:block_number),
-        taskId: event |> Map.get(:topics) |> Enum.at(1),
-        transaction_hash: event |> Map.get(:transaction_hash),
-        aligned_task: task
-      }}
+     %NewBatchInfo{
+       address: event |> Map.get(:address),
+       block_hash: event |> Map.get(:block_hash),
+       block_number: event |> Map.get(:block_number),
+       transaction_hash: event |> Map.get(:transaction_hash),
+       new_batch: new_batch
+     }}
   end
 
-  def get_task_responded_event(task_id) do
+  def get_batch_verified_events() do
     events =
-      AlignedLayerServiceManager.EventFilters.task_responded(task_id)
-      |> Ethers.get_logs(fromBlock: 0)
+      AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 1600000)
 
-    # extract relevant info from RPC response
-    if not (events |> elem(1) |> Enum.empty?()) do
-      first_event = events |> elem(1) |> List.first()
-      address = first_event |> Map.get(:address)
-      block_hash = first_event |> Map.get(:block_hash)
-      block_number = first_event |> Map.get(:block_number)
-      transaction_hash = first_event |> Map.get(:transaction_hash)
-
-      {taskIndex, proofIsCorrect} = first_event |> Map.get(:data) |> List.first()
-
-      {:ok,
-       %AlignedTaskRespondedInfo{
-         address: address,
-         block_hash: block_hash,
-         block_number: block_number,
-         taskId: taskIndex,
-         transaction_hash: transaction_hash,
-         proofIsCorrect: proofIsCorrect
-       }}
-    else
-      Logger.debug("No task response found")
-      {:empty, "No task response found"}
+    case events do
+      {:ok, list} -> {:ok, list}
+      {:error, data} -> raise("Error fetching responded events #{data}")
     end
   end
 
-  def get_latest_task_index() do
-    {status, data} =
-      AlignedLayerServiceManager.latest_task_index_plus_one() |> Ethers.call()
+  def get_batch_verified_events(merkle_root) do
+    events =
+      AlignedLayerServiceManager.EventFilters.batch_verified(merkle_root)
+      |> Ethers.get_logs(fromBlock: 1600000)
 
-    case status do
-      :ok -> data
-      :error -> raise("Error fetching latest task index: #{data}")
+    case events do
+      {:error, reason} -> {:empty, reason}
+      {_, []} -> {:empty, "No task found"}
+      {:ok, event} -> extract_batch_verified_event_info(event |> List.first())
     end
   end
 
-  def get_tx_hash(id) do
-    AlignedLayerServiceManager.task_hashes(id)
-    |> Ethers.call()
-    |> (fn {x, y} when x == :ok -> y end).()
-    |> Base.encode16()
-    |> String.downcase()
-    |> (fn x -> "0x" <> x end).()
+  defp extract_batch_verified_event_info(event) do
+    data = event |> Map.get(:data) |> List.first()
+
+    batch_verified = %BatchVerifiedEvent{
+      batchMerkleRoot: data |> elem(0)
+    }
+
+    {:ok,
+     %BatchVerifiedInfo{
+       address: event |> Map.get(:address),
+       block_hash: event |> Map.get(:block_hash),
+       block_number: event |> Map.get(:block_number),
+       transaction_hash: event |> Map.get(:transaction_hash),
+       batch_verified: batch_verified
+     }}
   end
 
-  def get_task_response(id) do
-    {status, task_responses} = AlignedLayerServiceManager.task_responses(id) |> Ethers.call()
-
-    status |> IO.inspect()
-    task_responses |> IO.inspect()
-
-
-    case status do
-      :ok -> Logger.debug("task_responses #{task_responses}")
-      :error -> raise("Error fetching task_responses")
+  def is_batch_responded(merkle_root) do
+    case AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root))
+         |> Ethers.call() do
+      {:ok, [_, true]} -> true
+      _ -> false
     end
-
-    task_responses
   end
 
-  def get_task_responded_events() do
-      AlignedLayerServiceManager.EventFilters.task_responded(nil) |> Ethers.get_logs(fromBlock: 0)
+  def cross_event_with_response({_status, new_batch_info}) do
+    new_batch = new_batch_info.new_batch
+    %BatchPageItem{
+      batch_merkle_root: new_batch.batchMerkleRoot,
+      task_created_block_number: new_batch.taskCreatedBlock,
+      task_created_tx_hash: new_batch.batchDataPointer,
+      task_responded_block_number: nil,
+      task_responded_tx_hash: nil,
+      batch_data_pointer: new_batch.batchDataPointer,
+      responded: is_batch_responded(new_batch.batchMerkleRoot)
+    }
   end
+
 end

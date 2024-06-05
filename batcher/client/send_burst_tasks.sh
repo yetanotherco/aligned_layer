@@ -1,7 +1,8 @@
 #!/bin/bash
 
 counter=1
-burst=5
+burst=8
+
 if [ -z "$1" ]; then
     echo "Using default burst value: 10"
 elif ! [[ "$1" =~ ^[0-9]+$ ]]; then
