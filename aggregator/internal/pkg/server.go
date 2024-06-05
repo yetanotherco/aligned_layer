@@ -47,7 +47,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
 
 
-	agg.taskMutex.Lock() // TODO: I dont think this lock is necessary
+	agg.taskMutex.Lock()
 	taskIndex, ok := agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
 	if !ok {
 		agg.taskMutex.Unlock()

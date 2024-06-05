@@ -44,7 +44,6 @@ type Aggregator struct {
 	// Note: In case of a reboot, this doesn't need to be loaded,
 	// and can start from zero
 	batchesRootByIdx      map[uint32][32]byte
-	//batchesRootByIdxMutex *sync.Mutex
 
 	// This is the counterpart,
 	// to use when we have the batch but not the index
@@ -57,7 +56,9 @@ type Aggregator struct {
 	// Note: In case of a reboot it can start from 0 again
 	nextBatchIndex      uint32
 
+	// Mutex to protect batchesRootByIdx, batchesIdxByRoot and nextBatchIndex
 	taskMutex 			*sync.Mutex
+
 	logger               logging.Logger
 
 	metricsReg *prometheus.Registry
@@ -195,7 +196,7 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 		"taskIndex", blsAggServiceResp.TaskIndex,
 	)
 
-	agg.taskMutex.Lock() // TODO: Might not be necessary
+	agg.taskMutex.Lock()
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
 	agg.taskMutex.Unlock()
 
@@ -241,6 +242,6 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	// --- INCREASE BATCH INDEX ---
 	agg.nextBatchIndex = agg.nextBatchIndex + 1
 
-	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", batchMerkleRoot)
 	agg.taskMutex.Unlock()
+	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", batchMerkleRoot)
 }
