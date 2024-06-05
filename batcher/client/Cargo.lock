@@ -89,7 +89,7 @@ dependencies = [
  "derive_more",
  "hex-literal",
  "itoa",
- "k256",
+ "k256 0.13.3",
  "keccak-asm",
  "proptest",
  "rand",
@@ -941,6 +941,7 @@ dependencies = [
  "dotenv",
  "env_logger",
  "ethers",
+ "ethers_primitives",
  "ff 0.13.0",
  "futures-channel",
  "futures-util",
@@ -1341,7 +1342,7 @@ dependencies = [
  "coins-core",
  "digest 0.10.7",
  "hmac",
- "k256",
+ "k256 0.13.3",
  "serde",
  "sha2",
  "thiserror",
@@ -1388,6 +1389,16 @@ name = "colorchoice"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b6a852b24ab71dffc585bcb46eaf7959d175cb865a7152e35b348d1b2960422"
+
+[[package]]
+name = "concat-idents"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f76990911f2267d837d9d0ad060aa63aaad170af40904b29461734c339030d4d"
+dependencies = [
+ "quote",
+ "syn 2.0.66",
+]
 
 [[package]]
 name = "console"
@@ -1773,6 +1784,18 @@ dependencies = [
 
 [[package]]
 name = "ecdsa"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12844141594ad74185a926d030f3b605f6a903b4e3fec351f3ea338ac5b7637e"
+dependencies = [
+ "der 0.6.1",
+ "elliptic-curve 0.12.3",
+ "rfc6979 0.3.1",
+ "signature 2.0.0",
+]
+
+[[package]]
+name = "ecdsa"
 version = "0.16.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee27f32b5c5292967d2d4a9d7f1e0b0aed2c15daded5a60300e4abb9d8020bca"
@@ -1781,7 +1804,7 @@ dependencies = [
  "digest 0.10.7",
  "elliptic-curve 0.13.8",
  "rfc6979 0.4.0",
- "signature 2.2.0",
+ "signature 2.0.0",
  "spki 0.7.3",
 ]
 
@@ -1869,7 +1892,7 @@ dependencies = [
  "base64 0.21.7",
  "bytes",
  "hex",
- "k256",
+ "k256 0.13.3",
  "log",
  "rand",
  "rlp",
@@ -2088,7 +2111,7 @@ dependencies = [
  "elliptic-curve 0.13.8",
  "ethabi",
  "generic-array 0.14.7",
- "k256",
+ "k256 0.13.3",
  "num_enum 0.7.2",
  "once_cell",
  "open-fastrlp",
@@ -2234,6 +2257,25 @@ dependencies = [
  "tracing",
  "walkdir",
  "yansi",
+]
+
+[[package]]
+name = "ethers_primitives"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b09f911b310407d93be5468422f310df8a7f8d4ad3b3c6c13514f12ce6b5fb32"
+dependencies = [
+ "anyhow",
+ "concat-idents",
+ "hex",
+ "k256 0.12.0",
+ "log",
+ "num",
+ "serde",
+ "serde_ethabi",
+ "serde_ethrlp",
+ "sha3 0.10.8",
+ "thiserror",
 ]
 
 [[package]]
@@ -3235,6 +3277,20 @@ dependencies = [
 
 [[package]]
 name = "k256"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92a55e0ff3b72c262bcf041d9e97f1b84492b68f1c1a384de2323d3dc9403397"
+dependencies = [
+ "cfg-if",
+ "ecdsa 0.15.1",
+ "elliptic-curve 0.12.3",
+ "once_cell",
+ "sha2",
+ "signature 2.0.0",
+]
+
+[[package]]
+name = "k256"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "956ff9b67e26e1a6a866cb758f12c6f8746208489e3e4a4b5580802f2f0a587b"
@@ -3244,7 +3300,7 @@ dependencies = [
  "elliptic-curve 0.13.8",
  "once_cell",
  "sha2",
- "signature 2.2.0",
+ "signature 2.0.0",
 ]
 
 [[package]]
@@ -3571,6 +3627,7 @@ checksum = "c165a9ab64cf766f73521c0dd2cfdff64f488b8f0b3e621face3462d3db536d7"
 dependencies = [
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -3580,6 +3637,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -3617,6 +3675,7 @@ dependencies = [
  "num-bigint 0.4.5",
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -5266,6 +5325,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_ethabi"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2796fdb42db1cf045772e41179fa65d22a9d5c0e6737822313bcd6c4d259019"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "log",
+ "regex",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "serde_ethrlp"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "127a5e93c14d5ddcf90698301a6c3d0dc655bd3baf00031080be0edbb773c0f8"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "log",
+ "regex",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "serde_json"
 version = "1.0.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5465,9 +5552,9 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "2.2.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
+checksum = "8fe458c98333f9c8152221191a77e2a44e8325d0193484af2e9421a53019e57d"
 dependencies = [
  "digest 0.10.7",
  "rand_core",
@@ -5549,7 +5636,7 @@ dependencies = [
 [[package]]
 name = "sp1-core"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "anyhow",
  "arrayref",
@@ -5562,7 +5649,7 @@ dependencies = [
  "generic-array 1.0.0",
  "hex",
  "itertools 0.12.1",
- "k256",
+ "k256 0.13.3",
  "log",
  "nohash-hasher",
  "num",
@@ -5607,7 +5694,7 @@ dependencies = [
 [[package]]
 name = "sp1-derive"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5617,7 +5704,7 @@ dependencies = [
 [[package]]
 name = "sp1-primitives"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "itertools 0.12.1",
  "lazy_static",
@@ -5630,7 +5717,7 @@ dependencies = [
 [[package]]
 name = "sp1-prover"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "anyhow",
  "backtrace",
@@ -5672,7 +5759,7 @@ dependencies = [
 [[package]]
 name = "sp1-recursion-circuit"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "bincode",
  "itertools 0.12.1",
@@ -5695,7 +5782,7 @@ dependencies = [
 [[package]]
 name = "sp1-recursion-compiler"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "backtrace",
  "itertools 0.12.1",
@@ -5719,7 +5806,7 @@ dependencies = [
 [[package]]
 name = "sp1-recursion-core"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "arrayref",
  "backtrace",
@@ -5752,7 +5839,7 @@ dependencies = [
 [[package]]
 name = "sp1-recursion-derive"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5762,7 +5849,7 @@ dependencies = [
 [[package]]
 name = "sp1-recursion-gnark-ffi"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "bindgen",
  "cc",
@@ -5781,7 +5868,7 @@ dependencies = [
 [[package]]
 name = "sp1-recursion-program"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
  "itertools 0.12.1",
  "p3-air",
@@ -5808,9 +5895,8 @@ dependencies = [
 [[package]]
 name = "sp1-sdk"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.4-testnet#2ce75c6e01ab1de0969f60f917dc015fa2e1b843"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.5-testnet#19ef89a4b8a509b7d765c46ff6e0a1c9a8fcbfb4"
 dependencies = [
- "alloy-primitives",
  "alloy-sol-types",
  "anyhow",
  "async-trait",
@@ -5835,6 +5921,8 @@ dependencies = [
  "sha2",
  "sp1-core",
  "sp1-prover",
+ "strum",
+ "strum_macros",
  "tempfile",
  "tokio",
  "tracing",

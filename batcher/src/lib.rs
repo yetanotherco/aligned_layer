@@ -52,9 +52,10 @@ impl Batcher {
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
-        let eth_ws_provider = Provider::connect(&config.eth_ws_url)
-            .await
-            .expect("Failed to get ethereum websocket provider");
+        let eth_ws_provider =
+            Provider::connect_with_reconnects(&config.eth_ws_url, config.batcher.eth_ws_reconnects)
+                .await
+                .expect("Failed to get ethereum websocket provider");
 
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
@@ -103,6 +104,7 @@ impl Batcher {
 
     pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), anyhow::Error> {
         let mut stream = self.eth_ws_provider.subscribe_blocks().await?;
+
         while let Some(block) = stream.next().await {
             let batcher = self.clone();
             let block_number = block.number.unwrap();
@@ -165,7 +167,7 @@ impl Batcher {
         Ok(())
     }
 
-    /// Adds verification data to the current batch.
+    /// Adds verification data to the current batch queue.
     async fn add_to_batch(
         self: Arc<Self>,
         verification_data: VerificationData,
@@ -191,7 +193,6 @@ impl Batcher {
     /// `finalize_batch` function.
     async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
         let mut batch_queue_lock = self.batch_queue.lock().await;
-
         let current_batch_len = batch_queue_lock.len();
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
@@ -232,7 +233,7 @@ impl Batcher {
                     break;
                 }
             }
-            let finalized_batch = batch_queue_lock.drain(..=finalized_batch_idx).collect();
+            let finalized_batch = batch_queue_lock.drain(..finalized_batch_idx).collect();
             return Some(finalized_batch);
         }
 
@@ -248,7 +249,6 @@ impl Batcher {
     /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(&self, block_number: u64, finalized_batch: BatchQueue) {
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
-
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
             .into_iter()
@@ -321,7 +321,6 @@ impl Batcher {
 
         info!("Uploading batch to contract");
         let service_manager = &self.service_manager;
-
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
         match eth::create_new_task(service_manager, *batch_merkle_root, batch_data_pointer).await {
             Ok(_) => info!("Batch verification task created on Aligned contract"),
