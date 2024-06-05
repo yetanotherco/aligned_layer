@@ -20,16 +20,6 @@ config :explorer, ExplorerWeb.Endpoint,
   ]
 
 
-# TODO config .env
-# Configure database
-config :explorer, Explorer.Repo,
-    database: System.get_env("DB_NAME", "explorer_db"),
-    username: System.get_env("DB_USER", "explorer_user"),
-    password: System.get_env("DB_PASS", "explorer_pass"),
-    hostname: System.get_env("DB_HOST", "localhost"),
-    port: 5432
-
-
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
