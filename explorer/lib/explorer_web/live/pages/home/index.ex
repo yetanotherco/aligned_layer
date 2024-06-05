@@ -39,6 +39,24 @@ defmodule ExplorerWeb.Home.Index do
        amount_of_proofs: amount_of_proofs,
        page_title: "Welcome"
      )}
+    rescue
+      e in Mint.TransportError ->
+        case e do
+          %Mint.TransportError{reason: :econnrefused} ->
+            {
+              :ok,
+              assign(socket,
+                verified_batches: :empty,
+                operators_registered: :empty,
+                latest_batches: :empty,
+                amount_of_proofs: :empty,
+                page_title: "Error connection refused, couldn't connect to RPC"
+              )
+            }
+          _ ->
+            IO.puts("Other transport error: #{inspect(e)}")
+        end
+      e -> raise e
   end
 
   defp get_verified_batches_count() do
@@ -46,7 +64,7 @@ defmodule ExplorerWeb.Home.Index do
     |> (fn
           {:ok, nil} -> 0
           {:ok, list} -> Enum.count(list)
-          {:error, _} -> 0
+          {:error, error} -> raise error
         end).()
   end
 

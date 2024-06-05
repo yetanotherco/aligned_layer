@@ -114,7 +114,7 @@ defmodule AlignedLayerServiceManager do
 
     case events do
       {:ok, list} -> {:ok, list}
-      {:error, data} -> raise("Error fetching responded events #{data}")
+      {:error, error} -> raise error
     end
   end
 
