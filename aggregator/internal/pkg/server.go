@@ -66,7 +66,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 	)
 	if err != nil {
-		agg.logger.Errorf("BLS aggregation service error: %s", err)
+		agg.logger.Warnf("BLS aggregation service error: %s", err)
 		*reply = 1
 		return err
 	}
