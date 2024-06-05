@@ -68,10 +68,11 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_new_batch_events(%{amount: amount}) when is_integer(amount) do
+    read_block_qty = max(amount * 10, 1000)
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
       # TODO check this -10k, analyze best way to pass this param
-      |> Ethers.get_logs(fromBlock: get_latest_block_number(-10000), toBlock: get_latest_block_number())
+      |> Ethers.get_logs(fromBlock: get_latest_block_number(read_block_qty), toBlock: get_latest_block_number())
 
     case events do
       {:ok, list} -> Utils.get_last_n_items(list, amount)
