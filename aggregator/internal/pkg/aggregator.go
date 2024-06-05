@@ -47,24 +47,26 @@ type Aggregator struct {
 	// Note: In case of a reboot, this doesn't need to be loaded,
 	// and can start from zero
 	batchesRootByIdx      map[uint32][32]byte
-	batchesRootByIdxMutex *sync.Mutex
+	//batchesRootByIdxMutex *sync.Mutex
 
 	// This is the counterpart,
 	// to use when we have the batch but not the index
 	// Note: In case of a reboot, this doesn't need to be loaded,
 	// and can start from zero
 	batchesIdxByRoot      map[[32]byte]uint32
-	batchesIdxByRootMutex *sync.Mutex
+	//batchesIdxByRootMutex *sync.Mutex
 
 	// This task index is to communicate with the local BLS
 	// Service.
 	// Note: In case of a reboot it can start from 0 again
 	nextBatchIndex      uint32
-	nextBatchIndexMutex *sync.Mutex
+	//nextBatchIndexMutex *sync.Mutex
 
 	OperatorTaskResponses map[[32]byte]*TaskResponsesWithStatus
 	// Mutex to protect the taskResponses map
-	batchesResponseMutex *sync.Mutex
+	//batchesResponseMutex *sync.Mutex
+
+	taskMutex 			*sync.Mutex
 	logger               logging.Logger
 
 	metricsReg *prometheus.Registry
@@ -130,16 +132,11 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		NewBatchChan:     newBatchChan,
 
 		batchesRootByIdx:      batchesRootByIdx,
-		batchesRootByIdxMutex: &sync.Mutex{},
-
 		batchesIdxByRoot:      batchesIdxByRoot,
-		batchesIdxByRootMutex: &sync.Mutex{},
-
 		nextBatchIndex:      nextBatchIndex,
-		nextBatchIndexMutex: &sync.Mutex{},
-
 		OperatorTaskResponses: operatorTaskResponses,
-		batchesResponseMutex:  &sync.Mutex{},
+		taskMutex: &sync.Mutex{},
+
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
 		metricsReg:            reg,
@@ -210,9 +207,9 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 		"taskIndex", blsAggServiceResp.TaskIndex,
 	)
 
-	agg.batchesRootByIdxMutex.Lock()
+	agg.taskMutex.Lock() // TODO: Might not be necessary
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
-	agg.batchesRootByIdxMutex.Unlock()
+	agg.taskMutex.Unlock()
 
 	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
@@ -223,53 +220,45 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
 
-	agg.nextBatchIndexMutex.Lock()
+	agg.taskMutex.Lock()
+
 	batchIndex := agg.nextBatchIndex
-	agg.nextBatchIndexMutex.Unlock()
 
 	// --- UPDATE BATCH - INDEX CACHES ---
-
-	agg.batchesRootByIdxMutex.Lock()
 	if _, ok := agg.batchesRootByIdx[batchIndex]; ok {
 		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
-		agg.batchesRootByIdxMutex.Unlock()
+		agg.taskMutex.Unlock()
 		return
 	}
-	agg.batchesRootByIdx[batchIndex] = batchMerkleRoot
-	agg.batchesRootByIdxMutex.Unlock()
 
-	agg.batchesIdxByRootMutex.Lock()
+	agg.batchesRootByIdx[batchIndex] = batchMerkleRoot
 	// This shouldn't happen, since both maps are updated together
 	if _, ok := agg.batchesIdxByRoot[batchMerkleRoot]; ok {
 		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
-		agg.batchesRootByIdxMutex.Unlock()
+		agg.taskMutex.Unlock()
 		return
 	}
+
 	agg.batchesIdxByRoot[batchMerkleRoot] = batchIndex
-	agg.batchesIdxByRootMutex.Unlock()
 
 	// --- UPDATE TASK RESPONSES ---
-
-	agg.batchesResponseMutex.Lock()
 	agg.OperatorTaskResponses[batchMerkleRoot] = &TaskResponsesWithStatus{
 		taskResponses:       make([]types.SignedTaskResponse, 0),
 		submittedToEthereum: false,
 	}
-	agg.batchesResponseMutex.Unlock()
 
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
 	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
-
-	// --- INCREASE BATCH INDEX ---
-
-	agg.nextBatchIndexMutex.Lock()
-	agg.nextBatchIndex = agg.nextBatchIndex + 1
-	agg.nextBatchIndexMutex.Unlock()
-
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}
+
+	// --- INCREASE BATCH INDEX ---
+	agg.nextBatchIndex = agg.nextBatchIndex + 1
+
+	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", batchMerkleRoot)
+	agg.taskMutex.Unlock()
 }
