@@ -1,6 +1,7 @@
 defmodule Batches do
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
 
   @primary_key {:merkle_root, :string, autogenerate: false}
   schema "batches" do
@@ -27,5 +28,23 @@ defmodule Batches do
       amount_of_proofs: batch_db.amount_of_proofs,
       is_verified: batch_db.is_verified
     }
+  end
+
+  def get_amount_of_submitted_proofs() do
+    case Explorer.Repo.aggregate(Batches, :sum, :amount_of_proofs) do
+      nil -> 0
+      result -> result
+    end
+  end
+
+  def get_amount_of_verified_proofs() do
+    query = from(b in Batches,
+      where: b.is_verified == true,
+      select: sum(b.amount_of_proofs))
+
+    case Explorer.Repo.one(query) do
+      nil -> 0
+      result -> result
+    end
   end
 end

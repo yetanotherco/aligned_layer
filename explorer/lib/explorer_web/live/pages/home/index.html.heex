@@ -45,9 +45,16 @@
   <.card title="verified batches">
     <%= @verified_batches %>
   </.card>
+  <.card title="Submitted Proofs">
+    <%= if @submitted_proofs != :empty do %>
+      <%= @submitted_proofs %>
+    <% else %>
+      0
+    <% end %>
+  </.card>
   <.card title="Verified Proofs">
-    <%= if @amount_of_proofs != :empty do %>
-      <%= @amount_of_proofs %>
+    <%= if @verified_proofs != :empty do %>
+      <%= @verified_proofs %>
     <% else %>
       0
     <% end %>
