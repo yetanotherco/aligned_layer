@@ -2,11 +2,8 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use batcher::types::{VerificationCommitmentBatch, VerificationData};
 use hex;
 use serde_json;
-use std::fs::File;
-use std::io::Read;
 
 const MAX_BATCH_SIZE: usize = 2 * 1024 * 1024 * 10;
-// verify batch merkle root
 
 #[no_mangle]
 pub extern "C" fn verify_batch_merkle_root_ffi(
@@ -19,16 +16,10 @@ pub extern "C" fn verify_batch_merkle_root_ffi(
             let batch_commitment = VerificationCommitmentBatch::from(&batch);
             let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> = MerkleTree::build(&batch_commitment.0);
             let batch_merkle_root = hex::encode(batch_merkle_tree.root); 
-
             let received_merkle_root = hex::encode(merkle_root);
-            
-            println!("Calculated Merkle Root: {}", batch_merkle_root);
-            println!("Received Merkle Root: {}", received_merkle_root);
-
             batch_merkle_root == received_merkle_root
         },
-        Err(e) => {
-            eprintln!("Failed to parse batch data: {}", e);
+        Err(_e) => {
             false
         }
     }
