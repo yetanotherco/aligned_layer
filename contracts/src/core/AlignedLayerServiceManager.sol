@@ -10,11 +10,11 @@ import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCo
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 
 /**
- * @title Primary entrypoint for procuring services from AlignedLayer.
+ * @title Primary entrypoint for procuring services from Aligned.
  * @author Layr Labs, Inc.
  * @notice This contract is used for:
- * - confirming the data store by the disperser with inferred aggregated signatures of the quorum
- * - freezing operators as the result of various "challenges"
+ * -
+ * -
  */
 contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;
@@ -131,4 +131,13 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
         emit BatchVerified(batchMerkleRoot);
     }
+
+    function verifyBatchInclusion(
+        bytes32 batchMerkleRoot,
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
+        bytes batchInclusionProof
+    ) external payable returns (bool) {}
 }

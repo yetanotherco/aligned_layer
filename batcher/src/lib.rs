@@ -77,6 +77,9 @@ impl Batcher {
         .await
         .expect("Failed to get Aligned service manager contract");
 
+        let bs = service_manager.batches_state([0u8; 32]);
+        println!("{}", bs.await);
+
         Self {
             s3_client,
             eth_ws_provider,
