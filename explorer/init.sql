@@ -4,3 +4,6 @@ CREATE TABLE batches (
     is_verified BOOLEAN NOT NULL
 );
 
+/*
+    TODO add timestamp
+*/

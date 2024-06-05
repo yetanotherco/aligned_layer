@@ -13,14 +13,13 @@ defmodule Explorer.Periodically do
   def handle_info({:work, last_read_block}, state) do
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     try do
-      batches =
-        AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: last_read_block, toBlock: latest_block_number}) |>
-        Enum.map(&AlignedLayerServiceManager.find_if_batch_was_responded/1) |>
-        Enum.map(fn batch -> Utils.extract_batch_data_pointer_info(batch) end) |>
-        Enum.map(&Batches.cast_to_batches/1) |>
-        Enum.map(&Map.from_struct/1) |>
-        Enum.map(fn batch -> Ecto.Changeset.cast(%Batches{}, batch, [:merkle_root, :amount_of_proofs, :is_verified]) end) |>
-        Enum.map(fn changeset -> Explorer.Repo.insert(changeset) end)
+      AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: last_read_block, toBlock: latest_block_number}) |>
+      Enum.map(&AlignedLayerServiceManager.find_if_batch_was_responded/1) |>
+      Enum.map(fn batch -> Utils.extract_batch_data_pointer_info(batch) end) |>
+      Enum.map(&Batches.cast_to_batches/1) |>
+      Enum.map(&Map.from_struct/1) |>
+      Enum.map(fn batch -> Ecto.Changeset.cast(%Batches{}, batch, [:merkle_root, :amount_of_proofs, :is_verified]) end) |>
+      Enum.map(fn changeset -> Explorer.Repo.insert(changeset) end)
     rescue
       error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
     end

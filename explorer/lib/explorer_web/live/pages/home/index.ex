@@ -29,16 +29,19 @@ defmodule ExplorerWeb.Home.Index do
       |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
       |> Enum.reverse()
 
-    amount_of_proofs = Explorer.Repo.aggregate(Batches, :sum, :amount_of_proofs)
+    submitted_proofs = Batches.get_amount_of_submitted_proofs()
+    verified_proofs = Batches.get_amount_of_verified_proofs()
 
     {:ok,
      assign(socket,
        verified_batches: verified_batches,
        operators_registered: operators_registered,
        latest_batches: latest_batches,
-       amount_of_proofs: amount_of_proofs,
+       submitted_proofs: submitted_proofs,
+       verified_proofs: verified_proofs,
        page_title: "Welcome"
-     )}
+     )
+    }
     rescue
       e in Mint.TransportError ->
         case e do
