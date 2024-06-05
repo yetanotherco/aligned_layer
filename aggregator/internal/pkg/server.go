@@ -46,16 +46,12 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
 
-	if _, ok := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]; !ok {
+	if _, ok := agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]; !ok {
 		return fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
 	}
 
 	agg.taskMutex.Lock()
 
-	taskResponses := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]
-	taskResponses.taskResponses = append(
-		agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot].taskResponses,
-		*signedTaskResponse)
 	taskIndex := agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
 
 	agg.taskMutex.Unlock()

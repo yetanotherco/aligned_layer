@@ -28,10 +28,7 @@ const QUORUM_NUMBER = byte(0)
 const QUORUM_THRESHOLD = byte(67)
 
 // Aggregator stores TaskResponse for a task here
-type TaskResponsesWithStatus struct {
-	taskResponses       []types.SignedTaskResponse
-	submittedToEthereum bool
-}
+type TaskResponses = []types.SignedTaskResponse
 
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
@@ -54,17 +51,11 @@ type Aggregator struct {
 	// Note: In case of a reboot, this doesn't need to be loaded,
 	// and can start from zero
 	batchesIdxByRoot      map[[32]byte]uint32
-	//batchesIdxByRootMutex *sync.Mutex
 
 	// This task index is to communicate with the local BLS
 	// Service.
 	// Note: In case of a reboot it can start from 0 again
 	nextBatchIndex      uint32
-	//nextBatchIndexMutex *sync.Mutex
-
-	OperatorTaskResponses map[[32]byte]*TaskResponsesWithStatus
-	// Mutex to protect the taskResponses map
-	//batchesResponseMutex *sync.Mutex
 
 	taskMutex 			*sync.Mutex
 	logger               logging.Logger
@@ -93,8 +84,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	batchesRootByIdx := make(map[uint32][32]byte)
 	batchesIdxByRoot := make(map[[32]byte]uint32)
-
-	operatorTaskResponses := make(map[[32]byte]*TaskResponsesWithStatus, 0)
 
 	chainioConfig := sdkclients.BuildAllConfig{
 		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
@@ -134,7 +123,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		batchesRootByIdx:      batchesRootByIdx,
 		batchesIdxByRoot:      batchesIdxByRoot,
 		nextBatchIndex:      nextBatchIndex,
-		OperatorTaskResponses: operatorTaskResponses,
 		taskMutex: &sync.Mutex{},
 
 		blsAggregationService: blsAggregationService,
@@ -240,12 +228,6 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	}
 
 	agg.batchesIdxByRoot[batchMerkleRoot] = batchIndex
-
-	// --- UPDATE TASK RESPONSES ---
-	agg.OperatorTaskResponses[batchMerkleRoot] = &TaskResponsesWithStatus{
-		taskResponses:       make([]types.SignedTaskResponse, 0),
-		submittedToEthereum: false,
-	}
 
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
