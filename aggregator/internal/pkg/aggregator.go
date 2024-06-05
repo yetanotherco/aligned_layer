@@ -198,10 +198,17 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
-	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+	batchMerkleRoot, ok := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+	if !ok {
+		agg.logger.Error("Task index not found in batchesRootByIdx", "taskIndex", blsAggServiceResp.TaskIndex)
+		agg.taskMutex.Unlock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
+		return
+	}
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
+	agg.logger.Info("Sending aggregated response to contract", "batchMerkleRoot", batchMerkleRoot)
 	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.logger.Error("Aggregator failed to respond to task", "err", err)
