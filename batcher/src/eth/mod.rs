@@ -41,7 +41,7 @@ pub async fn get_contract(
 }
 
 pub async fn create_new_task(
-    service_manager: AlignedLayerServiceManager,
+    service_manager: &AlignedLayerServiceManager,
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
 ) -> Result<TransactionReceipt, anyhow::Error> {
