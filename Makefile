@@ -75,6 +75,7 @@ bindings:
 test:
 	go test ./...
 
+
 get_delegation_manager_address:
 	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
 
@@ -134,6 +135,9 @@ BURST_SIZE=5
 batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
+
+install_batcher:
+	@cargo +nightly-2024-04-17 install --path batcher
 
 # TODO: The conditional is a temporary solution, when the sp1 no longer throws a warning, this can be removed
 # because the cargo install won't re-compile the binary.
