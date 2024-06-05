@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{BatchVerified, BatchVerifiedFilter};
+use eth::BatchVerifiedFilter;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use futures_util::stream::{self, SplitSink};
@@ -191,6 +191,7 @@ impl Batcher {
     /// `finalize_batch` function.
     async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
         let mut batch_queue_lock = self.batch_queue.lock().await;
+
         let current_batch_len = batch_queue_lock.len();
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
@@ -247,12 +248,6 @@ impl Batcher {
     /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(&self, block_number: u64, finalized_batch: BatchQueue) {
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
-
-        // let batch_verified_event =
-        //     Contract::event_of_type::<BatchVerified>(Arc::new(self.eth_ws_provider.clone()));
-
-        // println!("SUBSCRIBING!!!!!");
-        // let mut stream = batch_verified_event.subscribe().await.unwrap();
 
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
