@@ -258,7 +258,7 @@ impl Batcher {
         let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
             .expect("Failed to serialize batch");
 
-        info!("Finalizing batch. Size: {}", finalized_batch.len());
+        info!("Finalizing batch. Length: {}", finalized_batch.len());
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
             .clone()
             .into_iter()
@@ -289,6 +289,8 @@ impl Batcher {
                     "Error awaiting for batch signature verification event: {}",
                     event_result.unwrap_err()
                 );
+                // FIXME: Not sure how should we this, we should check this later.
+                panic!();
             }
         }
 
