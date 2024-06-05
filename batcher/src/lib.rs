@@ -282,6 +282,7 @@ impl Batcher {
         // update last uploaded batch block
         *last_uploaded_batch_block = block_number;
 
+        // Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
         while let Some(event_result) = stream.next().await {
             if let Ok(event) = event_result {
                 if event.batch_merkle_root == batch_merkle_tree.root {
