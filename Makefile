@@ -598,7 +598,7 @@ run_devnet_explorer: run_db
 		cp .env.dev .env && \
 		./start.sh
 
-run_explorer:
+run_explorer: run_db
 	@cd explorer/ && \
 		mix setup && \
 		./start.sh
@@ -610,12 +610,7 @@ build_db:
 # docker run creates a new container
 run_db: clean_db
 	@cd explorer && \
-		docker run -d --name explorer-postgres-container -p 5432:5432 explorer-postgres-image
-
-# docker start starts (or continues execution of) an existing container
-start_db:
-	@cd explorer && \
-		docker start explorer-postgres-container
+		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
 
 clean_db:
 	@cd explorer && \
