@@ -484,7 +484,7 @@ test_sp1_go_bindings_linux: build_sp1_linux
 # @cp -r task_sender/test_examples/sp1/fibonacci_proof_generator/script/elf task_sender/test_examples/sp1/
 generate_sp1_fibonacci_proof:
 	@cd task_sender/test_examples/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
-	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
+	@cp task_sender/test_examples/sp1/elf task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
 
