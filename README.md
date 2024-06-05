@@ -719,10 +719,10 @@ The explorer uses PostgreSQL as the database. To build and start the DB using do
 
 ```bash
 make build_db
-make start_db
+make run_db
 ```
 
-The DB will be available on `localhost:5432` and it will be ran on every `make run_devnet_explorer` command.
+The DB will be available on `localhost:5432` , it will be mount on a Docker volume to persist its data, and it will be ran on every `make run_explorer` command.
 
 ### Running for local devnet
 
