@@ -23,11 +23,6 @@ fn main() {
     );
 
     if cfg!(target_os = "linux") {
-        println!("cargo:rustc-link-lib=dylib=dl");
-        println!("cargo:rustc-link-lib=dylib=rt");
-        println!("cargo:rustc-link-lib=dylib=m");
-        println!("cargo:rustc-link-lib=dylib=ssl");
-        println!("cargo:rustc-link-lib=dylib=crypto");
         println!("cargo:rustc-link-arg=-Wl,--allow-multiple-definition");
     }
 
