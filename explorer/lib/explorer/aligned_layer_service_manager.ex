@@ -2,6 +2,7 @@ defmodule AlignedLayerServiceManager do
   require Logger
 
   @environment System.get_env("ENVIRONMENT")
+  
   case @environment do
     "devnet" -> Logger.debug("Running on devnet")
     "holesky" -> Logger.debug("Running on holesky")
@@ -71,7 +72,6 @@ defmodule AlignedLayerServiceManager do
     read_block_qty = max(amount * 10, 1000)
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
-      # TODO check this -10k, analyze best way to pass this param
       |> Ethers.get_logs(fromBlock: get_latest_block_number(read_block_qty), toBlock: get_latest_block_number())
 
     case events do
