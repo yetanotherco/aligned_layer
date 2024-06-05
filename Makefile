@@ -12,6 +12,8 @@ ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
 
+BATCHER_CLIENT_BINARY_NAME := batcher-client
+
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
@@ -73,7 +75,6 @@ bindings:
 test:
 	go test ./...
 
-
 get_delegation_manager_address:
 	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
 
@@ -134,8 +135,15 @@ batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
+# TODO: The conditional is a temporary solution, when the sp1 no longer throws a warning, this can be removed
+# because the cargo install won't re-compile the binary.
 install_batcher_client:
-	@cargo +nightly-2024-04-17 install --path batcher/client
+	@if which $(BATCHER_CLIENT_BINARY_NAME) >/dev/null 2>&1; then \
+  		echo "$(BATCHER_CLIENT_BINARY_NAME) is already installed"; \
+  	else \
+  	  	echo "$(BATCHER_CLIENT_BINARY_NAME) not found, installing..."; \
+  	    cargo +nightly-2024-04-17 install --path batcher/client; \
+  	fi
 
 build_batcher_client:
 	@cd batcher/client && cargo b --release
@@ -250,14 +258,14 @@ batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-clien
 __TASK_SENDERS__:
  # TODO add a default proving system
 
-proof: install_batcher_client generate_sp1_fibonacci_proof
+proof: generate_sp1_fibonacci_proof
 
-submit_proof:
+submit_proof: install_batcher_client
 	@time batcher-client \
 		--proving_system SP1 \
 		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
         --vm_program task_sender/test_examples/sp1/elf \
-		--conn wss://batcher.alignedlayer.com
+#		--conn wss://batcher.alignedlayer.com
 
 send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sender
 	@echo "Sending PLONK BLS12_381 proof..."
