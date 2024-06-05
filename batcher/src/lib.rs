@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aws_sdk_s3::client::Client as S3Client;
+use eth::{BatchVerified, BatchVerifiedFilter};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use futures_util::stream::{self, SplitSink};
@@ -246,6 +247,13 @@ impl Batcher {
     /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(&self, block_number: u64, finalized_batch: BatchQueue) {
         let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+
+        // let batch_verified_event =
+        //     Contract::event_of_type::<BatchVerified>(Arc::new(self.eth_ws_provider.clone()));
+
+        // println!("SUBSCRIBING!!!!!");
+        // let mut stream = batch_verified_event.subscribe().await.unwrap();
+
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
             .into_iter()
@@ -265,11 +273,28 @@ impl Batcher {
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
             MerkleTree::build(&batch_data_comm);
 
+        let events = self.service_manager.event::<BatchVerifiedFilter>();
+        let mut stream = events.stream().await.unwrap();
+
         self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
             .await;
 
         // update last uploaded batch block
         *last_uploaded_batch_block = block_number;
+
+        while let Some(event_result) = stream.next().await {
+            if let Ok(event) = event_result {
+                if event.batch_merkle_root == batch_merkle_tree.root {
+                    info!("Batch operator signatures verified on Ethereum. Sending response to clients...");
+                    break;
+                }
+            } else {
+                error!(
+                    "Error awaiting for batch signature verification event: {}",
+                    event_result.unwrap_err()
+                );
+            }
+        }
 
         send_responses(finalized_batch, &batch_merkle_tree).await;
     }
@@ -298,6 +323,7 @@ impl Batcher {
 
         info!("Uploading batch to contract");
         let service_manager = &self.service_manager;
+
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
         match eth::create_new_task(service_manager, *batch_merkle_root, batch_data_pointer).await {
             Ok(_) => info!("Batch verification task created on Aligned contract"),

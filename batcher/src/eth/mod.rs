@@ -11,6 +11,11 @@ abigen!(
     "./src/eth/abi/AlignedLayerServiceManager.json"
 );
 
+#[derive(Debug, Clone, EthEvent)]
+pub struct BatchVerified {
+    pub batch_merkle_root: [u8; 32],
+}
+
 pub type AlignedLayerServiceManager =
     AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
