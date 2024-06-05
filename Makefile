@@ -134,6 +134,9 @@ batcher_start: ./batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
 
+install_batcher:
+	@cargo +nightly-2024-04-17 install --path batcher
+
 install_batcher_client:
 	@cargo +nightly-2024-04-17 install --path batcher/client
 
