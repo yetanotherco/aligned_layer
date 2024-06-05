@@ -1,19 +1,39 @@
 defmodule AlignedLayerServiceManager do
   require Logger
 
+  @environment System.get_env("ENVIRONMENT")
+  case @environment do
+    "devnet" -> Logger.debug("Running on devnet")
+    "holesky" -> Logger.debug("Running on holesky")
+    "mainnet" -> Logger.debug("Running on mainnet")
+    _ -> Logger.debug("Invalid ENVIRONMENT var in .env")
+    _ -> raise("Invalid ENVIRONMENT var in .env")
+  end
+  "@environment" |> IO.inspect()
+  @environment |> IO.inspect()
+
   file_path =
-    "../contracts/script/output/#{System.get_env("ENVIRONMENT")}/alignedlayer_deployment_output.json"
+    "../contracts/script/output/#{@environment}/alignedlayer_deployment_output.json"
 
   {status, config_json_string} = File.read(file_path)
 
   case status do
     :ok -> Logger.debug("File read successfully")
-    :error -> raise("Config file not read successfully, did you run make create-env ?\nIf you did, make sure eigenlayer config file is correctly stored")
+    :error -> raise("Config file not read successfully, did you run make create-env? If you did,\n make sure Alignedlayer config file is correctly stored")
   end
 
   @aligned_layer_service_manager_address Jason.decode!(config_json_string)
                                          |> Map.get("addresses")
                                          |> Map.get("alignedLayerServiceManager")
+
+  @first_block (
+    case @environment do
+      "devnet" -> 0
+      "holesky" -> 1600000
+      "mainnet" -> 20020000
+      _ -> raise("Invalid environment")
+    end
+  )
 
   use Ethers.Contract,
     abi_file: "lib/abi/AlignedLayerServiceManager.json",
@@ -26,7 +46,7 @@ defmodule AlignedLayerServiceManager do
   def get_new_batch_events() do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
-      |> Ethers.get_logs(fromBlock: 0)
+      |> Ethers.get_logs(fromBlock: @first_block)
 
     case events do
       {:ok, []} -> []
@@ -38,7 +58,7 @@ defmodule AlignedLayerServiceManager do
   def get_new_batch_events(%{merkle_root: merkle_root}) when is_binary(merkle_root) do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(Utils.string_to_bytes32(merkle_root))
-      |> Ethers.get_logs(fromBlock: 0)
+      |> Ethers.get_logs(fromBlock: @first_block)
 
     case events do
       {:error, reason} -> {:empty, reason}
@@ -50,6 +70,7 @@ defmodule AlignedLayerServiceManager do
   def get_new_batch_events(%{amount: amount}) when is_integer(amount) do
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
+      # TODO check this -10k, analyze best way to pass this param
       |> Ethers.get_logs(fromBlock: get_latest_block_number(-10000), toBlock: get_latest_block_number())
 
     case events do
@@ -110,7 +131,7 @@ defmodule AlignedLayerServiceManager do
 
   def get_batch_verified_events() do
     events =
-      AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: 0)
+      AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: @first_block)
 
     case events do
       {:ok, list} -> {:ok, list}
@@ -121,7 +142,7 @@ defmodule AlignedLayerServiceManager do
   def get_batch_verified_events(merkle_root) do
     events =
       AlignedLayerServiceManager.EventFilters.batch_verified(merkle_root)
-      |> Ethers.get_logs(fromBlock: 0)
+      |> Ethers.get_logs(fromBlock: @first_block)
 
     case events do
       {:error, reason} -> {:empty, reason}
