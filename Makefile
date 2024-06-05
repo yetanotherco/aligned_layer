@@ -265,7 +265,7 @@ submit_proof: install_batcher_client
 		--proving_system SP1 \
 		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
         --vm_program task_sender/test_examples/sp1/elf \
-#		--conn wss://batcher.alignedlayer.com
+		--conn wss://batcher.alignedlayer.com
 
 send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sender
 	@echo "Sending PLONK BLS12_381 proof..."
