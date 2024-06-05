@@ -41,19 +41,23 @@
   />
 </div>
 
-<div class="-mt-32 text-foreground z-10 grid md:grid-cols-2 justify-center gap-3 max-w-96 md:max-w-[32rem] mx-auto">
+<div class="-mt-32 text-foreground z-10 px-5 grid grid-cols-1 md:grid-cols-3 justify-center gap-3 md:max-w-[42rem] mx-auto">
   <.card title="verified batches">
     <%= @verified_batches %>
   </.card>
-  <.card title="verified proofs">
-    <%= @amount_of_proofs %>
+  <.card title="Verified Proofs">
+    <%= if @amount_of_proofs do %>
+      <%= @amount_of_proofs %>+
+    <% else %>
+      0
+    <% end %>
   </.card>
   <.card title="Registered Operators">
     <%= @operators_registered %>
   </.card>
   <%= if @latest_batches != :empty and @latest_batches != [] do %>
     <.card
-      class="relative col-span-2 w-full flex flex-col space-y-1"
+      class="relative md:col-span-3 w-full flex flex-col space-y-1"
       inner_class="text-ellipsis overflow-hidden text-lg flex flex-col space-y-1"
       title="Recent Batches"
     >

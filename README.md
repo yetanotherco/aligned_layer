@@ -9,14 +9,76 @@
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
+    - [Requirements](#requirements)
+    - [Run](#run)
+      - [SP1 proof](#sp1-proof)
+      - [GnarkPlonkBn254, GnarkPlonkBls12\_381 and Groth16Bn254](#gnarkplonkbn254-gnarkplonkbls12_381-and-groth16bn254)
   - [Local Devnet Setup](#local-devnet-setup)
+    - [Dependencies](#dependencies)
+    - [Booting Devnet with Default configs](#booting-devnet-with-default-configs)
+    - [Send test proofs to batcher for testing](#send-test-proofs-to-batcher-for-testing)
+    - [Detailed Testnet Deployment](#detailed-testnet-deployment)
+      - [Changing operator keys](#changing-operator-keys)
+      - [Aggregator](#aggregator)
+      - [Operator](#operator)
+        - [Register into EigenLayer](#register-into-eigenlayer)
+        - [Register into Aligned](#register-into-aligned)
+        - [Full Registration in Anvil with one command](#full-registration-in-anvil-with-one-command)
+        - [Deposit Strategy Tokens in Anvil local devnet](#deposit-strategy-tokens-in-anvil-local-devnet)
+      - [Deposit Strategy tokens in Holesky/Mainnet](#deposit-strategy-tokens-in-holeskymainnet)
+      - [Config](#config)
+      - [Run](#run-1)
+    - [Batcher](#batcher)
+      - [Config](#config-1)
+      - [Run](#run-2)
+    - [Send tasks](#send-tasks)
+      - [Sending a Task to the Batcher using our Rust TaskSender CLI](#sending-a-task-to-the-batcher-using-our-rust-tasksender-cli)
+      - [Send one SP1 proof](#send-one-sp1-proof)
+      - [Send one Groth 16 proof](#send-one-groth-16-proof)
+      - [Send infinite Groth 16 proofs](#send-infinite-groth-16-proofs)
+      - [Send burst of Groth 16 proofs](#send-burst-of-groth-16-proofs)
+      - [Send specific proof](#send-specific-proof)
+    - [Task Sender](#task-sender)
+      - [Config](#config-2)
+    - [Send PLONK BLS12\_381 proof](#send-plonk-bls12_381-proof)
+      - [Send PLONK BN254 proof](#send-plonk-bn254-proof)
+      - [Send Groth 16 BN254 proof](#send-groth-16-bn254-proof)
+      - [Send SP1 proof](#send-sp1-proof)
+      - [Send a specific proof](#send-a-specific-proof)
+      - [Send a specific proof in loop](#send-a-specific-proof-in-loop)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
+    - [Eigenlayer Contracts: Anvil](#eigenlayer-contracts-anvil)
+    - [Eigenlayer Contracts: Holesky/Mainnet](#eigenlayer-contracts-holeskymainnet)
+    - [Aligned Contracts: Anvil](#aligned-contracts-anvil)
+      - [Aligned Contracts: Holesky/Mainnet](#aligned-contracts-holeskymainnet)
+    - [Bindings](#bindings)
+    - [Deployment](#deployment)
   - [Metrics](#metrics)
+    - [Aggregator Metrics](#aggregator-metrics)
   - [Explorer](#explorer)
+    - [Minimum Requirements](#minimum-requirements)
+    - [DB Setup](#db-setup)
+    - [Running for local devnet](#running-for-local-devnet)
+    - [Run with custom env / other devnets](#run-with-custom-env--other-devnets)
+    - [Send example data](#send-example-data)
   - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
   - [Tests](#tests)
   - [Verify Proofs](#verify-proofs)
+    - [SP1](#sp1)
+      - [SP1 Dependencies](#sp1-dependencies)
+      - [How to generate a proof](#how-to-generate-a-proof)
+      - [How to get the proof verified by AlignedLayer](#how-to-get-the-proof-verified-by-alignedlayer)
   - [FAQ](#faq)
+    - [What is the objective of Aligned?](#what-is-the-objective-of-aligned)
+    - [Why do we need a ZK verification layer?](#why-do-we-need-a-zk-verification-layer)
+    - [What are the use cases of Aligned?](#what-are-the-use-cases-of-aligned)
+    - [Why build on top of Ethereum?](#why-build-on-top-of-ethereum)
+    - [Why not do this directly on top of Ethereum?](#why-not-do-this-directly-on-top-of-ethereum)
+    - [Why not make Aligned a ZK L1?](#why-not-make-aligned-a-zk-l1)
+    - [Why not a ZK L2?](#why-not-a-zk-l2)
+    - [Why EigenLayer?](#why-eigenlayer)
+    - [Will you aggregate proofs?](#will-you-aggregate-proofs)
+    - [How does it compare to the Polygon aggregation layer?](#how-does-it-compare-to-the-polygon-aggregation-layer)
 
 ## The Project
 
@@ -28,7 +90,7 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 - [Rust](https://www.rust-lang.org/tools/install)
 
-To install the batcher client to send proofs in the testnet, run: 
+To install the batcher client to send proofs in the testnet, run:
 
 ```bash
 make install_batcher_client
@@ -49,7 +111,7 @@ batcher-client \
 --proof_generator_addr [proof_generator_addr]
 ```
 
-**Example**
+**Example**:
 
 ```bash
 batcher-client \
@@ -81,7 +143,7 @@ batcher-client \
 --proof_generator_addr [proof_generator_addr]
 ```
 
-**Examples**
+**Examples**:
 
 ```bash
 batcher-client \
@@ -707,8 +769,28 @@ To install Grafana, you can follow the instructions on the [official website](ht
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
 - [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
 - [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
+- [Docker](https://docs.docker.com/get-docker/)
+
+### DB Setup
+
+To setup the explorer, an installation of the DB is needed.
+
+First you'll need to install docker if you don't have it already. You can follow the instructions [here](https://docs.docker.com/get-docker/).
+
+The explorer uses PostgreSQL as the database. To build and start the DB using docker, just run:
+
+```bash
+make build_db
+make start_db
+```
+
+The DB will be available on `localhost:5432` and it will be ran on every `make run_devnet_explorer` command.
 
 ### Running for local devnet
+
+To run the explorer for the local devnet (see local devnet setup), you'll need to have the devnet running and the DB setup.
+
+To run the explorer, just run:
 
 ```make run_devnet_explorer```
 
@@ -774,24 +856,28 @@ make test
 
 ### SP1
 
-#### Dependencies
+#### SP1 Dependencies
+
 This guide assumes that:
+
 - sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
 - sp1 project to generate the proofs (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
 - aligned layer repository cloned:
+
     ```bash
     git clone https://github.com/yetanotherco/aligned_layer.git
     ```
 
 #### How to generate a proof
 
-> AlignedLayer only verifies SP1 in compressed version. 
+> AlignedLayer only verifies SP1 in compressed version.
 > You can check you are using compressed by opening script/src/main.rs
 and check that the proof is generated with `client.prove_compressed` instead of `client.prove`.
 
-First, open a terminal and navigate to the script folder in the sp1 project directory 
+First, open a terminal and navigate to the script folder in the sp1 project directory
 
 Then, run the following command to generate a proof:
+
 ```bash
 cargo run --release
 ```
@@ -799,6 +885,7 @@ cargo run --release
 #### How to get the proof verified by AlignedLayer
 
 After generating the proof, you will have to find two different files:
+
 - proof file: usually found under `script` directory, with the name `proof.json` or similar
 - elf file: usually found under `program/elf/` directory
 
