@@ -608,14 +608,18 @@ build_db:
 		docker build -t explorer-postgres-image .
 
 # docker run creates a new container
-run_db: clean_db
+run_db: remove_db_container
 	@cd explorer && \
 		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
 
-clean_db:
+remove_db_container:
 	@cd explorer && \
 		docker stop explorer-postgres-container || true  && \
 		docker rm explorer-postgres-container || true
+
+clean_db: remove_db_container
+	@cd explorer && \
+		docker volume rm explorer-postgres-data || true
 
 dump_db:
 	@cd explorer && \
