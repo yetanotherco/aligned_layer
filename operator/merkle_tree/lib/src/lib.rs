@@ -6,9 +6,10 @@ use std::fs::File;
 use std::io::Read;
 
 const MAX_BATCH_SIZE: usize = 2 * 1024 * 1024 * 10;
+// verify batch merkle root
 
 #[no_mangle]
-pub extern "C" fn verify_merkle_tree_batch_ffi(
+pub extern "C" fn verify_batch_merkle_root_ffi(
     batch_bytes: &[u8; MAX_BATCH_SIZE],
     batch_len: u32,
     merkle_root: &[u8; 32]
@@ -52,7 +53,7 @@ mod tests {
         let mut merkle_root = [0; 32];
         merkle_root.copy_from_slice(&hex::decode("66f2b058f5eaceff958a1feff5edf225be9a422c1121bc7ba4fceea2549fac02").unwrap());
 
-        let result = verify_merkle_tree_batch_ffi(&bytes, bytes_vec.len() as u32, &merkle_root);
+        let result = verify_batch_merkle_root_ffi(&bytes, bytes_vec.len() as u32, &merkle_root);
         assert_eq!(result, true);
     }
 
@@ -70,7 +71,7 @@ mod tests {
         let mut merkle_root = [0; 32];
         merkle_root.copy_from_slice(&hex::decode("66f2b058f5eaceff958a1feff5edf225be9a422c1121bc7ba4fceea2549fac02").unwrap());
 
-        let result = verify_merkle_tree_batch_ffi(&bytes, bytes_vec.len() as u32, &merkle_root);
+        let result = verify_batch_merkle_root_ffi(&bytes, bytes_vec.len() as u32, &merkle_root);
         assert!(!result);
     }
 }
