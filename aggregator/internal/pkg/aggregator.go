@@ -240,7 +240,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	if _, ok := agg.batchesIdxByRoot[batchMerkleRoot]; ok {
 		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
 		agg.taskMutex.Unlock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unocked Resources: Adding new task")
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 		return
 	}
 
