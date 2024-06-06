@@ -48,7 +48,7 @@ anvil_start:
 
 anvil_start_with_block_time:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 3
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 6
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
@@ -627,7 +627,6 @@ build_db:
 	@cd explorer && \
 		docker build -t explorer-postgres-image .
 
-# docker run creates a new container
 run_db: remove_db_container
 	@cd explorer && \
 		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
@@ -644,6 +643,11 @@ clean_db: remove_db_container
 dump_db:
 	@cd explorer && \
 		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.sql
+
+recover_db: run_db
+	@cd explorer && \
+		docker cp dump.sql explorer-postgres-container:/dump.sql && \
+		docker exec -t explorer-postgres-container psql -U explorer_user -d explorer_db -f /dump.sql
 
 # TODO:
 # hacer con docker compose
