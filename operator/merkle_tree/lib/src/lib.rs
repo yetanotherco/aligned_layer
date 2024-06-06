@@ -1,5 +1,5 @@
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use batcher::types::{VerificationCommitmentBatch, VerificationData};
+use batcher::types::{VerificationCommitmentBatch, VerificationData,VerificationDataCommitment};
 use hex;
 use serde_json;
 
@@ -13,9 +13,9 @@ pub extern "C" fn verify_batch_merkle_root_ffi(
 ) -> bool {
     match serde_json::from_slice::<Vec<VerificationData>>(&batch_bytes[..batch_len as usize]) {
         Ok(batch) => {
-            let batch_commitment = VerificationCommitmentBatch::from(&batch);
-            let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> = MerkleTree::build(&batch_commitment.0);
-            let batch_merkle_root = hex::encode(batch_merkle_tree.root); 
+            let commitments_batch:Vec<VerificationDataCommitment> = batch.into_iter().map(|verification_data| verification_data.into()).collect();
+            let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> = MerkleTree::build(&commitments_batch);
+            let batch_merkle_root = hex::encode(batch_merkle_tree.root);   
             let received_merkle_root = hex::encode(merkle_root);
             batch_merkle_root == received_merkle_root
         },
