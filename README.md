@@ -724,6 +724,20 @@ make run_db
 
 The DB will be available on `localhost:5432` , it will be mount on a Docker volume to persist its data, and it will be ran on every `make run_explorer` command.
 
+In order to clear the DB, you can run:
+
+```bash
+make clean_db
+```
+
+If you need to dumb the data from the DB, you can run:
+
+```bash
+make dump_db
+```
+
+This will create a `dump.sql` SQL script on the `explorer` directory with all the existing data.
+
 ### Running for local devnet
 
 To run the explorer for the local devnet (see [local devnet setup](#local-devnet-setup)), you'll need to have the devnet running and the DB setup.

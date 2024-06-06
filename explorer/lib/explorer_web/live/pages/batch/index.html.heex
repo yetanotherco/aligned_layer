@@ -1,6 +1,8 @@
-<div class="flex flex-col space-y-3  text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
+<div class="flex flex-col space-y-3 px-5 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
   <%= if @newBatchInfo != :empty do %>
-    <h1 class="text-5xl font-bold font-foreground">Batch Details</h1>
+    <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
+      Batch Details
+    </.card_preheding>
     <.card
       class="px-6 py-5 min-h-fit flex flex-col rounded-3xl"
       inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>span]:text-foreground [&>a]:text-foreground"
