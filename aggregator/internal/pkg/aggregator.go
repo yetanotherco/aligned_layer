@@ -197,7 +197,7 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	)
 
 	// Wait a bit
-	time.Sleep(15 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
