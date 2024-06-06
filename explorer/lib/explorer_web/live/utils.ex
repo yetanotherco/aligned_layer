@@ -47,7 +47,7 @@ defmodule Utils do
     |> Enum.reverse()
   end
 
-  def get_amount_of_proofs({:ok, batch_json}) do
+  def extract_amount_of_proofs_from_json({:ok, batch_json}) do
     batch_json |> Enum.count()
   end
 
@@ -66,7 +66,7 @@ defmodule Utils do
   end
 
   def extract_batch_data_pointer_info(%Batch{} = batch) do
-    amount_of_proofs = batch.batch_data_pointer |> Utils.fetch_batch_data_pointer |> Utils.get_amount_of_proofs
+    amount_of_proofs = batch.batch_data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
 
     %BatchDB {
       batch_merkle_root: batch.batch_merkle_root,
@@ -77,7 +77,7 @@ defmodule Utils do
 
   def extract_amount_of_proofs(%{batchDataPointer: batchDataPointer}) do
     case Utils.fetch_batch_data_pointer(batchDataPointer) do
-      {:ok, batch_json} -> Utils.get_amount_of_proofs({:ok, batch_json})
+      {:ok, batch_json} -> Utils.extract_amount_of_proofs_from_json({:ok, batch_json})
       {:error, _} -> 0
     end
   end
