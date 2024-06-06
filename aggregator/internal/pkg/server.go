@@ -73,12 +73,14 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 			context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
+
 		if err != nil {
 			agg.logger.Warnf("BLS aggregation service error: %s", err)
 		} else {
 			agg.logger.Info("BLS process succeeded")
-			close(done)
 		}
+
+		close(done)
 	}()
 
 	*reply = 1
@@ -86,7 +88,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	select {
 	case <-ctx.Done():
 		// The context's deadline was exceeded or it was canceled
-		agg.logger.Warn("Bls process timed out, batch will be lost")
+		agg.logger.Info("Bls process timed out, operator signature will be lost. Batch may not reach quorum")
 	case <-done:
 		// The task completed successfully
 		agg.logger.Info("Bls context finished correctly")
