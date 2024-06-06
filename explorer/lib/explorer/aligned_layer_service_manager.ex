@@ -10,8 +10,6 @@ defmodule AlignedLayerServiceManager do
     _ -> Logger.debug("Invalid ENVIRONMENT var in .env")
     _ -> raise("Invalid ENVIRONMENT var in .env")
   end
-  "@environment" |> IO.inspect()
-  @environment |> IO.inspect()
 
   file_path =
     "../contracts/script/output/#{@environment}/alignedlayer_deployment_output.json"
@@ -201,7 +199,6 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_amount_of_proofs(%{merkle_root: merkle_root}) when is_binary(merkle_root) do
-    "in get_amount_of_proofs" |> IO.inspect()
     case get_new_batch_events(%{merkle_root: merkle_root}) do
       {:error, reason} -> raise "Error fetching events: #{reason}"
       {:empty, _} -> 0
