@@ -722,7 +722,7 @@ make build_db
 make run_db
 ```
 
-The DB will be available on `localhost:5432` , it will be mount on a Docker volume to persist its data, and it will be ran on every `make run_explorer` command.
+The DB will be available on `localhost:5432` , it will be mount on a Docker volume to persist its data, and it will be started on every `make run_explorer` or `make run_devnet_explorer` command.
 
 In order to clear the DB, you can run:
 
