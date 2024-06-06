@@ -1,14 +1,20 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use alloy_primitives::Address;
 use env_logger::Env;
-use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
-use log::{info};
-use tokio_tungstenite::connect_async;
+use futures_util::{
+    future,
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt, TryStreamExt,
+};
+use log::info;
+use tokio::{net::TcpStream, sync::Mutex};
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
-use batcher::types::{parse_proving_system, VerificationData};
+use batcher::types::{parse_proving_system, BatchInclusionData, VerificationData};
 
 use clap::Parser;
+use tungstenite::Message;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -48,7 +54,7 @@ struct Args {
         long = "repetitions",
         default_value = "1"
     )]
-    repetitions: u32,
+    repetitions: usize,
 
     #[arg(
         name = "Proof generator address",
@@ -56,7 +62,6 @@ struct Args {
         default_value = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     )] // defaults to anvil address 1
     proof_generator_addr: String,
-
 }
 
 #[tokio::main]
@@ -99,7 +104,8 @@ async fn main() {
         info!("No VM program code file provided, continuing without VM program code...");
     }
 
-    let proof_generator_addr: Address = Address::parse_checksummed(&args.proof_generator_addr, None).unwrap();
+    let proof_generator_addr: Address =
+        Address::parse_checksummed(&args.proof_generator_addr, None).unwrap();
 
     let verification_data = VerificationData {
         proving_system,
@@ -112,23 +118,41 @@ async fn main() {
 
     let json_data = serde_json::to_string(&verification_data).expect("Failed to serialize task");
     for _ in 0..args.repetitions {
+        // NOTE(marian): This sleep is only for ease of testing interactions between client and batcher,
+        // it can be removed.
+        std::thread::sleep(Duration::from_millis(500));
         ws_write
             .send(tungstenite::Message::Text(json_data.to_string()))
             .await
             .unwrap();
+        info!("Message sent...")
     }
 
+    let num_responses = Arc::new(Mutex::new(0));
+    let ws_write = Arc::new(Mutex::new(ws_write));
+
+    receive(ws_read, ws_write, args.repetitions, num_responses).await;
+}
+
+async fn receive(
+    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    total_messages: usize,
+    num_responses: Arc<Mutex<usize>>,
+) {
     ws_read
-        .try_filter(|msg| future::ready(msg.is_text()))
-        .for_each(|msg| async move {
-            let data = msg.unwrap().into_text().unwrap();
-            info!("Batch merkle root received: {}", data);
+        .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
+        .for_each(|msg| async {
+            let mut num_responses_lock = num_responses.lock().await;
+            *num_responses_lock += 1;
+            let data = msg.unwrap().into_data();
+            let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
+            info!("Batcher response received: {}", deserialized_data);
+
+            if *num_responses_lock == total_messages {
+                info!("All messages responded. Closing connection...");
+                ws_write.lock().await.close().await.unwrap();
+            }
         })
         .await;
-
-    info!("Closing connection...");
-    ws_write
-        .close()
-        .await
-        .expect("Failed to close WebSocket connection");
 }
