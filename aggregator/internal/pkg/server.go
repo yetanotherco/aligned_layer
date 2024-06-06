@@ -58,7 +58,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		return fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
 	}
 
-	// EigenSDK is unreliable, may get stuck
 	// Don't wait infinitely if it can't answer
 	// Create a context with a timeout of 5 seconds
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
