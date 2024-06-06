@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/rpc"
+	"time"
 
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
@@ -55,22 +56,41 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		return fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
 	}
 
-	err := agg.blsAggregationService.ProcessNewSignature(
-		context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
-		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
-	)
+	// EigenSDK is unreliable, may get stuck
+	// Don't wait infinitely if it can't answer
+	// Create a context with a timeout of 5 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel() // Ensure the cancel function is called to release resources
+
+	// Create a channel to signal when the task is done
+	done := make(chan struct{})
+
+	go func() {
+		err := agg.blsAggregationService.ProcessNewSignature(
+			context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
+			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
+		)
+		if err != nil {
+			agg.logger.Warnf("BLS aggregation service error: %s", err)
+		} else {
+			agg.logger.Info("BLS succeeded: %s", err)
+		}
+	}()
+
+	// Wait for either the context to be done or the task to complete
+	select {
+	case <-ctx.Done():
+		// The context's deadline was exceeded or it was canceled
+		fmt.Println("Bls context finished:", ctx.Err())
+	case <-done:
+		// The task completed successfully
+		fmt.Println("Bls context finished succeded")
+	}
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Task response processing finished")
 	agg.taskMutex.Unlock()
 
-	if err != nil {
-		agg.logger.Warnf("BLS aggregation service error: %s", err)
-		*reply = 1
-		return err
-	}
-
 	*reply = 0
-
 	return nil
 }
 
