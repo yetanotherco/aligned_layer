@@ -89,7 +89,7 @@ dependencies = [
  "derive_more",
  "hex-literal",
  "itoa",
- "k256 0.13.3",
+ "k256",
  "keccak-asm",
  "proptest",
  "rand",
@@ -941,7 +941,6 @@ dependencies = [
  "dotenv",
  "env_logger",
  "ethers",
- "ethers_primitives",
  "ff 0.13.0",
  "futures-channel",
  "futures-util",
@@ -1342,7 +1341,7 @@ dependencies = [
  "coins-core",
  "digest 0.10.7",
  "hmac",
- "k256 0.13.3",
+ "k256",
  "serde",
  "sha2",
  "thiserror",
@@ -1389,16 +1388,6 @@ name = "colorchoice"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b6a852b24ab71dffc585bcb46eaf7959d175cb865a7152e35b348d1b2960422"
-
-[[package]]
-name = "concat-idents"
-version = "1.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f76990911f2267d837d9d0ad060aa63aaad170af40904b29461734c339030d4d"
-dependencies = [
- "quote",
- "syn 2.0.66",
-]
 
 [[package]]
 name = "console"
@@ -1784,18 +1773,6 @@ dependencies = [
 
 [[package]]
 name = "ecdsa"
-version = "0.15.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12844141594ad74185a926d030f3b605f6a903b4e3fec351f3ea338ac5b7637e"
-dependencies = [
- "der 0.6.1",
- "elliptic-curve 0.12.3",
- "rfc6979 0.3.1",
- "signature 2.0.0",
-]
-
-[[package]]
-name = "ecdsa"
 version = "0.16.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee27f32b5c5292967d2d4a9d7f1e0b0aed2c15daded5a60300e4abb9d8020bca"
@@ -1892,7 +1869,7 @@ dependencies = [
  "base64 0.21.7",
  "bytes",
  "hex",
- "k256 0.13.3",
+ "k256",
  "log",
  "rand",
  "rlp",
@@ -2111,7 +2088,7 @@ dependencies = [
  "elliptic-curve 0.13.8",
  "ethabi",
  "generic-array 0.14.7",
- "k256 0.13.3",
+ "k256",
  "num_enum 0.7.2",
  "once_cell",
  "open-fastrlp",
@@ -2257,25 +2234,6 @@ dependencies = [
  "tracing",
  "walkdir",
  "yansi",
-]
-
-[[package]]
-name = "ethers_primitives"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b09f911b310407d93be5468422f310df8a7f8d4ad3b3c6c13514f12ce6b5fb32"
-dependencies = [
- "anyhow",
- "concat-idents",
- "hex",
- "k256 0.12.0",
- "log",
- "num",
- "serde",
- "serde_ethabi",
- "serde_ethrlp",
- "sha3 0.10.8",
- "thiserror",
 ]
 
 [[package]]
@@ -3277,20 +3235,6 @@ dependencies = [
 
 [[package]]
 name = "k256"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92a55e0ff3b72c262bcf041d9e97f1b84492b68f1c1a384de2323d3dc9403397"
-dependencies = [
- "cfg-if",
- "ecdsa 0.15.1",
- "elliptic-curve 0.12.3",
- "once_cell",
- "sha2",
- "signature 2.0.0",
-]
-
-[[package]]
-name = "k256"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "956ff9b67e26e1a6a866cb758f12c6f8746208489e3e4a4b5580802f2f0a587b"
@@ -3627,7 +3571,6 @@ checksum = "c165a9ab64cf766f73521c0dd2cfdff64f488b8f0b3e621face3462d3db536d7"
 dependencies = [
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -3637,7 +3580,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -3675,7 +3617,6 @@ dependencies = [
  "num-bigint 0.4.5",
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -5325,34 +5266,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_ethabi"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2796fdb42db1cf045772e41179fa65d22a9d5c0e6737822313bcd6c4d259019"
-dependencies = [
- "anyhow",
- "bytes",
- "log",
- "regex",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "serde_ethrlp"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "127a5e93c14d5ddcf90698301a6c3d0dc655bd3baf00031080be0edbb773c0f8"
-dependencies = [
- "anyhow",
- "bytes",
- "log",
- "regex",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "serde_json"
 version = "1.0.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5649,7 +5562,7 @@ dependencies = [
  "generic-array 1.0.0",
  "hex",
  "itertools 0.12.1",
- "k256 0.13.3",
+ "k256",
  "log",
  "nohash-hasher",
  "num",

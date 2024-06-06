@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
+use k256::Secp256k1;
+use stream::EventStream;
 
 use crate::config::ECDSAConfig;
 
@@ -18,6 +20,13 @@ pub struct BatchVerified {
 
 pub type AlignedLayerServiceManager =
     AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
+
+pub type BatchVerifiedEventStream<'s> = EventStream<
+    's,
+    FilterWatcher<'s, Http, Log>,
+    BatchVerifiedFilter,
+    ContractError<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+>;
 
 pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
     Provider::<Http>::try_from(eth_rpc_url).map_err(|err| anyhow::anyhow!(err))

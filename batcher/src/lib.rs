@@ -1,8 +1,11 @@
 extern crate core;
 
+use std::borrow::Cow;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
+use crate::eth::BatchVerifiedEventStream;
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatchVerifiedFilter;
 use ethers::prelude::{Middleware, Provider};
@@ -13,7 +16,9 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error, info};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
+use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::error::ProtocolError;
+use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
@@ -277,24 +282,38 @@ impl Batcher {
         // update last uploaded batch block
         *last_uploaded_batch_block = block_number;
 
-        // Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
-        while let Some(event_result) = stream.next().await {
-            if let Ok(event) = event_result {
-                if event.batch_merkle_root == batch_merkle_tree.root {
-                    info!("Batch operator signatures verified on Ethereum. Sending response to clients...");
-                    break;
-                }
-            } else {
-                error!(
-                    "Error awaiting for batch signature verification event: {}",
-                    event_result.unwrap_err()
-                );
-                // FIXME: Not sure how should we this, we should check this later.
-                panic!();
-            }
-        }
+        // This future is created to be passed to the timeout function, so that if it is not resolved
+        // within the timeout interval an error is raised. If the event is received, responses are sent to
+        // connected clients
+        let await_batch_verified_fut =
+            await_batch_verified_event(&mut stream, &batch_merkle_tree.root);
+        if let Err(_) = timeout(Duration::from_secs(30), await_batch_verified_fut).await {
+            stream::iter(finalized_batch.iter())
+                .for_each(|(_, _, ws_sink)| async move {
+                    let send_result = ws_sink
+                        .write()
+                        .await
+                        .send(Message::Close(Some(CloseFrame {
+                            code: CloseCode::Protocol,
+                            reason: Cow::from("Timeout: BatchVerified event not received"),
+                        })))
+                        .await;
 
-        send_responses(finalized_batch, &batch_merkle_tree).await;
+                    match send_result {
+                        Err(Error::Protocol(ProtocolError::SendAfterClosing)) => (),
+                        Err(e) => {
+                            error!("Error sending timeout response to clients: {}", e);
+                            panic!();
+                        }
+                        Ok(_) => (),
+                    }
+
+                    info!("Timeout response sent");
+                })
+                .await;
+        } else {
+            send_responses(finalized_batch, &batch_merkle_tree).await;
+        }
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
@@ -328,6 +347,27 @@ impl Batcher {
         }
     }
 }
+/// Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
+async fn await_batch_verified_event<'s>(
+    stream: &mut BatchVerifiedEventStream<'s>,
+    batch_merkle_root: &[u8; 32],
+) {
+    while let Some(event_result) = stream.next().await {
+        if let Ok(event) = event_result {
+            if &event.batch_merkle_root == batch_merkle_root {
+                info!("Batch operator signatures verified on Ethereum. Sending response to clients...");
+                break;
+            }
+        } else {
+            error!(
+                "Error awaiting for batch signature verification event: {}",
+                event_result.unwrap_err()
+            );
+            // FIXME: Not sure how should we this, we should check this later.
+            panic!();
+        }
+    }
+}
 
 async fn send_responses(
     finalized_batch: BatchQueue,
@@ -350,3 +390,19 @@ async fn send_responses(
         })
         .await;
 }
+
+// stream::iter(finalized_batch.iter())
+// .for_each(|(_, _, ws_sink)| async move {
+//     ws_sink
+//         .write()
+//         .await
+//         .send(Message::Close(Some(CloseFrame {
+//             code: CloseCode::Protocol,
+//             reason: Cow::from("Timeout: BatchVerified event not received"),
+//         })))
+//         .await
+//         .unwrap();
+
+//     info!("Timeout response sent");
+// })
+// .await;
