@@ -65,6 +65,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	// Create a channel to signal when the task is done
 	done := make(chan struct{})
 
+	agg.logger.Info("Starting bls signature process")
 	go func() {
 		err := agg.blsAggregationService.ProcessNewSignature(
 			context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
@@ -73,24 +74,28 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		if err != nil {
 			agg.logger.Warnf("BLS aggregation service error: %s", err)
 		} else {
-			agg.logger.Info("BLS succeeded: %s", err)
+			agg.logger.Info("BLS process succeeded")
+			close(done)
 		}
 	}()
 
+	fmt.Println("Starting bls signature process")
+
+	*reply = 1
 	// Wait for either the context to be done or the task to complete
 	select {
 	case <-ctx.Done():
 		// The context's deadline was exceeded or it was canceled
-		fmt.Println("Bls context finished:", ctx.Err())
+		agg.logger.Warn("Bls process timed out, batch will be lost")
 	case <-done:
 		// The task completed successfully
-		fmt.Println("Bls context finished succeded")
+		agg.logger.Info("Bls context finished correctly")
+		*reply = 0
 	}
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Task response processing finished")
 	agg.taskMutex.Unlock()
 
-	*reply = 0
 	return nil
 }
 
