@@ -738,6 +738,14 @@ make dump_db
 
 This will create a `dump.sql` SQL script on the `explorer` directory with all the existing data.
 
+Then you can recover this data with:
+
+```bash
+make recover_db
+```
+
+This will refresh your database with the dumped database data.
+
 ### Running for local devnet
 
 To run the explorer for the local devnet (see [local devnet setup](#local-devnet-setup)), you'll need to have the devnet running and the DB setup.
