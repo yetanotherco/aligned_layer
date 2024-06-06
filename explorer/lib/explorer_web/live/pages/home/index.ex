@@ -15,7 +15,7 @@ defmodule ExplorerWeb.Home.Index do
          "Please enter a valid proof batch hash, these should be hex values (0x69...)."
        )}
     else
-      {:noreply, redirect(socket, to: "/batches/#{batch_merkle_root}")}
+      {:noreply, push_navigate(socket, to: "/batches/#{batch_merkle_root}")}
     end
   end
 
@@ -40,26 +40,29 @@ defmodule ExplorerWeb.Home.Index do
        submitted_proofs: submitted_proofs,
        verified_proofs: verified_proofs,
        page_title: "Welcome"
-     )
-    }
-    rescue
-      e in Mint.TransportError ->
-        case e do
-          %Mint.TransportError{reason: :econnrefused} ->
-            {
-              :ok,
-              assign(socket,
-                verified_batches: :empty,
-                operators_registered: :empty,
-                latest_batches: :empty,
-                amount_of_proofs: :empty,
-                page_title: "Error connection refused, couldn't connect to RPC"
-              )
-            }
-          _ ->
-            IO.puts("Other transport error: #{inspect(e)}")
-        end
-      e -> raise e
+     )}
+  rescue
+    e in Mint.TransportError ->
+      case e do
+        %Mint.TransportError{reason: :econnrefused} ->
+          {
+            :ok,
+            assign(socket,
+              verified_batches: :empty,
+              operators_registered: :empty,
+              latest_batches: :empty,
+              submitted_proofs: :empty,
+              verified_proofs: :empty
+            )
+            |> put_flash(:error, "Could not connect to the backend, please try again later.")
+          }
+
+        _ ->
+          IO.puts("Other transport error: #{inspect(e)}")
+      end
+
+    e ->
+      raise e
   end
 
   defp get_verified_batches_count() do

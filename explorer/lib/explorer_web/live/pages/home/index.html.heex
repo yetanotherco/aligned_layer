@@ -4,7 +4,10 @@
       Aligned Explorer
     </label>
   </div>
-  <form phx-submit="search_batch" class="flex items-center w-full max-w-md gap-2 z-10 px-5 sm:px-0">
+  <form
+    phx-submit="search_batch"
+    class="flex items-center w-full max-w-md gap-2 z-10 px-5 sm:px-0"
+  >
     <input
       id="search"
       class="shadow-md flex h-10 w-full ring-offset-background file:border-0 text-foreground file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground/30 bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:ring-gray-300"
@@ -41,13 +44,17 @@
   />
 </div>
 
-<div class="-mt-32 text-foreground z-10 px-5 grid grid-cols-1 md:grid-cols-3 justify-center gap-3 md:max-w-[42rem] mx-auto">
-  <.card title="verified batches">
-    <%= @verified_batches %>
+<div class="-mt-32 text-foreground z-10 px-5 grid grid-cols-1 md:grid-cols-2 justify-center gap-3 md:max-w-[42rem] mx-auto">
+  <.card title="Registered Operators">
+    <%= if @operators_registered != :empty do %>
+      <%= @operators_registered %>
+    <% else %>
+      0
+    <% end %>
   </.card>
-  <.card title="Submitted Proofs">
-    <%= if @submitted_proofs != :empty do %>
-      <%= @submitted_proofs %>
+  <.card title="verified batches">
+    <%= if @verified_batches != :empty do %>
+      <%= @verified_batches %>
     <% else %>
       0
     <% end %>
@@ -59,12 +66,16 @@
       0
     <% end %>
   </.card>
-  <.card title="Registered Operators">
-    <%= @operators_registered %>
+  <.card title="Submitted Proofs">
+    <%= if @submitted_proofs != :empty do %>
+      <%= @submitted_proofs %>
+    <% else %>
+      0
+    <% end %>
   </.card>
   <%= if @latest_batches != :empty and @latest_batches != [] do %>
     <.card
-      class="relative md:col-span-3 w-full flex flex-col space-y-1"
+      class="relative md:col-span-2 w-full flex flex-col space-y-1"
       inner_class="text-ellipsis overflow-hidden text-lg flex flex-col space-y-1"
       title="Recent Batches"
     >
