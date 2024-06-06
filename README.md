@@ -28,7 +28,7 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 - [Rust](https://www.rust-lang.org/tools/install)
 
-To install the batcher client to send proofs in the testnet, run: 
+To install the batcher client to send proofs in the testnet, run:
 
 ```bash
 make install_batcher_client
@@ -49,7 +49,7 @@ batcher-client \
 --proof_generator_addr [proof_generator_addr]
 ```
 
-**Example**
+**Example**:
 
 ```bash
 batcher-client \
@@ -81,7 +81,7 @@ batcher-client \
 --proof_generator_addr [proof_generator_addr]
 ```
 
-**Examples**
+**Examples**:
 
 ```bash
 batcher-client \
@@ -707,10 +707,54 @@ To install Grafana, you can follow the instructions on the [official website](ht
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
 - [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
 - [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
+- [Docker](https://docs.docker.com/get-docker/)
+
+### DB Setup
+
+To setup the explorer, an installation of the DB is needed.
+
+First you'll need to install docker if you don't have it already. You can follow the instructions [here](https://docs.docker.com/get-docker/).
+
+The explorer uses PostgreSQL as the database. To build and start the DB using docker, just run:
+
+```bash
+make build_db
+make run_db
+```
+
+The DB will be available on `localhost:5432` , it will be mount on a Docker volume to persist its data, and it will be started on every `make run_explorer` or `make run_devnet_explorer` command.
+
+In order to clear the DB, you can run:
+
+```bash
+make clean_db
+```
+
+If you need to dumb the data from the DB, you can run:
+
+```bash
+make dump_db
+```
+
+This will create a `dump.sql` SQL script on the `explorer` directory with all the existing data.
+
+Then you can recover this data with:
+
+```bash
+make recover_db
+```
+
+This will refresh your database with the dumped database data.
 
 ### Running for local devnet
 
-```make run_devnet_explorer```
+To run the explorer for the local devnet, you'll need to have the devnet running (see [local devnet setup](#local-devnet-setup)) and the DB already setup.
+
+To run the explorer, just run:
+
+```bash
+make run_devnet_explorer
+```
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
@@ -724,6 +768,12 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 | `RPC_URL` | The RPC URL of the network you want to connect to. |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
 | `PHX_HOST` | The host URL where the Phoenix server will be running. |
+| `DB_NAME` | The name of the postgres database. |
+| `DB_USER` | The username of the postgres database. |
+| `DB_PASS` | The password of the postgres database. |
+| `DB_HOST` | The host URL where the postgres database will be running. |
+
+Then you can run the explorer with this env file config by entering the following command:
 
 ```make run_explorer```
 
@@ -774,24 +824,28 @@ make test
 
 ### SP1
 
-#### Dependencies
+#### SP1 Dependencies
+
 This guide assumes that:
+
 - sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
 - sp1 project to generate the proofs (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
 - aligned layer repository cloned:
+
     ```bash
     git clone https://github.com/yetanotherco/aligned_layer.git
     ```
 
 #### How to generate a proof
 
-> AlignedLayer only verifies SP1 in compressed version. 
+> AlignedLayer only verifies SP1 in compressed version.
 > You can check you are using compressed by opening script/src/main.rs
 and check that the proof is generated with `client.prove_compressed` instead of `client.prove`.
 
-First, open a terminal and navigate to the script folder in the sp1 project directory 
+First, open a terminal and navigate to the script folder in the sp1 project directory
 
 Then, run the following command to generate a proof:
+
 ```bash
 cargo run --release
 ```
@@ -799,6 +853,7 @@ cargo run --release
 #### How to get the proof verified by AlignedLayer
 
 After generating the proof, you will have to find two different files:
+
 - proof file: usually found under `script` directory, with the name `proof.json` or similar
 - elf file: usually found under `program/elf/` directory
 

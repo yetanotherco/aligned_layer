@@ -1,16 +1,52 @@
-<div class="flex flex-col space-y-3  text-foreground max-w-96 md:max-w-5xl mx-auto capitalize">
+<div class="flex flex-col space-y-3 px-5 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
   <%= if @newBatchInfo != :empty do %>
-    <h1 class="text-5xl font-bold font-foreground">Batch Details</h1>
+    <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
+      Batch Details
+    </.card_preheding>
     <.card
       class="px-6 py-5 min-h-fit flex flex-col rounded-3xl"
       inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>span]:text-foreground [&>a]:text-foreground"
     >
       Merkle Root Hash: <span class="break-all font-normal"><%= @merkle_root %></span>
+      Amount of Proofs in this Batch:
+      <span class="break-all font-normal"><%= @amount_of_proofs %></span>
       Block Hash: <span class="break-all font-normal"><%= @newBatchInfo.block_hash %></span>
-      Block Number: <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/block/#{@newBatchInfo.block_number}"}  class="break-all font-normal"><%= @newBatchInfo.block_number %></.a>
+      Block Number:
+      <.a
+        target="_blank"
+        rel="noopener"
+        href={"https://holesky.etherscan.io/block/#{@newBatchInfo.block_number}"}
+        class="break-all font-normal"
+      >
+        <%= @newBatchInfo.block_number %>
+      </.a>
       Transaction Hash:
-      <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/tx/#{@newBatchInfo.transaction_hash}"} class="break-all font-normal"><%= @newBatchInfo.transaction_hash %></.a>
-      Aligned Contract Address: <.a target="_blank" rel="noopener" href={"https://holesky.etherscan.io/address/#{@newBatchInfo.address}"} class="break-all font-normal"><%= @newBatchInfo.address %></.a>
+      <.a
+        target="_blank"
+        rel="noopener"
+        href={"https://holesky.etherscan.io/tx/#{@newBatchInfo.transaction_hash}"}
+        class="break-all font-normal"
+      >
+        <%= @newBatchInfo.transaction_hash %>
+      </.a>
+      Aligned Contract Address:
+      <.a
+        target="_blank"
+        rel="noopener"
+        href={"https://holesky.etherscan.io/address/#{@newBatchInfo.address}"}
+        class="break-all font-normal"
+      >
+        <%= @newBatchInfo.address %>
+      </.a>
+      <%!-- Batch data:
+      <.a
+        target="_blank"
+        rel="noopener"
+        href={"#{@newBatchInfo.new_batch.batchDataPointer}"}
+        class="break-all font-normal"
+      >
+        <%= @newBatchInfo.new_batch.batchDataPointer %>
+      </.a> --%>
     </.card>
   <% else %>
     <div class="flex flex-col space-y-6 justify-center grow relative text-center">

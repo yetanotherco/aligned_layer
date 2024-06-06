@@ -11,8 +11,12 @@ defmodule Explorer.Application do
       ExplorerWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:explorer, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Explorer.PubSub},
-      # Start the Finch HTTP client for sending emails
+      # Start the Ecto db repository
+      Explorer.Repo,
+      # Start the Finch HTTP client for getting data from batch_data_pointer
       {Finch, name: Explorer.Finch},
+      # Start the periodic task
+      {Explorer.Periodically, []},
       # Start a worker by calling: Explorer.Worker.start_link(arg)
       # {Explorer.Worker, arg},
       # Start to serve requests, typically the last entry

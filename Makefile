@@ -48,7 +48,7 @@ anvil_start:
 
 anvil_start_with_block_time:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 3
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 6
 
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
@@ -439,9 +439,6 @@ build_binaries:
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
 	@echo "Task sender built into /task_sender/build/aligned-task-sender"
 
-run_local:
-	./scripts/run_local.sh
-
 __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build --release
@@ -612,13 +609,39 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 
 
 __EXPLORER__:
-run_devnet_explorer:
+run_devnet_explorer: run_db
 	@cd explorer/ && \
 		mix setup && \
 		cp .env.dev .env && \
 		./start.sh
 
-run_explorer:
+run_explorer: run_db
 	@cd explorer/ && \
 		mix setup && \
 		./start.sh
+
+build_db:
+	@cd explorer && \
+		docker build -t explorer-postgres-image .
+
+run_db: remove_db_container
+	@cd explorer && \
+		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
+
+remove_db_container:
+	@cd explorer && \
+		docker stop explorer-postgres-container || true  && \
+		docker rm explorer-postgres-container || true
+
+clean_db: remove_db_container
+	@cd explorer && \
+		docker volume rm explorer-postgres-data || true
+
+dump_db:
+	@cd explorer && \
+		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.sql
+
+recover_db: run_db
+	@cd explorer && \
+		docker cp dump.sql explorer-postgres-container:/dump.sql && \
+		docker exec -t explorer-postgres-container psql -U explorer_user -d explorer_db -f /dump.sql
