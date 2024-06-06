@@ -439,9 +439,6 @@ build_binaries:
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
 	@echo "Task sender built into /task_sender/build/aligned-task-sender"
 
-run_local:
-	./scripts/run_local.sh
-
 __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build --release
