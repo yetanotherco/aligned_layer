@@ -197,13 +197,8 @@ defmodule AlignedLayerServiceManager do
     }
   end
 
-  def get_amount_of_proofs(%{merkle_root: merkle_root}) when is_binary(merkle_root) do
-    case get_new_batch_events(%{merkle_root: merkle_root}) do
-      {:error, reason} -> raise "Error fetching events: #{reason}"
-      {:empty, _} -> 0
-      {:ok, %NewBatchInfo{new_batch: %NewBatchEvent{batchDataPointer: batchDataPointer}}} ->
-        Utils.extract_amount_of_proofs(%{batchDataPointer: batchDataPointer})
-    end
+  def get_amount_of_proofs(%NewBatchInfo{new_batch: %NewBatchEvent{batchDataPointer: batchDataPointer}}) do
+    Utils.extract_amount_of_proofs(%{batchDataPointer: batchDataPointer})
   end
 
 end

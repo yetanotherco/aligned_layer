@@ -30,8 +30,9 @@ defmodule ExplorerWeb.Batch.Index do
       end
 
     batchWasResponded = AlignedLayerServiceManager.is_batch_responded(merkle_root)
-    
-    amount_of_proofs = AlignedLayerServiceManager.get_amount_of_proofs(%{merkle_root: merkle_root})
+
+
+    amount_of_proofs = AlignedLayerServiceManager.get_amount_of_proofs(newBatchInfo)
 
     {
       :ok,
