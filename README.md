@@ -748,11 +748,13 @@ This will refresh your database with the dumped database data.
 
 ### Running for local devnet
 
-To run the explorer for the local devnet (see [local devnet setup](#local-devnet-setup)), you'll need to have the devnet running and the DB setup.
+To run the explorer for the local devnet, you'll need to have the devnet running (see [local devnet setup](#local-devnet-setup)) and the DB already setup.
 
 To run the explorer, just run:
 
-```make run_devnet_explorer```
+```bash
+make run_devnet_explorer
+```
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
