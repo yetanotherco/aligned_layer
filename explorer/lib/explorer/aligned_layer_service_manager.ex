@@ -175,7 +175,6 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  # find_if_batch_was_responded
   def find_if_batch_was_responded({_status, %NewBatchInfo{} = new_batch_info}) do
     new_batch = new_batch_info.new_batch
     %BatchPageItem{

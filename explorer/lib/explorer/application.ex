@@ -13,7 +13,7 @@ defmodule Explorer.Application do
       {Phoenix.PubSub, name: Explorer.PubSub},
       # Start the Ecto db repository
       Explorer.Repo,
-      # Start the Finch HTTP client for sending emails, and getting data from batch_data_pointer
+      # Start the Finch HTTP client for getting data from batch_data_pointer
       {Finch, name: Explorer.Finch},
       # Start the periodic task
       {Explorer.Periodically, []},
