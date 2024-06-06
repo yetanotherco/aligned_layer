@@ -217,18 +217,8 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Adding new task")
 
-	batchIndex := agg.nextBatchIndex
-
 	// --- UPDATE BATCH - INDEX CACHES ---
-	if _, ok := agg.batchesRootByIdx[batchIndex]; ok {
-		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
-		agg.taskMutex.Unlock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unocked Resources: Adding new task")
-		return
-	}
-
-	agg.batchesRootByIdx[batchIndex] = batchMerkleRoot
-	// This shouldn't happen, since both maps are updated together
+	batchIndex := agg.nextBatchIndex
 	if _, ok := agg.batchesIdxByRoot[batchMerkleRoot]; ok {
 		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
 		agg.taskMutex.Unlock()
@@ -236,7 +226,17 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 		return
 	}
 
+	// This shouldn't happen, since both maps are updated together
+	if _, ok := agg.batchesRootByIdx[batchIndex]; ok {
+		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchRoot", batchMerkleRoot)
+		agg.taskMutex.Unlock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unocked Resources: Adding new task")
+		return
+	}
+
 	agg.batchesIdxByRoot[batchMerkleRoot] = batchIndex
+	agg.batchesRootByIdx[batchIndex] = batchMerkleRoot
+	agg.nextBatchIndex += 1
 
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
@@ -246,9 +246,6 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}
-
-	// --- INCREASE BATCH INDEX ---
-	agg.nextBatchIndex = agg.nextBatchIndex + 1
 
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unocked Resources: Adding new task")
