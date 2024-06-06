@@ -53,26 +53,45 @@ defmodule BatchVerifiedInfo do
   defstruct [:address, :block_hash, :block_number, :transaction_hash, :batch_verified]
 end
 
-
-defmodule BatchPageItem do
-  @enforce_keys [
-    :batch_merkle_root,
-    :task_created_block_number,
-    :task_created_tx_hash,
-    :task_responded_block_number,
-    :task_responded_tx_hash,
-    :batch_data_pointer,
-    :responded
-  ]
-  defstruct [:batch_merkle_root, :task_created_block_number, :task_created_tx_hash, :task_responded_block_number, :task_responded_tx_hash, :batch_data_pointer, :responded]
-end
-
-defmodule Batch do
-  @enforce_keys [:batch_merkle_root, :batch_data_pointer, :is_verified]
-  defstruct [:batch_merkle_root, :batch_data_pointer, :is_verified]
-end
+# following data structs will be replaced by BatchDB, wip
+# defmodule BatchPageItem do
+#   @enforce_keys [
+#     :batch_merkle_root,
+#     :task_created_block_number,
+#     :task_created_tx_hash,
+#     :task_responded_block_number,
+#     :task_responded_tx_hash,
+#     :batch_data_pointer,
+#     :responded
+#   ]
+#   defstruct [:batch_merkle_root, :task_created_block_number, :task_created_tx_hash, :task_responded_block_number, :task_responded_tx_hash, :batch_data_pointer, :responded]
+# end
+# defmodule Batch do
+#   @enforce_keys [:batch_merkle_root, :batch_data_pointer, :is_verified]
+#   defstruct [:batch_merkle_root, :batch_data_pointer, :is_verified]
+# end
 
 defmodule BatchDB do
-  @enforce_keys [:batch_merkle_root, :amount_of_proofs, :is_verified]
-  defstruct [:batch_merkle_root, :amount_of_proofs, :is_verified]
+  @enforce_keys [
+    :batch_merkle_root,
+    :amount_of_proofs,
+    :is_verified,
+    #new params:
+    :submition_block_number,
+    :submition_transaction_hash,
+    :submition_timestamp,
+  ]
+  defstruct [
+    :batch_merkle_root,
+    :amount_of_proofs,
+    :is_verified,
+    #new params:
+    :submition_block_number,
+    :submition_transaction_hash,
+    :submition_timestamp,
+    :response_block_number,
+    :response_transaction_hash,
+    :response_timestamp,
+    :data_pointer
+  ]
 end

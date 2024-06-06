@@ -28,7 +28,7 @@
               </th>
 
               <th class="font-normal group-hover:text-foreground/80">
-                <%= batch.task_created_block_number %>
+                <%= batch.submition_block_number %>
               </th>
 
               <th class={[
@@ -36,12 +36,12 @@
               ]}>
                 <span class={[
                   "px-3 py-1 rounded-full",
-                  case batch.responded do
+                  case batch.is_verified do
                     true -> "text-black bg-primary group-hover:bg-primary/80"
                     false -> "text-white bg-secondary group-hover:bg-secondary/80"
                   end
                 ]}>
-                  <%= batch.responded %>
+                  <%= batch.is_verified %>
                 </span>
               </th>
             </tr>

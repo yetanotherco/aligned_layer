@@ -177,28 +177,33 @@ defmodule AlignedLayerServiceManager do
 
   def find_if_batch_was_responded({_status, %NewBatchInfo{} = new_batch_info}) do
     new_batch = new_batch_info.new_batch
-    %BatchPageItem{
+    %BatchDB{
       batch_merkle_root: new_batch.batchMerkleRoot,
-      task_created_block_number: new_batch.taskCreatedBlock,
-      task_created_tx_hash: new_batch.batchDataPointer,
-      task_responded_block_number: nil,
-      task_responded_tx_hash: nil,
-      batch_data_pointer: new_batch.batchDataPointer,
-      responded: is_batch_responded(new_batch.batchMerkleRoot)
+      data_pointer: new_batch.batchDataPointer,
+      is_verified: is_batch_responded(new_batch.batchMerkleRoot),
+      submition_block_number: new_batch.taskCreatedBlock,
+      submition_transaction_hash: new_batch_info.transaction_hash,
+      submition_timestamp: get_block_timestamp(new_batch.taskCreatedBlock),
+      # response_block_number:,
+      # response_transaction_hash:,
+      # response_timestamp:,
+      amount_of_proofs: nil, #get_amount_of_proofs(new_batch_info)
     }
   end
 
   def find_if_batch_was_responded( %Ethers.Event{} = new_batch_event) do
-    new_batch = parse_new_batch_event(new_batch_event)
-    %Batch{
-      batch_merkle_root: new_batch.batchMerkleRoot,
-      batch_data_pointer: new_batch.batchDataPointer,
-      is_verified: is_batch_responded(new_batch.batchMerkleRoot)
-    }
+    new_batch_event |> extract_new_batch_event_info |> find_if_batch_was_responded
   end
 
   def get_amount_of_proofs(%NewBatchInfo{new_batch: %NewBatchEvent{batchDataPointer: batchDataPointer}}) do
     Utils.extract_amount_of_proofs(%{batchDataPointer: batchDataPointer})
+  end
+
+  def get_block_timestamp(block_number) do
+    case Ethers.Utils.get_block_timestamp(block_number) do
+      {:ok, timestamp} -> timestamp
+      {:error, error} -> raise("Error fetching block timestamp: #{error}")
+    end
   end
 
 end
