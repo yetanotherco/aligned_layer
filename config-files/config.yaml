@@ -1,6 +1,6 @@
 # Common variables for all the services
 # 'production' only prints info and above. 'development' also prints debug
-environment: "production"
+environment: "development"
 aligned_layer_deployment_config_file_path: "./contracts/script/output/devnet/alignedlayer_deployment_output.json"
 eigen_layer_deployment_config_file_path: "./contracts/script/output/devnet/eigenlayer_deployment_output.json"
 eth_rpc_url: "http://localhost:8545"

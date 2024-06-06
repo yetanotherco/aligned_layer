@@ -36,6 +36,11 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bool responded;
     }
 
+    struct BatchInclusionData {
+        bytes32 batchMerkleRoot;
+        bytes32 proofCommitment;
+    }
+
     /* STORAGE */
     mapping(bytes32 => BatchState) public batchesState;
 
@@ -133,11 +138,14 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function verifyBatchInclusion(
-        bytes32 batchMerkleRoot,
-        bytes32 proofCommitment,
-        bytes32 pubInputCommitment,
-        bytes32 provingSystemAuxDataCommitment,
-        bytes20 proofGeneratorAddr,
-        bytes batchInclusionProof
-    ) external payable returns (bool) {}
+        // bytes32 batchMerkleRoot,
+        // bytes32 proofCommitment,
+        // bytes32 pubInputCommitment,
+        // bytes32 provingSystemAuxDataCommitment,
+        // bytes20 proofGeneratorAddr,
+        // bytes batchInclusionProof
+        BatchInclusionData calldata batchInclusionData
+    ) external returns (bool) {
+        return true;
+    }
 }
