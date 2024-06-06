@@ -212,6 +212,8 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 		}
 
 		agg.logger.Warn("Aggregator failed to respond to task", "retryNumber", i, "err", err)
+		// Sleep for a bit before retrying
+		time.Sleep(2 * time.Second)
 	}
 }
 
