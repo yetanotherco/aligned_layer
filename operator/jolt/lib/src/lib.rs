@@ -1,18 +1,29 @@
 use lazy_static::lazy_static;
-pub const MAX_PROOF_SIZE: usize = 2 * 1024 * 1024;
-pub const MAX_INFO_BUFFER_SIZE: usize = 1024 * 1024;
+use jolt::jolt_core::jolt::vm::{JoltProof, rv32i_vm::{Jolt, RV32IJoltVM}};
+use jolt::jolt_core::poly::commitment::commitment_scheme::CommitmentScheme;
+use jolt::jolt_core::poly::commitment::hyperkzg::HyperKZG;
+use jolt::jolt_core::poly::commitment::hyrax::HyraxScheme;
+use jolt::tracer;
 
 #[no_mangle]
 pub extern "C" fn verify_jolt_proof_ffi(
-    proof_bytes: &[u8; MAX_PROOF_SIZE],
+    proof_bytes: *const u8,
     proof_len: u32,
-    info_bytes: &[u8; MAX_INFO_BUFFER_SIZE],
-    info_len: u32,
+    elf_bytes: *const u8,
+    elf_len: u32,
+    commitment_bytes: *const u8,
+    commitment_byte_len: u32,
 ) -> bool {
-    let real_info = &elf_bytes[0..elf_len as usize];
+    if let Ok(jolt_proof) = bincode::deserialize(&proof_bytes[..proof_len as usize]) {
+        if let ok(jolt_commitments) = bincode::deserialize(&commitment_bytes[..commitment_byte_len as usize]) {
+            let (bytecode, memory_init) = tracer::decode(&*elf_bytes[..elf_len as usize]);
 
-    if let Ok(proof) = bincode::deserialize(&proof_bytes[..proof_len as usize]) {
-        return true
+            let preprocessing =
+                RV32IJoltVM::preprocess(bytecode.clone(), memory_init, 1 << 20, 1 << 20, 1 << 20);
+
+            let verification_result = RV32IJoltVM::verify(preprocessing, jolt_proof, jolt_commitments);
+            verification_result.is_ok(),
+        }
     }
 
     false
