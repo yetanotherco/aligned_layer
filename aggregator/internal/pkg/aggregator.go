@@ -166,6 +166,8 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 	}
 }
 
+const MaxSentTxRetries = 5
+
 func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err)
@@ -196,20 +198,23 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 		"taskIndex", blsAggServiceResp.TaskIndex,
 	)
 
-	// Wait a bit
-	time.Sleep(20 * time.Second)
-
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
-	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
-	if err != nil {
-		agg.logger.Error("Aggregator failed to respond to task", "err", err)
+	for i := 0; i < MaxSentTxRetries; i++ {
+		_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
+		if err == nil {
+			agg.logger.Info("Aggregator successfully responded to task", "taskIndex", blsAggServiceResp.TaskIndex)
+			return
+		}
+
+		agg.logger.Warn("Aggregator failed to respond to task", "retryNumber", i, "err", err)
 	}
 }
+
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
