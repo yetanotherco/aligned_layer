@@ -46,10 +46,18 @@
 
 <div class="-mt-32 text-foreground z-10 px-5 grid grid-cols-1 md:grid-cols-2 justify-center gap-3 md:max-w-[42rem] mx-auto">
   <.card title="Registered Operators">
-    <%= @operators_registered %>
+    <%= if @operators_registered != :empty do %>
+      <%= @operators_registered %>
+    <% else %>
+      0
+    <% end %>
   </.card>
   <.card title="verified batches">
-    <%= @verified_batches %>
+    <%= if @verified_batches != :empty do %>
+      <%= @verified_batches %>
+    <% else %>
+      0
+    <% end %>
   </.card>
   <.card title="Verified Proofs">
     <%= if @verified_proofs != :empty do %>
