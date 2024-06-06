@@ -92,8 +92,7 @@ dependencies = [
 [[package]]
 name = "ark-ec"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "defd9a439d56ac24968cca0571f598a61bc8c55f71d50a89cda591cb750670ba"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff",
  "ark-poly",
@@ -110,8 +109,7 @@ dependencies = [
 [[package]]
 name = "ark-ff"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec847af850f44ad29048935519032c33da8aa03340876d351dfab5660d2966ba"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff-asm",
  "ark-ff-macros",
@@ -131,8 +129,7 @@ dependencies = [
 [[package]]
 name = "ark-ff-asm"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ed4aa4fe255d0bc6d79373f7e31d2ea147bcf486cba1be5ba7ea85abdb92348"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -141,8 +138,7 @@ dependencies = [
 [[package]]
 name = "ark-ff-macros"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7abe79b0e4288889c4574159ab790824d0033b9fdcb2a112a3182fac2e514565"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "num-bigint",
  "num-traits",
@@ -154,8 +150,7 @@ dependencies = [
 [[package]]
 name = "ark-poly"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d320bfc44ee185d899ccbadfa8bc31aab923ce1558716e1997a1e74057fe86bf"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff",
  "ark-serialize",
@@ -167,8 +162,7 @@ dependencies = [
 [[package]]
 name = "ark-serialize"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb7b85a02b83d2f22f89bd5cac66c9c89474240cb6207cb1efc16d098e822a5"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-serialize-derive",
  "ark-std",
@@ -179,8 +173,7 @@ dependencies = [
 [[package]]
 name = "ark-serialize-derive"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae3281bc6d0fd7e549af32b52511e1302185bd688fd3359fa36423346ff682ea"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -423,7 +416,6 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.2.0"
-source = "git+https://github.com/PatStiles/Lasso?branch=feat/sdk_change#1d04b30f29ea1452e7401f85bd4082ff03145038"
 dependencies = [
  "ark-serialize",
  "serde",
@@ -1030,22 +1022,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
-name = "jolt"
-version = "0.1.0"
-source = "git+https://github.com/PatStiles/Lasso?branch=feat/sdk_change#1d04b30f29ea1452e7401f85bd4082ff03145038"
-dependencies = [
- "clap",
- "eyre",
- "jolt-core",
- "jolt-sdk",
- "rand 0.8.5",
- "sysinfo",
-]
-
-[[package]]
 name = "jolt-core"
 version = "0.1.0"
-source = "git+https://github.com/PatStiles/Lasso?branch=feat/sdk_change#1d04b30f29ea1452e7401f85bd4082ff03145038"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -1093,33 +1071,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "jolt-sdk"
-version = "0.1.0"
-source = "git+https://github.com/PatStiles/Lasso?branch=feat/sdk_change#1d04b30f29ea1452e7401f85bd4082ff03145038"
-dependencies = [
- "jolt-sdk-macros",
- "postcard",
- "serde",
-]
-
-[[package]]
-name = "jolt-sdk-macros"
-version = "0.1.0"
-source = "git+https://github.com/PatStiles/Lasso?branch=feat/sdk_change#1d04b30f29ea1452e7401f85bd4082ff03145038"
-dependencies = [
- "common",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "jolt-verifier-ffi"
 version = "0.1.0"
 dependencies = [
- "bincode",
- "jolt",
- "lazy_static",
+ "ark-bn254",
+ "ark-serialize",
+ "jolt-core",
+ "tracer",
 ]
 
 [[package]]
@@ -1253,15 +1211,6 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "tempfile",
-]
-
-[[package]]
-name = "ntapi"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8a3895c6391c39d7fe7ebc444a87eb2991b2a0bc718fdabd071eec617fc68e4"
-dependencies = [
- "winapi",
 ]
 
 [[package]]
@@ -1970,21 +1919,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
-name = "sysinfo"
-version = "0.30.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "732ffa00f53e6b2af46208fba5718d9662a421049204e156328b66791ffa15ae"
-dependencies = [
- "cfg-if",
- "core-foundation-sys",
- "libc",
- "ntapi",
- "once_cell",
- "rayon",
- "windows",
-]
-
-[[package]]
 name = "system-configuration"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2157,7 +2091,6 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 [[package]]
 name = "tracer"
 version = "0.2.0"
-source = "git+https://github.com/PatStiles/Lasso?branch=feat/sdk_change#1d04b30f29ea1452e7401f85bd4082ff03145038"
 dependencies = [
  "common",
  "fnv",
@@ -2479,25 +2412,6 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "windows"
-version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e48a53791691ab099e5e2ad123536d0fff50652600abaf43bbf952894110d0be"
-dependencies = [
- "windows-core",
- "windows-targets 0.52.5",
-]
-
-[[package]]
-name = "windows-core"
-version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
-dependencies = [
- "windows-targets 0.52.5",
-]
 
 [[package]]
 name = "windows-sys"

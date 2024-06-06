@@ -260,8 +260,7 @@ dependencies = [
 [[package]]
 name = "ark-ec"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "defd9a439d56ac24968cca0571f598a61bc8c55f71d50a89cda591cb750670ba"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff 0.4.2",
  "ark-poly",
@@ -296,8 +295,7 @@ dependencies = [
 [[package]]
 name = "ark-ff"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec847af850f44ad29048935519032c33da8aa03340876d351dfab5660d2966ba"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff-asm 0.4.2",
  "ark-ff-macros 0.4.2",
@@ -327,8 +325,7 @@ dependencies = [
 [[package]]
 name = "ark-ff-asm"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ed4aa4fe255d0bc6d79373f7e31d2ea147bcf486cba1be5ba7ea85abdb92348"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -349,8 +346,7 @@ dependencies = [
 [[package]]
 name = "ark-ff-macros"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7abe79b0e4288889c4574159ab790824d0033b9fdcb2a112a3182fac2e514565"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "num-bigint 0.4.5",
  "num-traits",
@@ -362,8 +358,7 @@ dependencies = [
 [[package]]
 name = "ark-poly"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d320bfc44ee185d899ccbadfa8bc31aab923ce1558716e1997a1e74057fe86bf"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff 0.4.2",
  "ark-serialize 0.4.2",
@@ -385,8 +380,7 @@ dependencies = [
 [[package]]
 name = "ark-serialize"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb7b85a02b83d2f22f89bd5cac66c9c89474240cb6207cb1efc16d098e822a5"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-serialize-derive",
  "ark-std 0.4.0",
@@ -397,8 +391,7 @@ dependencies = [
 [[package]]
 name = "ark-serialize-derive"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae3281bc6d0fd7e549af32b52511e1302185bd688fd3359fa36423346ff682ea"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -989,6 +982,8 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "anyhow",
+ "ark-bn254",
+ "ark-serialize 0.4.2",
  "aws-config",
  "aws-sdk-s3",
  "bincode",
@@ -1016,6 +1011,7 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "tokio-tungstenite 0.21.0",
+ "tracer",
 ]
 
 [[package]]
@@ -1054,6 +1050,35 @@ dependencies = [
  "shlex",
  "syn 2.0.66",
  "which",
+]
+
+[[package]]
+name = "binius_field"
+version = "0.1.0"
+source = "git+https://gitlab.com/UlvetannaOSS/binius#330fe1d205258c57dd7a0fee228ce79dcc753c7c"
+dependencies = [
+ "binius_utils",
+ "bytemuck",
+ "cfg-if",
+ "derive_more",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3?rev=3f5fb24)",
+ "rand 0.8.5",
+ "rayon",
+ "seq-macro",
+ "subtle",
+ "thiserror",
+ "transpose",
+]
+
+[[package]]
+name = "binius_utils"
+version = "0.1.0"
+source = "git+https://gitlab.com/UlvetannaOSS/binius#330fe1d205258c57dd7a0fee228ce79dcc753c7c"
+dependencies = [
+ "rayon",
+ "tracing",
+ "tracing-profile",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -1221,6 +1246,20 @@ name = "bytemuck"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78834c15cb5d5efe3452d58b1e8ba890dd62d21907f867f383358198e56ebca5"
+dependencies = [
+ "bytemuck_derive",
+]
+
+[[package]]
+name = "bytemuck_derive"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ee891b04274a59bd38b412188e24b849617b2e45a0fd8d057deb63e7403761b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.66",
+]
 
 [[package]]
 name = "byteorder"
@@ -1477,7 +1516,6 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.2.0"
-source = "git+https://github.com/PatStiles/Lasso.git?branch=feat/verifier_client#77f7546dff2ece6ffbe2c3766e7e5f17d00fe59e"
 dependencies = [
  "ark-serialize 0.4.2",
  "serde",
@@ -3367,7 +3405,6 @@ dependencies = [
 [[package]]
 name = "jolt-core"
 version = "0.1.0"
-source = "git+https://github.com/PatStiles/Lasso.git?branch=feat/verifier_client#77f7546dff2ece6ffbe2c3766e7e5f17d00fe59e"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -3375,6 +3412,8 @@ dependencies = [
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",
  "bincode",
+ "binius_field",
+ "bytemuck",
  "clap",
  "common",
  "digest 0.8.1",
@@ -3385,6 +3424,7 @@ dependencies = [
  "indicatif",
  "itertools 0.10.5",
  "lazy_static",
+ "memory-stats",
  "merlin",
  "num-integer",
  "postcard",
@@ -3665,6 +3705,16 @@ name = "memchr"
 version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
+
+[[package]]
+name = "memory-stats"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34f79cf9964c5c9545493acda1263f1912f8d2c56c8a2ffee2606cb960acaacc"
+dependencies = [
+ "libc",
+ "winapi",
+]
 
 [[package]]
 name = "memuse"
@@ -4113,7 +4163,7 @@ dependencies = [
  "p3-field",
  "p3-maybe-rayon",
  "p3-symmetric",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "tracing",
 ]
 
@@ -4126,7 +4176,7 @@ dependencies = [
  "p3-challenger",
  "p3-field",
  "p3-matrix",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "serde",
 ]
 
@@ -4138,7 +4188,7 @@ dependencies = [
  "p3-field",
  "p3-matrix",
  "p3-maybe-rayon",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "tracing",
 ]
 
@@ -4150,7 +4200,7 @@ dependencies = [
  "itertools 0.12.1",
  "num-bigint 0.4.5",
  "num-traits",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "rand 0.8.5",
  "serde",
 ]
@@ -4168,7 +4218,7 @@ dependencies = [
  "p3-interpolation",
  "p3-matrix",
  "p3-maybe-rayon",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "serde",
  "tracing",
 ]
@@ -4180,7 +4230,7 @@ source = "git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46cae
 dependencies = [
  "p3-field",
  "p3-matrix",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
 ]
 
 [[package]]
@@ -4201,7 +4251,7 @@ dependencies = [
  "p3-field",
  "p3-matrix",
  "p3-maybe-rayon",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "tracing",
 ]
 
@@ -4213,7 +4263,7 @@ dependencies = [
  "itertools 0.12.1",
  "p3-field",
  "p3-maybe-rayon",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "rand 0.8.5",
  "serde",
  "tracing",
@@ -4237,7 +4287,7 @@ dependencies = [
  "p3-field",
  "p3-matrix",
  "p3-symmetric",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "rand 0.8.5",
 ]
 
@@ -4252,7 +4302,7 @@ dependencies = [
  "p3-matrix",
  "p3-maybe-rayon",
  "p3-symmetric",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "serde",
  "tracing",
 ]
@@ -4292,7 +4342,7 @@ dependencies = [
  "p3-field",
  "p3-matrix",
  "p3-maybe-rayon",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "serde",
  "tracing",
 ]
@@ -4301,6 +4351,14 @@ dependencies = [
 name = "p3-util"
 version = "0.1.0"
 source = "git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a#3b5265f9d5af36534a46caebf0617595cfb42c5a"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "p3-util"
+version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3?rev=3f5fb24#3f5fb24f6561a5e333c23da69b9db64205c9c55c"
 dependencies = [
  "serde",
 ]
@@ -5554,6 +5612,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd0b0ec5f1c1ca621c432a25813d8d60c88abe6d3e08a3eb9cf37d97a0fe3d73"
 
 [[package]]
+name = "seq-macro"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3f0bf26fd526d2a95683cd0f87bf103b8539e2ca1ef48ce002d67aad59aa0b4"
+
+[[package]]
 name = "serde"
 version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5914,7 +5978,7 @@ dependencies = [
  "p3-poseidon2",
  "p3-symmetric",
  "p3-uni-stark",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "rayon-scan",
  "rrs-lib",
  "serde",
@@ -6013,7 +6077,7 @@ dependencies = [
  "p3-field",
  "p3-fri",
  "p3-matrix",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "serde",
  "sp1-core",
  "sp1-recursion-compiler",
@@ -6038,7 +6102,7 @@ dependencies = [
  "p3-matrix",
  "p3-poseidon2",
  "p3-symmetric",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "serde",
  "sp1-core",
  "sp1-recursion-core",
@@ -6126,7 +6190,7 @@ dependencies = [
  "p3-merkle-tree",
  "p3-poseidon2",
  "p3-symmetric",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3.git?rev=3b5265f9d5af36534a46caebf0617595cfb42c5a)",
  "rand 0.8.5",
  "serde",
  "sp1-core",
@@ -6210,6 +6274,12 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "strength_reduce"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe895eb47f22e2ddd4dabc02bce419d2e643c8e3b585c78158b349195bc24d82"
 
 [[package]]
 name = "string_cache"
@@ -6703,7 +6773,6 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 [[package]]
 name = "tracer"
 version = "0.2.0"
-source = "git+https://github.com/PatStiles/Lasso.git?branch=feat/verifier_client#77f7546dff2ece6ffbe2c3766e7e5f17d00fe59e"
 dependencies = [
  "common",
  "fnv",
@@ -6801,6 +6870,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-profile"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cedeb2155cbf8f535de375829ed567735a35ed194342c57e7b54c6e6ef61eb1"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6829,6 +6908,16 @@ dependencies = [
  "term_size",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "transpose"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ad61aed86bc3faea4300c7aee358b4c6d0c8d6ccc36524c96e4c92ccf26e77e"
+dependencies = [
+ "num-integer",
+ "strength_reduce",
 ]
 
 [[package]]

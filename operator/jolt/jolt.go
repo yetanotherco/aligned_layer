@@ -2,9 +2,9 @@ package jolt
 
 /*
 #cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_verifier.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
-#cgo darwin LDFLAGS: -L./lib -lsp1_verifier
+#cgo darwin LDFLAGS: -L./lib -ljolt_verifier
 
-#include "lib/sp1.h"
+#include "lib/jolt.h"
 */
 import "C"
 import "unsafe"
@@ -14,5 +14,5 @@ func VerifyJoltProof(proofBuffer []byte, proofLen uint32, elfBuffer []byte, elfL
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
 	commitmentPtr := (*C.uchar)(unsafe.Pointer(&commitmentBuffer[0]))
 
-	return (bool)(C.verify_jolt_proof_ffi(proofPtr, (C.uint32_t)(proofLen), elfPtr, (C.uint32_t)(elfBuffer), commitmentPtr, (C.uint32_t)(commitmentLen)))
+	return (bool)(C.verify_jolt_proof_ffi(proofPtr, (C.uint32_t)(proofLen), elfPtr, (C.uint32_t)(elfLen), commitmentPtr, (C.uint32_t)(commitmentLen)))
 }

@@ -4,9 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bincode = "1.3.3"
-lazy_static = "1.4.0"
-jolt = { git = "https://github.com/PatStiles/Lasso", branch = "feat/sdk_change"}
+ark-serialize = "0.4.2"
+jolt-core = { path = "../../../../../Crypto/jolt/jolt-core" }
+tracer = { path = "../../../../../Crypto/jolt/tracer" }
+ark-bn254 = "0.4.0"
 
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
+
+[patch.crates-io]
+ark-ff = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+ark-ec = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+ark-serialize = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+
