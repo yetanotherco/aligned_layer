@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	MaxRetries    = 20
-	RetryInterval = 10 * time.Second
+	MaxRetries    = 100
+	RetryInterval = 1 * time.Second
 )
 
 func (agg *Aggregator) SubscribeToNewTasks() error {
