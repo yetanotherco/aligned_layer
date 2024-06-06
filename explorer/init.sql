@@ -3,7 +3,3 @@ CREATE TABLE batches (
     amount_of_proofs INT NOT NULL,
     is_verified BOOLEAN NOT NULL
 );
-
-/*
-    TODO add timestamp
-*/
