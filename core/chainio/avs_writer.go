@@ -108,13 +108,6 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 		return nil, err
 	}
 
-	taskRespondedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseBatchVerified(*receipt.Logs[0])
-	if err != nil {
-		return nil, err
-	}
-
-	// FIXME(marian): Dummy log to check integration with the contract
-	w.logger.Infof("TASK RESPONDED EVENT: %+v", taskRespondedEvent)
 	return receipt, nil
 }
 

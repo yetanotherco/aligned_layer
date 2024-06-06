@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"encoding/hex"
 	"sync"
 	"time"
 
@@ -159,7 +160,8 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 		case err := <-metricsErrChan:
 			agg.logger.Fatal("Metrics server failed", "err", err)
 		case blsAggServiceResp := <-agg.blsAggregationService.GetResponseChannel():
-			agg.logger.Info("Received response from BLS aggregation service", "blsAggServiceResp", blsAggServiceResp)
+			agg.logger.Info("Received response from BLS aggregation service",
+				"taskIndex", blsAggServiceResp.TaskIndex)
 			agg.sendAggregatedResponseToContract(blsAggServiceResp)
 			agg.metrics.IncAggregatedResponses()
 		}
@@ -194,27 +196,36 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 		NonSignerStakeIndices:        blsAggServiceResp.NonSignerStakeIndices,
 	}
 
-	agg.logger.Info("Threshold reached. Sending aggregated response onchain.",
-		"taskIndex", blsAggServiceResp.TaskIndex,
-	)
-
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
+	agg.logger.Info("Threshold reached. Sending aggregated response onchain.",
+		"taskIndex", blsAggServiceResp.TaskIndex,
+		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+
+	var err error
+
 	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
+		_, err = agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 		if err == nil {
-			agg.logger.Info("Aggregator successfully responded to task", "taskIndex", blsAggServiceResp.TaskIndex)
+			agg.logger.Info("Aggregator successfully responded to task",
+				"taskIndex", blsAggServiceResp.TaskIndex,
+				"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+
 			return
 		}
 
-		agg.logger.Warn("Aggregator failed to respond to task", "retryNumber", i, "err", err)
 		// Sleep for a bit before retrying
 		time.Sleep(2 * time.Second)
 	}
+
+	agg.logger.Error("Aggregator failed to respond to task, this batch will be lost",
+		"err", err,
+		"taskIndex", blsAggServiceResp.TaskIndex,
+		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 }
 
 

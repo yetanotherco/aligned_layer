@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/rpc"
@@ -44,8 +45,9 @@ func (agg *Aggregator) ServeOperators() error {
 //   - 0: Success
 //   - 1: Error
 func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *types.SignedTaskResponse, reply *uint8) error {
-
-	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response",
+		"merkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
@@ -78,8 +80,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 			close(done)
 		}
 	}()
-
-	fmt.Println("Starting bls signature process")
 
 	*reply = 1
 	// Wait for either the context to be done or the task to complete
