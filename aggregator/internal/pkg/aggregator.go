@@ -266,6 +266,6 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	}
 
 	agg.taskMutex.Unlock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unocked Resources: Adding new task")
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", batchMerkleRoot)
 }
