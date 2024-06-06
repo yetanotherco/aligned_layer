@@ -202,6 +202,9 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
+	// Wait a block, going to fast generates errors
+	time.Sleep(15 * time.Second)
+
 	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.logger.Error("Aggregator failed to respond to task", "err", err)
