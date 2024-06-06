@@ -648,7 +648,3 @@ recover_db: run_db
 	@cd explorer && \
 		docker cp dump.sql explorer-postgres-container:/dump.sql && \
 		docker exec -t explorer-postgres-container psql -U explorer_user -d explorer_db -f /dump.sql
-
-# TODO:
-# hacer con docker compose
-# a futuro correr bd y explorer en un solo docker
