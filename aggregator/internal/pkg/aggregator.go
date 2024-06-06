@@ -196,14 +196,14 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 		"taskIndex", blsAggServiceResp.TaskIndex,
 	)
 
+	// Wait a bit
+	time.Sleep(15 * time.Second)
+
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
-
-	// Wait a block, going to fast generates errors
-	time.Sleep(15 * time.Second)
 
 	_, err := agg.avsWriter.SendAggregatedResponse(context.Background(), batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
