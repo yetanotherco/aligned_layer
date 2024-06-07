@@ -222,12 +222,7 @@ func (agg *Aggregator) sendAggregatedResponseToContract(blsAggServiceResp blsagg
 			// Confirm Task included in block by checking TxReceipt
 			// If not we resend the Aggregated Response
 			_, err = utils.WaitForTransactionReceipt(agg.avsWriter.Client, context.Background(), txReceipt.TxHash)
-			if err != nil {
-				agg.logger.Error("Aggregator Task Tx not included in block, resending Aggregator Task Tx",
-					"err", err,
-					"taskIndex", blsAggServiceResp.TaskIndex,
-					"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
-			} else {
+			if err = nil {
 				// If the aggregator successfully responded to the task and we received confirmation the Tx was included we return
 				return
 			}
