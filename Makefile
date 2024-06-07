@@ -232,7 +232,8 @@ batcher_send_infinite_groth16: ./batcher/client/target/release/aligned ## Send a
 
 batcher_send_burst_groth16: build_batcher_client
 	@echo "Sending a burst of tasks to Batcher..."
-	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
+	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
+	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
 batcher_send_halo2_ipa_task: batcher/client/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
