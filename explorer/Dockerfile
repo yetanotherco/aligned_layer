@@ -1,5 +1,5 @@
-# Use the official PostgreSQL image from the Docker Hub
-FROM postgres:latest
+# https://hub.docker.com/_/postgres
+FROM postgres:16.3
 
 # Environment variables
 ENV POSTGRES_USER=explorer_user
