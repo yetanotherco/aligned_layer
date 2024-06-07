@@ -106,11 +106,11 @@ async fn receive(
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
             if let Some(close_msg) = close_frame {
-                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting again", close_msg.to_owned());
+                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
                 ws_write.lock().await.close().await?;
                 return Ok(());
             }
-            error!("Connection was closed before receiving all messages. Try submitting again");
+            error!("Connection was closed before receiving all messages. Try submitting your proof again");
             ws_write.lock().await.close().await?;
             return Ok(());
         } else {
