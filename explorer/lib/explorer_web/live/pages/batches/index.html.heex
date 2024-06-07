@@ -9,7 +9,7 @@
           <tr class="text-muted-foreground font-normal">
             <th class="text-left">Batch Merkle Root</th>
             <th>Block Number</th>
-            <th>Is verified</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -34,15 +34,7 @@
               <th class={[
                 "font-medium text-base rounded-full"
               ]}>
-                <span class={[
-                  "px-3 py-1 rounded-full",
-                  case batch.responded do
-                    true -> "text-black bg-primary group-hover:bg-primary/80"
-                    false -> "text-white bg-secondary group-hover:bg-secondary/80"
-                  end
-                ]}>
-                  <%= batch.responded %>
-                </span>
+                <.dynamic_badge status={batch.responded} />
               </th>
             </tr>
           <% end %>
