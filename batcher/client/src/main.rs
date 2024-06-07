@@ -1,4 +1,8 @@
-use std::{path::PathBuf, sync::Arc, time::Duration};
+extern crate core;
+
+mod errors;
+
+use std::{path::PathBuf, sync::Arc};
 
 use alloy_primitives::{Address, hex};
 use env_logger::Env;
@@ -11,10 +15,11 @@ use log::info;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
-use batcher::types::{parse_proving_system, BatchInclusionData, VerificationData};
+use batcher::types::{parse_proving_system, BatchInclusionData, VerificationData, ProvingSystemId};
 
 use clap::Parser;
 use tungstenite::Message;
+use crate::errors::BatcherClientError;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -35,19 +40,17 @@ struct Args {
     #[arg(
         name = "Public input file name",
         long = "public_input",
-        default_value = "."
     )]
-    pub_input_file_name: PathBuf,
+    pub_input_file_name: Option<PathBuf>,
 
-    #[arg(name = "Verification key file name", long = "vk", default_value = ".")]
-    verification_key_file_name: PathBuf,
+    #[arg(name = "Verification key file name", long = "vk")]
+    verification_key_file_name: Option<PathBuf>,
 
     #[arg(
         name = "VM prgram code file name",
         long = "vm_program",
-        default_value = "."
     )]
-    vm_program_code_file_name: PathBuf,
+    vm_program_code_file_name: Option<PathBuf>,
 
     #[arg(
         name = "Number of repetitions",
@@ -65,73 +68,35 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), errors::BatcherClientError> {
     let args = Args::parse();
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let url = url::Url::parse(&args.connect_addr).unwrap();
-    let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
+    let url = url::Url::parse(&args.connect_addr)
+        .map_err(|e| errors::BatcherClientError::InvalidUrl(e, args.connect_addr.clone()))?;
+
+    let (ws_stream, _) = connect_async(url).await?;
+
     info!("WebSocket handshake has been successfully completed");
 
     let (mut ws_write, ws_read) = ws_stream.split();
 
-    let proving_system = parse_proving_system(&args.proving_system_flag).unwrap();
+    let repetitions = args.repetitions;
+    let verification_data = verification_data_from_args(args)?;
 
-    // Read proof file
-    let proof = std::fs::read(&args.proof_file_name)
-        .unwrap_or_else(|_| panic!("Failed to read .proof file: {:?}", args.proof_file_name));
-
-    // Read public input file
-    let mut pub_input: Option<Vec<u8>> = None;
-    if let Ok(data) = std::fs::read(args.pub_input_file_name) {
-        pub_input = Some(data);
-    } else {
-        info!("No public input file provided, continuing without public input...");
-    }
-
-    let mut verification_key: Option<Vec<u8>> = None;
-    if let Ok(data) = std::fs::read(args.verification_key_file_name) {
-        verification_key = Some(data);
-    } else {
-        info!("No verification key file provided, continuing without verification key...");
-    }
-
-    let mut vm_program_code: Option<Vec<u8>> = None;
-    if let Ok(data) = std::fs::read(args.vm_program_code_file_name) {
-        vm_program_code = Some(data);
-    } else {
-        info!("No VM program code file provided, continuing without VM program code...");
-    }
-
-    let proof_generator_addr: Address =
-        Address::parse_checksummed(&args.proof_generator_addr, None).unwrap();
-
-    let verification_data = VerificationData {
-        proving_system,
-        proof,
-        pub_input,
-        verification_key,
-        vm_program_code,
-        proof_generator_addr,
-    };
-
-    let json_data = serde_json::to_string(&verification_data).expect("Failed to serialize task");
-    for _ in 0..args.repetitions {
-        // NOTE(marian): This sleep is only for ease of testing interactions between client and batcher,
-        // it can be removed.
-        std::thread::sleep(Duration::from_millis(500));
-        ws_write
-            .send(tungstenite::Message::Text(json_data.to_string()))
-            .await
-            .unwrap();
+    let json_data = serde_json::to_string(&verification_data)?;
+    for _ in 0..repetitions {
+        ws_write.send(Message::Text(json_data.to_string())).await?;
         info!("Message sent...")
     }
 
     let num_responses = Arc::new(Mutex::new(0));
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    receive(ws_read, ws_write, args.repetitions, num_responses).await;
+    receive(ws_read, ws_write, repetitions, num_responses).await?;
+
+    Ok(())
 }
 
 async fn receive(
@@ -139,13 +104,13 @@ async fn receive(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
-) {
+) -> Result<(), BatcherClientError> {
     ws_read
         .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
-        .for_each(|msg| async {
+        .try_for_each(|msg| async {
             let mut num_responses_lock = num_responses.lock().await;
             *num_responses_lock += 1;
-            let data = msg.unwrap().into_data();
+            let data = msg.into_data();
             let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
             info!("Batcher response received: {}", deserialized_data);
 
@@ -157,8 +122,59 @@ async fn receive(
 
             if *num_responses_lock == total_messages {
                 info!("All messages responded. Closing connection...");
-                ws_write.lock().await.close().await.unwrap();
+                ws_write.lock().await.close().await?;
             }
-        })
-        .await;
+
+            Ok(())
+        }).await?;
+
+    Ok(())
+}
+
+fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherClientError> {
+    let proving_system = parse_proving_system(&args.proving_system_flag)
+        .map_err(|_| errors::BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
+
+    // Read proof file
+    let proof = read_file(args.proof_file_name)?;
+
+    let mut pub_input: Option<Vec<u8>> = None;
+    let mut verification_key: Option<Vec<u8>> = None;
+    let mut vm_program_code: Option<Vec<u8>> = None;
+
+    match proving_system {
+        ProvingSystemId::SP1 => {
+            vm_program_code = Some(read_file_option("--vm_program", args.vm_program_code_file_name)?);
+        }
+        ProvingSystemId::Halo2KZG
+        | ProvingSystemId::Halo2IPA
+        | ProvingSystemId::GnarkPlonkBls12_381
+        | ProvingSystemId::GnarkPlonkBn254
+        | ProvingSystemId::Groth16Bn254 => {
+            verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
+            pub_input = Some(read_file_option("--public_input", args.pub_input_file_name)?);
+        }
+    }
+
+    let proof_generator_addr: Address =
+        Address::parse_checksummed(&args.proof_generator_addr, None).unwrap();
+
+    Ok(VerificationData {
+        proving_system,
+        proof,
+        pub_input,
+        verification_key,
+        vm_program_code,
+        proof_generator_addr,
+    })
+}
+
+fn read_file(file_name: PathBuf) -> Result<Vec<u8>, BatcherClientError> {
+    std::fs::read(&file_name)
+        .map_err(|e| BatcherClientError::IoError(file_name, e))
+}
+
+fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<u8>, BatcherClientError> {
+    let file_name = file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
+    read_file(file_name)
 }
