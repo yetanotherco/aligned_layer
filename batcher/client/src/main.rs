@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
-use alloy_primitives::Address;
+use alloy_primitives::{hex, Address};
 use env_logger::Env;
 use futures_util::{
     future,
@@ -162,6 +162,7 @@ async fn receive(
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
                     info!("Batcher response received: {}", batch_inclusion_data);
+                    info!("See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
                 }
                 Err(e) => {
                     error!("Error while deserializing batcher response: {}", e);
