@@ -157,8 +157,8 @@ async fn receive(
         } else {
             let mut num_responses_lock = num_responses.lock().await;
             *num_responses_lock += 1;
+
             let data = msg.into_data();
-            // let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
                     info!("Batcher response received: {}", batch_inclusion_data);
