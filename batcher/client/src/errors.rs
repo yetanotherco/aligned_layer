@@ -41,9 +41,3 @@ impl fmt::Debug for BatcherClientError {
         }
     }
 }
-
-
-
-
-
-
