@@ -41,7 +41,7 @@ make install_batcher_client
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-batcher-client \
+aligned \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
@@ -51,8 +51,10 @@ batcher-client \
 
 **Example**
 
+
+
 ```bash
-batcher-client \
+aligned \
 --proving_system SP1 \
 --proof ./batcher/client/test_files/sp1/sp1_fibonacci.proof \
 --vm_program ./batcher/client/test_files/sp1/sp1_fibonacci-elf \
@@ -64,7 +66,7 @@ batcher-client \
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-batcher-client \
+aligned \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
@@ -76,7 +78,7 @@ batcher-client \
 **Examples**
 
 ```bash
-batcher-client \
+aligned \
 --proving_system GnarkPlonkBn254 \
 --proof ./batcher/client/test_files/plonk_bn254/plonk.proof \
 --public_input ./batcher/client/test_files/plonk_bn254/plonk_pub_input.pub \
@@ -85,7 +87,7 @@ batcher-client \
 ```
 
 ```bash
-batcher-client \
+aligned \
 --proving_system GnarkPlonkBls12_381 \
 --proof ./batcher/client/test_files/plonk_bls12_381/plonk.proof \
 --public_input ./batcher/client/test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -94,7 +96,7 @@ batcher-client \
 ```
 
 ```bash
-batcher-client \
+aligned \
 --proving_system Groth16Bn254 \
 --proof ./batcher/client/test_files/groth16/ineq_1_groth16.proof \
 --public_input ./batcher/client/test_files/groth16/ineq_1_groth16.pub \
@@ -461,7 +463,7 @@ The SP1 proof needs the proof file and the vm program file.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-batcher-client \
+aligned \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public-input <public_input_file> \
