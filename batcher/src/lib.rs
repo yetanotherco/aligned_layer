@@ -122,7 +122,9 @@ impl Batcher {
             let block_number = u64::try_from(block_number).unwrap();
             info!("Received new block: {}", block_number);
             tokio::spawn(async move {
-                let _ = batcher.handle_new_block(block_number).await;
+                if let Err(e) = batcher.handle_new_block(block_number).await {
+                    error!("Error when handling new block: {:?}", e);
+                };
             });
         }
 
