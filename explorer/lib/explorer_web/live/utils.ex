@@ -52,7 +52,7 @@ defmodule Utils do
   end
 
   def extract_amount_of_proofs_from_json({:error, _}) do
-    312
+    300
   end
 
   def fetch_batch_data_pointer(batch_data_pointer) do
@@ -82,7 +82,7 @@ defmodule Utils do
   def extract_amount_of_proofs(%{batchDataPointer: batchDataPointer}) do
     case Utils.fetch_batch_data_pointer(batchDataPointer) do
       {:ok, batch_json} -> Utils.extract_amount_of_proofs_from_json({:ok, batch_json})
-      {:error, _} -> 312
+      {:error, _} -> 300
     end
   end
 end
