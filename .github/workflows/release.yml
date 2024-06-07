@@ -19,4 +19,4 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: batcher/client/target/release/batcher-client
+          files: batcher/client/target/release/aligned
