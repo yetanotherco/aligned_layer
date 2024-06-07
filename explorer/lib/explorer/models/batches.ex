@@ -8,7 +8,7 @@ defmodule Batches do
     field :amount_of_proofs, :integer
     field :is_verified, :boolean
 
-    # timestamps()
+    timestamps()
   end
 
   @doc false

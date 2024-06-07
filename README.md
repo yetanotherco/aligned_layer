@@ -711,10 +711,21 @@ The explorer uses PostgreSQL as the database. To build and start the DB using do
 
 ```bash
 make build_db
-make run_db
 ```
 
-The DB will be available on `localhost:5432` , it will be mount on a Docker volume to persist its data, and it will be started on every `make run_explorer` or `make run_devnet_explorer` command.
+This will build the docker image to be used as our database.
+
+After this, both `make run_explorer` and `make run_devnet_explorer` will automatically start, setup and connect to the database, which will be available on `localhost:5432` , and which will be mount on a Docker volume to persist its data.
+
+Anyhow, if you wish to manually execute some of the database setup steps, they are:
+1. Run the database container, opening port 5432
+```bash
+make run_db
+```
+2. Configure the database with ecto running `ecto.create` and `ecto.migrate`:
+```bash
+make ecto_setup_db
+```
 
 In order to clear the DB, you can run:
 
