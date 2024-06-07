@@ -31,7 +31,7 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 To install the batcher client to send proofs in the testnet, run: 
 
 ```bash
-make install_batcher_client
+make install_aligned
 ```
 
 ### Run
