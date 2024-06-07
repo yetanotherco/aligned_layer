@@ -7,7 +7,7 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
-use log::info;
+use log::{error, info};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
@@ -141,7 +141,7 @@ async fn receive(
     num_responses: Arc<Mutex<usize>>,
 ) {
     ws_read
-        .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
+        .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary() || msg.is_close()))
         .for_each(|msg| async {
             let mut num_responses_lock = num_responses.lock().await;
             *num_responses_lock += 1;
@@ -151,14 +151,31 @@ async fn receive(
 
             let batch_merkle_root_hex = hex::encode(deserialized_data.batch_merkle_root);
             info!(
-                "See the batch in the explorer: https://explorer.alignedlayer.com/batches/0x{}",
+                "See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}",
                 batch_merkle_root_hex
             );
 
             if *num_responses_lock == total_messages {
                 info!("All messages responded. Closing connection...");
+            if let Ok(Message::Close(Some(close_msg))) = &msg {
                 ws_write.lock().await.close().await.unwrap();
+                error!(
+                    "Closing connection before all responses arrived: {}",
+                    close_msg.to_owned()
+                );
+            } else {
+                let mut num_responses_lock = num_responses.lock().await;
+                *num_responses_lock += 1;
+                let data = msg.as_ref().unwrap().clone().into_data();
+                let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
+                info!("Batcher response received: {}", deserialized_data);
+
+                if *num_responses_lock == total_messages {
+                    info!("All messages responded. Closing connection...");
+                    ws_write.lock().await.close().await.unwrap();
+                }
             }
+            info!("Y ACA QUE ONDA?? MIRA: {:?}", msg.unwrap());
         })
         .await;
 }
