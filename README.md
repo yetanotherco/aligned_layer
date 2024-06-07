@@ -728,13 +728,15 @@ If you need to dumb the data from the DB, you can run:
 make dump_db
 ```
 
-This will create a `dump.sql` SQL script on the `explorer` directory with all the existing data.
+This will create a `dump.$date.sql` SQL script on the `explorer` directory with all the existing data.
 
 Then you can recover this data with:
 
 ```bash
 make recover_db
 ```
+
+Then you'll be requested to enter the file name of the dump you want to recover already positioned in the `/explorer` directory.
 
 This will refresh your database with the dumped database data.
 

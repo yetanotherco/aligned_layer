@@ -38,4 +38,4 @@ npm-debug.log
 # Environment Variables
 /.env
 
-dump.sql
+dump.*.sql

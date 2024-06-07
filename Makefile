@@ -639,9 +639,12 @@ clean_db: remove_db_container
 
 dump_db:
 	@cd explorer && \
-		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.sql
+		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
+	@echo "Dumped database successfully to /explorer"
 
 recover_db: run_db
-	@cd explorer && \
-		docker cp dump.sql explorer-postgres-container:/dump.sql && \
-		docker exec -t explorer-postgres-container psql -U explorer_user -d explorer_db -f /dump.sql
+	@read -p $$'\e[32mEnter the dump file to recover (e.g., dump.20230607_123456.sql): \e[0m' DUMP_FILE && \
+	cd explorer && \
+	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
+	docker exec -t explorer-postgres-container psql -U explorer_user -d explorer_db -f /dump.sql && \
+	echo "Recovered database successfully from $$DUMP_FILE"
