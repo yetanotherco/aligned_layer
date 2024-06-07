@@ -22,6 +22,7 @@ use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFr
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
+use types::errors::BatcherError;
 use types::{BatchInclusionData, VerificationCommitmentBatch, VerificationDataCommitment};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -95,7 +96,7 @@ impl Batcher {
         }
     }
 
-    pub async fn listen_connections(self: Arc<Self>, address: &str) {
+    pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address).await.expect("Failed to build");
         info!("Listening on: {}", address);
@@ -105,10 +106,15 @@ impl Batcher {
             let batcher = self.clone();
             tokio::spawn(batcher.handle_connection(stream, addr));
         }
+        Ok(())
     }
 
-    pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), anyhow::Error> {
-        let mut stream = self.eth_ws_provider.subscribe_blocks().await?;
+    pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), BatcherError> {
+        let mut stream = self
+            .eth_ws_provider
+            .subscribe_blocks()
+            .await
+            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
 
         while let Some(block) = stream.next().await {
             let batcher = self.clone();
@@ -116,7 +122,7 @@ impl Batcher {
             let block_number = u64::try_from(block_number).unwrap();
             info!("Received new block: {}", block_number);
             tokio::spawn(async move {
-                batcher.handle_new_block(block_number).await;
+                let _ = batcher.handle_new_block(block_number).await;
             });
         }
 
@@ -252,7 +258,11 @@ impl Batcher {
     /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
     /// to s3, creates new task in Aligned contract and sends responses to all clients that added proofs
     /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
-    async fn finalize_batch(&self, block_number: u64, finalized_batch: BatchQueue) {
+    async fn finalize_batch(
+        &self,
+        block_number: u64,
+        finalized_batch: BatchQueue,
+    ) -> Result<(), BatcherError> {
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
             .into_iter()
@@ -289,18 +299,21 @@ impl Batcher {
         let await_batch_verified_fut =
             await_batch_verified_event(&mut stream, &batch_merkle_tree.root);
         if let Err(_) = timeout(Duration::from_secs(60), await_batch_verified_fut).await {
-            send_timeout_close(finalized_batch).await;
+            send_timeout_close(finalized_batch).await?;
         } else {
-            send_responses(finalized_batch, &batch_merkle_tree).await;
+            send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
         }
+
+        Ok(())
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
-    async fn handle_new_block(&self, block_number: u64) {
+    async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number, finalized_batch).await;
+            self.finalize_batch(block_number, finalized_batch).await?;
         }
+        Ok(())
     }
 
     /// Post batch to s3 and submit new task to Ethereum
@@ -330,7 +343,7 @@ impl Batcher {
 async fn await_batch_verified_event<'s>(
     events_stream: &mut BatchVerifiedEventStream<'s>,
     batch_merkle_root: &[u8; 32],
-) {
+) -> Result<(), BatcherError> {
     while let Some(event_result) = events_stream.next().await {
         if let Ok(event) = event_result {
             if &event.batch_merkle_root == batch_merkle_root {
@@ -338,15 +351,16 @@ async fn await_batch_verified_event<'s>(
                 break;
             }
         } else {
-            error!(
-                "Error awaiting for batch signature verification event: {}",
-                event_result.unwrap_err()
-            );
+            error!("Error awaiting for batch signature verification event");
+            return Err(BatcherError::BatchVerifiedEventStreamError(
+                event_result.unwrap_err().to_string(),
+            ));
         }
     }
+    Ok(())
 }
 
-async fn send_responses(
+async fn send_batch_inclusion_data_responses(
     finalized_batch: BatchQueue,
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
 ) {
@@ -376,7 +390,7 @@ async fn send_responses(
 
 /// Send a close response to all clients that included data in the batch indicated that a
 /// timeout was exceeded awaiting for the batch verification events
-async fn send_timeout_close(finalized_batch: BatchQueue) {
+async fn send_timeout_close(finalized_batch: BatchQueue) -> Result<(), BatcherError> {
     let timeout_msg = Message::Close(Some(CloseFrame {
         code: CloseCode::Protocol,
         reason: Cow::from("Timeout: BatchVerified event not received"),
@@ -391,11 +405,12 @@ async fn send_timeout_close(finalized_batch: BatchQueue) {
             Err(Error::Protocol(ProtocolError::SendAfterClosing)) => (),
             Err(e) => {
                 error!("Error sending timeout response to clients: {}", e);
-                panic!();
+                return Err(e.into());
             }
             Ok(_) => (),
         }
 
         info!("Timeout close response sent");
     }
+    Ok(())
 }
