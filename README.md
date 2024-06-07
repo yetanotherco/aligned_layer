@@ -52,6 +52,7 @@ aligned \
 **Example**
 
 
+
 ```bash
 aligned \
 --proving_system SP1 \
