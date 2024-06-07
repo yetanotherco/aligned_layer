@@ -2,15 +2,25 @@ package chainio
 
 import (
 	"context"
+	"fmt"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
+	gethcommon "github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
+	"math/big"
+	"time"
+)
+
+const (
+	maxRetries          = 25
+	sleepTime           = 5 * time.Second
+	incrementPercentage = 10
 )
 
 type AvsWriter struct {
@@ -101,7 +111,9 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 		return nil, err
 	}
 
-	receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
+	txNonce := big.NewInt(int64(tx.Nonce()))
+	receipt, err := w.WaitForTransactionReceiptWithIncreasingTip(ctx, tx.Hash(), txNonce, batchMerkleRoot, nonSignerStakesAndSignature)
+	w.logger.Info("Transaction receipt:", "receipt", receipt)
 	if err != nil {
 		return nil, err
 	}
@@ -109,34 +121,54 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 	return receipt, nil
 }
 
-func (w *AvsWriter) SimulateRespondToTask(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Transaction, error) {
-	txOpts := w.Signer.GetTxOpts()
+func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Context, txHash gethcommon.Hash, txNonce *big.Int, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+	currentSleepTime := 0 * time.Second
 
-	txOpts.NoSend = true
+	for i := 0; i < maxRetries; i++ {
+		receipt, err := w.Client.TransactionReceipt(ctx, txHash)
 
-	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
-	if err != nil {
-		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
-		return nil, err
+		if err == nil {
+			return receipt, nil
+		}
+
+		currentSleepTime += sleepTime
+		time.Sleep(sleepTime)
+
+		// If one minute elapses, increase the gas limit and gas tip cap
+		if currentSleepTime%60*time.Second == 0 {
+			// Simulate the transaction to get the gas limit again
+			txOpts := *w.Signer.GetTxOpts()
+			txOpts.NoSend = true
+			tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+			if err != nil {
+				return nil, err
+			}
+
+			// Use the same nonce as the original transaction
+			txOpts.Nonce = txNonce
+
+			// Add 10% to the gas limit
+			txOpts.GasLimit = tx.Gas() * 110 / 100
+
+			// Increase the gas tip cap by 10%
+			var newGasTipCap *big.Int
+			newGasTipCap = new(big.Int).Mul(big.NewInt(int64(incrementPercentage+100)), tx.GasTipCap())
+			newGasTipCap.Div(newGasTipCap, big.NewInt(100))
+			txOpts.GasTipCap = newGasTipCap
+
+			// Submit the transaction with the new gas tip cap
+			txOpts.NoSend = false
+			tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+			if err != nil {
+				return nil, err
+			}
+
+			// Update the transaction hash
+			txHash = tx.Hash()
+		}
 	}
 
-	return tx, nil
-
-}
-
-func (w *AvsWriter) SendRespondToTask(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Transaction, error) {
-	txOpts := w.Signer.GetTxOpts()
-
-	txOpts.NoSend = false
-
-	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
-	if err != nil {
-		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
-		return nil, err
-	}
-
-	return tx, nil
-
+	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
 }
 
 // func (w *AvsWriter) RaiseChallenge(
