@@ -2,9 +2,11 @@ package pkg
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/rpc"
+	"time"
 
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
@@ -43,35 +45,57 @@ func (agg *Aggregator) ServeOperators() error {
 //   - 0: Success
 //   - 1: Error
 func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *types.SignedTaskResponse, reply *uint8) error {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response",
+		"merkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
-	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response", "taskResponse", signedTaskResponse)
-
-	if _, ok := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]; !ok {
+	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
+	taskIndex, ok := agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
+	if !ok {
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources")
+		agg.taskMutex.Unlock()
 		return fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
 	}
 
-	agg.batchesResponseMutex.Lock()
-	taskResponses := agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot]
-	taskResponses.taskResponses = append(
-		agg.OperatorTaskResponses[signedTaskResponse.BatchMerkleRoot].taskResponses,
-		*signedTaskResponse)
-	agg.batchesResponseMutex.Unlock()
+	// Don't wait infinitely if it can't answer
+	// Create a context with a timeout of 5 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel() // Ensure the cancel function is called to release resources
 
-	agg.batchesIdxByRootMutex.Lock()
-	taskIndex := agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
-	agg.batchesIdxByRootMutex.Unlock()
+	// Create a channel to signal when the task is done
+	done := make(chan struct{})
 
-	err := agg.blsAggregationService.ProcessNewSignature(
-		context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
-		&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
-	)
-	if err != nil {
-		agg.logger.Warnf("BLS aggregation service error: %s", err)
-		*reply = 1
-		return err
+	agg.logger.Info("Starting bls signature process")
+	go func() {
+		err := agg.blsAggregationService.ProcessNewSignature(
+			context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
+			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
+		)
+
+		if err != nil {
+			agg.logger.Warnf("BLS aggregation service error: %s", err)
+		} else {
+			agg.logger.Info("BLS process succeeded")
+		}
+
+		close(done)
+	}()
+
+	*reply = 1
+	// Wait for either the context to be done or the task to complete
+	select {
+	case <-ctx.Done():
+		// The context's deadline was exceeded or it was canceled
+		agg.logger.Info("Bls process timed out, operator signature will be lost. Batch may not reach quorum")
+	case <-done:
+		// The task completed successfully
+		agg.logger.Info("Bls context finished correctly")
+		*reply = 0
 	}
 
-	*reply = 0
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Task response processing finished")
+	agg.taskMutex.Unlock()
 
 	return nil
 }

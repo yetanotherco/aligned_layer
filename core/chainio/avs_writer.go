@@ -11,7 +11,6 @@ import (
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
-	"math/big"
 )
 
 type AvsWriter struct {
@@ -87,36 +86,26 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 }
 
 func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-
-	tx, err := w.SimulateRespondToTask(batchMerkleRoot, nonSignerStakesAndSignature)
+	txOpts := *w.Signer.GetTxOpts()
+	txOpts.NoSend = true // simulate the transaction
+	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
-
-	// Add 10% to the gas limit
-	txOpts := w.Signer.GetTxOpts()
-	txOpts.GasLimit = tx.Gas() * 110 / 100
 
 	// Send the transaction
-	tx, err = w.SendRespondToTask(batchMerkleRoot, nonSignerStakesAndSignature)
+	txOpts.NoSend = false
+	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
+	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
 
-	txNonce := big.NewInt(int64(tx.Nonce()))
-
-	receipt, err := utils.WaitForTransactionReceiptWithIncreasingTip(w, ctx, tx.Hash(), txNonce, txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+	receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
 	if err != nil {
 		return nil, err
 	}
 
-	taskRespondedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseBatchVerified(*receipt.Logs[0])
-	if err != nil {
-		return nil, err
-	}
-
-	// FIXME(marian): Dummy log to check integration with the contract
-	w.logger.Infof("TASK RESPONDED EVENT: %+v", taskRespondedEvent)
 	return receipt, nil
 }
 
