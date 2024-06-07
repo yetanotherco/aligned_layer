@@ -137,7 +137,7 @@ batcher_start: ./batcher/.env
 install_batcher:
 	@cargo +nightly-2024-04-17 install --path batcher
 
-install_aligned_cli: 
+install_aligned: 
 	@cargo +nightly-2024-04-17 install --path batcher/client
 
 build_batcher_client:
