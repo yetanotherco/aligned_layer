@@ -51,19 +51,12 @@ aligned \
 
 **Example**
 
-```bash
-aligned \
---proving_system SP1 \
---proof test_files/sp1/sp1_fibonacci.proof \
---vm_program test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com
-```
 
 ```bash
 aligned \
 --proving_system SP1 \
---proof test_files/sp1/sp1_fibonacci.proof \
---vm_program test_files/sp1/sp1_fibonacci-elf \
+--proof ./batcher/client/test_files/sp1/sp1_fibonacci.proof \
+--vm_program ./batcher/client/test_files/sp1/sp1_fibonacci-elf \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -86,27 +79,27 @@ aligned \
 ```bash
 aligned \
 --proving_system GnarkPlonkBn254 \
---proof test_files/plonk_bn254/plonk.proof \
---public_input test_files/plonk_bn254/plonk_pub_input.pub \
---vk test_files/plonk_bn254/plonk.vk \
+--proof ./batcher/client/test_files/plonk_bn254/plonk.proof \
+--public_input ./batcher/client/test_files/plonk_bn254/plonk_pub_input.pub \
+--vk ./batcher/client/test_files/plonk_bn254/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
 aligned \
 --proving_system GnarkPlonkBls12_381 \
---proof test_files/plonk_bls12_381/plonk.proof \
---public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
---vk test_files/plonk_bls12_381/plonk.vk \
+--proof ./batcher/client/test_files/plonk_bls12_381/plonk.proof \
+--public_input ./batcher/client/test_files/plonk_bls12_381/plonk_pub_input.pub \
+--vk ./batcher/client/test_files/plonk_bls12_381/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
 aligned \
 --proving_system Groth16Bn254 \
---proof test_files/groth16/ineq_1_groth16.proof \
---public_input test_files/groth16/ineq_1_groth16.pub \
---vk test_files/groth16/ineq_1_groth16.vk \
+--proof ./batcher/client/test_files/groth16/ineq_1_groth16.proof \
+--public_input ./batcher/client/test_files/groth16/ineq_1_groth16.pub \
+--vk ./batcher/client/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
