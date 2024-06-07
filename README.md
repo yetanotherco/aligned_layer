@@ -59,14 +59,6 @@ batcher-client \
 --conn wss://batcher.alignedlayer.com
 ```
 
-```bash
-batcher-client \
---proving_system SP1 \
---proof ./batcher/client/test_files/sp1/sp1_fibonacci.proof \
---vm_program ./batcher/client/test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com
-```
-
 #### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
 
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
