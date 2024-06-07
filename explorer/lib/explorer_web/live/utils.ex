@@ -66,7 +66,7 @@ defmodule Utils do
   end
 
   def extract_amount_of_proofs(%BatchDB{} = batch) do
-    amount_of_proofs = batch.batch_data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
+    amount_of_proofs = batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
     Map.put(batch, :amount_of_proofs, amount_of_proofs)
   end
 end

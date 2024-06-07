@@ -79,6 +79,11 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
+    "From block" |> IO.inspect()
+    fromBlock |> IO.inspect()
+    "To block" |> IO.inspect()
+    toBlock |> IO.inspect()
+    
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
@@ -177,7 +182,6 @@ defmodule AlignedLayerServiceManager do
 
   def extract_batch_response({_status, %NewBatchInfo{} = new_batch_info}) do
     new_batch = new_batch_info.new_batch
-    response = is_batch_responded(new_batch.batchMerkleRoot)
     %BatchDB{
       batch_merkle_root: new_batch.batchMerkleRoot,
       data_pointer: new_batch.batchDataPointer,
@@ -185,6 +189,7 @@ defmodule AlignedLayerServiceManager do
       submition_block_number: new_batch.taskCreatedBlock,
       submition_transaction_hash: new_batch_info.transaction_hash,
       submition_timestamp: get_block_timestamp(new_batch.taskCreatedBlock),
+      # TODO extract the following data:
       # response_block_number:,
       # response_transaction_hash:,
       # response_timestamp:,
