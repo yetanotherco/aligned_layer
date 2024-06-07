@@ -1,5 +1,5 @@
 [package]
-name = "batcher-client"
+name = "aligned"
 version = "0.1.0"
 edition = "2021"
 
