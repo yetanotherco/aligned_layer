@@ -253,7 +253,6 @@ impl Batcher {
     /// to s3, creates new task in Aligned contract and sends responses to all clients that added proofs
     /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(&self, block_number: u64, finalized_batch: BatchQueue) {
-        let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
             .into_iter()
@@ -276,41 +275,21 @@ impl Batcher {
         let events = self.service_manager.event::<BatchVerifiedFilter>();
         let mut stream = events.stream().await.unwrap();
 
-        self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
-            .await;
-
-        // update last uploaded batch block
-        *last_uploaded_batch_block = block_number;
+        {
+            let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+            self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
+                .await;
+            // update last uploaded batch block
+            *last_uploaded_batch_block = block_number;
+        }
 
         // This future is created to be passed to the timeout function, so that if it is not resolved
         // within the timeout interval an error is raised. If the event is received, responses are sent to
         // connected clients
         let await_batch_verified_fut =
             await_batch_verified_event(&mut stream, &batch_merkle_tree.root);
-        if let Err(_) = timeout(Duration::from_secs(30), await_batch_verified_fut).await {
-            stream::iter(finalized_batch.iter())
-                .for_each(|(_, _, ws_sink)| async move {
-                    let send_result = ws_sink
-                        .write()
-                        .await
-                        .send(Message::Close(Some(CloseFrame {
-                            code: CloseCode::Protocol,
-                            reason: Cow::from("Timeout: BatchVerified event not received"),
-                        })))
-                        .await;
-
-                    match send_result {
-                        Err(Error::Protocol(ProtocolError::SendAfterClosing)) => (),
-                        Err(e) => {
-                            error!("Error sending timeout response to clients: {}", e);
-                            panic!();
-                        }
-                        Ok(_) => (),
-                    }
-
-                    info!("Timeout response sent");
-                })
-                .await;
+        if let Err(_) = timeout(Duration::from_secs(60), await_batch_verified_fut).await {
+            send_timeout_close(finalized_batch).await;
         } else {
             send_responses(finalized_batch, &batch_merkle_tree).await;
         }
@@ -349,10 +328,10 @@ impl Batcher {
 }
 /// Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
 async fn await_batch_verified_event<'s>(
-    stream: &mut BatchVerifiedEventStream<'s>,
+    events_stream: &mut BatchVerifiedEventStream<'s>,
     batch_merkle_root: &[u8; 32],
 ) {
-    while let Some(event_result) = stream.next().await {
+    while let Some(event_result) = events_stream.next().await {
         if let Ok(event) = event_result {
             if &event.batch_merkle_root == batch_merkle_root {
                 info!("Batch operator signatures verified on Ethereum. Sending response to clients...");
@@ -363,8 +342,6 @@ async fn await_batch_verified_event<'s>(
                 "Error awaiting for batch signature verification event: {}",
                 event_result.unwrap_err()
             );
-            // FIXME: Not sure how should we this, we should check this later.
-            panic!();
         }
     }
 }
@@ -379,30 +356,46 @@ async fn send_responses(
             let response = BatchInclusionData::new(vdc, vd_batch_idx, batch_merkle_tree);
             let serialized_response =
                 serde_json::to_vec(&response).expect("Could not serialize response");
-            ws_sink
+
+            let sending_result = ws_sink
                 .write()
                 .await
                 .send(Message::binary(serialized_response))
-                .await
-                .unwrap();
+                .await;
+
+            match sending_result {
+                Err(Error::AlreadyClosed) => (),
+                Err(e) => error!("Error while sending batch inclusion data response: {}", e),
+                Ok(_) => (),
+            }
 
             info!("Response sent");
         })
         .await;
 }
 
-// stream::iter(finalized_batch.iter())
-// .for_each(|(_, _, ws_sink)| async move {
-//     ws_sink
-//         .write()
-//         .await
-//         .send(Message::Close(Some(CloseFrame {
-//             code: CloseCode::Protocol,
-//             reason: Cow::from("Timeout: BatchVerified event not received"),
-//         })))
-//         .await
-//         .unwrap();
+/// Send a close response to all clients that included data in the batch indicated that a
+/// timeout was exceeded awaiting for the batch verification events
+async fn send_timeout_close(finalized_batch: BatchQueue) {
+    let timeout_msg = Message::Close(Some(CloseFrame {
+        code: CloseCode::Protocol,
+        reason: Cow::from("Timeout: BatchVerified event not received"),
+    }));
 
-//     info!("Timeout response sent");
-// })
-// .await;
+    for (_, _, ws_sink) in finalized_batch.iter() {
+        let send_result = ws_sink.write().await.send(timeout_msg.clone()).await;
+        match send_result {
+            // When two or more proofs from the same client are included into a batch,
+            // there will be more than one `ws_sink` corresponding to that client. When one is
+            // closed, the other ones will raise this error. We can just ignore it.
+            Err(Error::Protocol(ProtocolError::SendAfterClosing)) => (),
+            Err(e) => {
+                error!("Error sending timeout response to clients: {}", e);
+                panic!();
+            }
+            Ok(_) => (),
+        }
+
+        info!("Timeout close response sent");
+    }
+}

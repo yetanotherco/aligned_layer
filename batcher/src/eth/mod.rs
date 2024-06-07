@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
-use k256::Secp256k1;
 use stream::EventStream;
 
 use crate::config::ECDSAConfig;

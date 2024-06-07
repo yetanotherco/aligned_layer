@@ -140,28 +140,38 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
 ) {
-    ws_read
-        .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary() || msg.is_close()))
-        .for_each(|msg| async {
-            if let Ok(Message::Close(Some(close_msg))) = &msg {
-                ws_write.lock().await.close().await.unwrap();
-                error!(
-                    "Closing connection before all responses arrived: {}",
-                    close_msg.to_owned()
-                );
-            } else {
-                let mut num_responses_lock = num_responses.lock().await;
-                *num_responses_lock += 1;
-                let data = msg.as_ref().unwrap().clone().into_data();
-                let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
-                info!("Batcher response received: {}", deserialized_data);
+    // Responses are filtered to only admit binary or close messages.
+    let mut response_stream =
+        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
 
-                if *num_responses_lock == total_messages {
-                    info!("All messages responded. Closing connection...");
-                    ws_write.lock().await.close().await.unwrap();
+    while let Some(Ok(msg)) = response_stream.next().await {
+        if let Message::Close(close_frame) = msg {
+            if let Some(close_msg) = close_frame {
+                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting again", close_msg.to_owned());
+                ws_write.lock().await.close().await.unwrap();
+                return;
+            }
+            error!("Connection was closed before receiving all messages. Try submitting again");
+            ws_write.lock().await.close().await.unwrap();
+            return;
+        } else {
+            let mut num_responses_lock = num_responses.lock().await;
+            *num_responses_lock += 1;
+            let data = msg.into_data();
+            // let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
+            match serde_json::from_slice::<BatchInclusionData>(&data) {
+                Ok(batch_inclusion_data) => {
+                    info!("Batcher response received: {}", batch_inclusion_data);
+                }
+                Err(e) => {
+                    error!("Error while deserializing batcher response: {}", e);
                 }
             }
-            info!("Y ACA QUE ONDA?? MIRA: {:?}", msg.unwrap());
-        })
-        .await;
+            if *num_responses_lock == total_messages {
+                info!("All messages responded. Closing connection...");
+                ws_write.lock().await.close().await.unwrap();
+                return;
+            }
+        }
+    }
 }
