@@ -285,7 +285,10 @@ impl Batcher {
             MerkleTree::build(&batch_data_comm);
 
         let events = self.service_manager.event::<BatchVerifiedFilter>();
-        let mut stream = events.stream().await.unwrap();
+        let mut stream = events
+            .stream()
+            .await
+            .map_err(|e| BatcherError::BatchVerifiedEventStreamError(e.to_string()))?;
 
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
