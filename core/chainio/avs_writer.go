@@ -151,8 +151,7 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 			txOpts.GasLimit = tx.Gas() * 110 / 100
 
 			// Increase the gas tip cap by 10%
-			var newGasTipCap *big.Int
-			newGasTipCap = new(big.Int).Mul(big.NewInt(int64(incrementPercentage+100)), tx.GasTipCap())
+			newGasTipCap := new(big.Int).Mul(big.NewInt(int64(incrementPercentage+100)), tx.GasTipCap())
 			newGasTipCap.Div(newGasTipCap, big.NewInt(100))
 			txOpts.GasTipCap = newGasTipCap
 
