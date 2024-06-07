@@ -41,7 +41,7 @@ make install_batcher_client
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-batcher-client \
+aligned \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
@@ -51,19 +51,13 @@ batcher-client \
 
 **Example**:
 
-```bash
-batcher-client \
---proving_system SP1 \
---proof test_files/sp1/sp1_fibonacci.proof \
---vm_program test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com
-```
+
 
 ```bash
-batcher-client \
+aligned \
 --proving_system SP1 \
---proof test_files/sp1/sp1_fibonacci.proof \
---vm_program test_files/sp1/sp1_fibonacci-elf \
+--proof ./batcher/client/test_files/sp1/sp1_fibonacci.proof \
+--vm_program ./batcher/client/test_files/sp1/sp1_fibonacci-elf \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -72,7 +66,7 @@ batcher-client \
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-batcher-client \
+aligned \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
@@ -84,29 +78,29 @@ batcher-client \
 **Examples**:
 
 ```bash
-batcher-client \
+aligned \
 --proving_system GnarkPlonkBn254 \
---proof test_files/plonk_bn254/plonk.proof \
---public_input test_files/plonk_bn254/plonk_pub_input.pub \
---vk test_files/plonk_bn254/plonk.vk \
+--proof ./batcher/client/test_files/plonk_bn254/plonk.proof \
+--public_input ./batcher/client/test_files/plonk_bn254/plonk_pub_input.pub \
+--vk ./batcher/client/test_files/plonk_bn254/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
-batcher-client \
+aligned \
 --proving_system GnarkPlonkBls12_381 \
---proof test_files/plonk_bls12_381/plonk.proof \
---public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
---vk test_files/plonk_bls12_381/plonk.vk \
+--proof ./batcher/client/test_files/plonk_bls12_381/plonk.proof \
+--public_input ./batcher/client/test_files/plonk_bls12_381/plonk_pub_input.pub \
+--vk ./batcher/client/test_files/plonk_bls12_381/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
-batcher-client \
+aligned \
 --proving_system Groth16Bn254 \
---proof test_files/groth16/ineq_1_groth16.proof \
---public_input test_files/groth16/ineq_1_groth16.pub \
---vk test_files/groth16/ineq_1_groth16.vk \
+--proof ./batcher/client/test_files/groth16/ineq_1_groth16.proof \
+--public_input ./batcher/client/test_files/groth16/ineq_1_groth16.pub \
+--vk ./batcher/client/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -469,7 +463,7 @@ The SP1 proof needs the proof file and the vm program file.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-batcher-client \
+aligned \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public-input <public_input_file> \
@@ -719,10 +713,21 @@ The explorer uses PostgreSQL as the database. To build and start the DB using do
 
 ```bash
 make build_db
-make run_db
 ```
 
-The DB will be available on `localhost:5432` , it will be mount on a Docker volume to persist its data, and it will be started on every `make run_explorer` or `make run_devnet_explorer` command.
+This will build the docker image to be used as our database.
+
+After this, both `make run_explorer` and `make run_devnet_explorer` will automatically start, setup and connect to the database, which will be available on `localhost:5432` , and which will be mount on a Docker volume to persist its data.
+
+Anyhow, if you wish to manually execute some of the database setup steps, they are:
+1. Run the database container, opening port 5432
+```bash
+make run_db
+```
+2. Configure the database with ecto running `ecto.create` and `ecto.migrate`:
+```bash
+make ecto_setup_db
+```
 
 In order to clear the DB, you can run:
 
@@ -736,13 +741,15 @@ If you need to dumb the data from the DB, you can run:
 make dump_db
 ```
 
-This will create a `dump.sql` SQL script on the `explorer` directory with all the existing data.
+This will create a `dump.$date.sql` SQL script on the `explorer` directory with all the existing data.
 
 Then you can recover this data with:
 
 ```bash
 make recover_db
 ```
+
+Then you'll be requested to enter the file name of the dump you want to recover already positioned in the `/explorer` directory.
 
 This will refresh your database with the dumped database data.
 

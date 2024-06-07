@@ -15,6 +15,8 @@ defmodule Batches do
     field :response_transaction_hash, :string
     field :response_timestamp, :utc_datetime
     field :data_pointer, :string
+
+    timestamps()
   end
 
   @doc false

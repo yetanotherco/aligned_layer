@@ -51,6 +51,10 @@ defmodule Utils do
     batch_json |> Enum.count()
   end
 
+  def extract_amount_of_proofs_from_json({:error, _}) do
+    300
+  end
+
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
