@@ -10,7 +10,7 @@ defmodule ExplorerWeb.Batches.Index do
     batches =
       AlignedLayerServiceManager.get_new_batch_events(%{amount: page_size * current_page})
       |> Enum.map(&AlignedLayerServiceManager.extract_new_batch_event_info/1)
-      |> Enum.map(&AlignedLayerServiceManager.find_if_batch_was_responded/1)
+      |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
       |> Enum.reverse()
 
     {:ok, assign(socket, current_page: current_page, batches: batches, page_title: "Batches")}

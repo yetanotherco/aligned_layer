@@ -175,8 +175,9 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def find_if_batch_was_responded({_status, %NewBatchInfo{} = new_batch_info}) do
+  def extract_batch_response({_status, %NewBatchInfo{} = new_batch_info}) do
     new_batch = new_batch_info.new_batch
+    response = is_batch_responded(new_batch.batchMerkleRoot)
     %BatchDB{
       batch_merkle_root: new_batch.batchMerkleRoot,
       data_pointer: new_batch.batchDataPointer,
@@ -187,16 +188,12 @@ defmodule AlignedLayerServiceManager do
       # response_block_number:,
       # response_transaction_hash:,
       # response_timestamp:,
-      amount_of_proofs: nil, #get_amount_of_proofs(new_batch_info)
+      amount_of_proofs: nil,
     }
   end
 
-  def find_if_batch_was_responded( %Ethers.Event{} = new_batch_event) do
-    new_batch_event |> extract_new_batch_event_info |> find_if_batch_was_responded
-  end
-
-  def get_amount_of_proofs(%NewBatchInfo{new_batch: %NewBatchEvent{batchDataPointer: batchDataPointer}}) do
-    Utils.extract_amount_of_proofs(%{batchDataPointer: batchDataPointer})
+  def extract_batch_response( %Ethers.Event{} = new_batch_event) do
+    new_batch_event |> extract_new_batch_event_info |> extract_batch_response
   end
 
   def get_block_timestamp(block_number) do

@@ -45,9 +45,8 @@ defmodule Explorer.Periodically do
     try do
       read_from_block = last_read_block - 8 #for redundancy
       AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: read_from_block, toBlock: latest_block_number})
-      |> Enum.map(&AlignedLayerServiceManager.find_if_batch_was_responded/1)
-      |> Enum.map(&Utils.extract_batch_data_pointer_info/1)
-      # |> Enum.map(&Batches.cast_to_batches/1)
+      |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
+      |> Enum.map(&Utils.extract_amount_of_proofs/1)
       |> Enum.map(&Map.from_struct/1)
       |> Enum.map(fn batch -> Ecto.Changeset.cast(%BatchDB{}, batch, [:merkle_root, :amount_of_proofs, :is_verified, :block_number, :block_hash, :submition_transaction_hash, :submition_timestamp]) end)
       |> Enum.map(fn changeset ->
