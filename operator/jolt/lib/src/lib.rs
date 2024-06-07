@@ -10,10 +10,10 @@ use ark_bn254::{Fr, G1Projective};
 pub const MAX_PROOF_SIZE: usize = 4 * 1024 * 1024;
 
 // MaxipaParamsSize 1MB
-pub const MAX_COMMITMENT_SIZE: usize = 200 * 1024;
+pub const MAX_COMMITMENT_SIZE: usize = 2 * 1024 * 1024;
 
 // MaxPublicInputSize 4KB
-pub const MAX_ELF_SIZE: usize = 64 * 1024;
+pub const MAX_ELF_SIZE: usize = 2 * 1024 * 1024;
 
 #[no_mangle]
 pub extern "C" fn verify_jolt_proof_ffi(
@@ -43,46 +43,73 @@ pub extern "C" fn verify_jolt_proof_ffi(
 mod tests {
     use super::*;
 
-    const PROOF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/jolt.proof");
-    const ELF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/jolt.elf");
-    const COMMITMENT: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/jolt.commitment");
+    // Fibonacci
+    const FIB_PROOF: &[u8] =
+        include_bytes!("../../../../task_sender/test_examples/jolt/fib_e2e/jolt.proof");
+    const FIB_ELF: &[u8] =
+        include_bytes!("../../../../task_sender/test_examples/jolt/fib_e2e/jolt.elf");
+    const FIB_COMMITMENT: &[u8] =
+        include_bytes!("../../../../task_sender/test_examples/jolt/fib_e2e/jolt.commitment");
 
-    #[test]
+    // Sha3
+    const SHA3_PROOF: &[u8] =
+        include_bytes!("../../../../task_sender/test_examples/jolt/sha3_e2e/jolt.proof");
+    const SHA3_ELF: &[u8] =
+        include_bytes!("../../../../task_sender/test_examples/jolt/sha3_e2e/jolt.elf");
+    const SHA3_COMMITMENT: &[u8] =
+        include_bytes!("../../../../task_sender/test_examples/jolt/sha3_e2e/jolt.commitment");
+
     fn verify_jolt_proof_with_elf_works() {
         let mut proof_buffer = [0u8; MAX_PROOF_SIZE];
         let proof_len = PROOF.len();
         proof_buffer[..proof_len].clone_from_slice(PROOF);
 
         let mut elf_buffer = [0u8; MAX_ELF_SIZE];
-        let elf_len = ELF.len();
-        elf_buffer[..elf_len].clone_from_slice(ELF);
+        let elf_len = elf.len();
+        elf_buffer[..elf_len].clone_from_slice(elf);
 
         let mut commitment_buffer = [0u8; MAX_COMMITMENT_SIZE];
-        let commitment_len = COMMITMENT.len();
-        commitment_buffer[..commitment_len].clone_from_slice(COMMITMENT);
+        let commitment_len = commitment.len();
+        commitment_buffer[..commitment_len].clone_from_slice(commitment);
 
         let result = verify_jolt_proof_ffi(&proof_buffer, proof_len as u32, &elf_buffer, elf_len as u32, &commitment_buffer, commitment_len as u32);
         assert!(result)
     }
 
-    #[test]
-    fn verify_jolt_aborts_with_bad_proof() {
+    fn verify_jolt_aborts_with_bad_proof(proof: &[u8], elf: &[u8], commitment: &[u8]) {
         let mut proof_buffer = [42u8; super::MAX_PROOF_SIZE];
-        let proof_len = PROOF.len();
-        proof_buffer[..proof_len].clone_from_slice(PROOF);
+        let proof_len = proof.len();
+        proof_buffer[..proof_len].clone_from_slice(proof);
 
         let mut elf_buffer = [0u8; MAX_ELF_SIZE];
-        let elf_len = ELF.len();
-        elf_buffer[..elf_len].clone_from_slice(ELF);
+        let elf_len = elf.len();
+        elf_buffer[..elf_len].clone_from_slice(elf);
 
         let mut commitment_buffer = [0u8; MAX_COMMITMENT_SIZE];
-        let commitment_len = COMMITMENT.len();
-        commitment_buffer[..commitment_len].clone_from_slice(COMMITMENT);
+        let commitment_len = commitment.len();
+        commitment_buffer[..commitment_len].clone_from_slice(commitment);
 
         let result = verify_jolt_proof_ffi(&proof_buffer, (proof_len - 1) as u32, &elf_buffer, elf_len as u32, &commitment_buffer, commitment_len as u32);
         assert!(!result)
+    }
+
+    #[test]
+    fn verify_jolt_fib_e2e_proof_with_elf_works() { 
+        verify_jolt_proof_with_elf_works()
+    }
+
+    #[test]
+    fn verify_jolt_fib_e2e_aborts_with_bad_proof() { 
+        verify_jolt_aborts_with_bad_proof()
+    }
+
+    #[test]
+    fn verify_jolt_sha3_e2e_proof_with_elf_works() { 
+        verify_jolt_proof_with_elf_works()
+    }
+
+    #[test]
+    fn verify_jolt_sha3_e2e_aborts_with_bad_proof() { 
+        verify_jolt_aborts_with_bad_proof()
     }
 }
