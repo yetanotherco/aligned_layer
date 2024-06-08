@@ -9,6 +9,13 @@ use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use sp1_sdk::ProverClient;
+use jolt_core::{
+    jolt::vm::{Jolt, JoltProof, JoltCommitments, JoltPreprocessing, rv32i_vm::RV32IJoltVM},
+    poly::commitment::hyrax::HyraxScheme
+};
+use tracer::decode;
+use ark_serialize::CanonicalDeserialize;
+use ark_bn254::{Fr, G1Projective};
 
 use crate::gnark::verify_gnark;
 use crate::halo2::ipa::verify_halo2_ipa;
@@ -53,8 +60,10 @@ impl VerificationData {
                 false
             }
             ProvingSystemId::Jolt => {
-                if let Some(_input) = &self.vm_program_code {
-                    return verify_jolt_proof(self.proof.as_slice(), _input.as_slice());
+                if let Some(elf) = &self.vm_program_code {
+                    if let Some(commitment) = &self.verification_key {
+                        return verify_jolt_proof(self.proof.as_slice(), elf.as_slice(), &commitment);
+                    }
                 }
                 warn!("Trying to verify Jolt proof but ____ was not provided. Returning false");
                 false
@@ -113,8 +122,23 @@ fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
     false
 }
 
-fn verify_jolt_proof(_proof: &[u8], _input: &[u8]) -> bool {
-    todo!()
+fn verify_jolt_proof(proof: &[u8], elf: &[u8], commitment: &[u8]) -> bool {
+    debug!("Verifying Jolt proof");
+    if let Ok(jolt_proof) = JoltProof::deserialize_uncompressed(proof) {
+        if let Ok(jolt_commitments) = JoltCommitments::deserialize_uncompressed(commitment) {
+            let (bytecode, memory_init) = decode(&elf);
+
+            let preprocessing: JoltPreprocessing<Fr, HyraxScheme<G1Projective>> =
+                RV32IJoltVM::preprocess(bytecode.clone(), memory_init, 1 << 20, 1 << 20, 1 << 20);
+
+            let verification_result = RV32IJoltVM::verify(preprocessing, jolt_proof, jolt_commitments);
+            return verification_result.is_ok();
+        }
+    }
+
+    warn!("Failed to decode JOLT proof");
+
+    false
 }
 
 

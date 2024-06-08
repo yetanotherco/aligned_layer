@@ -373,6 +373,16 @@ send_sp1_proof:
     		--config config-files/config.yaml \
     		2>&1 | zap-pretty
 
+send_jolt_proof:
+	@go run task_sender/cmd/main.go send-task \
+    		--proving-system jolt \
+    		--proof task_sender/test_examples/jolt/fib_e2e/jolt.proof \
+    		--public-input task_sender/test_examples/jolt/fib_e2e/jolt.elf \
+			--verification-key task_sender/test_examples/jolt/fib_e2e/jolt.commitment \
+    		--config config-files/config.yaml \
+    		2>&1 | zap-pretty
+
+
 send_halo2_ipa_proof: ## Send a Halo2 IPA proof using the task sender
 	@echo "Sending Halo2 IPA proof..."
 	@go run task_sender/cmd/main.go send-task \
@@ -505,23 +515,23 @@ generate_risc_zero_fibonacci_proof:
 __JOLT_FFI__: ##
 build_jolt_macos:
 	@cd operator/jolt/lib && cargo build --release
-	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.dylib operator/jolt/lib/libjolt_verifier_ffi.dylib
-	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.a operator/jolt/lib/libjolt_verifier_ffi.a
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.dylib operator/jolt/lib/libjolt_verifier.dylib
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.a operator/jolt/lib/libjolt_verifier.a
 
 build_jolt_linux:
 	@cd operator/jolt/lib && cargo build --release
-	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.so operator/jolt/lib/libjolt_verifier_ffi.so
-	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.a operator/jolt/lib/libjolt_verifier_ffi.a
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.so operator/jolt/lib/libjolt_verifier.so
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.a operator/jolt/lib/libjolt_verifier.a
 
 test_jolt_rust_ffi:
 	@echo "Testing Jolt Rust FFI source code..."
-	@cd operator/jolt/lib && cargo test --release
+	@cd operator/jolt/lib && RUST_MIN_STACK=93886080 cargo test --release
 
-test_jolt_go_bindings_macos: build_risc_zero_macos
+test_jolt_go_bindings_macos: build_jolt_macos
 	@echo "Testing JOLT Go bindings..."
 	go test ./operator/jolt/... -v
 
-test_jolt_go_bindings_linux: build_risc_zero_linux
+test_jolt_go_bindings_linux: build_jolt_linux
 	@echo "Testing Jolt Go bindings..."
 	go test ./operator/jolt/... -v
 

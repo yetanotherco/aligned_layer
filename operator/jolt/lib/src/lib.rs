@@ -59,10 +59,10 @@ mod tests {
     const SHA3_COMMITMENT: &[u8] =
         include_bytes!("../../../../task_sender/test_examples/jolt/sha3_e2e/jolt.commitment");
 
-    fn verify_jolt_proof_with_elf_works() {
+    fn verify_jolt_proof_with_elf_works(proof: &[u8], elf: &[u8], commitment: &[u8]) {
         let mut proof_buffer = [0u8; MAX_PROOF_SIZE];
-        let proof_len = PROOF.len();
-        proof_buffer[..proof_len].clone_from_slice(PROOF);
+        let proof_len = proof.len();
+        proof_buffer[..proof_len].clone_from_slice(proof);
 
         let mut elf_buffer = [0u8; MAX_ELF_SIZE];
         let elf_len = elf.len();
@@ -95,21 +95,21 @@ mod tests {
 
     #[test]
     fn verify_jolt_fib_e2e_proof_with_elf_works() { 
-        verify_jolt_proof_with_elf_works()
+        verify_jolt_proof_with_elf_works(&FIB_PROOF, &FIB_ELF, &FIB_COMMITMENT)
     }
 
     #[test]
     fn verify_jolt_fib_e2e_aborts_with_bad_proof() { 
-        verify_jolt_aborts_with_bad_proof()
+        verify_jolt_aborts_with_bad_proof(&FIB_PROOF, &FIB_ELF, &FIB_COMMITMENT)
     }
 
     #[test]
     fn verify_jolt_sha3_e2e_proof_with_elf_works() { 
-        verify_jolt_proof_with_elf_works()
+        verify_jolt_proof_with_elf_works(&SHA3_PROOF, &SHA3_ELF, &SHA3_COMMITMENT)
     }
 
     #[test]
     fn verify_jolt_sha3_e2e_aborts_with_bad_proof() { 
-        verify_jolt_aborts_with_bad_proof()
+        verify_jolt_aborts_with_bad_proof(&SHA3_PROOF, &SHA3_ELF, &SHA3_COMMITMENT)
     }
 }

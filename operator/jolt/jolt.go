@@ -1,7 +1,7 @@
 package jolt
 
 /*
-#cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_verifier.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo linux LDFLAGS: ${SRCDIR}/lib/libjolt_verifier.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
 #cgo darwin LDFLAGS: -L./lib -ljolt_verifier
 
 #include "lib/jolt.h"
