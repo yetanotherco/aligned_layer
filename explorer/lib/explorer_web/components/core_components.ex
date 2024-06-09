@@ -281,6 +281,9 @@ defmodule ExplorerWeb.CoreComponents do
     """
   end
 
+  @doc """
+    Renders an arrow icon.
+  """
   attr :class, :string, default: nil
 
   def right_arrow(assigns) do
@@ -289,6 +292,55 @@ defmodule ExplorerWeb.CoreComponents do
       name="hero-arrow-right-solid"
       class="size-4 stroke-foreground group-hover:stroke-foreground/80 -translate-x-1 group-hover:translate-x-0 duration-150 transition-all"
     />
+    """
+  end
+
+  @doc """
+    Renders an anchor tag.
+  """
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(href target)
+  slot :inner_block, default: nil
+
+  def a(assigns) do
+    ~H"""
+    <.link
+      class={[
+        "underline underline-offset-4 font-medium	after:content-['↗'] hover:after:content-['→'] transition-all duration-150",
+        @class
+      ]}
+      {@rest}
+    >
+      <%= render_slot(@inner_block) %>
+    </.link>
+    """
+  end
+
+  @doc """
+    Renders a dynamic badge compoent.
+  """
+  attr :class, :string, default: nil
+  attr :status, :boolean, default: true
+  attr :pending_text, :string, default: "Pending"
+  attr :verified_text, :string, default: "Verified"
+  slot :inner_block, default: nil
+
+  def dynamic_badge(assigns) do
+    ~H"""
+    <span class={[
+      "px-3 py-1 rounded-full",
+      case @status do
+        true -> "text-black bg-primary group-hover:bg-primary/80"
+        false -> "text-white bg-secondary group-hover:bg-secondary/80"
+      end,
+      @class
+    ]}>
+      <%= case @status do
+        true -> @verified_text
+        false -> @pending_text
+      end %>
+      <%= render_slot(@inner_block) %>
+    </span>
     """
   end
 

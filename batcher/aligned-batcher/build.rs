@@ -1,7 +1,8 @@
 use std::{env, path::PathBuf, process::Command};
 
 const GO_SRC: &str = "./gnark/verifier.go";
-const GO_OUT: &str = "libgo.a";
+const GO_OUT: &str = "libverifier.a";
+const GO_LIB: &str = "verifier";
 
 fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
@@ -20,5 +21,10 @@ fn main() {
         "cargo:rustc-link-search=native={}",
         out_dir.to_str().unwrap()
     );
-    println!("cargo:rustc-link-lib=static=go");
+
+    if cfg!(target_os = "linux") {
+        println!("cargo:rustc-link-arg=-Wl,--allow-multiple-definition");
+    }
+
+    println!("cargo:rustc-link-lib=static={}", GO_LIB);
 }

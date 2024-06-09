@@ -1,0 +1,22 @@
+name: Build and Release Rust Project
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Build batcher client
+        run: make build_batcher_client
+  
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: batcher/client/target/release/aligned

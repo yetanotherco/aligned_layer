@@ -2,7 +2,6 @@ package chainio
 
 import (
 	"context"
-
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
@@ -87,11 +86,18 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 }
 
 func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-	txOpts := w.Signer.GetTxOpts()
-	txOpts.GasLimit = 500_000 // TODO(juli): This is a temporary fix to avoid out of gas errors. Goethereum is underestimating the gas limit for this tx.
-	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+	txOpts := *w.Signer.GetTxOpts()
+	txOpts.NoSend = true // simulate the transaction
+	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
-		w.logger.Error("Error submitting SubmitTaskResponse tx while calling respondToTask", "err", err)
+		return nil, err
+	}
+
+	// Send the transaction
+	txOpts.NoSend = false
+	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
+	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+	if err != nil {
 		return nil, err
 	}
 
@@ -100,13 +106,6 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 		return nil, err
 	}
 
-	taskRespondedEvent, err := w.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerFilterer.ParseBatchVerified(*receipt.Logs[0])
-	if err != nil {
-		return nil, err
-	}
-
-	// FIXME(marian): Dummy log to check integration with the contract
-	w.logger.Infof("TASK RESPONDED EVENT: %+v", taskRespondedEvent)
 	return receipt, nil
 }
 
