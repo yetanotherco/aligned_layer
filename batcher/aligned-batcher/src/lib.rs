@@ -16,16 +16,13 @@ use tokio_tungstenite::tungstenite::error::ProtocolError;
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
-use types::{BatchInclusionData, VerificationCommitmentBatch, VerificationDataCommitment};
+use aligned_batcher_lib::types::{BatchInclusionData, VerificationCommitmentBatch, VerificationDataCommitment, VerificationData};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
-use crate::types::VerificationData;
 
 mod config;
 mod eth;
-pub mod gnark;
-pub mod halo2;
 pub mod s3;
 pub mod types;
 
@@ -73,8 +70,8 @@ impl Batcher {
             config.ecdsa,
             deployment_output.addresses.aligned_layer_service_manager,
         )
-        .await
-        .expect("Failed to get Aligned service manager contract");
+            .await
+            .expect("Failed to get Aligned service manager contract");
 
         Self {
             s3_client,

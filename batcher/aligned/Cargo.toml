@@ -11,8 +11,6 @@ tokio = { version = "1.37.0", features = ["io-std", "time", "macros", "rt", "rt-
 tokio-tungstenite = { version = "0.21.0", features = ["native-tls"] }
 tungstenite = "0.21.0"
 url = "2.5.0"
-futures-channel = "0.3.30"
-bytes = "1.6.0"
 log = "0.4.21"
 env_logger = "0.11.3"
 alloy-primitives = "0.7.4"

@@ -2,14 +2,17 @@ use halo2_proofs::{
     plonk::{verify_proof, VerifyingKey},
     poly::{
         commitment::Params,
-        ipa::{commitment::IPACommitmentScheme, multiopen::VerifierIPA, strategy::SingleStrategy},
-        VerificationStrategy,
+        kzg::{
+            commitment::KZGCommitmentScheme, multiopen::VerifierSHPLONK, strategy::SingleStrategy,
+        },
     },
     transcript::{Blake2bRead, Challenge255, TranscriptReadBuffer},
     SerdeFormat,
 };
-use halo2curves::bn256::{Fr, G1Affine};
+use halo2curves::bn256::{Bn256, Fr, G1Affine};
 use std::io::{BufReader, ErrorKind, Read};
+
+//TODO(pat): refactor halo2 verification to a common create to eliminate deduplicated code.
 
 // MaxProofSize 4KB
 pub const MAX_PROOF_SIZE: usize = 4 * 1024;
@@ -20,13 +23,13 @@ pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
 // MaxVerificationKeySize 1KB
 pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
 
-// MaxipaParamsSize 4KB
-pub const MAX_IPA_PARAMS_SIZE: usize = 4 * 1024;
+// MaxKzgParamsSize 4KB
+pub const MAX_KZG_PARAMS_SIZE: usize = 4 * 1024;
 
 // MaxPublicInputSize 4KB
 pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
 
-pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
+pub fn verify_halo2_kzg(proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
     let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
     let cs_len_buf: [u8; 4] = verification_key[..4]
         .try_into()
@@ -46,15 +49,15 @@ pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u
     let vk_offset = cs_offset + cs_len;
     vk_buffer[..vk_len].clone_from_slice(&verification_key[vk_offset..(vk_offset + vk_len)]);
 
-    // Select IPA Params Bytes
-    let mut ipa_params_buffer = [0u8; MAX_IPA_PARAMS_SIZE];
-    let ipa_len_buf: [u8; 4] = verification_key[8..12]
+    // Select KZG Params Bytes
+    let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
+    let kzg_len_buf: [u8; 4] = verification_key[8..12]
         .try_into()
         .map_err(|_| "Failed to convert slice to [u8; 4]")
         .unwrap();
-    let ipa_params_len = u32::from_le_bytes(ipa_len_buf) as usize;
-    let ipa_offset = vk_offset + vk_len;
-    ipa_params_buffer[..ipa_params_len].clone_from_slice(&verification_key[ipa_offset..]);
+    let kzg_params_len = u32::from_le_bytes(kzg_len_buf) as usize;
+    let kzg_offset = vk_offset + vk_len;
+    kzg_params_buffer[..kzg_params_len].clone_from_slice(&verification_key[kzg_offset..]);
 
     if let Ok(cs) = bincode::deserialize(&cs_buffer[..]) {
         if let Ok(vk) = VerifyingKey::<G1Affine>::read(
@@ -62,22 +65,22 @@ pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u
             SerdeFormat::RawBytes,
             cs,
         ) {
-            if let Ok(params) = Params::read::<_>(&mut BufReader::new(&ipa_params_buffer[..])) {
+            if let Ok(params) = Params::read::<_>(&mut BufReader::new(&kzg_params_buffer[..])) {
                 if let Ok(res) = read_fr(&public_input[..]) {
                     let strategy = SingleStrategy::new(&params);
                     let instances = res.as_slice();
                     let mut transcript =
                         Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof[..]);
                     return verify_proof::<
-                        IPACommitmentScheme<G1Affine>,
-                        VerifierIPA<G1Affine>,
+                        KZGCommitmentScheme<Bn256>,
+                        VerifierSHPLONK<'_, Bn256>,
                         Challenge255<G1Affine>,
                         Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
-                        SingleStrategy<G1Affine>,
+                        SingleStrategy<'_, Bn256>,
                     >(
                         &params, &vk, strategy, &[&[instances]], &mut transcript
                     )
-                    .is_ok();
+                        .is_ok();
                 }
             }
         }

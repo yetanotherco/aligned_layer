@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use clap::Parser;
 use env_logger::Env;
-
 use aligned_batcher::Batcher;
 
 /// Batcher main flow:

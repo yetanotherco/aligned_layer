@@ -4,21 +4,14 @@ use alloy_primitives::Address;
 use anyhow::anyhow;
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
-use lazy_static::lazy_static;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-use sp1_sdk::ProverClient;
 
 use crate::gnark::verify_gnark;
 use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
-
-pub(crate) mod batch_queue;
-
-lazy_static! {
-    static ref SP1_PROVER_CLIENT: ProverClient = ProverClient::new();
-}
+use crate::sp1::verify_sp1_proof;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 pub enum ProvingSystemId {
@@ -88,22 +81,6 @@ impl VerificationData {
             }
         }
     }
-}
-
-fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
-    debug!("Verifying SP1 proof");
-    let (_pk, vk) = SP1_PROVER_CLIENT.setup(elf);
-    if let Ok(proof) = bincode::deserialize(proof) {
-        let res = SP1_PROVER_CLIENT.verify_compressed(&proof, &vk).is_ok();
-        debug!("SP1 proof is valid: {}", res);
-        if res {
-            return true;
-        }
-    }
-
-    warn!("Failed to decode SP1 proof");
-
-    false
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

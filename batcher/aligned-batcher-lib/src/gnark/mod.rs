@@ -1,4 +1,4 @@
-use crate::ProvingSystemId;
+use crate::types::ProvingSystemId;
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]

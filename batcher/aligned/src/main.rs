@@ -15,7 +15,7 @@ use log::info;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
-use batcher::types::{parse_proving_system, BatchInclusionData, VerificationData, ProvingSystemId};
+use aligned_batcher_lib::types::{parse_proving_system, BatchInclusionData, VerificationData, ProvingSystemId};
 
 use clap::Parser;
 use tungstenite::Message;

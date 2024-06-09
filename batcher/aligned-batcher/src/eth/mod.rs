@@ -12,7 +12,7 @@ abigen!(
 );
 
 pub type AlignedLayerServiceManager =
-    AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
+AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
 pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
     Provider::<Http>::try_from(eth_rpc_url).map_err(|err| anyhow::anyhow!(err))
@@ -30,7 +30,7 @@ pub async fn get_contract(
         &ecdsa_config.private_key_store_path,
         &ecdsa_config.private_key_store_password,
     )?
-    .with_chain_id(chain_id.as_u64());
+        .with_chain_id(chain_id.as_u64());
 
     let signer = Arc::new(SignerMiddleware::new(provider, wallet));
 
