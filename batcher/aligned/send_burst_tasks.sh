@@ -26,7 +26,7 @@ fi
 for ((i=0; i<burst; i++))
 do
   # Run in backaground to be able to run onece per second, and not wait for the previous one to finish
-    ./batcher/client/generate_proof_and_send.sh $counter $burst &
+    ./batcher/aligned/generate_proof_and_send.sh $counter $burst &
     sleep 1
     counter=$((counter + 1))
 done

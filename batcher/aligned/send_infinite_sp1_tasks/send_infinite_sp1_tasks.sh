@@ -12,7 +12,7 @@ else
     echo "Using timer value: $timer seconds"
 fi
 
-cd ./batcher/client
+cd ./batcher/aligned
 
 while true
 do
