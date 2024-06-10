@@ -22,6 +22,7 @@ use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFr
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
+use types::errors::BatcherError;
 use aligned_batcher_lib::types::{BatchInclusionData, VerificationCommitmentBatch, VerificationDataCommitment, VerificationData};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
