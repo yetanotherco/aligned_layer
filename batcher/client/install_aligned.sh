@@ -12,9 +12,9 @@ RELEASE_URL="https://github.com/yetanotherco/aligned_layer/releases/download/v0.
 ARCH=$(uname -m)
 
 if [ "$ARCH" == "x86_64" ]; then
-    FILE="batcher-client-x86"
+    FILE="aligned-x86"
 elif [ "$ARCH" == "arm64" ]; then
-    FILE="batcher-client-arm64"
+    FILE="aligned-arm64"
 else
     echo "Unsupported architecture: $ARCH"
     exit 1
