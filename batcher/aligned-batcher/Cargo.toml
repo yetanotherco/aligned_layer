@@ -22,4 +22,4 @@ anyhow = "1.0.83"
 ethers = { version = "2.0", features = ["ws", "rustls"] }
 lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
 serde_yaml = "0.9.34"
-aligned-batcher-lib = { path = "../aligned-batcher-lib" }
+aligned-batcher-lib = { path = "../aligned-batcher-lib", features = ["batcher"]}

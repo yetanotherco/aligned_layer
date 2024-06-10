@@ -2,15 +2,18 @@ use std::fmt;
 
 use alloy_primitives::Address;
 use anyhow::anyhow;
-use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
+use lambdaworks_crypto::merkle_tree::{merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend};
+#[cfg(feature = "batcher")]
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-
+#[cfg(feature = "batcher")]
 use crate::gnark::verify_gnark;
+#[cfg(feature = "batcher")]
 use crate::halo2::ipa::verify_halo2_ipa;
+#[cfg(feature = "batcher")]
 use crate::halo2::kzg::verify_halo2_kzg;
+#[cfg(feature = "batcher")]
 use crate::sp1::verify_sp1_proof;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
@@ -34,6 +37,7 @@ pub struct VerificationData {
     pub proof_generator_addr: Address,
 }
 
+#[cfg(feature = "batcher")]
 impl VerificationData {
     pub fn verify(&self) -> bool {
         match self.proving_system {
@@ -93,6 +97,7 @@ pub struct VerificationDataCommitment {
     pub proof_generator_addr: [u8; 20],
 }
 
+#[cfg(feature = "batcher")]
 impl From<VerificationData> for VerificationDataCommitment {
     fn from(verification_data: VerificationData) -> Self {
         let mut hasher = Keccak256::new();
@@ -136,6 +141,7 @@ impl From<VerificationData> for VerificationDataCommitment {
 
 #[derive(Clone, Default)]
 pub struct VerificationCommitmentBatch;
+
 impl IsMerkleTreeBackend for VerificationCommitmentBatch {
     type Node = [u8; 32];
     type Data = VerificationDataCommitment;
@@ -216,6 +222,7 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
 }
 
 #[cfg(test)]
+#[cfg(feature = "batcher")]
 mod test {
     use super::*;
 
