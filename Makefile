@@ -137,8 +137,14 @@ batcher_start: ./batcher/.env
 install_batcher:
 	@cargo +nightly-2024-04-17 install --path batcher
 
-install_aligned: 
+install_aligned_compiling: 
 	@cargo +nightly-2024-04-17 install --path batcher/client
+
+install_aligned:
+	@./batcher/client/install_aligned.sh
+
+uninstall_aligned:
+	@rm -rf ~/.aligned
 
 build_batcher_client:
 	@cd batcher/client && cargo b --release
