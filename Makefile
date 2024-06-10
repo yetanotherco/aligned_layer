@@ -12,7 +12,7 @@ ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
 
-BATCHER_CLIENT_BINARY_NAME := batcher-client
+BATCHER_CLIENT_BINARY_NAME := aligned
 
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -141,7 +141,7 @@ install_batcher:
 
 # TODO: The conditional is a temporary solution, when the sp1 no longer throws a warning, this can be removed
 # because the cargo install won't re-compile the binary.
-install_batcher_client:
+install_aligned:
 	@if which $(BATCHER_CLIENT_BINARY_NAME) >/dev/null 2>&1; then \
   		echo "$(BATCHER_CLIENT_BINARY_NAME) is already installed"; \
   	else \
@@ -152,7 +152,7 @@ install_batcher_client:
 build_batcher_client:
 	@cd batcher/client && cargo b --release
 
-batcher/client/target/release/batcher-client:
+batcher/client/target/release/aligned:
 	@cd batcher/client && cargo b --release
 
 batcher_send_sp1_task:
@@ -176,7 +176,7 @@ batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
 	@./batcher/client/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
 
-batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
+batcher_send_plonk_bn254_task: batcher/client/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system GnarkPlonkBn254 \
@@ -185,7 +185,7 @@ batcher_send_plonk_bn254_task: batcher/client/target/release/batcher-client
 		--vk test_files/plonk_bn254/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_plonk_bn254_burst: batcher/client/target/release/batcher-client
+batcher_send_plonk_bn254_burst: batcher/client/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system GnarkPlonkBn254 \
@@ -195,7 +195,7 @@ batcher_send_plonk_bn254_burst: batcher/client/target/release/batcher-client
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions 15
 
-batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
+batcher_send_plonk_bls12_381_task: batcher/client/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system GnarkPlonkBls12_381 \
@@ -204,7 +204,7 @@ batcher_send_plonk_bls12_381_task: batcher/client/target/release/batcher-client
 		--vk test_files/plonk_bls12_381/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_plonk_bls12_381_burst: batcher/client/target/release/batcher-client
+batcher_send_plonk_bls12_381_burst: batcher/client/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system GnarkPlonkBls12_381 \
@@ -215,7 +215,7 @@ batcher_send_plonk_bls12_381_burst: batcher/client/target/release/batcher-client
 		--repetitions 15
 
 
-batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
+batcher_send_groth16_bn254_task: batcher/client/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
@@ -224,7 +224,7 @@ batcher_send_groth16_bn254_task: batcher/client/target/release/batcher-client
 		--vk test_files/groth16/ineq_1_groth16.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_groth16_burst: batcher/client/target/release/batcher-client
+batcher_send_groth16_burst: batcher/client/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
@@ -234,16 +234,17 @@ batcher_send_groth16_burst: batcher/client/target/release/batcher-client
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_infinite_groth16: ./batcher/client/target/release/batcher-client ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+batcher_send_infinite_groth16: ./batcher/client/target/release/aligned ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
 	@./batcher/client/send_infinite_tasks.sh 4
 
 batcher_send_burst_groth16: build_batcher_client
 	@echo "Sending a burst of tasks to Batcher..."
-	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE)
+	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
+	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
-batcher_send_halo2_ipa_task: batcher/client/target/release/batcher-client
+batcher_send_halo2_ipa_task: batcher/client/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Halo2IPA \
@@ -251,7 +252,7 @@ batcher_send_halo2_ipa_task: batcher/client/target/release/batcher-client
 		--public_input test_files/halo2_ipa/pub_input.bin \
 		--vk test_files/halo2_ipa/params.bin \
 
-batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/batcher-client
+batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Halo2IPA \
@@ -260,7 +261,7 @@ batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/batcher-clien
 		--vk test_files/halo2_ipa/params.bin \
 		--repetitions 5
 
-batcher_send_halo2_kzg_task: batcher/client/target/release/batcher-client
+batcher_send_halo2_kzg_task: batcher/client/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Halo2KZG \
@@ -269,7 +270,7 @@ batcher_send_halo2_kzg_task: batcher/client/target/release/batcher-client
 		--vk test_files/halo2_kzg/params.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/batcher-client
+batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Halo2KZG \
