@@ -43,12 +43,14 @@ defmodule Explorer.Periodically do
   def handle_info({:work}, state) do
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     try do
+      "inserting batches..." |> IO.inspect()
       read_from_block = max(0, latest_block_number - 3600) # read last 3600 blocks, for redundancy
       AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: read_from_block, toBlock: latest_block_number})
       |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
       |> Enum.map(&Utils.extract_amount_of_proofs/1)
-      # |> Enum.map(&Map.from_struct/1)
-      |> Enum.map(fn batchDB -> Ecto.Changeset.cast(batchDB, Enum.map(), [:batch_merkle_root, :amount_of_proofs, :is_verified, :block_number, :block_hash, :submition_transaction_hash, :submition_timestamp]) end)
+      |> Enum.map(&Batches.generate_changeset/1)
+      # |> IO.inspect()
+      |> Enum.map(&Ecto.Multi.insert_or_update/1)
       # |> Enum.map(fn changeset ->
       #   case Explorer.Repo.get_by(Batches, merkle_root: changeset.changes.merkle_root) do
       #     nil -> Explorer.Repo.insert(changeset)
@@ -59,7 +61,8 @@ defmodule Explorer.Periodically do
       #       end
       #   end
       # end)
-      |> IO.inspect()
+      # |> IO.inspect()
+      IO.inspect("Batches inserted")
     rescue
       error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
     end

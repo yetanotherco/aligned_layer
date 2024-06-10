@@ -34,13 +34,25 @@ defmodule Batches do
     |> validate_format(:response_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
   end
 
-  # def cast_to_batches(%BatchDB{} = batch_db) do
-  #   %Batches{
-  #     merkle_root: batch_db.batch_merkle_root,
-  #     amount_of_proofs: batch_db.amount_of_proofs,
-  #     is_verified: batch_db.is_verified
-  #   }
-  # end
+  def cast_to_batches(%BatchDB{} = batch_db) do
+    %Batches{
+      merkle_root: batch_db.merkle_root,
+      amount_of_proofs: batch_db.amount_of_proofs,
+      is_verified: batch_db.is_verified,
+      submition_block_number: batch_db.submition_block_number,
+      submition_transaction_hash: batch_db.submition_transaction_hash,
+      submition_timestamp: batch_db.submition_timestamp,
+      response_block_number: batch_db.response_block_number,
+      response_transaction_hash: batch_db.response_transaction_hash,
+      response_timestamp: batch_db.response_timestamp,
+      data_pointer: batch_db.data_pointer
+    }
+  end
+
+  def generate_changeset(%BatchDB{} = batch_db) do
+    %Batches{}
+    |> Batches.changeset(Map.from_struct(Batches.cast_to_batches(batch_db)))
+  end
 
   def get_amount_of_submitted_proofs() do
     case Explorer.Repo.aggregate(Batches, :sum, :amount_of_proofs) do
