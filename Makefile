@@ -653,3 +653,7 @@ recover_db: run_db
 	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
 	docker exec -t explorer-postgres-container psql -U explorer_user -d explorer_db -f /dump.sql && \
 	echo "Recovered database successfully from $$DUMP_FILE"
+
+explorer_fetch_old_batches:
+	@cd explorer && \
+		./scripts/fetch_old_batches.sh

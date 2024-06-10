@@ -39,7 +39,7 @@ defmodule Explorer.Periodically do
   end
 
   defp schedule_work() do
-    Process.send_after(self(), {:work}, 5 * 1000) # 10 seconds
+    Process.send_after(self(), {:work}, 5 * 1000) # n seconds
   end
 
 end
