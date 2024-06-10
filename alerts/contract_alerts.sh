@@ -16,7 +16,7 @@ do
   last_block=$(cast block --rpc-url $RPC_URL -f number)
   printf "Last block: %s\n" $last_block
 
-  from_block=$(($last_block - 10))
+  from_block=$(($last_block - 25))
 
   new_batch_logs=$(cast logs --rpc-url $RPC_URL --from-block $from_block --address $CONTRACT_ADDRESS $NEW_BATCH_TOPIC)
   if [ -z "$new_batch_logs" ]; then
@@ -30,5 +30,5 @@ do
     send_slack_message "🚨 ALERT: No new verified batches in Service Manager since block $from_block"
   fi
 
-  sleep 100
+  sleep 300
 done
