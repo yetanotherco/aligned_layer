@@ -4,7 +4,7 @@ mod errors;
 
 use std::{path::PathBuf, sync::Arc};
 
-use alloy_primitives::{Address, hex};
+use alloy_primitives::{hex, Address};
 use env_logger::Env;
 use futures_util::{
     future,
@@ -15,11 +15,11 @@ use log::info;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
-use batcher::types::{parse_proving_system, BatchInclusionData, VerificationData, ProvingSystemId};
+use batcher::types::{parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData};
 
+use crate::errors::BatcherClientError;
 use clap::Parser;
 use tungstenite::Message;
-use crate::errors::BatcherClientError;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -37,19 +37,13 @@ struct Args {
     #[arg(name = "Proof file name", long = "proof")]
     proof_file_name: PathBuf,
 
-    #[arg(
-        name = "Public input file name",
-        long = "public_input",
-    )]
+    #[arg(name = "Public input file name", long = "public_input")]
     pub_input_file_name: Option<PathBuf>,
 
     #[arg(name = "Verification key file name", long = "vk")]
     verification_key_file_name: Option<PathBuf>,
 
-    #[arg(
-        name = "VM prgram code file name",
-        long = "vm_program",
-    )]
+    #[arg(name = "VM prgram code file name", long = "vm_program")]
     vm_program_code_file_name: Option<PathBuf>,
 
     #[arg(
@@ -126,7 +120,8 @@ async fn receive(
             }
 
             Ok(())
-        }).await?;
+        })
+        .await?;
 
     Ok(())
 }
@@ -144,7 +139,10 @@ fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherCl
 
     match proving_system {
         ProvingSystemId::SP1 => {
-            vm_program_code = Some(read_file_option("--vm_program", args.vm_program_code_file_name)?);
+            vm_program_code = Some(read_file_option(
+                "--vm_program",
+                args.vm_program_code_file_name,
+            )?);
         }
         ProvingSystemId::Halo2KZG
         | ProvingSystemId::Halo2IPA
@@ -152,7 +150,10 @@ fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherCl
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
             verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
-            pub_input = Some(read_file_option("--public_input", args.pub_input_file_name)?);
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name,
+            )?);
         }
     }
 
@@ -170,11 +171,40 @@ fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherCl
 }
 
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, BatcherClientError> {
-    std::fs::read(&file_name)
-        .map_err(|e| BatcherClientError::IoError(file_name, e))
+    std::fs::read(&file_name).map_err(|e| BatcherClientError::IoError(file_name, e))
 }
 
-fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<u8>, BatcherClientError> {
-    let file_name = file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
+fn read_file_option(
+    param_name: &str,
+    file_name: Option<PathBuf>,
+) -> Result<Vec<u8>, BatcherClientError> {
+    let file_name =
+        file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
     read_file(file_name)
+}
+
+#[cfg(test)]
+mod test {
+    use batcher::types::VerificationDataCommitment;
+    use ethers_core::abi::{encode, encode_packed, Detokenize, Token, Tokenizable};
+
+    use super::*;
+
+    #[test]
+    fn abi_encode_test() {
+        // let vdc = VerificationDataCommitment {
+        let proof_commitment = vec![1u8; 32];
+        let proof_generator_addr = [1u8; 20];
+        // };
+        // let token_a: ethers_core::types::U256 = ethers_core::types::U256::from(1);
+        let token_a: ethers_core::types::Address = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+            .parse()
+            .unwrap();
+
+        let verification_data_comm_token =
+            Token::Tuple(vec![Token::Address(token_a), Token::Address(token_a)]);
+
+        let a = encode(&vec![verification_data_comm_token]);
+        println!("ABI ENCODED: {}", hex::encode(a));
+    }
 }

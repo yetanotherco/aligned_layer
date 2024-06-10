@@ -77,6 +77,10 @@ impl Batcher {
         .await
         .expect("Failed to get Aligned service manager contract");
 
+        service_manager
+            .create_new_task(batch_merkle_root, batch_data_pointer)
+            .selector();
+
         // let bs = service_manager.batches_state([0u8; 32]);
         // println!("{}", bs.await);
 

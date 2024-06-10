@@ -71,6 +71,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "aligned"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives",
+ "batcher",
+ "bytes",
+ "clap",
+ "env_logger",
+ "ethers-core",
+ "futures-channel",
+ "futures-util",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite 0.21.0",
+ "tungstenite 0.21.0",
+ "url",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -959,26 +980,6 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "tokio-tungstenite 0.21.0",
-]
-
-[[package]]
-name = "batcher-client"
-version = "0.1.0"
-dependencies = [
- "alloy-primitives",
- "batcher",
- "bytes",
- "clap",
- "env_logger",
- "futures-channel",
- "futures-util",
- "log",
- "serde",
- "serde_json",
- "tokio",
- "tokio-tungstenite 0.21.0",
- "tungstenite 0.21.0",
- "url",
 ]
 
 [[package]]
