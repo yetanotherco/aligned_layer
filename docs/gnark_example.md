@@ -15,9 +15,8 @@ go mod init gnark_plonk_circuit
 - 3 Install Gnark: Add the library to your project
 
 ```bash=
-go get github.com/consensys/gnark
+go get github.com/consensys/gnark@v0.10.0
 ```
-
 
 
 
