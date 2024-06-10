@@ -1,9 +1,11 @@
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use stream::EventStream;
+use tokio::time::timeout;
 
 use crate::config::ECDSAConfig;
 
@@ -61,8 +63,11 @@ pub async fn create_new_task(
     let call = service_manager.create_new_task(batch_merkle_root, batch_data_pointer);
     let pending_tx = call.send().await?;
 
-    match pending_tx.await? {
-        Some(receipt) => Ok(receipt),
-        None => Err(anyhow::anyhow!("Receipt not found")),
+    // Set a timeout for the transaction to be mined
+    match timeout(Duration::from_secs(60), pending_tx).await {
+        Ok(Ok(Some(receipt))) => Ok(receipt),
+        Ok(Ok(None)) => Err(anyhow::anyhow!("Transaction was mined but no receipt was returned")),
+        Ok(Err(e)) => Err(anyhow::anyhow!("Transaction failed: {:?}", e)),
+        Err(_) => Err(anyhow::anyhow!("Transaction was not mined within 60 seconds")),
     }
 }
