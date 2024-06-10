@@ -96,19 +96,25 @@ dependencies = [
  "anyhow",
  "aws-config",
  "aws-sdk-s3",
+ "bincode",
  "bytes",
  "clap",
  "dotenv",
  "env_logger",
  "ethers",
  "futures-util",
+ "halo2_backend",
+ "halo2_proofs 0.3.0",
+ "halo2curves",
  "hex",
  "lambdaworks-crypto",
+ "lazy_static",
  "log",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha3 0.10.8",
+ "sp1-sdk",
  "tokio",
  "tokio-tungstenite 0.21.0",
 ]
@@ -119,16 +125,11 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "anyhow",
- "bincode",
- "halo2_proofs 0.3.0",
- "halo2curves",
  "hex",
  "lambdaworks-crypto",
- "lazy_static",
  "log",
  "serde",
  "sha3 0.10.8",
- "sp1-sdk",
 ]
 
 [[package]]
@@ -1012,7 +1013,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "lazy_static",
  "lazycell",
  "log",
@@ -1798,7 +1799,7 @@ dependencies = [
  "digest 0.10.7",
  "elliptic-curve 0.13.8",
  "rfc6979 0.4.0",
- "signature 2.0.0",
+ "signature 2.2.0",
  "spki 0.7.3",
 ]
 
@@ -3375,7 +3376,7 @@ dependencies = [
  "elliptic-curve 0.13.8",
  "once_cell",
  "sha2",
- "signature 2.0.0",
+ "signature 2.2.0",
 ]
 
 [[package]]
@@ -4640,7 +4641,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
@@ -5602,9 +5603,9 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "2.0.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fe458c98333f9c8152221191a77e2a44e8325d0193484af2e9421a53019e57d"
+checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest 0.10.7",
  "rand_core",

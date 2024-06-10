@@ -1,4 +1,4 @@
-use crate::types::ProvingSystemId;
+use aligned_batcher_lib::types::ProvingSystemId;
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]

@@ -11,9 +11,6 @@ use halo2_proofs::{
 use halo2curves::bn256::{Fr, G1Affine};
 use std::io::{BufReader, ErrorKind, Read};
 
-// MaxProofSize 4KB
-pub const MAX_PROOF_SIZE: usize = 4 * 1024;
-
 // MaxConstraintSystemSize 2KB
 pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
 
@@ -22,9 +19,6 @@ pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
 
 // MaxipaParamsSize 4KB
 pub const MAX_IPA_PARAMS_SIZE: usize = 4 * 1024;
-
-// MaxPublicInputSize 4KB
-pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
 
 pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
     let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];

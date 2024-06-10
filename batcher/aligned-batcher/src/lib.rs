@@ -18,12 +18,13 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::error::ProtocolError;
-use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
+use tokio_tungstenite::tungstenite::protocol::{CloseFrame, frame::coding::CloseCode};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
 use types::errors::BatcherError;
-use aligned_batcher_lib::types::{BatchInclusionData, VerificationCommitmentBatch, VerificationDataCommitment, VerificationData};
+use aligned_batcher_lib::types::{BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment};
+use zk_utils::verify;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
@@ -32,6 +33,10 @@ mod config;
 mod eth;
 pub mod s3;
 pub mod types;
+pub mod gnark;
+pub mod halo2;
+pub mod sp1;
+mod zk_utils;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
@@ -162,7 +167,7 @@ impl Batcher {
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
-        if verification_data.proof.len() <= self.max_proof_size && verification_data.verify() {
+        if verification_data.proof.len() <= self.max_proof_size && verify(&verification_data){
             self.add_to_batch(verification_data, ws_conn_sink.clone())
                 .await;
         } else {

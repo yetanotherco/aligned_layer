@@ -3,18 +3,8 @@ use std::fmt;
 use alloy_primitives::Address;
 use anyhow::anyhow;
 use lambdaworks_crypto::merkle_tree::{merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend};
-#[cfg(feature = "batcher")]
-use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-#[cfg(feature = "batcher")]
-use crate::gnark::verify_gnark;
-#[cfg(feature = "batcher")]
-use crate::halo2::ipa::verify_halo2_ipa;
-#[cfg(feature = "batcher")]
-use crate::halo2::kzg::verify_halo2_kzg;
-#[cfg(feature = "batcher")]
-use crate::sp1::verify_sp1_proof;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 pub enum ProvingSystemId {
@@ -37,56 +27,6 @@ pub struct VerificationData {
     pub proof_generator_addr: Address,
 }
 
-#[cfg(feature = "batcher")]
-impl VerificationData {
-    pub fn verify(&self) -> bool {
-        match self.proving_system {
-            ProvingSystemId::SP1 => {
-                if let Some(elf) = &self.vm_program_code {
-                    return verify_sp1_proof(self.proof.as_slice(), elf.as_slice());
-                }
-                warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
-                false
-            }
-            ProvingSystemId::Halo2KZG => {
-                let vk = &self
-                    .verification_key
-                    .as_ref()
-                    .expect("Verification key is required");
-
-                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
-                let is_valid = verify_halo2_kzg(&self.proof, pub_input, vk);
-                debug!("Halo2-KZG proof is valid: {}", is_valid);
-                is_valid
-            }
-            ProvingSystemId::Halo2IPA => {
-                let vk = &self
-                    .verification_key
-                    .as_ref()
-                    .expect("Verification key is required");
-
-                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
-                let is_valid = verify_halo2_ipa(&self.proof, pub_input, vk);
-                debug!("Halo2-IPA proof is valid: {}", is_valid);
-                is_valid
-            }
-            ProvingSystemId::GnarkPlonkBls12_381
-            | ProvingSystemId::GnarkPlonkBn254
-            | ProvingSystemId::Groth16Bn254 => {
-                let vk = self
-                    .verification_key
-                    .as_ref()
-                    .expect("Verification key is required");
-
-                let pub_input = self.pub_input.as_ref().expect("Public input is required");
-                let is_valid = verify_gnark(&self.proving_system, &self.proof, pub_input, vk);
-                debug!("Gnark proof is valid: {}", is_valid);
-                is_valid
-            }
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
@@ -97,7 +37,6 @@ pub struct VerificationDataCommitment {
     pub proof_generator_addr: [u8; 20],
 }
 
-#[cfg(feature = "batcher")]
 impl From<VerificationData> for VerificationDataCommitment {
     fn from(verification_data: VerificationData) -> Self {
         let mut hasher = Keccak256::new();
@@ -222,7 +161,6 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
 }
 
 #[cfg(test)]
-#[cfg(feature = "batcher")]
 mod test {
     use super::*;
 
