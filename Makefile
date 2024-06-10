@@ -285,8 +285,8 @@ __TASK_SENDERS__:
 
 proof: generate_sp1_fibonacci_proof
 
-submit_proof: install_batcher_client
-	@time batcher-client \
+submit_proof: install_aligned
+	@time aligned \
 		--proving_system SP1 \
 		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
         --vm_program task_sender/test_examples/sp1/elf \
