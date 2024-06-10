@@ -73,7 +73,7 @@ end
 
 defmodule BatchDB do
   @enforce_keys [
-    :batch_merkle_root,
+    :merkle_root,
     :amount_of_proofs,
     :is_verified,
     #new params:
@@ -82,7 +82,7 @@ defmodule BatchDB do
     :submition_timestamp,
   ]
   defstruct [
-    :batch_merkle_root,
+    :merkle_root,
     :amount_of_proofs,
     :is_verified,
     #new params:
