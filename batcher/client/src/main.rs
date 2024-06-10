@@ -11,7 +11,7 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
-use log::info;
+use log::{error, info};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
@@ -99,36 +99,48 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
 ) -> Result<(), BatcherClientError> {
-    ws_read
-        .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
-        .try_for_each(|msg| async {
+    // Responses are filtered to only admit binary or close messages.
+    let mut response_stream =
+        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
+
+    while let Some(Ok(msg)) = response_stream.next().await {
+        if let Message::Close(close_frame) = msg {
+            if let Some(close_msg) = close_frame {
+                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
+                ws_write.lock().await.close().await?;
+                return Ok(());
+            }
+            error!("Connection was closed before receiving all messages. Try submitting your proof again");
+            ws_write.lock().await.close().await?;
+            return Ok(());
+        } else {
             let mut num_responses_lock = num_responses.lock().await;
             *num_responses_lock += 1;
+
             let data = msg.into_data();
-            let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
-            info!("Batcher response received: {}", deserialized_data);
-
-            let batch_merkle_root_hex = hex::encode(deserialized_data.batch_merkle_root);
-            info!(
-                "See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}",
-                batch_merkle_root_hex
-            );
-
+            match serde_json::from_slice::<BatchInclusionData>(&data) {
+                Ok(batch_inclusion_data) => {
+                    info!("Batcher response received: {}", batch_inclusion_data);
+                    info!("Proof verified in aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+                }
+                Err(e) => {
+                    error!("Error while deserializing batcher response: {}", e);
+                }
+            }
             if *num_responses_lock == total_messages {
                 info!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
+                return Ok(());
             }
-
-            Ok(())
-        })
-        .await?;
+        }
+    }
 
     Ok(())
 }
 
 fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherClientError> {
     let proving_system = parse_proving_system(&args.proving_system_flag)
-        .map_err(|_| errors::BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
+        .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
 
     // Read proof file
     let proof = read_file(args.proof_file_name)?;
