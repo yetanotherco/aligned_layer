@@ -20,7 +20,7 @@ import (
 const (
 	maxRetries          = 25
 	sleepTime           = 5 * time.Second
-	incrementPercentage = 10
+	incrementPercentage = 25
 )
 
 type AvsWriter struct {
@@ -135,7 +135,7 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		time.Sleep(sleepTime)
 
 		// If one minute elapses, increase the gas limit and gas tip cap
-		if currentSleepTime%60*time.Second == 0 {
+		if currentSleepTime%20*time.Second == 0 {
 			// Simulate the transaction to get the gas limit again
 			txOpts := *w.Signer.GetTxOpts()
 			txOpts.NoSend = true
