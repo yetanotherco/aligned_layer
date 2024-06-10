@@ -26,18 +26,24 @@ impl From<serde_json::Error> for BatcherClientError {
 impl fmt::Debug for BatcherClientError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            BatcherClientError::MissingParameter(param) =>
-                write!(f, "Missing parameter: {} required for this proving system", param),
-            BatcherClientError::InvalidUrl(err, url) =>
-                write!(f, "Invalid URL \"{}\", {}", url, err),
-            BatcherClientError::InvalidProvingSystem(proving_system) =>
-                write!(f, "Invalid proving system: {}", proving_system),
-            BatcherClientError::ConnectionError(e) =>
-                write!(f, "Web Socket Connection error: {}", e),
-            BatcherClientError::IoError(path, e) =>
-                write!(f, "IO error for file: \"{}\", {}", path.display(), e),
-            BatcherClientError::SerdeError(e) =>
-                write!(f, "Serialization error: {}", e),
+            BatcherClientError::MissingParameter(param) => write!(
+                f,
+                "Missing parameter: {} required for this proving system",
+                param
+            ),
+            BatcherClientError::InvalidUrl(err, url) => {
+                write!(f, "Invalid URL \"{}\", {}", url, err)
+            }
+            BatcherClientError::InvalidProvingSystem(proving_system) => {
+                write!(f, "Invalid proving system: {}", proving_system)
+            }
+            BatcherClientError::ConnectionError(e) => {
+                write!(f, "Web Socket Connection error: {}", e)
+            }
+            BatcherClientError::IoError(path, e) => {
+                write!(f, "IO error for file: \"{}\", {}", path.display(), e)
+            }
+            BatcherClientError::SerdeError(e) => write!(f, "Serialization error: {}", e),
         }
     }
 }

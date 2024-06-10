@@ -1,11 +1,15 @@
-extern crate core;
-
 mod errors;
+mod eth;
 
+use batcher::types::VerificationDataCommitment;
+use std::fs::File;
+use std::io::BufReader;
+use std::io::Write;
 use std::{path::PathBuf, sync::Arc};
 
 use alloy_primitives::{hex, Address};
 use env_logger::Env;
+use ethers::prelude::*;
 use futures_util::{
     future,
     stream::{SplitSink, SplitStream},
@@ -13,17 +17,38 @@ use futures_util::{
 };
 use log::{error, info};
 use tokio::{net::TcpStream, sync::Mutex};
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::connect_async;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use batcher::types::{parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData};
+use clap::Subcommand;
 
 use crate::errors::BatcherClientError;
+use crate::eth::*;
+use crate::AlignedCommands::Submit;
+use crate::AlignedCommands::VerifyInclusion;
+
 use clap::Parser;
 use tungstenite::Message;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-struct Args {
+pub struct AlignedArgs {
+    #[clap(subcommand)]
+    pub command: AlignedCommands,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AlignedCommands {
+    #[clap(about = "Submit proof to the batcher")]
+    Submit(SubmitArgs),
+    #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
+    VerifyInclusion(VerifyInclusionArgs),
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct SubmitArgs {
     #[arg(
         name = "Batcher address",
         long = "conn",
@@ -31,10 +56,10 @@ struct Args {
     )]
     connect_addr: String,
 
-    #[arg(name = "Proving System", long = "proving_system")]
+    #[arg(name = "Proving system", long = "proving_system")]
     proving_system_flag: String,
 
-    #[arg(name = "Proof file name", long = "proof")]
+    #[arg(name = "Proof file path", long = "proof")]
     proof_file_name: PathBuf,
 
     #[arg(name = "Public input file name", long = "public_input")]
@@ -61,34 +86,99 @@ struct Args {
     proof_generator_addr: String,
 }
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct VerifyInclusionArgs {
+    #[arg(name = "Batch merkle root", long = "root")]
+    batch_inclusion_data: PathBuf,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), errors::BatcherClientError> {
-    let args = Args::parse();
-
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let args: AlignedArgs = AlignedArgs::parse();
 
-    let url = url::Url::parse(&args.connect_addr)
-        .map_err(|e| errors::BatcherClientError::InvalidUrl(e, args.connect_addr.clone()))?;
+    match args.command {
+        Submit(submit_args) => {
+            let url = url::Url::parse(&submit_args.connect_addr).map_err(|e| {
+                errors::BatcherClientError::InvalidUrl(e, submit_args.connect_addr.clone())
+            })?;
 
-    let (ws_stream, _) = connect_async(url).await?;
+            let (ws_stream, _) = connect_async(url).await?;
 
-    info!("WebSocket handshake has been successfully completed");
+            info!("WebSocket handshake has been successfully completed");
+            let (mut ws_write, ws_read) = ws_stream.split();
 
-    let (mut ws_write, ws_read) = ws_stream.split();
+            let repetitions = submit_args.repetitions;
+            let verification_data = verification_data_from_args(submit_args)?;
 
-    let repetitions = args.repetitions;
-    let verification_data = verification_data_from_args(args)?;
+            let json_data = serde_json::to_string(&verification_data)?;
+            for _ in 0..repetitions {
+                ws_write.send(Message::Text(json_data.to_string())).await?;
+                info!("Message sent...")
+            }
 
-    let json_data = serde_json::to_string(&verification_data)?;
-    for _ in 0..repetitions {
-        ws_write.send(Message::Text(json_data.to_string())).await?;
-        info!("Message sent...")
+            let num_responses = Arc::new(Mutex::new(0));
+            let ws_write = Arc::new(Mutex::new(ws_write));
+
+            receive(ws_read, ws_write, repetitions, num_responses).await?;
+        }
+
+        VerifyInclusion(verify_inclusion_args) => {
+            let batch_inclusion_file =
+                File::open(verify_inclusion_args.batch_inclusion_data).unwrap();
+            let reader = BufReader::new(batch_inclusion_file);
+            let batch_inclusion_data: BatchInclusionData = serde_json::from_reader(reader)?;
+
+            let eth_rpc_url = "http://localhost:8545";
+            let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
+
+            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
+
+            let service_manager = get_contract(eth_rpc_provider, contract_address).await;
+
+            let call = service_manager.verify_batch_inclusion(
+                batch_inclusion_data.batch_merkle_root,
+                batch_inclusion_data
+                    .verification_data_commitment
+                    .proof_commitment,
+            );
+            let pending_tx = call.call().await.unwrap();
+            if let Ok(response) = call.call().await {
+                println!("The response from the contract is: {}", response);
+            }
+
+            // let receipt = match pending_tx.await.unwrap() {
+            //     Some(receipt) => receipt,
+            //     None => panic!("Receipt not found"),
+            // };
+
+            // println!("RECEIPT: {:?}", receipt);
+        }
     }
 
-    let num_responses = Arc::new(Mutex::new(0));
-    let ws_write = Arc::new(Mutex::new(ws_write));
+    // let url = url::Url::parse(&args.connect_addr)
+    //     .map_err(|e| errors::BatcherClientError::InvalidUrl(e, args.connect_addr.clone()))?;
 
-    receive(ws_read, ws_write, repetitions, num_responses).await?;
+    // let (ws_stream, _) = connect_async(url).await?;
+
+    // info!("WebSocket handshake has been successfully completed");
+
+    // let (mut ws_write, ws_read) = ws_stream.split();
+
+    // let repetitions = args.repetitions;
+    // let verification_data = verification_data_from_args(args)?;
+
+    // let json_data = serde_json::to_string(&verification_data)?;
+    // for _ in 0..repetitions {
+    //     ws_write.send(Message::Text(json_data.to_string())).await?;
+    //     info!("Message sent...")
+    // }
+
+    // let num_responses = Arc::new(Mutex::new(0));
+    // let ws_write = Arc::new(Mutex::new(ws_write));
+
+    // receive(ws_read, ws_write, repetitions, num_responses).await?;
 
     Ok(())
 }
@@ -122,6 +212,8 @@ async fn receive(
                 Ok(batch_inclusion_data) => {
                     info!("Batcher response received: {}", batch_inclusion_data);
                     info!("Proof verified in aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+                    let mut file = File::create("batch_inclusion_data.json").unwrap();
+                    file.write_all(data.as_slice()).unwrap();
                 }
                 Err(e) => {
                     error!("Error while deserializing batcher response: {}", e);
@@ -138,7 +230,7 @@ async fn receive(
     Ok(())
 }
 
-fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherClientError> {
+fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, BatcherClientError> {
     let proving_system = parse_proving_system(&args.proving_system_flag)
         .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
 
@@ -198,7 +290,9 @@ fn read_file_option(
 #[cfg(test)]
 mod test {
     use batcher::types::VerificationDataCommitment;
-    use ethers_core::abi::{encode, encode_packed, Detokenize, Token, Tokenizable};
+    // use ethers_core::abi::{encode, encode_packed, Detokenize, Token, Tokenizable};
+    use ethers::abi::encode;
+    use ethers::abi::Token;
 
     use super::*;
 
@@ -209,7 +303,7 @@ mod test {
         let proof_generator_addr = [1u8; 20];
         // };
         // let token_a: ethers_core::types::U256 = ethers_core::types::U256::from(1);
-        let token_a: ethers_core::types::Address = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+        let token_a: ethers::types::Address = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
             .parse()
             .unwrap();
 

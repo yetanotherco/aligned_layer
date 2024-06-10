@@ -18,4 +18,5 @@ log = "0.4.21"
 env_logger = "0.11.3"
 alloy-primitives = "0.7.4"
 clap = { version = "4.5.4", features = ["derive"] }
-ethers-core = "2.0.14"
+# ethers-core = "2.0.14"
+ethers = { version = "2.0", features = ["ws", "rustls"] }

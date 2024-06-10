@@ -144,7 +144,9 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         // bytes32 provingSystemAuxDataCommitment,
         // bytes20 proofGeneratorAddr,
         // bytes batchInclusionProof
-        BatchInclusionData calldata batchInclusionData
+        // BatchInclusionData calldata batchInclusionData
+        bytes32 batchMerkleRoot,
+        bytes32 proofCommitment
     ) external returns (bool) {
         return true;
     }
