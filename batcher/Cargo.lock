@@ -1760,7 +1760,7 @@ dependencies = [
  "digest 0.10.7",
  "elliptic-curve 0.13.8",
  "rfc6979 0.4.0",
- "signature 2.2.0",
+ "signature 2.0.0",
  "spki 0.7.3",
 ]
 
@@ -3223,7 +3223,7 @@ dependencies = [
  "elliptic-curve 0.13.8",
  "once_cell",
  "sha2",
- "signature 2.2.0",
+ "signature 2.0.0",
 ]
 
 [[package]]
@@ -5444,9 +5444,9 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "2.2.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
+checksum = "8fe458c98333f9c8152221191a77e2a44e8325d0193484af2e9421a53019e57d"
 dependencies = [
  "digest 0.10.7",
  "rand_core",

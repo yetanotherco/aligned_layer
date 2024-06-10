@@ -1,12 +1,11 @@
 extern crate dotenv;
 
-use std::io::Error as IoError;
 use std::sync::Arc;
 
 use clap::Parser;
 use env_logger::Env;
 
-use batcher::Batcher;
+use batcher::{types::errors::BatcherError, Batcher};
 
 /// Batcher main flow:
 /// There are two main tasks spawned: `listen_connections` and `listen_new_blocks`
@@ -16,7 +15,7 @@ use batcher::Batcher;
 ///    the current batch to be submitted. In other words, this task is the one that controls when a batch
 ///    is to be posted.
 #[derive(Parser)]
-#[command(name = "Aligned Layer Batcher")]
+#[command(name = "Aligned Batcher")]
 #[command(about = "An application with server and client subcommands", long_about = None)]
 struct Cli {
     #[arg(short, long)]
@@ -28,7 +27,7 @@ struct Cli {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), IoError> {
+async fn main() -> Result<(), BatcherError> {
     let cli = Cli::parse();
     let port = cli.port.unwrap_or(8080);
 
@@ -47,12 +46,10 @@ async fn main() -> Result<(), IoError> {
     // spawn task to listening for incoming blocks
     tokio::spawn({
         let app = batcher.clone();
-        async move {
-            app.listen_new_blocks().await.unwrap();
-        }
+        async move { app.listen_new_blocks().await.unwrap() }
     });
 
-    batcher.listen_connections(&addr).await;
+    batcher.listen_connections(&addr).await?;
 
     Ok(())
 }
