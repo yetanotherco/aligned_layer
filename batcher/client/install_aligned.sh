@@ -6,7 +6,7 @@ BASE_DIR=$HOME
 ALIGNED_DIR="${ALIGNED_DIR-"$BASE_DIR/.aligned"}"
 ALIGNED_BIN_DIR="$ALIGNED_DIR/bin"
 ALIGNED_BIN_PATH="$ALIGNED_BIN_DIR/aligned"
-#TODO: See if v0.1.3 can be replaced with a variable of the latest release
+#TODO: See if v0.1.4 can be replaced with a variable of the latest release
 RELEASE_URL="https://github.com/yetanotherco/aligned_layer/releases/download/v0.1.4/"
 
 ARCH=$(uname -m)
@@ -21,7 +21,12 @@ else
 fi
 
 mkdir -p "$ALIGNED_BIN_DIR"
-curl -sSf -L "$RELEASE_URL$FILE" -o "$ALIGNED_BIN_PATH"
+if curl -sSf -L "$RELEASE_URL$FILE" -o "$ALIGNED_BIN_PATH"; then
+    echo "Aligned download successful, installing..."
+else
+    echo "Error: Failed to download $RELEASE_URL$FILE"
+    exit 1
+fi
 chmod +x "$ALIGNED_BIN_PATH"
 
 # Store the correct profile file (i.e. .profile for bash or .zshenv for ZSH).
