@@ -436,7 +436,7 @@ make batcher_send_sp1_task
 #### Send one Groth 16 proof
 
 ```bash
-make batcher_send_groth16_task
+make batcher_send_groth16_bn254_task
 ```
 
 #### Send infinite Groth 16 proofs
