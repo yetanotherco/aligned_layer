@@ -7,7 +7,7 @@ ALIGNED_DIR="${ALIGNED_DIR-"$BASE_DIR/.aligned"}"
 ALIGNED_BIN_DIR="$ALIGNED_DIR/bin"
 ALIGNED_BIN_PATH="$ALIGNED_BIN_DIR/aligned"
 #TODO: See if v0.1.3 can be replaced with a variable of the latest release
-RELEASE_URL="https://github.com/yetanotherco/aligned_layer/releases/download/v0.1.3/"
+RELEASE_URL="https://github.com/yetanotherco/aligned_layer/releases/download/v0.1.4/"
 
 ARCH=$(uname -m)
 
