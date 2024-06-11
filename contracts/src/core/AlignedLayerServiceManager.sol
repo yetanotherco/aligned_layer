@@ -38,11 +38,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bool responded;
     }
 
-    struct BatchInclusionData {
-        bytes32 batchMerkleRoot;
-        bytes32 proofCommitment;
-    }
-
     /* STORAGE */
     mapping(bytes32 => BatchState) public batchesState;
 
@@ -140,8 +135,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function verifyBatchInclusion(
-        // bytes32 proofCommitment,
-        // BatchInclusionData calldata batchInclusionData
         bytes32 proofCommitment,
         bytes32 pubInputCommitment,
         bytes32 provingSystemAuxDataCommitment,
@@ -149,21 +142,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes32 batchMerkleRoot,
         bytes32[] memory merkleProof
     ) external returns (bool) {
-        // bytes memory leaf = abi.encodePacked(
-        //     proofCommitment,
-        //     pubInputCommitment,
-        //     provingSystemAuxDataCommitment,
-        //     proofGeneratorAddr
-        // );
-
-        // bytes32 hashedLeaf = keccak256(leaf);
-
-        // bool response = MerkleProof.verify(
-        //     merkleProof,
-        //     batchMerkleRoot,
-        //     hashedLeaf
-        // );
-
         if (
             batchesState[batchMerkleRoot].taskCreatedBlock != 0 &&
             batchesState[batchMerkleRoot].responded == true
