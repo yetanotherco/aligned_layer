@@ -69,6 +69,6 @@ if [[ ":$PATH:" != *":${ALIGNED_BIN_DIR}:"* ]]; then
     fi
 fi
 
-echo "Aligned installed successfully."
+echo "Aligned installed successfully in $ALIGNED_BIN_PATH."
 echo "Detected your preferred shell is $PREF_SHELL and added aligned to PATH."
 echo "Run 'source $PROFILE' or start a new terminal session to use aligned."
