@@ -56,7 +56,9 @@ defmodule Explorer.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.2"},
       {:ethers, "~> 0.4.4"},
-      {:ethereumex, "~> 0.10"}
+      {:ethereumex, "~> 0.10"},
+      {:ecto_sql, "~> 3.0"},
+      {:postgrex, ">= 0.0.0"}
     ]
   end
 

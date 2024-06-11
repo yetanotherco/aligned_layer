@@ -20,7 +20,7 @@ import "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import "eigenlayer-contracts/src/contracts/core/Slasher.sol";
 import "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
-import "eigenlayer-contracts/src/contracts/core/PaymentCoordinator.sol";
+import "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 
 import "eigenlayer-contracts/src/contracts/strategies/StrategyBaseTVLLimits.sol";
 
@@ -32,9 +32,11 @@ import "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
 
 import "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 import "eigenlayer-contracts/src/test/mocks/ETHDepositMock.sol";
+import "src/core/ERC20Mock.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/Test.sol";
+import {TransparentUpgradeableProxy} from "../../lib/eigenlayer-middleware/lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // # To load the variables in the .env file
 // source .env
@@ -65,8 +67,8 @@ contract EigenLayerDeployer is Script, Test {
     StrategyManager public strategyManagerImplementation;
     AVSDirectory public avsDirectory;
     AVSDirectory public avsDirectoryImplementation;
-    PaymentCoordinator public paymentCoordinator;
-    PaymentCoordinator public paymentCoordinatorImplementation;
+    RewardsCoordinator public rewardsCoordinator;
+    RewardsCoordinator public rewardsCoordinatorImplementation;
     EigenPodManager public eigenPodManager;
     EigenPodManager public eigenPodManagerImplementation;
     DelayedWithdrawalRouter public delayedWithdrawalRouter;
@@ -98,20 +100,23 @@ contract EigenLayerDeployer is Script, Test {
     uint256 DELEGATION_WITHDRAWAL_DELAY_BLOCKS;
     uint256 EIGENPOD_MANAGER_INIT_PAUSED_STATUS;
     uint256 DELAYED_WITHDRAWAL_ROUTER_INIT_PAUSED_STATUS;
-    // PaymentCoordinator
-    uint256 PAYMENT_COORDINATOR_INIT_PAUSED_STATUS;
-    uint32 PAYMENT_COORDINATOR_MAX_PAYMENT_DURATION;
-    uint32 PAYMENT_COORDINATOR_MAX_RETROACTIVE_LENGTH;
-    uint32 PAYMENT_COORDINATOR_MAX_FUTURE_LENGTH;
-    uint32 PAYMENT_COORDINATOR_GENESIS_PAYMENT_TIMESTAMP;
-    address PAYMENT_COORDINATOR_UPDATER;
-    uint32 PAYMENT_COORDINATOR_ACTIVATION_DELAY;
-    uint32 PAYMENT_COORDINATOR_CALCULATION_INTERVAL_SECONDS;
-    uint32 PAYMENT_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS;
+    // RewardsCoordinator
+    uint256 REWARDS_COORDINATOR_INIT_PAUSED_STATUS;
+    uint32 REWARDS_COORDINATOR_MAX_REWARDS_DURATION;
+    uint32 REWARDS_COORDINATOR_MAX_RETROACTIVE_LENGTH;
+    uint32 REWARDS_COORDINATOR_MAX_FUTURE_LENGTH;
+    uint32 REWARDS_COORDINATOR_GENESIS_REWARDS_TIMESTAMP;
+    address REWARDS_COORDINATOR_UPDATER;
+    uint32 REWARDS_COORDINATOR_ACTIVATION_DELAY;
+    uint32 REWARDS_COORDINATOR_CALCULATION_INTERVAL_SECONDS;
+    uint32 REWARDS_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS;
 
     // one week in blocks -- 50400
-    uint32 STRATEGY_MANAGER_INIT_WITHDRAWAL_DELAY_BLOCKS;
     uint32 DELAYED_WITHDRAWAL_ROUTER_INIT_WITHDRAWAL_DELAY_BLOCKS;
+
+    // ERC20 and Strategy: we need to deploy this erc20, create a strategy for it, and whitelist this strategy in the StrategyManager
+    ERC20Mock public erc20Mock;
+    StrategyBaseTVLLimits public erc20MockStrategy;
 
     function run(string memory configFileName) external {
         // read and log the chainID
@@ -125,44 +130,41 @@ contract EigenLayerDeployer is Script, Test {
 
         STRATEGY_MANAGER_INIT_PAUSED_STATUS = stdJson.readUint(config_data, ".strategyManager.init_paused_status");
         SLASHER_INIT_PAUSED_STATUS = stdJson.readUint(config_data, ".slasher.init_paused_status");
-        DELEGATION_INIT_PAUSED_STATUS = stdJson.readUint(config_data, ".delegation.init_paused_status");
-        DELEGATION_WITHDRAWAL_DELAY_BLOCKS = stdJson.readUint(config_data, ".delegation.init_withdrawal_delay_blocks");
+        DELEGATION_INIT_PAUSED_STATUS = stdJson.readUint(config_data, ".delegationManager.init_paused_status");
+        DELEGATION_WITHDRAWAL_DELAY_BLOCKS = stdJson.readUint(config_data, ".delegationManager.init_minWithdrawalDelayBlocks");
         EIGENPOD_MANAGER_INIT_PAUSED_STATUS = stdJson.readUint(config_data, ".eigenPodManager.init_paused_status");
         DELAYED_WITHDRAWAL_ROUTER_INIT_PAUSED_STATUS = stdJson.readUint(
             config_data,
             ".delayedWithdrawalRouter.init_paused_status"
         );
 
-        STRATEGY_MANAGER_INIT_WITHDRAWAL_DELAY_BLOCKS = uint32(
-            stdJson.readUint(config_data, ".strategyManager.init_withdrawal_delay_blocks")
-        );
         DELAYED_WITHDRAWAL_ROUTER_INIT_WITHDRAWAL_DELAY_BLOCKS = uint32(
-            stdJson.readUint(config_data, ".strategyManager.init_withdrawal_delay_blocks")
+            stdJson.readUint(config_data, ".delegationManager.init_minWithdrawalDelayBlocks")
         );
 
         MAX_RESTAKED_BALANCE_GWEI_PER_VALIDATOR = uint64(
             stdJson.readUint(config_data, ".eigenPod.MAX_RESTAKED_BALANCE_GWEI_PER_VALIDATOR")
         );
 
-        // PaymentCoordinator
-        PAYMENT_COORDINATOR_INIT_PAUSED_STATUS = stdJson.readUint(
+        // RewardsCoordinator
+        REWARDS_COORDINATOR_INIT_PAUSED_STATUS = stdJson.readUint(
             config_data,
-            ".paymentCoordinator.init_paused_status"
+            ".rewardsCoordinator.init_paused_status"
         );
-        PAYMENT_COORDINATOR_CALCULATION_INTERVAL_SECONDS = uint32(
-            stdJson.readUint(config_data, ".paymentCoordinator.CALCULATION_INTERVAL_SECONDS")
+        REWARDS_COORDINATOR_CALCULATION_INTERVAL_SECONDS = uint32(
+            stdJson.readUint(config_data, ".rewardsCoordinator.CALCULATION_INTERVAL_SECONDS")
         );
-        PAYMENT_COORDINATOR_MAX_PAYMENT_DURATION = uint32(stdJson.readUint(config_data, ".paymentCoordinator.MAX_PAYMENT_DURATION"));
-        PAYMENT_COORDINATOR_MAX_RETROACTIVE_LENGTH = uint32(stdJson.readUint(config_data, ".paymentCoordinator.MAX_RETROACTIVE_LENGTH"));
-        PAYMENT_COORDINATOR_MAX_FUTURE_LENGTH = uint32(stdJson.readUint(config_data, ".paymentCoordinator.MAX_FUTURE_LENGTH"));
-        PAYMENT_COORDINATOR_GENESIS_PAYMENT_TIMESTAMP = uint32(stdJson.readUint(config_data, ".paymentCoordinator.GENESIS_PAYMENT_TIMESTAMP"));
-        PAYMENT_COORDINATOR_UPDATER = stdJson.readAddress(config_data, ".paymentCoordinator.payment_updater_address");
-        PAYMENT_COORDINATOR_ACTIVATION_DELAY = uint32(stdJson.readUint(config_data, ".paymentCoordinator.activation_delay"));
-        PAYMENT_COORDINATOR_CALCULATION_INTERVAL_SECONDS = uint32(
-            stdJson.readUint(config_data, ".paymentCoordinator.calculation_interval_seconds")
+        REWARDS_COORDINATOR_MAX_REWARDS_DURATION = uint32(stdJson.readUint(config_data, ".rewardsCoordinator.MAX_REWARDS_DURATION"));
+        REWARDS_COORDINATOR_MAX_RETROACTIVE_LENGTH = uint32(stdJson.readUint(config_data, ".rewardsCoordinator.MAX_RETROACTIVE_LENGTH"));
+        REWARDS_COORDINATOR_MAX_FUTURE_LENGTH = uint32(stdJson.readUint(config_data, ".rewardsCoordinator.MAX_FUTURE_LENGTH"));
+        REWARDS_COORDINATOR_GENESIS_REWARDS_TIMESTAMP = uint32(stdJson.readUint(config_data, ".rewardsCoordinator.GENESIS_REWARDS_TIMESTAMP"));
+        REWARDS_COORDINATOR_UPDATER = stdJson.readAddress(config_data, ".rewardsCoordinator.rewards_updater_address");
+        REWARDS_COORDINATOR_ACTIVATION_DELAY = uint32(stdJson.readUint(config_data, ".rewardsCoordinator.activation_delay"));
+        REWARDS_COORDINATOR_CALCULATION_INTERVAL_SECONDS = uint32(
+            stdJson.readUint(config_data, ".rewardsCoordinator.calculation_interval_seconds")
         );
-        PAYMENT_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS = uint32(
-            stdJson.readUint(config_data, ".paymentCoordinator.global_operator_commission_bips")
+        REWARDS_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS = uint32(
+            stdJson.readUint(config_data, ".rewardsCoordinator.global_operator_commission_bips")
         );
 
         // tokens to deploy strategies for
@@ -172,7 +174,7 @@ contract EigenLayerDeployer is Script, Test {
         operationsMultisig = stdJson.readAddress(config_data, ".multisig_addresses.operationsMultisig");
         pauserMultisig = stdJson.readAddress(config_data, ".multisig_addresses.pauserMultisig");
         // load token list
-        bytes memory strategyConfigsRaw = stdJson.parseRaw(config_data, ".strategies");
+        bytes memory strategyConfigsRaw = stdJson.parseRaw(config_data, ".strategies.strategiesToDeploy");
         strategyConfigs = abi.decode(strategyConfigsRaw, (StrategyConfig[]));
 
         require(executorMultisig != address(0), "executorMultisig address not configured correctly!");
@@ -207,7 +209,7 @@ contract EigenLayerDeployer is Script, Test {
         avsDirectory = AVSDirectory(
             address(new TransparentUpgradeableProxy(address(emptyContract), address(eigenLayerProxyAdmin), ""))
         );
-        paymentCoordinator = PaymentCoordinator(
+        rewardsCoordinator = RewardsCoordinator(
             address(new TransparentUpgradeableProxy(address(emptyContract), address(eigenLayerProxyAdmin), ""))
         );
         slasher = Slasher(
@@ -243,14 +245,14 @@ contract EigenLayerDeployer is Script, Test {
         delegationImplementation = new DelegationManager(strategyManager, slasher, eigenPodManager);
         strategyManagerImplementation = new StrategyManager(delegation, eigenPodManager, slasher);
         avsDirectoryImplementation = new AVSDirectory(delegation);
-        paymentCoordinatorImplementation = new PaymentCoordinator(
+        rewardsCoordinatorImplementation = new RewardsCoordinator(
             delegation,
             strategyManager,
-            PAYMENT_COORDINATOR_CALCULATION_INTERVAL_SECONDS,
-            PAYMENT_COORDINATOR_MAX_PAYMENT_DURATION,
-            PAYMENT_COORDINATOR_MAX_RETROACTIVE_LENGTH,
-            PAYMENT_COORDINATOR_MAX_FUTURE_LENGTH,
-            PAYMENT_COORDINATOR_GENESIS_PAYMENT_TIMESTAMP
+            REWARDS_COORDINATOR_CALCULATION_INTERVAL_SECONDS,
+            REWARDS_COORDINATOR_MAX_REWARDS_DURATION,
+            REWARDS_COORDINATOR_MAX_RETROACTIVE_LENGTH,
+            REWARDS_COORDINATOR_MAX_FUTURE_LENGTH,
+            REWARDS_COORDINATOR_GENESIS_REWARDS_TIMESTAMP
         );
         slasherImplementation = new Slasher(strategyManager, delegation);
         eigenPodManagerImplementation = new EigenPodManager(
@@ -307,16 +309,16 @@ contract EigenLayerDeployer is Script, Test {
             abi.encodeWithSelector(AVSDirectory.initialize.selector, executorMultisig, eigenLayerPauserReg, 0)
         );
         eigenLayerProxyAdmin.upgradeAndCall(
-            TransparentUpgradeableProxy(payable(address(paymentCoordinator))),
-            address(paymentCoordinatorImplementation),
+            TransparentUpgradeableProxy(payable(address(rewardsCoordinator))),
+            address(rewardsCoordinatorImplementation),
             abi.encodeWithSelector(
-                PaymentCoordinator.initialize.selector,
+                RewardsCoordinator.initialize.selector,
                 executorMultisig,
                 eigenLayerPauserReg,
-                PAYMENT_COORDINATOR_INIT_PAUSED_STATUS,
-                PAYMENT_COORDINATOR_UPDATER,
-                PAYMENT_COORDINATOR_ACTIVATION_DELAY,
-                PAYMENT_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS
+                REWARDS_COORDINATOR_INIT_PAUSED_STATUS,
+                REWARDS_COORDINATOR_UPDATER,
+                REWARDS_COORDINATOR_ACTIVATION_DELAY,
+                REWARDS_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS
             )
         );
         eigenLayerProxyAdmin.upgradeAndCall(
@@ -344,26 +346,30 @@ contract EigenLayerDeployer is Script, Test {
 
         // deploy StrategyBaseTVLLimits contract implementation
         baseStrategyImplementation = new StrategyBaseTVLLimits(strategyManager);
-        // create upgradeable proxies that each point to the implementation and initialize them
-        for (uint256 i = 0; i < strategyConfigs.length; ++i) {
-            deployedStrategyArray.push(
-                StrategyBaseTVLLimits(
-                    address(
-                        new TransparentUpgradeableProxy(
-                            address(baseStrategyImplementation),
-                            address(eigenLayerProxyAdmin),
-                            abi.encodeWithSelector(
-                                StrategyBaseTVLLimits.initialize.selector,
-                                strategyConfigs[i].maxPerDeposit,
-                                strategyConfigs[i].maxDeposits,
-                                IERC20(strategyConfigs[i].tokenAddress),
-                                eigenLayerPauserReg
-                            )
-                        )
-                    )
-                )
-            );
-        }
+
+        erc20Mock = new ERC20Mock();
+        // Deploy and upgrade strategy
+        erc20MockStrategy = StrategyBaseTVLLimits(
+            address(new TransparentUpgradeableProxy(address(emptyContract), address(eigenLayerProxyAdmin), ""))
+        );
+        eigenLayerProxyAdmin.upgradeAndCall(
+            TransparentUpgradeableProxy(payable(address(erc20MockStrategy))),
+            address(baseStrategyImplementation),
+            abi.encodeWithSelector(
+                StrategyBaseTVLLimits.initialize.selector,
+                1 ether, // maxPerDeposit
+                1000 ether, // maxDeposits
+                IERC20(erc20Mock),
+                eigenLayerPauserReg
+            )
+        );
+
+        IStrategy[] memory strats = new IStrategy[](1);
+        strats[0] = erc20MockStrategy;
+        bool[] memory reject = new bool[](1);
+        reject[0] = false;
+
+        strategyManager.addStrategiesToDepositWhitelist(strats, reject);
 
         eigenLayerProxyAdmin.transferOwnership(executorMultisig);
         eigenPodBeacon.transferOwnership(executorMultisig);
@@ -395,16 +401,11 @@ contract EigenLayerDeployer is Script, Test {
         string memory parent_object = "parent object";
 
         string memory deployed_strategies = "strategies";
-        for (uint256 i = 0; i < strategyConfigs.length; ++i) {
-            vm.serializeAddress(deployed_strategies, strategyConfigs[i].tokenSymbol, address(deployedStrategyArray[i]));
-        }
-        string memory deployed_strategies_output = strategyConfigs.length == 0
-            ? ""
-            : vm.serializeAddress(
-                deployed_strategies,
-                strategyConfigs[strategyConfigs.length - 1].tokenSymbol,
-                address(deployedStrategyArray[strategyConfigs.length - 1])
-            );
+        string memory deployed_strategies_output = vm.serializeAddress(
+            deployed_strategies,
+            "MOCK",
+            address(erc20MockStrategy)
+        );
 
         string memory deployed_addresses = "addresses";
         vm.serializeAddress(deployed_addresses, "eigenLayerProxyAdmin", address(eigenLayerProxyAdmin));
@@ -415,11 +416,11 @@ contract EigenLayerDeployer is Script, Test {
         vm.serializeAddress(deployed_addresses, "delegationManagerImplementation", address(delegationImplementation));
         vm.serializeAddress(deployed_addresses, "avsDirectory", address(avsDirectory));
         vm.serializeAddress(deployed_addresses, "avsDirectoryImplementation", address(avsDirectoryImplementation));
-        vm.serializeAddress(deployed_addresses, "paymentCoordinator", address(paymentCoordinator));
+        vm.serializeAddress(deployed_addresses, "rewardsCoordinator", address(rewardsCoordinator));
         vm.serializeAddress(
             deployed_addresses,
-            "paymentCoordinatorImplementation",
-            address(paymentCoordinatorImplementation)
+            "rewardsCoordinatorImplementation",
+            address(rewardsCoordinatorImplementation)
         );
         vm.serializeAddress(deployed_addresses, "strategyManager", address(strategyManager));
         vm.serializeAddress(
@@ -456,9 +457,9 @@ contract EigenLayerDeployer is Script, Test {
         // AlignedLayerSpecific: This addresses weren't in the original deployer serialization of EigenLayerContracts. But we needed to use them
         vm.serializeAddress(deployed_addresses, "beaconOracle", address(0));
         string memory parameters_output = vm.serializeAddress(parameters, "pauserMultisig", pauserMultisig);
-        vm.serializeUint(parent_object, "numStrategies", strategyConfigs.length);
+        vm.serializeUint(parent_object, "numStrategies", 1);
 
-        // ALignedLayerSpecific: Now the rest of the final serialization steps continues
+        // AlignedLayerSpecific: Now the rest of the final serialization steps continues
         string memory deployed_addresses_output = vm.serializeString(
             deployed_addresses,
             "strategies",
@@ -655,6 +656,11 @@ contract EigenLayerDeployer is Script, Test {
             "strategyManager: strategyWhitelister address not set correctly"
         );
 
+        // assert erc20MockStrategy is whitelisted on strategyManager
+        require(
+            strategyManager.strategyIsWhitelistedForDeposit(erc20MockStrategy),
+            "erc20MockStrategy not whitelisted on strategyManager"
+        );
         require(
             eigenPodManager.beaconChainOracle() == IBeaconChainOracle(address(0)),
             "eigenPodManager: eigenPodBeacon contract address not set correctly"
@@ -682,6 +688,10 @@ contract EigenLayerDeployer is Script, Test {
             eigenPodImplementation.delayedWithdrawalRouter() == delayedWithdrawalRouter,
             " eigenPodImplementation: delayedWithdrawalRouter contract address not set correctly"
         );
+
+
+
+
 
         string memory config_data = vm.readFile(deployConfigPath);
         for (uint i = 0; i < deployedStrategyArray.length; i++) {

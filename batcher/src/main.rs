@@ -1,15 +1,21 @@
 extern crate dotenv;
 
-use std::io::Error as IoError;
 use std::sync::Arc;
 
 use clap::Parser;
 use env_logger::Env;
 
-use batcher::App;
+use batcher::{types::errors::BatcherError, Batcher};
 
+/// Batcher main flow:
+/// There are two main tasks spawned: `listen_connections` and `listen_new_blocks`
+/// * `listen_connections` waits for websocket connections and adds verification data sent by clients
+///    to the batch.
+/// * `listen_new_blocks` waits for new blocks and when one is received, checks if the conditions are met
+///    the current batch to be submitted. In other words, this task is the one that controls when a batch
+///    is to be posted.
 #[derive(Parser)]
-#[command(name = "Aligned Layer Batcher")]
+#[command(name = "Aligned Batcher")]
 #[command(about = "An application with server and client subcommands", long_about = None)]
 struct Cli {
     #[arg(short, long)]
@@ -21,7 +27,7 @@ struct Cli {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), IoError> {
+async fn main() -> Result<(), BatcherError> {
     let cli = Cli::parse();
     let port = cli.port.unwrap_or(8080);
 
@@ -32,20 +38,18 @@ async fn main() -> Result<(), IoError> {
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let app = App::new(cli.config).await;
-    let app = Arc::new(app);
+    let batcher = Batcher::new(cli.config).await;
+    let batcher = Arc::new(batcher);
 
     let addr = format!("localhost:{}", port);
 
-    // spawn thread for polling
+    // spawn task to listening for incoming blocks
     tokio::spawn({
-        let app = app.clone();
-        async move {
-            app.poll_new_blocks().await;
-        }
+        let app = batcher.clone();
+        async move { app.listen_new_blocks().await.unwrap() }
     });
 
-    app.listen(&addr).await;
+    batcher.listen_connections(&addr).await?;
 
     Ok(())
 }

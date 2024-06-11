@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	MaxRetries    = 20
-	RetryInterval = 10 * time.Second
+	MaxRetries    = 100
+	RetryInterval = 1 * time.Second
 )
 
 func (agg *Aggregator) SubscribeToNewTasks() error {
@@ -32,7 +32,6 @@ func (agg *Aggregator) subscribeToNewTasks() error {
 	for {
 		select {
 		case err := <-agg.taskSubscriber.Err():
-			agg.AggregatorConfig.BaseConfig.Logger.Error("Error in subscription", "err", err)
 			return err
 		case newBatch := <-agg.NewBatchChan:
 			agg.AddNewTask(newBatch.BatchMerkleRoot, newBatch.TaskCreatedBlock)
@@ -45,7 +44,7 @@ func (agg *Aggregator) tryCreateTaskSubscriber() error {
 
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Subscribing to Ethereum serviceManager task events")
 	agg.taskSubscriber, err = agg.avsSubscriber.AvsContractBindings.ServiceManager.WatchNewBatch(&bind.WatchOpts{},
-		agg.NewBatchChan)
+		agg.NewBatchChan, nil)
 
 	if err != nil {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to create task subscriber", "err", err)

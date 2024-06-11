@@ -28,11 +28,9 @@ import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 
 contract AlignedLayerDeployer is ExistingDeploymentParser {
-
     ProxyAdmin public alignedLayerProxyAdmin;
     address public alignedLayerOwner;
     address public alignedLayerUpgrader;
-    address public aggregator;
     address public pauser;
     uint256 public initalPausedStatus;
     address public deployer;
@@ -82,10 +80,6 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         alignedLayerUpgrader = stdJson.readAddress(
             config_data,
             ".permissions.upgrader"
-        );
-        aggregator = stdJson.readAddress(
-            config_data,
-            ".permissions.aggregator"
         );
         initalPausedStatus = stdJson.readUint(
             config_data,
@@ -234,7 +228,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         //deploy the alignedLayer service manager implementation
         alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
             avsDirectory,
-            paymentCoordinator,
+            rewardsCoordinator,
             registryCoordinator,
             stakeRegistry
         );
@@ -247,8 +241,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
-                deployer,
-                aggregator
+                deployer
             )
         );
 
@@ -318,10 +311,6 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         alignedLayerUpgrader = stdJson.readAddress(
             config_data,
             ".permissions.upgrader"
-        );
-        aggregator = stdJson.readAddress(
-            config_data,
-            ".permissions.aggregator"
         );
         initalPausedStatus = stdJson.readUint(
             config_data,
@@ -464,7 +453,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         //deploy the alignedLayer service manager implementation
         alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
             avsDirectory,
-            paymentCoordinator,
+            rewardsCoordinator,
             registryCoordinator,
             stakeRegistry
         );
@@ -477,8 +466,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
-                deployer,
-                aggregator
+                deployer
             )
         );
 
@@ -636,10 +624,6 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             "alignedLayerServiceManager.owner() != alignedLayerOwner"
         );
         // require(alignedLayerServiceManager.pauserRegistry() == IPauserRegistry(pauser), "alignedLayerServiceManager: pauser registry not set correctly");
-        require(
-            alignedLayerServiceManager.isAggregator(aggregator) == true,
-            "alignedLayerServiceManager.aggregator() != aggregator"
-        );
         // require(alignedLayerServiceManager.paused() == initalPausedStatus, "alignedLayerServiceManager: init paused status set incorrectly");
 
         require(
@@ -815,7 +799,6 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             alignedLayerUpgrader
         );
         vm.serializeAddress(permissions, "alignedLayerChurner", churner);
-        vm.serializeAddress(permissions, "alignedLayerAggregator", aggregator);
         vm.serializeAddress(permissions, "pauserRegistry", pauser);
         string memory permissions_output = vm.serializeAddress(
             permissions,

@@ -21,7 +21,7 @@ func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
 
 	imageId := getImageIdsFromFile(t, "../../task_sender/test_examples/risc_zero/fibonacci_proof_generator/fibonacci_id.txt")
 
-	if !risc_zero.VerifyRiscZeroReceipt(([risc_zero.MaxReceiptSize]byte)(receiptBytes), uint(nReadReceiptBytes), ([8]uint32)(imageId)) {
+	if !risc_zero.VerifyRiscZeroReceipt(([risc_zero.MaxReceiptSize]byte)(receiptBytes), uint32(nReadReceiptBytes), ([8]uint32)(imageId)) {
 		t.Errorf("proof did not verify")
 	}
 }

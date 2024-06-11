@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/celestiaorg/celestia-node/api/rpc/perms"
 	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"os"
@@ -14,8 +13,6 @@ type OperatorConfig struct {
 	EcdsaConfig                  *EcdsaConfig
 	BlsConfig                    *BlsConfig
 	AlignedLayerDeploymentConfig *AlignedLayerDeploymentConfig
-	EigenDADisperserConfig       *EigenDAConfig
-	CelestiaConfig               *CelestiaConfig
 
 	Operator struct {
 		AggregatorServerIpPortAddress string
@@ -25,6 +22,9 @@ type OperatorConfig struct {
 		StakerOptOutWindowBlocks      int
 		MetadataUrl                   string
 		RegisterOperatorOnStartup     bool
+		EnableMetrics                 bool
+		MetricsIpPortAddress          string
+		MaxBatchSize                  int64
 	}
 }
 
@@ -37,6 +37,9 @@ type OperatorConfigFromYaml struct {
 		StakerOptOutWindowBlocks      int            `yaml:"staker_opt_out_window_blocks"`
 		MetadataUrl                   string         `yaml:"metadata_url"`
 		RegisterOperatorOnStartup     bool           `yaml:"register_operator_on_startup"`
+		EnableMetrics                 bool           `yaml:"enable_metrics"`
+		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
+		MaxBatchSize                  int64          `yaml:"max_batch_size"`
 	} `yaml:"operator"`
 	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
@@ -69,17 +72,11 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		log.Fatal("Error reading operator config: ", err)
 	}
 
-	eigenDADisperserConfig := NewEigenDAConfig(configFilePath)
-
-	celestiaConfig := NewCelestiaConfig(configFilePath, perms.ReadPerms)
-
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
 		EcdsaConfig:                  ecdsaConfig,
 		BlsConfig:                    blsConfig,
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
-		EigenDADisperserConfig:       eigenDADisperserConfig,
-		CelestiaConfig:               celestiaConfig,
 		Operator: struct {
 			AggregatorServerIpPortAddress string
 			Address                       common.Address
@@ -88,6 +85,9 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			StakerOptOutWindowBlocks      int
 			MetadataUrl                   string
 			RegisterOperatorOnStartup     bool
+			EnableMetrics                 bool
+			MetricsIpPortAddress          string
+			MaxBatchSize                  int64
 		}(operatorConfigFromYaml.Operator),
 	}
 }

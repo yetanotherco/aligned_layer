@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity =0.8.12;
 
 import {Pausable} from "eigenlayer-core/contracts/permissions/Pausable.sol";
 import {IPauserRegistry} from "eigenlayer-core/contracts/interfaces/IPauserRegistry.sol";
@@ -8,7 +8,7 @@ import {ServiceManagerBase, IAVSDirectory} from "eigenlayer-middleware/ServiceMa
 import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
-import {IPaymentCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IPaymentCoordinator.sol";
+import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 /**
  * @title Primary entrypoint for procuring services from AlignedLayer.
@@ -18,19 +18,17 @@ import {IPaymentCoordinator} from "eigenlayer-contracts/src/contracts/interfaces
  * - freezing operators as the result of various "challenges"
  */
 contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
-    address aggregator;
-
     uint256 internal constant THRESHOLD_DENOMINATOR = 100;
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
 
     // EVENTS
     event NewBatch(
-        bytes32 batchMerkleRoot,
+        bytes32 indexed batchMerkleRoot,
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
 
-    event BatchVerified(bytes32 batchMerkleRoot);
+    event BatchVerified(bytes32 indexed batchMerkleRoot);
 
     struct BatchState {
         uint32 taskCreatedBlock;
@@ -38,18 +36,18 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     /* STORAGE */
-    mapping(bytes32 => BatchState) batchesState;
+    mapping(bytes32 => BatchState) public batchesState;
 
     constructor(
         IAVSDirectory __avsDirectory,
-        IPaymentCoordinator __paymentCoordinator,
+        IRewardsCoordinator __rewardsCoordinator,
         IRegistryCoordinator __registryCoordinator,
         IStakeRegistry __stakeRegistry
     )
         BLSSignatureChecker(__registryCoordinator)
         ServiceManagerBase(
             __avsDirectory,
-            __paymentCoordinator,
+            __rewardsCoordinator,
             __registryCoordinator,
             __stakeRegistry
         )
@@ -58,20 +56,11 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function initialize(
-        address _initialOwner,
-        address _aggregator
+        address _initialOwner
     ) public initializer {
         _transferOwnership(_initialOwner);
-        _setAggregator(_aggregator);
     }
 
-    function _setAggregator(address _aggregator) internal {
-        aggregator = _aggregator;
-    }
-
-    function isAggregator(address _aggregator) public view returns (bool) {
-        return aggregator == _aggregator;
-    }
 
     function createNewTask(
         bytes32 batchMerkleRoot,
