@@ -13,7 +13,7 @@ use ethers::providers::Ws;
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::timeout;
@@ -37,6 +37,7 @@ pub mod s3;
 pub mod types;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
+const MAX_RETRIES: u32 = 3;
 
 pub struct Batcher {
     s3_client: S3Client,
@@ -293,8 +294,13 @@ impl Batcher {
 
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
-            self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
-                .await;
+            match self.submit_batch(&batch_bytes, &batch_merkle_tree.root).await {
+                Ok(_) => info!("Batch submitted successfully"),
+                Err(e) => {
+                    send_error_close(finalized_batch, "Error submitting batch".to_string()).await?;
+                    return Err(e);
+                }
+            }
             // update last uploaded batch block
             *last_uploaded_batch_block = block_number;
         }
@@ -310,7 +316,7 @@ impl Batcher {
         let await_batch_verified_fut =
             await_batch_verified_event(&mut stream, &batch_merkle_tree.root);
         if let Err(_) = timeout(Duration::from_secs(60), await_batch_verified_fut).await {
-            send_timeout_close(finalized_batch).await?;
+            send_error_close(finalized_batch, "Timeout: BatchVerified event not received".to_string()).await?;
         } else {
             send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
         }
@@ -328,7 +334,7 @@ impl Batcher {
     }
 
     /// Post batch to s3 and submit new task to Ethereum
-    async fn submit_batch(&self, batch_bytes: &[u8], batch_merkle_root: &[u8; 32]) {
+    async fn submit_batch(&self, batch_bytes: &[u8], batch_merkle_root: &[u8; 32]) -> Result<(), BatcherError> {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: {}", batch_merkle_root_hex);
@@ -344,12 +350,23 @@ impl Batcher {
         info!("Uploading batch to contract");
         let service_manager = &self.service_manager;
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
-        match eth::create_new_task(service_manager, *batch_merkle_root, batch_data_pointer).await {
-            Ok(_) => info!("Batch verification task created on Aligned contract"),
-            Err(e) => error!("Failed to create batch verification task: {}", e),
+
+        for i in 0..MAX_RETRIES {
+            match eth::create_new_task(service_manager, *batch_merkle_root, batch_data_pointer.clone()).await {
+                Ok(_) => {
+                    info!("Batch verification task created on Aligned contract");
+                    return Ok(());
+                }
+                Err(e) => {
+                    warn!("Failed to create batch verification task: {}. {} retries left", e, MAX_RETRIES - i - 1);
+                }
+            }
         }
+        error!("Failed to create batch verification task after {} retries", MAX_RETRIES);
+        Err(BatcherError::TransactionError("Failed to create batch verification task".to_string()))
     }
 }
+
 /// Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
 async fn await_batch_verified_event<'s>(
     events_stream: &mut BatchVerifiedEventStream<'s>,
@@ -399,12 +416,12 @@ async fn send_batch_inclusion_data_responses(
         .await;
 }
 
-/// Send a close response to all clients that included data in the batch indicated that a
-/// timeout was exceeded awaiting for the batch verification events
-async fn send_timeout_close(finalized_batch: BatchQueue) -> Result<(), BatcherError> {
+/// Send a close response to all clients that included data in the batch indicated that an
+/// error occurred.
+async fn send_error_close(finalized_batch: BatchQueue, reason: String) -> Result<(), BatcherError> {
     let timeout_msg = Message::Close(Some(CloseFrame {
         code: CloseCode::Protocol,
-        reason: Cow::from("Timeout: BatchVerified event not received"),
+        reason: Cow::from(reason),
     }));
 
     for (_, _, ws_sink) in finalized_batch.iter() {
@@ -415,13 +432,13 @@ async fn send_timeout_close(finalized_batch: BatchQueue) -> Result<(), BatcherEr
             // closed, the other ones will raise this error. We can just ignore it.
             Err(Error::Protocol(ProtocolError::SendAfterClosing)) => (),
             Err(e) => {
-                error!("Error sending timeout response to clients: {}", e);
+                error!("Error sending error response to clients: {}", e);
                 return Err(e.into());
             }
             Ok(_) => (),
         }
 
-        info!("Timeout close response sent");
+        info!("Error close response sent");
     }
     Ok(())
 }

@@ -6,6 +6,7 @@ pub enum BatcherError {
     ConnectionError(tungstenite::Error),
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
+    TransactionError(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -25,6 +26,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::EthereumSubscriptionError(e) => {
                 write!(f, "Ethereum subscription was not successful: {}", e)
+            }
+            BatcherError::TransactionError(e) => {
+                write!(f, "Transaction error: {}", e)
             }
         }
     }
