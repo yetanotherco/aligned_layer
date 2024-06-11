@@ -137,7 +137,7 @@ batcher_start: ./batcher/.env
 install_batcher:
 	@cargo +nightly-2024-04-17 install --path batcher
 
-install_aligned_cli: 
+install_aligned: 
 	@cargo +nightly-2024-04-17 install --path batcher/client
 
 build_batcher_client:
@@ -653,3 +653,7 @@ recover_db: run_db
 	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
 	docker exec -t explorer-postgres-container psql -U explorer_user -d explorer_db -f /dump.sql && \
 	echo "Recovered database successfully from $$DUMP_FILE"
+
+explorer_fetch_old_batches:
+	@cd explorer && \
+		./scripts/fetch_old_batches.sh 1600000 1700000 

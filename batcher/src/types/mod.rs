@@ -15,6 +15,7 @@ use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
 
 pub(crate) mod batch_queue;
+pub mod errors;
 
 lazy_static! {
     static ref SP1_PROVER_CLIENT: ProverClient = ProverClient::new();

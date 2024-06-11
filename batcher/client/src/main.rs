@@ -4,22 +4,22 @@ mod errors;
 
 use std::{path::PathBuf, sync::Arc};
 
-use alloy_primitives::{Address, hex};
+use alloy_primitives::{hex, Address};
 use env_logger::Env;
 use futures_util::{
     future,
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
-use log::info;
+use log::{error, info};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
-use batcher::types::{parse_proving_system, BatchInclusionData, VerificationData, ProvingSystemId};
+use batcher::types::{parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData};
 
+use crate::errors::BatcherClientError;
 use clap::Parser;
 use tungstenite::Message;
-use crate::errors::BatcherClientError;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -37,19 +37,13 @@ struct Args {
     #[arg(name = "Proof file name", long = "proof")]
     proof_file_name: PathBuf,
 
-    #[arg(
-        name = "Public input file name",
-        long = "public_input",
-    )]
+    #[arg(name = "Public input file name", long = "public_input")]
     pub_input_file_name: Option<PathBuf>,
 
     #[arg(name = "Verification key file name", long = "vk")]
     verification_key_file_name: Option<PathBuf>,
 
-    #[arg(
-        name = "VM prgram code file name",
-        long = "vm_program",
-    )]
+    #[arg(name = "VM prgram code file name", long = "vm_program")]
     vm_program_code_file_name: Option<PathBuf>,
 
     #[arg(
@@ -105,35 +99,48 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
 ) -> Result<(), BatcherClientError> {
-    ws_read
-        .try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
-        .try_for_each(|msg| async {
+    // Responses are filtered to only admit binary or close messages.
+    let mut response_stream =
+        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
+
+    while let Some(Ok(msg)) = response_stream.next().await {
+        if let Message::Close(close_frame) = msg {
+            if let Some(close_msg) = close_frame {
+                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
+                ws_write.lock().await.close().await?;
+                return Ok(());
+            }
+            error!("Connection was closed before receiving all messages. Try submitting your proof again");
+            ws_write.lock().await.close().await?;
+            return Ok(());
+        } else {
             let mut num_responses_lock = num_responses.lock().await;
             *num_responses_lock += 1;
+
             let data = msg.into_data();
-            let deserialized_data: BatchInclusionData = serde_json::from_slice(&data).unwrap();
-            info!("Batcher response received: {}", deserialized_data);
-
-            let batch_merkle_root_hex = hex::encode(deserialized_data.batch_merkle_root);
-            info!(
-                "See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}",
-                batch_merkle_root_hex
-            );
-
+            match serde_json::from_slice::<BatchInclusionData>(&data) {
+                Ok(batch_inclusion_data) => {
+                    info!("Batcher response received: {}", batch_inclusion_data);
+                    info!("Proof verified in aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+                }
+                Err(e) => {
+                    error!("Error while deserializing batcher response: {}", e);
+                }
+            }
             if *num_responses_lock == total_messages {
                 info!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
+                return Ok(());
             }
-
-            Ok(())
-        }).await?;
+        }
+    }
 
     Ok(())
 }
 
 fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherClientError> {
     let proving_system = parse_proving_system(&args.proving_system_flag)
-        .map_err(|_| errors::BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
+        .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
 
     // Read proof file
     let proof = read_file(args.proof_file_name)?;
@@ -144,7 +151,10 @@ fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherCl
 
     match proving_system {
         ProvingSystemId::SP1 => {
-            vm_program_code = Some(read_file_option("--vm_program", args.vm_program_code_file_name)?);
+            vm_program_code = Some(read_file_option(
+                "--vm_program",
+                args.vm_program_code_file_name,
+            )?);
         }
         ProvingSystemId::Halo2KZG
         | ProvingSystemId::Halo2IPA
@@ -152,7 +162,10 @@ fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherCl
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
             verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
-            pub_input = Some(read_file_option("--public_input", args.pub_input_file_name)?);
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name,
+            )?);
         }
     }
 
@@ -170,11 +183,14 @@ fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherCl
 }
 
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, BatcherClientError> {
-    std::fs::read(&file_name)
-        .map_err(|e| BatcherClientError::IoError(file_name, e))
+    std::fs::read(&file_name).map_err(|e| BatcherClientError::IoError(file_name, e))
 }
 
-fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<u8>, BatcherClientError> {
-    let file_name = file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
+fn read_file_option(
+    param_name: &str,
+    file_name: Option<PathBuf>,
+) -> Result<Vec<u8>, BatcherClientError> {
+    let file_name =
+        file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
     read_file(file_name)
 }

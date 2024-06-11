@@ -12,4 +12,4 @@ export DB_HOST=$DB_HOST
 
 mix compile --force #force recompile to get the latest .env values
 
-mix phx.server
+elixir --sname explorer -S mix phx.server
