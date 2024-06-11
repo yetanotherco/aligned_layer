@@ -24,7 +24,7 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 ## How to use the testnet
 
-Download and install the batcher client to send proofs in the testnet: 
+Download and install Aligned to send proofs in the testnet: 
 
 ```bash
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
@@ -32,15 +32,15 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 
 If you are experiencing issues, upgrade by running the same command.
 
-Download the SP1 proof file and the vm program file:
+### Try it!
+
+Download an example SP1 proof file with it's ELF file using:
 
 ```bash
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
 ```
 
-This two commands will install the batcher client and download the necessary files to send an SP1 proof in `~/.aligned`.
-
-### Send Proof
+Send the proof with:
 
 ```bash
 aligned \
@@ -66,8 +66,6 @@ aligned \
 ```
 
 **Example**
-
-
 
 ```bash
 aligned \
