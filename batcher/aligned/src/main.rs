@@ -1,7 +1,6 @@
 mod errors;
 mod eth;
 
-use batcher::types::VerificationDataCommitment;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
