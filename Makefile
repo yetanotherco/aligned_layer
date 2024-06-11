@@ -243,7 +243,7 @@ batcher_send_halo2_ipa_task: batcher/client/target/release/aligned
 		--public_input test_files/halo2_ipa/pub_input.bin \
 		--vk test_files/halo2_ipa/params.bin \
 
-batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/aligned
+batcher_send_burst_halo2_ipa: batcher/client/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Halo2IPA \
@@ -261,7 +261,7 @@ batcher_send_halo2_kzg_task: batcher/client/target/release/aligned
 		--vk test_files/halo2_kzg/params.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/aligned
+batcher_send_burst_halo2_kzg: batcher/client/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
 	@cd batcher/client/ && cargo run --release -- \
 		--proving_system Halo2KZG \

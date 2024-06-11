@@ -42,7 +42,7 @@ The SP1 proof needs the proof file and the vm program file.
 
 ```bash
 aligned \
---proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254|Halo2KZG|Halo2IPA> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
@@ -67,7 +67,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 
 ```bash
 aligned \
---proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254|Halo2KZG|Halo2IPA> \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
@@ -103,6 +103,40 @@ aligned \
 --vk ./batcher/client/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
+#### Halo2KZG, and Halo2IPA
+
+Halo2KZG and Halo2IPA proofs require the proof file, the public input file and the parameters file.
+
+
+```bash
+aligned \
+--proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254|Halo2KZG|Halo2IPA> \
+--proof <proof_file> \
+--public_input <public_input_file> \
+--vk <verification_key_file> \
+--conn wss://batcher.alignedlayer.com \
+--proof_generator_addr [proof_generator_addr]
+
+**Examples**
+
+```bash
+aligned \
+--proving_system Halo2KZG \
+--proof ./batcher/aligned/test_files/halo2_kzg/proof.bin \
+--public_input ./batcher/aligned/test_files/halo2_kzg/pub_input.bin \
+--vk ./batcher/aligned/test_files/halo2_kzg/params.bin \
+--conn wss://batcher.alignedlayer.com
+```
+
+```bash
+aligned \
+--proving_system Halo2IPA \
+--proof ./batcher/aligned/test_files/halo2_ipa/proof.bin \
+--public_input ./batcher/aligned/test_files/halo2_ipa/pub_input.bin \
+--vk ./batcher/aligned/test_files/halo2_ipa/params.bin \
+--conn wss://batcher.alignedlayer.com
+```
+
 
 ## Local Devnet Setup
 
@@ -204,6 +238,18 @@ Send an individual Groth 16 proof:
 
 ```bash
 make batcher_send_groth16_task
+```
+
+Send an individual Halo2 KZG proof:
+
+```bash
+make batcher_send_halo2_kzg_task
+```
+
+Send an individual Halo2 IPA proof:
+
+```bash
+make batcher_send_halo2_ipa_task
 ```
 
 To send an individual test SP1 proof:
@@ -451,6 +497,18 @@ make batcher_send_infinite_groth16
 make batcher_send_burst_groth16
 ```
 
+#### Send burst of Halo2 KZG proofs
+
+```bash
+make batcher_send_burst_halo2_kzg
+```
+
+#### Send burst of Halo2 IPA proofs
+
+```bash
+make batcher_send_burst_halo2_ipa
+```
+
 #### Send specific proof
 
 To install the batcher client to send a specific proof, run:
@@ -543,6 +601,34 @@ To send different Groth 16 BN254 proofs in loop, run:
 make send_infinite_groth16_bn254_proof
 ```
 
+#### Send Halo2 KZG proof
+
+To send a single Halo2 KZG proof, run:
+
+```bash
+make send_halo2_kzg_proof
+```
+
+To send Halo2 KZG proofs in loop, run:
+
+```bash
+make send_halo2_kzg_proof_loop
+```
+
+#### Send Halo2 IPA proof
+
+To send a single Halo2 IPA proof, run:
+
+```bash
+make send_halo2_ipa_proof
+```
+
+To send Halo2 KZG proofs in loop, run:
+
+```bash
+make send_halo2_ipa_proof_loop
+```
+
 #### Send SP1 proof
 
 To send a single SP1 proof, run:
@@ -555,7 +641,7 @@ make send_sp1_proof
 
 ```bash
 go run task_sender/cmd/main.go send-task \
---proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1> \
+--proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1|halo2_kzg|halo2_ipa> \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --verification-key <verification_key_file> \
@@ -568,7 +654,7 @@ go run task_sender/cmd/main.go send-task \
 
 ```bash
 go run task_sender/cmd/main.go loop-tasks
-    --proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1> \
+    --proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1|halo2_kzg|halo2_ipa> \
     --proof <proof_file> \
     --public-input <public_input_file> \
     --verification-key <verification_key_file> \
