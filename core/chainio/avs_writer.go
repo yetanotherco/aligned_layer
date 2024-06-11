@@ -124,10 +124,11 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Context, txHash gethcommon.Hash, txNonce *big.Int, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	for i := 0; i < LowFeeMaxRetries; i++ {
 		// Attempt to get the transaction receipt
-		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, txHash, LowFeeMaxRetries, LowFeeSleepTime)
+		receipt, err := w.Client.TransactionReceipt(ctx, txHash)
 		if err == nil {
 			return receipt, nil
 		}
+		time.Sleep(LowFeeSleepTime)
 
 		// Simulate the transaction to get the gas limit and gas tip cap again
 		txOpts := *w.Signer.GetTxOpts()
