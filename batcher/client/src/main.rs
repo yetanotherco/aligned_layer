@@ -12,8 +12,9 @@ use futures_util::{
     SinkExt, StreamExt, TryStreamExt,
 };
 use log::{error, info};
-use tokio::{net::TcpStream, sync::Mutex};
+use tokio::{net::TcpStream, sync::Mutex,time::{sleep, Duration}};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio::sync::mpsc;
 
 use batcher::types::{parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData};
 
@@ -82,13 +83,35 @@ async fn main() -> Result<(), errors::BatcherClientError> {
     let json_data = serde_json::to_string(&verification_data)?;
     for _ in 0..repetitions {
         ws_write.send(Message::Text(json_data.to_string())).await?;
-        info!("Message sent...")
+        info!("Message sent...");
     }
 
+    let (tx, mut rx) = mpsc::channel::<()>(1);
     let num_responses = Arc::new(Mutex::new(0));
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    receive(ws_read, ws_write, repetitions, num_responses).await?;
+    // Launch a task to wait for the batch signatures verification in Ethereum
+    let waiting_handle = tokio::spawn(async move {
+        loop {
+            tokio::select! {
+                _ = sleep(Duration::from_secs(5)) => {
+                    info!("Waiting for batch signatures verification in Ethereum...");
+                }
+                received = rx.recv() => {
+                    // Stop waiting if we receive a signal from the receive task
+                    if received.is_some() {
+                        break;
+                    }
+                }
+            }
+        }
+    });
+
+    // wait for responses
+    let receive_handle = receive(ws_read, ws_write, repetitions, num_responses, tx.clone());
+
+    // wait for both tasks to finish
+    let _ = tokio::join!(waiting_handle, receive_handle);
 
     Ok(())
 }
@@ -98,6 +121,7 @@ async fn receive(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
+    tx: mpsc::Sender<()>,
 ) -> Result<(), BatcherClientError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
@@ -108,10 +132,11 @@ async fn receive(
             if let Some(close_msg) = close_frame {
                 error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
                 ws_write.lock().await.close().await?;
-                return Ok(());
+                let _ = tx.send(()).await; // we notify to stop the waiting task
             }
             error!("Connection was closed before receiving all messages. Try submitting your proof again");
             ws_write.lock().await.close().await?;
+            let _ = tx.send(()).await; // we notify to stop the waiting task
             return Ok(());
         } else {
             let mut num_responses_lock = num_responses.lock().await;
@@ -130,9 +155,11 @@ async fn receive(
             if *num_responses_lock == total_messages {
                 info!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
+                let _ = tx.send(()).await; // we notify to stop the waiting task
                 return Ok(());
             }
         }
+        let _ = tx.send(()).await; // Notify waiting task
     }
 
     Ok(())
