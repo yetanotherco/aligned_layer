@@ -28,7 +28,7 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 - [Rust](https://www.rust-lang.org/tools/install)
 
-To install the batcher client to send proofs in the testnet, run: 
+To install the batcher client to send proofs in the testnet, run:
 
 ```bash
 make install_aligned
@@ -56,8 +56,8 @@ aligned \
 ```bash
 aligned \
 --proving_system SP1 \
---proof ./batcher/client/test_files/sp1/sp1_fibonacci.proof \
---vm_program ./batcher/client/test_files/sp1/sp1_fibonacci-elf \
+--proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
+--vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -80,27 +80,27 @@ aligned \
 ```bash
 aligned \
 --proving_system GnarkPlonkBn254 \
---proof ./batcher/client/test_files/plonk_bn254/plonk.proof \
---public_input ./batcher/client/test_files/plonk_bn254/plonk_pub_input.pub \
---vk ./batcher/client/test_files/plonk_bn254/plonk.vk \
+--proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
+--public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
+--vk ./batcher/aligned/test_files/plonk_bn254/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
 aligned \
 --proving_system GnarkPlonkBls12_381 \
---proof ./batcher/client/test_files/plonk_bls12_381/plonk.proof \
---public_input ./batcher/client/test_files/plonk_bls12_381/plonk_pub_input.pub \
---vk ./batcher/client/test_files/plonk_bls12_381/plonk.vk \
+--proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
+--public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
+--vk ./batcher/aligned/test_files/plonk_bls12_381/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
 aligned \
 --proving_system Groth16Bn254 \
---proof ./batcher/client/test_files/groth16/ineq_1_groth16.proof \
---public_input ./batcher/client/test_files/groth16/ineq_1_groth16.pub \
---vk ./batcher/client/test_files/groth16/ineq_1_groth16.vk \
+--proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
+--public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
+--vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -152,11 +152,11 @@ Before starting you need to setup an S3 bucket. More data storage will be tested
 
 You need to fill the data in:
 
-```batcher/.env```
+```batcher/aligned-batcher/.env```
 
 And you can use this file as an example on how to fill it:
 
-```batcher/.env.example```
+```batcher/aligned-batcher/.env.example```
 
 After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
@@ -384,7 +384,7 @@ make operator_start CONFIG_FILE=<path_to_config_file>
 
 #### Config
 
-To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/`).
+To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/aligned-batcher/`).
 
 The necessary environment variables are:
 
@@ -396,7 +396,7 @@ The necessary environment variables are:
 | AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
 | RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
 
-You can find an example `.env` file in [.env.example](batcher/.env.example)
+You can find an example `.env` file in [.env.example](batcher/aligned-batcher/.env.example)
 
 You can configure the batcher in `config-files/config.yaml`:
 
@@ -567,7 +567,7 @@ go run task_sender/cmd/main.go send-task \
 #### Send a specific proof in loop
 
 ```bash
-go run task_sender/cmd/main.go loop-tasks
+go run task_sender/cmd/main.go loop-tasks \
     --proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1> \
     --proof <proof_file> \
     --public-input <public_input_file> \
@@ -779,11 +779,11 @@ This guide assumes that:
 
 #### How to generate a proof
 
-> AlignedLayer only verifies SP1 in compressed version. 
+> AlignedLayer only verifies SP1 in compressed version.
 > You can check you are using compressed by opening script/src/main.rs
 and check that the proof is generated with `client.prove_compressed` instead of `client.prove`.
 
-First, open a terminal and navigate to the script folder in the sp1 project directory 
+First, open a terminal and navigate to the script folder in the sp1 project directory
 
 Then, run the following command to generate a proof:
 ```bash
@@ -797,7 +797,7 @@ After generating the proof, you will have to find two different files:
 - elf file: usually found under `program/elf/` directory
 
 Then, you can send the proof to the AlignedLayer network by running the following command
-from `batcher/client` folder inside the AlignedLayer repository directory:
+from `batcher/aligned` folder inside the AlignedLayer repository directory:
 
 ```bash
 cargo run --release -- \
