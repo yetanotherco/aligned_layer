@@ -40,7 +40,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 
 This two commands will install the batcher client and download the necessary files to send an SP1 proof in `~/.aligned`.
 
-### Quick start
+### Quick Start
 
 ```bash
 aligned \
