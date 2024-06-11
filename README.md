@@ -823,7 +823,7 @@ This guide assumes that:
 
 First, ensure your circuit is defined within a executable in rust and compiles for use in the Halo2 proving system. Then within your executable pass your [circuit](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_frontend/src/plonk/circuit.rs#L243), as well as generated [params](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/poly/commitment.rs), and [pk](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/plonk.rs) for your proof into [prove_and_serialize_circuit_kzg()](https://github.com/yetanotherco/yet-another-halo2-fork/blob/feat/serde_constraint_system/halo2_proofs/src/plonk/prover.rs#L213) or [prove_and_serialize_circuit_ipa()](https://github.com/yetanotherco/yet-another-halo2-fork/blob/feat/serde_constraint_system/halo2_proofs/src/plonk/prover.rs#L129) depending on which commitment scheme you would like to prove your Halo2 circuit with.
 
-Compile and run your halo2 project and generate a serialized proof:
+Compile and run your halo2 project to generate a serialized proof:
 ```bash
 cargo run --release
 ```
