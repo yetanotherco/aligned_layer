@@ -140,10 +140,10 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		// Use the same nonce as the original transaction
 		txOpts.Nonce = txNonce
 
-		// Increase the gas limit by 10%
-		txOpts.GasLimit = tx.Gas() * 110 / 100
+		// Use the gas limit of the simulated transaction
+		txOpts.GasLimit = tx.Gas()
 
-		// Increase the gas tip cap by 10%
+		// Increase the gas tip cap by IncrementPercentage
 		newGasTipCap := new(big.Int).Mul(big.NewInt(int64(IncrementPercentage+100)), tx.GasTipCap())
 		newGasTipCap.Div(newGasTipCap, big.NewInt(100))
 		txOpts.GasTipCap = newGasTipCap
