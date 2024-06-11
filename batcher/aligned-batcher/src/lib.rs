@@ -266,6 +266,7 @@ impl Batcher {
         &self,
         block_number: u64,
         finalized_batch: BatchQueue,
+        wait_for_verification: bool,
     ) -> Result<(), BatcherError> {
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
@@ -300,6 +301,11 @@ impl Batcher {
             *last_uploaded_batch_block = block_number;
         }
 
+        if !wait_for_verification {
+            send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
+            return Ok(());
+        }
+
         // This future is created to be passed to the timeout function, so that if it is not resolved
         // within the timeout interval an error is raised. If the event is received, responses are sent to
         // connected clients
@@ -318,7 +324,7 @@ impl Batcher {
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number, finalized_batch).await?;
+            self.finalize_batch(block_number, finalized_batch, false).await?;
         }
         Ok(())
     }
