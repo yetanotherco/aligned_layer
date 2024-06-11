@@ -6,8 +6,12 @@ BASE_DIR=$HOME
 ALIGNED_DIR="${ALIGNED_DIR-"$BASE_DIR/.aligned"}"
 ALIGNED_BIN_DIR="$ALIGNED_DIR/bin"
 ALIGNED_BIN_PATH="$ALIGNED_BIN_DIR/aligned"
-#TODO: See if v0.1.4 can be replaced with a variable of the latest release
-RELEASE_URL="https://github.com/yetanotherco/aligned_layer/releases/download/v0.1.4/"
+CURRENT_TAG=$(curl -s -L \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/yetanotherco/aligned_layer/releases/latest \
+  | grep '"tag_name":' | awk -F'"' '{print $4}')
+RELEASE_URL="https://github.com/yetanotherco/aligned_layer/releases/download/$CURRENT_TAG/"
 
 ARCH=$(uname -m)
 
