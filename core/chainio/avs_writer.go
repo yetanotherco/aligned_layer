@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	MaxRetries          = 25
-	SleepTime           = 5 * time.Second
-	IncrementPercentage = 25
+	LowFeeMaxRetries          = 25
+	LowFeeSleepTime           = 5 * time.Second
+	LowFeeIncrementPercentage = 25
 )
 
 type AvsWriter struct {
@@ -122,9 +122,9 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 }
 
 func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Context, txHash gethcommon.Hash, txNonce *big.Int, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-	for i := 0; i < MaxRetries; i++ {
+	for i := 0; i < LowFeeMaxRetries; i++ {
 		// Attempt to get the transaction receipt
-		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, txHash, MaxRetries, SleepTime)
+		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, txHash, LowFeeMaxRetries, LowFeeSleepTime)
 		if err == nil {
 			return receipt, nil
 		}
@@ -144,7 +144,7 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		txOpts.GasLimit = tx.Gas()
 
 		// Increase the gas tip cap by IncrementPercentage
-		newGasTipCap := new(big.Int).Mul(big.NewInt(int64(IncrementPercentage+100)), tx.GasTipCap())
+		newGasTipCap := new(big.Int).Mul(big.NewInt(int64(LowFeeIncrementPercentage+100)), tx.GasTipCap())
 		newGasTipCap.Div(newGasTipCap, big.NewInt(100))
 		txOpts.GasTipCap = newGasTipCap
 
