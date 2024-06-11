@@ -769,6 +769,18 @@ Then you'll be requested to enter the file name of the dump you want to recover 
 
 This will update your database with the dumped database data.
 
+### Extra scripts
+
+If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure you have the ELIXIR_HOSTNAME .env variable configured. You can get the hostname of your elixir by running `elixir -e 'IO.puts(:inet.gethostname() |> elem(1))'`
+
+Then you can run:
+
+```bash
+make explorer_fetch_old_batches
+```
+
+You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
+
 ### Running for local devnet
 
 To run the explorer for the local devnet, you'll need to have the devnet running (see [local devnet setup](#local-devnet-setup)) and the DB already setup.
@@ -795,6 +807,7 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 | `DB_USER` | The username of the postgres database. |
 | `DB_PASS` | The password of the postgres database. |
 | `DB_HOST` | The host URL where the postgres database will be running. |
+| `ELIXIR_HOSTNAME` |  The hostname of your running elixir. Read [Extra Scripts](#extra-scripts) section for more details |
 
 Then you can run the explorer with this env file config by entering the following command:
 
