@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use sp1_sdk::ProverClient;
 use jolt_core::{
-    jolt::vm::{Jolt, JoltProof, JoltCommitments, JoltPreprocessing, rv32i_vm::RV32IJoltVM},
+    jolt::vm::{Jolt, JoltPreprocessing, rv32i_vm::RV32IJoltVM},
     poly::commitment::hyrax::HyraxScheme
 };
-use jolt_sdk::host_utils::Proof;
+use jolt_sdk::host_utils::Proof as JoltProof;
 use tracer::decode;
 use ark_serialize::CanonicalDeserialize;
 use ark_bn254::{Fr, G1Projective};
@@ -62,13 +62,13 @@ impl VerificationData {
             }
             ProvingSystemId::Jolt => {
                 if let Some(elf) = &self.vm_program_code {
-                    if let Some(commitment) = &self.verification_key {
-                        return verify_jolt_proof(self.proof.as_slice(), elf.as_slice(), &commitment);
-                    }
+                    // TODO: add public inputs to guest
+                    return verify_jolt_proof(self.proof.as_slice(), elf.as_slice());
                 }
-                warn!("Trying to verify Jolt proof but ____ was not provided. Returning false");
+                warn!("Trying to verify Jolt proof but ELF was not provided. Returning false");
                 false
-            }            ProvingSystemId::Halo2KZG => {
+            }            
+            ProvingSystemId::Halo2KZG => {
                 let vk = &self
                     .verification_key
                     .as_ref()
@@ -125,7 +125,7 @@ fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
 
 fn verify_jolt_proof(proof: &[u8], elf: &[u8]) -> bool {
     debug!("Verifying Jolt proof");
-    if let Ok(jolt_proof) = Proof::deserialize_compressed(proof) {
+    if let Ok(jolt_proof) = JoltProof::deserialize_compressed(proof) {
             let (bytecode, memory_init) = decode(&elf);
 
             let preprocessing: JoltPreprocessing<Fr, HyraxScheme<G1Projective>> =
