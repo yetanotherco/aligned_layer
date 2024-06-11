@@ -1,3 +1,4 @@
+use log::info;
 use crate::types::ProvingSystemId;
 
 #[derive(Copy, Clone, Debug)]
@@ -39,12 +40,15 @@ pub fn verify_gnark(
 
     match proving_system {
         ProvingSystemId::GnarkPlonkBn254 => unsafe {
+            info!("Client Handler: Calling Gnark Plonk BN254 FFI");
             VerifyPlonkProofBN254(proof, public_input, verification_key)
         },
         ProvingSystemId::GnarkPlonkBls12_381 => unsafe {
+            info!("Client Handler: Calling Gnark Plonk Bls12 381 FFI");
             VerifyPlonkProofBLS12_381(proof, public_input, verification_key)
         },
         ProvingSystemId::Groth16Bn254 => unsafe {
+            info!("Client Handler: Calling Gnark Groth16 FFI");
             VerifyGroth16ProofBN254(proof, public_input, verification_key)
         },
         _ => panic!("Unsupported proving system"),

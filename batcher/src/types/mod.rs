@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::{proof::Proof, traits::IsMerkleTreeBackend};
 use lazy_static::lazy_static;
-use log::{debug, warn};
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use sp1_sdk::ProverClient;
@@ -49,29 +49,29 @@ impl VerificationData {
                 if let Some(elf) = &self.vm_program_code {
                     return verify_sp1_proof(self.proof.as_slice(), elf.as_slice());
                 }
-                warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
+                warn!("Client Handler: Trying to verify SP1 proof but ELF was not provided. Returning false");
                 false
             }
             ProvingSystemId::Halo2KZG => {
                 let vk = &self
                     .verification_key
                     .as_ref()
-                    .expect("Verification key is required");
+                    .expect("Client Handler: Verification key is required");
 
-                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let pub_input = &self.pub_input.as_ref().expect("Client Handler:Public input is required");
                 let is_valid = verify_halo2_kzg(&self.proof, pub_input, vk);
-                debug!("Halo2-KZG proof is valid: {}", is_valid);
+                info!("Client Handler: Halo2-KZG proof is valid: {}", is_valid);
                 is_valid
             }
             ProvingSystemId::Halo2IPA => {
                 let vk = &self
                     .verification_key
                     .as_ref()
-                    .expect("Verification key is required");
+                    .expect("Client Handler: Verification key is required");
 
-                let pub_input = &self.pub_input.as_ref().expect("Public input is required");
+                let pub_input = &self.pub_input.as_ref().expect("Client Handler: Public input is required");
                 let is_valid = verify_halo2_ipa(&self.proof, pub_input, vk);
-                debug!("Halo2-IPA proof is valid: {}", is_valid);
+                info!("Client Handler: Halo2-IPA proof is valid: {}", is_valid);
                 is_valid
             }
             ProvingSystemId::GnarkPlonkBls12_381
@@ -80,11 +80,11 @@ impl VerificationData {
                 let vk = self
                     .verification_key
                     .as_ref()
-                    .expect("Verification key is required");
+                    .expect("Client Handler: Verification key is required");
 
-                let pub_input = self.pub_input.as_ref().expect("Public input is required");
+                let pub_input = self.pub_input.as_ref().expect("Client Handler: Public input is required");
                 let is_valid = verify_gnark(&self.proving_system, &self.proof, pub_input, vk);
-                debug!("Gnark proof is valid: {}", is_valid);
+                info!("Client Handler: Gnark proof is valid: {}", is_valid);
                 is_valid
             }
         }
@@ -92,17 +92,17 @@ impl VerificationData {
 }
 
 fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
-    debug!("Verifying SP1 proof");
+    info!("Verifying SP1 proof");
     let (_pk, vk) = SP1_PROVER_CLIENT.setup(elf);
     if let Ok(proof) = bincode::deserialize(proof) {
         let res = SP1_PROVER_CLIENT.verify_compressed(&proof, &vk).is_ok();
-        debug!("SP1 proof is valid: {}", res);
+        info!("SP1 proof is valid: {}", res);
         if res {
             return true;
         }
     }
 
-    warn!("Failed to decode SP1 proof");
+    warn!("Client Handler: Failed to decode SP1 proof");
 
     false
 }
