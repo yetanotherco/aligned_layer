@@ -130,24 +130,28 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let reader = BufReader::new(batch_inclusion_file);
             let batch_inclusion_data: BatchInclusionData = serde_json::from_reader(reader)?;
 
+            let verification_data_comm = batch_inclusion_data.verification_data_commitment;
+            let merkle_proof = batch_inclusion_data.batch_inclusion_proof.merkle_path;
+
             let eth_rpc_url = "http://localhost:8545";
             let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
             let service_manager = get_contract(eth_rpc_provider, contract_address).await;
 
-            // let call = service_manager.verify_batch_inclusion(
-            //     batch_inclusion_data.batch_merkle_root,
-            //     batch_inclusion_data
-            //         .verification_data_commitment
-            //         .proof_commitment,
-            // );
+            let call = service_manager.verify_batch_inclusion(
+                verification_data_comm.proof_commitment,
+                verification_data_comm.pub_input_commitment,
+                verification_data_comm.proving_system_aux_data_commitment,
+                verification_data_comm.proof_generator_addr,
+                batch_inclusion_data.batch_merkle_root,
+                merkle_proof
+            );
 
-            // let pending_tx = call.call().await.unwrap();
-            // if let Ok(response) = call.call().await {
-            //     println!("The response from the contract is: {}", response);
-            // }
-            todo!()
+            match call.call().await {
+                Ok(response) => info!("Batch inclusion verification response: {}", response),
+                Err(err) => error!("Error while reading batch inclusion verification: {}", err),
+            }
         }
     }
 

@@ -149,21 +149,28 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes32 batchMerkleRoot,
         bytes32[] memory merkleProof
     ) external returns (bool) {
-        bytes memory leaf = abi.encodePacked(
-            proofCommitment,
-            pubInputCommitment,
-            provingSystemAuxDataCommitment,
-            proofGeneratorAddr
-        );
+        // bytes memory leaf = abi.encodePacked(
+        //     proofCommitment,
+        //     pubInputCommitment,
+        //     provingSystemAuxDataCommitment,
+        //     proofGeneratorAddr
+        // );
 
-        bytes32 hashedLeaf = keccak256(leaf);
+        // bytes32 hashedLeaf = keccak256(leaf);
 
-        bool response = MerkleProof.verify(
-            merkleProof,
-            batchMerkleRoot,
-            hashedLeaf
-        );
+        // bool response = MerkleProof.verify(
+        //     merkleProof,
+        //     batchMerkleRoot,
+        //     hashedLeaf
+        // );
 
-        return (response);
+        if (
+            batchesState[batchMerkleRoot].taskCreatedBlock != 0 &&
+            batchesState[batchMerkleRoot].responded == true
+        ) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
