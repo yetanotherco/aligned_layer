@@ -20,7 +20,7 @@ defmodule ExplorerWeb.Home.Index do
   end
 
   def mount(_, _, socket) do
-    verified_batches = get_verified_batches_count()
+    verified_batches = Batches.get_amount_of_verified_batches()
 
     operators_registered = get_operators_registered()
 
