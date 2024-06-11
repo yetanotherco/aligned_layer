@@ -19,7 +19,7 @@ import (
 
 const (
 	LowFeeMaxRetries          = 25
-	LowFeeSleepTime           = 5 * time.Second
+	LowFeeSleepTime           = 35 * time.Second
 	LowFeeIncrementPercentage = 25
 )
 
