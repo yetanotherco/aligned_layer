@@ -111,9 +111,15 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 		return nil, err
 	}
 
-	txNonce := big.NewInt(int64(tx.Nonce()))
+	uin64TxNonce, err := w.Client.PendingNonceAt(ctx, txOpts.From)
 
-	w.logger.Info("Tx nonce before waiting for receipt", "nonce", txOpts.Nonce.String())
+	if err != nil {
+		return nil, err
+	}
+
+	txNonce := new(big.Int).SetUint64(uin64TxNonce)
+
+	w.logger.Info("Tx nonce before waiting for receipt", "nonce", txNonce)
 
 	receipt, err := w.WaitForTransactionReceiptWithIncreasingTip(ctx, tx.Hash(), txNonce, batchMerkleRoot, nonSignerStakesAndSignature)
 	w.logger.Info("Transaction receipt:", "receipt", receipt)
