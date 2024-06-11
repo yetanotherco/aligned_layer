@@ -144,6 +144,7 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		// Use the gas limit of the simulated transaction
 		txOpts.GasLimit = tx.Gas()
 
+		w.logger.Info("Bumping fee for tx", "txHash", txHash.String())
 		// Increase the gas tip cap by IncrementPercentage
 		newGasTipCap := new(big.Int).Mul(big.NewInt(int64(LowFeeIncrementPercentage+100)), tx.GasTipCap())
 		newGasTipCap.Div(newGasTipCap, big.NewInt(100))
@@ -155,6 +156,7 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		if err != nil {
 			return nil, err
 		}
+		w.logger.Info("New tx hash after bumping fee", "txHash", tx.Hash().String())
 
 		// Update the transaction hash for the next retry
 		txHash = tx.Hash()
