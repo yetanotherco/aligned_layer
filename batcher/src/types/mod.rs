@@ -169,7 +169,6 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
         hasher.update(leaf.proof_commitment);
         hasher.update(leaf.pub_input_commitment);
         hasher.update(leaf.proving_system_aux_data_commitment);
-        hasher.update(leaf.pub_input_commitment);
         hasher.update(leaf.proof_generator_addr);
 
         hasher.finalize().into()
@@ -177,8 +176,8 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
 
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
         let mut hasher = Keccak256::new();
-        hasher.update(child_1);
         hasher.update(child_2);
+        hasher.update(child_1);
         hasher.finalize().into()
     }
 }

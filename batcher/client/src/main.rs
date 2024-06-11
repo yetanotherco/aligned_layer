@@ -134,51 +134,22 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
-
             let service_manager = get_contract(eth_rpc_provider, contract_address).await;
 
-            let call = service_manager.verify_batch_inclusion(
-                batch_inclusion_data.batch_merkle_root,
-                batch_inclusion_data
-                    .verification_data_commitment
-                    .proof_commitment,
-            );
-            let pending_tx = call.call().await.unwrap();
-            if let Ok(response) = call.call().await {
-                println!("The response from the contract is: {}", response);
-            }
+            // let call = service_manager.verify_batch_inclusion(
+            //     batch_inclusion_data.batch_merkle_root,
+            //     batch_inclusion_data
+            //         .verification_data_commitment
+            //         .proof_commitment,
+            // );
 
-            // let receipt = match pending_tx.await.unwrap() {
-            //     Some(receipt) => receipt,
-            //     None => panic!("Receipt not found"),
-            // };
-
-            // println!("RECEIPT: {:?}", receipt);
+            // let pending_tx = call.call().await.unwrap();
+            // if let Ok(response) = call.call().await {
+            //     println!("The response from the contract is: {}", response);
+            // }
+            todo!()
         }
     }
-
-    // let url = url::Url::parse(&args.connect_addr)
-    //     .map_err(|e| errors::BatcherClientError::InvalidUrl(e, args.connect_addr.clone()))?;
-
-    // let (ws_stream, _) = connect_async(url).await?;
-
-    // info!("WebSocket handshake has been successfully completed");
-
-    // let (mut ws_write, ws_read) = ws_stream.split();
-
-    // let repetitions = args.repetitions;
-    // let verification_data = verification_data_from_args(args)?;
-
-    // let json_data = serde_json::to_string(&verification_data)?;
-    // for _ in 0..repetitions {
-    //     ws_write.send(Message::Text(json_data.to_string())).await?;
-    //     info!("Message sent...")
-    // }
-
-    // let num_responses = Arc::new(Mutex::new(0));
-    // let ws_write = Arc::new(Mutex::new(ws_write));
-
-    // receive(ws_read, ws_write, repetitions, num_responses).await?;
 
     Ok(())
 }
@@ -289,28 +260,42 @@ fn read_file_option(
 
 #[cfg(test)]
 mod test {
+    use batcher::types::VerificationCommitmentBatch;
     use batcher::types::VerificationDataCommitment;
-    // use ethers_core::abi::{encode, encode_packed, Detokenize, Token, Tokenizable};
-    use ethers::abi::encode;
-    use ethers::abi::Token;
+    use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 
     use super::*;
 
-    #[test]
-    fn abi_encode_test() {
-        // let vdc = VerificationDataCommitment {
-        let proof_commitment = vec![1u8; 32];
-        let proof_generator_addr = [1u8; 20];
-        // };
-        // let token_a: ethers_core::types::U256 = ethers_core::types::U256::from(1);
-        let token_a: ethers::types::Address = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
-            .parse()
-            .unwrap();
+    #[tokio::test]
+    async fn leaf_hash_matches_solidity() {
+        let batch_inclusion_file = File::open("batch_inclusion_data.json").unwrap();
+        let reader = BufReader::new(batch_inclusion_file);
+        let batch_inclusion_data: BatchInclusionData = serde_json::from_reader(reader).unwrap();
+        let verification_data_comm = batch_inclusion_data.verification_data_commitment;
+        let hash = VerificationCommitmentBatch::hash_data(&verification_data_comm);
+        println!("VERIF DATA COMM HASH: {}", hex::encode(hash));
 
-        let verification_data_comm_token =
-            Token::Tuple(vec![Token::Address(token_a), Token::Address(token_a)]);
+        let eth_rpc_url = "http://localhost:8545";
+        let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
 
-        let a = encode(&vec![verification_data_comm_token]);
-        println!("ABI ENCODED: {}", hex::encode(a));
+        let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
+        let service_manager = get_contract(eth_rpc_provider, contract_address).await;
+
+        println!("MERKLE PROOF ORIGINAL: {:?}", batch_inclusion_data.batch_inclusion_proof);
+        let merkle_proof_rev: Vec<[u8; 32]> = batch_inclusion_data.batch_inclusion_proof.merkle_path.into_iter().rev().collect();
+        println!("MERKLE PROOF REVERSED: {:?}", merkle_proof_rev);
+
+        let call = service_manager.verify_batch_inclusion(
+            verification_data_comm.proof_commitment,
+            verification_data_comm.pub_input_commitment,
+            verification_data_comm.proving_system_aux_data_commitment,
+            verification_data_comm.proof_generator_addr,
+            batch_inclusion_data.batch_merkle_root,
+            merkle_proof_rev
+        );
+
+        if let Ok(response) = call.call().await {
+            println!("BATCH INCLUSION VERIFICATION RESPONSE: {}", response);
+        }
     }
 }

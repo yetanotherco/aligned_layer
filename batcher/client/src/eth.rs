@@ -38,18 +38,3 @@ pub async fn get_contract(
 
     service_manager
 }
-
-pub async fn verify_inclusion(
-    service_manager: &AlignedLayerServiceManager,
-    batch_merkle_root: [u8; 32],
-    proof_commitment: [u8; 32],
-    // ) -> Result<TransactionReceipt, anyhow::Error> {
-) -> TransactionReceipt {
-    let call = service_manager.verify_batch_inclusion(batch_merkle_root, proof_commitment);
-    let pending_tx = call.send().await.unwrap();
-
-    match pending_tx.await.unwrap() {
-        Some(receipt) => receipt,
-        None => panic!(),
-    }
-}

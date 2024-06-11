@@ -9,6 +9,8 @@ import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+
 /**
  * @title Primary entrypoint for procuring services from Aligned.
  * @author Layr Labs, Inc.
@@ -138,16 +140,30 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     }
 
     function verifyBatchInclusion(
-        // bytes32 batchMerkleRoot,
         // bytes32 proofCommitment,
-        // bytes32 pubInputCommitment,
-        // bytes32 provingSystemAuxDataCommitment,
-        // bytes20 proofGeneratorAddr,
-        // bytes batchInclusionProof
         // BatchInclusionData calldata batchInclusionData
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
-        bytes32 proofCommitment
+        bytes32[] memory merkleProof
     ) external returns (bool) {
-        return true;
+        bytes memory leaf = abi.encodePacked(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr
+        );
+
+        bytes32 hashedLeaf = keccak256(leaf);
+
+        bool response = MerkleProof.verify(
+            merkleProof,
+            batchMerkleRoot,
+            hashedLeaf
+        );
+
+        return (response);
     }
 }

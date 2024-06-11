@@ -82,6 +82,7 @@ dependencies = [
  "ethers",
  "futures-channel",
  "futures-util",
+ "lambdaworks-crypto",
  "log",
  "serde",
  "serde_json",
