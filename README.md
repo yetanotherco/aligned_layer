@@ -41,7 +41,7 @@ make install_batcher_client
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-batcher-client \
+aligned \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
@@ -52,28 +52,19 @@ batcher-client \
 **Example**
 
 ```bash
-batcher-client \
+aligned \
 --proving_system SP1 \
---proof test_files/sp1/sp1_fibonacci.proof \
---vm_program test_files/sp1/sp1_fibonacci-elf \
+--proof ./batcher/client/test_files/sp1/sp1_fibonacci.proof \
+--vm_program ./batcher/client/test_files/sp1/sp1_fibonacci-elf \
 --conn wss://batcher.alignedlayer.com
-```
-
-```bash
-batcher-client \
---proving_system SP1 \
---proof test_files/sp1/sp1_fibonacci.proof \
---vm_program test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com \
 ```
 
 #### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
 
-
-To use Gnark proofs, make sure to include serialization of the proof, public input, and verification key in your circuit.go file. For a detailed guide on how to do this, refer to our detailed guide.
+The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-batcher-client \
+aligned \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
@@ -85,29 +76,29 @@ batcher-client \
 **Examples**
 
 ```bash
-batcher-client \
+aligned \
 --proving_system GnarkPlonkBn254 \
---proof test_files/plonk_bn254/plonk.proof \
---public_input test_files/plonk_bn254/plonk_pub_input.pub \
---vk test_files/plonk_bn254/plonk.vk \
+--proof ./batcher/client/test_files/plonk_bn254/plonk.proof \
+--public_input ./batcher/client/test_files/plonk_bn254/plonk_pub_input.pub \
+--vk t./batcher/client/test_files/plonk_bn254/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
-batcher-client \
+aligned \
 --proving_system GnarkPlonkBls12_381 \
---proof test_files/plonk_bls12_381/plonk.proof \
---public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
---vk test_files/plonk_bls12_381/plonk.vk \
+--proof ./batcher/client/test_files/plonk_bls12_381/plonk.proof \
+--public_input ./batcher/client/test_files/plonk_bls12_381/plonk_pub_input.pub \
+--vk t./batcher/client/test_files/plonk_bls12_381/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
-batcher-client \
+aligned \
 --proving_system Groth16Bn254 \
---proof test_files/groth16/ineq_1_groth16.proof \
---public_input test_files/groth16/ineq_1_groth16.pub \
---vk test_files/groth16/ineq_1_groth16.vk \
+--proof ./batcher/client/test_files/groth16/ineq_1_groth16.proof \
+--public_input ./batcher/client/test_files/groth16/ineq_1_groth16.pub \
+--vk ./batcher/client/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -501,7 +492,7 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
-### Send PLONK BLS12_381 proof
+#### Send PLONK BLS12_381 proof
 
 To send a single PLONK BLS12_381 proof, run:
 
@@ -819,7 +810,7 @@ cargo run --release -- \
 This guide assumes that:
 - Gnark library is installed. If not, install it using the following command inside your Go module:
 ```bash
-go get github.com/consensys/gnark@latest
+go get github.com/consensys/gnark@v0.10.0
 ```
 - gnark project to generate the proofs,  instructions[ here](https://docs.gnark.consensys.io/category/how-to)
 
@@ -844,6 +835,7 @@ After generating the proof, you will have to have three different files:
  - verification key file
  - public input file
 
+For a detailed guide on how to generate those files, refer to our [detailed guide](docs/gnark_example.md). 
 
  Then, you can send the proof to the AlignedLayer network by running the following command
  from `batcher/client` folder inside the AlignedLayer repository directory:
@@ -857,47 +849,6 @@ After generating the proof, you will have to have three different files:
  ```
 
 
-## SP1
-
-#### Dependencies
-This guide assumes that:
-- sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
-- sp1 project to generate the proofs (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
-- aligned layer repository cloned:
-    ```bash
-    git clone https://github.com/yetanotherco/aligned_layer.git
-    ```
-
-#### How to generate a proof
-
-> AlignedLayer only verifies SP1 in compressed version. 
-> You can check you are using compressed by opening script/src/main.rs
-and check that the proof is generated with `client.prove_compressed` instead of `client.prove`.
-
-First, open a terminal and navigate to the script folder in the sp1 project directory 
-
-Then, run the following command to generate a proof:
-```bash
-cargo run --release
-```
-
-#### How to get the proof verified by AlignedLayer
-
-After generating the proof, you will have to find two different files:
-- proof file: usually found under `script` directory, with the name `proof.json` or similar
-- elf file: usually found under `program/elf/` directory
-
-Then, you can send the proof to the AlignedLayer network by running the following command
-from `batcher/client` folder inside the AlignedLayer repository directory:
-
-```bash
-cargo run --release -- \
---proving_system SP1 \
---proof <proof_path> \
---vm_program <vm_program_path> \
---conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
-```
 
 ## FAQ
 
