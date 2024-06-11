@@ -24,17 +24,31 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 ## How to use the testnet
 
-### Requirements
-
-- [Rust](https://www.rust-lang.org/tools/install)
-
-To install the batcher client to send proofs in the testnet, run: 
+To download and install the batcher client to send proofs in the testnet, run: 
 
 ```bash
-make install_aligned
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
 ```
 
 If you are experiencing issues, upgrade by running the same command.
+
+To download the SP1 proof file and the vm program file, run:
+
+```bash
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
+```
+
+This two commands will install the batcher client and download the necessary files to send an SP1 proof in `~/.aligned`.
+
+### Quick start
+
+```bash
+aligned \
+--proving_system SP1 \
+--proof ~/.aligned/test_files/sp1_fibonacci.proof \
+--vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
+--conn wss://batcher.alignedlayer.com
+```
 
 ### Run
 
