@@ -53,7 +53,7 @@ defmodule Scripts.FetchOldBatches do
   def transfrom_to_batch_db(%Batch{} = batch) do
     %BatchDB {
       batch_merkle_root: batch.batch_merkle_root,
-      amount_of_proofs: 542,
+      amount_of_proofs: 470,
       is_verified: batch.is_verified
     }
   end
