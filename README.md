@@ -631,7 +631,7 @@ To deploy the contracts to Testnet/Mainnet, you will need to set environment var
 The necessary environment variables are:
 
 | Variable Name                   | Description                                                           |
-|---------------------------------|-----------------------------------------------------------------------|
+| ------------------------------- | --------------------------------------------------------------------- |
 | `RPC_URL`                       | The RPC URL of the network you want to deploy to.                     |
 | `PRIVATE_KEY`                   | The private key of the account you want to deploy the contracts with. |
 | `EXISTING_DEPLOYMENT_INFO_PATH` | The path to the file containing the deployment info about EigenLayer. |
@@ -729,11 +729,11 @@ You can access to a tasks information by visiting `localhost:4000/batches/:merkl
 
 Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
 
-| Variable | Description |
-| -------- | ----------- |
-| `RPC_URL` | The RPC URL of the network you want to connect to. |
+| Variable      | Description                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| `RPC_URL`     | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
-| `PHX_HOST` | The host URL where the Phoenix server will be running. |
+| `PHX_HOST`    | The host URL where the Phoenix server will be running.                                          |
 
 ```make run_explorer```
 
