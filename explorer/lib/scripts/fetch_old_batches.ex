@@ -34,7 +34,7 @@ defmodule Scripts.FetchOldBatches do
       |> Enum.map(&Map.from_struct/1)
       |> Enum.map(fn batch -> Ecto.Changeset.cast(%Batches{}, batch, [:merkle_root, :amount_of_proofs, :is_verified]) end)
       |> Enum.map(fn changeset ->
-        Explorer.Repo.insert(changeset)
+        Explorer.Repo.insert_or_update(changeset)
       end)
     rescue
       error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")

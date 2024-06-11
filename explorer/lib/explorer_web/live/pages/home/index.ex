@@ -65,15 +65,6 @@ defmodule ExplorerWeb.Home.Index do
       raise e
   end
 
-  defp get_verified_batches_count() do
-    AlignedLayerServiceManager.get_batch_verified_events()
-    |> (fn
-          {:ok, nil} -> 0
-          {:ok, list} -> Enum.count(list)
-          {:error, error} -> raise error
-        end).()
-  end
-
   # tail-call recursion
   defp count_operators_registered(list), do: sum_operators_registered(list, 0)
   defp sum_operators_registered([], val), do: val
