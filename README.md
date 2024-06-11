@@ -24,14 +24,30 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 ## How to use the testnet
 
-### Requirements
-
-- [Rust](https://www.rust-lang.org/tools/install)
-
-To install the batcher client to send proofs in the testnet, run: 
+Download and install Aligned to send proofs in the testnet: 
 
 ```bash
-make install_aligned
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
+```
+
+If you are experiencing issues, upgrade by running the same command.
+
+### Try it!
+
+Download an example SP1 proof file with it's ELF file using:
+
+```bash
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
+```
+
+Send the proof with:
+
+```bash
+aligned \
+--proving_system SP1 \
+--proof ~/.aligned/test_files/sp1_fibonacci.proof \
+--vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
+--conn wss://batcher.alignedlayer.com
 ```
 
 ### Run
@@ -51,13 +67,11 @@ aligned \
 
 **Example**
 
-
-
 ```bash
 aligned \
 --proving_system SP1 \
---proof ./batcher/client/test_files/sp1/sp1_fibonacci.proof \
---vm_program ./batcher/client/test_files/sp1/sp1_fibonacci-elf \
+--proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
+--vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -80,27 +94,27 @@ aligned \
 ```bash
 aligned \
 --proving_system GnarkPlonkBn254 \
---proof ./batcher/client/test_files/plonk_bn254/plonk.proof \
---public_input ./batcher/client/test_files/plonk_bn254/plonk_pub_input.pub \
---vk ./batcher/client/test_files/plonk_bn254/plonk.vk \
+--proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
+--public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
+--vk ./batcher/aligned/test_files/plonk_bn254/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
 aligned \
 --proving_system GnarkPlonkBls12_381 \
---proof ./batcher/client/test_files/plonk_bls12_381/plonk.proof \
---public_input ./batcher/client/test_files/plonk_bls12_381/plonk_pub_input.pub \
---vk ./batcher/client/test_files/plonk_bls12_381/plonk.vk \
+--proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
+--public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
+--vk ./batcher/aligned/test_files/plonk_bls12_381/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
 ```bash
 aligned \
 --proving_system Groth16Bn254 \
---proof ./batcher/client/test_files/groth16/ineq_1_groth16.proof \
---public_input ./batcher/client/test_files/groth16/ineq_1_groth16.pub \
---vk ./batcher/client/test_files/groth16/ineq_1_groth16.vk \
+--proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
+--public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
+--vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -152,11 +166,11 @@ Before starting you need to setup an S3 bucket. More data storage will be tested
 
 You need to fill the data in:
 
-```batcher/.env```
+```batcher/aligned-batcher/.env```
 
 And you can use this file as an example on how to fill it:
 
-```batcher/.env.example```
+```batcher/aligned-batcher/.env.example```
 
 After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
@@ -384,19 +398,19 @@ make operator_start CONFIG_FILE=<path_to_config_file>
 
 #### Config
 
-To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/`).
+To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/aligned-batcher/`).
 
 The necessary environment variables are:
 
 | Variable Name         | Description                                                                                                                    |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
 | AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
 | AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
 | AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
 | RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
 
-You can find an example `.env` file in [.env.example](batcher/.env.example)
+You can find an example `.env` file in [.env.example](batcher/aligned-batcher/.env.example)
 
 You can configure the batcher in `config-files/config.yaml`:
 
@@ -436,7 +450,7 @@ make batcher_send_sp1_task
 #### Send one Groth 16 proof
 
 ```bash
-make batcher_send_groth16_task
+make batcher_send_groth16_bn254_task
 ```
 
 #### Send infinite Groth 16 proofs
@@ -567,7 +581,7 @@ go run task_sender/cmd/main.go send-task \
 #### Send a specific proof in loop
 
 ```bash
-go run task_sender/cmd/main.go loop-tasks
+go run task_sender/cmd/main.go loop-tasks \
     --proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1> \
     --proof <proof_file> \
     --public-input <public_input_file> \
@@ -615,7 +629,7 @@ To deploy the contracts to Testnet/Mainnet, you will need to set environment var
 The necessary environment variables are:
 
 | Variable Name                   | Description                                                           |
-|---------------------------------|-----------------------------------------------------------------------|
+| ------------------------------- | --------------------------------------------------------------------- |
 | `RPC_URL`                       | The RPC URL of the network you want to deploy to.                     |
 | `PRIVATE_KEY`                   | The private key of the account you want to deploy the contracts with. |
 | `EXISTING_DEPLOYMENT_INFO_PATH` | The path to the file containing the deployment info about EigenLayer. |
@@ -713,11 +727,11 @@ You can access to a tasks information by visiting `localhost:4000/batches/:merkl
 
 Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
 
-| Variable | Description |
-| -------- | ----------- |
-| `RPC_URL` | The RPC URL of the network you want to connect to. |
+| Variable      | Description                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| `RPC_URL`     | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
-| `PHX_HOST` | The host URL where the Phoenix server will be running. |
+| `PHX_HOST`    | The host URL where the Phoenix server will be running.                                          |
 
 ```make run_explorer```
 
@@ -779,11 +793,11 @@ This guide assumes that:
 
 #### How to generate a proof
 
-> AlignedLayer only verifies SP1 in compressed version. 
+> AlignedLayer only verifies SP1 in compressed version.
 > You can check you are using compressed by opening script/src/main.rs
 and check that the proof is generated with `client.prove_compressed` instead of `client.prove`.
 
-First, open a terminal and navigate to the script folder in the sp1 project directory 
+First, open a terminal and navigate to the script folder in the sp1 project directory
 
 Then, run the following command to generate a proof:
 ```bash
@@ -797,7 +811,7 @@ After generating the proof, you will have to find two different files:
 - elf file: usually found under `program/elf/` directory
 
 Then, you can send the proof to the AlignedLayer network by running the following command
-from `batcher/client` folder inside the AlignedLayer repository directory:
+from `batcher/aligned` folder inside the AlignedLayer repository directory:
 
 ```bash
 cargo run --release -- \
