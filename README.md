@@ -80,7 +80,7 @@ aligned \
 --proving_system GnarkPlonkBn254 \
 --proof ./batcher/client/test_files/plonk_bn254/plonk.proof \
 --public_input ./batcher/client/test_files/plonk_bn254/plonk_pub_input.pub \
---vk t./batcher/client/test_files/plonk_bn254/plonk.vk \
+--vk ./batcher/client/test_files/plonk_bn254/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -89,7 +89,7 @@ aligned \
 --proving_system GnarkPlonkBls12_381 \
 --proof ./batcher/client/test_files/plonk_bls12_381/plonk.proof \
 --public_input ./batcher/client/test_files/plonk_bls12_381/plonk_pub_input.pub \
---vk t./batcher/client/test_files/plonk_bls12_381/plonk.vk \
+--vk ./batcher/client/test_files/plonk_bls12_381/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
