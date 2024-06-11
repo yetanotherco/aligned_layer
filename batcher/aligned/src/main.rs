@@ -19,11 +19,12 @@ use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
+use aligned_batcher_lib::types::{
+    parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData,
+};
 use clap::Subcommand;
-use aligned_batcher_lib::types::{parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData};
 
 use crate::errors::BatcherClientError;
-use crate::eth::*;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyInclusion;
 
@@ -54,29 +55,22 @@ pub struct SubmitArgs {
         default_value = "ws://localhost:8080"
     )]
     connect_addr: String,
-
     #[arg(name = "Proving system", long = "proving_system")]
     proving_system_flag: String,
-
     #[arg(name = "Proof file path", long = "proof")]
     proof_file_name: PathBuf,
-
     #[arg(name = "Public input file name", long = "public_input")]
     pub_input_file_name: Option<PathBuf>,
-
     #[arg(name = "Verification key file name", long = "vk")]
     verification_key_file_name: Option<PathBuf>,
-
     #[arg(name = "VM prgram code file name", long = "vm_program")]
     vm_program_code_file_name: Option<PathBuf>,
-
     #[arg(
         name = "Number of repetitions",
         long = "repetitions",
         default_value = "1"
     )]
     repetitions: usize,
-
     #[arg(
         name = "Proof generator address",
         long = "proof_generator_addr",
@@ -88,8 +82,16 @@ pub struct SubmitArgs {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct VerifyInclusionArgs {
-    #[arg(name = "Batch merkle root", long = "root")]
+    #[arg(name = "Batch inclusion data", long = "inclusion-data")]
     batch_inclusion_data: PathBuf,
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(name = "Private key store path", long = "private-key-store")]
+    private_key_store_path: PathBuf,
 }
 
 #[tokio::main]
@@ -124,6 +126,11 @@ async fn main() -> Result<(), errors::BatcherClientError> {
         }
 
         VerifyInclusion(verify_inclusion_args) => {
+            // FIXME(marian): This is address for the Aligned service manager in the Anvil devnet.
+            // We can add a input parameter flag in the CLI to specify the ethereum network and 
+            // based on that this value is set accordingly.
+            let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
+
             let batch_inclusion_file =
                 File::open(verify_inclusion_args.batch_inclusion_data).unwrap();
             let reader = BufReader::new(batch_inclusion_file);
@@ -132,11 +139,20 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let verification_data_comm = batch_inclusion_data.verification_data_commitment;
             let merkle_proof = batch_inclusion_data.batch_inclusion_proof.merkle_path;
 
-            let eth_rpc_url = "http://localhost:8545";
-            let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
+            let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
-            let service_manager = get_contract(eth_rpc_provider, contract_address).await;
+            let private_key_store_path = verify_inclusion_args.private_key_store_path;
+
+            // FIXME(marian): We are passing an empty string as the private key password for the moment.
+            // We should think how to handle this correctly.
+            let service_manager = eth::aligned_service_manager(
+                eth_rpc_provider,
+                contract_address,
+                private_key_store_path,
+                "",
+            )
+            .await;
 
             let call = service_manager.verify_batch_inclusion(
                 verification_data_comm.proof_commitment,
@@ -144,7 +160,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 verification_data_comm.proving_system_aux_data_commitment,
                 verification_data_comm.proof_generator_addr,
                 batch_inclusion_data.batch_merkle_root,
-                merkle_proof
+                merkle_proof,
             );
 
             match call.call().await {
@@ -186,8 +202,17 @@ async fn receive(
                 Ok(batch_inclusion_data) => {
                     info!("Batcher response received: {}", batch_inclusion_data);
                     info!("Proof verified in aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
-                    let mut file = File::create("batch_inclusion_data.json").unwrap();
+
+                    let batch_merkle_root = hex::encode(batch_inclusion_data.batch_merkle_root);
+                    let batch_inclusion_data_file_name =
+                        batch_merkle_root + "_" + &num_responses_lock.to_string() + ".json";
+
+                    let mut file = File::create(&batch_inclusion_data_file_name).unwrap();
                     file.write_all(data.as_slice()).unwrap();
+                    info!(
+                        "Batch inclusion data written into file {}",
+                        batch_inclusion_data_file_name
+                    );
                 }
                 Err(e) => {
                     error!("Error while deserializing batcher response: {}", e);
@@ -282,10 +307,18 @@ mod test {
         let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
 
         let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
-        let service_manager = get_contract(eth_rpc_provider, contract_address).await;
+        let service_manager = aligned_service_manager(eth_rpc_provider, contract_address).await;
 
-        println!("MERKLE PROOF ORIGINAL: {:?}", batch_inclusion_data.batch_inclusion_proof);
-        let merkle_proof_rev: Vec<[u8; 32]> = batch_inclusion_data.batch_inclusion_proof.merkle_path.into_iter().rev().collect();
+        println!(
+            "MERKLE PROOF ORIGINAL: {:?}",
+            batch_inclusion_data.batch_inclusion_proof
+        );
+        let merkle_proof_rev: Vec<[u8; 32]> = batch_inclusion_data
+            .batch_inclusion_proof
+            .merkle_path
+            .into_iter()
+            .rev()
+            .collect();
         println!("MERKLE PROOF REVERSED: {:?}", merkle_proof_rev);
 
         let call = service_manager.verify_batch_inclusion(
@@ -294,7 +327,7 @@ mod test {
             verification_data_comm.proving_system_aux_data_commitment,
             verification_data_comm.proof_generator_addr,
             batch_inclusion_data.batch_merkle_root,
-            merkle_proof_rev
+            merkle_proof_rev,
         );
 
         if let Ok(response) = call.call().await {
