@@ -34,10 +34,6 @@ anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
-anvil_deploy_mock_strategy:
-	@echo "Deploying Mock Strategy..."
-	. contracts/scripts/anvil/deploy_mock_strategy.sh
-
 anvil_deploy_aligned_contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
