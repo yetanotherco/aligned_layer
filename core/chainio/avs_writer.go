@@ -112,6 +112,9 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 	}
 
 	txNonce := big.NewInt(int64(tx.Nonce()))
+
+	w.logger.Info("Tx nonce before waiting for receipt", "nonce", txOpts.Nonce.String())
+
 	receipt, err := w.WaitForTransactionReceiptWithIncreasingTip(ctx, tx.Hash(), txNonce, batchMerkleRoot, nonSignerStakesAndSignature)
 	w.logger.Info("Transaction receipt:", "receipt", receipt)
 	if err != nil {
@@ -140,6 +143,8 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 
 		// Use the same nonce as the original transaction
 		txOpts.Nonce = txNonce
+
+		w.logger.Info("Tx nonce after waiting for receipt", "nonce", txOpts.Nonce.String())
 
 		// Use the gas limit of the simulated transaction
 		txOpts.GasLimit = tx.Gas()
