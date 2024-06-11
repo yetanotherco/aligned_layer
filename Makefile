@@ -376,9 +376,9 @@ send_sp1_proof:
 send_jolt_proof:
 	@go run task_sender/cmd/main.go send-task \
     		--proving-system jolt \
-    		--proof task_sender/test_examples/jolt/fib_e2e/jolt.proof \
-    		--public-input task_sender/test_examples/jolt/fib_e2e/jolt.elf \
-			--verification-key task_sender/test_examples/jolt/fib_e2e/jolt.commitment \
+    		--proof task_sender/test_examples/jolt/fib/jolt.proof \
+    		--public-input task_sender/test_examples/jolt/fib/jolt.elf \
+			--verification-key task_sender/test_examples/jolt/fib/jolt.commitment \
     		--config config-files/config.yaml \
     		2>&1 | zap-pretty
 
@@ -630,6 +630,7 @@ build_all_ffi: ## Build all FFIs
 build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
+	@$(MAKE) build_jolt_macos
 	@$(MAKE) build_risc_zero_macos
 #	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_halo2_ipa_macos
@@ -639,6 +640,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
+	@$(MAKE) build_jolt_macos
 	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_halo2_ipa_linux

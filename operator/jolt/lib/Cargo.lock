@@ -1071,12 +1071,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "jolt-sdk"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "common",
+ "eyre",
+ "jolt-core",
+ "jolt-sdk-macros",
+ "postcard",
+ "serde",
+ "tracer",
+]
+
+[[package]]
+name = "jolt-sdk-macros"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "jolt-verifier-ffi"
 version = "0.1.0"
 dependencies = [
  "ark-bn254",
  "ark-serialize",
  "jolt-core",
+ "jolt-sdk",
  "tracer",
 ]
 

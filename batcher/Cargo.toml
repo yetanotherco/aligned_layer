@@ -44,6 +44,7 @@ alloy-primitives = { version = "0.7.4", features = ["serde"] }
 lazy_static = "1.4.0"
 ark-serialize = "0.4.2"
 jolt-core = { path = "../../../Crypto/jolt/jolt-core" }
+jolt-sdk = { path = "../../../Crypto/jolt/jolt-sdk", features = ["host"] }
 tracer = { path = "../../../Crypto/jolt/tracer" }
 ark-bn254 = "0.4.0"
 

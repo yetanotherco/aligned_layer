@@ -13,6 +13,7 @@ use jolt_core::{
     jolt::vm::{Jolt, JoltProof, JoltCommitments, JoltPreprocessing, rv32i_vm::RV32IJoltVM},
     poly::commitment::hyrax::HyraxScheme
 };
+use jolt_sdk::host_utils::Proof;
 use tracer::decode;
 use ark_serialize::CanonicalDeserialize;
 use ark_bn254::{Fr, G1Projective};
@@ -122,18 +123,15 @@ fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
     false
 }
 
-fn verify_jolt_proof(proof: &[u8], elf: &[u8], commitment: &[u8]) -> bool {
+fn verify_jolt_proof(proof: &[u8], elf: &[u8]) -> bool {
     debug!("Verifying Jolt proof");
-    if let Ok(jolt_proof) = JoltProof::deserialize_uncompressed(proof) {
-        if let Ok(jolt_commitments) = JoltCommitments::deserialize_uncompressed(commitment) {
+    if let Ok(jolt_proof) = Proof::deserialize_compressed(proof) {
             let (bytecode, memory_init) = decode(&elf);
 
             let preprocessing: JoltPreprocessing<Fr, HyraxScheme<G1Projective>> =
-                RV32IJoltVM::preprocess(bytecode.clone(), memory_init, 1 << 20, 1 << 20, 1 << 20);
+                RV32IJoltVM::preprocess(bytecode.clone(), memory_init, 1 << 20, 1 << 20, 1 << 24);
 
-            let verification_result = RV32IJoltVM::verify(preprocessing, jolt_proof, jolt_commitments);
-            return verification_result.is_ok();
-        }
+            return RV32IJoltVM::verify(preprocessing, jolt_proof.proof, jolt_proof.commitments).is_ok();
     }
 
     warn!("Failed to decode JOLT proof");

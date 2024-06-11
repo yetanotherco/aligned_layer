@@ -1000,6 +1000,7 @@ dependencies = [
  "halo2curves",
  "hex",
  "jolt-core",
+ "jolt-sdk",
  "lambdaworks-crypto",
  "lazy_static",
  "log",
@@ -3449,6 +3450,33 @@ dependencies = [
  "tracing-flame",
  "tracing-subscriber",
  "tracing-texray",
+]
+
+[[package]]
+name = "jolt-sdk"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff 0.4.2",
+ "ark-serialize 0.4.2",
+ "common",
+ "eyre",
+ "jolt-core",
+ "jolt-sdk-macros",
+ "postcard",
+ "serde",
+ "tracer",
+]
+
+[[package]]
+name = "jolt-sdk-macros"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

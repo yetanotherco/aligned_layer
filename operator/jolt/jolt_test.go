@@ -12,7 +12,7 @@ const MaxElfSize = 2 * 1024 * 1024
 const MaxCommitmentSize = 2 * 1024 * 1024
 
 func TestFibonacciJoltProofVerifies(t *testing.T) {
-	proofFile, err := os.Open("../../task_sender/test_examples/jolt/fib_e2e/jolt.proof")
+	proofFile, err := os.Open("../../task_sender/test_examples/jolt/fib/jolt.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
@@ -22,7 +22,7 @@ func TestFibonacciJoltProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 
-	elfFile, err := os.Open("../../task_sender/test_examples/jolt/fib_e2e/jolt.elf")
+	elfFile, err := os.Open("../../task_sender/test_examples/jolt/fib/jolt.elf")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
@@ -33,24 +33,13 @@ func TestFibonacciJoltProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 
-	commitmentFile, err := os.Open("../../task_sender/test_examples/jolt/fib_e2e/jolt.commitment")
-	if err != nil {
-		t.Errorf("could not open proof file: %s", err)
-	}
-
-	commitmentBytes := make([]byte, MaxCommitmentSize)
-	nReadCommitmentBytes, err := commitmentFile.Read(commitmentBytes)
-	if err != nil {
-		t.Errorf("could not read bytes from file")
-	}
-
-	if !jolt.VerifyJoltProof(proofBytes, uint32(nReadProofBytes), elfBytes, uint32(nReadElfBytes), commitmentBytes, uint32(nReadCommitmentBytes)) {
+	if !jolt.VerifyJoltProof(proofBytes, uint32(nReadProofBytes), elfBytes, uint32(nReadElfBytes)) {
 		t.Errorf("proof did not verify")
 	}
 }
 
 func TestSha3JoltProofVerifies(t *testing.T) {
-	proofFile, err := os.Open("../../task_sender/test_examples/jolt/sha3_e2e/jolt.proof")
+	proofFile, err := os.Open("../../task_sender/test_examples/jolt/sha3-ex/jolt.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
@@ -60,24 +49,13 @@ func TestSha3JoltProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 
-	elfFile, err := os.Open("../../task_sender/test_examples/jolt/sha3_e2e/jolt.elf")
+	elfFile, err := os.Open("../../task_sender/test_examples/jolt/sha3-ex/jolt.elf")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
 
 	elfBytes := make([]byte, MaxElfSize)
 	nReadElfBytes, err := elfFile.Read(elfBytes)
-	if err != nil {
-		t.Errorf("could not read bytes from file")
-	}
-
-	commitmentFile, err := os.Open("../../task_sender/test_examples/jolt/sha3_e2e/jolt.commitment")
-	if err != nil {
-		t.Errorf("could not open proof file: %s", err)
-	}
-
-	commitmentBytes := make([]byte, MaxCommitmentSize)
-	nReadCommitmentBytes, err := commitmentFile.Read(commitmentBytes)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
