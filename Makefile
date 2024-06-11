@@ -141,6 +141,7 @@ install_aligned:
 	@./batcher/aligned/install_aligned.sh
 
 uninstall_aligned:
+	@echo "Uninstalling aligned..."
 	@rm -rf ~/.aligned
 
 install_aligned_compiling:
