@@ -656,4 +656,4 @@ recover_db: run_db
 
 explorer_fetch_old_batches:
 	@cd explorer && \
-		./scripts/fetch_old_batches.sh
+		./scripts/fetch_old_batches.sh 1600000 1700000 

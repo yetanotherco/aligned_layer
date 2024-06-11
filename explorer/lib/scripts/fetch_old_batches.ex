@@ -3,9 +3,9 @@ defmodule Scripts.FetchOldBatches do
   # This Script is to fetch old batches from the blockchain
   # and insert them into the Ecto database
 
-  def run(_) do
+  def run(from, to) do
     "running fetch_old_events" |> IO.inspect()
-    fetch_old_events(1_600_000, 1_700_000)
+    fetch_old_events(from, to)
   end
 
   def fetch_old_events(fromBlock, toBlock) do
