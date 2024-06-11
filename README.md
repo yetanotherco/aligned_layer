@@ -806,15 +806,16 @@ cargo run --release -- \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr]
+```
 
-## Halo2
+### Halo2
 
-### Dependencies
+#### Dependencies
 This guide assumes that:
 - You have experience developing a circuit in Halo2.
 - You are using Aligned Layers [fork](https://github.com/yetanotherco/yet-another-halo2-fork) of Privacy & Scaling Explorations [Halo2](https://github.com/privacy-scaling-explorations/halo2) proving system to construct your Halo2 circuit.
 
-### How to generate a proof
+#### How to generate a proof
 
 > AlignedLayer can verify proofs of Halo2 circuit. To accomplish this the circuit must be serialized along with the proof, public inputs, and verifier key.
 
@@ -829,7 +830,7 @@ cargo run --release
 
 Both of the functions above generate a proof based on the provided public inputs, verify that proof with same verifier used on AlignedLayer, and serialize the circuit, provided parameters, proof, and public input to file to be sent to AlignedLayer.
 
-### How to get the proof verified by AlignedLayer
+#### How to get the proof verified by AlignedLayer
 
 After generating your serialized proof, you will have three different files within a generated `proof_files` directory within your project:
 - **proof file**: found under `./proof_files/proof.bin` directory, which contains the serialized proof.
