@@ -47,4 +47,26 @@ defmodule Batches do
       result -> result
     end
   end
+
+  def get_amount_of_verified_batches() do
+    query = from(b in Batches,
+      where: b.is_verified == true,
+      select: count(b.merkle_root))
+
+    case Explorer.Repo.one(query) do
+      nil -> 0
+      result -> result
+    end
+  end
+
+  # implement this function in next PR when DB stores block number
+  # def get_last_batches(%{amount: amount}) do
+  #   query = from(b in Batches,
+  #     where: b.is_verified == true,
+  #     order_by: [desc: b.block number], #TODO change to block number in next PR
+  #     limit: ^amount,
+  #     select: b)
+
+  #   Explorer.Repo.all(query)
+  # end
 end
