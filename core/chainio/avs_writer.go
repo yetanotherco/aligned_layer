@@ -18,10 +18,9 @@ import (
 )
 
 const (
-	MaxRetries                  = 25
-	SleepTime                   = 5 * time.Second
-	IncrementPercentage         = 25
-	IncrementPercentageInterval = 20 * time.Second
+	MaxRetries          = 25
+	SleepTime           = 5 * time.Second
+	IncrementPercentage = 25
 )
 
 type AvsWriter struct {
@@ -88,7 +87,7 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 		return err
 	}
 
-	_, err = utils.WaitForTransactionReceipt(w.Client, context, tx.Hash())
+	_, err = utils.WaitForTransactionReceipt(w.Client, context, tx.Hash(), 25, 5*time.Second)
 	if err != nil {
 		return err
 	}
@@ -123,49 +122,41 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 }
 
 func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Context, txHash gethcommon.Hash, txNonce *big.Int, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-	currentSleepTime := 0 * time.Second
-
 	for i := 0; i < MaxRetries; i++ {
-		receipt, err := w.Client.TransactionReceipt(ctx, txHash)
-
+		// Attempt to get the transaction receipt
+		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, txHash, MaxRetries, SleepTime)
 		if err == nil {
 			return receipt, nil
 		}
 
-		currentSleepTime += SleepTime
-		time.Sleep(SleepTime)
-
-		// If incrementPercentageInterval elapses, increase the gas limit and gas tip cap
-		if currentSleepTime%IncrementPercentageInterval == 0 {
-			// Simulate the transaction to get the gas limit again
-			txOpts := *w.Signer.GetTxOpts()
-			txOpts.NoSend = true
-			tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
-			if err != nil {
-				return nil, err
-			}
-
-			// Use the same nonce as the original transaction
-			txOpts.Nonce = txNonce
-
-			// Add 10% to the gas limit
-			txOpts.GasLimit = tx.Gas() * 110 / 100
-
-			// Increase the gas tip cap by 10%
-			newGasTipCap := new(big.Int).Mul(big.NewInt(int64(IncrementPercentage+100)), tx.GasTipCap())
-			newGasTipCap.Div(newGasTipCap, big.NewInt(100))
-			txOpts.GasTipCap = newGasTipCap
-
-			// Submit the transaction with the new gas tip cap
-			txOpts.NoSend = false
-			tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
-			if err != nil {
-				return nil, err
-			}
-
-			// Update the transaction hash
-			txHash = tx.Hash()
+		// Simulate the transaction to get the gas limit and gas tip cap again
+		txOpts := *w.Signer.GetTxOpts()
+		txOpts.NoSend = true
+		tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+		if err != nil {
+			return nil, err
 		}
+
+		// Use the same nonce as the original transaction
+		txOpts.Nonce = txNonce
+
+		// Increase the gas limit by 10%
+		txOpts.GasLimit = tx.Gas() * 110 / 100
+
+		// Increase the gas tip cap by 10%
+		newGasTipCap := new(big.Int).Mul(big.NewInt(int64(IncrementPercentage+100)), tx.GasTipCap())
+		newGasTipCap.Div(newGasTipCap, big.NewInt(100))
+		txOpts.GasTipCap = newGasTipCap
+
+		// Submit the transaction with the new gas tip cap
+		txOpts.NoSend = false
+		tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update the transaction hash for the next retry
+		txHash = tx.Hash()
 	}
 
 	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
