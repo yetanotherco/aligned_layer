@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 echo "Installing Aligned..."
 
 BASE_DIR=$HOME
@@ -70,3 +72,7 @@ fi
 echo "Aligned installed successfully."
 echo "Detected your preferred shell is $PREF_SHELL and added aligned to PATH."
 echo "Run 'source $PROFILE' or start a new terminal session to use aligned."
+
+echo "Downloading test files to send an SP1 proof..."
+
+"$SCRIPT_DIR/get_proof_test_files.sh"

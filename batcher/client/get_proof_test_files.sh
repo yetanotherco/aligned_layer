@@ -12,7 +12,7 @@ ALIGNED_TEST_FILES_DIR="$ALIGNED_DIR/test_files"
 
 mkdir -p "$ALIGNED_TEST_FILES_DIR"
 
-echo "Downloading SP1 ELF file.."
+echo "Downloading SP1 ELF file..."
 
 if curl -sSf -L "$SP1_ELF_URL" -o "$ALIGNED_TEST_FILES_DIR/$SP1_ELF_NAME"; then
     echo "SP1 ELF download successful"
@@ -21,7 +21,7 @@ else
     exit 1
 fi
 
-echo "Downloading SP1 proof file.."
+echo "Downloading SP1 proof file..."
 
 if curl -sSf -L "$SP1_PROOF_URL" -o "$ALIGNED_TEST_FILES_DIR/$SP1_PROOF_NAME"; then
     echo "SP1 proof downloaded successful"
