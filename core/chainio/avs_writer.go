@@ -106,13 +106,11 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 	// Send the transaction
 	txOpts.NoSend = false
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
-	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+	uin64TxNonce, err := w.Client.PendingNonceAt(ctx, txOpts.From)
 	if err != nil {
 		return nil, err
 	}
-
-	uin64TxNonce, err := w.Client.PendingNonceAt(ctx, txOpts.From)
-
+	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
