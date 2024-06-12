@@ -67,6 +67,11 @@ operator_start:
 
 operator_register_and_start: operator_full_registration operator_start
 
+build_operator: deps
+	@echo "Building Operator..."
+	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo "Operator built into /operator/build/aligned-operator"
+
 bindings:
 	cd contracts && ./generate-go-bindings.sh
 
