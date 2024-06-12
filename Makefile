@@ -99,6 +99,16 @@ operator_mint_mock_tokens:
 	@echo "Minting tokens"
 	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
 
+operator_whitelist_devnet:
+	@echo "Whitelisting operator"
+	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
+	@echo "Operator address: $(OPERATOR_ADDRESS)"
+	ETH_RPC_URL="http://localhost:8545" ETH_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" ./scripts/whitelist_operator.sh ./contracts/script/output/devnet/alignedlayer_deployment_output.json $(OPERATOR_ADDRESS)
+
+operator_whitelist:
+	@echo "Whitelisting operator $(OPERATOR_ADDRESS) using $(DEPLOYMENT_OUTPUT)"
+	. ./scripts/whitelist_operator.sh $(DEPLOYMENT_OUTPUT) $(OPERATOR_ADDRESS)
+
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
@@ -121,7 +131,7 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_register_with_aligned_layer
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
 __BATCHER__:
 
