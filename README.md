@@ -136,6 +136,14 @@ To install the operator binary, run:
 make build_operator
 ```
 
+#### Update the operator
+
+To update the operator, run:
+
+```bash
+make build_operator
+```
+
 #### Config
 
 Replace the `"<ecdsa_key_store_location_path>"`, `"<bls_key_store_location_path>"`, `"<operator_address>"` and ` "<earnings_receiver_address>"` in `./config-files/config-operator.yaml`.
@@ -148,12 +156,14 @@ To register the operator in Aligned, run:
 ./operator/build/aligned-operator register --config ./config-files/config-operator.yaml
 ```
 
-### Upgrade the operator
+### Deposit Strategy Tokens
 
-To upgrade the operator, run:
+We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
+
+To deposit into strategy, run:
 
 ```bash
-make build_operator
+./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000
 ```
 
 ### Start the operator
