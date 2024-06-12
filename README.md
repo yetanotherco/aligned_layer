@@ -174,6 +174,14 @@ To start the Aligned operator, run:
 ./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
 ```
 
+### Unregister the operator from Aligned
+
+To unregister the Aligned operator, run:
+
+```bash
+cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
+ ```
+
 ## Local Devnet Setup
 
 ### Dependencies
