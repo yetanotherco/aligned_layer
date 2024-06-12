@@ -28,10 +28,3 @@ operator:
   enable_metrics: true
   metrics_ip_port_address: localhost:9092
   max_batch_size: 268435456 # 256 MiB
-
-# Operator variables needed for registration in EigenLayer
-el_delegation_manager_address: "0xA44151489861Fe9e3055d95adC98FbD462B948e7"
-private_key_store_path: "<ecdsa_key_store_location_path>"
-bls_private_key_store_path: "<bls_key_store_location_path>"
-signer_type: local_keystore
-chain_id: 17000 #Holesky chain id
