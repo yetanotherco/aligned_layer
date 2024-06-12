@@ -88,7 +88,7 @@
       <%= for batch <- @latest_batches do %>
         <.link class="flex justify-between group" navigate={~p"/batches/#{batch}"}>
           <span class="group-hover:text-foreground/80" title={batch}>
-            <%= Utils.shorten_block_hash(batch) %>
+            <%= Utils.shorten_hash(batch) %>
           </span>
           <.right_arrow />
         </.link>
