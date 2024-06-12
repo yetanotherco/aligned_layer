@@ -13,8 +13,6 @@ defmodule ExplorerWeb.Batch.Index do
     end
 
     current_batch = Batches.get_batch(%{merkle_root: merkle_root})
-    "current_batch_frontend" |> IO.inspect()
-    current_batch |> IO.inspect() #it has empties, i think im inserting wrong to the DB
 
     {
       :ok,

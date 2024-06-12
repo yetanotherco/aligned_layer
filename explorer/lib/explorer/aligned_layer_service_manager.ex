@@ -151,6 +151,7 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
+  # for new batches
   def extract_batch_response({_status, %NewBatchInfo{} = batch_creation}) do
     created_batch = batch_creation.new_batch
     was_batch_responded = is_batch_responded(created_batch.batchMerkleRoot)
@@ -170,6 +171,28 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
     }
+  end
+
+  #for existing but unverified batches
+  def extract_batch_response(%Batches{} = unverified_batch) do
+    was_batch_responded = is_batch_responded(unverified_batch.merkle_root)
+    case was_batch_responded do
+      false -> nil # Do nothing since unverified batch was not yet verified
+      true ->
+        batch_response = fetch_batch_response(unverified_batch.merkle_root)
+        %BatchDB{
+          merkle_root: unverified_batch.merkle_root,
+          data_pointer: unverified_batch.data_pointer,
+          is_verified: was_batch_responded,
+          submition_block_number: unverified_batch.submition_block_number,
+          submition_transaction_hash: unverified_batch.submition_transaction_hash,
+          submition_timestamp: unverified_batch.submition_timestamp,
+          response_block_number: batch_response.block_number,
+          response_transaction_hash: batch_response.transaction_hash,
+          response_timestamp: batch_response.block_timestamp,
+          amount_of_proofs: unverified_batch.amount_of_proofs,
+        }
+    end
   end
 
   def fetch_batch_response(merkle_root) do

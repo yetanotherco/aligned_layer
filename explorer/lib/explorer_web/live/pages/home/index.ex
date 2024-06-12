@@ -24,8 +24,8 @@ defmodule ExplorerWeb.Home.Index do
 
     operators_registered = get_operators_registered()
 
-    latest_batches = Batches.get_latest_batches(%{amount: 5}) |> IO.inspect()
-      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
+    latest_batches = Batches.get_latest_batches(%{amount: 5})
+      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end) #extract only the merkle root
 
     submitted_proofs = Batches.get_amount_of_submitted_proofs()
     verified_proofs = Batches.get_amount_of_verified_proofs()

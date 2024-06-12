@@ -50,10 +50,6 @@ defmodule Batches do
   end
 
   def generate_changeset(%BatchDB{} = batch_db) do
-    batches_struct = Map.from_struct(Batches.cast_to_batches(batch_db))
-    "batches_struct" |> IO.inspect()
-    batches_struct |> IO.inspect()
-
     Batches.changeset(%Batches{}, Map.from_struct(Batches.cast_to_batches(batch_db)))
   end
 
@@ -96,15 +92,12 @@ defmodule Batches do
   end
 
   def insert_or_update(changeset) do
-    "in insert_or_update..." |> IO.puts()
     merkle_root = changeset.changes.merkle_root
     case Explorer.Repo.get(Batches, merkle_root) do
       nil ->
         "New Batch, inserting to DB:" |> IO.puts()
-        changeset |> IO.inspect()
         Explorer.Repo.insert(changeset) #this is missing all the juicy info
       existing_batch ->
-        "Existing Batch, checking if value changed" |> IO.puts()
         if existing_batch.is_verified != changeset.changes.is_verified                                #changed status
           # or existing_batch.response_block_number != changeset.changes.response_block_number          #reorg
           # or existing_batch.response_transaction_hash != changeset.changes.response_transaction_hash  #reorg
