@@ -126,27 +126,7 @@ aligned \
 > [!NOTE]
 > You must be whitelisted to become an Aligned operator.
 
-Before registering as an operator for Aligned, you should first [register as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
-
-#### Key Generation
-
-First, generate encrypted ECDSA and BLS keys. Ensure you have [Go](https://go.dev/doc/install) installed, and then install the [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git).
-
-To create an ECDSA keystore, run:
-
-```bash
-eigenlayer operator keys import --key-type ecdsa <keystore-name> <private-key>
-```
-
-To create a BLS keystore, run:
-
-```bash
-eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
-```
-
-#### Obtain Testnet ETH
-
-You will need at least **1 ETH** in the `"<operator_address>"` specified in the configuration below. This ETH will cover the gas costs for operator registration in the subsequent steps. Follow [these instructions](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts) to obtain Testnet ETH.
+This guide assumes you are [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
 
 #### Install the Operator Binary
 
@@ -158,68 +138,14 @@ make build_operator
 
 #### Config
 
-Below is a sample configuration file. Replace placeholder values with your actual data.
-
-```yaml
-# Common variables for all the services
-# 'production' only prints info and above. 'development' also prints debug
-environment: "production"
-aligned_layer_deployment_config_file_path: "./contracts/script/output/holesky/alignedlayer_deployment_output.json"
-eigen_layer_deployment_config_file_path: "./contracts/script/output/holesky/eigenlayer_deployment_output.json"
-eth_rpc_url: "https://ethereum-holesky-rpc.publicnode.com"
-eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
-eigen_metrics_ip_port_address: "localhost:9090"
-
-## ECDSA Configurations
-ecdsa:
-  private_key_store_path: "<ecdsa_key_store_location_path>"
-  private_key_store_password: ""
-
-## BLS Configurations
-bls:
-  private_key_store_path: "<bls_key_store_location_path>"
-  private_key_store_password: ""
-
-## Operator Configurations
-operator:
-  aggregator_rpc_server_ip_port_address: aggregator.alignedlayer.com:8090
-  address: "<operator_address>"
-  earnings_receiver_address: "<earnings_receiver_address>" #Can be the same as the operator.
-  delegation_approver_address: "0x0000000000000000000000000000000000000000"
-  staker_opt_out_window_blocks: 0
-  metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
-  enable_metrics: true
-  metrics_ip_port_address: localhost:9092
-  max_batch_size: 268435456 # 256 MiB
-
-# Operator variables needed for registration in EigenLayer
-el_delegation_manager_address: "0xA44151489861Fe9e3055d95adC98FbD462B948e7"
-private_key_store_path: "<ecdsa_key_store_location_path>"
-bls_private_key_store_path: "<bls_key_store_location_path>"
-signer_type: local_keystore
-chain_id: 17000 #Holesky chain id
-```
-
-### Register as an operator with EigenLayer
-
-To register the operator in EigenLayer, run:
-
-```bash
-make operator_register_with_eigen_layer CONFIG_FILE=<path_to_config_file>
-```
-
-To check the registration status of the operator in EigenLayer, run:
-
-```bash
-eigenlayer operator status <path_to_config_file>
-```
+Replace the `"<ecdsa_key_store_location_path>"`, `"<bls_key_store_location_path>"`, `"<operator_address>"` and ` "<earnings_receiver_address>"` in `./config-files/config-operator.yaml`.
 
 ### Register as an operator with Aligned
 
 To register the operator in Aligned, run:
 
 ```bash
-./operator/build/aligned-operator register --config <path_to_config_file>
+./operator/build/aligned-operator register --config ./config-files/config-operator.yaml
 ```
 
 ### Upgrade the operator
@@ -235,9 +161,8 @@ make build_operator
 To start the Aligned operator, run:
 
 ```bash
-./operator/build/aligned-operator start --config <path_to_config_file>
+./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
 ```
-
 
 ## Local Devnet Setup
 
