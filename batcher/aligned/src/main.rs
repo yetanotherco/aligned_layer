@@ -209,7 +209,7 @@ async fn receive(
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
                     info!("Batcher response received: {}", batch_inclusion_data);
-                    info!("Proof verified in aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+                    info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
                     let batch_merkle_root = hex::encode(batch_inclusion_data.batch_merkle_root);
                     let batch_inclusion_data_file_name = batch_merkle_root
