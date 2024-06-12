@@ -2,6 +2,11 @@ use core::fmt;
 use std::io;
 use std::path::PathBuf;
 
+use crate::hex::FromHexError;
+use ethers::providers::ProviderError;
+use ethers::signers::WalletError;
+// use ethers::utils::ConversionError::FromHexError;
+
 pub enum BatcherClientError {
     MissingParameter(String),
     InvalidUrl(url::ParseError, String),
@@ -9,6 +14,7 @@ pub enum BatcherClientError {
     ConnectionError(tokio_tungstenite::tungstenite::Error),
     IoError(PathBuf, io::Error),
     SerdeError(serde_json::Error),
+    EthError(String),
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for BatcherClientError {
@@ -20,6 +26,24 @@ impl From<tokio_tungstenite::tungstenite::Error> for BatcherClientError {
 impl From<serde_json::Error> for BatcherClientError {
     fn from(e: serde_json::Error) -> Self {
         BatcherClientError::SerdeError(e)
+    }
+}
+
+impl From<ProviderError> for BatcherClientError {
+    fn from(e: ProviderError) -> Self {
+        BatcherClientError::EthError(e.to_string())
+    }
+}
+
+impl From<WalletError> for BatcherClientError {
+    fn from(e: WalletError) -> Self {
+        BatcherClientError::EthError(e.to_string())
+    }
+}
+
+impl From<FromHexError> for BatcherClientError {
+    fn from(e: FromHexError) -> Self {
+        BatcherClientError::EthError(e.to_string())
     }
 }
 
@@ -44,6 +68,7 @@ impl fmt::Debug for BatcherClientError {
                 write!(f, "IO error for file: \"{}\", {}", path.display(), e)
             }
             BatcherClientError::SerdeError(e) => write!(f, "Serialization error: {}", e),
+            BatcherClientError::EthError(e) => write!(f, "Ethereum error: {}", e),
         }
     }
 }

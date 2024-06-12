@@ -142,12 +142,23 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes memory merkleProof,
         uint verificationDataBatchIndex
     ) external returns (bool) {
+        require(
+            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
+            "Batch doesn't exists"
+        );
+
+        require(
+            batchesState[batchMerkleRoot].responded == true,
+            "Batch has not been responded"
+        );
+
         bytes memory leaf = abi.encodePacked(
             proofCommitment,
             pubInputCommitment,
             provingSystemAuxDataCommitment,
             proofGeneratorAddr
         );
+
         bytes32 hashedLeaf = keccak256(leaf);
 
         return

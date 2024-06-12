@@ -138,10 +138,13 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
             let verification_data_comm = batch_inclusion_data.verification_data_commitment;
 
-            let mut merkle_proof = Vec::new();
-            for node in batch_inclusion_data.batch_inclusion_proof.merkle_path {
-                merkle_proof.extend_from_slice(&node);
-            }
+            // All the elements from the merkle proof have to be concatenated
+            let merkle_proof: Vec<u8> = batch_inclusion_data
+                .batch_inclusion_proof
+                .merkle_path
+                .into_iter()
+                .flatten()
+                .collect();
 
             let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
 
@@ -156,7 +159,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 private_key_store_path,
                 "",
             )
-            .await;
+            .await?;
 
             let call = service_manager.verify_batch_inclusion(
                 verification_data_comm.proof_commitment,
