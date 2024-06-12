@@ -23,7 +23,7 @@ defmodule Batches do
   def changeset(new_batch, updates) do
     new_batch
     |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submition_block_number, :submition_transaction_hash, :submition_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer])
-    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submition_block_number, :submition_transaction_hash, :submition_timestamp])
+    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submition_block_number, :submition_transaction_hash])
     |> validate_format(:merkle_root, ~r/0x[a-fA-F0-9]{64}/)
     |> unique_constraint(:merkle_root)
     |> validate_number(:amount_of_proofs, greater_than: 0)
@@ -82,8 +82,10 @@ defmodule Batches do
   end
 
   def get_unverified_batches() do
+    threshold_datetime = DateTime.utc_now() |> DateTime.add(-86400, :second) # 24 hours ago
+
     query = from(b in Batches,
-    where: b.is_verified == false, # TODO add and b.response_block_number > 24 hs
+    where: b.is_verified == false and b.submition_timestamp > ^threshold_datetime,
     select: b)
 
     Explorer.Repo.all(query)
@@ -112,15 +114,25 @@ defmodule Batches do
     case Explorer.Repo.get(Batches, merkle_root) do
       nil ->
         "New Batch, inserting to DB:" |> IO.puts()
-        Explorer.Repo.insert(changeset)
+        insert_response = Explorer.Repo.insert(changeset)
+        case insert_response do
+          {:ok, _} -> "Batch inserted successfully" |> IO.puts()
+          {:error, changeset} -> "Batch insert failed #{changeset}" |> IO.puts()
+        end
       existing_batch ->
-        if existing_batch.is_verified != changeset.changes.is_verified                                #changed status
-          or existing_batch.response_block_number != changeset.changes.response_block_number          #reorg
-          or existing_batch.response_transaction_hash != changeset.changes.response_transaction_hash  #reorg
-        do
-          "Batch values have changed, updating in DB" |> IO.puts()
-          updated_changeset = Ecto.Changeset.change(existing_batch, changeset.changes)
-          Explorer.Repo.update(updated_changeset)
+        try do
+          if existing_batch.is_verified != changeset.changes.is_verified
+            or (Map.has_key?(changeset.changes, :block_number) and  existing_batch.response_block_number != changeset.changes.response_block_number)          #reorg
+            or (Map.has_key?(changeset.changes, :response_transaction_hash) and existing_batch.response_transaction_hash != changeset.changes.response_transaction_hash)  #reorg
+          do
+            "Batch values have changed, updating in DB" |> IO.puts()
+            updated_changeset = Ecto.Changeset.change(existing_batch, changeset.changes)
+            Explorer.Repo.update(updated_changeset)
+          end
+        rescue
+          error ->
+            IO.inspect("Error updating batch in DB: #{inspect(error)}")
+            raise error
         end
     end
   end
