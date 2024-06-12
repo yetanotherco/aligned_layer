@@ -97,6 +97,11 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
 
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
         let mut hasher = Keccak256::new();
+        if child_1 < child_2 {
+            hasher.update(child_1);
+            hasher.update(child_2); 
+            return hasher.finalize().into();
+        }
         hasher.update(child_2);
         hasher.update(child_1);
         hasher.finalize().into()
