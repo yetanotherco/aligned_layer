@@ -47,8 +47,6 @@ defmodule Explorer.Periodically do
   defp process_unverified_batches() do
     "verifying previous unverified batches..." |> IO.inspect()
     unverified_batches = Batches.get_unverified_batches()
-    IO.inspect("executed query, unverified_batches:")
-    IO.inspect(unverified_batches)
     unverified_batches
       |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
       |> Enum.reject(&is_nil/1)

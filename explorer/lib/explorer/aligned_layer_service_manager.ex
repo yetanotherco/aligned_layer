@@ -42,42 +42,6 @@ defmodule AlignedLayerServiceManager do
     @aligned_layer_service_manager_address
   end
 
-  # def get_new_batch_events() do
-  #   events =
-  #     AlignedLayerServiceManager.EventFilters.new_batch(nil)
-  #     |> Ethers.get_logs(fromBlock: @first_block)
-
-  #   case events do
-  #     {:ok, []} -> []
-  #     {:ok, list} -> list
-  #     {:error, _} -> raise("Error fetching events")
-  #   end
-  # end
-
-  # def get_new_batch_events(%{merkle_root: merkle_root}) when is_binary(merkle_root) do
-  #   events =
-  #     AlignedLayerServiceManager.EventFilters.new_batch(Utils.string_to_bytes32(merkle_root))
-  #     |> Ethers.get_logs(fromBlock: @first_block)
-
-  #   case events do
-  #     {:error, reason} -> {:empty, reason}
-  #     {_, []} -> {:empty, "No task found"}
-  #     {:ok, event} -> extract_new_batch_event_info(event |> List.first())
-  #   end
-  # end
-
-  # def get_new_batch_events(%{amount: amount}) when is_integer(amount) do
-  #   read_block_qty = max(amount * 10, 2500)
-  #   events =
-  #     AlignedLayerServiceManager.EventFilters.new_batch(nil)
-  #     |> Ethers.get_logs(fromBlock: get_latest_block_number(read_block_qty), toBlock: get_latest_block_number())
-
-  #   case events do
-  #     {:ok, list} -> Utils.get_last_n_items(list, amount)
-  #     {:error, reason} -> raise("Error fetching events: #{Map.get(reason, "message")}")
-  #   end
-  # end
-
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
     "From block" |> IO.inspect()
     fromBlock |> IO.inspect()
@@ -131,17 +95,6 @@ defmodule AlignedLayerServiceManager do
       _ -> raise("Error fetching latest block number")
     end
   end
-
-
-  # def get_batch_verified_events() do
-  #   events =
-  #     AlignedLayerServiceManager.EventFilters.batch_verified(nil) |> Ethers.get_logs(fromBlock: @first_block)
-
-  #   case events do
-  #     {:ok, list} -> {:ok, list}
-  #     {:error, error} -> raise error
-  #   end
-  # end
 
   def is_batch_responded(merkle_root) do
     case AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root))
@@ -227,30 +180,6 @@ defmodule AlignedLayerServiceManager do
        batch_verified: batch_verified
      }}
   end
-
-  # def extract_batch_response( %Ethers.Event{} = new_batch_event) do
-  #   new_batch_event |> extract_new_batch_event_info |> extract_batch_response
-  # end
-
-  # def extract_batch_response( %Batches{} = unresponded_batch) do
-  #   case is_batch_responded(unresponded_batch.merkle_root) do
-  #     true ->
-  #       %BatchDB{
-  #         merkle_root: unresponded_batch.merkle_root,
-  #         data_pointer: unresponded_batch.data_pointer,
-  #         is_verified: true,
-  #         submition_block_number: unresponded_batch.submition_block_number,
-  #         submition_transaction_hash: unresponded_batch.submition_transaction_hash,
-  #         submition_timestamp: unresponded_batch.submition_timestamp,
-  #         # TODO extract the following data:
-  #         # response_block_number: 123,
-  #         # response_transaction_hash: ,
-  #         # response_timestamp: get_block_timestamp(unresponded_batch.response_block_number),
-  #         amount_of_proofs: unresponded_batch.amount_of_proofs,
-  #       }
-  #     false -> nil
-  #   end
-  # end
 
   def get_block_timestamp(block_number) do
     case Ethers.Utils.get_block_timestamp(block_number) do
