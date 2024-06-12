@@ -12,10 +12,6 @@ import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
 
 /**
  * @title Primary entrypoint for procuring services from Aligned.
- * @author Layr Labs, Inc.
- * @notice This contract is used for:
- * -
- * -
  */
 contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     address aggregator;

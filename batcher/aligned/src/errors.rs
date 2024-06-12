@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use crate::hex::FromHexError;
 use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
-// use ethers::utils::ConversionError::FromHexError;
 
 pub enum BatcherClientError {
     MissingParameter(String),
