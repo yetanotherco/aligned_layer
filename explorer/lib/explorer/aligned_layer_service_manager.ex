@@ -42,6 +42,11 @@ defmodule AlignedLayerServiceManager do
     @aligned_layer_service_manager_address
   end
 
+  def get_latest_block_number() do
+    {:ok, num} = Ethers.current_block_number()
+    num
+  end
+
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
     "From block" |> IO.inspect()
     fromBlock |> IO.inspect()
@@ -80,20 +85,6 @@ defmodule AlignedLayerServiceManager do
       taskCreatedBlock: data |> Enum.at(0),
       batchDataPointer: data |> Enum.at(1)
     }
-  end
-
-  def get_latest_block_number() do
-    {:ok, num} = Ethers.current_block_number()
-    num
-  end
-
-  def get_latest_block_number(minus) when is_integer(minus) do
-    {:ok, num} = Ethers.current_block_number()
-    case num - abs(minus) do #this allows passing negative number as param, which makes it easier to code
-      r when r > 0 -> r
-      r when r <= 0 -> 1
-      _ -> raise("Error fetching latest block number")
-    end
   end
 
   def is_batch_responded(merkle_root) do

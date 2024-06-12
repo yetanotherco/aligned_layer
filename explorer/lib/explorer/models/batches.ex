@@ -53,6 +53,42 @@ defmodule Batches do
     Batches.changeset(%Batches{}, Map.from_struct(Batches.cast_to_batches(batch_db)))
   end
 
+  def get_batch(%{merkle_root: merkle_root}) do
+    query = from(b in Batches,
+    where: b.merkle_root == ^merkle_root,
+    select: b)
+
+    Explorer.Repo.one(query)
+  end
+
+  def get_latest_batches(%{amount: amount}) do
+    query = from(b in Batches,
+      order_by: [desc: b.submition_block_number],
+      limit: ^amount,
+      select: b)
+
+    Explorer.Repo.all(query)
+  end
+
+  def get_amount_of_verified_batches() do
+    query = from(b in Batches,
+      where: b.is_verified == true,
+      select: count(b.merkle_root))
+
+    case Explorer.Repo.one(query) do
+      nil -> 0
+      result -> result
+    end
+  end
+
+  def get_unverified_batches() do
+    query = from(b in Batches,
+    where: b.is_verified == false, # TODO add and b.response_block_number > 24 hs
+    select: b)
+
+    Explorer.Repo.all(query)
+  end
+
   def get_amount_of_submitted_proofs() do
     case Explorer.Repo.aggregate(Batches, :sum, :amount_of_proofs) do
       nil -> 0
@@ -71,36 +107,16 @@ defmodule Batches do
     end
   end
 
-  def get_amount_of_verified_batches() do
-    query = from(b in Batches,
-      where: b.is_verified == true,
-      select: count(b.merkle_root))
-
-    case Explorer.Repo.one(query) do
-      nil -> 0
-      result -> result
-    end
-  end
-
-  def get_latest_batches(%{amount: amount}) do
-    query = from(b in Batches,
-      order_by: [desc: b.submition_block_number],
-      limit: ^amount,
-      select: b)
-
-    Explorer.Repo.all(query)
-  end
-
   def insert_or_update(changeset) do
     merkle_root = changeset.changes.merkle_root
     case Explorer.Repo.get(Batches, merkle_root) do
       nil ->
         "New Batch, inserting to DB:" |> IO.puts()
-        Explorer.Repo.insert(changeset) #this is missing all the juicy info
+        Explorer.Repo.insert(changeset)
       existing_batch ->
         if existing_batch.is_verified != changeset.changes.is_verified                                #changed status
-          # or existing_batch.response_block_number != changeset.changes.response_block_number          #reorg
-          # or existing_batch.response_transaction_hash != changeset.changes.response_transaction_hash  #reorg
+          or existing_batch.response_block_number != changeset.changes.response_block_number          #reorg
+          or existing_batch.response_transaction_hash != changeset.changes.response_transaction_hash  #reorg
         do
           "Batch values have changed, updating in DB" |> IO.puts()
           updated_changeset = Ecto.Changeset.change(existing_batch, changeset.changes)
@@ -109,19 +125,4 @@ defmodule Batches do
     end
   end
 
-  def get_unverified_batches() do
-    query = from(b in Batches,
-      where: b.is_verified == false, # TODO add and b.response_block_number > 24 hs
-      select: b)
-
-    Explorer.Repo.all(query)
-  end
-
-  def get_batch(%{merkle_root: merkle_root}) do
-    query = from(b in Batches,
-      where: b.merkle_root == ^merkle_root,
-      select: b)
-
-    Explorer.Repo.one(query)
-  end
 end
