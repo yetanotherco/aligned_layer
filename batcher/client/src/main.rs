@@ -94,7 +94,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
     let waiting_handle = tokio::spawn(async move {
         loop {
             tokio::select! {
-                _ = sleep(Duration::from_secs(5)) => {
+                _ = sleep(Duration::from_secs(2)) => {
                     info!("Waiting for batch signatures verification in Ethereum...");
                 }
                 received = rx.recv() => {
