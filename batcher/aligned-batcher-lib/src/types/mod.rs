@@ -1,8 +1,10 @@
 use std::fmt;
 
-use alloy_primitives::Address;
 use anyhow::anyhow;
-use lambdaworks_crypto::merkle_tree::{merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend};
+use ethers::types::Address;
+use lambdaworks_crypto::merkle_tree::{
+    merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
+};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 

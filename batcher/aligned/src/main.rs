@@ -4,9 +4,9 @@ mod eth;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
+use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
-use alloy_primitives::{hex, Address};
 use env_logger::Env;
 use ethers::prelude::*;
 use futures_util::{
@@ -17,19 +17,20 @@ use futures_util::{
 use log::{error, info};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
+use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use aligned_batcher_lib::types::{
     parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData,
 };
 use clap::Subcommand;
+use ethers::utils::hex;
 
 use crate::errors::BatcherClientError;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyInclusion;
 
 use clap::Parser;
-use tungstenite::Message;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -272,8 +273,7 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
         }
     }
 
-    let proof_generator_addr: Address =
-        Address::parse_checksummed(&args.proof_generator_addr, None).unwrap();
+    let proof_generator_addr = Address::from_str(&args.proof_generator_addr).unwrap();
 
     Ok(VerificationData {
         proving_system,
