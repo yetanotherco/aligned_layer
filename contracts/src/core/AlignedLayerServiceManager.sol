@@ -151,31 +151,14 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
             provingSystemAuxDataCommitment,
             proofGeneratorAddr
         );
-
         bytes32 hashedLeaf = keccak256(leaf);
 
-        // bool response = MerkleProof.verify(
-        //     merkleProof,
-        //     batchMerkleRoot,
-        //     hashedLeaf
-        // );
-
-        bool response = Merkle.verifyInclusionKeccak(
-            merkleProof,
-            batchMerkleRoot,
-            hashedLeaf,
-            verificationDataBatchIndex
-        );
-
-        return response;
-
-        // if (
-        //     batchesState[batchMerkleRoot].taskCreatedBlock != 0 &&
-        //     batchesState[batchMerkleRoot].responded == true
-        // ) {
-        //     return true;
-        // } else {
-        //     return false;
-        // }
+        return
+            Merkle.verifyInclusionKeccak(
+                merkleProof,
+                batchMerkleRoot,
+                hashedLeaf,
+                verificationDataBatchIndex
+            );
     }
 }
