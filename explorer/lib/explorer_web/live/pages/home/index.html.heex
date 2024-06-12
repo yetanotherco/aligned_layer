@@ -66,13 +66,6 @@
       0
     <% end %>
   </.card>
-  <.card title="Submitted Proofs">
-    <%= if @submitted_proofs != :empty do %>
-      <%= @submitted_proofs %>
-    <% else %>
-      0
-    <% end %>
-  </.card>
   <%= if @latest_batches != :empty and @latest_batches != [] do %>
     <.card
       class="relative sm:col-span-2 w-full flex flex-col space-y-1"
