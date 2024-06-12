@@ -146,7 +146,7 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		}
 
 		// Use the same nonce as the original transaction
-		txOpts.Nonce = txNonce
+		txOpts.Nonce = new(big.Int).Sub(txNonce, big.NewInt(1))
 
 		w.logger.Info("Tx nonce after waiting for receipt", "nonce", txOpts.Nonce.String())
 
