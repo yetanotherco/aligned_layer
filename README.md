@@ -24,14 +24,30 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 ## How to use the testnet
 
-### Requirements
-
-- [Rust](https://www.rust-lang.org/tools/install)
-
-To install the batcher client to send proofs in the testnet, run:
+Download and install Aligned to send proofs in the testnet: 
 
 ```bash
-make install_aligned
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
+```
+
+If you are experiencing issues, upgrade by running the same command.
+
+### Try it!
+
+Download an example SP1 proof file with it's ELF file using:
+
+```bash
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
+```
+
+Send the proof with:
+
+```bash
+aligned \
+--proving_system SP1 \
+--proof ~/.aligned/test_files/sp1_fibonacci.proof \
+--vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
+--conn wss://batcher.alignedlayer.com
 ```
 
 ### Run
@@ -50,8 +66,6 @@ aligned \
 ```
 
 **Example**
-
-
 
 ```bash
 aligned \
@@ -389,7 +403,7 @@ To run the batcher, you will need to set environment variables in a `.env` file 
 The necessary environment variables are:
 
 | Variable Name         | Description                                                                                                                    |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
 | AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
 | AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
@@ -436,7 +450,7 @@ make batcher_send_sp1_task
 #### Send one Groth 16 proof
 
 ```bash
-make batcher_send_groth16_task
+make batcher_send_groth16_bn254_task
 ```
 
 #### Send infinite Groth 16 proofs
@@ -623,7 +637,7 @@ To deploy the contracts to Testnet/Mainnet, you will need to set environment var
 The necessary environment variables are:
 
 | Variable Name                   | Description                                                           |
-|---------------------------------|-----------------------------------------------------------------------|
+| ------------------------------- | --------------------------------------------------------------------- |
 | `RPC_URL`                       | The RPC URL of the network you want to deploy to.                     |
 | `PRIVATE_KEY`                   | The private key of the account you want to deploy the contracts with. |
 | `EXISTING_DEPLOYMENT_INFO_PATH` | The path to the file containing the deployment info about EigenLayer. |
@@ -729,11 +743,11 @@ You can access to a tasks information by visiting `localhost:4000/batches/:merkl
 
 Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
 
-| Variable | Description |
-| -------- | ----------- |
-| `RPC_URL` | The RPC URL of the network you want to connect to. |
+| Variable      | Description                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| `RPC_URL`     | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
-| `PHX_HOST` | The host URL where the Phoenix server will be running. |
+| `PHX_HOST`    | The host URL where the Phoenix server will be running.                                          |
 
 ```make run_explorer```
 
