@@ -9,6 +9,7 @@
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
+  - [Register as an Aligned operator in testnet](#register-as-an-aligned-operator-in-testnet)
   - [Local Devnet Setup](#local-devnet-setup)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
@@ -116,6 +117,87 @@ aligned \
 --public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
 --vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
+```
+
+## Register as an Aligned operator in testnet
+
+### Requirements
+
+> [!NOTE]
+> To be an Aligned operator you should be whitelisted.
+
+Before registering as an operator for Aligned, operators should [register as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
+
+You first need to generate encrypted ECDSA and BLS keys. To do this, ensure you have [Go](https://go.dev/doc/install) and then install the [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git).
+
+To create an ECDSA keystore, run:
+
+```bash
+eigenlayer operator keys import --key-type ecdsa <keystore-name> <private-key>
+```
+
+To create a BLS keystore, run:
+
+```bash
+eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
+```
+
+You will need at least **1 ETH** in the "<operator_address>" specified in the config below. This ETH will be used to cover the gas cost for operator registration in the subsequent steps. Follow [this](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts) instructions to obtain Testnet ETH.
+
+#### Config
+
+```yaml
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: "production"
+aligned_layer_deployment_config_file_path: "./contracts/script/output/holesky/alignedlayer_deployment_output.json"
+eigen_layer_deployment_config_file_path: "./contracts/script/output/holesky/eigenlayer_deployment_output.json"
+eth_rpc_url: "https://ethereum-holesky-rpc.publicnode.com"
+eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
+eigen_metrics_ip_port_address: "localhost:9090"
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: "<ecdsa_key_store_location_path>"
+  private_key_store_password: ""
+
+## BLS Configurations
+bls:
+  private_key_store_path: "<bls_key_store_location_path>"
+  private_key_store_password: ""
+
+## Operator Configurations
+operator:
+  aggregator_rpc_server_ip_port_address: aggregator.alignedlayer.com:8090
+  address: "<operator_address>"
+  earnings_receiver_address: "<earnings_receiver_address>" #Can be the same as the operator.
+  delegation_approver_address: "0x0000000000000000000000000000000000000000"
+  staker_opt_out_window_blocks: 0
+  metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+  enable_metrics: true
+  metrics_ip_port_address: localhost:9092
+  max_batch_size: 268435456 # 256 MiB
+
+# Operator variables needed for registration in EigenLayer
+el_delegation_manager_address: "0xA44151489861Fe9e3055d95adC98FbD462B948e7"
+private_key_store_path: "<ecdsa_key_store_location_path>"
+bls_private_key_store_path: "<bls_key_store_location_path>"
+signer_type: local_keystore
+chain_id: 17000 #Holesky chain id
+```
+
+### Register as an operator with EigenLayer
+
+To register the operator in EigenLayer, run:
+
+```bash
+eigenlayer operator register <path_to_config_file>
+```
+
+To check the status of registration of the operator in EigenLayer, run:
+
+```bash
+eigenlayer operator status <path_to_config_file>
 ```
 
 ## Local Devnet Setup
