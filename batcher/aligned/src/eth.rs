@@ -1,8 +1,8 @@
 use crate::eth::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::path::PathBuf;
 
 abigen!(
     AlignedLayerServiceManagerContract,

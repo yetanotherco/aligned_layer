@@ -127,7 +127,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
         VerifyInclusion(verify_inclusion_args) => {
             // FIXME(marian): This is address for the Aligned service manager in the Anvil devnet.
-            // We can add a input parameter flag in the CLI to specify the ethereum network and 
+            // We can add a input parameter flag in the CLI to specify the ethereum network and
             // based on that this value is set accordingly.
             let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
 
@@ -137,7 +137,11 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let batch_inclusion_data: BatchInclusionData = serde_json::from_reader(reader)?;
 
             let verification_data_comm = batch_inclusion_data.verification_data_commitment;
-            let merkle_proof = batch_inclusion_data.batch_inclusion_proof.merkle_path;
+
+            let mut merkle_proof = Vec::new();
+            for node in batch_inclusion_data.batch_inclusion_proof.merkle_path {
+                merkle_proof.extend_from_slice(&node);
+            }
 
             let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
 
@@ -160,7 +164,8 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 verification_data_comm.proving_system_aux_data_commitment,
                 verification_data_comm.proof_generator_addr,
                 batch_inclusion_data.batch_merkle_root,
-                merkle_proof,
+                merkle_proof.into(),
+                batch_inclusion_data.verification_data_batch_index.into(),
             );
 
             match call.call().await {
@@ -204,8 +209,12 @@ async fn receive(
                     info!("Proof verified in aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
                     let batch_merkle_root = hex::encode(batch_inclusion_data.batch_merkle_root);
-                    let batch_inclusion_data_file_name =
-                        batch_merkle_root + "_" + &num_responses_lock.to_string() + ".json";
+                    let batch_inclusion_data_file_name = batch_merkle_root
+                        + "_"
+                        + &batch_inclusion_data
+                            .verification_data_batch_index
+                            .to_string()
+                        + ".json";
 
                     let mut file = File::create(&batch_inclusion_data_file_name).unwrap();
                     file.write_all(data.as_slice()).unwrap();

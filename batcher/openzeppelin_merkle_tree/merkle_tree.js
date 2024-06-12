@@ -9,4 +9,5 @@ console.log("KECCAK256 OF 2:", child_2)
 
 const tree = SimpleMerkleTree.of([child_1, child_2]);
 
-console.log('MERKLE ROOT:', tree.root);
+console.log('MERKLE TREE:', tree);
+

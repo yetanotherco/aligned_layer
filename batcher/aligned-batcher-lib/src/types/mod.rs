@@ -97,13 +97,8 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
 
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
         let mut hasher = Keccak256::new();
-        if child_1 < child_2 {
-            hasher.update(child_1);
-            hasher.update(child_2); 
-            return hasher.finalize().into();
-        }
-        hasher.update(child_2);
         hasher.update(child_1);
+        hasher.update(child_2);
         hasher.finalize().into()
     }
 }
@@ -115,6 +110,7 @@ pub struct BatchInclusionData {
     pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
+    pub verification_data_batch_index: usize,
 }
 
 impl BatchInclusionData {
@@ -131,6 +127,7 @@ impl BatchInclusionData {
             verification_data_commitment: verification_data_commitment.clone(),
             batch_merkle_root: batch_merkle_tree.root.clone(),
             batch_inclusion_proof,
+            verification_data_batch_index,
         }
     }
 }

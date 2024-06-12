@@ -9,6 +9,8 @@ import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 
+import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
+
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
@@ -140,15 +142,40 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         bytes32 provingSystemAuxDataCommitment,
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
-        bytes32[] memory merkleProof
+        bytes memory merkleProof,
+        uint verificationDataBatchIndex
     ) external returns (bool) {
-        if (
-            batchesState[batchMerkleRoot].taskCreatedBlock != 0 &&
-            batchesState[batchMerkleRoot].responded == true
-        ) {
-            return true;
-        } else {
-            return false;
-        }
+        bytes memory leaf = abi.encodePacked(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr
+        );
+
+        bytes32 hashedLeaf = keccak256(leaf);
+
+        // bool response = MerkleProof.verify(
+        //     merkleProof,
+        //     batchMerkleRoot,
+        //     hashedLeaf
+        // );
+
+        bool response = Merkle.verifyInclusionKeccak(
+            merkleProof,
+            batchMerkleRoot,
+            hashedLeaf,
+            verificationDataBatchIndex
+        );
+
+        return response;
+
+        // if (
+        //     batchesState[batchMerkleRoot].taskCreatedBlock != 0 &&
+        //     batchesState[batchMerkleRoot].responded == true
+        // ) {
+        //     return true;
+        // } else {
+        //     return false;
+        // }
     }
 }
