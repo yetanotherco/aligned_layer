@@ -38,6 +38,14 @@ anvil_deploy_aligned_contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
 
+anvil_upgrade_aligned_contracts:
+	@echo "Upgrading Aligned Contracts..."
+	. contracts/scripts/anvil/upgrade_aligned_contracts.sh
+
+anvil_upgrade_registry_coordinator:
+	@echo "Upgrading Registry Coordinator Contracts..."
+	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
+
 anvil_start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
@@ -95,6 +103,16 @@ operator_mint_mock_tokens:
 	@echo "Minting tokens"
 	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
 
+operator_whitelist_devnet:
+	@echo "Whitelisting operator"
+	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
+	@echo "Operator address: $(OPERATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+
+operator_whitelist:
+	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
+	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
@@ -117,7 +135,7 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_register_with_aligned_layer
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
 __BATCHER__:
 
@@ -426,6 +444,14 @@ __DEPLOYMENT__:
 deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
+
+upgrade_aligned_contracts: ## Upgrade Aligned Contracts
+	@echo "Upgrading Aligned Contracts..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+
+upgrade_registry_coordinator: ## Upgrade Registry Coordinator
+	@echo "Upgrading Registry Coordinator..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_registry_coordinator.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build

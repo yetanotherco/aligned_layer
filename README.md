@@ -622,6 +622,18 @@ When changing Aligned contracts, the anvil state needs to be updated with:
 make anvil_deploy_aligned_contracts
 ```
 
+To test the upgrade script for ServiceManager in the local devnet, run:
+
+```bash
+make anvil_upgrade_aligned_contracts
+```
+
+To test the upgrade script for RegistryCoordintator in the local devnet, run:
+
+```bash
+make anvil_upgrade_registry_coordinator
+```
+
 #### Aligned Contracts: Holesky/Mainnet
 
 To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same directory as the deployment script (`contracts/scripts/`).
@@ -668,6 +680,20 @@ You need to complete the `DEPLOY_CONFIG_PATH` file with the following informatio
 ```
 
 You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
+
+To upgrade the Service Manager Contract in Testnet/Mainnet, run:
+
+```bash
+make upgrade_aligned_contracts
+```
+
+To upgrade the Registry Coordinator in Testnet/Mainnet, run:
+
+```bash
+make upgrade_registry_coordinator
+```
+
+Make sure to set environment variables in a `.env` file in the same directory as the upgrade script (`contracts/scripts/`).
 
 ### Bindings
 
