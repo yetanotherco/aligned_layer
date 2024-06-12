@@ -12,36 +12,16 @@ defmodule ExplorerWeb.Batch.Index do
       }
     end
 
-    newBatchInfo =
-      case AlignedLayerServiceManager.get_new_batch_events(%{merkle_root: merkle_root}) do
-        {:error, reason} ->
-          Logger.error("batch detail error: ", reason)
-          {:error, reason}
-
-        {:empty, reason} ->
-          Logger.info("batch returned empty: ", reason)
-          :empty
-
-        {_, []} ->
-          :empty
-
-        {:ok, event} ->
-          event
-      end
-
-    batchWasResponded = AlignedLayerServiceManager.is_batch_responded(merkle_root)
-
-
-    amount_of_proofs = AlignedLayerServiceManager.get_amount_of_proofs(newBatchInfo)
+    current_batch = Batches.get_batch(%{merkle_root: merkle_root})
+    "current_batch_frontend" |> IO.inspect()
+    current_batch |> IO.inspect() #it has empties, i think im inserting wrong to the DB
 
     {
       :ok,
       assign(socket,
         merkle_root: merkle_root,
-        newBatchInfo: newBatchInfo,
-        batchWasResponded: batchWasResponded,
-        page_title: Utils.shorten_block_hash(merkle_root),
-        amount_of_proofs: amount_of_proofs
+        current_batch: current_batch,
+        page_title: Utils.shorten_hash(merkle_root)
       )
     }
   rescue

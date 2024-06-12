@@ -24,10 +24,8 @@ defmodule ExplorerWeb.Home.Index do
 
     operators_registered = get_operators_registered()
 
-    latest_batches =
-      AlignedLayerServiceManager.get_new_batch_events(%{amount: 5})
-      |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
-      |> Enum.reverse()
+    latest_batches = Batches.get_latest_batches(%{amount: 5}) |> IO.inspect()
+      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
     submitted_proofs = Batches.get_amount_of_submitted_proofs()
     verified_proofs = Batches.get_amount_of_verified_proofs()
