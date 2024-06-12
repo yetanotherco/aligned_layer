@@ -181,6 +181,13 @@ To start the Aligned operator, run:
 
 ### Unregister the operator from Aligned
 
+Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
+
+```bash
+make install_foundry
+foundryup
+```
+
 To unregister the Aligned operator, run:
 
 ```bash
