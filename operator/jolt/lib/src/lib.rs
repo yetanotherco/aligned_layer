@@ -1,29 +1,33 @@
 use jolt_core::{
-    jolt::vm::{Jolt, JoltPreprocessing, rv32i_vm::RV32IJoltVM},
+    jolt::vm::{Jolt, JoltPreprocessing, rv32i_vm::{RV32IHyraxProof, RV32IJoltVM}},
     poly::commitment::hyrax::HyraxScheme
 };
-use jolt_sdk::host_utils::Proof;
 use tracer::decode;
 use ark_serialize::CanonicalDeserialize;
 use ark_bn254::{Fr, G1Projective};
-
-// MaxProofSize 4MB
-pub const MAX_PROOF_SIZE: usize = 4 * 1024 * 1024;
-
-// MaxPublicInputSize 4KB
-pub const MAX_ELF_SIZE: usize = 2 * 1024 * 1024;
+use std::slice;
 
 #[no_mangle]
 pub extern "C" fn verify_jolt_proof_ffi(
-    proof_bytes: &[u8; MAX_PROOF_SIZE],
+    proof_buffer: *const u8,
     proof_len: u32,
-    elf_bytes: &[u8; MAX_ELF_SIZE],
+    elf_buffer: *const u8,
     elf_len: u32,
 ) -> bool {
-    if let Ok(jolt_proof) = Proof::deserialize_compressed(&proof_bytes[.. proof_len as usize]) {
+    let proof_bytes = unsafe {
+        assert!(!proof_buffer.is_null());
+        slice::from_raw_parts(proof_buffer, proof_len as usize)
+    };
+
+    let elf_bytes = unsafe {
+        assert!(!elf_buffer.is_null());
+        slice::from_raw_parts(elf_buffer, elf_len as usize)
+    };
+
+    if let Ok(jolt_proof) = RV32IHyraxProof::deserialize_compressed(&*proof_bytes) {
         // Add public inputs...
         //TODO: check if we need to load function and function args... These should be serialized in the VK
-        let (bytecode, memory_init) = decode(&elf_bytes[..elf_len as usize]);
+        let (bytecode, memory_init) = decode(&elf_bytes);
 
         // Note: this VM sizes are based on the hardcoded values in the Jolt codebase: _____
         let preprocessing: JoltPreprocessing<Fr, HyraxScheme<G1Projective>> =

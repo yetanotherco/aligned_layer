@@ -1,4 +1,3 @@
-use jolt_sdk::host_utils::Proof;
 pub fn main() {
     let (prove_fib, verify_fib) = guest::build_fib();
     let program_summary = guest::analyze_fib(10);
@@ -7,7 +6,6 @@ pub fn main() {
         .expect("should write");
 
     let (output, proof) = prove_fib(50);
-    Proof::save_to_file(&proof, "./jolt.proof").unwrap();
     let is_valid = verify_fib(proof);
 
     println!("output: {}", output);

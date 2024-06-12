@@ -13,7 +13,7 @@ use jolt_core::{
     jolt::vm::{Jolt, JoltPreprocessing, rv32i_vm::RV32IJoltVM},
     poly::commitment::hyrax::HyraxScheme
 };
-use jolt_sdk::host_utils::Proof as JoltProof;
+use jolt_sdk::host_utils::RV32IHyraxProof;
 use tracer::decode;
 use ark_serialize::CanonicalDeserialize;
 use ark_bn254::{Fr, G1Projective};
@@ -125,7 +125,7 @@ fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
 
 fn verify_jolt_proof(proof: &[u8], elf: &[u8]) -> bool {
     debug!("Verifying Jolt proof");
-    if let Ok(jolt_proof) = JoltProof::deserialize_compressed(proof) {
+    if let Ok(jolt_proof) = RV32IHyraxProof::deserialize_compressed(proof) {
             let (bytecode, memory_init) = decode(&elf);
 
             let preprocessing: JoltPreprocessing<Fr, HyraxScheme<G1Projective>> =

@@ -12,5 +12,6 @@ guest = []
 
 [dependencies]
 sha3 = { version = "0.10.8", default-features = false }
-jolt = { package = "jolt-sdk", path = "../../../jolt-sdk" }
+# TODO: Git path
+jolt = { package = "jolt-sdk", git = "https://github.com/a16z/jolt", features = ["guest-std"] }
 
