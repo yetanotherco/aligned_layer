@@ -7,6 +7,9 @@ cd "$parent_path"
 
 cd ../
 
+# --private-key is not working TODO(juli)
+export PRIVATE_KEY=$PRIVATE_KEY
+
 # Save the output to a variable to later extract the address of the new deployed contract
 forge_output=$(forge script script/upgrade/AlignedLayerUpgrader.s.sol \
     $EXISTING_DEPLOYMENT_INFO_PATH \
