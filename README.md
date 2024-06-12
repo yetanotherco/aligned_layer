@@ -230,6 +230,15 @@ To upgrade the operator, run:
 make build_operator
 ```
 
+### Start the operator
+
+To start the Aligned operator, run:
+
+```bash
+./operator/build/aligned-operator start --config <path_to_config_file>
+```
+
+
 ## Local Devnet Setup
 
 ### Dependencies
