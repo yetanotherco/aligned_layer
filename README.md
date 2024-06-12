@@ -628,8 +628,6 @@ To test the upgrade script in the local devnet, run:
 make anvil_upgrade_aligned_contracts
 ```
 
-Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key (It should start with 0x). Also, make sure the **EXISTING_DEPLOYMENT_INFO_PATH** and the **DEPLOY_CONFIG_PATH** env variables are set to the Eigen Layer output and the Aligned Layer output respectively.
-
 #### Aligned Contracts: Holesky/Mainnet
 
 To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same directory as the deployment script (`contracts/scripts/`).
@@ -683,7 +681,7 @@ To upgrade the contracts in Testnet/Mainnet, run:
 make upgrade_aligned_contracts
 ```
 
-Make sure that the **PRIVATE_KEY** env variable is set to the Aligned Layer upgrader's private key (It should start with 0x). Also, make sure the **EXISTING_DEPLOYMENT_INFO_PATH** and the **DEPLOY_CONFIG_PATH** env variables are set to the Eigen Layer output and the Aligned Layer output respectively.
+Make sure to set environment variables in a `.env` file in the same directory as the upgrade script (`contracts/scripts/`).
 
 ### Bindings
 
