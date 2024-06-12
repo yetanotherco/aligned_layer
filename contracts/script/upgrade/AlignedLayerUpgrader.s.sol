@@ -23,8 +23,6 @@ contract AlignedLayerUpgrader is Script {
             alignedLayerDeploymentFilePath
         );
 
-        uint256 alignedLayerUpgraderPrivateKey = vm.envUint("PRIVATE_KEY");
-
         ProxyAdmin alignedLayerProxyAdmin = ProxyAdmin(
             stdJson.readAddress(
                 aligned_deployment_file,
@@ -53,7 +51,7 @@ contract AlignedLayerUpgrader is Script {
             )
         );
 
-        vm.startBroadcast(alignedLayerUpgraderPrivateKey);
+        vm.startBroadcast();
 
         AlignedLayerServiceManager alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
                 avsDirectory,
@@ -71,7 +69,7 @@ contract AlignedLayerUpgrader is Script {
                 )
             );
 
-        vm.startBroadcast(alignedLayerUpgraderPrivateKey);
+        vm.startBroadcast();
 
         alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(
