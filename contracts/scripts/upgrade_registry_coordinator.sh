@@ -8,7 +8,7 @@ cd "$parent_path"
 cd ../
 
 # Save the output to a variable to later extract the address of the new deployed contract
-forge_output=$(forge script script/upgrade/AlignedLayerUpgrader.s.sol \
+forge_output=$(forge script script/upgrade/RegistryCoordinatorUpgrader.s.sol \
     $EXISTING_DEPLOYMENT_INFO_PATH \
     $OUTPUT_PATH \
     --rpc-url $RPC_URL \
@@ -19,10 +19,10 @@ forge_output=$(forge script script/upgrade/AlignedLayerUpgrader.s.sol \
 echo "$forge_output"
 
 # Extract the alignedLayerServiceManagerImplementation value from the output
-new_aligned_layer_service_manager_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
+new_registry_coordinator_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 
 # Use the extracted value to replace the alignedLayerServiceManagerImplementation value in alignedlayer_deployment_output.json and save it to a temporary file
-jq --arg new_aligned_layer_service_manager_implementation "$new_aligned_layer_service_manager_implementation" '.addresses.alignedLayerServiceManagerImplementation = $new_aligned_layer_service_manager_implementation' "script/output/holesky/alignedlayer_deployment_output.json" > "script/output/holesky/alignedlayer_deployment_output.temp.json"
+jq --arg new_registry_coordinator_implementation "$new_registry_coordinator_implementation" '.addresses.registryCoordinatorImplementation = $new_registry_coordinator_implementation' "script/output/holesky/alignedlayer_deployment_output.json" > "script/output/holesky/alignedlayer_deployment_output.temp.json"
 
 # Replace the original file with the temporary file
 mv "script/output/holesky/alignedlayer_deployment_output.temp.json" "script/output/holesky/alignedlayer_deployment_output.json"
