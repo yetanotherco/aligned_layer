@@ -1,8 +1,8 @@
 defmodule ExplorerWeb.Utils do
-  def shorten_block_hash(block_hash) do
-    case String.length(block_hash) do
-      n when n < 6 -> block_hash
-      _ -> "#{String.slice(block_hash, 0, 6)}...#{String.slice(block_hash, -4, 4)}"
+  def shorten_hash(hash) do
+    case String.length(hash) do
+      n when n < 6 -> hash
+      _ -> "#{String.slice(hash, 0, 6)}...#{String.slice(hash, -4, 4)}"
     end
   end
 
@@ -55,7 +55,7 @@ defmodule Utils do
     300
   end
 
-  def fetch_batch_data_pointer(batch_data_pointer) do
+  def fetch_batch_data_pointer(batch_data_pointer) do # TODO fix Bottleneck
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         case Jason.decode(body) do

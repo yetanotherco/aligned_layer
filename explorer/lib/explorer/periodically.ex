@@ -15,7 +15,7 @@ defmodule Explorer.Periodically do
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     try do
       "inserting batches..." |> IO.inspect()
-      read_from_block = max(0, latest_block_number - 5) # read last 3600 blocks, for redundancy
+      read_from_block = max(0, latest_block_number - 12) # read last n (3600) blocks, for redundancy
       AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: read_from_block, toBlock: latest_block_number})
       |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
       |> Enum.map(&Utils.extract_amount_of_proofs/1)
