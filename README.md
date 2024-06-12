@@ -126,7 +126,7 @@ aligned \
 > [!NOTE]
 > You must be whitelisted to become an Aligned operator.
 
-This guide assumes you are [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
+This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
 
 #### Install the Operator Binary
 
@@ -144,13 +144,18 @@ To update the operator, run:
 make build_operator
 ```
 
-#### Config
+#### Configuration
 
-Replace the `"<ecdsa_key_store_location_path>"`, `"<bls_key_store_location_path>"`, `"<operator_address>"` and ` "<earnings_receiver_address>"` in `./config-files/config-operator.yaml`.
+Update the following placeholders in `./config-files/config-operator.yaml`:
+
+- `"<ecdsa_key_store_location_path>"`
+- `"<bls_key_store_location_path>"`
+- `"<operator_address>"`
+- `"<earnings_receiver_address>"`
 
 ### Register as an operator with Aligned
 
-To register the operator in Aligned, run:
+To register the operator with Aligned, run:
 
 ```bash
 ./operator/build/aligned-operator register --config ./config-files/config-operator.yaml
@@ -160,7 +165,7 @@ To register the operator in Aligned, run:
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
-To deposit into strategy, run:
+To deposit into the strategy, run:
 
 ```bash
 ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000
