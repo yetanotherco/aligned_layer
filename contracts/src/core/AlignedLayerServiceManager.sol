@@ -8,10 +8,7 @@ import {ServiceManagerBase, IAVSDirectory} from "eigenlayer-middleware/ServiceMa
 import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
-
 import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
-
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title Primary entrypoint for procuring services from Aligned.
