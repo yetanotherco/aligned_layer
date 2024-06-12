@@ -121,7 +121,7 @@ async fn receive(
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
                     info!("Batcher response received: {}", batch_inclusion_data);
-                    info!("Proof verified in aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+                    info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
                 }
                 Err(e) => {
                     error!("Error while deserializing batcher response: {}", e);
