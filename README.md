@@ -85,7 +85,7 @@ aligned \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
---conn wss://batcher.alignedlayer.com \
+--conn batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr]
 ```
 
@@ -484,7 +484,6 @@ aligned \
 --vm_program <vm_program_file> \
 --proof_generator_addr [proof_generator_addr]
 ```
-
 ### Task Sender
 
 #### Config
@@ -509,7 +508,7 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
-### Send PLONK BLS12_381 proof
+#### Send PLONK BLS12_381 proof
 
 To send a single PLONK BLS12_381 proof, run:
 
@@ -803,7 +802,6 @@ To run the go tests
 ```bash
 make test
 ```
-
 ## Verify Proofs
 
 ### SP1
@@ -847,6 +845,52 @@ cargo run --release -- \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr]
 ```
+
+### Gnark Plonk
+
+### Dependencies
+This guide assumes that:
+- Gnark library is installed. If not, install it using the following command inside your Go module:
+```bash
+go get github.com/consensys/gnark@v0.10.0
+```
+- gnark project to generate the proofs,  instructions[ here](https://docs.gnark.consensys.io/category/how-to)
+
+- aligned layer repository cloned:
+
+ ```bash
+     git clone https://github.com/yetanotherco/aligned_layer.git
+```
+### How to generate a proof
+
+Open a terminal and navigate to the gnark project directory. Then, run the following command to generate the proof:
+
+```bash
+go run circuit.go
+```
+
+
+### How to get the proof verified by AlignedLayer
+
+After generating the proof, you will have to have three different files:
+ - proof file
+ - verification key file
+ - public input file
+
+For a detailed guide on how to generate those files, refer to our [detailed guide](docs/gnark_example.md). 
+
+ Then, you can send the proof to the AlignedLayer network by running the following command
+ from `batcher/client` folder inside the AlignedLayer repository directory:
+
+ ```bash
+ cargo run --release -- \
+ --proving_system GnarkPlonkBn254 \
+ --proof <proof_path> \
+ --public_input <public_input_path> \
+ --vk <verification_key_path> \
+ ```
+
+
 
 ## FAQ
 
