@@ -12,14 +12,28 @@ if [[ "$#" -ne 2 ]]; then
   exit 1
 fi;
 
-# Get mock token address from deployment output using jq
-mock_token_address=$(cat "contracts/script/output/devnet/strategy_deployment_output.json" | jq -r '.erc20Mock')
+mock_strategy_address=$(cat "contracts/script/output/devnet/eigenlayer_deployment_output.json" | jq -r '.addresses.strategies.MOCK')
+mock_token_address=$(cast call "$mock_strategy_address" "underlyingToken()")
+
 operator_address=$(cat "$1" | yq -r '.operator.address')
 
 if [[ "$mock_token_address" -eq "" ]]; then
   echo "Mock token address is empty, please deploy the contracts first"
   exit 1
 fi;
+
+
+# Remove 0x prefix from mock token address
+mock_token_address=$(echo "$mock_token_address" | sed 's/^0x//')
+
+stripped=$(echo "$mock_token_address" | sed 's/^0*//')
+
+# Add back a single leading zero if the original string had any leading zeros
+if [[ "$mock_token_address" =~ ^0+ ]]; then
+    mock_token_address="0$stripped"
+else
+    mock_token_address="$stripped"
+fi
 
 echo "Minting $2 tokens to $operator_address"
 echo "Mock token address: $mock_token_address"
@@ -33,4 +47,3 @@ cast send "$mock_token_address" \
     "$operator_address" "$2" \
     --private-key $private_key \
     --rpc-url "http://localhost:8545"
-
