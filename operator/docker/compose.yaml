@@ -6,8 +6,9 @@ services:
     container_name: operator
     image: operator:latest
     build:
-      context: ../..
+      context: ../../
       dockerfile: operator/docker/operator.Dockerfile
+
     volumes:
       - "${ECDSA_KEY_FILE_HOST}:/usr/src/config/operator.ecdsa.key.json:readonly"
       - "${BLS_KEY_FILE_HOST}:/usr/src/config/operator.bls.key.json:readonly"

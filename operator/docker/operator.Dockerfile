@@ -22,19 +22,19 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /usr/src/app
 
 # Copy the Makefile and the operator (for the FFI)
-COPY ../../Makefile /usr/src/app
-COPY .. /usr/src/app/operator
+COPY Makefile /usr/src/app
+COPY operator /usr/src/app/operator
 
 # Build the FFI
 RUN make build_all_ffi_linux
 
 # Copy dependencies
-COPY ../../go.mod go.sum ./
-COPY ../../metrics /usr/src/app/metrics
-COPY ../../contracts/script/output /usr/src/app/contracts/script/output
-COPY ../../contracts/bindings /usr/src/app/contracts/bindings
-COPY ../../core /usr/src/app/core
-COPY ../../common /usr/src/app/common
+COPY go.mod go.sum ./
+COPY metrics /usr/src/app/metrics
+COPY contracts/script/output /usr/src/app/contracts/script/output
+COPY contracts/bindings /usr/src/app/contracts/bindings
+COPY core /usr/src/app/core
+COPY common /usr/src/app/common
 
 # Download dependencies
 RUN go mod download && go mod tidy && go mod verify
