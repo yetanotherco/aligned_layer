@@ -152,9 +152,6 @@ git pull
 #### Configuration
 
 Update the following placeholders in `./config-files/config-operator.yaml`:
-
-- `"<ecdsa_key_store_location_path>"`
-- `"<bls_key_store_location_path>"`
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
 

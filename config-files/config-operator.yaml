@@ -1,7 +1,7 @@
 # Common variables for all the services
 # 'production' only prints info and above. 'development' also prints debug
 environment: "production"
-aligned_layer_deployment_config_file_path: "/usr/src/app//contracts/script/output/holesky/alignedlayer_deployment_output.json"
+aligned_layer_deployment_config_file_path: "/usr/src/app/contracts/script/output/holesky/alignedlayer_deployment_output.json"
 eigen_layer_deployment_config_file_path: "/usr/src/app/contracts/script/output/holesky/eigenlayer_deployment_output.json"
 eth_rpc_url: "https://ethereum-holesky-rpc.publicnode.com"
 eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
@@ -9,12 +9,12 @@ eigen_metrics_ip_port_address: "localhost:9090"
 
 ## ECDSA Configurations
 ecdsa:
-  private_key_store_path: "<ecdsa_key_store_location_path>"
+  private_key_store_path: "/usr/src/config/operator.ecdsa.key.json"
   private_key_store_password: ""
 
 ## BLS Configurations
 bls:
-  private_key_store_path: "<bls_key_store_location_path>"
+  private_key_store_path: "/usr/src/config/operator.bls.key.json"
   private_key_store_password: ""
 
 ## Operator Configurations
