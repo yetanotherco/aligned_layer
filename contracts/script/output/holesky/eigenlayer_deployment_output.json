@@ -15,35 +15,17 @@
     "eigenPodManager": "0x30770d7E3e71112d7A6b7259542D1f680a70e315",
     "eigenPodManagerImplementation": "0x5265C162f7d5F3fE3175a78828ab16bf5E324a7B",
     "emptyContract": "0x9690d52B1Ce155DB2ec5eCbF5a262ccCc7B3A6D2",
+    "rewardsCoordinator": "0xAcc1fb458a1317E886dB376Fc8141540537E68fE",
+    "rewardsCoordinatorImplementation": "0x123C1A3543DBCA3f704E703dDda7FAAaA8e43D02",
     "slasher": "0xcAe751b75833ef09627549868A04E32679386e7C",
     "slasherImplementation": "0x99715D255E34a39bE9943b82F281CA734bcF345A",
-    "strategies": {
-      "WETH": "0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9",
-      "rETH": "0x3A8fBdf9e77DFc25d09741f51d3E181b25d0c4E0",
-      "stETH": "0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3",
-      "lsETH": "0x05037A81BD7B4C9E0F7B430f1F2A22c31a2FD943",
-      "frxETH": "0x15F70a41Afe34020B3B16079010D3e88c4A85daf",
-      "ETHx": "0x31B6F59e1627cEfC9fA174aD03859fC337666af7",
-      "osETH": "0x46281E3B7fDcACdBa44CADf069a94a588Fd4C6Ef",
-      "cbETH": "0x70EB4D3c164a6B4A5f908D4FBb5a9cAfFb66bAB6"
-    },
-    "strategyAddresses": [
-      "0x3A8fBdf9e77DFc25d09741f51d3E181b25d0c4E0",
-      "0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9",
-      "0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3",
-      "0x05037A81BD7B4C9E0F7B430f1F2A22c31a2FD943",
-      "0x15F70a41Afe34020B3B16079010D3e88c4A85daf",
-      "0x31B6F59e1627cEfC9fA174aD03859fC337666af7",
-      "0x46281E3B7fDcACdBa44CADf069a94a588Fd4C6Ef",
-      "0x70EB4D3c164a6B4A5f908D4FBb5a9cAfFb66bAB6"
-    ],
+    "strategies": "",
     "strategyManager": "0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6",
     "strategyManagerImplementation": "0x59f766A603C53f3AC8Be43bBe158c1519b193a18"
   },
-  "numStrategies": 8,
   "chainInfo": {
     "chainId": 17000,
-    "deploymentBlock": 1167041
+    "deploymentBlock": 1671209
   },
   "parameters": {
     "communityMultisig": "0xCb8d2f9e55Bc7B1FA9d089f9aC80C583D2BDD5F7",
