@@ -51,7 +51,7 @@ pub struct Batcher {
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
-    enable_pre_verification: bool,
+    pre_verification_is_enabled: bool,
 }
 
 impl Batcher {
@@ -97,7 +97,7 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
-            enable_pre_verification: config.batcher.enable_pre_verification,
+            pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
         }
     }
 
@@ -172,7 +172,7 @@ impl Batcher {
 
         if verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-            if self.enable_pre_verification && !zk_utils::verify(&verification_data) {
+            if self.pre_verification_is_enabled && !zk_utils::verify(&verification_data) {
                 return Err(tokio_tungstenite::tungstenite::Error::Protocol(
                     ProtocolError::HandshakeIncomplete,
                 ));

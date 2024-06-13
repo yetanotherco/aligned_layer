@@ -13,7 +13,7 @@ pub struct BatcherConfigFromYaml {
     pub max_proof_size: usize,
     pub max_batch_size: usize,
     pub eth_ws_reconnects: usize,
-    pub enable_pre_verification: bool,
+    pub pre_verification_is_enabled: bool,
 }
 
 #[derive(Debug, Deserialize)]
