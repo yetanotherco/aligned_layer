@@ -114,20 +114,28 @@ defmodule Batches do
     case Explorer.Repo.get(Batches, merkle_root) do
       nil ->
         "New Batch, inserting to DB:" |> IO.puts()
-        insert_response = Explorer.Repo.insert(changeset)
-        case insert_response do
+        case Explorer.Repo.insert(changeset) do
           {:ok, _} -> "Batch inserted successfully" |> IO.puts()
           {:error, changeset} -> "Batch insert failed #{changeset}" |> IO.puts()
         end
       existing_batch ->
         try do
           if existing_batch.is_verified != changeset.changes.is_verified
-            or (Map.has_key?(changeset.changes, :block_number) and  existing_batch.response_block_number != changeset.changes.response_block_number)          #reorg
-            or (Map.has_key?(changeset.changes, :response_transaction_hash) and existing_batch.response_transaction_hash != changeset.changes.response_transaction_hash)  #reorg
+            or existing_batch.amount_of_proofs != changeset.changes.amount_of_proofs  # rewrites if it was writen with DB's default
+            or existing_batch.data_pointer != changeset.changes.data_pointer          # rewrites if it was writen with DB's default
+            or existing_batch.submition_block_number != changeset.changes.submition_block_number          # reorg may change submition_block_number
+            or existing_batch.submition_transaction_hash != changeset.changes.submition_transaction_hash  # reorg may change submition_tx_hash
+            or (Map.has_key?(changeset.changes, :block_number)
+              and  existing_batch.response_block_number != changeset.changes.response_block_number)         # reorg may change response_block_number
+            or (Map.has_key?(changeset.changes, :response_transaction_hash)
+              and existing_batch.response_transaction_hash != changeset.changes.response_transaction_hash)  # reorg may change response_tx_hash
           do
             "Batch values have changed, updating in DB" |> IO.puts()
             updated_changeset = Ecto.Changeset.change(existing_batch, changeset.changes)
-            Explorer.Repo.update(updated_changeset)
+            case Explorer.Repo.update(updated_changeset) do
+              {:ok, _} -> "Batch updated successfully" |> IO.puts()
+              {:error, changeset} -> "Batch update failed #{changeset}" |> IO.puts()
+            end
           end
         rescue
           error ->
