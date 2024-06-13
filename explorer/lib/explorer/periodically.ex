@@ -6,12 +6,12 @@ defmodule Explorer.Periodically do
   end
 
   def init(state) do
-    schedule_work()
+    schedule_work(0)
     {:ok, state}
   end
 
   #wip new db version:
-  def handle_info({:work}, state) do
+  def handle_info({:work, count}, state) do
     # This reads and process last n blocks for new batches or batch changes
     read_block_qty = 8 # There is a new batch every 4-5 blocks
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
@@ -19,17 +19,21 @@ defmodule Explorer.Periodically do
     process_from_to_blocks(read_from_block, latest_block_number)
 
     # It gets previous unverified batches and checks if they were verified
-    # This is to avoid having the -3600 because it takes 3-4-5 seconds to fetch each batch from S3
+    # This is to avoid having too big of a read_block_qty because it would take too long
     # And would take even longer for heavier proof batches, for example SP1
-    process_unverified_batches()
+    run_every_n_iterations = 20
+    new_count = rem(count + 1, run_every_n_iterations)
+    if new_count == 0 do
+      process_unverified_batches()
+    end
 
-    schedule_work() # Reschedule once more
+    schedule_work(new_count) # Reschedule once more
     {:noreply, state}
   end
 
-  defp schedule_work() do
+  defp schedule_work(count) do
     seconds = 1 # edit to modify process frequency
-    Process.send_after(self(), {:work}, seconds * 1000)
+    Process.send_after(self(), {:work, count}, seconds * 1000)
   end
 
   def process_from_to_blocks(fromBlock, toBlock) do
