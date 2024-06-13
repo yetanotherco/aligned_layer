@@ -181,6 +181,8 @@ In case you don't have the required amount, to get 1000 Wei in WETH, run:
 cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1000wei
 ```
 
+`<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
+
 Finally, to end the staking process, you need to deposit into the strategy. To do this, you can [follow EigenLayer's guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts). Alternatively, you can run:
 
 ```bash
@@ -210,6 +212,8 @@ To unregister the Aligned operator, run:
 ```bash
 cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
  ```
+
+ `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
 
 ## Local Devnet Setup
 
