@@ -12,15 +12,18 @@ use futures_util::{
     SinkExt, StreamExt, TryStreamExt,
 };
 use log::{error, info};
-use tokio::{net::TcpStream, sync::Mutex,time::{sleep, Duration}};
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
-use tokio::sync::mpsc;
-
+use tokio::{
+    net::TcpStream,
+    sync::Mutex,
+    time::{timeout, Duration,sleep},
+};
+use tokio_tungstenite::{
+    connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
+};
 use batcher::types::{parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData};
 
 use crate::errors::BatcherClientError;
 use clap::Parser;
-use tungstenite::Message;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -44,7 +47,7 @@ struct Args {
     #[arg(name = "Verification key file name", long = "vk")]
     verification_key_file_name: Option<PathBuf>,
 
-    #[arg(name = "VM prgram code file name", long = "vm_program")]
+    #[arg(name = "VM program code file name", long = "vm_program")]
     vm_program_code_file_name: Option<PathBuf>,
 
     #[arg(
@@ -58,60 +61,44 @@ struct Args {
         name = "Proof generator address",
         long = "proof_generator_addr",
         default_value = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-    )] // defaults to anvil address 1
+    )]
     proof_generator_addr: String,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), errors::BatcherClientError> {
     let args = Args::parse();
-
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let url = url::Url::parse(&args.connect_addr)
         .map_err(|e| errors::BatcherClientError::InvalidUrl(e, args.connect_addr.clone()))?;
 
     let (ws_stream, _) = connect_async(url).await?;
-
     info!("WebSocket handshake has been successfully completed");
 
-    let (mut ws_write, ws_read) = ws_stream.split();
+    let (ws_write, ws_read) = ws_stream.split();
+    let ws_write = Arc::new(Mutex::new(ws_write));
 
     let repetitions = args.repetitions;
     let verification_data = verification_data_from_args(args)?;
 
     let json_data = serde_json::to_string(&verification_data)?;
     for _ in 0..repetitions {
-        ws_write.send(Message::Text(json_data.to_string())).await?;
+       let _ = sleep(Duration::from_millis(500)).await;
+        ws_write
+            .lock()
+            .await
+            .send(Message::Text(json_data.clone()))
+            .await?;
         info!("Message sent...");
     }
 
-    let (tx, mut rx) = mpsc::channel::<()>(1);
     let num_responses = Arc::new(Mutex::new(0));
-    let ws_write = Arc::new(Mutex::new(ws_write));
 
-    // Launch a task to wait for the batch signatures verification in Ethereum
-    let waiting_handle = tokio::spawn(async move {
-        loop {
-            tokio::select! {
-                _ = sleep(Duration::from_secs(2)) => {
-                    info!("Waiting for batch signatures verification in Ethereum...");
-                }
-                received = rx.recv() => {
-                    // Stop waiting if we receive a signal from the receive task
-                    if received.is_some() {
-                        break;
-                    }
-                }
-            }
-        }
-    });
-
-    // wait for responses
-    let receive_handle = receive(ws_read, ws_write, repetitions, num_responses, tx.clone());
-
-    // wait for both tasks to finish
-    let _ = tokio::join!(waiting_handle, receive_handle);
+    match receive(ws_read, ws_write, repetitions, num_responses).await {
+        Ok(_) => info!("All operations completed successfully"),
+        Err(e) => error!("An error occurred: {:?}", e),
+    }
 
     Ok(())
 }
@@ -121,50 +108,58 @@ async fn receive(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
-    tx: mpsc::Sender<()>,
 ) -> Result<(), BatcherClientError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
         ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
+    loop {
+        match timeout(Duration::from_secs(3), response_stream.next()).await {
+            Ok(Some(Ok(msg))) => {
+                if let Message::Close(close_frame) = msg {
+                    if let Some(close_msg) = close_frame {
+                        error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
+                        ws_write.lock().await.close().await?;
+                        return Ok(());
+                    }
+                    error!("Connection was closed before receiving all messages. Try submitting your proof again");
+                    ws_write.lock().await.close().await?;
+                    return Ok(());
+                } else {
+                    let mut num_responses_lock = num_responses.lock().await;
+                    *num_responses_lock += 1;
 
-    while let Some(Ok(msg)) = response_stream.next().await {
-        if let Message::Close(close_frame) = msg {
-            if let Some(close_msg) = close_frame {
-                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
-                ws_write.lock().await.close().await?;
-                let _ = tx.send(()).await; // we notify to stop the waiting task
-            }
-            error!("Connection was closed before receiving all messages. Try submitting your proof again");
-            ws_write.lock().await.close().await?;
-            let _ = tx.send(()).await; // we notify to stop the waiting task
-            return Ok(());
-        } else {
-            let mut num_responses_lock = num_responses.lock().await;
-            *num_responses_lock += 1;
-
-            let data = msg.into_data();
-            match serde_json::from_slice::<BatchInclusionData>(&data) {
-                Ok(batch_inclusion_data) => {
-                    info!("Batcher response received: {}", batch_inclusion_data);
-                    info!("Proof verified in aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
-                }
-                Err(e) => {
-                    error!("Error while deserializing batcher response: {}", e);
+                    let data = msg.into_data();
+                    match serde_json::from_slice::<BatchInclusionData>(&data) {
+                        Ok(batch_inclusion_data) => {
+                            info!("Batcher response received: {}", batch_inclusion_data);
+                            info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+                        }
+                        Err(e) => {
+                            error!("Error while deserializing batcher response: {}", e);
+                        }
+                    }
+                    if *num_responses_lock == total_messages {
+                        info!("All messages responded. Closing connection...");
+                        ws_write.lock().await.close().await?;
+                        return Ok(());
+                    }
                 }
             }
-            if *num_responses_lock == total_messages {
-                info!("All messages responded. Closing connection...");
-                ws_write.lock().await.close().await?;
-                let _ = tx.send(()).await; // we notify to stop the waiting task
+            Err(_) => {
+                info!("Waiting for batch inclusion responses...");
+                continue  
+            }
+            Ok(None) => {
                 return Ok(());
             }
+            Ok(Some(Err(e))) => {
+                error!("Error while receiving message: {}", e);
+                return Err(BatcherClientError::ConnectionError(e));
+            }
         }
-        let _ = tx.send(()).await; // Notify waiting task
+
     }
-
-    Ok(())
 }
-
 fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherClientError> {
     let proving_system = parse_proving_system(&args.proving_system_flag)
         .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
