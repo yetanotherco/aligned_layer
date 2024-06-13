@@ -9,6 +9,7 @@ import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
 
 /**
  * @title Primary entrypoint for procuring services from AlignedLayer.
@@ -17,7 +18,7 @@ import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces
  * - confirming the data store by the disperser with inferred aggregated signatures of the quorum
  * - freezing operators as the result of various "challenges"
  */
-contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
+contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker, AlignedLayerServiceManagerStorage {
     uint256 internal constant THRESHOLD_DENOMINATOR = 100;
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
 
@@ -29,14 +30,6 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
     );
 
     event BatchVerified(bytes32 indexed batchMerkleRoot);
-
-    struct BatchState {
-        uint32 taskCreatedBlock;
-        bool responded;
-    }
-
-    /* STORAGE */
-    mapping(bytes32 => BatchState) public batchesState;
 
     constructor(
         IAVSDirectory __avsDirectory,
