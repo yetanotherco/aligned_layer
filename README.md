@@ -128,6 +128,11 @@ aligned \
 
 This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
 
+Ensure you have the following installed:
+
+- [Go](https://go.dev/doc/install)
+- [Rust](https://www.rust-lang.org/tools/install)
+
 #### Install the Operator Binary
 
 To install the operator binary, run:
@@ -138,7 +143,7 @@ make build_operator
 
 #### Update the operator
 
-To update the operator, run:
+To update the operator, first stop the process running the operator (if there is any) and then run:
 
 ```bash
 make build_operator
