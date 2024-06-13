@@ -9,6 +9,7 @@
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
+  - [Register as an Aligned operator in testnet](#register-as-an-aligned-operator-in-testnet)
   - [Local Devnet Setup](#local-devnet-setup)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
@@ -117,6 +118,111 @@ aligned \
 --vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
+
+## Register as an Aligned operator in testnet
+
+### Requirements
+
+> [!NOTE]
+> You must be whitelisted to become an Aligned operator.
+
+This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
+
+Ensure you have the following installed:
+
+- [Go](https://go.dev/doc/install)
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+
+To install foundry, run:
+
+```bash
+make install_foundry
+foundryup
+```
+
+#### Install the Operator Binary
+
+To install the operator binary, run:
+
+```bash
+make build_operator
+```
+
+#### Update the operator
+
+To update the operator, first stop the process running the operator (if there is any) and then run:
+
+```bash
+git pull
+make build_operator
+```
+
+#### Configuration
+
+Update the following placeholders in `./config-files/config-operator.yaml`:
+
+- `"<ecdsa_key_store_location_path>"`
+- `"<bls_key_store_location_path>"`
+- `"<operator_address>"`
+- `"<earnings_receiver_address>"`
+
+`"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
+
+### Deposit Strategy Tokens
+
+We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
+
+To do so there are 2 options, either doing it through Eigen website, and following their guide, or running the commands specified by us below.
+
+The eigen guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts). 
+
+You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximium amount of 10 Eth.
+
+If you have Eth and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH. Change the parameter in ```---value``` if you want to wrap a different amount:
+
+```bash
+cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
+```
+
+`<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
+
+Finally, to end the staking process, you need to deposit into the strategy, as shown in the Eigen guide, or alternatively, you can run the following command to deposit one WETH:
+
+```bash
+./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
+```
+
+If you don't have Holesky Eth, these are some useful faucets:
+
+- [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
+- [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
+
+### Register as an operator with Aligned
+
+To register the operator with Aligned, run:
+
+```bash
+./operator/build/aligned-operator register --config ./config-files/config-operator.yaml
+```
+
+### Start the operator
+
+To start the Aligned operator, run:
+
+```bash
+./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+```
+
+### Unregister the operator from Aligned
+
+To unregister the Aligned operator, run:
+
+```bash
+cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
+ ```
+
+ `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
 
 ## Local Devnet Setup
 
@@ -622,6 +728,18 @@ When changing Aligned contracts, the anvil state needs to be updated with:
 make anvil_deploy_aligned_contracts
 ```
 
+To test the upgrade script for ServiceManager in the local devnet, run:
+
+```bash
+make anvil_upgrade_aligned_contracts
+```
+
+To test the upgrade script for RegistryCoordintator in the local devnet, run:
+
+```bash
+make anvil_upgrade_registry_coordinator
+```
+
 #### Aligned Contracts: Holesky/Mainnet
 
 To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same directory as the deployment script (`contracts/scripts/`).
@@ -668,6 +786,20 @@ You need to complete the `DEPLOY_CONFIG_PATH` file with the following informatio
 ```
 
 You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
+
+To upgrade the Service Manager Contract in Testnet/Mainnet, run:
+
+```bash
+make upgrade_aligned_contracts
+```
+
+To upgrade the Registry Coordinator in Testnet/Mainnet, run:
+
+```bash
+make upgrade_registry_coordinator
+```
+
+Make sure to set environment variables in a `.env` file in the same directory as the upgrade script (`contracts/scripts/`).
 
 ### Bindings
 
