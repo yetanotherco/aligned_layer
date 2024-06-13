@@ -11,10 +11,4 @@ contract AlignedLayerServiceManagerStorage {
 
     // storage gap for upgradeability
     uint256[49] private __GAP;
-
-
-    // Test function
-    function test() public pure returns (string memory) {
-        return "test";
-    }
 }
