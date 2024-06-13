@@ -30,7 +30,7 @@
         <%= @current_batch.submition_transaction_hash %>
       </.a>
       Submission Timestamp:
-      <p class="break-all font-normal"><%= @current_batch.submition_timestamp %></p>
+      <p class="break-all font-normal"><%= @current_batch.submition_timestamp |> Utils.parse_timestamp %></p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
         Response Block Number:
@@ -51,8 +51,8 @@
         >
           <%= @current_batch.response_transaction_hash %>
         </.a>
-        Response Timestamp:
-        <p class="break-all font-normal"><%= @current_batch.response_timestamp %></p>
+        Response Time:
+        <p class="break-all font-normal"><%= @current_batch.response_timestamp |> Utils.parse_timestamp %></p>
       <% end %>
     </.card>
   <% else %>

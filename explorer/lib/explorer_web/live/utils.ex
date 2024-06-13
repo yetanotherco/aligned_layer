@@ -23,6 +23,22 @@ defmodule ExplorerWeb.Utils do
   end
 
   def convert_number_to_shorthand(_number), do: "Invalid number"
+
+  def parse_timestamp(timestamp) do
+    %{hour: hour, minute: minute, second: second, day: day, month: month, year: year} = timestamp
+
+    formatted_hour = pad_leading_zero(hour)
+    formatted_minute = pad_leading_zero(minute)
+    formatted_second = pad_leading_zero(second)
+    formatted_day = pad_leading_zero(day)
+    formatted_month = pad_leading_zero(month)
+
+    "#{formatted_hour}:#{formatted_minute}:#{formatted_second} #{formatted_day}/#{formatted_month}/#{year} (UTC)"
+  end
+
+  defp pad_leading_zero(value) do
+    Integer.to_string(value) |> String.pad_leading(2, "0")
+  end
 end
 
 defmodule Utils do
@@ -55,7 +71,7 @@ defmodule Utils do
     300
   end
 
-  def fetch_batch_data_pointer(batch_data_pointer) do # TODO fix Bottleneck
+  def fetch_batch_data_pointer(batch_data_pointer) do # Download Bottleneck
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         case Jason.decode(body) do
