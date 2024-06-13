@@ -30,3 +30,8 @@ halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.g
 lazy_static = "1.4.0"
 bincode = "1.3.3"
 aligned-sdk = { path = "../aligned-sdk"}
+
+[patch.crates-io]
+ark-ff = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+ark-ec = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+ark-serialize = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }

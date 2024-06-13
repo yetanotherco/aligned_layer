@@ -1,0 +1,20 @@
+[package]
+name = "jolt-verifier-ffi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ark-serialize = "0.4.2"
+jolt-sdk = { git = "https://github.com/PatStiles/Lasso.git", branch = "feat/integration_changes", features = ["host"] }
+jolt-core = { git = "https://github.com/PatStiles/Lasso.git", branch = "feat/integration_changes" }
+tracer = { git = "https://github.com/PatStiles/Lasso.git", branch = "feat/integration_changes" }
+ark-bn254 = "0.4.0"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
+
+[patch.crates-io]
+ark-ff = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+ark-ec = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+ark-serialize = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+
