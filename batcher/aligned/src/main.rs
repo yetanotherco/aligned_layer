@@ -130,7 +130,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             // FIXME(marian): This is address for the Aligned service manager in the Anvil devnet.
             // We can add a input parameter flag in the CLI to specify the ethereum network and
             // based on that this value is set accordingly.
-            let contract_address = "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690";
+            let contract_address = "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8";
 
             let batch_inclusion_file =
                 File::open(verify_inclusion_args.batch_inclusion_data).unwrap();
