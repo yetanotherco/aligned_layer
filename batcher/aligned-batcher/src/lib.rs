@@ -6,6 +6,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::eth::BatchVerifiedEventStream;
+use aligned_batcher_lib::types::{
+    BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+};
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatchVerifiedFilter;
 use ethers::prelude::{Middleware, Provider};
@@ -18,12 +21,11 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::error::ProtocolError;
-use tokio_tungstenite::tungstenite::protocol::{CloseFrame, frame::coding::CloseCode};
+use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
 use types::errors::BatcherError;
-use aligned_batcher_lib::types::{BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment};
 use zk_utils::verify;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -31,11 +33,11 @@ use crate::eth::AlignedLayerServiceManager;
 
 mod config;
 mod eth;
-pub mod s3;
-pub mod types;
 pub mod gnark;
 pub mod halo2;
+pub mod s3;
 pub mod sp1;
+pub mod types;
 mod zk_utils;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
@@ -163,15 +165,18 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
         // Deserialize task from message
-        let verification_data: VerificationData =
-            serde_json::from_str(message.to_text().expect("Client Handler: Message is not text"))
-                .expect("Client Handler: Failed to deserialize task");
+        let verification_data: VerificationData = serde_json::from_str(
+            message
+                .to_text()
+                .expect("Message handler: Message is not text"),
+        )
+        .expect("Message handler: Failed to deserialize task");
 
-        info!("Client Handler: Pre verifying proofs");
-        if verification_data.proof.len() <= self.max_proof_size && verify(&verification_data){
+        info!("Message handler: Pre verifying proofs");
+        if verification_data.proof.len() <= self.max_proof_size && verify(&verification_data) {
             self.add_to_batch(verification_data, ws_conn_sink.clone())
                 .await;
-            info!("Client Handler: Proof added");
+            info!("Message handler: Proof added");
         } else {
             // FIXME(marian): Handle this error correctly
             return Err(tokio_tungstenite::tungstenite::Error::Protocol(
@@ -179,7 +184,7 @@ impl Batcher {
             ));
         };
 
-        info!("Client Handler: Verification data message handled");
+        info!("Message handler: Verification data message handled");
         Ok(())
     }
 
@@ -189,13 +194,17 @@ impl Batcher {
         verification_data: VerificationData,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) {
-        info!("Client Handler: Locking queue ...");
+        info!("Message handler: Locking queue ...");
         let mut batch_queue_lock = self.batch_queue.lock().await;
-        info!("Client Handler: Locked. Calculating verification data commitments...");
+        info!("Message handler: Locked. Calculating verification data commitments...");
         let verification_data_comm = verification_data.clone().into();
-        info!("Client Handler:Adding verification data to batch...");
+        info!("Message handler: Locked. Adding verification data to batch...");
         batch_queue_lock.push((verification_data, verification_data_comm, ws_conn_sink));
-        info!("Client Handler:Current batch queue length: {}", batch_queue_lock.len());
+        info!(
+            "Message handler: Locked. Current batch queue length: {}",
+            batch_queue_lock.len()
+        );
+        info!("Message handler: Queue lock unlocked");
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
@@ -281,7 +290,10 @@ impl Batcher {
         let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
             .expect("Batch Finalizer: Failed to serialize batch");
 
-        info!("Batch Finalizer: Finalizing batch. Length: {}", finalized_batch.len());
+        info!(
+            "Batch Finalizer: Finalizing batch. Length: {}",
+            finalized_batch.len()
+        );
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
             .clone()
             .into_iter()
@@ -302,13 +314,19 @@ impl Batcher {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
             info!("Batch Finalizer: Locked");
 
-            info!("Batch Finalizer: Calling submit batch ... {}", finalized_batch.len());
+            info!(
+                "Batch Finalizer: Calling submit batch ... {}",
+                finalized_batch.len()
+            );
             self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
                 .await;
             info!("Batch Finalizer: Batch submitted to contract");
 
             *last_uploaded_batch_block = block_number;
-            info!("Batch Finalizer: Last uploaded batch block updated to: {}. Lock unlocked", block_number);
+            info!(
+                "Batch Finalizer: Last uploaded batch block updated to: {}. Lock unlocked",
+                block_number
+            );
         }
 
         info!("Batch Finalizer: Sending responses to clients ...");
@@ -335,7 +353,8 @@ impl Batcher {
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         info!("Batch Finalizer: Detected a new block on the blockchain ...");
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number, finalized_batch, false).await?;
+            self.finalize_batch(block_number, finalized_batch, false)
+                .await?;
         }
         Ok(())
     }
@@ -344,7 +363,10 @@ impl Batcher {
     async fn submit_batch(&self, batch_bytes: &[u8], batch_merkle_root: &[u8; 32]) {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
-        info!("Batch Finalizer: Batch merkle root: {}", batch_merkle_root_hex);
+        info!(
+            "Batch Finalizer: Batch merkle root: {}",
+            batch_merkle_root_hex
+        );
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Batch Finalizer: Uploading batch to S3...");
@@ -359,7 +381,10 @@ impl Batcher {
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
         match eth::create_new_task(service_manager, *batch_merkle_root, batch_data_pointer).await {
             Ok(_) => info!("Batch Finalizer: Batch verification task created on Aligned contract"),
-            Err(e) => error!("Batch Finalizer: Failed to create batch verification task: {}", e),
+            Err(e) => error!(
+                "Batch Finalizer: Failed to create batch verification task: {}",
+                e
+            ),
         }
     }
 }
@@ -392,8 +417,8 @@ async fn send_batch_inclusion_data_responses(
         .enumerate()
         .for_each(|(vd_batch_idx, (_, vdc, ws_sink))| async move {
             let response = BatchInclusionData::new(vdc, vd_batch_idx, batch_merkle_tree);
-            let serialized_response =
-                serde_json::to_vec(&response).expect("Batch Finalizer: Could not serialize response");
+            let serialized_response = serde_json::to_vec(&response)
+                .expect("Batch Finalizer: Could not serialize response");
 
             let sending_result = ws_sink
                 .write()
@@ -403,7 +428,10 @@ async fn send_batch_inclusion_data_responses(
 
             match sending_result {
                 Err(Error::AlreadyClosed) => (),
-                Err(e) => error!("Batch Finalizer: Error while sending batch inclusion data response: {}", e),
+                Err(e) => error!(
+                    "Batch Finalizer: Error while sending batch inclusion data response: {}",
+                    e
+                ),
                 Ok(_) => (),
             }
 
@@ -428,7 +456,10 @@ async fn send_timeout_close(finalized_batch: BatchQueue) -> Result<(), BatcherEr
             // closed, the other ones will raise this error. We can just ignore it.
             Err(Error::Protocol(ProtocolError::SendAfterClosing)) => (),
             Err(e) => {
-                error!("Batch Finalizer: Error sending timeout response to clients: {}", e);
+                error!(
+                    "Batch Finalizer: Error sending timeout response to clients: {}",
+                    e
+                );
                 return Err(e.into());
             }
             Ok(_) => (),
