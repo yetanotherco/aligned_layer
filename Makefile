@@ -34,13 +34,29 @@ anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
-anvil_deploy_mock_strategy:
-	@echo "Deploying Mock Strategy..."
-	. contracts/scripts/anvil/deploy_mock_strategy.sh
-
 anvil_deploy_aligned_contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
+
+anvil_upgrade_aligned_contracts:
+	@echo "Upgrading Aligned Contracts..."
+	. contracts/scripts/anvil/upgrade_aligned_contracts.sh
+
+anvil_upgrade_registry_coordinator:
+	@echo "Upgrading Registry Coordinator Contracts..."
+	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
+
+anvil_upgrade_bls_apk_registry:
+	@echo "Upgrading Bls Apk Registry Contract..."
+	. contracts/scripts/anvil/upgrade_bls_apk_registry.sh
+
+anvil_upgrade_stake_registry:
+	@echo "Upgrading Stake Registry Contract..."
+	. contracts/scripts/anvil/upgrade_stake_registry.sh
+
+anvil_upgrade_index_registry:
+	@echo "Upgrading Index Registry Contracts..."
+	. contracts/scripts/anvil/upgrade_index_registry.sh
 
 anvil_start:
 	@echo "Starting Anvil..."
@@ -66,6 +82,11 @@ operator_start:
 	2>&1 | zap-pretty
 
 operator_register_and_start: operator_full_registration operator_start
+
+build_operator: deps
+	@echo "Building Operator..."
+	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo "Operator built into /operator/build/aligned-operator"
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh
@@ -99,9 +120,19 @@ operator_mint_mock_tokens:
 	@echo "Minting tokens"
 	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
 
+operator_whitelist_devnet:
+	@echo "Whitelisting operator"
+	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
+	@echo "Operator address: $(OPERATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+
+operator_whitelist:
+	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
+	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into strategy"
-	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
+	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
 
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
@@ -121,34 +152,40 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_register_with_aligned_layer
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
 __BATCHER__:
 
 BURST_SIZE=5
 
-./batcher/.env:
-	@echo "To start the Batcher ./batcher/.env needs to be manually"; false;
+./batcher/aligned-batcher/.env:
+	@echo "To start the Batcher ./batcher/aligned-batcher/.env needs to be manually set"; false;
 
-batcher_start: ./batcher/.env
+batcher_start: ./batcher/aligned-batcher/.env
 	@echo "Starting Batcher..."
-	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/.env
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/aligned-batcher/.env
 
 install_batcher:
-	@cargo +nightly-2024-04-17 install --path batcher
+	@cargo +nightly-2024-04-17 install --path batcher/aligned-batcher
 
-install_aligned: 
-	@cargo +nightly-2024-04-17 install --path batcher/client
+install_aligned:
+	@./batcher/aligned/install_aligned.sh
+
+uninstall_aligned:
+	@rm -rf ~/.aligned && echo "Aligned uninstalled"
+
+install_aligned_compiling:
+	@cargo +nightly-2024-04-17 install --path batcher/aligned
 
 build_batcher_client:
-	@cd batcher/client && cargo b --release
+	@cd batcher/aligned && cargo b --release
 
-batcher/client/target/release/aligned:
-	@cd batcher/client && cargo b --release
+batcher/target/release/aligned:
+	@cd batcher/aligned && cargo b --release
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -156,7 +193,7 @@ batcher_send_sp1_task:
 
 batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -165,20 +202,20 @@ batcher_send_sp1_burst:
 
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
-	@./batcher/client/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
+	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
 
-batcher_send_plonk_bn254_task: batcher/client/target/release/aligned
+batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
 		--vk test_files/plonk_bn254/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_plonk_bn254_burst: batcher/client/target/release/aligned
+batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
@@ -186,18 +223,18 @@ batcher_send_plonk_bn254_burst: batcher/client/target/release/aligned
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions 15
 
-batcher_send_plonk_bls12_381_task: batcher/client/target/release/aligned
+batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
 		--vk test_files/plonk_bls12_381/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_plonk_bls12_381_burst: batcher/client/target/release/aligned
+batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -206,18 +243,18 @@ batcher_send_plonk_bls12_381_burst: batcher/client/target/release/aligned
 		--repetitions 15
 
 
-batcher_send_groth16_bn254_task: batcher/client/target/release/aligned
+batcher_send_groth16_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
 		--vk test_files/groth16/ineq_1_groth16.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_groth16_burst: batcher/client/target/release/aligned
+batcher_send_groth16_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
@@ -225,45 +262,45 @@ batcher_send_groth16_burst: batcher/client/target/release/aligned
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_infinite_groth16: ./batcher/client/target/release/aligned ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
+batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
-	@./batcher/client/send_infinite_tasks.sh 4
+	@./batcher/aligned/send_infinite_tasks.sh 4
 
-batcher_send_burst_groth16: build_batcher_client
+batcher_send_burst_groth16: batcher/target/release/aligned
 	@echo "Sending a burst of tasks to Batcher..."
 	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
-	@./batcher/client/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
+	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
-batcher_send_halo2_ipa_task: batcher/client/target/release/aligned
+batcher_send_halo2_ipa_task: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system Halo2IPA \
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
 		--vk test_files/halo2_ipa/params.bin \
 
-batcher_send_halo2_ipa_task_burst_5: batcher/client/target/release/aligned
+batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system Halo2IPA \
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
 		--vk test_files/halo2_ipa/params.bin \
 		--repetitions 5
 
-batcher_send_halo2_kzg_task: batcher/client/target/release/aligned
+batcher_send_halo2_kzg_task: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system Halo2KZG \
 		--proof test_files/halo2_kzg/proof.bin \
 		--public_input test_files/halo2_kzg/pub_input.bin \
 		--vk test_files/halo2_kzg/params.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_halo2_kzg_task_burst_5: batcher/client/target/release/aligned
+batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/client/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system Halo2KZG \
 		--proof test_files/halo2_kzg/proof.bin \
 		--public_input test_files/halo2_kzg/pub_input.bin \
@@ -424,6 +461,26 @@ __DEPLOYMENT__:
 deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
+
+upgrade_aligned_contracts: ## Upgrade Aligned Contracts
+	@echo "Upgrading Aligned Contracts..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+
+upgrade_registry_coordinator: ## Upgrade Registry Coordinator
+	@echo "Upgrading Registry Coordinator..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_registry_coordinator.sh
+
+upgrade_bls_apk_registry: ## Upgrade Registry Coordinator
+	@echo "Upgrading BLS Apk Registry Coordinator..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_bls_apk_registry.sh
+
+upgrade_index_registry: ## Upgrade Registry Coordinator
+	@echo "Upgrading Index Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_index_registry.sh
+
+upgrade_stake_registry: ## Upgrade Stake Registry
+	@echo "Upgrading Stake Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_stake_registry.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
