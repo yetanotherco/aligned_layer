@@ -54,7 +54,7 @@ contract AlignedLayerUpgrader is Script {
 
         IRewardsCoordinator rewardsCoordinator = IRewardsCoordinator(
             stdJson.readAddress(
-                aligned_deployment_file,
+                eigen_deployment_file,
                 ".addresses.rewardsCoordinator"
             )
         );
