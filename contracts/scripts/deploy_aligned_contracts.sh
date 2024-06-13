@@ -13,7 +13,6 @@ forge script script/deploy/AlignedLayerDeployer.s.sol \
     $EXISTING_DEPLOYMENT_INFO_PATH \
     $DEPLOY_CONFIG_PATH \
     $OUTPUT_PATH \
-    --optimize-runs 1 \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
     --broadcast \
