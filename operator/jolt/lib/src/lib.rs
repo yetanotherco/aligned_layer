@@ -44,39 +44,33 @@ mod tests {
 
     // Fibonacci
     const FIB_PROOF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/fibonacci/jolt.proof");
+        include_bytes!("../../../../task_sender/test_examples/jolt/fibonacci/fibonacci-guest.proof");
     const FIB_ELF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/fibonacci/jolt.elf");
+        include_bytes!("../../../../task_sender/test_examples/jolt/fibonacci/elf/fibonacci-guest.elf");
 
     // Sha3
     const SHA3_PROOF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/sha3-ex/jolt.proof");
+        include_bytes!("../../../../task_sender/test_examples/jolt/sha3-ex/sha3-guest.proof");
     const SHA3_ELF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/sha3-ex/jolt.elf");
+        include_bytes!("../../../../task_sender/test_examples/jolt/sha3-ex/elf/sha3-guest.elf");
 
     fn verify_jolt_proof_with_elf_works(proof: &[u8], elf: &[u8]) {
-        let mut proof_buffer = [0u8; MAX_PROOF_SIZE];
         let proof_len = proof.len();
-        proof_buffer[..proof_len].clone_from_slice(proof);
 
-        let mut elf_buffer = [0u8; MAX_ELF_SIZE];
         let elf_len = elf.len();
-        elf_buffer[..elf_len].clone_from_slice(elf);
 
-        let result = verify_jolt_proof_ffi(&proof_buffer, proof_len as u32, &elf_buffer, elf_len as u32);
+        let result = verify_jolt_proof_ffi(proof.as_ptr(), proof_len as u32, elf.as_ptr(), elf_len as u32);
         assert!(result)
     }
 
     fn verify_jolt_aborts_with_bad_proof(proof: &[u8], elf: &[u8]) {
-        let mut proof_buffer = [42u8; super::MAX_PROOF_SIZE];
+        let mut proof_buffer = [42u8; 4 * 1024 * 1024];
         let proof_len = proof.len();
         proof_buffer[..proof_len].clone_from_slice(proof);
 
-        let mut elf_buffer = [0u8; MAX_ELF_SIZE];
         let elf_len = elf.len();
-        elf_buffer[..elf_len].clone_from_slice(elf);
 
-        let result = verify_jolt_proof_ffi(&proof_buffer, (proof_len - 1) as u32, &elf_buffer, elf_len as u32);
+        let result = verify_jolt_proof_ffi(proof_buffer.as_ptr(), (proof_len - 1) as u32, elf.as_ptr(), elf_len as u32);
         assert!(!result)
     }
 

@@ -224,9 +224,8 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 	case common.Jolt:
 		proofLen := (uint32)(len(verificationData.Proof))
 		elfLen := (uint32)(len(verificationData.VmProgramCode))
-		commitmentLen := (uint32)(len(verificationData.VerificationKey))
 
-		verificationResult := jolt.VerifyJoltProof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen, verificationData.VerificationKey, commitmentLen)
+		verificationResult := jolt.VerifyJoltProof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
 		o.Logger.Infof("Jolt proof verification result: %t", verificationResult)
 		results <- verificationResult
 

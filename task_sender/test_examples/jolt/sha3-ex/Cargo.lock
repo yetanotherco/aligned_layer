@@ -236,7 +236,7 @@ dependencies = [
 [[package]]
 name = "binius_field"
 version = "0.1.0"
-source = "git+https://gitlab.com/UlvetannaOSS/binius#9365984ff92e2079fbd6464948cb679a462041da"
+source = "git+https://gitlab.com/UlvetannaOSS/binius#6c6bbe5983ebc0435b3763a6e2aa81887380a223"
 dependencies = [
  "binius_utils",
  "bytemuck",
@@ -254,7 +254,7 @@ dependencies = [
 [[package]]
 name = "binius_utils"
 version = "0.1.0"
-source = "git+https://gitlab.com/UlvetannaOSS/binius#9365984ff92e2079fbd6464948cb679a462041da"
+source = "git+https://gitlab.com/UlvetannaOSS/binius#6c6bbe5983ebc0435b3763a6e2aa81887380a223"
 dependencies = [
  "rayon",
  "tracing",
@@ -425,7 +425,7 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.2.0"
-source = "git+https://github.com/a16z/jolt#67f71f6373e05ecfe25e5247acd32d0d32846751"
+source = "git+https://github.com/PatStiles/Lasso.git?branch=feat/integration_changes#51733b8f8166d51b9c6ebac743101af04e926f6f"
 dependencies = [
  "ark-serialize",
  "serde",
@@ -1172,7 +1172,7 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 [[package]]
 name = "jolt-core"
 version = "0.1.0"
-source = "git+https://github.com/a16z/jolt#67f71f6373e05ecfe25e5247acd32d0d32846751"
+source = "git+https://github.com/PatStiles/Lasso.git?branch=feat/integration_changes#51733b8f8166d51b9c6ebac743101af04e926f6f"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -1222,7 +1222,7 @@ dependencies = [
 [[package]]
 name = "jolt-sdk"
 version = "0.1.0"
-source = "git+https://github.com/a16z/jolt#67f71f6373e05ecfe25e5247acd32d0d32846751"
+source = "git+https://github.com/PatStiles/Lasso.git?branch=feat/integration_changes#51733b8f8166d51b9c6ebac743101af04e926f6f"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -1240,7 +1240,7 @@ dependencies = [
 [[package]]
 name = "jolt-sdk-macros"
 version = "0.1.0"
-source = "git+https://github.com/a16z/jolt#67f71f6373e05ecfe25e5247acd32d0d32846751"
+source = "git+https://github.com/PatStiles/Lasso.git?branch=feat/integration_changes#51733b8f8166d51b9c6ebac743101af04e926f6f"
 dependencies = [
  "common",
  "proc-macro2",
@@ -2305,7 +2305,7 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 [[package]]
 name = "tracer"
 version = "0.2.0"
-source = "git+https://github.com/a16z/jolt#67f71f6373e05ecfe25e5247acd32d0d32846751"
+source = "git+https://github.com/PatStiles/Lasso.git?branch=feat/integration_changes#51733b8f8166d51b9c6ebac743101af04e926f6f"
 dependencies = [
  "common",
  "fnv",

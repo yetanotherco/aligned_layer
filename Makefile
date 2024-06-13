@@ -535,6 +535,12 @@ test_jolt_go_bindings_linux: build_jolt_linux
 	@echo "Testing Jolt Go bindings..."
 	go test ./operator/jolt/... -v
 
+generate_jolt_fibonacci_proof:
+	@cd task_sender/test_examples/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
+
+generate_jolt_sha3_proof:
+	@cd task_sender/test_examples/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
+
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
 	@cd operator/merkle_tree/lib && cargo build --release
