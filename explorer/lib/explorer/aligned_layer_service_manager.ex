@@ -28,7 +28,7 @@ defmodule AlignedLayerServiceManager do
   @first_block (
     case @environment do
       "devnet" -> 0
-      "holesky" -> 1728055
+      "holesky" -> 1728056
       "mainnet" -> 20020000
       _ -> raise("Invalid environment")
     end
