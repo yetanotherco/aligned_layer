@@ -6,6 +6,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::eth::BatchVerifiedEventStream;
+use aligned_batcher_lib::types::{
+    BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+};
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatchVerifiedFilter;
 use ethers::prelude::{Middleware, Provider};
@@ -18,24 +21,22 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::error::ProtocolError;
-use tokio_tungstenite::tungstenite::protocol::{CloseFrame, frame::coding::CloseCode};
+use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
 use types::errors::BatcherError;
-use aligned_batcher_lib::types::{BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment};
-use zk_utils::verify;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
 
 mod config;
 mod eth;
-pub mod s3;
-pub mod types;
 pub mod gnark;
 pub mod halo2;
+pub mod s3;
 pub mod sp1;
+pub mod types;
 mod zk_utils;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
@@ -50,6 +51,7 @@ pub struct Batcher {
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
+    enable_pre_verification: bool,
 }
 
 impl Batcher {
@@ -95,6 +97,7 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
+            enable_pre_verification: config.batcher.enable_pre_verification,
         }
     }
 
@@ -162,12 +165,18 @@ impl Batcher {
         message: Message,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
-        // Deserialize task from message
+        // Deserialize verification data from message
         let verification_data: VerificationData =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
-        if verification_data.proof.len() <= self.max_proof_size && verify(&verification_data){
+        if verification_data.proof.len() <= self.max_proof_size {
+            // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
+            if self.enable_pre_verification && !zk_utils::verify(&verification_data) {
+                return Err(tokio_tungstenite::tungstenite::Error::Protocol(
+                    ProtocolError::HandshakeIncomplete,
+                ));
+            }
             self.add_to_batch(verification_data, ws_conn_sink.clone())
                 .await;
         } else {
@@ -324,7 +333,8 @@ impl Batcher {
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number, finalized_batch, false).await?;
+            self.finalize_batch(block_number, finalized_batch, false)
+                .await?;
         }
         Ok(())
     }
