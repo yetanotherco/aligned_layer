@@ -22,7 +22,7 @@ echo "$forge_output"
 new_bls_apk_registry_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 
 # Use the extracted value to replace the alignedLayerServiceManagerImplementation value in alignedlayer_deployment_output.json and save it to a temporary file
-jq --arg new_bls_apk_registry_implementation "new_bls_apk_registry_implementation" '.addresses.blsApkRegistryImplementation = $new_bls_apk_registry_implementation' "script/output/holesky/alignedlayer_deployment_output.json" > "script/output/holesky/alignedlayer_deployment_output.temp.json"
+jq --arg new_bls_apk_registry_implementation "$new_bls_apk_registry_implementation" '.addresses.blsApkRegistryImplementation = $new_bls_apk_registry_implementation' "script/output/holesky/alignedlayer_deployment_output.json" > "script/output/holesky/alignedlayer_deployment_output.temp.json"
 
 # Replace the original file with the temporary file
 mv "script/output/holesky/alignedlayer_deployment_output.temp.json" "script/output/holesky/alignedlayer_deployment_output.json"

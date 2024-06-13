@@ -466,12 +466,16 @@ upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_registry_coordinator.sh
 
 upgrade_bls_apk_registry: ## Upgrade Registry Coordinator
-	@echo "Upgrading Registry Coordinator..."
+	@echo "Upgrading BLS Apk Registry Coordinator..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_bls_apk_registry.sh
 
 upgrade_index_registry: ## Upgrade Registry Coordinator
 	@echo "Upgrading Index Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_index_registry.sh
+
+upgrade_stake_registry: ## Upgrade Stake Registry
+	@echo "Upgrading Stake Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_stake_registry.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
