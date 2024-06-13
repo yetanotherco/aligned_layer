@@ -46,6 +46,14 @@ anvil_upgrade_registry_coordinator:
 	@echo "Upgrading Registry Coordinator Contracts..."
 	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
 
+anvil_upgrade_bls_apk_registry:
+	@echo "Upgrading Bls Apk Registry Contract..."
+	. contracts/scripts/anvil/upgrade_bls_apk_registry.sh
+
+anvil_upgrade_stake_registry:
+	@echo "Upgrading Stake Registry Contract..."
+	. contracts/scripts/anvil/upgrade_stake_registry.sh
+
 anvil_upgrade_index_registry:
 	@echo "Upgrading Index Registry Contracts..."
 	. contracts/scripts/anvil/upgrade_index_registry.sh
@@ -456,6 +464,10 @@ upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_registry_coordinator.sh
+
+upgrade_bls_apk_registry: ## Upgrade Registry Coordinator
+	@echo "Upgrading Registry Coordinator..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_bls_apk_registry.sh
 
 upgrade_index_registry: ## Upgrade Registry Coordinator
 	@echo "Upgrading Index Registry..."
