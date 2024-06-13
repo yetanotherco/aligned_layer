@@ -173,21 +173,30 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
-You will need to stake a minimum of a 1000 Wei in WETH.
+To do so there are 2 options, either doing it through Eigen website, and following their guide, or running the commands specified by us below.
 
-In case you don't have the required amount, to get 1000 Wei in WETH, run:
+The eigen guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts). 
+
+You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximium amount of 10 Eth.
+
+If you have Eth and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH. Change the parameter in ```---value``` if you want to wrap a different amount:
 
 ```bash
-cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1000wei
+cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
 ```
 
 `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
 
-Finally, to end the staking process, you need to deposit into the strategy. To do this, you can [follow EigenLayer's guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts). Alternatively, you can run:
+Finally, to end the staking process, you need to deposit into the strategy, as shown in the Eigen guide, or alternatively, you can run the following command to deposit one WETH:
 
 ```bash
-./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000
+./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
 ```
+
+If you don't have Holesky Eth, these are some useful faucets:
+
+- [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
+- [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
 
 ### Register as an operator with Aligned
 
