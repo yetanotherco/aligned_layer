@@ -158,6 +158,8 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
 
+`"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
+
 ### Register as an operator with Aligned
 
 To register the operator with Aligned, run:
