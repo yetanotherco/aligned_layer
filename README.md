@@ -132,6 +132,14 @@ Ensure you have the following installed:
 
 - [Go](https://go.dev/doc/install)
 - [Rust](https://www.rust-lang.org/tools/install)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+
+To install foundry, run:
+
+```bash
+make install_foundry
+foundryup
+```
 
 #### Install the Operator Binary
 
@@ -146,6 +154,7 @@ make build_operator
 To update the operator, first stop the process running the operator (if there is any) and then run:
 
 ```bash
+git pull
 make build_operator
 ```
 
@@ -160,22 +169,30 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 
+### Deposit Strategy Tokens
+
+We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
+
+You will need to stake a minimum of a 1000 Wei in WETH.
+
+To get 1000 Wei in WETH, run:
+
+```bash
+cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1000wei
+```
+
+To deposit into the strategy, you can [follow EigenLayer's guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts). Alternatively, you can run:
+
+```bash
+./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000
+```
+
 ### Register as an operator with Aligned
 
 To register the operator with Aligned, run:
 
 ```bash
 ./operator/build/aligned-operator register --config ./config-files/config-operator.yaml
-```
-
-### Deposit Strategy Tokens
-
-We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
-
-To deposit into the strategy, run:
-
-```bash
-./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000
 ```
 
 ### Start the operator
@@ -187,13 +204,6 @@ To start the Aligned operator, run:
 ```
 
 ### Unregister the operator from Aligned
-
-Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
-
-```bash
-make install_foundry
-foundryup
-```
 
 To unregister the Aligned operator, run:
 
