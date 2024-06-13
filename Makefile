@@ -46,6 +46,10 @@ anvil_upgrade_registry_coordinator:
 	@echo "Upgrading Registry Coordinator Contracts..."
 	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
 
+anvil_upgrade_index_registry:
+	@echo "Upgrading Index Registry Contracts..."
+	. contracts/scripts/anvil/upgrade_index_registry.sh
+
 anvil_start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
@@ -452,6 +456,10 @@ upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_registry_coordinator.sh
+
+upgrade_index_registry: ## Upgrade Registry Coordinator
+	@echo "Upgrading Index Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_index_registry.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
