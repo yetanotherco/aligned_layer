@@ -28,7 +28,7 @@ defmodule AlignedLayerServiceManager do
   @first_block (
     case @environment do
       "devnet" -> 0
-      "holesky" -> 1600000
+      "holesky" -> 1728055
       "mainnet" -> 20020000
       _ -> raise("Invalid environment")
     end
@@ -48,11 +48,6 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
-    "From block" |> IO.inspect()
-    fromBlock |> IO.inspect()
-    "To block" |> IO.inspect()
-    toBlock |> IO.inspect()
-
     events =
       AlignedLayerServiceManager.EventFilters.new_batch(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
