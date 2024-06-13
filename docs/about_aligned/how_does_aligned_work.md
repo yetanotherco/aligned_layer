@@ -44,7 +44,7 @@ Aligned has the following components:
 
 ### Flow for sending a proof and publishing the result on Ethereum (Fast Mode)
 The flow for sending a proof and having the results on Ethereum is as follows:
-1. The user uses a provided CLI or SDK to send one proof or many to the batcher, and waits. Proposed rewrite: Using our CLI or SDK, the user sends one proof (or many) to the batcher.
+1. Using our CLI or SDK, the user sends one proof (or many) to the batcher.
 2. The batcher answers with a ProofVerificationData for each proof.
 3. The user invokes an IsVerified function with this data in Solidity to check that the proof is valid.
 4. ( Optional ) The user checks that the commitment to the proven program matches the one it expects.
