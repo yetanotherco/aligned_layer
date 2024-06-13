@@ -6,6 +6,7 @@ import {stdStorage, StdStorage} from "forge-std/Test.sol";
 import "../src/core/AlignedLayerServiceManager.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
+import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {BLSMockAVSDeployer} from "eigenlayer-middleware/../test/utils/BLSMockAVSDeployer.sol";
 
 contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
@@ -28,6 +29,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
         alignedLayerServiceManager = new AlignedLayerServiceManager(
             avsDirectory,
+            IRewardsCoordinator(address(rewardsCoordinator)),
             IRegistryCoordinator(address(registryCoordinator)),
             IStakeRegistry(address(stakeRegistry))
         );

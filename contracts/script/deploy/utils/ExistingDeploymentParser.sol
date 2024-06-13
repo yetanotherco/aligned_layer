@@ -9,6 +9,8 @@ import "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import "eigenlayer-contracts/src/contracts/core/Slasher.sol";
 import "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
+import "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
+
 
 import "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
 import "eigenlayer-contracts/src/contracts/strategies/StrategyBaseTVLLimits.sol";
@@ -44,6 +46,8 @@ contract ExistingDeploymentParser is Script, Test {
     Slasher public slasherImplementation;
     AVSDirectory public avsDirectory;
     AVSDirectory public avsDirectoryImplementation;
+    RewardsCoordinator public rewardsCoordinator;
+    RewardsCoordinator public rewardsCoordinatorImplementation;
     DelegationManager public delegationManager;
     DelegationManager public delegationManagerImplementation;
     StrategyManager public strategyManager;
@@ -88,6 +92,16 @@ contract ExistingDeploymentParser is Script, Test {
     uint256 DELEGATION_MANAGER_MIN_WITHDRAWAL_DELAY_BLOCKS;
     // AVSDirectory
     uint256 AVS_DIRECTORY_INIT_PAUSED_STATUS;
+    // RewardsCoordinator
+    uint256 REWARDS_COORDINATOR_INIT_PAUSED_STATUS;
+    uint32 REWARDS_COORDINATOR_MAX_REWARDS_DURATION;
+    uint32 REWARDS_COORDINATOR_MAX_RETROACTIVE_LENGTH;
+    uint32 REWARDS_COORDINATOR_MAX_FUTURE_LENGTH;
+    uint32 REWARDS_COORDINATOR_GENESIS_REWARDS_TIMESTAMP;
+    address REWARDS_COORDINATOR_UPDATER;
+    uint32 REWARDS_COORDINATOR_ACTIVATION_DELAY;
+    uint32 REWARDS_COORDINATOR_CALCULATION_INTERVAL_SECONDS;
+    uint32 REWARDS_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS;
     // EigenPodManager
     uint256 EIGENPOD_MANAGER_INIT_PAUSED_STATUS;
     uint64 EIGENPOD_MANAGER_DENEB_FORK_TIMESTAMP;
@@ -140,6 +154,12 @@ contract ExistingDeploymentParser is Script, Test {
         avsDirectoryImplementation = AVSDirectory(
             stdJson.readAddress(existingDeploymentData, ".addresses.avsDirectoryImplementation")
         );
+        rewardsCoordinator = RewardsCoordinator(
+            stdJson.readAddress(existingDeploymentData, ".addresses.rewardsCoordinator")
+        );
+        rewardsCoordinatorImplementation = RewardsCoordinator(
+            stdJson.readAddress(existingDeploymentData, ".addresses.rewardsCoordinatorImplementation")
+        );
         strategyManager = StrategyManager(stdJson.readAddress(existingDeploymentData, ".addresses.strategyManager"));
         strategyManagerImplementation = StrategyManager(
             stdJson.readAddress(existingDeploymentData, ".addresses.strategyManagerImplementation")
@@ -165,17 +185,6 @@ contract ExistingDeploymentParser is Script, Test {
             stdJson.readAddress(existingDeploymentData, ".addresses.baseStrategyImplementation")
         );
         emptyContract = EmptyContract(stdJson.readAddress(existingDeploymentData, ".addresses.emptyContract"));
-
-        // Strategies Deployed, load strategy list
-        numStrategiesDeployed = stdJson.readUint(existingDeploymentData, ".numStrategies");
-        for (uint256 i = 0; i < numStrategiesDeployed; ++i) {
-            // Form the key for the current element
-            string memory key = string.concat(".addresses.strategyAddresses[", vm.toString(i), "]");
-
-            // Use the key and parse the strategy address
-            address strategyAddress = abi.decode(stdJson.parseRaw(existingDeploymentData, key), (address));
-            deployedStrategyArray.push(StrategyBase(strategyAddress));
-        }
     }
 
     function _parseDeployedEigenPods(string memory existingDeploymentInfoPath) internal returns (DeployedEigenPods memory) {
@@ -260,6 +269,26 @@ contract ExistingDeploymentParser is Script, Test {
         );
         // AVSDirectory
         AVS_DIRECTORY_INIT_PAUSED_STATUS = stdJson.readUint(initialDeploymentData, ".avsDirectory.init_paused_status");
+        // RewardsCoordinator
+        REWARDS_COORDINATOR_INIT_PAUSED_STATUS = stdJson.readUint(
+            initialDeploymentData,
+            ".rewardsCoordinator.init_paused_status"
+        );
+        REWARDS_COORDINATOR_CALCULATION_INTERVAL_SECONDS = uint32(
+            stdJson.readUint(initialDeploymentData, ".rewardsCoordinator.CALCULATION_INTERVAL_SECONDS")
+        );
+        REWARDS_COORDINATOR_MAX_REWARDS_DURATION = uint32(stdJson.readUint(initialDeploymentData, ".rewardsCoordinator.MAX_REWARDS_DURATION"));
+        REWARDS_COORDINATOR_MAX_RETROACTIVE_LENGTH = uint32(stdJson.readUint(initialDeploymentData, ".rewardsCoordinator.MAX_RETROACTIVE_LENGTH"));
+        REWARDS_COORDINATOR_MAX_FUTURE_LENGTH = uint32(stdJson.readUint(initialDeploymentData, ".rewardsCoordinator.MAX_FUTURE_LENGTH"));
+        REWARDS_COORDINATOR_GENESIS_REWARDS_TIMESTAMP = uint32(stdJson.readUint(initialDeploymentData, ".rewardsCoordinator.GENESIS_REWARDS_TIMESTAMP"));
+        REWARDS_COORDINATOR_UPDATER = stdJson.readAddress(initialDeploymentData, ".rewardsCoordinator.rewards_updater_address");
+        REWARDS_COORDINATOR_ACTIVATION_DELAY = uint32(stdJson.readUint(initialDeploymentData, ".rewardsCoordinator.activation_delay"));
+        REWARDS_COORDINATOR_CALCULATION_INTERVAL_SECONDS = uint32(
+            stdJson.readUint(initialDeploymentData, ".rewardsCoordinator.calculation_interval_seconds")
+        );
+        REWARDS_COORDINATOR_GLOBAL_OPERATOR_COMMISSION_BIPS = uint32(
+            stdJson.readUint(initialDeploymentData, ".rewardsCoordinator.global_operator_commission_bips")
+        );
         // EigenPodManager
         EIGENPOD_MANAGER_INIT_PAUSED_STATUS = stdJson.readUint(
             initialDeploymentData,
@@ -296,6 +325,15 @@ contract ExistingDeploymentParser is Script, Test {
         require(
             avsDirectory.delegation() == delegationManager,
             "avsDirectory: delegationManager address not set correctly"
+        );
+        // RewardsCoordinator
+        require(
+            rewardsCoordinator.delegationManager() == delegationManager,
+            "rewardsCoordinator: delegationManager address not set correctly"
+        );
+        require(
+            rewardsCoordinator.strategyManager() == strategyManager,
+            "rewardsCoordinator: strategyManager address not set correctly"
         );
         // DelegationManager
         require(delegationManager.slasher() == slasher, "delegationManager: slasher address not set correctly");
@@ -351,6 +389,12 @@ contract ExistingDeploymentParser is Script, Test {
         );
         require(
             eigenLayerProxyAdmin.getProxyImplementation(
+                TransparentUpgradeableProxy(payable(address(rewardsCoordinator)))
+            ) == address(rewardsCoordinatorImplementation),
+            "rewardsCoordinator: implementation set incorrectly"
+        );
+        require(
+            eigenLayerProxyAdmin.getProxyImplementation(
                 TransparentUpgradeableProxy(payable(address(delegationManager)))
             ) == address(delegationManagerImplementation),
             "delegationManager: implementation set incorrectly"
@@ -403,6 +447,16 @@ contract ExistingDeploymentParser is Script, Test {
         // AVSDirectory
         vm.expectRevert(bytes("Initializable: contract is already initialized"));
         avsDirectory.initialize(address(0), eigenLayerPauserReg, AVS_DIRECTORY_INIT_PAUSED_STATUS);
+        // RewardsCoordinator
+        vm.expectRevert(bytes("Initializable: contract is already initialized"));
+        rewardsCoordinator.initialize(
+            address(0),
+            eigenLayerPauserReg,
+            0, // initialPausedStatus
+            address(0), // rewardsUpdater
+            0, // activationDelay
+            0 // globalCommissionBips
+        );
         // DelegationManager
         vm.expectRevert(bytes("Initializable: contract is already initialized"));
         IStrategy[] memory initializeStrategiesToSetDelayBlocks = new IStrategy[](0);
@@ -457,6 +511,15 @@ contract ExistingDeploymentParser is Script, Test {
         require(
             avsDirectory.paused() == AVS_DIRECTORY_INIT_PAUSED_STATUS,
             "avsdirectory: init paused status set incorrectly"
+        );
+        // RewardsCoordinator
+        require(
+            rewardsCoordinator.delegationManager() == delegationManager,
+            "rewardsCoordinator: delegationManager address not set correctly"
+        );
+        require(
+            rewardsCoordinator.strategyManager() == strategyManager,
+            "rewardsCoordinator: strategyManager address not set correctly"
         );
         // DelegationManager
         require(
@@ -639,6 +702,12 @@ contract ExistingDeploymentParser is Script, Test {
             deployed_addresses,
             "strategyManagerImplementation",
             address(strategyManagerImplementation)
+        );
+        vm.serializeAddress(deployed_addresses, "rewardsCoordinator", address(rewardsCoordinator));
+        vm.serializeAddress(
+            deployed_addresses,
+            "rewardsCoordinatorImplementation",
+            address(rewardsCoordinatorImplementation)
         );
         vm.serializeAddress(deployed_addresses, "eigenPodManager", address(eigenPodManager));
         vm.serializeAddress(
