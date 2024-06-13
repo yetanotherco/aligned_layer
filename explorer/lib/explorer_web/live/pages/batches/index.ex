@@ -5,7 +5,7 @@ defmodule ExplorerWeb.Batches.Index do
   def mount(params, _, socket) do
     current_page = get_current_page(params)
 
-    page_size = 10
+    page_size = 12
 
     batches = Batches.get_latest_batches(%{amount: page_size * current_page})
 
