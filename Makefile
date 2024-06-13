@@ -34,10 +34,6 @@ anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
-anvil_deploy_mock_strategy:
-	@echo "Deploying Mock Strategy..."
-	. contracts/scripts/anvil/deploy_mock_strategy.sh
-
 anvil_deploy_aligned_contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
@@ -49,6 +45,18 @@ anvil_upgrade_aligned_contracts:
 anvil_upgrade_registry_coordinator:
 	@echo "Upgrading Registry Coordinator Contracts..."
 	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
+
+anvil_upgrade_bls_apk_registry:
+	@echo "Upgrading Bls Apk Registry Contract..."
+	. contracts/scripts/anvil/upgrade_bls_apk_registry.sh
+
+anvil_upgrade_stake_registry:
+	@echo "Upgrading Stake Registry Contract..."
+	. contracts/scripts/anvil/upgrade_stake_registry.sh
+
+anvil_upgrade_index_registry:
+	@echo "Upgrading Index Registry Contracts..."
+	. contracts/scripts/anvil/upgrade_index_registry.sh
 
 anvil_start:
 	@echo "Starting Anvil..."
@@ -124,7 +132,7 @@ operator_whitelist:
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into strategy"
-	$(eval STRATEGY_ADDRESS = $(shell jq -r '.erc20MockStrategy' contracts/script/output/devnet/strategy_deployment_output.json))
+	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
 
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
@@ -461,6 +469,18 @@ upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_registry_coordinator.sh
+
+upgrade_bls_apk_registry: ## Upgrade Registry Coordinator
+	@echo "Upgrading BLS Apk Registry Coordinator..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_bls_apk_registry.sh
+
+upgrade_index_registry: ## Upgrade Registry Coordinator
+	@echo "Upgrading Index Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_index_registry.sh
+
+upgrade_stake_registry: ## Upgrade Stake Registry
+	@echo "Upgrading Stake Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_stake_registry.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
