@@ -141,21 +141,12 @@ make install_foundry
 foundryup
 ```
 
-#### Install the Operator Binary
-
-To install the operator binary, run:
-
-```bash
-make build_operator
-```
-
 #### Update the operator
 
 To update the operator, first stop the process running the operator (if there is any) and then run:
 
 ```bash
 git pull
-make build_operator
 ```
 
 #### Configuration
@@ -168,6 +159,8 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 - `"<earnings_receiver_address>"`
 
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
+
+Then create a .env file in `operator/docker/.env`. An example of the file can be found in `operator/docker/.env.example`.
 
 ### Deposit Strategy Tokens
 
@@ -198,20 +191,12 @@ If you don't have Holesky Eth, these are some useful faucets:
 - [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
 - [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
 
-### Register as an operator with Aligned
-
-To register the operator with Aligned, run:
-
-```bash
-./operator/build/aligned-operator register --config ./config-files/config-operator.yaml
-```
-
 ### Start the operator
 
 To start the Aligned operator, run:
 
 ```bash
-./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+make operator_start_docker
 ```
 
 ### Unregister the operator from Aligned
