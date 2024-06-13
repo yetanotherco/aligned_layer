@@ -713,4 +713,4 @@ recover_db: run_db
 
 explorer_fetch_old_batches:
 	@cd explorer && \
-	./scripts/fetch_old_batches.sh 1728056 1728935
+	./scripts/fetch_old_batches.sh 1728056 1729806
