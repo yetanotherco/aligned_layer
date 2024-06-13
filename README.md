@@ -119,7 +119,7 @@ aligned \
 --conn wss://batcher.alignedlayer.com
 ```
 
-## Register as an Aligned operator in testnet
+## Register as an Aligned operator in testnet using docker
 
 ### Requirements
 
@@ -128,36 +128,42 @@ aligned \
 
 This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
 
-Ensure you have the following installed:
+### Dependencies
 
+#### Using Docker
+
+Ensure you have the following installed:
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+#### From Source
+
+Ensure you have the following installed:
 - [Go](https://go.dev/doc/install)
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
-To install foundry, run:
+### Configuration
 
-```bash
-make install_foundry
-foundryup
-```
+#### Using docker 
 
-#### Update the operator
+Update the following placeholders in `./config-files/config-operator.docker.yaml`:
+- `"<operator_address>"`
+- `"<earnings_receiver_address>"`
 
-To update the operator, first stop the process running the operator (if there is any) and then run:
+Make sure not to update the `ecdsa_key_store_location_path` and `bls_key_store_location_path` 
+as they are already set to the correct path.
 
-```bash
-git pull
-```
+Then create a .env file in `operator/docker/.env`. 
+An example of the file can be found in `operator/docker/.env.example`.
 
-#### Configuration
+#### From source
 
 Update the following placeholders in `./config-files/config-operator.yaml`:
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
-
-`"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
-
-Then create a .env file in `operator/docker/.env`. An example of the file can be found in `operator/docker/.env.example`.
+- `"<ecdsa_key_store_location_path>"`
+- `"<bls_key_store_location_path>"`
 
 ### Deposit Strategy Tokens
 
@@ -169,7 +175,10 @@ The eigen guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/resta
 
 You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximium amount of 10 Eth.
 
-If you have Eth and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH. Change the parameter in ```---value``` if you want to wrap a different amount:
+If you have Eth and need to convert it to WETH you can use the following command, 
+that will convert 1 Eth to WETH. Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
+
+Change the parameter in ```---value``` if you want to wrap a different amount:
 
 ```bash
 cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
@@ -190,10 +199,16 @@ If you don't have Holesky Eth, these are some useful faucets:
 
 ### Start the operator
 
-To start the Aligned operator, run:
+#### Using Docker
 
 ```bash
 make operator_start_docker
+```
+
+#### From Source
+
+```
+./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
 ```
 
 ### Unregister the operator from Aligned
