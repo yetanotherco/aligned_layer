@@ -123,6 +123,10 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_register_with_aligned_layer
 
+operator_start_docker:
+	@echo "Starting Operator..."
+	@docker-compose -f operator/docker/compose.yaml up
+
 __BATCHER__:
 
 BURST_SIZE=5
