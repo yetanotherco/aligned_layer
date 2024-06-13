@@ -66,7 +66,7 @@ aligned \
 --proof_generator_addr [proof_generator_addr]
 ```
 
-**Example**:
+**Example**
 
 ```bash
 aligned \
@@ -90,7 +90,7 @@ aligned \
 --proof_generator_addr [proof_generator_addr]
 ```
 
-**Examples**:
+**Examples**
 
 ```bash
 aligned \
@@ -1006,7 +1006,7 @@ make test
 
 ### SP1
 
-#### SP1 Dependencies
+#### Dependencies
 
 This guide assumes that:
 
