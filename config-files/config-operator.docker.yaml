@@ -1,8 +1,8 @@
 # Common variables for all the services
 # 'production' only prints info and above. 'development' also prints debug
 environment: "production"
-aligned_layer_deployment_config_file_path: "/usr/src/app/contracts/script/output/devnet/alignedlayer_deployment_output.json"
-eigen_layer_deployment_config_file_path: "/usr/src/app/contracts/script/output/devnet/eigenlayer_deployment_output.json"
+aligned_layer_deployment_config_file_path: "/usr/src/app/contracts/script/output/holesky/alignedlayer_deployment_output.json"
+eigen_layer_deployment_config_file_path: "/usr/src/app/contracts/script/output/holesky/eigenlayer_deployment_output.json"
 eth_rpc_url: "https://ethereum-holesky-rpc.publicnode.com"
 eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
 eigen_metrics_ip_port_address: "localhost:9090"

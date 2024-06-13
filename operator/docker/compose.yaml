@@ -12,7 +12,7 @@ services:
     volumes:
       - "${ECDSA_KEY_FILE_HOST}:/usr/src/config/operator.ecdsa.key.json:readonly"
       - "${BLS_KEY_FILE_HOST}:/usr/src/config/operator.bls.key.json:readonly"
-      - "${CONFIG_FILE_HOST}:/usr/src/config/operator.yaml:readonly"
+      - "${OPERATOR_CONFIG_FILE_HOST}:/usr/src/config/operator.yaml:readonly"
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
