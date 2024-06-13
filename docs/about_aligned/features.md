@@ -24,7 +24,7 @@ To transform to USD, we need to multiply the gas cost by the gas cost expressed 
 $$C_{USD} = C_{gas} V_{gas} V_{ETH}$$
 
 For example, if the gas cost is 8 gwei/gas and ETH is worth 3000 USD/ETH, a transaction costs:
-$$C_{USD} = 21,000 \times 8 \times 10^{-9} \times 3000 = \$ 0.504$$
+$$C_{USD} = 21,000 \times 8 \times 10^{-9} \times 3000 = 0.504\ \mathrm{USD}$$
 
 Aligned reduces cost by splitting the cost of task creation and verification among several proofs. The gas cost per proof for a batch containing N proofs is:
 $$C_{gas} = \frac{C_{task} + C_{verification}}{N} + C_{read}$$
