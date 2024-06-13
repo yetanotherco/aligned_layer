@@ -24,12 +24,13 @@ defmodule Scripts.FetchOldBatches do
   end
 
   defp make_request({fromBlock, toBlock}) do
-    "making request from #{fromBlock} to #{toBlock}" |> IO.inspect()
+    "Making old batches request" |> IO.inspect()
+    "from #{fromBlock} to #{toBlock}" |> IO.inspect()
     try do
       Explorer.Periodically.process_from_to_blocks(fromBlock, toBlock)
     rescue
       error -> IO.puts("An error occurred during batch processing*:\n#{inspect(error)}")
     end
   end
-  
+
 end

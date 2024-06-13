@@ -34,7 +34,6 @@ defmodule Explorer.Periodically do
 
   def process_from_to_blocks(fromBlock, toBlock) do
     "Processing from block #{fromBlock} to block #{toBlock}..." |> IO.inspect()
-    # TODO transform to Stream
     try do
       AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock})
       |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)

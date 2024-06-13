@@ -12,7 +12,12 @@ defmodule ExplorerWeb.Batch.Index do
       }
     end
 
-    current_batch = Batches.get_batch(%{merkle_root: merkle_root})
+    current_batch =
+      case Batches.get_batch(%{merkle_root: merkle_root}) do
+        nil -> :empty
+        batch -> batch
+      end
+
 
     {
       :ok,
