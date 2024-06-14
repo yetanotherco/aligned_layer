@@ -3,9 +3,10 @@ package operator
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"crypto/ecdsa"
+	"encoding/binary"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
 	"log"
 	"sync"
 	"time"
@@ -13,9 +14,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
-	"github.com/yetanotherco/aligned_layer/operator/sp1"
-	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
+	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
+	"github.com/yetanotherco/aligned_layer/operator/sp1"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -66,7 +67,19 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	}
 
 	if !registered {
-		log.Fatalf("Operator is not registered with AlignedLayer AVS")
+		log.Println("Operator is not registered with AlignedLayer AVS, registering...")
+		quorumNumbers := []byte{0}
+
+		// Generate salt and expiry
+		privateKeyBytes := []byte(configuration.BlsConfig.KeyPair.PrivKey.String())
+		salt := [32]byte{}
+
+		copy(salt[:], crypto.Keccak256([]byte("churn"), []byte(time.Now().String()), quorumNumbers, privateKeyBytes))
+
+		err = RegisterOperator(context.Background(), &configuration, salt)
+		if err != nil {
+			log.Fatalf("Could not register operator")
+		}
 	}
 
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(configuration.BaseConfig)

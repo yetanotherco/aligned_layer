@@ -10,12 +10,12 @@ eigen_metrics_ip_port_address: "localhost:9090"
 ## ECDSA Configurations
 ecdsa:
   private_key_store_path: "<ecdsa_key_store_location_path>"
-  private_key_store_password: ""
+  private_key_store_password: "<ecdsa_key_store_password>"
 
 ## BLS Configurations
 bls:
   private_key_store_path: "<bls_key_store_location_path>"
-  private_key_store_password: ""
+  private_key_store_password: "<bls_key_store_password>"
 
 ## Operator Configurations
 operator:

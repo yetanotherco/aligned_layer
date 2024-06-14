@@ -66,3 +66,13 @@ defmodule BatchPageItem do
   ]
   defstruct [:batch_merkle_root, :task_created_block_number, :task_created_tx_hash, :task_responded_block_number, :task_responded_tx_hash, :batch_data_pointer, :responded]
 end
+
+defmodule Batch do
+  @enforce_keys [:batch_merkle_root, :batch_data_pointer, :is_verified]
+  defstruct [:batch_merkle_root, :batch_data_pointer, :is_verified]
+end
+
+defmodule BatchDB do
+  @enforce_keys [:batch_merkle_root, :amount_of_proofs, :is_verified]
+  defstruct [:batch_merkle_root, :amount_of_proofs, :is_verified]
+end

@@ -13,7 +13,7 @@ defmodule ExplorerWeb.Batch.Index do
     end
 
     newBatchInfo =
-      case AlignedLayerServiceManager.get_new_batch_events(merkle_root) do
+      case AlignedLayerServiceManager.get_new_batch_events(%{merkle_root: merkle_root}) do
         {:error, reason} ->
           Logger.error("batch detail error: ", reason)
           {:error, reason}
@@ -31,13 +31,17 @@ defmodule ExplorerWeb.Batch.Index do
 
     batchWasResponded = AlignedLayerServiceManager.is_batch_responded(merkle_root)
 
+
+    amount_of_proofs = AlignedLayerServiceManager.get_amount_of_proofs(newBatchInfo)
+
     {
       :ok,
       assign(socket,
         merkle_root: merkle_root,
         newBatchInfo: newBatchInfo,
         batchWasResponded: batchWasResponded,
-        page_title: Utils.shorten_block_hash(merkle_root)
+        page_title: Utils.shorten_block_hash(merkle_root),
+        amount_of_proofs: amount_of_proofs
       )
     }
   rescue
