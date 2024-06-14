@@ -608,6 +608,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_halo2_kzg_linux
 	@$(MAKE) build_halo2_ipa_linux
 	@echo "All Linux FFIs built successfully."
 
