@@ -9,7 +9,7 @@
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
-  - [Register as an Aligned operator in testnet](#register-as-an-aligned-operator-in-testnet)
+  - [Register as an Aligned operator in testnet using docker](#register-as-an-aligned-operator-in-testnet-using-docker)
   - [Local Devnet Setup](#local-devnet-setup)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
@@ -173,7 +173,7 @@ To do so there are 2 options, either doing it through Eigen website, and followi
 
 The eigen guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts). 
 
-You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximium amount of 10 Eth.
+You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximum amount of 10 Eth.
 
 If you have Eth and need to convert it to WETH you can use the following command, 
 that will convert 1 Eth to WETH. Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
@@ -190,7 +190,7 @@ Finally, to end the staking process, you need to deposit into the WETH strategy,
 as shown in the Eigen guide.
 
 <details>
-  <summary>Alternative From CLI</summary>
+  <summary>An alternative to using the CLI</summary>
 
   Run the following command to deposit one WETH
   ```bash
