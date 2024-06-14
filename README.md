@@ -973,7 +973,7 @@ cargo run --release -- \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
---batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
+--aligned_verification_data_path [aligned_verification_data_path]
 ```
 
 ## FAQ
