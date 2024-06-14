@@ -123,7 +123,7 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
         uint verificationDataBatchIndex
-    ) external returns (bool) {
+    ) external view returns (bool) {
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock != 0,
             "Batch doesn't exist"
