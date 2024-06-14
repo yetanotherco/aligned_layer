@@ -21,7 +21,7 @@ defmodule Explorer.Periodically do
     # It gets previous unverified batches and checks if they were verified
     # This is to avoid having too big of a read_block_qty because it would take too long
     # And would take even longer for heavier proof batches, for example SP1
-    run_every_n_iterations = 20
+    run_every_n_iterations = 10
     new_count = rem(count + 1, run_every_n_iterations)
     if new_count == 0 do
       process_unverified_batches()
