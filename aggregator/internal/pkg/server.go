@@ -10,7 +10,8 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
-const waitForEventRetries = 100
+const waitForEventRetries = 50
+const waitForEventSleepSeconds = 4 * time.Second
 
 func (agg *Aggregator) ServeOperators() error {
 	// Registers a new RPC server
@@ -58,7 +59,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		taskIndex, ok = agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
 		if !ok {
 			agg.taskMutex.Unlock()
-			time.Sleep(2 * time.Second)
+			time.Sleep(waitForEventSleepSeconds)
 		} else {
 			break
 		}
