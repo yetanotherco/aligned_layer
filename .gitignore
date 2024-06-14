@@ -6,3 +6,5 @@ cache
 **/build
 **/target
 task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/**
+batcher/aligned/batch_inclusion_responses/*
+**/aligned_verification_data

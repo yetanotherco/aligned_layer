@@ -1,7 +1,0 @@
-{
-  "type": "module",
-  "dependencies": {
-    "@ethersproject/keccak256": "^5.7.0",
-    "@openzeppelin/merkle-tree": "github:OpenZeppelin/merkle-tree"
-  }
-}
