@@ -128,6 +128,19 @@ aligned \
 
 This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
 
+#### Hardware Requirements
+
+Minimum hardware requirements:
+
+| Component     | Specification     |
+| ------------- | ----------------- |
+| **CPU**       | 16 cores          |
+| **Memory**    | 32 GB RAM         |
+| **Bandwidth** | 1 Gbps            |
+| **Storage**   | 256 GB disk space |
+
+#### Software Requirements
+
 Ensure you have the following installed:
 
 - [Go](https://go.dev/doc/install)
@@ -179,11 +192,12 @@ The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, 
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
-To do so there are 2 options, either doing it through EigenLayer website and following their guide, or running the commands specified by us below:
+To do so there are 2 options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
+
+You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
 
 #### Option 1:
-The eigen guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts). 
-You will need to stake a minimum of a 1000 wei in WETH. We recommend to stake a maximium amount of 10 ETH.
+EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
 
 #### Option 2:
 If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH. Change the parameter in ```---value``` if you want to wrap a different amount:
@@ -194,7 +208,7 @@ cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-
 
 Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
 
-Finally, to end the staking process, you need to deposit into the strategy, as shown in the Eigen guide, or alternatively, you can run the following command to deposit one WETH:
+Finally, to end the staking process, you need to deposit into the strategy, as shown in EigenLayer's guide, or alternatively, you can run the following command to deposit 1 WETH:
 
 ```bash
 ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
