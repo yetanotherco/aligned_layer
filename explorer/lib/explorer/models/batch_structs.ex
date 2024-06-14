@@ -26,7 +26,6 @@ defmodule BatchDB do
     :merkle_root,
     :amount_of_proofs,
     :is_verified,
-    #new params:
     :submission_block_number,
     :submission_transaction_hash,
     :submission_timestamp,
@@ -35,7 +34,6 @@ defmodule BatchDB do
     :merkle_root,
     :amount_of_proofs,
     :is_verified,
-    #new params:
     :submission_block_number,
     :submission_transaction_hash,
     :submission_timestamp,
