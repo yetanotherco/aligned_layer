@@ -9,11 +9,7 @@ package risc_zero
 import "C"
 import "unsafe"
 
-const (
-	MaxReceiptSize = 215523
-)
-
-func VerifyRiscZeroReceipt(receiptBuffer [MaxReceiptSize]byte, receiptLen uint32, imageIdBuffer [8]uint32) bool {
+func VerifyRiscZeroReceipt(receiptBuffer []byte, receiptLen uint32, imageIdBuffer [8]uint32) bool {
 	receiptPtr := (*C.uchar)(unsafe.Pointer(&receiptBuffer[0]))
 	imageIdPtr := (*C.uint32_t)(unsafe.Pointer(&imageIdBuffer[0]))
 	return (bool)(C.verify_risc_zero_receipt_ffi(receiptPtr, (C.uint32_t)(receiptLen), imageIdPtr))
