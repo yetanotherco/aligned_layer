@@ -196,7 +196,14 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             );
 
             match call.call().await {
-                Ok(response) => info!("Batch inclusion verification response: {}", response),
+                Ok(response) => {
+                    if response {
+                        info!("Your proof was verified in Aligned and included in the batch!"),
+                    } else {
+                        info!("Your proof was not included in the batch.")
+                    }
+                }
+
                 Err(err) => error!("Error while reading batch inclusion verification: {}", err),
             }
         }
