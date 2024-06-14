@@ -90,7 +90,7 @@ aligned \
 --proof_generator_addr [proof_generator_addr]
 ```
 
-**Examples**
+**Examples**:
 
 ```bash
 aligned \
@@ -886,12 +886,97 @@ To install Grafana, you can follow the instructions on the [official website](ht
 
 - [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
-- [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
-- [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
+- [Docker](https://docs.docker.com/get-docker/)
+
+### DB Setup
+
+To setup the explorer, an installation of the DB is needed.
+
+First you'll need to install docker if you don't have it already. You can follow the instructions [here](https://docs.docker.com/get-docker/).
+
+The explorer uses a PostgreSQL database. To build and start the DB using docker, just run:
+
+```bash
+make build_db
+```
+
+This will build the docker image to be used as our database.
+
+After this, both `make run_explorer` and `make run_devnet_explorer` (see [this](#running-for-local-devnet) for more details) will automatically start, setup and connect to the database, which will be available on `localhost:5432` and the data is persisted in a volume.
+
+<details>
+
+<summary>
+  (Optional) The steps to manually execute the database are as follows...
+</summary>
+
+- Run the database container, opening port `5432`:
+
+```bash
+make run_db
+```
+
+- Configure the database with ecto running `ecto.create` and `ecto.migrate`:
+
+```bash
+make ecto_setup_db
+```
+
+- Start the explorer:
+
+```bash
+make run_explorer # or make run_devnet_explorer
+```
+
+</details>
+
+<br>
+
+In order to clear the DB, you can run:
+
+```bash
+make clean_db
+```
+
+If you need to dumb the data from the DB, you can run:
+
+```bash
+make dump_db
+```
+
+This will create a `dump.$date.sql` SQL script on the `explorer` directory with all the existing data.
+
+Data can be recovered from a `dump.$date.sql` using the following command:
+
+```bash
+make recover_db
+```
+
+Then you'll be requested to enter the file name of the dump you want to recover already positioned in the `/explorer` directory.
+
+This will update your database with the dumped database data.
+
+### Extra scripts
+
+If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure you have the ELIXIR_HOSTNAME .env variable configured. You can get the hostname of your elixir by running `elixir -e 'IO.puts(:inet.gethostname() |> elem(1))'`
+
+Then you can run:
+
+```bash
+make explorer_fetch_old_batches
+```
+
+You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
 
 ### Running for local devnet
 
-```make run_devnet_explorer```
+To run the explorer for the local devnet, you'll need to have the devnet running (see [local devnet setup](#local-devnet-setup)) and the DB already setup.
+
+To run the explorer, just run:
+
+```bash
+make run_devnet_explorer
+```
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
@@ -905,6 +990,13 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 | `RPC_URL`     | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
 | `PHX_HOST`    | The host URL where the Phoenix server will be running.                                          |
+| `DB_NAME` | The name of the postgres database. |
+| `DB_USER` | The username of the postgres database. |
+| `DB_PASS` | The password of the postgres database. |
+| `DB_HOST` | The host URL where the postgres database will be running. |
+| `ELIXIR_HOSTNAME` |  The hostname of your running elixir. Read [Extra Scripts](#extra-scripts) section for more details |
+
+Then you can run the explorer with this env file config by entering the following command:
 
 ```make run_explorer```
 
@@ -955,11 +1047,14 @@ make test
 
 ### SP1
 
-#### Dependencies
+#### SP1 Dependencies
+
 This guide assumes that:
+
 - sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
 - sp1 project to generate the proofs (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
 - aligned layer repository cloned:
+
     ```bash
     git clone https://github.com/yetanotherco/aligned_layer.git
     ```
@@ -973,6 +1068,7 @@ and check that the proof is generated with `client.prove_compressed` instead of 
 First, open a terminal and navigate to the script folder in the sp1 project directory
 
 Then, run the following command to generate a proof:
+
 ```bash
 cargo run --release
 ```
@@ -980,6 +1076,7 @@ cargo run --release
 #### How to get the proof verified by AlignedLayer
 
 After generating the proof, you will have to find two different files:
+
 - proof file: usually found under `script` directory, with the name `proof.json` or similar
 - elf file: usually found under `program/elf/` directory
 
