@@ -156,16 +156,17 @@ This guide assumes you are already [registered as an operator with EigenLayer](h
 Minimum hardware requirements:
 
 | Component     | Specification     |
-| ------------- | ----------------- |
+|---------------|-------------------|
 | **CPU**       | 16 cores          |
 | **Memory**    | 32 GB RAM         |
 | **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
-#### Software Requirements
+### Dependencies
+
+#### From Source (Recommended)
 
 Ensure you have the following installed:
-
 - [Go](https://go.dev/doc/install)
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
@@ -182,34 +183,48 @@ make install_foundry
 foundryup
 ```
 
-#### Install the Operator Binary
+#### Using Docker
 
-To install the operator binary, run:
+Ensure you have the following installed:
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
-```bash
-make build_operator
-```
+### Configuration
 
-#### Update the operator
-
-To update the operator, first stop the process running the operator (if there is any) and then run:
-
-```bash
-git pull
-make build_operator
-```
-
-#### Configuration
+#### From source (Recommended)
 
 Update the following placeholders in `./config-files/config-operator.yaml`:
-
-- `"<ecdsa_key_store_location_path>"`
-- `"<bls_key_store_location_path>"`
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
+- `"<ecdsa_key_store_location_path>"`
+- `"<ecdsa_key_store_password>"`
+- `"<bls_key_store_location_path>"`
+- `"<bls_key_store_password>"`
 
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
+
+#### Using docker
+
+Update the following placeholders in `./config-files/config-operator.docker.yaml`:
+- `"<operator_address>"`
+- `"<earnings_receiver_address>"`
+- `"<ecdsa_key_store_password>"`
+- `"<bls_key_store_password>"`
+
+Make sure not to update the `ecdsa_key_store_location_path` and `bls_key_store_location_path`
+as they are already set to the correct path.
+
+Then create a .env file in `operator/docker/.env`.
+An example of the file can be found in `operator/docker/.env.example`.
+
+The file should contain the following variables:
+
+| Variable Name               | Description                                                                                                   |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------|
+| `ECDSA_KEY_FILE_HOST`       | Absolute path to the ECDSA key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/ |
+| `BLS_KEY_FILE_HOST`         | Absolute path to the BLS key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/   |
+| `OPERATOR_CONFIG_FILE_HOST` | Absolute path to the operator config file. It should be path to config-files/config-operator.docker.yaml      |
 
 ### Deposit Strategy Tokens
 
@@ -223,7 +238,9 @@ You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a 
 EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
 
 #### Option 2:
-If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH. Change the parameter in ```---value``` if you want to wrap a different amount:
+If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH.
+Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
+Change the parameter in ```---value``` if you want to wrap a different amount:
 
 ```bash
 cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
@@ -231,31 +248,35 @@ cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-
 
 Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
 
-Finally, to end the staking process, you need to deposit into the strategy, as shown in EigenLayer's guide, or alternatively, you can run the following command to deposit 1 WETH:
+Finally, to end the staking process, you need to deposit into the WETH strategy,
+as shown in the Eigen guide.
 
-```bash
-./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
-```
+<details>
+  <summary>An alternative using the CLI (only when running without docker)</summary>
+
+  Run the following command to deposit one WETH
+  ```bash
+  ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
+  ```
+</details>
 
 If you don't have Holesky Eth, these are some useful faucets:
 
 - [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
 - [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
 
-### Register as an operator with Aligned
-
-To register the operator with Aligned, run:
-
-```bash
-./operator/build/aligned-operator register --config ./config-files/config-operator.yaml
-```
-
 ### Start the operator
 
-To start the Aligned operator, run:
+#### From Source (Recommended)
+
+```
+./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+```
+
+#### Using Docker
 
 ```bash
-./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+make operator_start_docker
 ```
 
 ### Unregister the operator from Aligned

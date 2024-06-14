@@ -154,6 +154,10 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
+operator_start_docker:
+	@echo "Starting Operator..."
+	@docker-compose -f operator/docker/compose.yaml up
+
 __BATCHER__:
 
 BURST_SIZE=5
@@ -651,7 +655,7 @@ build_all_ffi: ## Build all FFIs
 build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
-	@$(MAKE) build_risc_zero_macos
+#	@$(MAKE) build_risc_zero_macos
 #	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
@@ -660,7 +664,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
-	@$(MAKE) build_risc_zero_linux
+#	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
