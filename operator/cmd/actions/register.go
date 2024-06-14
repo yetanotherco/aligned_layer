@@ -2,13 +2,11 @@ package actions
 
 import (
 	"context"
-	"math/big"
+	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 	"time"
 
-	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
@@ -35,44 +33,9 @@ func registerOperatorMain(ctx *cli.Context) error {
 
 	copy(salt[:], crypto.Keccak256([]byte("churn"), []byte(time.Now().String()), quorumNumbers, privateKeyBytes))
 
-	expiry := big.NewInt(time.Now().Add(10 * time.Minute).Unix())
-	quorumNumbersArr := types.QuorumNums{0}
-	socket := "Not Needed"
-
-	err := registerOperator(context.Background(), config,
-		socket, quorumNumbersArr, salt, expiry)
+	err := operator.RegisterOperator(context.Background(), config, salt)
 	if err != nil {
 		config.BaseConfig.Logger.Error("Failed to register operator", "err", err)
-		return err
-	}
-
-	return nil
-}
-
-// RegisterOperator operator registers the operator with the given public key for the given quorum IDs.
-// RegisterOperator registers a new operator with the given public key and socket with the provided quorum ids.
-// If the operator is already registered with a given quorum id, the transaction will fail (noop) and an error
-// will be returned.
-func registerOperator(
-	ctx context.Context,
-	configuration *config.OperatorConfig,
-	socket string,
-	quorumNumbers types.QuorumNums,
-	operatorToAvsRegistrationSigSalt [32]byte,
-	operatorToAvsRegistrationSigExpiry *big.Int,
-) error {
-	writer, err := chainio.NewAvsWriterFromConfig(configuration.BaseConfig, configuration.EcdsaConfig)
-	if err != nil {
-		configuration.BaseConfig.Logger.Error("Failed to create AVS writer", "err", err)
-		return err
-	}
-
-	_, err = writer.RegisterOperatorInQuorumWithAVSRegistryCoordinator(ctx, configuration.EcdsaConfig.PrivateKey,
-		operatorToAvsRegistrationSigSalt, operatorToAvsRegistrationSigExpiry, configuration.BlsConfig.KeyPair,
-		quorumNumbers, socket)
-
-	if err != nil {
-		configuration.BaseConfig.Logger.Error("Failed to register operator", "err", err)
 		return err
 	}
 

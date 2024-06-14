@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alloy-primitives = { version = "0.7.4", features = ["serde"] }
+ethers = { version = "2.0", features = ["ws", "rustls"] }
 anyhow = "1.0.83"
 log = { version = "0.4.21"}
 serde = { version = "1.0.201", features = ["derive"] }

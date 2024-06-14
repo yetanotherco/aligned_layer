@@ -1,0 +1,18 @@
+services:
+  operator:
+    env_file:
+      - .env
+    container_name: operator
+    image: operator:latest
+    build:
+      context: ../../
+      dockerfile: operator/docker/operator.Dockerfile
+
+    volumes:
+      - "${ECDSA_KEY_FILE_HOST}:/usr/src/config/operator.ecdsa.key.json:readonly"
+      - "${BLS_KEY_FILE_HOST}:/usr/src/config/operator.bls.key.json:readonly"
+      - "${OPERATOR_CONFIG_FILE_HOST}:/usr/src/config/operator.yaml:readonly"
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+

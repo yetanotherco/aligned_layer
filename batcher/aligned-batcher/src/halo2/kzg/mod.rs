@@ -74,7 +74,7 @@ pub fn verify_halo2_kzg(proof: &[u8], public_input: &[u8], verification_key: &[u
                     >(
                         &params, &vk, strategy, &[&[instances]], &mut transcript
                     )
-                        .is_ok();
+                    .is_ok();
                 }
             }
         }
