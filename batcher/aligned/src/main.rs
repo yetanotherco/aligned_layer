@@ -4,6 +4,9 @@ mod errors;
 
 use std::{path::PathBuf, sync::Arc};
 
+use aligned_batcher_lib::types::{
+    parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData,
+};
 use alloy_primitives::{hex, Address};
 use env_logger::Env;
 use futures_util::{
@@ -15,12 +18,11 @@ use log::{error, info};
 use tokio::{
     net::TcpStream,
     sync::Mutex,
-    time::{timeout, Duration,sleep},
+    time::{sleep, timeout, Duration},
 };
 use tokio_tungstenite::{
     connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
 };
-use aligned_batcher_lib::types::{parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData};
 
 use crate::errors::BatcherClientError;
 use clap::Parser;
@@ -76,24 +78,20 @@ async fn main() -> Result<(), errors::BatcherClientError> {
     let (ws_stream, _) = connect_async(url).await?;
     info!("WebSocket handshake has been successfully completed");
 
-    let (ws_write, ws_read) = ws_stream.split();
-    let ws_write = Arc::new(Mutex::new(ws_write));
+    let (mut ws_write, ws_read) = ws_stream.split();
 
     let repetitions = args.repetitions;
     let verification_data = verification_data_from_args(args)?;
 
     let json_data = serde_json::to_string(&verification_data)?;
     for _ in 0..repetitions {
-       let _ = sleep(Duration::from_millis(500)).await;
-        ws_write
-            .lock()
-            .await
-            .send(Message::Text(json_data.clone()))
-            .await?;
+        let _ = sleep(Duration::from_millis(500)).await;
+        ws_write.send(Message::Text(json_data.to_string())).await?;
         info!("Message sent...");
     }
 
     let num_responses = Arc::new(Mutex::new(0));
+    let ws_write = Arc::new(Mutex::new(ws_write));
 
     match receive(ws_read, ws_write, repetitions, num_responses).await {
         Ok(_) => info!("All operations completed successfully"),
@@ -147,7 +145,7 @@ async fn receive(
             }
             Err(_) => {
                 info!("Waiting for batch inclusion responses...");
-                continue  
+                continue;
             }
             Ok(None) => {
                 return Ok(());
@@ -157,7 +155,6 @@ async fn receive(
                 return Err(BatcherClientError::ConnectionError(e));
             }
         }
-
     }
 }
 fn verification_data_from_args(args: Args) -> Result<VerificationData, BatcherClientError> {
