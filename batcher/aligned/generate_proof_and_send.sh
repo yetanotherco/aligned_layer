@@ -16,7 +16,7 @@ fi
 echo "Generating proof $x != 0"
 go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 
-./batcher/target/release/aligned \
+./batcher/target/release/aligned submit \
   --proving_system Groth16Bn254 \
   --repetitions $repetitions \
   --proof task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.proof \

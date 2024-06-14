@@ -75,16 +75,16 @@ name = "aligned"
 version = "0.1.0"
 dependencies = [
  "aligned-batcher-lib",
- "alloy-primitives",
  "clap",
  "env_logger",
+ "ethers",
  "futures-util",
+ "lambdaworks-crypto",
  "log",
  "serde",
  "serde_json",
  "tokio",
  "tokio-tungstenite 0.21.0",
- "tungstenite 0.21.0",
  "url",
 ]
 
@@ -123,8 +123,8 @@ dependencies = [
 name = "aligned-batcher-lib"
 version = "0.1.0"
 dependencies = [
- "alloy-primitives",
  "anyhow",
+ "ethers",
  "hex",
  "lambdaworks-crypto",
  "log",
