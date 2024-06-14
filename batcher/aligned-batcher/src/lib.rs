@@ -26,7 +26,6 @@ use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
 use types::errors::BatcherError;
-use zk_utils::verify;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::eth::AlignedLayerServiceManager;
@@ -52,6 +51,7 @@ pub struct Batcher {
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
+    pre_verification_is_enabled: bool,
 }
 
 impl Batcher {
@@ -97,6 +97,7 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
+            pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
         }
     }
 
@@ -164,12 +165,18 @@ impl Batcher {
         message: Message,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
-        // Deserialize task from message
+        // Deserialize verification data from message
         let verification_data: VerificationData =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
-        if verification_data.proof.len() <= self.max_proof_size && verify(&verification_data) {
+        if verification_data.proof.len() <= self.max_proof_size {
+            // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
+            if self.pre_verification_is_enabled && !zk_utils::verify(&verification_data) {
+                return Err(tokio_tungstenite::tungstenite::Error::Protocol(
+                    ProtocolError::HandshakeIncomplete,
+                ));
+            }
             self.add_to_batch(verification_data, ws_conn_sink.clone())
                 .await;
         } else {
