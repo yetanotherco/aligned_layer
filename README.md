@@ -119,7 +119,7 @@ aligned \
 --conn wss://batcher.alignedlayer.com
 ```
 
-## Register as an Aligned operator in testnet using docker
+## Register as an Aligned operator in testnet
 
 ### Requirements
 
@@ -143,6 +143,17 @@ Ensure you have the following installed:
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
+Also, you have to install the following dependencies for Linux:
+
+- pkg-config
+- libssl-dev
+
+To install foundry, run:
+
+```bash
+make install_foundry
+foundryup
+```
 ### Configuration
 
 #### Using docker 
