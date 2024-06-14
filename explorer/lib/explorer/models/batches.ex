@@ -7,7 +7,6 @@ defmodule Batches do
   schema "batches" do
     field :amount_of_proofs, :integer
     field :is_verified, :boolean
-    #new params:
     field :submission_block_number, :integer
     field :submission_transaction_hash, :string
     field :submission_timestamp, :utc_datetime
