@@ -30,7 +30,7 @@ use crate::errors::BatcherClientError;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyInclusion;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -93,6 +93,14 @@ pub struct VerifyInclusionArgs {
     eth_rpc_url: String,
     #[arg(name = "Private key store path", long = "private-key-store")]
     private_key_store_path: PathBuf,
+    #[arg(name = "The Ethereum network's name", long = "chain", default_value = "devnet")]
+    chain: Chain,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum Chain {
+    Devnet,
+    Holesky,
 }
 
 #[tokio::main]
@@ -127,10 +135,10 @@ async fn main() -> Result<(), errors::BatcherClientError> {
         }
 
         VerifyInclusion(verify_inclusion_args) => {
-            // FIXME(marian): This is address for the Aligned service manager in the Anvil devnet.
-            // We can add a input parameter flag in the CLI to specify the ethereum network and
-            // based on that this value is set accordingly.
-            let contract_address = "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8";
+            let contract_address = match verify_inclusion_args.chain {
+                Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+                Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+            };
 
             let batch_inclusion_file =
                 File::open(verify_inclusion_args.batch_inclusion_data).unwrap();
