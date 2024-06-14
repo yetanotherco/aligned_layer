@@ -41,7 +41,7 @@ topbar.config({
 	shadowColor: "rgba(0, 0, 0, .3)"
 });
 window.addEventListener("phx:page-loading-start", (_info) =>
-	topbar.show(150)
+	topbar.show(50)
 );
 window.addEventListener("phx:page-loading-stop", (_info) =>
 	topbar.hide()

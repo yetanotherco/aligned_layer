@@ -15,36 +15,54 @@ defmodule ExplorerWeb.Home.Index do
          "Please enter a valid proof batch hash, these should be hex values (0x69...)."
        )}
     else
-      {:noreply, redirect(socket, to: "/batches/#{batch_merkle_root}")}
+      {:noreply, push_navigate(socket, to: "/batches/#{batch_merkle_root}")}
     end
   end
 
   def mount(_, _, socket) do
-    verified_batches = get_verified_batches_count()
+    verified_batches = Batches.get_amount_of_verified_batches()
 
     operators_registered = get_operators_registered()
 
     latest_batches =
-      AlignedLayerServiceManager.get_new_batch_events(5)
+      AlignedLayerServiceManager.get_new_batch_events(%{amount: 5})
       |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
       |> Enum.reverse()
+
+    submitted_proofs = Batches.get_amount_of_submitted_proofs()
+    verified_proofs = Batches.get_amount_of_verified_proofs()
 
     {:ok,
      assign(socket,
        verified_batches: verified_batches,
        operators_registered: operators_registered,
        latest_batches: latest_batches,
+       submitted_proofs: submitted_proofs,
+       verified_proofs: verified_proofs,
        page_title: "Welcome"
      )}
-  end
+  rescue
+    e in Mint.TransportError ->
+      case e do
+        %Mint.TransportError{reason: :econnrefused} ->
+          {
+            :ok,
+            assign(socket,
+              verified_batches: :empty,
+              operators_registered: :empty,
+              latest_batches: :empty,
+              submitted_proofs: :empty,
+              verified_proofs: :empty
+            )
+            |> put_flash(:error, "Could not connect to the backend, please try again later.")
+          }
 
-  defp get_verified_batches_count() do
-    AlignedLayerServiceManager.get_batch_verified_events()
-    |> (fn
-          {:ok, nil} -> 0
-          {:ok, list} -> Enum.count(list)
-          {:error, _} -> 0
-        end).()
+        _ ->
+          IO.puts("Other transport error: #{inspect(e)}")
+      end
+
+    e ->
+      raise e
   end
 
   # tail-call recursion
