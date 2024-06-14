@@ -136,7 +136,7 @@ Minimum hardware requirements:
 | ------------- | ----------------- |
 | **CPU**       | 16 cores          |
 | **Memory**    | 32 GB RAM         |
-| **Bandwidth** | 1 GB/s            |
+| **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
 #### Software Requirements
