@@ -161,6 +161,8 @@ foundryup
 Update the following placeholders in `./config-files/config-operator.docker.yaml`:
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
+- `"<ecdsa_key_store_password>"`
+- `"<bls_key_store_password>"`
 
 Make sure not to update the `ecdsa_key_store_location_path` and `bls_key_store_location_path` 
 as they are already set to the correct path.
@@ -182,7 +184,9 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
 - `"<ecdsa_key_store_location_path>"`
+- `"<ecdsa_key_store_password>"`
 - `"<bls_key_store_location_path>"`
+- `"<bls_key_store_password>"`
 
 ### Deposit Strategy Tokens
 
