@@ -258,7 +258,7 @@ async fn receive(
                     file.write_all(data.as_slice()).unwrap();
                     info!(
                         "Batch inclusion data written into {}",
-                        batch_inclusion_data_path
+                        batch_inclusion_data_path.display()
                     );
                 }
                 Err(e) => {
