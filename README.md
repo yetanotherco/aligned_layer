@@ -46,9 +46,18 @@ Send the proof with:
 ```bash
 aligned submit \
 --proving_system SP1 \
---proof ~/.aligned/test_files/sp1_fibonacci.proof \
---vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
+--proof batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
+--vm_program batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
+--aligned_verification_data_path ./aligned_verification_data \
 --conn wss://batcher.alignedlayer.com
+```
+
+Test it has been verified with:
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data aligned_verification_data/*.json \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--chain holesky
 ```
 
 ### Run
