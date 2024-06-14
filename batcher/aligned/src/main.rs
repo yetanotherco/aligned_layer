@@ -257,8 +257,8 @@ async fn receive(
                     let mut file = File::create(&batch_inclusion_data_path).unwrap();
                     file.write_all(data.as_slice()).unwrap();
                     info!(
-                        "Batch inclusion data written into file {}",
-                        batch_inclusion_data_file_name
+                        "Batch inclusion data written into {}",
+                        batch_inclusion_data_path
                     );
                 }
                 Err(e) => {
