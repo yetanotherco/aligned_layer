@@ -946,7 +946,7 @@ Then you can run:
 make explorer_fetch_old_batches
 ```
 
-You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
+You can modify which blocks are being fetched by modifying the parameters the `explorer_fetch_old_batches.sh` is being recieved (this can be done directly on the Makefile)
 
 ### Running for local devnet
 
