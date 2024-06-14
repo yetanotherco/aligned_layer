@@ -29,7 +29,7 @@
       >
         <%= @current_batch.submission_transaction_hash %>
       </.a>
-      Submission Date:
+      Submission Timestamp:
       <p class="break-all font-normal"><%= @current_batch.submission_timestamp |> Utils.parse_timestamp %></p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
@@ -51,7 +51,7 @@
         >
           <%= @current_batch.response_transaction_hash %>
         </.a>
-        Response Date:
+        Response Timestamp:
         <p class="break-all font-normal"><%= @current_batch.response_timestamp |> Utils.parse_timestamp %></p>
       <% end %>
     </.card>

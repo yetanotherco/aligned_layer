@@ -31,9 +31,39 @@ defmodule ExplorerWeb.Utils do
     formatted_minute = pad_leading_zero(minute)
     formatted_second = pad_leading_zero(second)
     formatted_day = pad_leading_zero(day)
-    formatted_month = pad_leading_zero(month)
+    formatted_month = format_month(month)
 
-    "#{formatted_hour}:#{formatted_minute}:#{formatted_second} #{formatted_day}/#{formatted_month}/#{year} (UTC)"
+    "#{formatted_hour}:#{formatted_minute}:#{formatted_second} (UTC) - #{formatted_month} #{formatted_day}, #{year}"
+  end
+
+  def parse_timestamp_less(timestamp) do
+    %{hour: hour, minute: minute, second: second, day: day, month: month} = timestamp
+
+    formatted_hour = pad_leading_zero(hour)
+    formatted_minute = pad_leading_zero(minute)
+    formatted_second = pad_leading_zero(second)
+    formatted_day = pad_leading_zero(day)
+    formatted_month = format_month(month)
+
+    "#{formatted_hour}:#{formatted_minute}:#{formatted_second} - #{formatted_month} #{formatted_day}"
+  end
+
+  def format_month(num) do
+    case num do
+      1 -> "Jan"
+      2 -> "Feb"
+      3 -> "Mar"
+      4 -> "Apr"
+      5 -> "May"
+      6 -> "Jun"
+      7 -> "Jul"
+      8 -> "Aug"
+      9 -> "Sep"
+      10 -> "Oct"
+      11 -> "Nov"
+      12 -> "Dec"
+      _ -> ""
+    end
   end
 
   defp pad_leading_zero(value) do
