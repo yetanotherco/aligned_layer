@@ -18,7 +18,7 @@ use log::{error, info};
 use tokio::{
     net::TcpStream,
     sync::Mutex,
-    time::{sleep, timeout, Duration},
+    time::{timeout, Duration},
 };
 use tokio_tungstenite::{
     connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
@@ -85,7 +85,6 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
     let json_data = serde_json::to_string(&verification_data)?;
     for _ in 0..repetitions {
-        let _ = sleep(Duration::from_millis(500)).await;
         ws_write.send(Message::Text(json_data.to_string())).await?;
         info!("Message sent...");
     }
@@ -111,7 +110,7 @@ async fn receive(
     let mut response_stream =
         ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
     loop {
-        match timeout(Duration::from_secs(3), response_stream.next()).await {
+        match timeout(Duration::from_secs(7), response_stream.next()).await {
             Ok(Some(Ok(msg))) => {
                 if let Message::Close(close_frame) = msg {
                     if let Some(close_msg) = close_frame {
