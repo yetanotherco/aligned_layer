@@ -125,8 +125,8 @@ aligned submit \
 After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format inside the `<batch_inclusion_data_directory_path>`, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. By default, the `batch_inclusion_data` directory will be created where the submit command is being executed, but you can specify it with the `<batch_inclusion_data_directory_path>` argument. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file, and `<private_key_store>` with the path to your ECDSA key store:
 
 ```bash
-aligned verify-inclusion \
---inclusion-data <path_to_batch_inclusion_data> \
+aligned verify-proof-onchain \
+--aligned-verification-data <path_to_verification_data> \
 --private-key-store <path_to_private_key_store> \
 --chain holesky
 ```
@@ -134,8 +134,8 @@ aligned verify-inclusion \
 As an example,
 
 ```bash
-aligned verify-inclusion \
---inclusion-data 19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json --private-key-store config-files/anvil.ecdsa.key.json \
+aligned verify-proof-onchain \
+--aligned-verification-data 19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json --private-key-store config-files/anvil.ecdsa.key.json \
 --chain holesky
 ```
 
@@ -609,7 +609,7 @@ aligned \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
 --proof_generator_addr [proof_generator_addr] \
---batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
+--aligned_verification_data_path [aligned_verification_data_path]
 ```
 
 ### Task Sender

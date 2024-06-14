@@ -28,7 +28,7 @@ use ethers::utils::hex;
 
 use crate::errors::BatcherClientError;
 use crate::AlignedCommands::Submit;
-use crate::AlignedCommands::VerifyInclusion;
+use crate::AlignedCommands::VerifyProofOnchain;
 
 use clap::{Parser, ValueEnum};
 
@@ -44,7 +44,7 @@ pub enum AlignedCommands {
     #[clap(about = "Submit proof to the batcher")]
     Submit(SubmitArgs),
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
-    VerifyInclusion(VerifyInclusionArgs),
+    VerifyProofOnchain(VerifyProofOnchainArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -80,16 +80,16 @@ pub struct SubmitArgs {
     proof_generator_addr: String,
     #[arg(
         name = "Batch Inclusion Data Directory Path",
-        long = "batch_inclusion_data_directory_path",
-        default_value = "./batch_inclusion_data/"
+        long = "aligned_verification_data_path",
+        default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct VerifyInclusionArgs {
-    #[arg(name = "Batch inclusion data", long = "inclusion-data")]
+pub struct VerifyProofOnchainArgs {
+    #[arg(name = "Batch inclusion data", long = "aligned-verification-data")]
     batch_inclusion_data: PathBuf,
     #[arg(
         name = "Ethereum RPC provider address",
@@ -154,7 +154,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             .await?;
         }
 
-        VerifyInclusion(verify_inclusion_args) => {
+        VerifyProofOnchain(verify_inclusion_args) => {
             let contract_address = match verify_inclusion_args.chain {
                 Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
                 Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
