@@ -44,7 +44,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 Send the proof with:
 
 ```bash
-aligned \
+aligned submit \
 --proving_system SP1 \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
@@ -58,7 +58,7 @@ aligned \
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
@@ -69,7 +69,7 @@ aligned \
 **Example**
 
 ```bash
-aligned \
+aligned submit \
 --proving_system SP1 \
 --proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
 --vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
@@ -81,7 +81,7 @@ aligned \
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
@@ -93,7 +93,7 @@ aligned \
 **Examples**
 
 ```bash
-aligned \
+aligned submit \
 --proving_system GnarkPlonkBn254 \
 --proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
 --public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
@@ -102,7 +102,7 @@ aligned \
 ```
 
 ```bash
-aligned \
+aligned submit \
 --proving_system GnarkPlonkBls12_381 \
 --proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
 --public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -111,12 +111,30 @@ aligned \
 ```
 
 ```bash
-aligned \
+aligned submit \
 --proving_system Groth16Bn254 \
 --proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
 --public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
 --vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
+```
+
+### Verify proof batch inclusion on Ethereum
+After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file, and `<private_key_store>` with the path to your ECDSA key store:
+
+```bash
+aligned verify-inclusion \
+--inclusion-data <path_to_batch_inclusion_data> \
+--private-key-store <path_to_private_key_store> \
+--chain holesky
+```
+
+As an example,
+
+```bash
+aligned verify-inclusion \
+--inclusion-data 19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json --private-key-store config-files/anvil.ecdsa.key.json \
+--chain holesky
 ```
 
 ## Register as an Aligned operator in testnet
