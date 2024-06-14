@@ -44,7 +44,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 Send the proof with:
 
 ```bash
-aligned \
+aligned submit \
 --proving_system SP1 \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
@@ -58,18 +58,19 @@ aligned \
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 **Example**
 
 ```bash
-aligned \
+aligned submit \
 --proving_system SP1 \
 --proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
 --vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
@@ -81,19 +82,20 @@ aligned \
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 **Examples**:
 
 ```bash
-aligned \
+aligned submit \
 --proving_system GnarkPlonkBn254 \
 --proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
 --public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
@@ -102,7 +104,7 @@ aligned \
 ```
 
 ```bash
-aligned \
+aligned submit \
 --proving_system GnarkPlonkBls12_381 \
 --proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
 --public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -111,12 +113,33 @@ aligned \
 ```
 
 ```bash
-aligned \
+aligned submit \
 --proving_system Groth16Bn254 \
 --proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
 --public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
 --vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
+```
+
+### Creating a transaction from the CLI to verify proof in Ethereum
+After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format inside the `<batch_inclusion_data_directory_path>`, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. By default, the `batch_inclusion_data` directory will be created where the submit command is being executed, but you can specify it with the `<batch_inclusion_data_directory_path>` argument. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file, and `<private_key_store>` with the path to your ECDSA key store:
+
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data <path_to_verification_data> \
+--private-key-store <path_to_private_key_store> \
+--eth_rpc_url <holesky_rpc_url> \
+--chain holesky
+```
+
+As an example,
+
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data 19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json --private-key-store config-files/anvil.ecdsa.key.json \
+--eth_rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--chain holesky
+
 ```
 
 ## Register as an Aligned operator in testnet
@@ -609,7 +632,8 @@ aligned \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--aligned_verification_data_path [aligned_verification_data_path]
 ```
 
 ### Task Sender
@@ -1069,7 +1093,8 @@ cargo run --release -- \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--aligned_verification_data_path [aligned_verification_data_path]
 ```
 
 ## FAQ
