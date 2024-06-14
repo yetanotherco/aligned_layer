@@ -128,6 +128,7 @@ After running the commands of the previous section to submit proofs to the batch
 aligned verify-proof-onchain \
 --aligned-verification-data <path_to_verification_data> \
 --private-key-store <path_to_private_key_store> \
+--eth_rpc_url <holesky_rpc_url> \
 --chain holesky
 ```
 
@@ -136,7 +137,9 @@ As an example,
 ```bash
 aligned verify-proof-onchain \
 --aligned-verification-data 19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json --private-key-store config-files/anvil.ecdsa.key.json \
+--eth_rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --chain holesky
+
 ```
 
 ## Register as an Aligned operator in testnet
