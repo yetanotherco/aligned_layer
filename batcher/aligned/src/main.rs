@@ -79,7 +79,7 @@ pub struct SubmitArgs {
     )] // defaults to anvil address 1
     proof_generator_addr: String,
     #[arg(
-        name = "Batch Inclusion Data Directory Path",
+        name = "Aligned verification data directory Path",
         long = "aligned_verification_data_path",
         default_value = "./aligned_verification_data/"
     )]
