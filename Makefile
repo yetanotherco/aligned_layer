@@ -185,7 +185,7 @@ batcher/target/release/aligned:
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -193,7 +193,7 @@ batcher_send_sp1_task:
 
 batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -206,7 +206,7 @@ batcher_send_infinite_sp1:
 
 batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
@@ -215,7 +215,7 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 
 batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
@@ -225,7 +225,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -234,7 +234,7 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 
 batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -245,7 +245,7 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 
 batcher_send_groth16_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
@@ -254,7 +254,7 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 
 batcher_send_groth16_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
@@ -274,7 +274,7 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 
 batcher_send_halo2_ipa_task: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2IPA \
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
@@ -282,7 +282,7 @@ batcher_send_halo2_ipa_task: batcher/target/release/aligned
 
 batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2IPA \
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
@@ -291,7 +291,7 @@ batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 
 batcher_send_halo2_kzg_task: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2KZG \
 		--proof test_files/halo2_kzg/proof.bin \
 		--public_input test_files/halo2_kzg/pub_input.bin \
@@ -300,7 +300,7 @@ batcher_send_halo2_kzg_task: batcher/target/release/aligned
 
 batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2KZG \
 		--proof test_files/halo2_kzg/proof.bin \
 		--public_input test_files/halo2_kzg/pub_input.bin \
