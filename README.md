@@ -122,24 +122,22 @@ aligned submit \
 ```
 
 ### Creating a transaction from the CLI to verify proof in Ethereum
-After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format inside the `<batch_inclusion_data_directory_path>`, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. By default, the `batch_inclusion_data` directory will be created where the submit command is being executed, but you can specify it with the `<batch_inclusion_data_directory_path>` argument. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file, and `<private_key_store>` with the path to your ECDSA key store:
+After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format inside the `<batch_inclusion_data_directory_path>`, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. By default, the `batch_inclusion_data` directory will be created where the submit command is being executed, but you can specify it with the `<batch_inclusion_data_directory_path>` argument. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file.
 
 ```bash
 aligned verify-proof-onchain \
---aligned-verification-data <path_to_verification_data> \
---private-key-store <path_to_private_key_store> \
---eth_rpc_url <holesky_rpc_url> \
+--aligned-verification-data <path_to_your_verification_data> \
+--rpc <holesky_rpc_url> \
 --chain holesky
 ```
 
-As an example,
+As a quick example for trying it out, you can use verification data provided by us in `./batcher/aligned/test_files/batch_inclusion_data/17bd5db82ef731ba3710b22df8e3c1ca6a5cde0a8d1ca1681664e4ff9b25574f_295.json`:
 
 ```bash
 aligned verify-proof-onchain \
---aligned-verification-data 19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json --private-key-store config-files/anvil.ecdsa.key.json \
---eth_rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--aligned-verification-data ./batcher/aligned/test_files/batch_inclusion_data/17bd5db82ef731ba3710b22df8e3c1ca6a5cde0a8d1ca1681664e4ff9b25574f_295.json \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
 --chain holesky
-
 ```
 
 ## Register as an Aligned operator in testnet
