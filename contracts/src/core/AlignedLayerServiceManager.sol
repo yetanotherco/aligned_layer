@@ -126,7 +126,7 @@ contract AlignedLayerServiceManager is
     ) external returns (bool) {
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock != 0,
-            "Batch doesn't exists"
+            "Batch doesn't exist"
         );
 
         require(
