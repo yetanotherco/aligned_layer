@@ -97,8 +97,6 @@ pub struct VerifyProofOnchainArgs {
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
-    #[arg(name = "Private key store path", long = "private-key-store")]
-    private_key_store_path: PathBuf,
     #[arg(
         name = "The Ethereum network's name",
         long = "chain",
@@ -178,15 +176,12 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
-            let private_key_store_path = verify_inclusion_args.private_key_store_path;
 
             // FIXME(marian): We are passing an empty string as the private key password for the moment.
             // We should think how to handle this correctly.
             let service_manager = eth::aligned_service_manager(
                 eth_rpc_provider,
                 contract_address,
-                private_key_store_path,
-                "",
             )
             .await?;
 
@@ -201,7 +196,14 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             );
 
             match call.call().await {
-                Ok(response) => info!("Batch inclusion verification response: {}", response),
+                Ok(response) => {
+                    if response {
+                        info!("Your proof was verified in Aligned and included in the batch!");
+                    } else {
+                        info!("Your proof was not included in the batch.");
+                    }
+                }
+
                 Err(err) => error!("Error while reading batch inclusion verification: {}", err),
             }
         }
