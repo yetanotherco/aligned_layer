@@ -190,7 +190,9 @@ Finally, to end the staking process, you need to deposit into the WETH strategy,
 as shown in the Eigen guide.
 
 <details>
-  <summary>An alternative to using the CLI</summary>
+  <summary>An alternative using the CLI</summary>
+
+  You need to have built the operator before running the following commands.
 
   Run the following command to deposit one WETH
   ```bash
