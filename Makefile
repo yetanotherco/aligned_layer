@@ -680,3 +680,15 @@ run_explorer:
 	@cd explorer/ && \
 		mix setup && \
 		./start.sh
+
+__VERIFY_BATCH_INCLUSION_CALLER__:
+
+anvil_deploy_batch_inclusion_caller:
+	@echo "Deploying Batch Inclusion Verifier..."
+	@./contracts/scripts/anvil/deploy_verify_batch_inclusion_caller.sh
+
+execute_static_call:
+	cast call 0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8 \
+	"verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)(bool)" \
+	0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef \
+	0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890 0x7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234 0x1234567890abcdef1234567890abcdef12345678 0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef 0xdeadbeef 123
