@@ -122,7 +122,7 @@ aligned submit \
 ```
 
 ### Verify proof batch inclusion on Ethereum
-After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file, and `<private_key_store>` with the path to your ECDSA key store:
+After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format inside the `<batch_inclusion_data_directory_path>`, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. By default, the `batch_inclusion_data` directory will be created where the submit command is being executed, but you can specify it with the `<batch_inclusion_data_directory_path>` argument. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file, and `<private_key_store>` with the path to your ECDSA key store:
 
 ```bash
 aligned verify-inclusion \
