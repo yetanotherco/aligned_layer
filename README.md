@@ -134,6 +134,11 @@ Ensure you have the following installed:
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
+Also, you have to install the following dependencies for Linux:
+
+- pkg-config
+- libssl-dev
+
 To install foundry, run:
 
 ```bash
