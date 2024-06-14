@@ -89,7 +89,7 @@ pub struct SubmitArgs {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct VerifyProofOnchainArgs {
-    #[arg(name = "Batch inclusion data", long = "aligned-verification-data")]
+    #[arg(name = "Aligned verification data", long = "aligned-verification-data")]
     batch_inclusion_data: PathBuf,
     #[arg(
         name = "Ethereum RPC provider address",
