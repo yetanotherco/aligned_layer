@@ -186,11 +186,17 @@ cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-
 
 `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
 
-Finally, to end the staking process, you need to deposit into the strategy, as shown in the Eigen guide, or alternatively, you can run the following command to deposit one WETH:
+Finally, to end the staking process, you need to deposit into the WETH strategy,
+as shown in the Eigen guide.
 
-```bash
-./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
-```
+<details>
+  <summary>Alternative From CLI</summary>
+
+  Run the following command to deposit one WETH
+  ```bash
+  ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
+  ```
+</details>
 
 If you don't have Holesky Eth, these are some useful faucets:
 
