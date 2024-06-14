@@ -27,18 +27,18 @@ defmodule BatchDB do
     :amount_of_proofs,
     :is_verified,
     #new params:
-    :submition_block_number,
-    :submition_transaction_hash,
-    :submition_timestamp,
+    :submission_block_number,
+    :submission_transaction_hash,
+    :submission_timestamp,
   ]
   defstruct [
     :merkle_root,
     :amount_of_proofs,
     :is_verified,
     #new params:
-    :submition_block_number,
-    :submition_transaction_hash,
-    :submition_timestamp,
+    :submission_block_number,
+    :submission_transaction_hash,
+    :submission_timestamp,
     :response_block_number,
     :response_transaction_hash,
     :response_timestamp,

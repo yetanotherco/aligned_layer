@@ -8,9 +8,9 @@ defmodule Batches do
     field :amount_of_proofs, :integer
     field :is_verified, :boolean
     #new params:
-    field :submition_block_number, :integer
-    field :submition_transaction_hash, :string
-    field :submition_timestamp, :utc_datetime
+    field :submission_block_number, :integer
+    field :submission_transaction_hash, :string
+    field :submission_timestamp, :utc_datetime
     field :response_block_number, :integer
     field :response_transaction_hash, :string
     field :response_timestamp, :utc_datetime
@@ -22,14 +22,14 @@ defmodule Batches do
   @doc false
   def changeset(new_batch, updates) do
     new_batch
-    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submition_block_number, :submition_transaction_hash, :submition_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer])
-    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submition_block_number, :submition_transaction_hash])
+    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer])
+    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash])
     |> validate_format(:merkle_root, ~r/0x[a-fA-F0-9]{64}/)
     |> unique_constraint(:merkle_root)
     |> validate_number(:amount_of_proofs, greater_than: 0)
     |> validate_inclusion(:is_verified, [true, false])
-    |> validate_number(:submition_block_number, greater_than: 0)
-    |> validate_format(:submition_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
+    |> validate_number(:submission_block_number, greater_than: 0)
+    |> validate_format(:submission_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
     |> validate_number(:response_block_number, greater_than: 0)
     |> validate_format(:response_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
   end
@@ -39,9 +39,9 @@ defmodule Batches do
       merkle_root: batch_db.merkle_root,
       amount_of_proofs: batch_db.amount_of_proofs,
       is_verified: batch_db.is_verified,
-      submition_block_number: batch_db.submition_block_number,
-      submition_transaction_hash: batch_db.submition_transaction_hash,
-      submition_timestamp: batch_db.submition_timestamp,
+      submission_block_number: batch_db.submission_block_number,
+      submission_transaction_hash: batch_db.submission_transaction_hash,
+      submission_timestamp: batch_db.submission_timestamp,
       response_block_number: batch_db.response_block_number,
       response_transaction_hash: batch_db.response_transaction_hash,
       response_timestamp: batch_db.response_timestamp,
@@ -63,7 +63,7 @@ defmodule Batches do
 
   def get_latest_batches(%{amount: amount}) do
     query = from(b in Batches,
-      order_by: [desc: b.submition_block_number],
+      order_by: [desc: b.submission_block_number],
       limit: ^amount,
       select: b)
 
@@ -85,7 +85,7 @@ defmodule Batches do
     threshold_datetime = DateTime.utc_now() |> DateTime.add(-86400, :second) # 24 hours ago
 
     query = from(b in Batches,
-    where: b.is_verified == false and b.submition_timestamp > ^threshold_datetime,
+    where: b.is_verified == false and b.submission_timestamp > ^threshold_datetime,
     select: b)
 
     Explorer.Repo.all(query)
@@ -123,8 +123,8 @@ defmodule Batches do
           if existing_batch.is_verified != changeset.changes.is_verified
             or existing_batch.amount_of_proofs != changeset.changes.amount_of_proofs  # rewrites if it was writen with DB's default
             or existing_batch.data_pointer != changeset.changes.data_pointer          # rewrites if it was writen with DB's default
-            or existing_batch.submition_block_number != changeset.changes.submition_block_number          # reorg may change submition_block_number
-            or existing_batch.submition_transaction_hash != changeset.changes.submition_transaction_hash  # reorg may change submition_tx_hash
+            or existing_batch.submission_block_number != changeset.changes.submission_block_number          # reorg may change submission_block_number
+            or existing_batch.submission_transaction_hash != changeset.changes.submission_transaction_hash  # reorg may change submission_tx_hash
             or (Map.has_key?(changeset.changes, :block_number)
               and  existing_batch.response_block_number != changeset.changes.response_block_number)         # reorg may change response_block_number
             or (Map.has_key?(changeset.changes, :response_transaction_hash)

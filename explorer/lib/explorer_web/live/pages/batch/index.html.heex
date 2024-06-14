@@ -15,22 +15,22 @@
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://holesky.etherscan.io/block/#{@current_batch.submition_block_number}"}
+        href={"https://holesky.etherscan.io/block/#{@current_batch.submission_block_number}"}
         class="break-all font-normal"
       >
-        <%= @current_batch.submition_block_number %>
+        <%= @current_batch.submission_block_number %>
       </.a>
       Submission Transaction Hash:
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://holesky.etherscan.io/tx/#{@current_batch.submition_transaction_hash}"}
+        href={"https://holesky.etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
         class="break-all font-normal"
       >
-        <%= @current_batch.submition_transaction_hash %>
+        <%= @current_batch.submission_transaction_hash %>
       </.a>
       Submission Date:
-      <p class="break-all font-normal"><%= @current_batch.submition_timestamp |> Utils.parse_timestamp %></p>
+      <p class="break-all font-normal"><%= @current_batch.submission_timestamp |> Utils.parse_timestamp %></p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
         Response Block Number:
