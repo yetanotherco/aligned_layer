@@ -134,6 +134,11 @@ Ensure you have the following installed:
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
+Also, you have to install the following dependencies for Linux:
+
+- pkg-config
+- libssl-dev
+
 To install foundry, run:
 
 ```bash
@@ -168,24 +173,26 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 - `"<earnings_receiver_address>"`
 
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
+The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
 
 ### Deposit Strategy Tokens
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
-To do so there are 2 options, either doing it through Eigen website, and following their guide, or running the commands specified by us below.
+To do so there are 2 options, either doing it through EigenLayer website and following their guide, or running the commands specified by us below:
 
+#### Option 1:
 The eigen guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts). 
+You will need to stake a minimum of a 1000 wei in WETH. We recommend to stake a maximium amount of 10 ETH.
 
-You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximium amount of 10 Eth.
-
-If you have Eth and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH. Change the parameter in ```---value``` if you want to wrap a different amount:
+#### Option 2:
+If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH. Change the parameter in ```---value``` if you want to wrap a different amount:
 
 ```bash
 cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
 ```
 
-`<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
+Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
 
 Finally, to end the staking process, you need to deposit into the strategy, as shown in the Eigen guide, or alternatively, you can run the following command to deposit one WETH:
 
