@@ -168,6 +168,14 @@ as they are already set to the correct path.
 Then create a .env file in `operator/docker/.env`. 
 An example of the file can be found in `operator/docker/.env.example`.
 
+The file should contain the following variables:
+
+| Variable Name               | Description                                                                                                   |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------|
+| `ECDSA_KEY_FILE_HOST`       | Absolute path to the ECDSA key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/ |
+| `BLS_KEY_FILE_HOST`         | Absolute path to the BLS key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/   |
+| `OPERATOR_CONFIG_FILE_HOST` | Absolute path to the operator config file. It should be path to config-files/config-operator.docker.yaml      |
+
 #### From source
 
 Update the following placeholders in `./config-files/config-operator.yaml`:
