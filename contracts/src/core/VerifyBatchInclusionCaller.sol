@@ -13,9 +13,7 @@ interface IAlignedLayerServiceManager {
     ) external returns (bool);
 }
 
-
 contract VerifyBatchInclusionCaller {
-
     address public targetContract;
 
     constructor(address _targetContract) {
@@ -32,7 +30,9 @@ contract VerifyBatchInclusionCaller {
         uint verificationDataBatchIndex
     ) external view returns (bool) {
         bytes memory data = abi.encodeWithSelector(
-            IAlignedLayerServiceManager(targetContract).verifyBatchInclusion.selector,
+            IAlignedLayerServiceManager(targetContract)
+                .verifyBatchInclusion
+                .selector,
             proofCommitment,
             pubInputCommitment,
             provingSystemAuxDataCommitment,
@@ -42,11 +42,12 @@ contract VerifyBatchInclusionCaller {
             verificationDataBatchIndex
         );
 
-        (success, bytes memory returnData) = targetContract.staticcall(data);
+        (bool success, bytes memory returnData) = targetContract.staticcall(
+            data
+        );
 
         require(success, "static_call failed");
 
-        isIncluded = abi.decode(returnData, (bool));
-        return isIncluded;
+        return abi.decode(returnData, (bool));
     }
 }
