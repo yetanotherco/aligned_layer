@@ -78,6 +78,12 @@ pub struct SubmitArgs {
         default_value = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     )] // defaults to anvil address 1
     proof_generator_addr: String,
+    #[arg(
+        name = "Batch Inclusion Data Directory Path",
+        long = "batch_inclusion_data_directory_path",
+        default_value = "./batch_inclusion_data/"
+    )]
+    batch_inclusion_data_directory_path: String,
 }
 
 #[derive(Parser, Debug)]
@@ -93,7 +99,11 @@ pub struct VerifyInclusionArgs {
     eth_rpc_url: String,
     #[arg(name = "Private key store path", long = "private-key-store")]
     private_key_store_path: PathBuf,
-    #[arg(name = "The Ethereum network's name", long = "chain", default_value = "devnet")]
+    #[arg(
+        name = "The Ethereum network's name",
+        long = "chain",
+        default_value = "devnet"
+    )]
     chain: Chain,
 }
 
@@ -119,6 +129,9 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             info!("WebSocket handshake has been successfully completed");
             let (mut ws_write, ws_read) = ws_stream.split();
 
+            let batch_inclusion_data_directory_path =
+                PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
+
             let repetitions = submit_args.repetitions;
             let verification_data = verification_data_from_args(submit_args)?;
 
@@ -131,7 +144,14 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let num_responses = Arc::new(Mutex::new(0));
             let ws_write = Arc::new(Mutex::new(ws_write));
 
-            receive(ws_read, ws_write, repetitions, num_responses).await?;
+            receive(
+                ws_read,
+                ws_write,
+                repetitions,
+                num_responses,
+                batch_inclusion_data_directory_path,
+            )
+            .await?;
         }
 
         VerifyInclusion(verify_inclusion_args) => {
@@ -195,10 +215,14 @@ async fn receive(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
+    batch_inclusion_data_directory_path: PathBuf,
 ) -> Result<(), BatcherClientError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
         ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
+
+    std::fs::create_dir_all(&batch_inclusion_data_directory_path)
+        .map_err(|e| BatcherClientError::IoError(batch_inclusion_data_directory_path.clone(), e))?;
 
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
@@ -228,7 +252,9 @@ async fn receive(
                             .to_string()
                         + ".json";
 
-                    let mut file = File::create(&batch_inclusion_data_file_name).unwrap();
+                    let batch_inclusion_data_path =
+                        batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
+                    let mut file = File::create(&batch_inclusion_data_path).unwrap();
                     file.write_all(data.as_slice()).unwrap();
                     info!(
                         "Batch inclusion data written into file {}",
