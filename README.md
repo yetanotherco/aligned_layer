@@ -63,7 +63,8 @@ aligned submit \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 **Example**
@@ -87,7 +88,8 @@ aligned submit \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 **Examples**
@@ -606,7 +608,8 @@ aligned \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 ### Task Sender
@@ -969,7 +972,8 @@ cargo run --release -- \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 ## FAQ
