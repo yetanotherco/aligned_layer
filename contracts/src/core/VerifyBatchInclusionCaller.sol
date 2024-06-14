@@ -29,21 +29,17 @@ contract VerifyBatchInclusionCaller {
         bytes memory merkleProof,
         uint verificationDataBatchIndex
     ) external view returns (bool) {
-        bytes memory data = abi.encodeWithSelector(
-            IAlignedLayerServiceManager(targetContract)
-                .verifyBatchInclusion
-                .selector,
-            proofCommitment,
-            pubInputCommitment,
-            provingSystemAuxDataCommitment,
-            proofGeneratorAddr,
-            batchMerkleRoot,
-            merkleProof,
-            verificationDataBatchIndex
-        );
-
         (bool success, bytes memory returnData) = targetContract.staticcall(
-            data
+            abi.encodeWithSignature(
+                "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint)",
+                proofCommitment,
+                pubInputCommitment,
+                provingSystemAuxDataCommitment,
+                proofGeneratorAddr,
+                batchMerkleRoot,
+                merkleProof,
+                verificationDataBatchIndex
+            )
         );
 
         require(success, "static_call failed");
