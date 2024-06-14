@@ -198,9 +198,9 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             match call.call().await {
                 Ok(response) => {
                     if response {
-                        info!("Your proof was verified in Aligned and included in the batch!"),
+                        info!("Your proof was verified in Aligned and included in the batch!");
                     } else {
-                        info!("Your proof was not included in the batch.")
+                        info!("Your proof was not included in the batch.");
                     }
                 }
 
