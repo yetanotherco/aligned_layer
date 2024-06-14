@@ -3,13 +3,15 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"net/http"
 	"net/rpc"
 	"time"
 
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
+
+const waitForEventRetries = 50
+const waitForEventSleepSeconds = 4 * time.Second
 
 func (agg *Aggregator) ServeOperators() error {
 	// Registers a new RPC server
@@ -49,13 +51,18 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		"merkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
-	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
-	taskIndex, ok := agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
-	if !ok {
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources")
-		agg.taskMutex.Unlock()
-		return fmt.Errorf("task with batch merkle root %d does not exist", signedTaskResponse.BatchMerkleRoot)
+	taskIndex := uint32(0)
+	for i := 0; i < waitForEventRetries; i++ {
+		agg.taskMutex.Lock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
+		ok := false
+		taskIndex, ok = agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
+		if !ok {
+			agg.taskMutex.Unlock()
+			time.Sleep(waitForEventSleepSeconds)
+		} else {
+			break
+		}
 	}
 
 	// Don't wait infinitely if it can't answer

@@ -497,9 +497,6 @@ build_binaries:
 	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
 	@echo "Task sender built into /task_sender/build/aligned-task-sender"
 
-run_local:
-	./scripts/run_local.sh
-
 __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build --release
@@ -666,17 +663,56 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_halo2_ipa_linux
+	@$(MAKE) build_halo2_kzg_linux
 	@echo "All Linux FFIs built successfully."
 
 
 __EXPLORER__:
-run_devnet_explorer:
+run_devnet_explorer: run_db ecto_setup_db
 	@cd explorer/ && \
 		mix setup && \
 		cp .env.dev .env && \
 		./start.sh
 
-run_explorer:
+run_explorer: run_db ecto_setup_db
 	@cd explorer/ && \
 		mix setup && \
 		./start.sh
+
+build_db:
+	@cd explorer && \
+		docker build -t explorer-postgres-image .
+
+run_db: remove_db_container
+	@cd explorer && \
+		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
+
+ecto_setup_db:
+		@cd explorer/ && \
+		./ecto_setup_db.sh
+
+remove_db_container:
+	@cd explorer && \
+		docker stop explorer-postgres-container || true  && \
+		docker rm explorer-postgres-container || true
+
+clean_db: remove_db_container
+	@cd explorer && \
+		docker volume rm explorer-postgres-data || true
+
+dump_db:
+	@cd explorer && \
+		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
+	@echo "Dumped database successfully to /explorer"
+
+recover_db: run_db
+	@read -p $$'\e[32mEnter the dump file to recover (e.g., dump.20230607_123456.sql): \e[0m' DUMP_FILE && \
+	cd explorer && \
+	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
+	docker exec -t explorer-postgres-container psql -U explorer_user -d explorer_db -f /dump.sql && \
+	echo "Recovered database successfully from $$DUMP_FILE"
+
+explorer_fetch_old_batches:
+	@cd explorer && \
+		./scripts/fetch_old_batches.sh 1600000 1716277 
+		

@@ -260,6 +260,20 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+    Renders a heading to use before entering a card.
+  """
+  attr :class, :string, default: nil
+  slot :inner_block, default: nil
+
+  def card_preheding(assigns) do
+    ~H"""
+    <h1 class={["text-4xl sm:text-5xl font-bold font-foreground", @class]}>
+      <%= render_slot(@inner_block) %>
+    </h1>
+    """
+  end
+
+  @doc """
   Renders a card with a title and content.
   """
   attr :class, :string, default: nil

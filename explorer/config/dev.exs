@@ -19,6 +19,7 @@ config :explorer, ExplorerWeb.Endpoint,
     tailwind: {Tailwind, :install_and_run, [:explorer, ~w(--watch)]}
   ]
 
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
@@ -52,8 +53,8 @@ config :explorer, ExplorerWeb.Endpoint,
     ]
   ]
 
-# Enable dev routes for dashboard and mailbox
-config :explorer, dev_routes: true
+# Enable dev routes (for dashboard, etc). only enable behind auth
+# config :explorer, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
@@ -70,6 +71,3 @@ config :phoenix_live_view,
   debug_heex_annotations: true,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
-
-# Disable swoosh api client as it is only required for production adapters.
-config :swoosh, :api_client, false
