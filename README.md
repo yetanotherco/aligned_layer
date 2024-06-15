@@ -51,6 +51,7 @@ aligned submit \
 --aligned_verification_data_path ~/aligned_verification_data \
 --conn wss://batcher.alignedlayer.com
 ```
+Wait some seconds for proof to be verified in Aligned.
 
 Test it has been verified with:
 ```bash
