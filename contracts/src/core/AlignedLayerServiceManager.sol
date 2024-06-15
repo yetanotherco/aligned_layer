@@ -124,15 +124,13 @@ contract AlignedLayerServiceManager is
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
     ) external view returns (bool) {
-        require(
-            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
-            "Batch doesn't exist"
-        );
+        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+            return false;
+        }
 
-        require(
-            batchesState[batchMerkleRoot].responded == true,
-            "Batch has not been responded"
-        );
+        if (!batchesState[batchMerkleRoot].responded) {
+            return false;
+        }
 
         bytes memory leaf = abi.encodePacked(
             proofCommitment,
