@@ -146,7 +146,7 @@ func (o *Operator) Start(ctx context.Context) error {
 		case newBatchLog := <-o.NewTaskCreatedChan:
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
-				o.Logger.Errorf("Batch did not verify", "err", err)
+				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 				continue
 			}
 			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
@@ -196,8 +196,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 
 	for result := range results {
 		if !result {
-			o.Logger.Error("Proof did not verify")
-			return fmt.Errorf("proof did not verify")
+			return fmt.Errorf("invalid proof")
 		}
 	}
 
@@ -365,25 +364,25 @@ func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
-		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		o.Logger.Infof("Could not deserialize proof: %v", err)
 		return false
 	}
 
 	pubInputReader := bytes.NewReader(pubInputBytes)
 	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
-		o.Logger.Errorf("Error instantiating witness: %v", err)
+		o.Logger.Infof("Error instantiating witness: %v", err)
 		return false
 	}
 	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK public input: %v", err)
+		o.Logger.Infof("Could not read PLONK public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := plonk.NewVerifyingKey(curve)
 	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK verifying key from bytes: %v", err)
+		o.Logger.Infof("Could not read PLONK verifying key from bytes: %v", err)
 		return false
 	}
 
@@ -396,25 +395,25 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 	proofReader := bytes.NewReader(proofBytes)
 	proof := groth16.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
-		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		o.Logger.Infof("Could not deserialize proof: %v", err)
 		return false
 	}
 
 	pubInputReader := bytes.NewReader(pubInputBytes)
 	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
-		o.Logger.Errorf("Error instantiating witness: %v", err)
+		o.Logger.Infof("Error instantiating witness: %v", err)
 		return false
 	}
 	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
-		o.Logger.Errorf("Could not read Groth16 public input: %v", err)
+		o.Logger.Infof("Could not read Groth16 public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := groth16.NewVerifyingKey(curve)
 	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
-		o.Logger.Errorf("Could not read Groth16 verifying key from bytes: %v", err)
+		o.Logger.Infof("Could not read Groth16 verifying key from bytes: %v", err)
 		return false
 	}
 
