@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/rpc"
 	"time"
@@ -59,6 +60,11 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		taskIndex, ok = agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
 		if !ok {
 			agg.taskMutex.Unlock()
+			if i == waitForEventRetries-1 {
+				agg.logger.Warn("- Unlocked Resources: Task response not found in the batch index")
+				*reply = 1
+				return fmt.Errorf("task response not found in the batch index")
+			}
 			time.Sleep(waitForEventSleepSeconds)
 		} else {
 			break
