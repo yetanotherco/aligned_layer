@@ -23,5 +23,10 @@
 </nav>
 <main class="mt-24 mb-12">
   <.flash_group flash={@flash} />
+  <img
+    class="absolute -z-10 hidden md:block md:w-full md:min-h-screen rounded-3xl -mt-24 opacity-20 dark:opacity-60"
+    alt="hero monolith"
+    src={~p"/images/home.png"}
+  />
   <%= @inner_content %>
 </main>
