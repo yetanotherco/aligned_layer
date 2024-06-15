@@ -144,7 +144,6 @@ func (o *Operator) Start(ctx context.Context) error {
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
 		case newBatchLog := <-o.NewTaskCreatedChan:
-			// o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
 				o.Logger.Errorf("Batch did not verify", "err", err)
@@ -198,7 +197,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	for result := range results {
 		if !result {
 			o.Logger.Error("Proof did not verify")
-			return nil
+			return fmt.Errorf("proof did not verify")
 		}
 	}
 
