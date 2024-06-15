@@ -17,6 +17,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
 	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/yetanotherco/aligned_layer/operator/nexus"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -229,6 +230,15 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
+		results <- verificationResult
+	case common.Nexus:
+		proofLen := (uint32)(len(verificationData.Proof))
+		paramsLen := (uint32)(len(verificationData.VerificationKey))
+		pubInputLen := (uint32)(len(verificationData.VerificationKey))
+		elfLen := (uint32)(len(verificationData.VmProgramCode))
+
+		verificationResult := nexus.VerifyNexusProof(verificationData.Proof, proofLen, verificationData.PubInput, pubInputLen, verificationData.VmProgramCode, elfLen)
+		o.Logger.Infof("Nexus proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2IPA:
 		// Extract Proof Bytes

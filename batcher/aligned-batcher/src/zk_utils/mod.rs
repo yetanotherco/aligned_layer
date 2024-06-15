@@ -14,6 +14,9 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
             false
         }
+        ProvingSystemId::Nexus => {
+            todo!()
+        }
         ProvingSystemId::Halo2KZG => {
             let vk = verification_data
                 .verification_key

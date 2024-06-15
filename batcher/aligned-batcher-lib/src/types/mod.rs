@@ -15,6 +15,7 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
+    Nexus,
     Halo2KZG,
     Halo2IPA,
 }
@@ -156,6 +157,7 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
         "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
         "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
         "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
+        "Nexus" => Ok(ProvingSystemId::Nexus),
         "SP1" => Ok(ProvingSystemId::SP1),
         "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
         "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
