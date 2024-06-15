@@ -295,7 +295,7 @@ If you don't have Holesky Eth, these are some useful faucets:
 
 Ensure you have the following installed:
 - [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
 Then run:
 
