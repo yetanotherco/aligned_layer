@@ -486,6 +486,10 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 	@echo "Upgrading Stake Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_stake_registry.sh
 
+deploy_verify_batch_inclusion_caller:
+	@echo "Deploying VerifyBatchInclusionCaller contract..."
+	@./contracts/scripts/deploy_verify_batch_inclusion_caller.sh
+	
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 
@@ -719,4 +723,3 @@ recover_db: run_db
 explorer_fetch_old_batches:
 	@cd explorer && \
 		./scripts/fetch_old_batches.sh 1600000 1716277 
-		

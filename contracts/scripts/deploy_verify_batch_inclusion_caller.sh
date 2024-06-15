@@ -5,14 +5,18 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
 # At this point we are in contracts
-cd ../../
-  
+cd ../
 
-# Deploy the contracts
+if [ -z "$ALIGNED_CONTRACT_ADDRESS" ]; then
+    echo Missing exported ALIGNED_CONTRACT_ADDRESS variable
+    exit 1
+fi
+
 forge script script/deploy/VerifyBatchInclusionCallerDeployer.s.sol \
-    "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8" \
-    --rpc-url "http://localhost:8545" \
-    --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+    $ALIGNED_CONTRACT_ADDRESS \
+    --rpc-url $RPC_URL \
+    --private-key $PRIVATE_KEY \
     --broadcast \
     --slow \
+    --legacy \
     --sig "run(address _targetContract)"
