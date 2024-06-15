@@ -20,18 +20,18 @@ contract VerifyBatchInclusionCaller {
         targetContract = _targetContract;
     }
 
-    function staticCallGetValue(
+    function staticVerifyBatchInclusion(
         bytes32 proofCommitment,
         bytes32 pubInputCommitment,
         bytes32 provingSystemAuxDataCommitment,
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint verificationDataBatchIndex
+        uint256 verificationDataBatchIndex
     ) external view returns (bool) {
         (bool success, bytes memory returnData) = targetContract.staticcall(
             abi.encodeWithSignature(
-                "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint)",
+                "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
                 proofCommitment,
                 pubInputCommitment,
                 provingSystemAuxDataCommitment,
