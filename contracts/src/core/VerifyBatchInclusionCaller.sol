@@ -29,7 +29,7 @@ contract VerifyBatchInclusionCaller {
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
     ) external view returns (bool) {
-        (bool success, bytes memory returnData) = targetContract.staticcall(
+        (bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
             abi.encodeWithSignature(
                 "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
                 proofCommitment,
@@ -42,8 +42,8 @@ contract VerifyBatchInclusionCaller {
             )
         );
 
-        require(success, "static_call failed");
+        require(callWasSuccessfull, "static_call failed");
 
-        return abi.decode(returnData, (bool));
+        return abi.decode(proofIsIncluded, (bool));
     }
 }
