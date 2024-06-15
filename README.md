@@ -170,9 +170,9 @@ Minimum hardware requirements:
 | **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
-### Dependencies
+### Building from Source (Recommended)
 
-#### From Source (Recommended)
+We recommend building from source whenever possible. If using the docker image, these steps can be skipped.
 
 Ensure you have the following installed:
 - [Go](https://go.dev/doc/install)
@@ -191,11 +191,20 @@ make install_foundry
 foundryup
 ```
 
-#### Using Docker
+To build the operator binary, run:
 
-Ensure you have the following installed:
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+```bash
+make build_operator
+```
+
+To update the operator, run:
+
+```bash
+git pull
+make build_operator
+```
+
+This will recreate the binaries. You can then proceed to restart the operator.
 
 ### Configuration
 
@@ -212,7 +221,11 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
 
-#### Using docker
+### With Docker
+
+Ensure you have the following installed:
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/
 
 Update the following placeholders in `./config-files/config-operator.docker.yaml`:
 - `"<operator_address>"`
@@ -282,6 +295,12 @@ If you don't have Holesky Eth, these are some useful faucets:
 ```
 
 #### Using Docker
+
+Ensure you have the following installed:
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/
+
+Then run:
 
 ```bash
 make operator_start_docker
