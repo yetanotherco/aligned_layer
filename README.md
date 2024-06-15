@@ -224,10 +224,6 @@ The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, 
 
 #### When using docker
 
-Ensure you have the following installed:
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/
-
 Update the following placeholders in `./config-files/config-operator.docker.yaml`:
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
