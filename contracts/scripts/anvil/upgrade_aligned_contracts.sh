@@ -17,7 +17,7 @@ anvil --load-state scripts/anvil/state/alignedlayer-deployed-anvil-state.json --
 
 sleep 2
 
-# Save the output to a variable to later extract the address of the new deployed contract
+# Save the output to a variable to later extract the address of the newly deployed contract
 forge_output=$(forge script script/upgrade/AlignedLayerUpgrader.s.sol \
     "./script/output/devnet/eigenlayer_deployment_output.json" \
     "./script/output/devnet/alignedlayer_deployment_output.json" \
