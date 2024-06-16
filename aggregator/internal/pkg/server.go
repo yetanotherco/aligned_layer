@@ -23,10 +23,10 @@ func (agg *Aggregator) ServeOperators() error {
 	// Registers an HTTP handler for RPC messages
 	rpc.HandleHTTP()
 
-	// Start listening for requests on aggregator address
+	// Start listening for requests on the aggregator address
 	// ServeOperators accepts incoming HTTP connections on the listener, creating
 	// a new service goroutine for each. The service goroutines read requests
-	// and then call handler to reply to them
+	// and then call the handler to reply to them
 	agg.logger.Info("Starting RPC server on address", "address",
 		agg.AggregatorConfig.Aggregator.ServerIpPortAddress)
 
@@ -41,8 +41,8 @@ func (agg *Aggregator) ServeOperators() error {
 // Aggregator Methods
 // This is the list of methods that the Aggregator exposes to the Operator
 // The Operator can call these methods to interact with the Aggregator
-// This methods are automatically registered by the RPC server
-// This takes a response an adds it to the internal. If reaching the quorum, it sends the aggregated signatures to ethereum
+//These methods are automatically registered by the RPC server
+// This takes a response an adds it to the internal. If reaching the quorum, it sends the aggregated signatures to Ethereum
 // Returns:
 //   - 0: Success
 //   - 1: Error
