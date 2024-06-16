@@ -21,7 +21,7 @@
 
 ## The Project
 
-Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned.
+Aligned works with EigenLayer to leverage Ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasible to verify thanks to Aligned.
 
 ## How to use the testnet
 
@@ -242,7 +242,7 @@ The file should contain the following variables:
 |-----------------------------|---------------------------------------------------------------------------------------------------------------|
 | `ECDSA_KEY_FILE_HOST`       | Absolute path to the ECDSA key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/ |
 | `BLS_KEY_FILE_HOST`         | Absolute path to the BLS key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/   |
-| `OPERATOR_CONFIG_FILE_HOST` | Absolute path to the operator config file. It should be path to config-files/config-operator.docker.yaml      |
+| `OPERATOR_CONFIG_FILE_HOST` | Absolute path to the operator config file. It should be the path to config-files/config-operator.docker.yaml      |
 
 ### Deposit Strategy Tokens
 
@@ -687,7 +687,7 @@ aligned \
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 
-The configuration file have the following structure:
+The configuration file has the following structure:
 
 ```yaml
 # Common variables for all the services
