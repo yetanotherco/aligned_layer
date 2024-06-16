@@ -97,7 +97,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
 
         vm.startBroadcast();
 
-        // deploy proxy admin for ability to upgrade proxy contracts
+        // deploy proxy admin for the ability to upgrade proxy contracts
         alignedLayerProxyAdmin = new ProxyAdmin();
 
         //deploy service manager router
@@ -192,7 +192,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         {
-            // parse initalization params and permissions from config data
+            // parse initialization params and permissions from config data
             (
                 uint96[] memory minimumStakeForQuourm,
                 IStakeRegistry.StrategyParams[][]
