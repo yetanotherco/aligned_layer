@@ -15,7 +15,7 @@ sleep 1
 # Deploy the contracts
 forge script script/deploy/EigenLayerDeployer.s.sol --rpc-url "http://localhost:8545" --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" --broadcast --sig "run(string memory configFile)" -- eigen.devnet.config.json
 
-# Kill the anvil process to save state
+# Kill the anvil process to save the state
 pkill anvil
 
 # Anvil adds a block state, making the code to fail. We don't care about this, just the accounts and the deployed code
