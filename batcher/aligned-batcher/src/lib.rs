@@ -211,8 +211,8 @@ impl Batcher {
     ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
-    /// Once the batch meets the conditions for submission, it check if it needs to be splitted into smaller batches,
-    /// depending on the configured maximum batch size. The batch is splitted at the index where the max size is surpassed,
+    /// Once the batch meets the conditions for submission, it checks if it needs to be split into smaller batches,
+    /// depending on the configured maximum batch size. The batch is split at the index where the max size is surpassed,
     /// and all the elements up to that index are copied and cleared from the batch queue. The copy is then passed to the
     /// `finalize_batch` function.
     async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
