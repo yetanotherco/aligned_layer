@@ -268,30 +268,13 @@ async fn receive(
                     let verification_data_commitment =
                         verification_data_commitments_rev.pop().unwrap_or_default();
 
-                    verify_response(&verification_data_commitment, &batch_inclusion_data);
-
-                    let batch_merkle_root =
-                        &hex::encode(batch_inclusion_data.batch_merkle_root)[..6];
-                    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
-                        + "_"
-                        + &batch_inclusion_data.index_in_batch.to_string()
-                        + ".json";
-
-                    let batch_inclusion_data_path =
-                        batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
-                    let aligned_verification_data = AlignedVerificationData::new(
-                        verification_data_commitment,
-                        batch_inclusion_data,
-                    );
-
-                    let data = serde_json::to_vec(&aligned_verification_data)?;
-
-                    let mut file = File::create(&batch_inclusion_data_path).unwrap();
-                    file.write_all(data.as_slice()).unwrap();
-                    info!(
-                        "Batch inclusion data written into {}",
-                        batch_inclusion_data_path.display()
-                    );
+                    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
+                        save_response(
+                            batch_inclusion_data_directory_path.clone(),
+                            &verification_data_commitment,
+                            &batch_inclusion_data,
+                        )?;
+                    }
                 }
                 Err(e) => {
                     error!("Error while deserializing batcher response: {}", e);
@@ -367,7 +350,7 @@ fn read_file_option(
 fn verify_response(
     verification_data_commitment: &VerificationDataCommitment,
     batch_inclusion_data: &BatchInclusionData,
-) {
+) -> bool {
     info!("Verifying batcher response...");
     let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
 
@@ -377,7 +360,37 @@ fn verify_response(
         &verification_data_commitment,
     ) {
         info!("Response verified succesfully!");
-    } else {
-        error!("Verification data commitments and batcher response with merkle root {} and  index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
+        return true;
     }
+
+    error!("Verification data commitments and batcher response with merkle root {} and index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
+    false
+}
+
+fn save_response(
+    batch_inclusion_data_directory_path: PathBuf,
+    verification_data_commitment: &VerificationDataCommitment,
+    batch_inclusion_data: &BatchInclusionData,
+) -> Result<(), BatcherClientError> {
+    let batch_merkle_root = &hex::encode(batch_inclusion_data.batch_merkle_root)[..8];
+    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
+        + "_"
+        + &batch_inclusion_data.index_in_batch.to_string()
+        + ".json";
+
+    let batch_inclusion_data_path =
+        batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
+    let aligned_verification_data =
+        AlignedVerificationData::new(verification_data_commitment, batch_inclusion_data);
+
+    let data = serde_json::to_vec(&aligned_verification_data)?;
+
+    let mut file = File::create(&batch_inclusion_data_path).unwrap();
+    file.write_all(data.as_slice()).unwrap();
+    info!(
+        "Batch inclusion data written into {}",
+        batch_inclusion_data_path.display()
+    );
+
+    Ok(())
 }

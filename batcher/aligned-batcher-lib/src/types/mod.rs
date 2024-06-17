@@ -107,7 +107,7 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
 
 /// BatchInclusionData is the information that is retrieved to the clients once
 /// the verification data sent by them has been processed by Aligned.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BatchInclusionData {
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
