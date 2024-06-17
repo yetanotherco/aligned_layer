@@ -7,7 +7,7 @@ cd "$parent_path"
 # At this point we are in contracts
 cd ../
 
-ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS=$(jq -r '.addresses.alignedLayerServiceManager' ./script/output/holesky/alignedlayer_deployment_output.json)
+ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS=$(jq -r '.addresses.alignedLayerServiceManager' $OUTPUT_PATH)
 
 
 forge script script/deploy/VerifyBatchInclusionCallerDeployer.s.sol \
