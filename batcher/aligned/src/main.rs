@@ -8,6 +8,7 @@ use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
 use env_logger::Env;
+use eth::AlignedLayerServiceManager;
 use ethers::prelude::*;
 use futures_util::{
     future,
@@ -139,6 +140,12 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 info!("Message sent...")
             }
 
+            // let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
+            let eth_rpc_provider = Provider::<Http>::try_from("http://localhost:8545").unwrap();
+            let contract_address = "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8";
+            let service_manager =
+                eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
+
             let num_responses = Arc::new(Mutex::new(0));
             let ws_write = Arc::new(Mutex::new(ws_write));
 
@@ -148,6 +155,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 repetitions,
                 num_responses,
                 batch_inclusion_data_directory_path,
+                service_manager,
             )
             .await?;
         }
@@ -179,11 +187,8 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
             // FIXME(marian): We are passing an empty string as the private key password for the moment.
             // We should think how to handle this correctly.
-            let service_manager = eth::aligned_service_manager(
-                eth_rpc_provider,
-                contract_address,
-            )
-            .await?;
+            let service_manager =
+                eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
             let call = service_manager.verify_batch_inclusion(
                 verification_data_comm.proof_commitment,
@@ -218,6 +223,7 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     batch_inclusion_data_directory_path: PathBuf,
+    service_manager: AlignedLayerServiceManager,
 ) -> Result<(), BatcherClientError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
@@ -246,7 +252,42 @@ async fn receive(
                     info!("Batcher response received: {}", batch_inclusion_data);
                     info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
+                    let verification_data_commitment =
+                        batch_inclusion_data.verification_data_commitment;
+
+                    let merkle_proof: Vec<u8> = batch_inclusion_data
+                        .batch_inclusion_proof
+                        .merkle_path
+                        .into_iter()
+                        .flatten()
+                        .collect();
+
+                    let function = service_manager.verify_batch_inclusion(
+                        verification_data_commitment.proof_commitment,
+                        verification_data_commitment.pub_input_commitment,
+                        verification_data_commitment.proving_system_aux_data_commitment,
+                        verification_data_commitment.proof_generator_addr,
+                        batch_inclusion_data.batch_merkle_root,
+                        merkle_proof.into(),
+                        batch_inclusion_data.verification_data_batch_index.into(),
+                    );
+
                     let batch_merkle_root = hex::encode(batch_inclusion_data.batch_merkle_root);
+
+                    let calldata = hex::encode(function.calldata().unwrap());
+                    println!("CALLDATA: {:?}", hex::encode(calldata));
+
+                    let calldata_file_name = "calldata".to_owned()
+                        + &batch_merkle_root
+                        + "_"
+                        + &batch_inclusion_data
+                            .verification_data_batch_index
+                            .to_string();
+
+                    let calldata_path =
+                        batch_inclusion_data_directory_path.join(&calldata_file_name);
+                    let mut calldata_file = File::create(&calldata_path).unwrap();
+
                     let batch_inclusion_data_file_name = batch_merkle_root
                         + "_"
                         + &batch_inclusion_data
@@ -256,8 +297,8 @@ async fn receive(
 
                     let batch_inclusion_data_path =
                         batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
-                    let mut file = File::create(&batch_inclusion_data_path).unwrap();
-                    file.write_all(data.as_slice()).unwrap();
+                    let mut json_file = File::create(&batch_inclusion_data_path).unwrap();
+                    json_file.write_all(data.as_slice()).unwrap();
                     info!(
                         "Batch inclusion data written into {}",
                         batch_inclusion_data_path.display()
