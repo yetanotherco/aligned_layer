@@ -109,7 +109,6 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
 /// the verification data sent by them has been processed by Aligned.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BatchInclusionData {
-    pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
     pub verification_data_batch_index: usize,
@@ -117,7 +116,6 @@ pub struct BatchInclusionData {
 
 impl BatchInclusionData {
     pub fn new(
-        verification_data_commitment: &VerificationDataCommitment,
         verification_data_batch_index: usize,
         batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
     ) -> Self {
@@ -126,7 +124,6 @@ impl BatchInclusionData {
             .unwrap();
 
         BatchInclusionData {
-            verification_data_commitment: verification_data_commitment.clone(),
             batch_merkle_root: batch_merkle_tree.root.clone(),
             batch_inclusion_proof,
             verification_data_batch_index,
@@ -136,17 +133,17 @@ impl BatchInclusionData {
 
 impl fmt::Display for BatchInclusionData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let proof_comm = hex::encode(self.verification_data_commitment.proof_commitment);
         let merkle_root = hex::encode(self.batch_merkle_root);
+        let idx_in_batch = self.verification_data_batch_index;
 
         write!(
             f,
             "
 Batch inclusion response {{
     ○ batch merkle root: {}
-    ○ proof commitment: {}
+    ○ index in batch: {}
 }}",
-            merkle_root, proof_comm
+            merkle_root, idx_in_batch
         )
     }
 }

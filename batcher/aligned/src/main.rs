@@ -1,5 +1,6 @@
 mod errors;
 mod eth;
+mod types;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -16,8 +17,8 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
-use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{error, info};
+use serde::Serialize;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
@@ -30,6 +31,7 @@ use clap::Subcommand;
 use ethers::utils::hex;
 
 use crate::errors::BatcherClientError;
+use crate::types::AlignedVerificationData;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
@@ -176,24 +178,23 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let batch_inclusion_file =
                 File::open(verify_inclusion_args.batch_inclusion_data).unwrap();
             let reader = BufReader::new(batch_inclusion_file);
-            let batch_inclusion_data: BatchInclusionData = serde_json::from_reader(reader)?;
-
-            let verification_data_comm = batch_inclusion_data.verification_data_commitment;
+            let aligned_verification_data: AlignedVerificationData =
+                serde_json::from_reader(reader)?;
 
             // All the elements from the merkle proof have to be concatenated
-            let merkle_proof: Vec<u8> = batch_inclusion_data
+            let merkle_proof: Vec<u8> = aligned_verification_data
                 .batch_inclusion_proof
                 .merkle_path
                 .into_iter()
                 .flatten()
                 .collect();
 
+            let verification_data_comm = aligned_verification_data.verification_data_commitment;
+
             let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
 
-            // FIXME(marian): We are passing an empty string as the private key password for the moment.
-            // We should think how to handle this correctly.
             let service_manager =
                 eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
@@ -202,9 +203,9 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 verification_data_comm.pub_input_commitment,
                 verification_data_comm.proving_system_aux_data_commitment,
                 verification_data_comm.proof_generator_addr,
-                batch_inclusion_data.batch_merkle_root,
+                aligned_verification_data.batch_merkle_root,
                 merkle_proof.into(),
-                batch_inclusion_data.verification_data_batch_index.into(),
+                aligned_verification_data.index_in_batch.into(),
             );
 
             match call.call().await {
@@ -259,15 +260,15 @@ async fn receive(
                     info!("Batcher response received: {}", batch_inclusion_data);
                     info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
-                    let commitment = rev_verification_data_commitments.pop().unwrap();
+                    let verification_data_commitment =
+                        rev_verification_data_commitments.pop().unwrap();
+                    let inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
 
-                    let inclusion_proof = batch_inclusion_data.batch_inclusion_proof;
-
-                    info!("Verifying commitments on response...");
+                    info!("Verifying batcher response...");
                     if inclusion_proof.verify::<VerificationCommitmentBatch>(
                         &batch_inclusion_data.batch_merkle_root,
                         batch_inclusion_data.verification_data_batch_index,
-                        &commitment,
+                        &verification_data_commitment,
                     ) {
                         info!("Commitments match!");
                     } else {
@@ -284,6 +285,13 @@ async fn receive(
 
                     let batch_inclusion_data_path =
                         batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
+                    let aligned_verification_data = AlignedVerificationData::new(
+                        verification_data_commitment,
+                        batch_inclusion_data,
+                    );
+
+                    let data = serde_json::to_vec(&aligned_verification_data).unwrap();
+
                     let mut file = File::create(&batch_inclusion_data_path).unwrap();
                     file.write_all(data.as_slice()).unwrap();
                     info!(
