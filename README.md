@@ -38,6 +38,8 @@ If you are experiencing issues, upgrade by running the same command.
 
 ### Try it!
 
+We are going to download a proof previously generated, send it to Aligned, and retrieve the results from Ethereum Holesky testnet. Aligned is using EigenLayer to do a fast and cheap verification of more than one thousand proofs per second.
+
 Download an example SP1 proof file with it's ELF file using:
 
 ```bash
@@ -86,6 +88,8 @@ If the proof wasn't verified you should get this result:
 ```bash
 [2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
+
+If you want to know more about Aligned or send another types of proof, read our docs. 
 
 ## FAQ
 
