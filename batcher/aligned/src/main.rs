@@ -275,9 +275,8 @@ async fn receive(
                     let batch_merkle_root = hex::encode(batch_inclusion_data.batch_merkle_root);
 
                     let calldata = hex::encode(function.calldata().unwrap());
-                    println!("CALLDATA: {:?}", hex::encode(calldata));
-
                     let calldata_file_name = "calldata".to_owned()
+                        + "_"
                         + &batch_merkle_root
                         + "_"
                         + &batch_inclusion_data
@@ -287,6 +286,8 @@ async fn receive(
                     let calldata_path =
                         batch_inclusion_data_directory_path.join(&calldata_file_name);
                     let mut calldata_file = File::create(&calldata_path).unwrap();
+                    write!(calldata_file, "{}", calldata).unwrap();
+                    info!("Calldata written to {}", calldata_path.display());
 
                     let batch_inclusion_data_file_name = batch_merkle_root
                         + "_"
