@@ -9,6 +9,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use env_logger::Env;
 use eth::AlignedLayerServiceManager;
+use eth::VerifyBatchInclusionCall;
 use ethers::prelude::*;
 use futures_util::{
     future,
@@ -85,18 +86,6 @@ pub struct SubmitArgs {
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
-    #[arg(
-        name = "Ethereum RPC provider address",
-        long = "rpc",
-        default_value = "http://localhost:8545"
-    )]
-    eth_rpc_url: String,
-    #[arg(
-        name = "The Ethereum network's name",
-        long = "chain",
-        default_value = "devnet"
-    )]
-    chain: Chain,
 }
 
 #[derive(Parser, Debug)]
@@ -122,6 +111,7 @@ pub struct VerifyProofOnchainArgs {
 pub enum Chain {
     Devnet,
     Holesky,
+    HoleskyStaging,
 }
 
 #[tokio::main]
@@ -152,11 +142,10 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 info!("Message sent...")
             }
 
-            let eth_rpc_provider = Provider::<Http>::try_from(submit_args.eth_rpc_url).unwrap();
-            let contract_address = match submit_args.chain {
-                Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-                Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
-            };
+            // FIXME: Just some dummy values for instantiating the service manager
+            let eth_rpc_provider =
+                Provider::<Http>::try_from("https://ethereum-holesky-rpc.publicnode.com").unwrap();
+            let contract_address = "0x9C5231FC88059C086Ea95712d105A2026048c39B";
 
             let service_manager =
                 eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
@@ -179,6 +168,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let contract_address = match verify_inclusion_args.chain {
                 Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
                 Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+                Chain::HoleskyStaging => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
             };
 
             let batch_inclusion_file =
