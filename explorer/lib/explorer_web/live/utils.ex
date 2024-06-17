@@ -116,7 +116,11 @@ defmodule Utils do
   end
 
   def extract_amount_of_proofs(%BatchDB{} = batch) do
-    amount_of_proofs = batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
+    #only get from s3 if not already in DB
+    amount_of_proofs = case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
+      nil -> batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
+      proofs -> proofs
+    end
     Map.put(batch, :amount_of_proofs, amount_of_proofs)
   end
 end

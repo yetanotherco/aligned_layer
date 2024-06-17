@@ -81,7 +81,7 @@ defmodule Batches do
   end
 
   def get_unverified_batches() do
-    threshold_datetime = DateTime.utc_now() |> DateTime.add(-86400, :second) # 24 hours ago
+    threshold_datetime = DateTime.utc_now() |> DateTime.add(-43200, :second) # 12 hours ago
 
     query = from(b in Batches,
     where: b.is_verified == false and b.submission_timestamp > ^threshold_datetime,
@@ -104,6 +104,17 @@ defmodule Batches do
 
     case Explorer.Repo.one(query) do
       nil -> 0
+      result -> result
+    end
+  end
+
+  def get_amount_of_proofs(%{merkle_root: merkle_root}) do
+    query = from(b in Batches,
+      where: b.merkle_root == ^merkle_root,
+      select: b.amount_of_proofs)
+
+    case Explorer.Repo.one(query) do
+      nil -> nil
       result -> result
     end
   end
