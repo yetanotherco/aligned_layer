@@ -48,7 +48,7 @@ pub enum AlignedCommands {
     VerifyProofOnchain(VerifyProofOnchainArgs),
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
@@ -85,6 +85,18 @@ pub struct SubmitArgs {
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The Ethereum network's name",
+        long = "chain",
+        default_value = "devnet"
+    )]
+    chain: Chain,
 }
 
 #[derive(Parser, Debug)]
@@ -132,7 +144,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
 
             let repetitions = submit_args.repetitions;
-            let verification_data = verification_data_from_args(submit_args)?;
+            let verification_data = verification_data_from_args(submit_args.clone())?;
 
             let json_data = serde_json::to_string(&verification_data)?;
             for _ in 0..repetitions {
@@ -140,9 +152,12 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 info!("Message sent...")
             }
 
-            // let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
-            let eth_rpc_provider = Provider::<Http>::try_from("http://localhost:8545").unwrap();
-            let contract_address = "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8";
+            let eth_rpc_provider = Provider::<Http>::try_from(submit_args.eth_rpc_url).unwrap();
+            let contract_address = match submit_args.chain {
+                Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+                Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+            };
+
             let service_manager =
                 eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
