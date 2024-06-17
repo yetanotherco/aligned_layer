@@ -144,28 +144,29 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		if err != nil {
 			return nil, err
 		}
+		w.logger.Info("Simulated tx nonce", "nonce", tx.Nonce())
 
 		// Use the same nonce as the original transaction
 		txOpts.Nonce = txNonce
 
-		w.logger.Info("Tx nonce after waiting for receipt", "nonce", txOpts.Nonce.String())
-
 		// Use the gas limit of the simulated transaction
 		txOpts.GasLimit = tx.Gas()
 
-		w.logger.Info("Bumping fee for tx", "txHash", txHash.String())
-		// Increase the gas tip cap by IncrementPercentage
-		newGasTipCap := new(big.Int).Mul(big.NewInt(int64(LowFeeIncrementPercentage+100)), tx.GasTipCap())
-		newGasTipCap.Div(newGasTipCap, big.NewInt(100))
-		txOpts.GasTipCap = newGasTipCap
+		w.logger.Info("Bumping gas price for tx", "txHash", txHash.String())
 
-		// Submit the transaction with the new gas tip cap
+		// Increase the gas price by IncrementPercentage
+		newGasPrice := new(big.Int).Mul(big.NewInt(int64(LowFeeIncrementPercentage+100)), tx.GasPrice())
+		newGasPrice.Div(newGasPrice, big.NewInt(100))
+		txOpts.GasPrice = newGasPrice
+
+		// Submit the transaction with the new gas price cap
 		txOpts.NoSend = false
 		tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 		if err != nil {
 			return nil, err
 		}
-		w.logger.Info("New tx hash after bumping fee", "txHash", tx.Hash().String())
+		w.logger.Info("New tx nonce after bumping gas price", "nonce", tx.Nonce())
+		w.logger.Info("New tx hash after bumping gas price", "txHash", tx.Hash().String())
 
 		// Update the transaction hash for the next retry
 		txHash = tx.Hash()
