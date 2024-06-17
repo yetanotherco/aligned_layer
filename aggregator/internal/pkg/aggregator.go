@@ -260,7 +260,8 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
-	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task", "Batch merkle root", batchMerkleRoot)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task",
+		"Batch merkle root", hex.EncodeToString(batchMerkleRoot[:]))
 
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Adding new task")
@@ -297,5 +298,5 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
-	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", batchMerkleRoot)
+	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 }
