@@ -3,9 +3,10 @@ package operator
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"crypto/ecdsa"
+	"encoding/binary"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
 	"log"
 	"sync"
 	"time"
@@ -13,9 +14,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
-	"github.com/yetanotherco/aligned_layer/operator/sp1"
-	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
+	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
+	"github.com/yetanotherco/aligned_layer/operator/sp1"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -66,7 +67,19 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	}
 
 	if !registered {
-		log.Fatalf("Operator is not registered with AlignedLayer AVS")
+		log.Println("Operator is not registered with AlignedLayer AVS, registering...")
+		quorumNumbers := []byte{0}
+
+		// Generate salt and expiry
+		privateKeyBytes := []byte(configuration.BlsConfig.KeyPair.PrivKey.String())
+		salt := [32]byte{}
+
+		copy(salt[:], crypto.Keccak256([]byte("churn"), []byte(time.Now().String()), quorumNumbers, privateKeyBytes))
+
+		err = RegisterOperator(context.Background(), &configuration, salt)
+		if err != nil {
+			log.Fatalf("Could not register operator")
+		}
 	}
 
 	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(configuration.BaseConfig)
@@ -131,10 +144,9 @@ func (o *Operator) Start(ctx context.Context) error {
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
 		case newBatchLog := <-o.NewTaskCreatedChan:
-			// o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
-				o.Logger.Errorf("Batch did not verify", "err", err)
+				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 				continue
 			}
 			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
@@ -184,8 +196,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 
 	for result := range results {
 		if !result {
-			o.Logger.Error("Proof did not verify")
-			return nil
+			return fmt.Errorf("invalid proof")
 		}
 	}
 
@@ -353,25 +364,25 @@ func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
-		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		o.Logger.Infof("Could not deserialize proof: %v", err)
 		return false
 	}
 
 	pubInputReader := bytes.NewReader(pubInputBytes)
 	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
-		o.Logger.Errorf("Error instantiating witness: %v", err)
+		o.Logger.Infof("Error instantiating witness: %v", err)
 		return false
 	}
 	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK public input: %v", err)
+		o.Logger.Infof("Could not read PLONK public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := plonk.NewVerifyingKey(curve)
 	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK verifying key from bytes: %v", err)
+		o.Logger.Infof("Could not read PLONK verifying key from bytes: %v", err)
 		return false
 	}
 
@@ -384,25 +395,25 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 	proofReader := bytes.NewReader(proofBytes)
 	proof := groth16.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
-		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		o.Logger.Infof("Could not deserialize proof: %v", err)
 		return false
 	}
 
 	pubInputReader := bytes.NewReader(pubInputBytes)
 	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
-		o.Logger.Errorf("Error instantiating witness: %v", err)
+		o.Logger.Infof("Error instantiating witness: %v", err)
 		return false
 	}
 	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
-		o.Logger.Errorf("Could not read Groth16 public input: %v", err)
+		o.Logger.Infof("Could not read Groth16 public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := groth16.NewVerifyingKey(curve)
 	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
-		o.Logger.Errorf("Could not read Groth16 verifying key from bytes: %v", err)
+		o.Logger.Infof("Could not read Groth16 verifying key from bytes: %v", err)
 		return false
 	}
 

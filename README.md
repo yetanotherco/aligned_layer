@@ -44,11 +44,21 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 Send the proof with:
 
 ```bash
-aligned \
+aligned submit \
 --proving_system SP1 \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
+--aligned_verification_data_path ~/aligned_verification_data \
 --conn wss://batcher.alignedlayer.com
+```
+Wait some seconds for proof to be verified in Aligned.
+
+Test it has been verified with:
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data ~/aligned_verification_data/*.json \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--chain holesky
 ```
 
 ### Run
@@ -58,18 +68,19 @@ aligned \
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 **Example**
 
 ```bash
-aligned \
+aligned submit \
 --proving_system SP1 \
 --proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
 --vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
@@ -81,19 +92,20 @@ aligned \
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 **Examples**:
 
 ```bash
-aligned \
+aligned submit \
 --proving_system GnarkPlonkBn254 \
 --proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
 --public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
@@ -102,7 +114,7 @@ aligned \
 ```
 
 ```bash
-aligned \
+aligned submit \
 --proving_system GnarkPlonkBls12_381 \
 --proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
 --public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -111,12 +123,31 @@ aligned \
 ```
 
 ```bash
-aligned \
+aligned submit \
 --proving_system Groth16Bn254 \
 --proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
 --public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
 --vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
+```
+
+### Creating a transaction from the CLI to verify proof in Ethereum
+After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format inside the `<batch_inclusion_data_directory_path>`, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. By default, the `batch_inclusion_data` directory will be created where the submit command is being executed, but you can specify it with the `<batch_inclusion_data_directory_path>` argument. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file.
+
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data <path_to_your_verification_data> \
+--rpc <holesky_rpc_url> \
+--chain holesky
+```
+
+As a quick example for trying it out, you can use verification data provided by us in `./batcher/aligned/test_files/batch_inclusion_data/17bd5db82ef731ba3710b22df8e3c1ca6a5cde0a8d1ca1681664e4ff9b25574f_295.json`:
+
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data ./batcher/aligned/test_files/batch_inclusion_data/17bd5db82ef731ba3710b22df8e3c1ca6a5cde0a8d1ca1681664e4ff9b25574f_295.json \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--chain holesky
 ```
 
 ## Register as an Aligned operator in testnet
@@ -133,16 +164,17 @@ This guide assumes you are already [registered as an operator with EigenLayer](h
 Minimum hardware requirements:
 
 | Component     | Specification     |
-| ------------- | ----------------- |
+|---------------|-------------------|
 | **CPU**       | 16 cores          |
 | **Memory**    | 32 GB RAM         |
 | **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
-#### Software Requirements
+### Building from Source (Recommended)
+
+We recommend building from source whenever possible. If using the docker image, these steps can be skipped.
 
 Ensure you have the following installed:
-
 - [Go](https://go.dev/doc/install)
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
@@ -159,34 +191,58 @@ make install_foundry
 foundryup
 ```
 
-#### Install the Operator Binary
-
-To install the operator binary, run:
+To build the operator binary, run:
 
 ```bash
 make build_operator
 ```
 
-#### Update the operator
-
-To update the operator, first stop the process running the operator (if there is any) and then run:
+To update the operator, run:
 
 ```bash
 git pull
 make build_operator
 ```
 
-#### Configuration
+This will recreate the binaries. You can then proceed to restart the operator.
+
+### Configuration
+
+#### When building from source
 
 Update the following placeholders in `./config-files/config-operator.yaml`:
-
-- `"<ecdsa_key_store_location_path>"`
-- `"<bls_key_store_location_path>"`
 - `"<operator_address>"`
 - `"<earnings_receiver_address>"`
+- `"<ecdsa_key_store_location_path>"`
+- `"<ecdsa_key_store_password>"`
+- `"<bls_key_store_location_path>"`
+- `"<bls_key_store_password>"`
 
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
+
+
+#### When using docker
+
+Update the following placeholders in `./config-files/config-operator.docker.yaml`:
+- `"<operator_address>"`
+- `"<earnings_receiver_address>"`
+- `"<ecdsa_key_store_password>"`
+- `"<bls_key_store_password>"`
+
+Make sure not to update the `ecdsa_key_store_location_path` and `bls_key_store_location_path`
+as they are already set to the correct path.
+
+Then create a .env file in `operator/docker/.env`.
+An example of the file can be found in `operator/docker/.env.example`.
+
+The file should contain the following variables:
+
+| Variable Name               | Description                                                                                                   |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------|
+| `ECDSA_KEY_FILE_HOST`       | Absolute path to the ECDSA key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/ |
+| `BLS_KEY_FILE_HOST`         | Absolute path to the BLS key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/   |
+| `OPERATOR_CONFIG_FILE_HOST` | Absolute path to the operator config file. It should be path to config-files/config-operator.docker.yaml      |
 
 ### Deposit Strategy Tokens
 
@@ -200,7 +256,9 @@ You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a 
 EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
 
 #### Option 2:
-If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH. Change the parameter in ```---value``` if you want to wrap a different amount:
+If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH.
+Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
+Change the parameter in ```---value``` if you want to wrap a different amount:
 
 ```bash
 cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
@@ -208,31 +266,41 @@ cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-
 
 Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
 
-Finally, to end the staking process, you need to deposit into the strategy, as shown in EigenLayer's guide, or alternatively, you can run the following command to deposit 1 WETH:
+Finally, to end the staking process, you need to deposit into the WETH strategy,
+as shown in the Eigen guide.
 
-```bash
-./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
-```
+<details>
+  <summary>An alternative using the CLI (only when running without docker)</summary>
+
+  Run the following command to deposit one WETH
+  ```bash
+  ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
+  ```
+</details>
 
 If you don't have Holesky Eth, these are some useful faucets:
 
 - [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
 - [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
 
-### Register as an operator with Aligned
-
-To register the operator with Aligned, run:
-
-```bash
-./operator/build/aligned-operator register --config ./config-files/config-operator.yaml
-```
-
 ### Start the operator
 
-To start the Aligned operator, run:
+#### From Source (Recommended)
+
+```
+./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+```
+
+#### Using Docker
+
+Ensure you have the following installed:
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+Then run:
 
 ```bash
-./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+make operator_start_docker
 ```
 
 ### Unregister the operator from Aligned
@@ -609,7 +677,8 @@ aligned \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--aligned_verification_data_path [aligned_verification_data_path]
 ```
 
 ### Task Sender
@@ -1069,7 +1138,8 @@ cargo run --release -- \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--aligned_verification_data_path [aligned_verification_data_path]
 ```
 
 ## FAQ

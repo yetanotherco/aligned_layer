@@ -1,0 +1,8 @@
+services:
+  anvil_blockchain:
+    image: anvil_blockchain
+    build:       
+      context: .
+      dockerfile: anvil.Dockerfile
+    ports:
+      - "8000:5000"
