@@ -239,6 +239,8 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 
 	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
+		agg.walletMutex.Unlock()
+		agg.logger.Info("- Unlocked Wallet Resources: Error sending aggregated response")
 		return nil, err
 	}
 
