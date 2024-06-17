@@ -7,13 +7,11 @@ cd "$parent_path"
 # At this point we are in contracts
 cd ../
 
-if [ -z "$ALIGNED_CONTRACT_ADDRESS" ]; then
-    echo Missing exported ALIGNED_CONTRACT_ADDRESS variable
-    exit 1
-fi
+ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS=$(jq -r '.addresses.alignedLayerServiceManager' ./script/output/holesky/alignedlayer_deployment_output.json)
+
 
 forge script script/deploy/VerifyBatchInclusionCallerDeployer.s.sol \
-    $ALIGNED_CONTRACT_ADDRESS \
+    $ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
     --broadcast \
