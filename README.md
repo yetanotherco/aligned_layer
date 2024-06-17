@@ -206,6 +206,15 @@ make build_operator
 
 This will recreate the binaries. You can then proceed to restart the operator.
 
+To see the operator version, run:
+
+```bash
+./operator/build/aligned-operator --version
+```
+
+This will display the current version of the operator binary.
+
+
 ### Configuration
 
 #### When building from source
