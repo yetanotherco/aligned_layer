@@ -234,10 +234,9 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 	case common.Nexus:
 		proofLen := (uint32)(len(verificationData.Proof))
 		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		pubInputLen := (uint32)(len(verificationData.VerificationKey))
-		elfLen := (uint32)(len(verificationData.VmProgramCode))
+		keyLen := (uint32)(len(verificationData.VmProgramCode))
 
-		verificationResult := nexus.VerifyNexusProof(verificationData.Proof, proofLen, verificationData.PubInput, pubInputLen, verificationData.VmProgramCode, elfLen)
+		verificationResult := nexus.VerifyNexusProof(verificationData.Proof, proofLen, verificationData.VerificationKey, paramsLen, verificationData.VmProgramCode, keyLen)
 		o.Logger.Infof("Nexus proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2IPA:

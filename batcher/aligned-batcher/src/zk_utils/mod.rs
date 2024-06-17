@@ -2,6 +2,7 @@ use crate::gnark::verify_gnark;
 use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
 use crate::sp1::verify_sp1_proof;
+use crate::nexus::verify_nexus_proof;
 use aligned_batcher_lib::types::{ProvingSystemId, VerificationData};
 use log::{debug, warn};
 
@@ -15,7 +16,11 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             false
         }
         ProvingSystemId::Nexus => {
-            todo!()
+            if let Some(params) = &verification_data.proof {
+                if let Some(key) = verification_data.verification_key {
+                    return verify_nexus_proof(&verification_data.proof, &params, &key);
+                }
+            }
         }
         ProvingSystemId::Halo2KZG => {
             let vk = verification_data

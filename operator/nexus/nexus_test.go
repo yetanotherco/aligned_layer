@@ -7,10 +7,9 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/nexus"
 )
 
-const MaxProofsize = 2 * 1024 * 1024
+const MaxProofSize = 2 * 1024 * 1024
 const MaxParamsSize = 2 * 1024 * 1024
-const MaxInputSize = 2 * 1024 * 1024
-const MaxElfSize = 2 * 1024 * 1024
+const MaxKeySize = 2 * 1024 * 1024
 
 func TestFibonacciNexusProofVerifies(t *testing.T) {
 	proofFile, err := os.Open("../../task_sender/test_examples/nexus/fib/nexus.proof")
@@ -23,17 +22,6 @@ func TestFibonacciNexusProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 	
-	inputFile, err := os.Open("../../task_sender/test_examples/nexus/fib/nexus.input")
-	if err != nil {
-		t.Errorf("could not open proof file: %s", err)
-	}
-
-	inputBytes := make([]byte, MaxInputSize)
-	nReadInputBytes, err := paramsFile.Read(inputBytes)
-	if err != nil {
-		t.Errorf("could not read bytes from file")
-	}
-
 	paramsFile, err := os.Open("../../task_sender/test_examples/nexus/fib/nexus.params")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
@@ -45,18 +33,18 @@ func TestFibonacciNexusProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 
-	elfFile, err := os.Open("../../task_sender/test_examples/nexus/fib/nexus.elf")
+	keyFile, err := os.Open("../../task_sender/test_examples/nexus/fib/nexus.key")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
 
-	elfBytes := make([]byte, MaxElfSize)
-	nReadElfBytes, err := elfFile.Read(elfBytes)
+	keyBytes := make([]byte, MaxKeySize)
+	nReadKeyBytes, err := keyFile.Read(keyBytes)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
 
-	if !sp1.VerifyNexusProof(proofBytes, uint32(nReadProofBytes), paramsBytes, uint32(nReadParamsBytes), inputBytes, uint32(nReadInputBytes), elfBytes, uint32(nReadElfBytes)) {
+	if !nexus.VerifyNexusProof(proofBytes, uint32(nReadProofBytes), paramsBytes, uint32(nReadParamsBytes), keyBytes, uint32(nReadKeyBytes)) {
 		t.Errorf("proof did not verify")
 	}
 }
