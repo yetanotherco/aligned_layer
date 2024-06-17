@@ -4,7 +4,7 @@ OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
 
-OPERATOR_VERSION=v1.0.0
+OPERATOR_VERSION=v0.1.6
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
