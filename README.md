@@ -47,6 +47,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 Send the proof with:
 
 ```bash
+rm -rf ~/aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
@@ -54,9 +55,19 @@ aligned submit \
 --aligned_verification_data_path ~/aligned_verification_data \
 --conn wss://batcher.alignedlayer.com
 ```
-Wait some seconds for proof to be verified in Aligned.
 
-Test it has been verified with:
+You should get a response like this:
+
+```bash
+[2024-06-17T22:06:03Z INFO  aligned] Proof submitted to aligned. See the batch in the explorer:
+    https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13
+[2024-06-17T22:06:03Z INFO  aligned] Batch inclusion data written into /Users/maurofab/aligned_verification_data/8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13_225.json
+[2024-06-17T22:06:03Z INFO  aligned] All messages responded. Closing connection...
+https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13```
+```
+
+You can use the link to the explorer to check the status of your transaction. Then after three blocks, you can check if it has been verified with:
+
 ```bash
 aligned verify-proof-onchain \
 --aligned-verification-data ~/aligned_verification_data/*.json \
@@ -64,114 +75,16 @@ aligned verify-proof-onchain \
 --chain holesky
 ```
 
-### Run
-
-#### SP1 proof
-
-The SP1 proof needs the proof file and the vm program file.
+You should get this result:
 
 ```bash
-aligned submit \
---proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
---proof <proof_file> \
---vm_program <vm_program_file> \
---conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr] \
---batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
+[2024-06-17T21:58:43Z INFO  aligned] Your proof was verified in Aligned and included in the batch!
 ```
 
-**Example**
+If the proof wasn't verified you should get this result:
 
 ```bash
-aligned submit \
---proving_system SP1 \
---proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
---vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
---conn wss://batcher.alignedlayer.com
-```
-
-Notice that:
-
-> AlignedLayer only verifies SP1 in compressed version.
-> You can check you are using compressed by opening script/src/main.rs
-and check that the proof is generated with `client.prove_compressed` instead of `client.prove`.
-
-To get the proof and the ELF file:
-
-First, open a terminal and navigate to the script folder in the sp1 project directory
-
-Then, run the following command:
-
-```bash
-cargo run --release
-```
-
-Proof file should be under `script` directory, with the name `proof.json` or similar
-
-Elf file should be on `program/elf/` directory
-
-#### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
-
-The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
-
-```bash
-aligned submit \
---proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
---proof <proof_file> \
---public_input <public_input_file> \
---vk <verification_key_file> \
---conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr] \
---batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
-```
-
-**Examples**:
-
-```bash
-aligned submit \
---proving_system GnarkPlonkBn254 \
---proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
---public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
---vk ./batcher/aligned/test_files/plonk_bn254/plonk.vk \
---conn wss://batcher.alignedlayer.com
-```
-
-```bash
-aligned submit \
---proving_system GnarkPlonkBls12_381 \
---proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
---public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
---vk ./batcher/aligned/test_files/plonk_bls12_381/plonk.vk \
---conn wss://batcher.alignedlayer.com
-```
-
-```bash
-aligned submit \
---proving_system Groth16Bn254 \
---proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
---public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
---vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
---conn wss://batcher.alignedlayer.com
-```
-
-### Creating a transaction from the CLI to verify proof in Ethereum
-
-After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format inside the `<batch_inclusion_data_directory_path>`, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. By default, the `batch_inclusion_data` directory will be created where the submit command is being executed, but you can specify it with the `<batch_inclusion_data_directory_path>` argument. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file.
-
-```bash
-aligned verify-proof-onchain \
---aligned-verification-data <path_to_your_verification_data> \
---rpc <holesky_rpc_url> \
---chain holesky
-```
-
-As a quick example for trying it out, you can use verification data provided by us in `./batcher/aligned/test_files/batch_inclusion_data/17bd5db82ef731ba3710b22df8e3c1ca6a5cde0a8d1ca1681664e4ff9b25574f_295.json`:
-
-```bash
-aligned verify-proof-onchain \
---aligned-verification-data ./batcher/aligned/test_files/batch_inclusion_data/17bd5db82ef731ba3710b22df8e3c1ca6a5cde0a8d1ca1681664e4ff9b25574f_295.json \
---rpc https://ethereum-holesky-rpc.publicnode.com \
---chain holesky
+[2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
 
 ## FAQ
