@@ -18,7 +18,6 @@ use futures_util::{
     SinkExt, StreamExt, TryStreamExt,
 };
 use log::{error, info};
-use serde::Serialize;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
@@ -135,7 +134,6 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let batch_inclusion_data_directory_path =
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
 
-            let num_responses = Arc::new(Mutex::new(0));
             let mut sent_verification_data: Vec<VerificationData> = Vec::new();
 
             let repetitions = submit_args.repetitions;
@@ -145,13 +143,15 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             for _ in 0..repetitions {
                 ws_write.send(Message::Text(json_data.to_string())).await?;
                 sent_verification_data.push(verification_data.clone());
-
                 info!("Message sent...")
             }
 
+            let num_responses = Arc::new(Mutex::new(0));
             let ws_write = Arc::new(Mutex::new(ws_write));
 
-            let mut verification_data_commitments: Vec<VerificationDataCommitment> =
+            // This vector is reversed so that when responses are received, the commitments corresponding
+            // to that response can simply be popped of this vector.
+            let mut verification_data_commitments_rev: Vec<VerificationDataCommitment> =
                 sent_verification_data
                     .into_iter()
                     .map(|vd| vd.into())
@@ -164,7 +164,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 repetitions,
                 num_responses,
                 batch_inclusion_data_directory_path,
-                &mut verification_data_commitments,
+                &mut verification_data_commitments_rev,
             )
             .await?;
         }
@@ -231,7 +231,7 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     batch_inclusion_data_directory_path: PathBuf,
-    rev_verification_data_commitments: &mut Vec<VerificationDataCommitment>,
+    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
 ) -> Result<(), BatcherClientError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
@@ -257,30 +257,24 @@ async fn receive(
             let data = msg.into_data();
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
-                    info!("Batcher response received: {}", batch_inclusion_data);
+                    info!("Received response from batcher");
+                    info!(
+                        "Batch merkle root: {}",
+                        hex::encode(batch_inclusion_data.batch_merkle_root)
+                    );
+                    info!("Index in batch: {}", batch_inclusion_data.index_in_batch);
                     info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
                     let verification_data_commitment =
-                        rev_verification_data_commitments.pop().unwrap();
-                    let inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
+                        verification_data_commitments_rev.pop().unwrap_or_default();
 
-                    info!("Verifying batcher response...");
-                    if inclusion_proof.verify::<VerificationCommitmentBatch>(
-                        &batch_inclusion_data.batch_merkle_root,
-                        batch_inclusion_data.verification_data_batch_index,
-                        &verification_data_commitment,
-                    ) {
-                        info!("Commitments match!");
-                    } else {
-                        error!("Commitments don't match");
-                    }
+                    verify_response(&verification_data_commitment, &batch_inclusion_data);
 
-                    let batch_merkle_root = hex::encode(batch_inclusion_data.batch_merkle_root);
-                    let batch_inclusion_data_file_name = batch_merkle_root
+                    let batch_merkle_root =
+                        &hex::encode(batch_inclusion_data.batch_merkle_root)[..6];
+                    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
                         + "_"
-                        + &batch_inclusion_data
-                            .verification_data_batch_index
-                            .to_string()
+                        + &batch_inclusion_data.index_in_batch.to_string()
                         + ".json";
 
                     let batch_inclusion_data_path =
@@ -290,7 +284,7 @@ async fn receive(
                         batch_inclusion_data,
                     );
 
-                    let data = serde_json::to_vec(&aligned_verification_data).unwrap();
+                    let data = serde_json::to_vec(&aligned_verification_data)?;
 
                     let mut file = File::create(&batch_inclusion_data_path).unwrap();
                     file.write_all(data.as_slice()).unwrap();
@@ -368,4 +362,22 @@ fn read_file_option(
     let file_name =
         file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
     read_file(file_name)
+}
+
+fn verify_response(
+    verification_data_commitment: &VerificationDataCommitment,
+    batch_inclusion_data: &BatchInclusionData,
+) {
+    info!("Verifying batcher response...");
+    let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
+
+    if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
+        &batch_inclusion_data.batch_merkle_root,
+        batch_inclusion_data.index_in_batch,
+        &verification_data_commitment,
+    ) {
+        info!("Response verified succesfully!");
+    } else {
+        error!("Verification data commitments and batcher response with merkle root {} and  index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
+    }
 }

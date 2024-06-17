@@ -17,7 +17,7 @@ impl AlignedVerificationData {
     ) -> Self {
         let batch_merkle_root = inclusion_data.batch_merkle_root;
         let batch_inclusion_proof = inclusion_data.batch_inclusion_proof;
-        let index_in_batch = inclusion_data.verification_data_batch_index;
+        let index_in_batch = inclusion_data.index_in_batch;
 
         Self {
             verification_data_commitment,

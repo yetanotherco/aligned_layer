@@ -29,7 +29,7 @@ pub struct VerificationData {
     pub proof_generator_addr: Address,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
     pub pub_input_commitment: [u8; 32],
@@ -111,7 +111,7 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
 pub struct BatchInclusionData {
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
-    pub verification_data_batch_index: usize,
+    pub index_in_batch: usize,
 }
 
 impl BatchInclusionData {
@@ -126,25 +126,8 @@ impl BatchInclusionData {
         BatchInclusionData {
             batch_merkle_root: batch_merkle_tree.root.clone(),
             batch_inclusion_proof,
-            verification_data_batch_index,
+            index_in_batch: verification_data_batch_index,
         }
-    }
-}
-
-impl fmt::Display for BatchInclusionData {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let merkle_root = hex::encode(self.batch_merkle_root);
-        let idx_in_batch = self.verification_data_batch_index;
-
-        write!(
-            f,
-            "
-Batch inclusion response {{
-    ○ batch merkle root: {}
-    ○ index in batch: {}
-}}",
-            merkle_root, idx_in_batch
-        )
     }
 }
 
