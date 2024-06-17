@@ -1,8 +1,10 @@
 use std::fmt;
 
-use alloy_primitives::Address;
 use anyhow::anyhow;
-use lambdaworks_crypto::merkle_tree::{merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend};
+use ethers::types::Address;
+use lambdaworks_crypto::merkle_tree::{
+    merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
+};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
@@ -90,7 +92,6 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
         hasher.update(leaf.proof_commitment);
         hasher.update(leaf.pub_input_commitment);
         hasher.update(leaf.proving_system_aux_data_commitment);
-        hasher.update(leaf.pub_input_commitment);
         hasher.update(leaf.proof_generator_addr);
 
         hasher.finalize().into()
@@ -111,6 +112,7 @@ pub struct BatchInclusionData {
     pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
+    pub verification_data_batch_index: usize,
 }
 
 impl BatchInclusionData {
@@ -127,6 +129,7 @@ impl BatchInclusionData {
             verification_data_commitment: verification_data_commitment.clone(),
             batch_merkle_root: batch_merkle_tree.root.clone(),
             batch_inclusion_proof,
+            verification_data_batch_index,
         }
     }
 }

@@ -9,6 +9,7 @@
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [How to use the testnet](#how-to-use-the-testnet)
+  - [Register as an Aligned operator in testnet](#register-as-an-aligned-operator-in-testnet)
   - [Local Devnet Setup](#local-devnet-setup)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
@@ -43,11 +44,21 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 Send the proof with:
 
 ```bash
-aligned \
+aligned submit \
 --proving_system SP1 \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
+--aligned_verification_data_path ~/aligned_verification_data \
 --conn wss://batcher.alignedlayer.com
+```
+Wait some seconds for proof to be verified in Aligned.
+
+Test it has been verified with:
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data ~/aligned_verification_data/*.json \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--chain holesky
 ```
 
 ### Run
@@ -57,18 +68,19 @@ aligned \
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
 **Example**
 
 ```bash
-aligned \
+aligned submit \
 --proving_system SP1 \
 --proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
 --vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
@@ -80,19 +92,20 @@ aligned \
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
-**Examples**
+**Examples**:
 
 ```bash
-aligned \
+aligned submit \
 --proving_system GnarkPlonkBn254 \
 --proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
 --public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
@@ -101,7 +114,7 @@ aligned \
 ```
 
 ```bash
-aligned \
+aligned submit \
 --proving_system GnarkPlonkBls12_381 \
 --proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
 --public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -110,13 +123,195 @@ aligned \
 ```
 
 ```bash
-aligned \
+aligned submit \
 --proving_system Groth16Bn254 \
 --proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
 --public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
 --vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
+
+### Creating a transaction from the CLI to verify proof in Ethereum
+After running the commands of the previous section to submit proofs to the batcher, you will receive responses that will be written to disk in a JSON format inside the `<batch_inclusion_data_directory_path>`, for example `19f04bbb143af72105e2287935c320cc2aa9eeda0fe1f3ffabbe4e59cdbab691_0.json`. By default, the `batch_inclusion_data` directory will be created where the submit command is being executed, but you can specify it with the `<batch_inclusion_data_directory_path>` argument. To verify their inclusion in a batch, run the following command, replacing the `<path_to_batch_inclusion_data>` placeholder with the path to your response file.
+
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data <path_to_your_verification_data> \
+--rpc <holesky_rpc_url> \
+--chain holesky
+```
+
+As a quick example for trying it out, you can use verification data provided by us in `./batcher/aligned/test_files/batch_inclusion_data/17bd5db82ef731ba3710b22df8e3c1ca6a5cde0a8d1ca1681664e4ff9b25574f_295.json`:
+
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data ./batcher/aligned/test_files/batch_inclusion_data/17bd5db82ef731ba3710b22df8e3c1ca6a5cde0a8d1ca1681664e4ff9b25574f_295.json \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--chain holesky
+```
+
+## Register as an Aligned operator in testnet
+
+### Requirements
+
+> [!NOTE]
+> You must be whitelisted to become an Aligned operator.
+
+This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
+
+#### Hardware Requirements
+
+Minimum hardware requirements:
+
+| Component     | Specification     |
+|---------------|-------------------|
+| **CPU**       | 16 cores          |
+| **Memory**    | 32 GB RAM         |
+| **Bandwidth** | 1 Gbps            |
+| **Storage**   | 256 GB disk space |
+
+### Building from Source (Recommended)
+
+We recommend building from source whenever possible. If using the docker image, these steps can be skipped.
+
+Ensure you have the following installed:
+- [Go](https://go.dev/doc/install)
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+
+Also, you have to install the following dependencies for Linux:
+
+- pkg-config
+- libssl-dev
+
+To install foundry, run:
+
+```bash
+make install_foundry
+foundryup
+```
+
+To build the operator binary, run:
+
+```bash
+make build_operator
+```
+
+To update the operator, run:
+
+```bash
+git pull
+make build_operator
+```
+
+This will recreate the binaries. You can then proceed to restart the operator.
+
+### Configuration
+
+#### When building from source
+
+Update the following placeholders in `./config-files/config-operator.yaml`:
+- `"<operator_address>"`
+- `"<earnings_receiver_address>"`
+- `"<ecdsa_key_store_location_path>"`
+- `"<ecdsa_key_store_password>"`
+- `"<bls_key_store_location_path>"`
+- `"<bls_key_store_password>"`
+
+`"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
+The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
+
+
+#### When using docker
+
+Update the following placeholders in `./config-files/config-operator.docker.yaml`:
+- `"<operator_address>"`
+- `"<earnings_receiver_address>"`
+- `"<ecdsa_key_store_password>"`
+- `"<bls_key_store_password>"`
+
+Make sure not to update the `ecdsa_key_store_location_path` and `bls_key_store_location_path`
+as they are already set to the correct path.
+
+Then create a .env file in `operator/docker/.env`.
+An example of the file can be found in `operator/docker/.env.example`.
+
+The file should contain the following variables:
+
+| Variable Name               | Description                                                                                                   |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------|
+| `ECDSA_KEY_FILE_HOST`       | Absolute path to the ECDSA key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/ |
+| `BLS_KEY_FILE_HOST`         | Absolute path to the BLS key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/   |
+| `OPERATOR_CONFIG_FILE_HOST` | Absolute path to the operator config file. It should be path to config-files/config-operator.docker.yaml      |
+
+### Deposit Strategy Tokens
+
+We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
+
+To do so there are 2 options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
+
+You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
+
+#### Option 1:
+EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
+
+#### Option 2:
+If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH.
+Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
+Change the parameter in ```---value``` if you want to wrap a different amount:
+
+```bash
+cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> --value 1ether
+```
+
+Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
+
+Finally, to end the staking process, you need to deposit into the WETH strategy,
+as shown in the Eigen guide.
+
+<details>
+  <summary>An alternative using the CLI (only when running without docker)</summary>
+
+  Run the following command to deposit one WETH
+  ```bash
+  ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
+  ```
+</details>
+
+If you don't have Holesky Eth, these are some useful faucets:
+
+- [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
+- [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
+
+### Start the operator
+
+#### From Source (Recommended)
+
+```
+./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+```
+
+#### Using Docker
+
+Ensure you have the following installed:
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+Then run:
+
+```bash
+make operator_start_docker
+```
+
+### Unregister the operator from Aligned
+
+To unregister the Aligned operator, run:
+
+```bash
+cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
+ ```
+
+ `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
 
 ## Local Devnet Setup
 
@@ -482,7 +677,8 @@ aligned \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--aligned_verification_data_path [aligned_verification_data_path]
 ```
 
 ### Task Sender
@@ -622,6 +818,18 @@ When changing Aligned contracts, the anvil state needs to be updated with:
 make anvil_deploy_aligned_contracts
 ```
 
+To test the upgrade script for ServiceManager in the local devnet, run:
+
+```bash
+make anvil_upgrade_aligned_contracts
+```
+
+To test the upgrade script for RegistryCoordintator in the local devnet, run:
+
+```bash
+make anvil_upgrade_registry_coordinator
+```
+
 #### Aligned Contracts: Holesky/Mainnet
 
 To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same directory as the deployment script (`contracts/scripts/`).
@@ -669,6 +877,20 @@ You need to complete the `DEPLOY_CONFIG_PATH` file with the following informatio
 
 You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
 
+To upgrade the Service Manager Contract in Testnet/Mainnet, run:
+
+```bash
+make upgrade_aligned_contracts
+```
+
+To upgrade the Registry Coordinator in Testnet/Mainnet, run:
+
+```bash
+make upgrade_registry_coordinator
+```
+
+Make sure to set environment variables in a `.env` file in the same directory as the upgrade script (`contracts/scripts/`).
+
 ### Bindings
 
 Also make sure to re-generate the Go smart contract bindings:
@@ -713,12 +935,97 @@ To install Grafana, you can follow the instructions on the [official website](ht
 
 - [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
-- [Phoenix 1.7.12](https://hexdocs.pm/phoenix/installation.html)
-- [Ecto 3.11.2](https://hexdocs.pm/ecto/getting-started.html)
+- [Docker](https://docs.docker.com/get-docker/)
+
+### DB Setup
+
+To setup the explorer, an installation of the DB is needed.
+
+First you'll need to install docker if you don't have it already. You can follow the instructions [here](https://docs.docker.com/get-docker/).
+
+The explorer uses a PostgreSQL database. To build and start the DB using docker, just run:
+
+```bash
+make build_db
+```
+
+This will build the docker image to be used as our database.
+
+After this, both `make run_explorer` and `make run_devnet_explorer` (see [this](#running-for-local-devnet) for more details) will automatically start, setup and connect to the database, which will be available on `localhost:5432` and the data is persisted in a volume.
+
+<details>
+
+<summary>
+  (Optional) The steps to manually execute the database are as follows...
+</summary>
+
+- Run the database container, opening port `5432`:
+
+```bash
+make run_db
+```
+
+- Configure the database with ecto running `ecto.create` and `ecto.migrate`:
+
+```bash
+make ecto_setup_db
+```
+
+- Start the explorer:
+
+```bash
+make run_explorer # or make run_devnet_explorer
+```
+
+</details>
+
+<br>
+
+In order to clear the DB, you can run:
+
+```bash
+make clean_db
+```
+
+If you need to dumb the data from the DB, you can run:
+
+```bash
+make dump_db
+```
+
+This will create a `dump.$date.sql` SQL script on the `explorer` directory with all the existing data.
+
+Data can be recovered from a `dump.$date.sql` using the following command:
+
+```bash
+make recover_db
+```
+
+Then you'll be requested to enter the file name of the dump you want to recover already positioned in the `/explorer` directory.
+
+This will update your database with the dumped database data.
+
+### Extra scripts
+
+If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure you have the ELIXIR_HOSTNAME .env variable configured. You can get the hostname of your elixir by running `elixir -e 'IO.puts(:inet.gethostname() |> elem(1))'`
+
+Then you can run:
+
+```bash
+make explorer_fetch_old_batches
+```
+
+You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
 
 ### Running for local devnet
 
-```make run_devnet_explorer```
+To run the explorer for the local devnet, you'll need to have the devnet running (see [local devnet setup](#local-devnet-setup)) and the DB already setup.
+
+To run the explorer, just run:
+
+```bash
+make run_devnet_explorer
+```
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks information by visiting `localhost:4000/batches/:merkle_root`.
@@ -732,6 +1039,13 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 | `RPC_URL`     | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
 | `PHX_HOST`    | The host URL where the Phoenix server will be running.                                          |
+| `DB_NAME` | The name of the postgres database. |
+| `DB_USER` | The username of the postgres database. |
+| `DB_PASS` | The password of the postgres database. |
+| `DB_HOST` | The host URL where the postgres database will be running. |
+| `ELIXIR_HOSTNAME` |  The hostname of your running elixir. Read [Extra Scripts](#extra-scripts) section for more details |
+
+Then you can run the explorer with this env file config by entering the following command:
 
 ```make run_explorer```
 
@@ -782,11 +1096,14 @@ make test
 
 ### SP1
 
-#### Dependencies
+#### SP1 Dependencies
+
 This guide assumes that:
+
 - sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
 - sp1 project to generate the proofs (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
 - aligned layer repository cloned:
+
     ```bash
     git clone https://github.com/yetanotherco/aligned_layer.git
     ```
@@ -800,6 +1117,7 @@ and check that the proof is generated with `client.prove_compressed` instead of 
 First, open a terminal and navigate to the script folder in the sp1 project directory
 
 Then, run the following command to generate a proof:
+
 ```bash
 cargo run --release
 ```
@@ -807,6 +1125,7 @@ cargo run --release
 #### How to get the proof verified by AlignedLayer
 
 After generating the proof, you will have to find two different files:
+
 - proof file: usually found under `script` directory, with the name `proof.json` or similar
 - elf file: usually found under `program/elf/` directory
 
@@ -819,68 +1138,175 @@ cargo run --release -- \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr [proof_generator_addr]
+--proof_generator_addr [proof_generator_addr] \
+--aligned_verification_data_path [aligned_verification_data_path]
 ```
 
 ## FAQ
 
 ### What is the objective of Aligned?
-
+    
 Aligned’s mission is to extend Ethereum’s zero-knowledge capabilities. We are certain the zero-knowledge proofs will have a key role in the future of blockchains and computation. We don’t know what that future will look like, but we are certain it will be in Ethereum. The question we want to share is: If we are certain zero-knowledge proofs are the future of Ethereum but we are not certain which of the many possible zero-knowledge futures will win. How can we build an infrastructure for Ethereum to be compatible with any future zero-knowledge proving system?
-
-### Why do we need a ZK verification layer?
-
-Verifiable computation allows developers to build applications that help Ethereum scale or even create applications that were not possible before, with enhanced privacy properties. We believe the future of Ethereum will be shaped by zero-knowledge proofs and help it increase its capabilities.
-
-### What are the use cases of Aligned?
-
-Among the possible use cases of Aligned we have:
-
-Soft finality for Rollups and Appchains, fast bridging, new settlement layers (use Aligned + EigenDA) for Rollups and Intent based systems, P2P protocols based on SNARKs such as payment systems and social networks, alternative L1s interoperable with Ethereum, Verifiable Machine Learning, cheap verification and interoperability for Identity Protocols, ZK Oracles, new credential protocols such as zkTLS based systems, ZK Coprocessor, encrypted Mempools using SNARKs to show the correctness of the encryption, protocols against misinformation and fake news, and on-chain gaming.
-
-### Why build on top of Ethereum?
-
-Ethereum is the most decentralized and biggest source of liquidity in the crypto ecosystem. We believe it is the most ambitious and long-term project on the internet. Aligned is being built to help Ethereum achieve its highest potential, and we believe this is only possible through validity/zero-knowledge proofs.
-
-### Why not do this directly on top of Ethereum?
-
-In order to do this we would have to aggregate all the proofs into a single proof. This is not a good solution considering that we would need some way to wrap proofs (for example, by means of recursion), which involves complex operations such as field emulation, bitwise, and/or elliptic curve operations.
-
-### Why not make Aligned a ZK L1?
-
-An L1 would not have the security properties of Ethereum consensus, and bootstrapping a new decentralized network is not only expensive but might be an impossible task. Zero-knowledge proofs are a nascent technology, and change is a constant. The best solution for today may not be the best for tomorrow; modifying L1s is extremely costly, especially as time progresses.
-
-### Why not a ZK L2?
-
+    
+### What is the throughput of Aligned?
+    
+Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. Taking 3 ms per proof, Aligned could verify 300 proofs per second and, using parallelization, over 10,000 proofs per second.
+    
+### How does the throughput of Aligned compare with Ethereum?
+    
+Ethereum runs on top of the EVM. Each block is limited to 30,000,000 gas. Since the most efficient proof systems take at least 250,000 gas, Ethereum can verify 120 proofs per block. Aligned runs the code natively and leverages parallelization, reaching 10,000 proofs in the same period.
+    
+### Is Aligned an Ethereum L2?
+    
+Aligned is related to Ethereum but is not an L2 since it does not produce blocks. It is a decentralized network of verifiers.
+    
+### Does Aligned compete with L2s?
+    
+No. Aligned is a decentralized network of verifiers and has proof aggregation. It does not produce blocks or generate proofs of execution. Aligned provides L2s with fast and cheap verification for the proofs they generate, reducing settlement costs and enhancing cross-chain interoperability with quick and cheap bridging.
+    
+### What are the costs for Aligned?
+    
+The costs depend on task creation, aggregated signature or proof verification, and reading the results. The cost C per proof by batching N proofs is roughly:
+    
+$$
+  C =\frac{C_{task} + C_{verification}}{N} + C_{read}
+$$
+    
+Batching 1024 proofs using Aligned’s fast mode can cost around 2,100 gas in Ethereum (for a gas price of 8 gwei/gas and ETH = $3000, $0.05). As a helpful comparison, a transaction in Ethereum costs 21,000 gas, so you get proof verification for 1/10th of the transaction cost!
+    
+### Why do you have a fast and slow mode?
+    
+The fast mode is designed to offer very cheap verification costs and low latency. It uses crypto-economic guarantees provided by restaking; costs can be as low as 2100 gas. The slow mode works with proof aggregation, with higher fees and latency, and achieves the complete security of Ethereum. We verify an aggregated BLS signature (around 113,000 gas) in the fast mode. We verify an aggregated proof (around 300,000 gas) in the slow mode.
+    
+### Why don’t you run Aligned on top of a virtual machine?
+    
+Running on a virtual machine adds complexity to the system and an additional abstraction layer. It can also reduce Aligned's throughput, which is needed to offer really fast and cheap verification.
+    
+### Why don’t you build Aligned on top of a rollup?
+    
+The main problem with settling on top of a rollup is that you still need confirmation in Ethereum, which adds latency to the process. Besides, most rollups are not fully decentralized, even if they were, not to the extent of Ethereum. Aligned also achieves an already low verification cost in Ethereum, so it would not be convenient to build Aligned on top of a rollup in terms of latency, costs, and decentralization.
+    
 An L2 needs to use the EVM to settle in Ethereum. This means that the proofs need to be efficiently verified in the EVM, and their data made available there.
-
+    
 The EVM is not designed for ZK Verification, so most verifications are expensive.
-
+    
 To solve this, for pairing-based cryptography, Ethereum has added a precompile for verifications using the curve BN254.
-
+    
 But technology changes fast. BN254 security was demonstrated to be around 100 bits instead of the expected 128. Fast Starks need efficient hashing for fields. Which is the best field? Mersenne’s? Goldilocks? Binary fields? What about the sumcheck protocol? Is Jolt the endgame? Or is GKR going to be faster?
-
+    
 The amount of progress in the field is big, and nobody can predict the endgame.
-
+    
 Even more, it would be naive to think that only one optimized prover will exist in the future. In the world of ZK, as in many others, there are trade-offs and systems that solve different problems.
-
+    
 Maybe we want faster proving and don't care about proof size. Maybe we want the fastest proof verification and smallest size and can do more work on the prover. The system may be optimized to prove Keccak really fast. Or we can skip the traditional hashes altogether and just optimize for Poseidon, Rescue, or one hash not created yet.
-
+    
 Aligned solves all of this. No matter how or what you want to prove, it can be verified efficiently here while still inheriting the security of Ethereum as other L2s.
-
+    
+### Is Aligned an aggregation layer?
+    
+Aligned provides proof aggregation as part of its slow mode, a feature shared with all aggregation layers. However, Aligned offers a unique fast mode designed to provide cheap and low-latency proof verification, leveraging the power of restaking. Aligned is a decentralized network designed to verify zero-knowledge proofs and uses recursive proof aggregation as one of its tools. 
+    
+### What proof systems do you support?
+    
+Aligned is designed to support any proof system. Currently supported ones are Groth 16 and Plonk (gnark), SP1, Halo 2 (IPA and KZG)
+    
+### How hard is it to add new proof systems?
+    
+Aligned is designed to make adding new proof systems easy. The only thing needed is the verifier function, which is written in a high-level language like Rust. For example, we could integrate Jolt into one of our testnets just a few hours after it was released.
+    
+### What are BLS signatures?
+    
+[Boneh-Lynn-Shacham](https://en.wikipedia.org/wiki/BLS_digital_signature) is a cryptographic signature that allows a user to verify that a signer is authentic. It relies on elliptic curve pairings and is used by Ethereum due to its aggregation properties.
+    
+### How does Aligned work?
+    
+The flow for fast verification is as follows:
+    
+1. The user uses a provided CLI or SDK to send one proof or many to the batcher, and waits (Alternatively, the user can run a batcher or interact directly with Ethereum)
+2. The batcher accumulates proofs of many users for a small number of blocks (typically 1-3).
+3. The batcher creates a Merkle Tree with commitments to all the data submitted by users, uploads the proofs to the Data Service, and creates the verification task in the ServiceManager.
+4. The operators, using the data in Ethereum, download the proofs from the DataService. They then verify that the Merkle root is equal to the one in Ethereum, and verify all the proofs. 
+5. If the proofs are valid, they sign the root and send this to the BLS signature aggregator.
+6. The signature aggregator accumulates the signed responses until reaching the quorum, then sends the aggregated signature to Ethereum.
+7. Ethereum verifies the aggregated signatures and changes the state of the batch to verified.
+   
+### What is restaking?
+    
+EigenLayer introduced the concept of Restaking. It allows Ethereum’s validators to impose additional slashing conditions on their staked ETH to participate in Actively Validated Services (AVS) and earn additional rewards. This creates a marketplace where applications can rent Ethereum's trust without competing for blockspace. Aligned is an example of an AVS.
+    
+### How can I verify proofs in Aligned?
+    
+You can verify proofs in Aligned using our CLI.
+    
+### Can you provide an estimate of Aligned’s savings?
+    
+In Ethereum (does not include access cost): 
+    
+- Groth 16 proofs: 250,000 gas
+- Plonk/KZG proofs: >300,000 gas
+- STARKs: >1,000,000 gas
+- Binius/Jolt: too expensive to run!
+    
+In Aligned, fast mode:
+    
+- Just one proof (any!): 120,000 gas
+- Batching 1024 proofs: 120 gas + reading cost
+    
+It’s over 99% savings!
+    
+### I want to verify just one proof. Can I use Aligned for cheap and fast verification?
+    
+Yes!
+    
+### Is Aligned open-source?
+    
+Yes!
+    
+### What are the goals of Aligned?
+    
+Aligned is an infrastructure that offers fast and cheap verification for zero-knowledge and validity proofs. It can take any proof system and verify it cheaply and fast.
+    
+This means that what Aligned wants to achieve is to allow anyone to build zk applications. This can only be achieved by:
+    
+- Reducing operational costs when maintaining a zk application -> anyone can afford to build zk apps.
+- Offering more options so developers can choose how they want to build their protocols -> everyone can choose their tools.
+- Offer the latest zk that allows anyone to build zk applications by just proving rust -> anyone can code a zk application.
+    
+### What’s the role of Aligned in Ethereum?
+    
+Aligned’s role is to help advance the adoption of zero-knowledge proofs in Ethereum, increase verification throughput, and reduce on-chain verification time and costs. Aligned can easily incorporate proof systems without any further changes in Ethereum. In a more straightforward analogy, Aligned is like a GPU for Ethereum. 
+    
+### What is proof recursion?
+    
+Zero-knowledge proofs let you generate proofs that show the correct execution of programs. If a program is the verification of a proof, then we will be getting a proof that we verified the proof and the result was valid. The validity of the second proof implies the validity of the original proof. This is the idea behind proof recursion, and it can be used with two main goals:
+    
+1. Convert one proof type to another (for example, a STARK proof to a Plonk proof) either to reduce the proof size, have efficient recursion, or because the proof system cannot be verified where we want.
+2. Proof aggregation: if we have to verify N proofs on-chain, we can generate a single proof that we verified the N proofs off-chain and just check the single proof in Ethereum.
+    
+Proof recursion is the primary tool of Aligned’s slow mode.
+    
+### What are the use cases of Aligned?
+    
+Among the possible use cases of Aligned, we have:
+    
+Soft finality for Rollups and Appchains, fast bridging, new settlement layers (use Aligned + EigenDA) for Rollups and Intent-based systems, P2P protocols based on SNARKs such as payment systems and social networks, alternative L1s interoperable with Ethereum, Verifiable Machine Learning, cheap verification and interoperability for Identity Protocols, ZK Oracles, new credential protocols such as zkTLS based systems, ZK Coprocessor, encrypted Mempools using SNARKs to show the correctness of the encryption, protocols against misinformation and fake news, and on-chain gaming.
+    
+### Why build Aligned on top of Ethereum?
+    
+Ethereum is the most decentralized and most significant source of liquidity in the crypto ecosystem. We believe it is the most ambitious and long-term project on the internet. Aligned is being built to help Ethereum achieve its highest potential, and we believe this is only possible through validity/zero-knowledge proofs.
+    
 ### Why EigenLayer?
-
-We believe Ethereum is the best settlement layer, and zero-knowledge will play a key role in helping it be THE settlement layer of the internet. We want to build a verification layer that helps Ethereum achieve this goal. This layer needs to have a decentralized group of validators that will just re-execute the verification of different proofs, but how can we build such a decentralized network that will help Ethereum? Creating a new L1 doesn’t benefit Ethereum because using it will add new trust assumptions to the Ethereum protocols relying on it. So, if we must have:
-
+    
+We believe Ethereum is the best settlement layer, and zero-knowledge will play a key role in helping it become the settlement layer of the internet. We want to build a verification layer that helps Ethereum achieve this goal. This layer needs to have a decentralized group of validators that will just re-execute the verification of different proofs, but how can we build such a decentralized network that will help Ethereum? Creating a new L1 doesn’t benefit Ethereum because it will add new trust assumptions to the Ethereum protocols relying on it. So, if we must have:
 1. A decentralized network of verifiers
 2. A similar economic security level that can be easily measured in Ethereum
 3. Part of the Ethereum ecosystem
 4. Flexible enough to support many current and future proving systems
 
-### Will you aggregate proofs?
-
-Proof aggregation can also be supported by proving the verification of many of these different verifications. This will likely not be an urgent feature, but it will be needed in the future with more demand.
-
 ### How does it compare to the Polygon aggregation layer?
 
 Aligned is just a network of decentralized verifiers renting security from Ethereum. On the other hand, the Polygon aggregation layer, in essence, is a rollup verifying multiple proofs. That is not the case for Aligned, which just executes a rust binary from different verifiers directly in multiple Ethereum validators.
+
+### Why do we need a ZK verification layer?
+
+Verifiable computation allows developers to build applications that help Ethereum scale or even create applications that were not possible before, with enhanced privacy properties. We believe the future of Ethereum will be shaped by zero-knowledge proofs and help it increase its capabilities.

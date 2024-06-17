@@ -8,17 +8,18 @@ import {ServiceManagerBase, IAVSDirectory} from "eigenlayer-middleware/ServiceMa
 import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
+import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
+import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
 
 /**
- * @title Primary entrypoint for procuring services from AlignedLayer.
- * @author Layr Labs, Inc.
- * @notice This contract is used for:
- * - confirming the data store by the disperser with inferred aggregated signatures of the quorum
- * - freezing operators as the result of various "challenges"
+ * @title Primary entrypoint for procuring services from Aligned.
  */
-contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
-    address aggregator;
-
+contract AlignedLayerServiceManager is
+    ServiceManagerBase,
+    BLSSignatureChecker,
+    AlignedLayerServiceManagerStorage
+{
     uint256 internal constant THRESHOLD_DENOMINATOR = 100;
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
 
@@ -31,22 +32,16 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
 
     event BatchVerified(bytes32 indexed batchMerkleRoot);
 
-    struct BatchState {
-        uint32 taskCreatedBlock;
-        bool responded;
-    }
-
-    /* STORAGE */
-    mapping(bytes32 => BatchState) public batchesState;
-
     constructor(
         IAVSDirectory __avsDirectory,
+        IRewardsCoordinator __rewardsCoordinator,
         IRegistryCoordinator __registryCoordinator,
         IStakeRegistry __stakeRegistry
     )
         BLSSignatureChecker(__registryCoordinator)
         ServiceManagerBase(
             __avsDirectory,
+            __rewardsCoordinator,
             __registryCoordinator,
             __stakeRegistry
         )
@@ -54,20 +49,8 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         _disableInitializers();
     }
 
-    function initialize(
-        address _initialOwner,
-        address _aggregator
-    ) public initializer {
+    function initialize(address _initialOwner) public initializer {
         _transferOwnership(_initialOwner);
-        _setAggregator(_aggregator);
-    }
-
-    function _setAggregator(address _aggregator) internal {
-        aggregator = _aggregator;
-    }
-
-    function isAggregator(address _aggregator) public view returns (bool) {
-        return aggregator == _aggregator;
     }
 
     function createNewTask(
@@ -114,7 +97,7 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         // check that aggregated BLS signature is valid
         (
             QuorumStakeTotals memory quorumStakeTotals,
-            bytes32 hashOfNonSigners
+            bytes32 _hashOfNonSigners
         ) = checkSignatures(
                 batchMerkleRoot,
                 batchesState[batchMerkleRoot].taskCreatedBlock,
@@ -130,5 +113,40 @@ contract AlignedLayerServiceManager is ServiceManagerBase, BLSSignatureChecker {
         );
 
         emit BatchVerified(batchMerkleRoot);
+    }
+
+    function verifyBatchInclusion(
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
+        bytes32 batchMerkleRoot,
+        bytes memory merkleProof,
+        uint verificationDataBatchIndex
+    ) external view returns (bool) {
+        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+            return false;
+        }
+
+        if (!batchesState[batchMerkleRoot].responded) {
+            return false;
+        }
+
+        bytes memory leaf = abi.encodePacked(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr
+        );
+
+        bytes32 hashedLeaf = keccak256(leaf);
+
+        return
+            Merkle.verifyInclusionKeccak(
+                merkleProof,
+                batchMerkleRoot,
+                hashedLeaf,
+                verificationDataBatchIndex
+            );
     }
 }
