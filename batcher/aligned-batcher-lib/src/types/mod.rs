@@ -1,5 +1,3 @@
-use std::fmt;
-
 use anyhow::anyhow;
 use ethers::types::Address;
 use lambdaworks_crypto::merkle_tree::{
