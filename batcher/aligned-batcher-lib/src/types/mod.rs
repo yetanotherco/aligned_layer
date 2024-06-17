@@ -29,7 +29,7 @@ pub struct VerificationData {
     pub proof_generator_addr: Address,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
     pub pub_input_commitment: [u8; 32],

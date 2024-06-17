@@ -7,6 +7,8 @@ use std::io::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
+use aligned_batcher_lib::types::VerificationCommitmentBatch;
+use aligned_batcher_lib::types::VerificationDataCommitment;
 use env_logger::Env;
 use ethers::prelude::*;
 use futures_util::{
@@ -14,6 +16,7 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
+use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{error, info};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
@@ -130,17 +133,28 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let batch_inclusion_data_directory_path =
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
 
+            let num_responses = Arc::new(Mutex::new(0));
+            let mut sent_verification_data: Vec<VerificationData> = Vec::new();
+
             let repetitions = submit_args.repetitions;
             let verification_data = verification_data_from_args(submit_args)?;
 
             let json_data = serde_json::to_string(&verification_data)?;
             for _ in 0..repetitions {
                 ws_write.send(Message::Text(json_data.to_string())).await?;
+                sent_verification_data.push(verification_data.clone());
+
                 info!("Message sent...")
             }
 
-            let num_responses = Arc::new(Mutex::new(0));
             let ws_write = Arc::new(Mutex::new(ws_write));
+
+            let mut verification_data_commitments: Vec<VerificationDataCommitment> =
+                sent_verification_data
+                    .into_iter()
+                    .map(|vd| vd.into())
+                    .rev()
+                    .collect();
 
             receive(
                 ws_read,
@@ -148,6 +162,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 repetitions,
                 num_responses,
                 batch_inclusion_data_directory_path,
+                &mut verification_data_commitments,
             )
             .await?;
         }
@@ -179,11 +194,8 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
             // FIXME(marian): We are passing an empty string as the private key password for the moment.
             // We should think how to handle this correctly.
-            let service_manager = eth::aligned_service_manager(
-                eth_rpc_provider,
-                contract_address,
-            )
-            .await?;
+            let service_manager =
+                eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
             let call = service_manager.verify_batch_inclusion(
                 verification_data_comm.proof_commitment,
@@ -218,6 +230,7 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     batch_inclusion_data_directory_path: PathBuf,
+    rev_verification_data_commitments: &mut Vec<VerificationDataCommitment>,
 ) -> Result<(), BatcherClientError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
@@ -245,6 +258,21 @@ async fn receive(
                 Ok(batch_inclusion_data) => {
                     info!("Batcher response received: {}", batch_inclusion_data);
                     info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+
+                    let commitment = rev_verification_data_commitments.pop().unwrap();
+
+                    let inclusion_proof = batch_inclusion_data.batch_inclusion_proof;
+
+                    info!("Verifying commitments on response...");
+                    if inclusion_proof.verify::<VerificationCommitmentBatch>(
+                        &batch_inclusion_data.batch_merkle_root,
+                        batch_inclusion_data.verification_data_batch_index,
+                        &commitment,
+                    ) {
+                        info!("Commitments match!");
+                    } else {
+                        error!("Commitments don't match");
+                    }
 
                     let batch_merkle_root = hex::encode(batch_inclusion_data.batch_merkle_root);
                     let batch_inclusion_data_file_name = batch_merkle_root
