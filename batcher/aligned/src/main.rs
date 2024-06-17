@@ -134,6 +134,8 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let batch_inclusion_data_directory_path =
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
 
+            // The sent verification data will be stored here so that we can calculate
+            // their commitments later.
             let mut sent_verification_data: Vec<VerificationData> = Vec::new();
 
             let repetitions = submit_args.repetitions;
