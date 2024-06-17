@@ -8,7 +8,7 @@ contract VerifyBatchInclusionCaller {
         targetContract = _targetContract;
     }
 
-    function staticVerifyBatchInclusion(
+    function verifyBatchInclusion(
         bytes32 proofCommitment,
         bytes32 pubInputCommitment,
         bytes32 provingSystemAuxDataCommitment,
