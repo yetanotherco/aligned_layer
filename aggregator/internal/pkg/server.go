@@ -69,8 +69,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 
 	if !ok {
 		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
-		agg.logger.Info("- Unlocked Resources: Task response processing finished")
-		agg.taskMutex.Unlock()
 		*reply = 1
 		return nil
 	}
