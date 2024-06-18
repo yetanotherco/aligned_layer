@@ -6,15 +6,24 @@ defmodule Explorer.Periodically do
   end
 
   def init(_) do
-    :timer.send_interval(6000, :work) # send every 6 seconds, half of 1 block time
-    {:ok, 1}
+    send_work()
+    {:ok, 0}
+  end
+
+  def send_work() do
+    seconds = 12
+    :timer.send_interval(seconds * 1000, :work) # send every n seconds, half of 1 block time
   end
 
   def handle_info(:work, count) do
     # Reads and process last n blocks for new batches or batch changes
+    # Todo read from last_read_block to latest_block_number
     read_block_qty = 8 # There is a new batch every 4-5 blocks
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)
+    # todo:
+    # only 1 Task at a time (or maybe N from a pool)
+    # Also with supervisor that kills the task if it is taking too long(?)
     Task.start(fn -> process_from_to_blocks(read_from_block, latest_block_number) end)
 
     # It gets previous unverified batches and checks if they were verified
@@ -32,12 +41,13 @@ defmodule Explorer.Periodically do
     try do
       AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock})
       |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
-      |> Enum.map(&Utils.extract_amount_of_proofs/1)
+      |> Enum.map(&Utils.extract_amount_of_proofs/1) #mutex here, only 1 download at a time
       |> Enum.map(&Batches.generate_changeset/1)
       |> Enum.map(&Batches.insert_or_update/1)
     rescue
       error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
     end
+    IO.inspect("Done processing from block #{fromBlock} to block #{toBlock}")
   end
 
   defp process_unverified_batches() do
