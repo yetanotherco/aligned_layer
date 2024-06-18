@@ -7,7 +7,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
-	gethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
@@ -85,7 +85,7 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 	return nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
@@ -101,12 +101,9 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 		return nil, err
 	}
 
-	receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
-	if err != nil {
-		return nil, err
-	}
+	txHash := tx.Hash()
 
-	return receipt, nil
+	return &txHash, nil
 }
 
 // func (w *AvsWriter) RaiseChallenge(
