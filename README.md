@@ -99,6 +99,22 @@ If the proof wasn't verified you should get this result:
 
 If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example.
 
+```solidity
+(bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
+    abi.encodeWithSignature(
+        "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
+        proofCommitment,
+        pubInputCommitment,
+        provingSystemAuxDataCommitment,
+        proofGeneratorAddr,
+        batchMerkleRoot,
+        merkleProof,
+        verificationDataBatchIndex
+    )
+);
+require(callWasSuccessfull, "static_call failed");
+```
+
 If you want to know more about Aligned or send another types of proof, read our docs.
 
 ## FAQ
