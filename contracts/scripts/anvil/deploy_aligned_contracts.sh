@@ -26,7 +26,7 @@ forge script script/deploy/AlignedLayerDeployer.s.sol \
 ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS=$(jq -r '.addresses.alignedLayerServiceManager' ./script/output/devnet/alignedlayer_deployment_output.json)
 
 # Can't deploy on another script, current open issue: https://github.com/foundry-rs/foundry/issues/7952
-forge script ../examples/verify/deploy/VerifyBatchInclusionCallerDeployer.s.sol \
+forge script ../examples/verify/script/VerifyBatchInclusionCallerDeployer.s.sol \
     "$ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS" \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \

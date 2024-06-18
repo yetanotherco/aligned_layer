@@ -1,66 +1,53 @@
-## Foundry
+# Example Scripts for Batch Inclusion Verification
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## Requirements
 
-Foundry consists of:
+- [Python 3.9](https://www.python.org/downloads/) or higher
+- For the deployment script you need to install [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Deploying Example Contract
 
-## Documentation
+Before you can interact with the `VerifyBatchInclusionCaller` contract, you need to deploy it to the blockchain. Here are the steps to do that:
 
-https://book.getfoundry.sh/
+First create a `.env` file in the root directory of the project with the following content:
 
-## Usage
+| Variable                    | Value                                                                                                                                                                                                                                   |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `PRIVATE_KEY`               | Your ethereum private key                                                                                                                                                                                                               |
+| `RPC_URL`                   | Your ethereum RPC url. You can use public node: https://ethereum-holesky-rpc.publicnode.com                                                                                                                                             |
+| `ALIGNED_DEPLOYMENT_OUTPUT` | Path to aligned layer deployment output. This is needed to get service manager address. You can get it from https://github.com/yetanotherco/aligned_layer/blob/main/contracts/script/output/holesky/alignedlayer_deployment_output.json |
 
-### Build
+Then, you can deploy the contract by running the following command:
 
-```shell
-$ forge build
+```bash
+./scripts/deploy_verify_batch_inclusion_caller.sh
 ```
 
-### Test
+This will output the address of the deployed contract. You will need this address to interact with the contract.
 
-```shell
-$ forge test
+## Verifying Batch Inclusion
+
+### Parameters
+
+1. `--contract-address`: The address of the contract you want to interact with.
+2. `--aligned-verification-data`: The path to the JSON file containing the verification data. This is the output when submitting a proof from the aligned cli.
+
+### Running the Script
+
+Install the required dependencies by running the following command:
+```bash
+pip3 install -r scripts/requirements.txt
 ```
 
-### Format
-
-```shell
-$ forge fmt
+Then, you can run the script by running the following command:
+```bash
+python3 scripts/main.py --contract-address [CONTRACT_ADDRESS] --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA]
 ```
 
-### Gas Snapshots
+Replace `[CONTRACT_ADDRESS]`, and `[PATH_TO_ALIGNED_VERIFICATION_DATA]` with your actual values.
 
-```shell
-$ forge snapshot
-```
+## Example Command
 
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+```bash
+python3 scripts/main.py --contract-address 0x623926229DD27c45AE40B4e16ba4CD6522fC4d22 --aligned-verification-data ../../aligned_verification_data/7553cb14bff387c06e016cb3e7946e91d9fe44a54ad5d888ce8343ddb16116a7_118.json
 ```
