@@ -26,7 +26,15 @@ If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
 
 If you are developing in Aligned, or want to run your own devnet, check our [Infraestructure Guide](./README_INFRAESTRUCTURE.md)
 
-## How to use the testnet
+## Testnet
+
+### Contract Information
+
+Testnet contract is deployed on Holesky on the address:
+
+ ```0x58F280BeBE9B34c9939C3C39e0890C81f163B623```
+
+###  How to use the testnet
 
 Download and install Aligned to send proofs in the testnet:
 
