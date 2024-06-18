@@ -2,8 +2,14 @@
 
 ## Requirements
 
-- [Python 3.9](https://www.python.org/downloads/) or higher
+- [Python 3.9 or higher](https://www.python.org/downloads/) 
 - For the deployment script you need to install [Foundry](https://book.getfoundry.sh/getting-started/installation)
+
+Then, install the required dependencies by running the following command:
+
+```bash
+pip3 install -r scripts/requirements.txt
+```
 
 ## Deploying Example Contract
 
@@ -38,7 +44,7 @@ python3 scripts/encode_call.py --aligned-verification-data [PATH_TO_ALIGNED_VERI
 Replace `[PATH_TO_ALIGNED_VERIFICATION_DATA]` with the path to the json file containing the verification data. 
 This is the output when submitting a proof from the aligned cli.
 
-This will output the encoded call. You can then use this encoded call to verify the batch inclusion by running the following command:
+This will output the encoded call. You can then use this encoded call to check your submitted proof with the associated data is verified in Ethereum by running the following command:
 
 ```bash
 curl -H "Content-Type: application/json" \
@@ -59,7 +65,7 @@ The output data should be something like this:
 }
 ```
 
-Note that if result ends in 1 it means that the proof is included in the batch, otherwise it is not.
+Note that if result ends in 1 it means that your submitted proof with the associated data is verified in Ethereum, otherwise it is not.
 
 ### Using Python Script
 
@@ -69,11 +75,6 @@ Note that if result ends in 1 it means that the proof is included in the batch, 
 2. `--aligned-verification-data`: The path to the JSON file containing the verification data. This is the output when submitting a proof from the aligned cli.
 
 #### Running the Script
-
-Install the required dependencies by running the following command:
-```bash
-pip3 install -r scripts/requirements.txt
-```
 
 Then, you can run the script by running the following command:
 ```bash
