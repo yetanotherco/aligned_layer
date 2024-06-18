@@ -89,27 +89,7 @@ If the proof wasn't verified you should get this result:
 [2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
 
-
-If you want to do the same call in your contract, use a static call to Aligned contract: 
-
-```solidity
-  (bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
-      abi.encodeWithSignature(
-          "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
-          proofCommitment,
-          pubInputCommitment,
-          provingSystemAuxDataCommitment,
-          proofGeneratorAddr,
-          batchMerkleRoot,
-          merkleProof,
-          verificationDataBatchIndex
-      )
-  );
-```
-
-If you want to run an operator, check our [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol)
-
-If you want to know more about Aligned or send another types of proof, read our docs. 
+If you want to do the same call in your contract, use a static call to Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example.
 
 ## FAQ
 
