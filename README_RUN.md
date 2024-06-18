@@ -1,11 +1,13 @@
 # Run
 
+Make sure you have Aligned installed as specified [here](./README.md#try-it) and that you run the following commands in the Aligned repository.
+
 ## SP1 proof
 
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
-rm -rf ~/aligned_verification_data/ &&
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
@@ -18,7 +20,7 @@ aligned submit \
 **Example**
 
 ```bash
-rm -rf ~/aligned_verification_data/ &&
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
 --proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
@@ -31,7 +33,7 @@ aligned submit \
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-rm -rf ~/aligned_verification_data/ &&
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
@@ -45,7 +47,7 @@ aligned submit \
 **Examples**:
 
 ```bash
-rm -rf ~/aligned_verification_data/ &&
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system GnarkPlonkBn254 \
 --proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
@@ -55,7 +57,7 @@ aligned submit \
 ```
 
 ```bash
-rm -rf ~/aligned_verification_data/ &&
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system GnarkPlonkBls12_381 \
 --proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
@@ -65,7 +67,7 @@ aligned submit \
 ```
 
 ```bash
-rm -rf ~/aligned_verification_data/ &&
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system Groth16Bn254 \
 --proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
