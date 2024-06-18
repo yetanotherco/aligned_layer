@@ -97,7 +97,23 @@ If the proof wasn't verified you should get this result:
 [2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
 
-If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example.
+If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
+
+```solidity
+(bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
+    abi.encodeWithSignature(
+        "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
+        proofCommitment,
+        pubInputCommitment,
+        provingSystemAuxDataCommitment,
+        proofGeneratorAddr,
+        batchMerkleRoot,
+        merkleProof,
+        verificationDataBatchIndex
+    )
+);
+require(callWasSuccessfull, "static_call failed");
+```
 
 If you want to send more types of proofs, read our [send proofs guide](./README_SEND_PROOFS.md).
 
