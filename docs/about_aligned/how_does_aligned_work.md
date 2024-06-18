@@ -49,7 +49,7 @@ The flow for sending a proof and having the results on Ethereum is as follows:
 3. The user invokes an IsVerified function with this data in Solidity to check that the proof is valid.
 4. ( Optional ) The user checks that the commitment to the proven program matches the one it expects.
 
-### Full flow with internals of the proof (Fast Mode)
+### Full flow with the internals of the proof (Fast Mode)
 
 1. The user uses a provided CLI or SDK to send one proof or many to the batcher, and waits (Alternatively, the user can run a batcher or interact directly with Ethereum)
 2. The batcher accumulates proofs of many users for a small number of blocks (typically 1-3).
