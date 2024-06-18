@@ -353,7 +353,7 @@ fn verify_response(
     verification_data_commitment: &VerificationDataCommitment,
     batch_inclusion_data: &BatchInclusionData,
 ) -> bool {
-    info!("Verifying batcher response...");
+    info!("Verifying response data matches sent proof data ...");
     let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
 
     if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
@@ -361,7 +361,7 @@ fn verify_response(
         batch_inclusion_data.index_in_batch,
         &verification_data_commitment,
     ) {
-        info!("Response verified succesfully!");
+        info!("Done. Data sent matches batcher answer");
         return true;
     }
 
