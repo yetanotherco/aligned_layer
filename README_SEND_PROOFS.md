@@ -1,6 +1,6 @@
-# Run
+# Send proofs
 
-Make sure you have Aligned installed as specified [here](./README.md#try-it) and that you run the following commands in the Aligned repository.
+Make sure you have Aligned installed as specified [here](./README.md#try-it) and that you run the following commands in the Aligned repository root.
 
 ## SP1 proof
 
