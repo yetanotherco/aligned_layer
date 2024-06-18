@@ -24,7 +24,7 @@ def main():
 
     # Check result last byte is 1
     if result[-1] == 1:
-        print("Submitted proof with associated data is verfied in ethereum blockchain")
+        print("Submitted proof with associated data is verified in ethereum blockchain")
     else:
         print("Not verified in ethereum blockchain")
 
