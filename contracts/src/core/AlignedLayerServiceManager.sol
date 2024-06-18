@@ -122,7 +122,7 @@ contract AlignedLayerServiceManager is
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint verificationDataBatchIndex
+        uint256 verificationDataBatchIndex
     ) external view returns (bool) {
         if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
             return false;
