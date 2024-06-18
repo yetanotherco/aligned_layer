@@ -1,6 +1,8 @@
 # Send proofs
 
-Make sure you have Aligned installed as specified [here](./README.md#how-to-use-the-testnet) and that you run the following commands in the Aligned repository root.
+Make sure you have Aligned installed as specified [here](./README.md#how-to-use-the-testnet).
+
+If you run the examples below, make sure you are in Aligned's repository root.
 
 ## SP1 proof
 
