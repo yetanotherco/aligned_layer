@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"github.com/Layr-Labs/eigensdk-go/services/operatorsinfo"
 	"sync"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
-	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorpubkeys"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -105,8 +105,12 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	operatorPubkeysService := oppubkeysserv.NewOperatorPubkeysServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, logger)
-	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.AvsRegistryReader, operatorPubkeysService, logger)
+	operatorInfoService := operatorsinfo.NewOperatorsInfoServiceInMemory(
+		context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, logger)
+
+	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(
+		avsReader.AvsRegistryReader, operatorInfoService, logger)
+
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, logger)
 
 	// Metrics
