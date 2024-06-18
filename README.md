@@ -9,22 +9,22 @@
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [Operator Guide](#operator-guide)
-  - [Aligned Infraestructure Guide](#aligned-infraestructure-guide)
+  - [Aligned Infrastructure Guide](#aligned-infrastructure-guide)
   - [How to use the testnet](#how-to-use-the-testnet)
   - [FAQ](#faq)
   - [What is the objective of Aligned?](#what-is-the-objective-of-aligned)
 
 ## The Project
 
-Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned.
+Aligned works with EigenLayer to leverage Ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasible to verify thanks to Aligned.
 
 ## Operator Guide
 
 If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
 
-## Aligned Infraestructure Guide
+## Aligned Infrastructure Guide
 
-If you are developing in Aligned, or want to run your own devnet, check our [Infraestructure Guide](./README_INFRAESTRUCTURE.md)
+If you are developing in Aligned, or want to run your own devnet, check our [Infrastructure Guide](./README_INFRASTRUCTURE.md)
 
 ## Testnet
 
