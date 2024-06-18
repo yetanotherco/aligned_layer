@@ -117,10 +117,23 @@ defmodule Utils do
 
   def extract_amount_of_proofs(%BatchDB{} = batch) do
     #only get from s3 if not already in DB
-    amount_of_proofs = case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
-      nil -> batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
-      proofs -> proofs
+
+    "trying to enter mutex, with merkle root: #{batch.merkle_root}" |> IO.inspect()
+    case Mutex.lock(S3Mutex, {:merkle_root, batch.merkle_root}) do
+      {:error, :busy} ->
+        "killing process" |> IO.inspect()
+        Process.exit(self(), :normal) #if there is a worker working on this batch, no need to process it
+
+      {:ok, lock} ->
+        "inside mutex, with merkle root: #{batch.merkle_root}" |> IO.inspect()
+
+        amount_of_proofs = case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
+          nil -> batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
+          proofs -> proofs
+        end
+
+        Mutex.release(S3Mutex, lock)
+        Map.put(batch, :amount_of_proofs, amount_of_proofs)
     end
-    Map.put(batch, :amount_of_proofs, amount_of_proofs)
   end
 end

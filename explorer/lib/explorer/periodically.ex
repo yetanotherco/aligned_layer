@@ -11,19 +11,16 @@ defmodule Explorer.Periodically do
   end
 
   def send_work() do
-    seconds = 12
+    seconds = 12 # once per block
     :timer.send_interval(seconds * 1000, :work) # send every n seconds, half of 1 block time
   end
 
   def handle_info(:work, count) do
     # Reads and process last n blocks for new batches or batch changes
-    # Todo read from last_read_block to latest_block_number
     read_block_qty = 8 # There is a new batch every 4-5 blocks
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)
-    # todo:
-    # only 1 Task at a time (or maybe N from a pool)
-    # Also with supervisor that kills the task if it is taking too long(?)
+
     Task.start(fn -> process_from_to_blocks(read_from_block, latest_block_number) end)
 
     # It gets previous unverified batches and checks if they were verified
@@ -41,7 +38,7 @@ defmodule Explorer.Periodically do
     try do
       AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock})
       |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
-      |> Enum.map(&Utils.extract_amount_of_proofs/1) #mutex here, only 1 download at a time
+      |> Enum.map(&Utils.extract_amount_of_proofs/1)
       |> Enum.map(&Batches.generate_changeset/1)
       |> Enum.map(&Batches.insert_or_update/1)
     rescue
