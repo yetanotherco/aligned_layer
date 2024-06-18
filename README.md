@@ -22,7 +22,7 @@ Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK pr
 
 If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
 
-## Aligned Infraestructure Guide
+## Aligned Infrastructure Guide
 
 If you are developing in Aligned, or want to run your own devnet, check our [Infraestructure Guide](./README_INFRAESTRUCTURE.md)
 
