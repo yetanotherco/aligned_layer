@@ -24,9 +24,9 @@ def main():
 
     # Check result last byte is 1
     if result[-1] == 1:
-        print("Batch inclusion proof is valid")
+        print("Submitted proof with associated data is verfied in ethereum blockchain")
     else:
-        print("Batch inclusion proof is invalid")
+        print("Not verified in ethereum blockchain")
 
 
 if __name__ == "__main__":
