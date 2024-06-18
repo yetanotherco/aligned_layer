@@ -1,7 +1,7 @@
 
-# Aligned Infraestructure Deployment Guide
+# Aligned Infrastructure Deployment Guide
 
-- [Aligned Infraestructure Deployment Guide](#aligned-infraestructure-deployment-guide)
+- [Aligned Infrastructure Deployment Guide](#aligned-infraestructure-deployment-guide)
   - [Local Devnet Setup](#local-devnet-setup)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
