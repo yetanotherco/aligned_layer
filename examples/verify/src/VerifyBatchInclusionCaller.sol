@@ -8,10 +8,6 @@ contract VerifyBatchInclusionCaller {
         targetContract = _targetContract;
     }
 
-    function test() external view returns (bool) {
-        return true;
-    }
-
     function verifyBatchInclusion(
         bytes32 proofCommitment,
         bytes32 pubInputCommitment,
