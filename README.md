@@ -10,7 +10,7 @@
   - [The Project](#the-project)
   - [Operator Guide](#operator-guide)
   - [Aligned Infrastructure Guide](#aligned-infrastructure-guide)
-  - [Testnet](#testnet)
+  - [How to use the testnet](#how-to-use-the-testnet)
   - [FAQ](#faq)
   - [What is the objective of Aligned?](#what-is-the-objective-of-aligned)
 
@@ -26,7 +26,7 @@ If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
 
 If you are developing in Aligned, or want to run your own devnet, check our [Infrastructure Guide](./README_INFRASTRUCTURE.md)
 
-## Testnet
+## How to use the testnet
 
 ### Contract Information
 
