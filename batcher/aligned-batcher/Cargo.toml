@@ -19,7 +19,7 @@ bytes = "1.6.0"
 hex = "0.4.3"
 dotenv = "0.15.0"
 anyhow = "1.0.83"
-ethers = { version = "2.0", features = ["ws", "rustls"] }
+ethers = { tag = "v2.0.15-fix-reconnections", features = ["ws", "rustls"], git = "https://github.com/yetanotherco/ethers-rs.git" }
 lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
 serde_yaml = "0.9.34"
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.5-testnet" }
