@@ -89,7 +89,9 @@ If the proof wasn't verified you should get this result:
 [2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
 
-If you want to do the same call in your contract, use a static call to Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example.
+If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example.
+
+If you want to know more about Aligned or send another types of proof, read our docs.
 
 ## FAQ
 
