@@ -97,7 +97,7 @@ If the proof wasn't verified you should get this result:
 [2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
 
-If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example.
+If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
 
 ```solidity
 (bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
