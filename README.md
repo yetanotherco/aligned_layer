@@ -99,7 +99,9 @@ If the proof wasn't verified you should get this result:
 
 If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example.
 
-If you want to know more about Aligned or send another types of proof, read our docs.
+If you want to send more types of proofs, read our [run guide](./README_RUN.md).
+
+If you want to know more about Aligned, read our [docs](docs/README.md).
 
 ## FAQ
 
