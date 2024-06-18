@@ -72,6 +72,7 @@ defmodule ExplorerWeb.Utils do
 end
 
 defmodule Utils do
+  require Logger
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
     hex = case hex_string do
@@ -116,24 +117,26 @@ defmodule Utils do
   end
 
   def extract_amount_of_proofs(%BatchDB{} = batch) do
-    #only get from s3 if not already in DB
-
-    "trying to enter mutex, with merkle root: #{batch.merkle_root}" |> IO.inspect()
+    # Don't try to extract amount of proofs of same merkle root concurrently
     case Mutex.lock(S3Mutex, {:merkle_root, batch.merkle_root}) do
       {:error, :busy} ->
-        "killing process" |> IO.inspect()
         Process.exit(self(), :normal) #if there is a worker working on this batch, no need to process it
 
       {:ok, lock} ->
-        "inside mutex, with merkle root: #{batch.merkle_root}" |> IO.inspect()
-
-        amount_of_proofs = case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
-          nil -> batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
-          proofs -> proofs
+        try do
+          amount_of_proofs = case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
+            #only get from s3 if not already in DB
+            nil -> batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
+            proofs -> proofs
+          end
+          Map.put(batch, :amount_of_proofs, amount_of_proofs)
+        rescue #just in case, to release Mutex
+          error ->
+            Logger.error("Error extracting amount of proofs: #{inspect(error)}")
+            Mutex.release(S3Mutex, lock)
+            Process.exit(self(), :normal) #kill failed process
         end
 
-        Mutex.release(S3Mutex, lock)
-        Map.put(batch, :amount_of_proofs, amount_of_proofs)
     end
   end
 end
