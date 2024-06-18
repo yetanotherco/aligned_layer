@@ -9,22 +9,22 @@
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
   - [Operator Guide](#operator-guide)
-  - [Aligned Infraestructure Guide](#aligned-infraestructure-guide)
+  - [Aligned Infrastructure Guide](#aligned-infrastructure-guide)
   - [How to use the testnet](#how-to-use-the-testnet)
   - [FAQ](#faq)
   - [What is the objective of Aligned?](#what-is-the-objective-of-aligned)
 
 ## The Project
 
-Aligned works with EigenLayer to leverage ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasable to verify thanks to Aligned.
+Aligned works with EigenLayer to leverage Ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasible to verify thanks to Aligned.
 
 ## Operator Guide
 
 If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
 
-## Aligned Infraestructure Guide
+## Aligned Infrastructure Guide
 
-If you are developing in Aligned, or want to run your own devnet, check our [Infraestructure Guide](./README_INFRAESTRUCTURE.md)
+If you are developing in Aligned, or want to run your own devnet, check our [Infrastructure Guide](./README_INFRASTRUCTURE.md)
 
 ## Testnet
 
@@ -57,12 +57,12 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 Send the proof with:
 
 ```bash
-rm -rf ~/aligned_verification_data/ &&
+rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
---aligned_verification_data_path ~/aligned_verification_data \
+--aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -80,7 +80,7 @@ You can use the link to the explorer to check the status of your transaction. Th
 
 ```bash
 aligned verify-proof-onchain \
---aligned-verification-data ~/aligned_verification_data/*.json \
+--aligned-verification-data ~/.aligned/aligned_verification_data/*.json \
 --rpc https://ethereum-holesky-rpc.publicnode.com \
 --chain holesky
 ```
@@ -97,9 +97,27 @@ If the proof wasn't verified you should get this result:
 [2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
 
-If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example.
+If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
 
-If you want to know more about Aligned or send another types of proof, read our docs.
+```solidity
+(bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
+    abi.encodeWithSignature(
+        "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
+        proofCommitment,
+        pubInputCommitment,
+        provingSystemAuxDataCommitment,
+        proofGeneratorAddr,
+        batchMerkleRoot,
+        merkleProof,
+        verificationDataBatchIndex
+    )
+);
+require(callWasSuccessfull, "static_call failed");
+```
+
+If you want to send more types of proofs, read our [send proofs guide](./README_SEND_PROOFS.md).
+
+If you want to know more about Aligned, read our [docs](docs/README.md).
 
 ## FAQ
 
