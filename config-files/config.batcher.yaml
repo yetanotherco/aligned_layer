@@ -1,0 +1,22 @@
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: "production"
+aligned_layer_deployment_config_file_path: "./contracts/script/output/holesky/alignedlayer_deployment_output.json"
+eigen_layer_deployment_config_file_path: "./contracts/script/output/holesky/eigenlayer_deployment_output.json"
+eth_rpc_url: "https://rpc.alignedlayer.com"
+eth_ws_url: "wss://eth-mainnet.blastapi.io/fd677f0e-441b-4b09-9339-8fc809e87db8"
+eigen_metrics_ip_port_address: "localhost:9090"
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: "/Users/srosati/.eigenlayer/operator_keys/whitelist.ecdsa.key.json"
+  private_key_store_password: ""
+
+## Batcher configurations
+batcher:
+  block_interval: 3
+  batch_size_interval: 10
+  max_proof_size: 67108864 # 64 MiB
+  max_batch_size: 268435456 # 256 MiB
+  eth_ws_reconnects: 99999999999999
+  pre_verification_is_enabled: false
