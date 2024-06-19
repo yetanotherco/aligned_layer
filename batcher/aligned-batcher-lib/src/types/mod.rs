@@ -1,5 +1,3 @@
-use std::fmt;
-
 use anyhow::anyhow;
 use ethers::types::Address;
 use lambdaworks_crypto::merkle_tree::{
@@ -29,7 +27,7 @@ pub struct VerificationData {
     pub proof_generator_addr: Address,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
     pub pub_input_commitment: [u8; 32],
@@ -107,17 +105,15 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
 
 /// BatchInclusionData is the information that is retrieved to the clients once
 /// the verification data sent by them has been processed by Aligned.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BatchInclusionData {
-    pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
     pub batch_inclusion_proof: Proof<[u8; 32]>,
-    pub verification_data_batch_index: usize,
+    pub index_in_batch: usize,
 }
 
 impl BatchInclusionData {
     pub fn new(
-        verification_data_commitment: &VerificationDataCommitment,
         verification_data_batch_index: usize,
         batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
     ) -> Self {
@@ -126,28 +122,10 @@ impl BatchInclusionData {
             .unwrap();
 
         BatchInclusionData {
-            verification_data_commitment: verification_data_commitment.clone(),
             batch_merkle_root: batch_merkle_tree.root.clone(),
             batch_inclusion_proof,
-            verification_data_batch_index,
+            index_in_batch: verification_data_batch_index,
         }
-    }
-}
-
-impl fmt::Display for BatchInclusionData {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let proof_comm = hex::encode(self.verification_data_commitment.proof_commitment);
-        let merkle_root = hex::encode(self.batch_merkle_root);
-
-        write!(
-            f,
-            "
-Batch inclusion response {{
-    ○ batch merkle root: {}
-    ○ proof commitment: {}
-}}",
-            merkle_root, proof_comm
-        )
     }
 }
 
