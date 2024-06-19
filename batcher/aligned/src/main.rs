@@ -179,11 +179,8 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
             // FIXME(marian): We are passing an empty string as the private key password for the moment.
             // We should think how to handle this correctly.
-            let service_manager = eth::aligned_service_manager(
-                eth_rpc_provider,
-                contract_address,
-            )
-            .await?;
+            let service_manager =
+                eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
             let call = service_manager.verify_batch_inclusion(
                 verification_data_comm.proof_commitment,
@@ -290,7 +287,7 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
     let mut vm_program_code: Option<Vec<u8>> = None;
 
     match proving_system {
-        ProvingSystemId::SP1 => {
+        ProvingSystemId::SP1 | ProvingSystemId::Risc0 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
                 args.vm_program_code_file_name,
