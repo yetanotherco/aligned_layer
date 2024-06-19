@@ -38,7 +38,8 @@ defmodule Explorer.Periodically do
     try do
       AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock})
         |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
-        |> Enum.map(&process_batch/1)
+        # This function will avoid processing a batch taken by another process
+        |> Enum.map(&process_batch_if_not_in_other_process/1)
 
     rescue
       error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
@@ -46,7 +47,7 @@ defmodule Explorer.Periodically do
     IO.inspect("Done processing from block #{fromBlock} to block #{toBlock}")
   end
 
-  def process_batch(%BatchDB{} = batch) do
+  def process_batch_if_not_in_other_process(%BatchDB{} = batch) do
     "Starting batch: #{batch.merkle_root}" |> IO.inspect()
     # Don't process same twice concurrently
     # one lock for each batch
