@@ -105,7 +105,7 @@ curl -H "Content-Type: application/json" \
     -X POST https://ethereum-holesky-rpc.publicnode.com
 ```
 
-This returns a 0x1 if the proof and it's associated data is correct and in Aligned, and 0x0 if not.
+This returns a 0x1 if the proof and it's associated data is correct and verified in Aligned, and 0x0 if not.
 
 For example, this a correct calldata for a verified proof:
 
