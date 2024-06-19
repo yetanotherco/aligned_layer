@@ -7,8 +7,8 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/nexus"
 )
 
-const MaxProofSize = 2 * 1024 * 1024
-const MaxParamsSize = 2 * 1024 * 1024
+const MaxProofSize = 64 * 1024 * 1024
+const MaxParamsSize = 64 * 1024 * 1024
 
 func TestFibonacciNexusProofVerifies(t *testing.T) {
 	proofFile, err := os.Open("../../task_sender/test_examples/nexus/fib/nexus-proof")

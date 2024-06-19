@@ -533,6 +533,32 @@ generate_sp1_fibonacci_proof:
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
 
+__NEXUS_FFI__: ##
+build_nexus_macos:
+	@cd operator/nexus/lib && RUST_MIN_STACK=999999999 cargo build --release
+	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.dylib operator/nexus/lib/libnexus_verifier.dylib
+
+build_nexus_linux:
+	@cd operator/nexus/lib && RUST_MIN_STACK=999999999 cargo build --release
+	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.so operator/nexus/lib/libnexus_verifier.so
+
+test_nexus_rust_ffi:
+	@echo "Testing Nexus Rust FFI source code..."
+	@cd operator/nexus/lib && RUST_MIN_STACK=999999999 cargo t --release
+
+test_nexus_go_bindings_macos: build_nexus_macos
+	@echo "Testing Nexus Go bindings..."
+	go test ./operator/nexus/... -v
+
+test_nexus_go_bindings_linux: build_nexus_linux
+	@echo "Testing Nexus Go bindings..."
+	go test ./operator/nexus/... -v
+
+# TODO: generate/run nexus bindings without this
+generate_nexus_fibonacci_proof:
+	@cd task_sender/test_examples/nexus/fib && cargo nexus prove
+	@echo "Fibonacci proof and Parameters generated in task_sender/test_examples/nexus folder"
+
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build --release

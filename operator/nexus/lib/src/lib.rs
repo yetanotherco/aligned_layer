@@ -1,5 +1,6 @@
 use std::slice;
 use nexus_prover::{self, types::{IVCProof, SeqPP}};
+use zstd::stream::Decoder;
 use ark_serialize::CanonicalDeserialize;
 
 #[no_mangle]
@@ -19,8 +20,10 @@ pub extern "C" fn verify_nexus_proof_ffi(
         slice::from_raw_parts(params_bytes, params_len as usize)
     };
 
+    let mut params_dec = Decoder::new(params_bytes).unwrap();
+
     if let Ok(proof) = IVCProof::deserialize_compressed(&*proof_bytes) {
-        if let Ok(params) = SeqPP::deserialize_compressed(&*params_bytes) {
+        if let Ok(params) = SeqPP::deserialize_compressed(&mut params_dec) {
                 return proof.verify(&params, proof.step_num() as usize).is_ok()
         }
     }
