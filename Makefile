@@ -537,12 +537,10 @@ __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build --release
 	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
-	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
 
 build_risc_zero_linux:
 	@cd operator/risc_zero/lib && cargo build --release
 	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
-	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
 
 test_risc_zero_rust_ffi:
 	@echo "Testing RISC Zero Rust FFI source code..."
@@ -558,11 +556,8 @@ test_risc_zero_go_bindings_linux: build_risc_zero_linux
 
 generate_risc_zero_fibonacci_proof:
 	@cd task_sender/test_examples/risc_zero/fibonacci_proof_generator && \
-		cargo clean && \
-		rm -f risc_zero_fibonacci.proof && \
 		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
-		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"
+		echo "Fibonacci proof and image ID generated in task_sender/test_examples/risc_zero folder"
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
