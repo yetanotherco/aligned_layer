@@ -3,5 +3,5 @@ members = [
     "aligned-batcher",
     "aligned-batcher-lib",
     "aligned"
-]
+, "sdk"]
 resolver = "2"
