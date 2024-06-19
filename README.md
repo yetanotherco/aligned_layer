@@ -34,7 +34,7 @@ Testnet contract is deployed on Holesky on the address:
 
  ```0x58F280BeBE9B34c9939C3C39e0890C81f163B623```
 
-###  How to use the testnet
+### How to use the testnet
 
 Download and install Aligned to send proofs in the testnet:
 
@@ -309,6 +309,7 @@ Ethereum is the most decentralized and most significant source of liquidity in t
 ### Why EigenLayer?
 
 We believe Ethereum is the best settlement layer, and zero-knowledge will play a key role in helping it become the settlement layer of the internet. We want to build a verification layer that helps Ethereum achieve this goal. This layer needs to have a decentralized group of validators that will just re-execute the verification of different proofs, but how can we build such a decentralized network that will help Ethereum? Creating a new L1 doesn’t benefit Ethereum because it will add new trust assumptions to the Ethereum protocols relying on it. So, if we must have:
+
 1. A decentralized network of verifiers
 2. A similar economic security level that can be easily measured in Ethereum
 3. Part of the Ethereum ecosystem
