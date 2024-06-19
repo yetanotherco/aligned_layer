@@ -17,8 +17,8 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             false
         }
         ProvingSystemId::Jolt => {
-            if let Some(elf) = &self.vm_program_code {
-                return verify_jolt_proof(self.proof.as_slice(), elf.as_slice());
+            if let Some(elf) = &verification_data.vm_program_code {
+                return verify_jolt_proof(verification_data.proof.as_slice(), elf.as_slice());
             }
             warn!("Trying to verify Jolt proof but ELF was not provided. Returning false");
             false

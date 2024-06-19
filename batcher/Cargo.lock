@@ -352,8 +352,7 @@ dependencies = [
 [[package]]
 name = "ark-ec"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "defd9a439d56ac24968cca0571f598a61bc8c55f71d50a89cda591cb750670ba"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff 0.4.2",
  "ark-poly",
@@ -387,8 +386,7 @@ dependencies = [
 [[package]]
 name = "ark-ff"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec847af850f44ad29048935519032c33da8aa03340876d351dfab5660d2966ba"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff-asm 0.4.2",
  "ark-ff-macros 0.4.2",
@@ -418,8 +416,7 @@ dependencies = [
 [[package]]
 name = "ark-ff-asm"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ed4aa4fe255d0bc6d79373f7e31d2ea147bcf486cba1be5ba7ea85abdb92348"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -440,8 +437,7 @@ dependencies = [
 [[package]]
 name = "ark-ff-macros"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7abe79b0e4288889c4574159ab790824d0033b9fdcb2a112a3182fac2e514565"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "num-bigint 0.4.6",
  "num-traits",
@@ -468,8 +464,7 @@ dependencies = [
 [[package]]
 name = "ark-poly"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d320bfc44ee185d899ccbadfa8bc31aab923ce1558716e1997a1e74057fe86bf"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-ff 0.4.2",
  "ark-serialize 0.4.2",
@@ -503,8 +498,7 @@ dependencies = [
 [[package]]
 name = "ark-serialize"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb7b85a02b83d2f22f89bd5cac66c9c89474240cb6207cb1efc16d098e822a5"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "ark-serialize-derive",
  "ark-std 0.4.0",
@@ -515,8 +509,7 @@ dependencies = [
 [[package]]
 name = "ark-serialize-derive"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae3281bc6d0fd7e549af32b52511e1302185bd688fd3359fa36423346ff682ea"
+source = "git+https://github.com/a16z/arkworks-algebra?branch=optimize/field-from-u64#ccd64e513d16e627c782a4f4519475d691977fc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -667,9 +660,9 @@ dependencies = [
 
 [[package]]
 name = "aws-runtime"
-version = "1.2.3"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36978815abdd7297662bf906adff132941a02ecf425bc78fac7d90653ce87560"
+checksum = "9a4a5e448145999d7de17bf44a886900ecb834953408dae8aaf90465ce91c1dd"
 dependencies = [
  "aws-credential-types",
  "aws-sigv4",
@@ -1153,7 +1146,7 @@ dependencies = [
 [[package]]
 name = "binius_field"
 version = "0.1.0"
-source = "git+https://gitlab.com/UlvetannaOSS/binius#2a09501dcf7715c23ade4e1d08e3d25d0e7b4127"
+source = "git+https://gitlab.com/UlvetannaOSS/binius#f64b4f7220672b648e636fe75cce61a22aae67a7"
 dependencies = [
  "binius_utils",
  "bytemuck",
@@ -1171,7 +1164,7 @@ dependencies = [
 [[package]]
 name = "binius_utils"
 version = "0.1.0"
-source = "git+https://gitlab.com/UlvetannaOSS/binius#2a09501dcf7715c23ade4e1d08e3d25d0e7b4127"
+source = "git+https://gitlab.com/UlvetannaOSS/binius#f64b4f7220672b648e636fe75cce61a22aae67a7"
 dependencies = [
  "rayon",
  "tracing",
@@ -1918,7 +1911,11 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustc_version 0.4.0",
+<<<<<<< HEAD
  "syn 2.0.70",
+=======
+ "syn 2.0.66",
+>>>>>>> ac08209 (fix batcher + successful proofs)
 ]
 
 [[package]]
@@ -3403,9 +3400,15 @@ dependencies = [
 
 [[package]]
 name = "httparse"
+<<<<<<< HEAD
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d897f394bad6a705d5f4104762e116a75639e470d80901eed05a860a95cb1904"
+=======
+version = "1.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fcc0b4a115bf80b728eb8ea024ad5bd707b615bfed49e0665b6e0f86fd082d9"
+>>>>>>> ac08209 (fix batcher + successful proofs)
 
 [[package]]
 name = "httpdate"
@@ -3490,7 +3493,11 @@ dependencies = [
  "http 1.1.0",
  "hyper 1.4.0",
  "hyper-util",
+<<<<<<< HEAD
  "rustls 0.23.11",
+=======
+ "rustls 0.23.10",
+>>>>>>> ac08209 (fix batcher + successful proofs)
  "rustls-pki-types",
  "tokio",
  "tokio-rustls 0.26.0",
@@ -3764,7 +3771,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "rayon",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "rgb",
  "serde",
  "sha3 0.8.2",
@@ -4063,9 +4070,25 @@ dependencies = [
 
 [[package]]
 name = "memchr"
+<<<<<<< HEAD
 version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
+=======
+version = "2.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "memory-stats"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34f79cf9964c5c9545493acda1263f1912f8d2c56c8a2ffee2606cb960acaacc"
+dependencies = [
+ "libc",
+ "winapi",
+]
+>>>>>>> ac08209 (fix batcher + successful proofs)
 
 [[package]]
 name = "memuse"
@@ -5176,7 +5199,11 @@ dependencies = [
  "quinn-proto",
  "quinn-udp",
  "rustc-hash",
+<<<<<<< HEAD
  "rustls 0.23.11",
+=======
+ "rustls 0.23.10",
+>>>>>>> ac08209 (fix batcher + successful proofs)
  "thiserror",
  "tokio",
  "tracing",
@@ -5189,10 +5216,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddf517c03a109db8100448a4be38d498df8a210a99fe0e1b9eaf39e78c640efe"
 dependencies = [
  "bytes",
+<<<<<<< HEAD
  "rand",
  "ring 0.17.8",
  "rustc-hash",
  "rustls 0.23.11",
+=======
+ "rand 0.8.5",
+ "ring 0.17.8",
+ "rustc-hash",
+ "rustls 0.23.10",
+>>>>>>> ac08209 (fix batcher + successful proofs)
  "slab",
  "thiserror",
  "tinyvec",
@@ -5463,7 +5497,11 @@ dependencies = [
  "http 1.1.0",
  "http-body 1.0.0",
  "http-body-util",
+<<<<<<< HEAD
  "hyper 1.4.0",
+=======
+ "hyper 1.3.1",
+>>>>>>> ac08209 (fix batcher + successful proofs)
  "hyper-rustls 0.27.2",
  "hyper-tls",
  "hyper-util",
@@ -5476,7 +5514,11 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "quinn",
+<<<<<<< HEAD
  "rustls 0.23.11",
+=======
+ "rustls 0.23.10",
+>>>>>>> ac08209 (fix batcher + successful proofs)
  "rustls-pemfile 2.1.2",
  "rustls-pki-types",
  "serde",
@@ -5866,9 +5908,29 @@ dependencies = [
 
 [[package]]
 name = "rustls"
+<<<<<<< HEAD
 version = "0.23.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4828ea528154ae444e5a642dbb7d5623354030dc9822b83fd9bb79683c7399d0"
+=======
+version = "0.23.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05cff451f60db80f490f3c182b77c35260baace73209e9cdbbe526bfe3a4d402"
+dependencies = [
+ "once_cell",
+ "ring 0.17.8",
+ "rustls-pki-types",
+ "rustls-webpki 0.102.4",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "rustls"
+version = "0.23.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05cff451f60db80f490f3c182b77c35260baace73209e9cdbbe526bfe3a4d402"
+>>>>>>> ac08209 (fix batcher + successful proofs)
 dependencies = [
  "once_cell",
  "ring 0.17.8",
@@ -7192,6 +7254,20 @@ dependencies = [
 
 [[package]]
 name = "tokio-rustls"
+<<<<<<< HEAD
+=======
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
+dependencies = [
+ "rustls 0.23.10",
+ "rustls-pki-types",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-rustls"
+>>>>>>> ac08209 (fix batcher + successful proofs)
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
@@ -8194,7 +8270,11 @@ checksum = "fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e"
 dependencies = [
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.70",
+=======
+ "syn 2.0.66",
+>>>>>>> ac08209 (fix batcher + successful proofs)
 ]
 
 [[package]]
@@ -8214,7 +8294,11 @@ checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
 dependencies = [
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.70",
+=======
+ "syn 2.0.66",
+>>>>>>> ac08209 (fix batcher + successful proofs)
 ]
 
 [[package]]
@@ -8284,9 +8368,15 @@ dependencies = [
 
 [[package]]
 name = "zstd-sys"
+<<<<<<< HEAD
 version = "2.0.12+zstd.1.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a4e40c320c3cb459d9a9ff6de98cff88f4751ee9275d140e2be94a2b74e4c13"
+=======
+version = "2.0.11+zstd.1.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75652c55c0b6f3e6f12eb786fe1bc960396bf05a1eb3bf1f3691c3610ac2e6d4"
+>>>>>>> ac08209 (fix batcher + successful proofs)
 dependencies = [
  "cc",
  "pkg-config",
