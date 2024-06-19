@@ -1,0 +1,3 @@
+eth_abi==5.1.0
+pycryptodome==3.20.0
+web3==6.19.0
