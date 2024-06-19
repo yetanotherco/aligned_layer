@@ -8,8 +8,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
-	gethcommon "github.com/ethereum/go-ethereum/common"
-	gethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
@@ -95,7 +94,7 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 	return nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
@@ -106,26 +105,14 @@ func (w *AvsWriter) SendAggregatedResponse(ctx context.Context, batchMerkleRoot 
 	// Send the transaction
 	txOpts.NoSend = false
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
-	uin64TxNonce, err := w.Client.PendingNonceAt(ctx, txOpts.From)
-	if err != nil {
-		return nil, err
-	}
 	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
 
-	txNonce := new(big.Int).SetUint64(uin64TxNonce)
+	txHash := tx.Hash()
 
-	w.logger.Info("Tx nonce before waiting for receipt", "nonce", txNonce)
-
-	receipt, err := w.WaitForTransactionReceiptWithIncreasingTip(ctx, tx.Hash(), txNonce, batchMerkleRoot, nonSignerStakesAndSignature)
-	w.logger.Info("Transaction receipt:", "receipt", receipt)
-	if err != nil {
-		return nil, err
-	}
-
-	return receipt, nil
+	return &txHash, nil
 }
 
 func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Context, txHash gethcommon.Hash, txNonce *big.Int, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
