@@ -126,11 +126,10 @@ contract AlignedLayerServiceManager is
 
         // Calculate estimation of gas used, check that batcher has sufficient funds
         // and send transaction cost to aggregator.
-
         uint256 finalGasLeft = gasleft();
 
-        // FIXME: should we add 21000 gas from the transfer?
-        uint256 txCost = (initialGasLeft - finalGasLeft) * tx.gasprice;
+        // FIXME: should we add 21000 gas from the transfer + some additional for the other steps (~40k gas)?
+        uint256 txCost = (initialGasLeft - finalGasLeft - 21000) * tx.gasprice;
 
         require(
             batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=
@@ -138,10 +137,10 @@ contract AlignedLayerServiceManager is
             "Batcher has not sufficient funds for paying this transaction"
         );
 
-        payable(msg.sender).transfer(txCost);
         batchersBalances[
             batchesState[batchMerkleRoot].batcherAddress
         ] -= txCost;
+        payable(msg.sender).transfer(txCost);
 
         delete batchesState[batchMerkleRoot].batcherAddress;
     }
@@ -185,7 +184,7 @@ contract AlignedLayerServiceManager is
         return batchersBalances[account];
     }
 
-    function deposit() external payable {
+    receive() external payable {
         batchersBalances[msg.sender] += msg.value;
     }
 
