@@ -117,7 +117,7 @@ curl -H "Content-Type: application/json" \
 
 To get the call data for yours, you can use the ```encode_verification_data.py```:
 
-Install the dependencies:
+Install the dependencies with a python venv:
 
 ```bash
 python3 -m venv .aligned_venv
