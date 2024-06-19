@@ -1,6 +1,8 @@
 **/.DS_Store
 **/.idea
 **/.env
+**/.env
+.aligned_venv
 out
 cache
 **/build
