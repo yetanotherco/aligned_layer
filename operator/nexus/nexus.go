@@ -13,5 +13,5 @@ func VerifyNexusProof(proofBuffer []byte, proofLen uint32, paramsBuffer []byte, 
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	paramsPtr := (*C.uchar)(unsafe.Pointer(&paramsBuffer[0]))
 
-	return (bool)(C.verify_nexus_proof_ffi(proofPtr, (C.uint32_t)(proofLen), paramsPtr, (C.uint32_t)(paramsLen))
+	return (bool)(C.verify_nexus_proof_ffi(proofPtr, (C.uint32_t)(proofLen), paramsPtr, (C.uint32_t)(paramsLen)))
 }
