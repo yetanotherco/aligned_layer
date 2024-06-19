@@ -154,6 +154,10 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
+operator_start_docker:
+	@echo "Starting Operator..."
+	@docker-compose -f operator/docker/compose.yaml up
+
 __BATCHER__:
 
 BURST_SIZE=5
@@ -185,7 +189,7 @@ batcher/target/release/aligned:
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -193,7 +197,7 @@ batcher_send_sp1_task:
 
 batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof test_files/sp1/sp1_fibonacci.proof \
 		--vm_program test_files/sp1/sp1_fibonacci-elf \
@@ -206,7 +210,7 @@ batcher_send_infinite_sp1:
 
 batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
@@ -215,7 +219,7 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 
 batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof test_files/plonk_bn254/plonk.proof \
 		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
@@ -225,7 +229,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -234,7 +238,7 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 
 batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof test_files/plonk_bls12_381/plonk.proof \
 		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
@@ -245,7 +249,7 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 
 batcher_send_groth16_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
@@ -254,7 +258,7 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 
 batcher_send_groth16_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
 		--proof test_files/groth16/ineq_1_groth16.proof \
 		--public_input test_files/groth16/ineq_1_groth16.pub \
@@ -274,7 +278,7 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 
 batcher_send_halo2_ipa_task: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2IPA \
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
@@ -282,7 +286,7 @@ batcher_send_halo2_ipa_task: batcher/target/release/aligned
 
 batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2IPA \
 		--proof test_files/halo2_ipa/proof.bin \
 		--public_input test_files/halo2_ipa/pub_input.bin \
@@ -291,7 +295,7 @@ batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 
 batcher_send_halo2_kzg_task: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2KZG \
 		--proof test_files/halo2_kzg/proof.bin \
 		--public_input test_files/halo2_kzg/pub_input.bin \
@@ -300,7 +304,7 @@ batcher_send_halo2_kzg_task: batcher/target/release/aligned
 
 batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- \
+	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2KZG \
 		--proof test_files/halo2_kzg/proof.bin \
 		--public_input test_files/halo2_kzg/pub_input.bin \
@@ -482,6 +486,10 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 	@echo "Upgrading Stake Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_stake_registry.sh
 
+deploy_verify_batch_inclusion_caller:
+	@echo "Deploying VerifyBatchInclusionCaller contract..."
+	@. contracts/scripts/.env && . ./contracts/scripts/deploy_verify_batch_inclusion_caller.sh
+	
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 
@@ -651,7 +659,7 @@ build_all_ffi: ## Build all FFIs
 build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
-	@$(MAKE) build_risc_zero_macos
+#	@$(MAKE) build_risc_zero_macos
 #	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
@@ -660,7 +668,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
-	@$(MAKE) build_risc_zero_linux
+#	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
@@ -715,4 +723,3 @@ recover_db: run_db
 explorer_fetch_old_batches:
 	@cd explorer && \
 		./scripts/fetch_old_batches.sh 1600000 1716277 
-		

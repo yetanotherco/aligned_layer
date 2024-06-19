@@ -23,7 +23,7 @@ impl From<&[u8]> for ListRef {
     fn from(v: &[u8]) -> Self {
         let len = v.len();
         let data = v.as_ptr().cast();
-        ListRef{data, len}
+        ListRef { data, len }
     }
 }
 

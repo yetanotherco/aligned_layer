@@ -2,7 +2,7 @@
 
 As stated in the EigenLayer paper:
 
-"Ethereum pioneered the concept of modular blockchains, where distributed applications (DApps) became modules that could be built permissionlessly on top of the Ethereum trust network".
+"Ethereum pioneered the concept of modular blockchains, where distributed applications (DApps) became modules that could be built permissionless on top of the Ethereum trust network".
 
 In this context, the concept of modularity goes against the initial approach to constructing blockchains, the monolithic approach, in which a single blockchain is responsible for performing all tasks such as processing transactions, checking for accuracy, and getting nodes to agree on them. This working method gives rise to certain inherent problems when it comes to expansion, resulting in expensive hardware, limited control, and high overhead.
 
