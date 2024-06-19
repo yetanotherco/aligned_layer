@@ -25,7 +25,7 @@ defmodule ExplorerWeb.Router do
     end
   end
 
-  # # To Enable LiveDashboard: (only enable behind auth)
+  # To Enable LiveDashboard: (only enable behind auth)
   # if Application.compile_env(:explorer, :dev_routes) do
   #   # If you want to use the LiveDashboard in production, you should put
   #   # it behind authentication and allow only admins to access it.
