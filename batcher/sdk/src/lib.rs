@@ -1,50 +1,35 @@
-// Here, define the modules and functions to expose.
-// Write documentation comments for your public API using '///'.
-// Generate HTML documentation with 'cargo doc'.
+mod errors;
 
-// Provide example code in the examples directory to demonstrate usage.
+//here imports to other parts of code
+// refactor them inside the SDK
+use aligned_batcher_lib::types::{
+    BatchInclusionData, VerificationData, VerificationDataCommitment
+};
+use aligned_batcher_lib::types::VerificationCommitmentBatch;
+// ^^
 
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::tungstenite::Message;
+use tokio::net::TcpStream;
+
+use log::{error, info};
 pub struct SubmitArgs {
-    ws_stream: WebSocketStream<S>,
+    // ws_stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    ws_write: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>,
     verification_data: VerificationData,
 }
-
-pub struct VerificationData {
-    pub proving_system: ProvingSystemId,
-    pub proof: Vec<u8>,
-    pub pub_input: Option<Vec<u8>>,
-    pub verification_key: Option<Vec<u8>>,
-    pub vm_program_code: Option<Vec<u8>>,
-    pub proof_generator_addr: Address,
-}
-
-/// BatchInclusionData is the information that is retrieved to the clients once
-/// the verification data sent by them has been processed by Aligned.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BatchInclusionData {
-    pub verification_data_commitment: VerificationDataCommitment,
-    pub batch_merkle_root: [u8; 32],
-    pub batch_inclusion_proof: Proof<[u8; 32]>,
-    pub verification_data_batch_index: usize,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct VerificationDataCommitment {
-    pub proof_commitment: [u8; 32],
-    pub pub_input_commitment: [u8; 32],
-    // This could be either the VM code (ELF, bytecode) or the verification key
-    // depending on the proving system.
-    pub proving_system_aux_data_commitment: [u8; 32],
-    pub proof_generator_addr: [u8; 20],
-}
+use futures_util::{
+    future, TryStreamExt, SinkExt, StreamExt,
+    stream::{SplitSink, SplitStream}
+};
+use ethers::utils::hex;
 
 /// Submits proof to batcher
 /// 
 /// Example
 /// 
-pub fn submit(submit_args: SubmitArgs) -> Result<(), errors::BatcherClientError> {
-
-    let (mut ws_write, ws_read) = submit_args.ws_stream.split();
+pub async fn submit(mut submit_args: SubmitArgs) -> Result<(), errors::SubmitError> {
     
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
@@ -52,7 +37,7 @@ pub fn submit(submit_args: SubmitArgs) -> Result<(), errors::BatcherClientError>
     
     let json_data = serde_json::to_string(&submit_args.verification_data)?; // todo check if clone
 
-    ws_write.send(Message::Text(json_data.to_string())).await?;
+    submit_args.ws_write.send(Message::Text(json_data.to_string())).await?;
     sent_verification_data.push(submit_args.verification_data.clone()); // todo check if clone
     info!("Message sent...");
 
@@ -67,7 +52,8 @@ pub fn submit(submit_args: SubmitArgs) -> Result<(), errors::BatcherClientError>
             .collect();
     
     receive(
-        ws_read
+        submit_args.ws_read
+        &mut verification_data_commitments_rev,
     )
     .await?;
     Ok(())
@@ -76,7 +62,8 @@ pub fn submit(submit_args: SubmitArgs) -> Result<(), errors::BatcherClientError>
 
 async fn receive(
     ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-) -> Result<(), BatcherClientError> {
+    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
+) -> Result<(), errors::SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
         ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
@@ -101,7 +88,10 @@ async fn receive(
                 let batch_merkle_root = hex::encode(batch_inclusion_data.batch_merkle_root);
 
                 // file.write_all(data.as_slice()).unwrap(); //TODO return this
+                let verification_data_commitment = 
+                    verification_data_commitments_rev.pop().unwrap_or_default();
 
+                verify_response(&verification_data_commitment, &batch_inclusion_data);
             }
             Err(e) => {
                 error!("Error while deserializing batcher response: {}", e);
@@ -112,15 +102,23 @@ async fn receive(
     Ok(())
 }
 
+fn verify_response(
+    verification_data_commitment: &VerificationDataCommitment,
+    batch_inclusion_data: &BatchInclusionData,
+) -> bool {
+    info!("Verifying response data matches sent proof data ...");
+    let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
 
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
+        &batch_inclusion_data.batch_merkle_root,
+        batch_inclusion_data.index_in_batch,
+        &verification_data_commitment,
+    ) {
+        info!("Done. Data sent matches batcher answer");
+        return true;
     }
+
+    error!("Verification data commitments and batcher response with merkle root {} and index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
+    false
 }
+
