@@ -9,6 +9,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
 	"github.com/ethereum/go-ethereum/common"
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
@@ -94,28 +95,34 @@ func (w *AvsWriter) SendTask(context context.Context, batchMerkleRoot [32]byte, 
 	return nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, *big.Int, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Send the transaction
 	txOpts.NoSend = false
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
+	uin64TxNonce, err := w.Client.PendingNonceAt(context.Background(), txOpts.From)
+	if err != nil {
+		return nil, nil, err
+	}
 	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	txHash := tx.Hash()
 
-	return &txHash, nil
+	txNonce := new(big.Int).SetUint64(uin64TxNonce)
+
+	return &txHash, txNonce, nil
 }
 
-func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Context, txHash gethcommon.Hash, txNonce *big.Int, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Context, txHash common.Hash, txNonce *big.Int, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	for i := 0; i < LowFeeMaxRetries; i++ {
 		time.Sleep(LowFeeSleepTime)
 		// Attempt to get the transaction receipt
