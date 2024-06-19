@@ -101,7 +101,7 @@ This is the same as running the following curl, with the proper CALL_DATA.
 
 ```bash
 curl -H "Content-Type: application/json" \
-    --data '{"jsonrpc":"2.0","method":"eth_call","id":1, "params":[{"to": "0x58F280BeBE9B34c9939C3C39e0890C81f163B623", "data": "<CALL_DATA>"}]}]' \
+    --data '{"jsonrpc":"2.0","method":"eth_call","id":1, "params":[{"to": "0x58F280BeBE9B34c9939C3C39e0890C81f163B623", "data": "<CALL_DATA>"}]}' \
     -X POST https://ethereum-holesky-rpc.publicnode.com
 ```
 
