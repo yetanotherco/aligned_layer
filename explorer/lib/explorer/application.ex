@@ -27,7 +27,7 @@ defmodule Explorer.Application do
 
     periodic_children = [
       {Explorer.Periodically, []},
-      {Mutex, name: S3Mutex, meta: "Used to prevent concurrent downloads"}
+      {Mutex, name: BatchMutex, meta: "Used to prevent concurrent downloads"}
     ]
     periodic_opts = [strategy: :one_for_all, name: Explorer.Periodically.Supervisor]
     Supervisor.start_link(periodic_children, periodic_opts)
