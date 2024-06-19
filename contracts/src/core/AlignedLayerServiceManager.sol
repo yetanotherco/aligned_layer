@@ -62,10 +62,13 @@ contract AlignedLayerServiceManager is
             "Batch was already verified"
         );
 
+        require(batchersBalances[msg.sender] > 0, "Batcher balance is empty");
+
         BatchState memory batchState;
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
+        batchState.batcherAddress = msg.sender;
 
         batchesState[batchMerkleRoot] = batchState;
 
@@ -91,6 +94,13 @@ contract AlignedLayerServiceManager is
             batchesState[batchMerkleRoot].responded == false,
             "Batch already responded"
         );
+
+        require(
+            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] > 0,
+            "Batcher has no balance"
+        );
+        uint256 initialGasLeft = gasleft();
+
         batchesState[batchMerkleRoot].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
@@ -113,6 +123,27 @@ contract AlignedLayerServiceManager is
         );
 
         emit BatchVerified(batchMerkleRoot);
+
+        // Calculate estimation of gas used, check that batcher has sufficient funds
+        // and send transaction cost to aggregator.
+
+        uint256 finalGasLeft = gasleft();
+
+        // FIXME: should we add 21000 gas from the transfer?
+        uint256 txCost = (initialGasLeft - finalGasLeft) * tx.gasprice;
+
+        require(
+            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=
+                txCost,
+            "Batcher has not sufficient funds for paying this transaction"
+        );
+
+        payable(msg.sender).transfer(txCost);
+        batchersBalances[
+            batchesState[batchMerkleRoot].batcherAddress
+        ] -= txCost;
+
+        delete batchesState[batchMerkleRoot].batcherAddress;
     }
 
     function verifyBatchInclusion(
@@ -148,5 +179,32 @@ contract AlignedLayerServiceManager is
                 hashedLeaf,
                 verificationDataBatchIndex
             );
+    }
+
+    function balanceOf(address account) public view returns (uint256) {
+        return batchersBalances[account];
+    }
+
+    function deposit() external payable {
+        batchersBalances[msg.sender] += msg.value;
+    }
+
+    function transferToAggregator(
+        address _to,
+        uint256 _value
+    ) public returns (bool success) {
+        // check that the balance of the caller is equal or greater than the value to transfer
+        if (batchersBalances[msg.sender] < _value) {
+            return false;
+        }
+
+        // send ether to aggregator
+        // if (!address.transfer(_value)) {
+        //     return false;
+        // }
+        uint256 lala = tx.gasprice;
+        // subtract ether from the batcher balance
+        batchersBalances[msg.sender] -= _value;
+        return true;
     }
 }
