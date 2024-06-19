@@ -187,23 +187,4 @@ contract AlignedLayerServiceManager is
     receive() external payable {
         batchersBalances[msg.sender] += msg.value;
     }
-
-    function transferToAggregator(
-        address _to,
-        uint256 _value
-    ) public returns (bool success) {
-        // check that the balance of the caller is equal or greater than the value to transfer
-        if (batchersBalances[msg.sender] < _value) {
-            return false;
-        }
-
-        // send ether to aggregator
-        // if (!address.transfer(_value)) {
-        //     return false;
-        // }
-        uint256 lala = tx.gasprice;
-        // subtract ether from the batcher balance
-        batchersBalances[msg.sender] -= _value;
-        return true;
-    }
 }
