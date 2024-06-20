@@ -236,6 +236,7 @@ defmodule ExplorerWeb.CoreComponents do
         "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
         "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
         "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
+        "border border-foreground/20",
         @class
       ]}
       {@rest}

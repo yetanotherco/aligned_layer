@@ -10,7 +10,7 @@ defmodule Scripts.FetchOldBatches do
 
   def fetch_old_events(fromBlock, toBlock) do
     "fetching old events, from #{fromBlock} to #{toBlock}" |> IO.inspect()
-    chunk_size = 5000 #do in smaller chunks as to not request 100k events to rpc in one call
+    chunk_size = 16 #do in smaller chunks, if there are too many blocks to process
     chunkify(fromBlock, toBlock, chunk_size) |> Enum.each(&make_request/1)
     "done fetching old events" |> IO.inspect()
   end
@@ -24,38 +24,13 @@ defmodule Scripts.FetchOldBatches do
   end
 
   defp make_request({fromBlock, toBlock}) do
-    "making request from #{fromBlock} to #{toBlock}" |> IO.inspect()
+    "Making old batches request" |> IO.inspect()
+    "from #{fromBlock} to #{toBlock}" |> IO.inspect()
     try do
-      read_from_block = fromBlock
-      AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: read_from_block, toBlock: toBlock})
-      |> Enum.map(&transform_to_batch/1)
-      |> Enum.map(&transfrom_to_batch_db/1)
-      |> Enum.map(&Batches.cast_to_batches/1)
-      |> Enum.map(&Map.from_struct/1)
-      |> Enum.map(fn batch -> Ecto.Changeset.cast(%Batches{}, batch, [:merkle_root, :amount_of_proofs, :is_verified]) end)
-      |> Enum.map(fn changeset ->
-        Explorer.Repo.insert_or_update(changeset)
-      end)
+      Explorer.Periodically.process_from_to_blocks(fromBlock, toBlock)
     rescue
-      error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
+      error -> IO.puts("An error occurred during batch processing*:\n#{inspect(error)}")
     end
-  end
-
-  def transform_to_batch(%Ethers.Event{} = new_batch_event) do
-    new_batch = AlignedLayerServiceManager.parse_new_batch_event(new_batch_event)
-    %Batch{
-      batch_merkle_root: new_batch.batchMerkleRoot,
-      batch_data_pointer: new_batch.batchDataPointer,
-      is_verified: true
-    }
-  end
-
-  def transfrom_to_batch_db(%Batch{} = batch) do
-    %BatchDB {
-      batch_merkle_root: batch.batch_merkle_root,
-      amount_of_proofs: 470,
-      is_verified: batch.is_verified
-    }
   end
 
 end

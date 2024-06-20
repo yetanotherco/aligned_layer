@@ -24,12 +24,9 @@ defmodule ExplorerWeb.Home.Index do
 
     operators_registered = get_operators_registered()
 
-    latest_batches =
-      AlignedLayerServiceManager.get_new_batch_events(%{amount: 5})
-      |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
-      |> Enum.reverse()
+    latest_batches = Batches.get_latest_batches(%{amount: 5})
+      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end) #extract only the merkle root
 
-    submitted_proofs = Batches.get_amount_of_submitted_proofs()
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
     {:ok,
@@ -37,7 +34,6 @@ defmodule ExplorerWeb.Home.Index do
        verified_batches: verified_batches,
        operators_registered: operators_registered,
        latest_batches: latest_batches,
-       submitted_proofs: submitted_proofs,
        verified_proofs: verified_proofs,
        page_title: "Welcome"
      )}
@@ -51,7 +47,6 @@ defmodule ExplorerWeb.Home.Index do
               verified_batches: :empty,
               operators_registered: :empty,
               latest_batches: :empty,
-              submitted_proofs: :empty,
               verified_proofs: :empty
             )
             |> put_flash(:error, "Could not connect to the backend, please try again later.")

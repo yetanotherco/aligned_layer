@@ -17,9 +17,12 @@ defmodule ExplorerWeb.Router do
   scope "/", ExplorerWeb do
     pipe_through :browser
 
-    live "/", Home.Index
-    live "/batches/:merkle_root", Batch.Index
-    live "/batches", Batches.Index
+    # https://fly.io/phoenix-files/live-session/
+    live_session :default do
+      live "/", Home.Index
+      live "/batches/:merkle_root", Batch.Index
+      live "/batches", Batches.Index
+    end
   end
 
   # To Enable LiveDashboard: (only enable behind auth)
