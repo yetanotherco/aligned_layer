@@ -19,7 +19,7 @@ import (
 
 const (
 	LowFeeMaxRetries          = 25
-	LowFeeSleepTime           = 20 * time.Second
+	LowFeeSleepTime           = 25 * time.Second
 	LowFeeIncrementPercentage = 25
 )
 
@@ -106,18 +106,13 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerSt
 	// Send the transaction
 	txOpts.NoSend = false
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
-	uin64TxNonce, err := w.Client.PendingNonceAt(context.Background(), txOpts.From)
-	if err != nil {
-		return nil, nil, err
-	}
 	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	txHash := tx.Hash()
-
-	txNonce := new(big.Int).SetUint64(uin64TxNonce)
+	txNonce := new(big.Int).SetUint64(tx.Nonce())
 
 	return &txHash, txNonce, nil
 }
@@ -159,7 +154,10 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		if err != nil {
 			return nil, err
 		}
-		w.logger.Info("New tx nonce after bumping gas price", "nonce", tx.Nonce())
+
+		if txNonce.Uint64() != tx.Nonce() {
+			return nil, fmt.Errorf("tx nonce mismatch after bumping gas price: expected %d, got %d", txNonce.Uint64(), tx.Nonce())
+		}
 		w.logger.Info("New tx hash after bumping gas price", "txHash", tx.Hash().String())
 
 		// Update the transaction hash for the next retry
