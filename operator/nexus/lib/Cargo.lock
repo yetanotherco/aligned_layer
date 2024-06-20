@@ -289,7 +289,7 @@ dependencies = [
 [[package]]
 name = "ark-spartan"
 version = "0.4.0"
-source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#f5f5aea533f234e7f5152062687b0d77ec2e925f"
+source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#762a1bf122e3f9096aebae59fb5724a8a9b285ae"
 dependencies = [
  "ark-bls12-381",
  "ark-crypto-primitives",
@@ -1032,7 +1032,7 @@ dependencies = [
 [[package]]
 name = "nexus-nova"
 version = "1.0.0"
-source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#f5f5aea533f234e7f5152062687b0d77ec2e925f"
+source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#762a1bf122e3f9096aebae59fb5724a8a9b285ae"
 dependencies = [
  "ark-crypto-primitives",
  "ark-ec",
@@ -1058,7 +1058,7 @@ dependencies = [
 [[package]]
 name = "nexus-prover"
 version = "1.0.0"
-source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#f5f5aea533f234e7f5152062687b0d77ec2e925f"
+source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#762a1bf122e3f9096aebae59fb5724a8a9b285ae"
 dependencies = [
  "anyhow",
  "ark-bn254",
@@ -1084,7 +1084,7 @@ dependencies = [
 [[package]]
 name = "nexus-tui"
 version = "1.0.0"
-source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#f5f5aea533f234e7f5152062687b0d77ec2e925f"
+source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#762a1bf122e3f9096aebae59fb5724a8a9b285ae"
 dependencies = [
  "anyhow",
  "superconsole",
@@ -1103,7 +1103,7 @@ dependencies = [
 [[package]]
 name = "nexus-vm"
 version = "1.0.0"
-source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#f5f5aea533f234e7f5152062687b0d77ec2e925f"
+source = "git+https://github.com/nexus-xyz/nexus-zkvm.git#762a1bf122e3f9096aebae59fb5724a8a9b285ae"
 dependencies = [
  "ark-bn254",
  "ark-crypto-primitives",
@@ -1808,9 +1808,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "subtle"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81cdd64d312baedb58e21336b31bc043b77e01cc99033ce76ef539f78e965ebc"
+checksum = "0d0208408ba0c3df17ed26eb06992cb1a1268d41b2c0e12e65203fbe3972cee5"
 
 [[package]]
 name = "superconsole"

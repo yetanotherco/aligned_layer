@@ -10,7 +10,7 @@ ark-serialize = "0.4.2"
 zstd = { version = "0.12", default-features = false }
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "staticlib", "lib"]
 
 [patch.crates-io]
 ark-crypto-primitives = { git = "https://github.com/arkworks-rs/crypto-primitives", rev = "d27a5c8" }
