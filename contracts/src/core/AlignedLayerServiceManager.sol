@@ -131,8 +131,7 @@ contract AlignedLayerServiceManager is
         uint256 finalGasLeft = gasleft();
 
         // FIXME: should we add 21000 gas from the transfer + some additional for the other steps (~40k gas)?
-        uint256 txCost = (initialGasLeft - finalGasLeft + 21000 + 40000) *
-            tx.gasprice;
+        uint256 txCost = (initialGasLeft - finalGasLeft + 21000) * tx.gasprice;
 
         require(
             batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=
