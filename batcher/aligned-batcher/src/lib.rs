@@ -36,6 +36,7 @@ pub mod gnark;
 pub mod halo2;
 pub mod s3;
 pub mod sp1;
+pub mod jolt;
 pub mod types;
 mod zk_utils;
 

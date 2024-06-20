@@ -323,6 +323,8 @@ func ParseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 		return common.Groth16Bn254, nil
 	case "sp1":
 		return common.SP1, nil
+	case "jolt":
+		return common.Jolt, nil
 	case "halo2_kzg":
 		return common.Halo2KZG, nil
 	case "halo2_ipa":

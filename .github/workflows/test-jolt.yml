@@ -1,0 +1,22 @@
+name: test-jolt
+
+on:
+  merge_group:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+    test:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-go@v5
+          with:
+            go-version: '1.22'
+            cache: false
+        - name: Test Jolt Rust
+          run: make test_jolt_rust_ffi
+        - name: Test Jolt go bindings
+          run: make test_jolt_go_bindings_linux

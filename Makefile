@@ -204,6 +204,24 @@ batcher_send_sp1_burst:
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+batcher_send_jolt_task:
+	@echo "Sending Jolt fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- \
+		--proving_system Jolt \
+		--proof test_files/jolt/fibonacci-guest.proof \
+		--vm_program test_files/jolt/fibonacci-guest.elf \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_jolt_burst:
+	@echo "Sending Jolt fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- \
+		--proving_system Jolt \
+		--proof test_files/jolt/fibonacci-guest.proof \
+		--vm_program test_files/jolt/fibonacci-guest.elf \
+		--repetitions 15 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
 	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
@@ -414,6 +432,14 @@ send_sp1_proof:
     		--config config-files/config.yaml \
     		2>&1 | zap-pretty
 
+send_jolt_proof:
+	@go run task_sender/cmd/main.go send-task \
+    		--proving-system jolt \
+    		--proof task_sender/test_examples/jolt/fibonacci/fibonacci-guest.proof \
+    		--public-input task_sender/test_examples/jolt/fibonacci/elf/fibonacci-guest.elf \
+    		--config config-files/config.yaml \
+    		2>&1 | zap-pretty
+
 send_halo2_ipa_proof: ## Send a Halo2 IPA proof using the task sender
 	@echo "Sending Halo2 IPA proof..."
 	@go run task_sender/cmd/main.go send-task \
@@ -532,6 +558,35 @@ generate_sp1_fibonacci_proof:
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
 	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
 	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
+
+__JOLT_FFI__: ##
+build_jolt_macos:
+	@cd operator/jolt/lib && cargo build --release
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.dylib operator/jolt/lib/libjolt_verifier.dylib
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.a operator/jolt/lib/libjolt_verifier.a
+
+build_jolt_linux:
+	@cd operator/jolt/lib && cargo build --release
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.so operator/jolt/lib/libjolt_verifier.so
+	@cp operator/jolt/lib/target/release/libjolt_verifier_ffi.a operator/jolt/lib/libjolt_verifier.a
+
+test_jolt_rust_ffi:
+	@echo "Testing Jolt Rust FFI source code..."
+	@cd operator/jolt/lib && RUST_MIN_STACK=93886080 cargo test --release
+
+test_jolt_go_bindings_macos: build_jolt_macos
+	@echo "Testing JOLT Go bindings..."
+	go test ./operator/jolt/... -v
+
+test_jolt_go_bindings_linux: build_jolt_linux
+	@echo "Testing Jolt Go bindings..."
+	go test ./operator/jolt/... -v
+
+generate_jolt_fibonacci_proof:
+	@cd task_sender/test_examples/jolt/fibonacci && JOLT_SAVE=true cargo run --release
+
+generate_jolt_sha3_proof:
+	@cd task_sender/test_examples/jolt/sha3-ex && JOLT_SAVE=true cargo run --release
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
@@ -659,7 +714,8 @@ build_all_ffi: ## Build all FFIs
 build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
-#	@$(MAKE) build_risc_zero_macos
+	@$(MAKE) build_jolt_macos
+	@$(MAKE) build_risc_zero_macos
 #	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
@@ -668,7 +724,8 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
-#	@$(MAKE) build_risc_zero_linux
+	@$(MAKE) build_jolt_linux
+	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
