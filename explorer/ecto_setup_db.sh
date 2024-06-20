@@ -11,8 +11,6 @@ export DB_PASS=$DB_PASS
 export DB_HOST=$DB_HOST
 export ALIGNED_CONFIG_FILE=$ALIGNED_CONFIG_FILE
 
-mix deps.get
-
 mix compile --force #force recompile to get the latest .env values
 
 mix ecto.create
