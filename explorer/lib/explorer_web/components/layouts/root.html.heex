@@ -8,10 +8,7 @@
       <%= assigns[:page_title] || "Explore" %>
     </.live_title>
     <%!-- Description --%>
-    <meta
-      name="description"
-      content="Explore every aligned proof batch with Aligned Explorer!"
-    />
+    <meta name="description" content="Explore every aligned proof batch with Aligned Explorer!" />
     <%!-- Emoji favicon --%>
     <link
       rel="icon"
@@ -25,7 +22,7 @@
       property="og:description"
       content="Explore every aligned proof batch with Aligned Explorer!"
     />
-    <meta property="og:image" content={~p"/images/og-image.png.jpeg"} />
+    <meta property="og:image" content="https://explorer.alignedlayer.com/images/og-image.webp" />
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://explorer.alignedlayer.com/" />
@@ -34,7 +31,10 @@
       property="twitter:description"
       content="Explore every aligned proof batch with Aligned Explorer!"
     />
-    <meta property="twitter:image" content={~p"/images/og-image.png.jpeg"} />
+    <meta
+      property="twitter:image"
+      content="https://explorer.alignedlayer.com/images/og-image.webp"
+    />
     <meta name="csrf-token" content={get_csrf_token()} />
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
