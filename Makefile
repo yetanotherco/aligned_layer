@@ -30,6 +30,9 @@ go_deps:
 install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
+install_nexus:
+	@cargo install --git https://github.com/nexus-xyz/nexus-zkvm nexus-tools --tag 'v1.0.0'
+
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
@@ -577,11 +580,10 @@ test_nexus_go_bindings_macos: build_nexus_macos
 
 test_nexus_go_bindings_linux: build_nexus_linux
 	@echo "Testing Nexus Go bindings..."
-	go test ./operator/nexus/... -v
+	go test ./operator/nexus/.o. -v
 
 # TODO: how to remove cargo dependency???
-generate_nexus_fibonacci_proof:
-	@cargo install --git https://github.com/nexus-xyz/nexus-zkvm nexus-tools --tag 'v1.0.0'
+generate_nexus_fibonacci_proof: install_nexus
 	@cd task_sender/test_examples/nexus/fib && cargo nexus prove
 	@echo "Fibonacci proof and Parameters generated in task_sender/test_examples/nexus folder"
 

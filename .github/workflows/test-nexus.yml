@@ -17,6 +17,6 @@ jobs:
             go-version: '1.22'
             cache: false
         - name: Test Nexus Rust
-          run: make test_sp1_rust_ffi
+          run: make test_nexus_rust_ffi
         - name: Test Nexus go bindings
           run: make test_nexus_go_bindings_linux
