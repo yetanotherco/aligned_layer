@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
@@ -122,14 +123,14 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, txHash, 6, 5*time.Second)
 		if err == nil && receipt != nil {
 			if receipt.Status == 0 {
-				w.logger.Warn("Transaction failed", "txHash", txHash.String(), "batchMerkleRoot", batchMerkleRoot)
+				w.logger.Warn("Transaction failed", "txHash", txHash.String(), "batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 				return receipt, nil
 			}
 			return receipt, nil
 		}
 
 		w.logger.Info("Receipt not found. Bumping gas price", "txHash", txHash.String(),
-			"batchMerkleRoot", batchMerkleRoot)
+			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
 		txOpts := *w.Signer.GetTxOpts()
 		txOpts.Nonce = txNonce
@@ -149,7 +150,9 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		gasTipCap.Mul(gasTipCap, big.NewInt(int64(incrementPercentage)))
 		gasTipCap.Div(gasTipCap, big.NewInt(100))
 
-		w.logger.Info("Sending bump gas price replacement transaction", "batchMerkleRoot")
+		w.logger.Info("Sending bump gas price replacement transaction",
+			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
+			"gasTipCap", gasTipCap.String())
 
 		tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 		if err != nil {
