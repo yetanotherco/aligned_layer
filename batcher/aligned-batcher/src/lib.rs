@@ -389,8 +389,8 @@ async fn send_batch_inclusion_data_responses(
 ) {
     stream::iter(finalized_batch.iter())
         .enumerate()
-        .for_each(|(vd_batch_idx, (_, vdc, ws_sink))| async move {
-            let response = BatchInclusionData::new(vdc, vd_batch_idx, batch_merkle_tree);
+        .for_each(|(vd_batch_idx, (_, _, ws_sink))| async move {
+            let response = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
             let serialized_response =
                 serde_json::to_vec(&response).expect("Could not serialize response");
 
