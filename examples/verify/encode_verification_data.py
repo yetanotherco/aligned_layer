@@ -31,7 +31,7 @@ def encode_call(file):
         k.update(b'verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)')
         signature = k.hexdigest()[:8]
 
-        return signature + output.hex()
+        return '0x' + signature + output.hex()
 
 
 if __name__ == "__main__":

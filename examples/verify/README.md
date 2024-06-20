@@ -8,7 +8,7 @@
 Then, install the required dependencies by running the following command:
 
 ```bash
-pip3 install -r scripts/requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Deploying Example Contract
@@ -38,7 +38,7 @@ This will output the address of the deployed contract. You will need this addres
 First encode the ethereum call to the contract using the following command:
 
 ```bash
-python3 scripts/encode_call.py --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA]
+python3 encode_verification_data.py --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA]
 ```
 
 Replace `[PATH_TO_ALIGNED_VERIFICATION_DATA]` with the path to the json file containing the verification data. 
@@ -78,7 +78,7 @@ Note that if result ends in 1 it means that your submitted proof with the associ
 
 Then, you can run the script by running the following command:
 ```bash
-python3 scripts/main.py --contract-address [CONTRACT_ADDRESS] --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA]
+python3 verify.py --contract-address [CONTRACT_ADDRESS] --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA]
 ```
 
 Replace `[CONTRACT_ADDRESS]`, and `[PATH_TO_ALIGNED_VERIFICATION_DATA]` with your actual values.
@@ -86,5 +86,5 @@ Replace `[CONTRACT_ADDRESS]`, and `[PATH_TO_ALIGNED_VERIFICATION_DATA]` with you
 #### Example Command
 
 ```bash
-python3 scripts/main.py --contract-address 0x623926229DD27c45AE40B4e16ba4CD6522fC4d22 --aligned-verification-data ../../aligned_verification_data/7553cb14bff387c06e016cb3e7946e91d9fe44a54ad5d888ce8343ddb16116a7_118.json
+python3 verify.py --contract-address 0x623926229DD27c45AE40B4e16ba4CD6522fC4d22 --aligned-verification-data ../../aligned_verification_data/7553cb14bff387c06e016cb3e7946e91d9fe44a54ad5d888ce8343ddb16116a7_118.json
 ```
