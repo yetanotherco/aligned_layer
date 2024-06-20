@@ -70,7 +70,7 @@ anvil_start_with_block_time:
 aggregator_get_eth:
 	@. ./scripts/fund_aggregator_devnet.sh
 
-aggregator_start: aggregator_get_eth
+aggregator_start:
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
 	2>&1 | zap-pretty
