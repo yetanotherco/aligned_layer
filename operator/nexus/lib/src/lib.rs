@@ -38,7 +38,7 @@ mod tests {
     const PROOF: &[u8] =
         include_bytes!("../../../../task_sender/test_examples/nexus/fib/nexus-proof");
     const PARAMS: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/nexus/fib/target/nexus-cache/nexus-public-seq-16.zst");
+        include_bytes!("../../../../task_sender/test_examples/nexus/fib/nexus-public-seq-16.zst");
 
     #[test]
     fn verify_nexus_proof_works() {

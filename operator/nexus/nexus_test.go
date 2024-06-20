@@ -21,7 +21,7 @@ func TestFibonacciNexusProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 	
-	paramsFile, err := os.Open("../../task_sender/test_examples/nexus/fib/target/nexus-cache/nexus-public-seq-16.zst")
+	paramsFile, err := os.Open("../../task_sender/test_examples/nexus/fib/nexus-public-seq-16.zst")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
