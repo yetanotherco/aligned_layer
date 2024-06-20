@@ -67,9 +67,6 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 3
 
-aggregator_get_eth:
-	@. ./scripts/fund_aggregator_devnet.sh
-
 aggregator_start:
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
