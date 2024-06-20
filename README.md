@@ -10,7 +10,7 @@
   - [The Project](#the-project)
   - [Operator Guide](#operator-guide)
   - [Aligned Infrastructure Guide](#aligned-infrastructure-guide)
-  - [Testnet](#testnet)
+  - [How to use the testnet](#how-to-use-the-testnet)
   - [FAQ](#faq)
   - [What is the objective of Aligned?](#what-is-the-objective-of-aligned)
 
