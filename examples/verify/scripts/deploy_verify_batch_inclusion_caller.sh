@@ -13,6 +13,8 @@ source .env
 
 ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS=$(jq -r '.addresses.alignedLayerServiceManager' "$ALIGNED_DEPLOYMENT_OUTPUT")
 
+forge install
+
 forge script script/VerifyBatchInclusionCallerDeployer.s.sol \
     "$ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS" \
     --rpc-url "$RPC_URL" \
