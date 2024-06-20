@@ -486,6 +486,10 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 	@echo "Upgrading Stake Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_stake_registry.sh
 
+deploy_verify_batch_inclusion_caller:
+	@echo "Deploying VerifyBatchInclusionCaller contract..."
+	@. contracts/scripts/.env && . ./contracts/scripts/deploy_verify_batch_inclusion_caller.sh
+	
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 

@@ -52,17 +52,25 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
 	taskIndex := uint32(0)
+	ok := false
+
 	for i := 0; i < waitForEventRetries; i++ {
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
-		ok := false
 		taskIndex, ok = agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
 		if !ok {
 			agg.taskMutex.Unlock()
+			agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
 			time.Sleep(waitForEventSleepSeconds)
 		} else {
 			break
 		}
+	}
+
+	if !ok {
+		agg.logger.Warn("Task not found in the internal map, operator signature will be lost. Batch may not reach quorum")
+		*reply = 1
+		return nil
 	}
 
 	// Don't wait infinitely if it can't answer

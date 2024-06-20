@@ -122,17 +122,15 @@ contract AlignedLayerServiceManager is
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint verificationDataBatchIndex
-    ) external returns (bool) {
-        require(
-            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
-            "Batch doesn't exist"
-        );
+        uint256 verificationDataBatchIndex
+    ) external view returns (bool) {
+        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+            return false;
+        }
 
-        require(
-            batchesState[batchMerkleRoot].responded == true,
-            "Batch has not been responded"
-        );
+        if (!batchesState[batchMerkleRoot].responded) {
+            return false;
+        }
 
         bytes memory leaf = abi.encodePacked(
             proofCommitment,
