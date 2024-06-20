@@ -48,11 +48,17 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
     ) public {
         vm.assume(bytes(batchDataPointer).length > 50);
         bytes32 batchMerkleRoot = keccak256(abi.encodePacked(root));
-        // string memory batchDataPointer = "ipfs://batch1";
+
+        address batcher = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        hoax(batcher, 1 ether);
+
+        // transfer to serviceManager
+        address(alignedLayerServiceManager).call{value: 0.1 ether}("");
 
         vm.expectEmit(true, true, true, true);
         emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
 
+        vm.prank(batcher);
         alignedLayerServiceManager.createNewTask{value: 0}(
             batchMerkleRoot,
             batchDataPointer
