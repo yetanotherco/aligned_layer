@@ -565,12 +565,12 @@ __NEXUS_FFI__: ##
 build_nexus_macos:
 	@cd operator/nexus/lib && RUST_MIN_STACK=999999999 cargo build --release
 	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.dylib operator/nexus/lib/libnexus_verifier.dylib
-	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.a operator/nexus/lib/libnexus_verifier_ffi.a
+	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.a operator/nexus/lib/libnexus_verifier.a
 
 build_nexus_linux:
 	@cd operator/nexus/lib && RUST_MIN_STACK=999999999 cargo build --release
 	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.so operator/nexus/lib/libnexus_verifier.so
-	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.a operator/nexus/lib/libnexus_verifier_ffi.a
+	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.a operator/nexus/lib/libnexus_verifier.a
 
 test_nexus_rust_ffi:
 	@echo "Testing Nexus Rust FFI source code..."
