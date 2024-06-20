@@ -12,9 +12,9 @@ contract AlignedLayerServiceManagerStorage {
     /* STORAGE */
     mapping(bytes32 => BatchState) public batchesState;
 
-    // storage gap for upgradeability
-    uint256[49] private __GAP;
-
     // Storage for batchers balances. Used by aggregator to pay for respondToTask
     mapping(address => uint256) public batchersBalances;
+
+    // storage gap for upgradeability
+    uint256[49] private __GAP;
 }
