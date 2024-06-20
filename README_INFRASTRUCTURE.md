@@ -1,7 +1,7 @@
 
 # Aligned Infrastructure Deployment Guide
 
-- [Aligned Infrastructure Deployment Guide](#aligned-infraestructure-deployment-guide)
+- [Aligned Infrastructure Deployment Guide](#aligned-infrastructure-deployment-guide)
   - [Local Devnet Setup](#local-devnet-setup)
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
@@ -734,6 +734,7 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 | ------------- | ----------------------------------------------------------------------------------------------- |
 | `RPC_URL`     | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
+| `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information |
 | `PHX_HOST`    | The host URL where the Phoenix server will be running.                                          |
 | `DB_NAME` | The name of the postgres database. |
 | `DB_USER` | The username of the postgres database. |
