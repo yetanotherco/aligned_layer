@@ -16,5 +16,5 @@ contract AlignedLayerServiceManagerStorage {
     mapping(address => uint256) public batchersBalances;
 
     // storage gap for upgradeability
-    uint256[49] private __GAP;
+    uint256[48] private __GAP;
 }
