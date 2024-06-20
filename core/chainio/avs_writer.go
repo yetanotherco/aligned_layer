@@ -160,10 +160,14 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 			return nil, err
 		}
 
+		w.logger.Info("Bumped gas price for", "oldNonce", txNonce.Uint64(), "newNonce", tx.Nonce())
+
 		if txNonce.Uint64() != tx.Nonce() {
 			return nil, fmt.Errorf("tx nonce mismatch after bumping gas price: expected %d, got %d", txNonce.Uint64(), tx.Nonce())
 		}
-		w.logger.Info("New tx hash after bumping gas price", "txHash", tx.Hash().String())
+
+		w.logger.Info("New tx hash after bumping gas price", "txHash", tx.Hash().String(),
+			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
 		// Update the transaction hash for the next retry
 		txHash = tx.Hash()
