@@ -1,7 +1,7 @@
 package nexus
 
 /*
-#cgo linux LDFLAGS: ${SRCDIR}/lib/libsnexus_verifier.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo linux LDFLAGS: ${SRCDIR}/lib/libnexus_verifier.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
 #cgo darwin LDFLAGS: -L./lib -lnexus_verifier
 #include "lib/nexus.h"
 */
