@@ -11,6 +11,15 @@ function send_slack_message() {
     $SLACK_WEBHOOK_URL
 }
 
+# Function to send telegram message
+# @param message
+function send_telegram_message() {
+  curl -s -X POST https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage \
+      -d chat_id=$TELEGRAM_CHAT_ID \
+      -d text="$1" \
+      -d disable_notification=true
+}
+
 # Flags to avoid sending multiple alerts
 no_new_batches_alert=false
 no_verified_batches_alert=false
@@ -26,13 +35,17 @@ do
   if [ -z "$new_batch_logs" ]; then
     printf "No new batches logs found\n"
     if [ "$no_new_batches_alert" = false ]; then
-      send_slack_message "🚨 ALERT: No new batches in Service Manager since block $from_block"
+      message="🚨 ALERT: No new batches in Service Manager since block $from_block"
+      send_slack_message "$message"
+      send_telegram_message "$message"
     fi
     no_new_batches_alert=true
   else
     printf "New batches logs found\n"
     if [ "$no_new_batches_alert" = true ]; then
-      send_slack_message "🟩 INFO: Batches creation resumed in Service Manager since block $from_block"
+      message="🟩 INFO: Batches creation resumed in Service Manager since block $from_block"
+      send_slack_message "$message"
+      send_telegram_message "$message"
     fi
     no_new_batches_alert=false
   fi
@@ -41,13 +54,17 @@ do
   if [ -z "$verified_batch_logs" ]; then
     printf "No verified batches logs found\n"
     if [ "$no_verified_batches_alert" = false ]; then
-      send_slack_message "🚨 ALERT: No verified batches in Service Manager since block $from_block"
+      message="🚨 ALERT: No verified batches in Service Manager since block $from_block"
+      send_slack_message "$message"
+      send_telegram_message "$message"
     fi
     no_verified_batches_alert=true
   else
     printf "Verified batches logs found\n"
     if [ "$no_verified_batches_alert" = true ]; then
-      send_slack_message "🟩 INFO: Batches verification resumed in Service Manager since block $from_block"
+      message="🟩 INFO: Batches verification resumed in Service Manager since block $from_block"
+      send_slack_message "$message"
+      send_telegram_message "$message"
     fi
     no_verified_batches_alert=false
   fi
