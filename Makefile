@@ -587,6 +587,7 @@ test_nexus_go_bindings_linux: build_nexus_linux
 # TODO: how to remove cargo dependency???
 generate_nexus_fibonacci_proof: install_nexus
 	@cd task_sender/test_examples/nexus/fib && cargo nexus prove
+	@cp task_sender/test_examples/nexus/fib/target/nexus-cache/nexus-public-seq-16.zst task_sender/test_examples/nexus/fib/.
 	@echo "Fibonacci proof and Parameters generated in task_sender/test_examples/nexus folder"
 
 __RISC_ZERO_FFI__: ##
