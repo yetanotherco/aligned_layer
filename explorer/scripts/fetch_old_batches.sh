@@ -12,19 +12,15 @@ export DB_HOST=$DB_HOST
 export ELIXIR_HOSTNAME=$ELIXIR_HOSTNAME
 export ALIGNED_CONFIG_FILE=$ALIGNED_CONFIG_FILE
 
-DEFAULT_FROM=1600000
-DEFAULT_TO=1700000
-
 if [ "$#" -eq 0 ]; then
-    echo "No arguments provided, using default values."
-    FROM=$DEFAULT_FROM
-    TO=$DEFAULT_TO
+    echo "Error, No arguments provided."
+    exit 1
 elif [ "$#" -eq 2 ]; then
     # Two arguments provided, use them
     FROM=$1
     TO=$2
 else
-    echo "Please provide either 0 or 2 arguments."
+    echo "Please provide 2 arguments."
     exit 1
 fi
 

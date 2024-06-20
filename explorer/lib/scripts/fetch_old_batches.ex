@@ -10,7 +10,7 @@ defmodule Scripts.FetchOldBatches do
 
   def fetch_old_events(fromBlock, toBlock) do
     "fetching old events, from #{fromBlock} to #{toBlock}" |> IO.inspect()
-    chunk_size = 3 #do in smaller chunks, if there are too many blocks to process
+    chunk_size = 16 #do in smaller chunks, if there are too many blocks to process
     chunkify(fromBlock, toBlock, chunk_size) |> Enum.each(&make_request/1)
     "done fetching old events" |> IO.inspect()
   end
