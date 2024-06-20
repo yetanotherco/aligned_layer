@@ -2,7 +2,6 @@ package chainio
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
@@ -120,63 +119,46 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerSt
 
 func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Context, txHash common.Hash, txNonce *big.Int, batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	for i := 0; i < LowFeeMaxRetries; i++ {
-		time.Sleep(LowFeeSleepTime)
-		// Attempt to get the transaction receipt
-		receipt, err := w.Client.TransactionReceipt(ctx, txHash)
+		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, txHash, 6, 5*time.Second)
 		if err == nil && receipt != nil {
+			if receipt.Status == 0 {
+				w.logger.Warn("Transaction failed", "txHash", txHash.String(), "batchMerkleRoot", batchMerkleRoot)
+				return receipt, nil
+			}
 			return receipt, nil
 		}
 
-		// Simulate the transaction to get the gas limit and gas tip cap again
-		txOpts := *w.Signer.GetTxOpts()
-		txOpts.NoSend = true
+		w.logger.Info("Receipt not found. Bumping gas price", "txHash", txHash.String(),
+			"batchMerkleRoot", batchMerkleRoot)
 
-		// Set the nonce to the original value (replacement transaction)
+		txOpts := *w.Signer.GetTxOpts()
 		txOpts.Nonce = txNonce
+
+		// Increase the gas base fee and gas tip cap by 15% * retry number
+		incrementPercentage := LowFeeIncrementPercentage * (i + 1)
+		if incrementPercentage > 200 {
+			incrementPercentage = 200
+		}
+
+		gasTipCap, err := w.Client.SuggestGasTipCap(ctx)
+		if err != nil {
+			w.logger.Error("Failed to get suggested gas tip cap", "err", err)
+			return nil, err
+		}
+
+		gasTipCap.Mul(gasTipCap, big.NewInt(int64(incrementPercentage)))
+		gasTipCap.Div(gasTipCap, big.NewInt(100))
+
+		w.logger.Info("Sending bump gas price replacement transaction", "batchMerkleRoot")
 
 		tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 		if err != nil {
-			w.logger.Error("Error simulating transaction with gas price bump",
-				"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]), "err", err)
+			w.logger.Error("Failed to send bump gas price replacement transaction", "err", err)
 			return nil, err
 		}
 
-		w.logger.Info("Bumping gas price for",
-			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]), "txHash", txHash.String())
-
-		// Increase the gas price
-		incrementPercentage := LowFeeIncrementPercentage + i*LowFeeIncrementPercentage
-		if incrementPercentage > 100 {
-			incrementPercentage = 100
-		}
-
-		newGasPrice := new(big.Int).Mul(big.NewInt(int64(incrementPercentage+100)), tx.GasPrice())
-		newGasPrice.Div(newGasPrice, big.NewInt(100))
-
-		txOpts.GasPrice = newGasPrice
-
-		// Submit the transaction with the new gas price cap
-		txOpts.NoSend = false
-		tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
-		if err != nil {
-			w.logger.Error("Error sending transaction with gas price bump",
-				"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]) , "err", err)
-			return nil, err
-		}
-
-		w.logger.Info("Bumped gas price for",
-			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
-			"oldNonce", txNonce.Uint64(), "newNonce", tx.Nonce())
-
-		if txNonce.Uint64() != tx.Nonce() {
-			return nil, fmt.Errorf("tx nonce mismatch after bumping gas price: expected %d, got %d", txNonce.Uint64(), tx.Nonce())
-		}
-
-		w.logger.Info("New tx hash after bumping gas price",
-			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]), "txHash", tx.Hash().String())
-
-		// Update the transaction hash for the next retry
 		txHash = tx.Hash()
+		txNonce = new(big.Int).SetUint64(tx.Nonce())
 	}
 
 	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
