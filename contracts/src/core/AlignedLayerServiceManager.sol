@@ -56,7 +56,7 @@ contract AlignedLayerServiceManager is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
-    ) external payable {
+    ) external {
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock == 0,
             "Batch was already verified"
@@ -189,7 +189,7 @@ contract AlignedLayerServiceManager is
         batchersBalances[msg.sender] += msg.value;
     }
 
-    function withdraw(uint256 value) external payable {
+    function withdraw(uint256 value) external {
         require(
             batchersBalances[msg.sender] >= value,
             "The value to withdraw is greater than deposited funds"

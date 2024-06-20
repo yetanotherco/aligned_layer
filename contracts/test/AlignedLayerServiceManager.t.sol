@@ -59,7 +59,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
 
         vm.prank(batcher);
-        alignedLayerServiceManager.createNewTask{value: 0}(
+        alignedLayerServiceManager.createNewTask(
             batchMerkleRoot,
             batchDataPointer
         );
