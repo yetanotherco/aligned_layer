@@ -143,8 +143,8 @@ impl Batcher {
         // Configure websocket config to allow for larger msg size not default 16 MiB
         // ref: https://docs.rs/tungstenite/latest/tungstenite/protocol/struct.WebSocketConfig.html#structfield.max_frame_size 
         let mut config = WebSocketConfig::default();
-        config.max_frame_size = None;
-        config.max_message_size = None;
+        config.max_frame_size = Some(200 << 20);
+        config.max_message_size = Some(200 << 20);
         let ws_stream = tokio_tungstenite::accept_async_with_config(raw_stream, Some(config))
             .await
             .expect("Error during the websocket handshake occurred");
