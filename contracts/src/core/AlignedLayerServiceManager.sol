@@ -80,6 +80,8 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
+        uint256 initialGasLeft = gasleft();
+
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
         // Note: This is a hacky solidity way to see that the element exists
@@ -99,7 +101,6 @@ contract AlignedLayerServiceManager is
             batchersBalances[batchesState[batchMerkleRoot].batcherAddress] > 0,
             "Batcher has no balance"
         );
-        uint256 initialGasLeft = gasleft();
 
         batchesState[batchMerkleRoot].responded = true;
 
