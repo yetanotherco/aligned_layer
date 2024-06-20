@@ -10,7 +10,7 @@ fi;
 aligned_service_manager_address=$(cat "contracts/script/output/devnet/alignedlayer_deployment_output.json" | jq -r '.addresses.alignedLayerServiceManager')
 
 # Amount of ETH to send (in Ether)
-amount_in_eth="1ether"
+amount_in_eth="100ether"
 
 # Send Ether transaction
 cast send --from $BATCHER_ADDRESS \
