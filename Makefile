@@ -204,6 +204,23 @@ batcher_send_sp1_burst:
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+batcher_send_nexus_task:
+	@echo "Sending Nexus fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Nexus \
+		--proof test_files/nexus/nexus-proof \
+		--vk test_files/nexus/nexus-public-seq-16.zst \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_nexus_burst:
+	@echo "Sending Nexus fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Nexus \
+		--proof test_files/nexus/nexus-proof \
+		--vk test_files/nexus/nexus-public-seq-16.zst \
+		--repetitions 15 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
 	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
@@ -414,6 +431,14 @@ send_sp1_proof:
     		--config config-files/config.yaml \
     		2>&1 | zap-pretty
 
+send_nexus_proof:
+	@go run task_sender/cmd/main.go send-task \
+    		--proving-system nexus \
+    		--proof task_sender/test_examples/nexus/fib/nexus-proof \
+    		--public-input task_sender/test_examples/nexus/fib/target/nexus-cache/nexus-public-seq-16.zst \
+    		--config config-files/config.yaml \
+    		2>&1 | zap-pretty
+
 send_halo2_ipa_proof: ## Send a Halo2 IPA proof using the task sender
 	@echo "Sending Halo2 IPA proof..."
 	@go run task_sender/cmd/main.go send-task \
@@ -554,8 +579,9 @@ test_nexus_go_bindings_linux: build_nexus_linux
 	@echo "Testing Nexus Go bindings..."
 	go test ./operator/nexus/... -v
 
-# TODO: generate/run nexus bindings without this
+# TODO: how to remove cargo dependency???
 generate_nexus_fibonacci_proof:
+	@cargo install --git https://github.com/nexus-xyz/nexus-zkvm nexus-tools --tag 'v1.0.0'
 	@cd task_sender/test_examples/nexus/fib && cargo nexus prove
 	@echo "Fibonacci proof and Parameters generated in task_sender/test_examples/nexus folder"
 
@@ -685,6 +711,7 @@ build_all_ffi: ## Build all FFIs
 build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
+	@$(MAKE) build_nexus_macos
 #	@$(MAKE) build_risc_zero_macos
 #	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_halo2_ipa_macos
@@ -694,6 +721,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
+	@$(MAKE) build_nexus_linux
 #	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_halo2_ipa_linux

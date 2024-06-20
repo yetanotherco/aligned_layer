@@ -31,3 +31,4 @@ bincode = "1.3.3"
 aligned-batcher-lib = { path = "../aligned-batcher-lib"}
 nexus-prover = { git = "https://github.com/nexus-xyz/nexus-zkvm.git" }
 zstd = { version = "0.12", default-features = false }
+ark-serialize = "0.4.2"

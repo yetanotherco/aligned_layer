@@ -21,6 +21,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::error::ProtocolError;
+use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
@@ -139,13 +140,19 @@ impl Batcher {
 
     async fn handle_connection(self: Arc<Self>, raw_stream: TcpStream, addr: SocketAddr) {
         info!("Incoming TCP connection from: {}", addr);
-        let ws_stream = tokio_tungstenite::accept_async(raw_stream)
+        // Configure websocket config to allow for larger msg size not default 16 MiB
+        // ref: https://docs.rs/tungstenite/latest/tungstenite/protocol/struct.WebSocketConfig.html#structfield.max_frame_size 
+        let mut config = WebSocketConfig::default();
+        config.max_frame_size = None;
+        config.max_message_size = None;
+        let ws_stream = tokio_tungstenite::accept_async_with_config(raw_stream, Some(config))
             .await
             .expect("Error during the websocket handshake occurred");
 
+
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
-
+        
         let outgoing = Arc::new(RwLock::new(outgoing));
         match incoming
             .try_filter(|msg| future::ready(msg.is_text()))

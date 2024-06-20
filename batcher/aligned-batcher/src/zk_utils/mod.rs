@@ -16,11 +16,11 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             false
         }
         ProvingSystemId::Nexus => {
-            if let Some(params) = &verification_data.proof {
-                if let Some(key) = verification_data.verification_key {
-                    return verify_nexus_proof(&verification_data.proof, &params, &key);
-                }
+            if let Some(params) = &verification_data.verification_key {
+                return verify_nexus_proof(&verification_data.proof, &params);
             }
+            warn!("Trying to verify Nexus proof but Params not provided. Returning false");
+            false
         }
         ProvingSystemId::Halo2KZG => {
             let vk = verification_data

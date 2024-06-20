@@ -290,12 +290,14 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
     let mut vm_program_code: Option<Vec<u8>> = None;
 
     match proving_system {
-        ProvingSystemId::SP1
-        | ProvingSystemId::Nexus => {
+        ProvingSystemId::SP1 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
                 args.vm_program_code_file_name,
             )?);
+        }
+        ProvingSystemId::Nexus => {
+            verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
         }
         ProvingSystemId::Halo2KZG
         | ProvingSystemId::Halo2IPA
