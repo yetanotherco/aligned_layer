@@ -136,11 +136,13 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 
 		tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 		if err != nil {
+			w.logger.Error("Error simulating transaction with gas price bump",
+				"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]), "err", err)
 			return nil, err
 		}
 
-		w.logger.Info("Bumping gas price for", "txHash", txHash.String(),
-			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		w.logger.Info("Bumping gas price for",
+			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]), "txHash", txHash.String())
 
 		// Increase the gas price
 		incrementPercentage := LowFeeIncrementPercentage + i*LowFeeIncrementPercentage
@@ -157,17 +159,21 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		txOpts.NoSend = false
 		tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 		if err != nil {
+			w.logger.Error("Error sending transaction with gas price bump",
+				"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]) , "err", err)
 			return nil, err
 		}
 
-		w.logger.Info("Bumped gas price for", "oldNonce", txNonce.Uint64(), "newNonce", tx.Nonce())
+		w.logger.Info("Bumped gas price for",
+			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
+			"oldNonce", txNonce.Uint64(), "newNonce", tx.Nonce())
 
 		if txNonce.Uint64() != tx.Nonce() {
 			return nil, fmt.Errorf("tx nonce mismatch after bumping gas price: expected %d, got %d", txNonce.Uint64(), tx.Nonce())
 		}
 
-		w.logger.Info("New tx hash after bumping gas price", "txHash", tx.Hash().String(),
-			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		w.logger.Info("New tx hash after bumping gas price",
+			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]), "txHash", tx.Hash().String())
 
 		// Update the transaction hash for the next retry
 		txHash = tx.Hash()
