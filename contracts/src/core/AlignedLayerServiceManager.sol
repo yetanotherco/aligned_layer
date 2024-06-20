@@ -12,6 +12,8 @@ import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @title Primary entrypoint for procuring services from Aligned.
  */
@@ -129,7 +131,8 @@ contract AlignedLayerServiceManager is
         uint256 finalGasLeft = gasleft();
 
         // FIXME: should we add 21000 gas from the transfer + some additional for the other steps (~40k gas)?
-        uint256 txCost = (initialGasLeft - finalGasLeft - 21000) * tx.gasprice;
+        uint256 txCost = (initialGasLeft - finalGasLeft + 21000 + 40000) *
+            tx.gasprice;
 
         require(
             batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=
@@ -186,5 +189,15 @@ contract AlignedLayerServiceManager is
 
     receive() external payable {
         batchersBalances[msg.sender] += msg.value;
+    }
+
+    function withdraw(uint256 value) external payable {
+        require(
+            batchersBalances[msg.sender] >= value,
+            "The value to withdraw is greater than deposited funds"
+        );
+
+        batchersBalances[msg.sender] -= value;
+        payable(msg.sender).transfer(value);
     }
 }

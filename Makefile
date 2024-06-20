@@ -3,6 +3,7 @@
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
+AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -69,7 +70,7 @@ anvil_start_with_block_time:
 # TODO: Allow enviroment variables / different configuration files
 aggregator_start:
 	@echo "Starting Aggregator..."
-	@go run aggregator/cmd/main.go --config $(CONFIG_FILE) \
+	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 aggregator_send_dummy_responses:
