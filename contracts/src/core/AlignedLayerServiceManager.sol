@@ -12,8 +12,6 @@ import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @title Primary entrypoint for procuring services from Aligned.
  */
