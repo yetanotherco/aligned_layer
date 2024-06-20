@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 
 import "forge-std/Test.sol";
-import {stdStorage, StdStorage} from "forge-std/Test.sol"; 
+import {stdStorage, StdStorage} from "forge-std/Test.sol";
 import "../src/core/AlignedLayerServiceManager.sol";
 import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
@@ -24,7 +24,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
     event BatchVerified(bytes32 batchMerkleRoot);
 
-    function setUp() virtual public {
+    function setUp() public virtual {
         _setUpBLSMockAVSDeployer();
 
         alignedLayerServiceManager = new AlignedLayerServiceManager(
@@ -42,7 +42,10 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
     //     assertEq(alignedLayerServiceManager.isAggregator(aggregator), true);
     // }
 
-    function testCreateNewTask(string memory root, string memory batchDataPointer) public {
+    function testCreateNewTask(
+        string memory root,
+        string memory batchDataPointer
+    ) public {
         vm.assume(bytes(batchDataPointer).length > 50);
         bytes32 batchMerkleRoot = keccak256(abi.encodePacked(root));
         // string memory batchDataPointer = "ipfs://batch1";
@@ -50,9 +53,16 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         vm.expectEmit(true, true, true, true);
         emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
 
-        alignedLayerServiceManager.createNewTask{value: 0}(batchMerkleRoot, batchDataPointer);
+        alignedLayerServiceManager.createNewTask{value: 0}(
+            batchMerkleRoot,
+            batchDataPointer
+        );
 
-        (uint32 taskCreatedBlock, bool responded) = alignedLayerServiceManager.batchesState(batchMerkleRoot);
+        (
+            uint32 taskCreatedBlock,
+            bool responded,
+            address batcherAddress
+        ) = alignedLayerServiceManager.batchesState(batchMerkleRoot);
 
         assertEq(taskCreatedBlock, uint32(block.number));
         assertEq(responded, false);
