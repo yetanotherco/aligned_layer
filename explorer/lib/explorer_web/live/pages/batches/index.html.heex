@@ -8,7 +8,8 @@
         <thead>
           <tr class="text-muted-foreground font-normal">
             <th class="text-left">Batch Merkle Root</th>
-            <th>Block Number</th>
+            <th>Timestamp</th>
+            <th>Submission Block Number</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -16,25 +17,29 @@
           <%= for batch <- @batches do %>
             <tr class="text-foreground gap-y-2 [&>th]:pt-3">
               <th class="text-left">
-                <.link navigate={~p"/batches/#{batch.batch_merkle_root}"} class="group">
+                <.link navigate={~p"/batches/#{batch.merkle_root}"} class="group">
                   <span
-                    title={batch.batch_merkle_root}
+                    title={batch.merkle_root}
                     class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80"
                   >
-                    <%= Utils.shorten_block_hash(batch.batch_merkle_root) %>
+                    <%= Utils.shorten_hash(batch.merkle_root) %>
                     <.right_arrow />
                   </span>
                 </.link>
               </th>
 
               <th class="font-normal group-hover:text-foreground/80">
-                <%= batch.task_created_block_number %>
+                <%= batch.submission_timestamp |> Utils.parse_timestamp_less %>
+              </th>
+
+              <th class="font-normal group-hover:text-foreground/80">
+                <%= batch.submission_block_number %>
               </th>
 
               <th class={[
                 "font-medium text-base rounded-full"
               ]}>
-                <.dynamic_badge status={batch.responded} />
+                <.dynamic_badge status={batch.is_verified} />
               </th>
             </tr>
           <% end %>

@@ -1,8 +1,8 @@
 defmodule ExplorerWeb.Utils do
-  def shorten_block_hash(block_hash) do
-    case String.length(block_hash) do
-      n when n < 6 -> block_hash
-      _ -> "#{String.slice(block_hash, 0, 6)}...#{String.slice(block_hash, -4, 4)}"
+  def shorten_hash(hash) do
+    case String.length(hash) do
+      n when n < 6 -> hash
+      _ -> "#{String.slice(hash, 0, 6)}...#{String.slice(hash, -4, 4)}"
     end
   end
 
@@ -23,6 +23,52 @@ defmodule ExplorerWeb.Utils do
   end
 
   def convert_number_to_shorthand(_number), do: "Invalid number"
+
+  def parse_timestamp(timestamp) do
+    %{hour: hour, minute: minute, second: second, day: day, month: month, year: year} = timestamp
+
+    formatted_hour = pad_leading_zero(hour)
+    formatted_minute = pad_leading_zero(minute)
+    formatted_second = pad_leading_zero(second)
+    formatted_day = pad_leading_zero(day)
+    formatted_month = format_month(month)
+
+    "#{formatted_hour}:#{formatted_minute}:#{formatted_second} (UTC) - #{formatted_month} #{formatted_day}, #{year}"
+  end
+
+  def parse_timestamp_less(timestamp) do
+    %{hour: hour, minute: minute, second: second, day: day, month: month} = timestamp
+
+    formatted_hour = pad_leading_zero(hour)
+    formatted_minute = pad_leading_zero(minute)
+    formatted_second = pad_leading_zero(second)
+    formatted_day = pad_leading_zero(day)
+    formatted_month = format_month(month)
+
+    "#{formatted_hour}:#{formatted_minute}:#{formatted_second} - #{formatted_month} #{formatted_day}"
+  end
+
+  def format_month(num) do
+    case num do
+      1 -> "Jan"
+      2 -> "Feb"
+      3 -> "Mar"
+      4 -> "Apr"
+      5 -> "May"
+      6 -> "Jun"
+      7 -> "Jul"
+      8 -> "Aug"
+      9 -> "Sep"
+      10 -> "Oct"
+      11 -> "Nov"
+      12 -> "Dec"
+      _ -> ""
+    end
+  end
+
+  defp pad_leading_zero(value) do
+    Integer.to_string(value) |> String.pad_leading(2, "0")
+  end
 end
 
 defmodule Utils do
@@ -55,7 +101,7 @@ defmodule Utils do
     300
   end
 
-  def fetch_batch_data_pointer(batch_data_pointer) do
+  def fetch_batch_data_pointer(batch_data_pointer) do # Download Bottleneck
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         case Jason.decode(body) do
@@ -69,20 +115,12 @@ defmodule Utils do
     end
   end
 
-  def extract_batch_data_pointer_info(%Batch{} = batch) do
-    amount_of_proofs = batch.batch_data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
-
-    %BatchDB {
-      batch_merkle_root: batch.batch_merkle_root,
-      amount_of_proofs: amount_of_proofs,
-      is_verified: batch.is_verified
-    }
-  end
-
-  def extract_amount_of_proofs(%{batchDataPointer: batchDataPointer}) do
-    case Utils.fetch_batch_data_pointer(batchDataPointer) do
-      {:ok, batch_json} -> Utils.extract_amount_of_proofs_from_json({:ok, batch_json})
-      {:error, _} -> 300
+  def extract_amount_of_proofs(%BatchDB{} = batch) do
+    #only get from s3 if not already in DB
+    amount_of_proofs = case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
+      nil -> batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
+      proofs -> proofs
     end
+    Map.put(batch, :amount_of_proofs, amount_of_proofs)
   end
 end

@@ -26,7 +26,7 @@ If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
 
 If you are developing in Aligned, or want to run your own devnet, check our [Infrastructure Guide](./README_INFRASTRUCTURE.md)
 
-## Testnet
+## How to use the testnet
 
 ### Contract Information
 
