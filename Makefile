@@ -582,7 +582,7 @@ test_nexus_go_bindings_macos: build_nexus_macos
 
 test_nexus_go_bindings_linux: build_nexus_linux
 	@echo "Testing Nexus Go bindings..."
-	go test ./operator/nexus/.o. -v
+	go test ./operator/nexus/... -v
 
 # TODO: how to remove cargo dependency???
 generate_nexus_fibonacci_proof: install_nexus
