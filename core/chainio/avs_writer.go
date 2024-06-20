@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
@@ -20,7 +21,7 @@ import (
 const (
 	LowFeeMaxRetries          = 25
 	LowFeeSleepTime           = 25 * time.Second
-	LowFeeIncrementPercentage = 25
+	LowFeeIncrementPercentage = 15
 )
 
 type AvsWriter struct {
@@ -129,23 +130,27 @@ func (w *AvsWriter) WaitForTransactionReceiptWithIncreasingTip(ctx context.Conte
 		// Simulate the transaction to get the gas limit and gas tip cap again
 		txOpts := *w.Signer.GetTxOpts()
 		txOpts.NoSend = true
+
+		// Set the nonce to the original value (replacement transaction)
+		txOpts.Nonce = txNonce
+
 		tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 		if err != nil {
 			return nil, err
 		}
-		w.logger.Info("Simulated tx nonce", "nonce", tx.Nonce())
 
-		// Use the same nonce as the original transaction
-		txOpts.Nonce = txNonce
+		w.logger.Info("Bumping gas price for", "txHash", txHash.String(),
+			"batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
-		// Use the gas limit of the simulated transaction
-		txOpts.GasLimit = tx.Gas()
+		// Increase the gas price
+		incrementPercentage := LowFeeIncrementPercentage + i*LowFeeIncrementPercentage
+		if incrementPercentage > 100 {
+			incrementPercentage = 100
+		}
 
-		w.logger.Info("Bumping gas price for tx", "txHash", txHash.String())
-
-		// Increase the gas price by IncrementPercentage
-		newGasPrice := new(big.Int).Mul(big.NewInt(int64(LowFeeIncrementPercentage+100)), tx.GasPrice())
+		newGasPrice := new(big.Int).Mul(big.NewInt(int64(incrementPercentage+100)), tx.GasPrice())
 		newGasPrice.Div(newGasPrice, big.NewInt(100))
+
 		txOpts.GasPrice = newGasPrice
 
 		// Submit the transaction with the new gas price cap
