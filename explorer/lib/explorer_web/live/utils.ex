@@ -72,6 +72,7 @@ defmodule ExplorerWeb.Utils do
 end
 
 defmodule Utils do
+  require Logger
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
     hex = case hex_string do
@@ -116,11 +117,18 @@ defmodule Utils do
   end
 
   def extract_amount_of_proofs(%BatchDB{} = batch) do
+    IO.inspect("Extracting amount of proofs for batch: #{batch.merkle_root}")
     #only get from s3 if not already in DB
     amount_of_proofs = case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
-      nil -> batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
-      proofs -> proofs
-    end
+      nil ->
+        IO.inspect("Fetching from S3")
+        batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
+
+      proofs ->
+        IO.inspect("Fetching from DB")
+        proofs
+      end
+
     Map.put(batch, :amount_of_proofs, amount_of_proofs)
   end
 end
