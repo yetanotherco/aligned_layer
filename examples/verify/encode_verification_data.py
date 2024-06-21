@@ -21,7 +21,7 @@ def encode_call(file):
         for i in range(0, len(merkle_path_arr)):
             merkle_proof += bytearray(merkle_path_arr[i])
 
-        index = data['verification_data_batch_index']
+        index = data['index_in_batch']
 
         output = encode(['bytes32', 'bytes32', 'bytes32', 'bytes20', 'bytes32', 'bytes', 'uint256'],
                         [proof_commitment, pub_input_commitment, proving_system_aux_data_commitment,
