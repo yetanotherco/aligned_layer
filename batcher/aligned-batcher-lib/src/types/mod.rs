@@ -1,5 +1,10 @@
 use anyhow::anyhow;
+use ethers::core::k256::ecdsa::SigningKey;
+use ethers::signers::Signer;
+use ethers::signers::Wallet;
 use ethers::types::Address;
+use ethers::types::Signature;
+use ethers::types::SignatureError;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
@@ -17,7 +22,7 @@ pub enum ProvingSystemId {
     Halo2IPA,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationData {
     pub proving_system: ProvingSystemId,
     pub proof: Vec<u8>,
@@ -141,24 +146,30 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientMessage {
+    pub verification_data: VerificationData,
+    pub signature: Signature,
+}
 
-    #[test]
-    fn hash_new_parent_is_correct() {
-        let mut hasher = Keccak256::new();
-        hasher.update(vec![1u8]);
-        let child_1 = hasher.finalize_reset().into();
-        hasher.update(vec![2u8]);
-        let child_2 = hasher.finalize().into();
+impl ClientMessage {
+    pub async fn new(verification_data: VerificationData, wallet: Wallet<SigningKey>) -> Self {
+        let verification_data_str = serde_json::to_string(&verification_data).unwrap();
+        let signature = wallet.sign_message(&verification_data_str).await.unwrap();
 
-        let parent = VerificationCommitmentBatch::hash_new_parent(&child_1, &child_2);
+        ClientMessage {
+            verification_data,
+            signature,
+        }
+    }
 
-        // This value is built using Openzeppelin's module for Merkle Trees, in particular using
-        // the SimpleMerkleTree. For more details see the openzeppelin_merkle_tree/merkle_tree.js script.
-        let expected_parent = "71d8979cbfae9b197a4fbcc7d387b1fae9560e2f284d30b4e90c80f6bc074f57";
-
-        assert_eq!(hex::encode(parent), expected_parent)
+    pub fn verify_signature(&self) -> Result<Address, SignatureError> {
+        let verification_data_str = serde_json::to_string(&self.verification_data).unwrap();
+        let recovered = self
+            .signature
+            .recover(verification_data_str.clone())
+            .unwrap();
+        self.signature.verify(verification_data_str, recovered)?;
+        Ok(recovered)
     }
 }

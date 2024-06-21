@@ -7,7 +7,8 @@ use std::time::Duration;
 
 use crate::eth::BatchVerifiedEventStream;
 use aligned_batcher_lib::types::{
-    BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatchVerifiedFilter;
@@ -166,10 +167,18 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
         // Deserialize verification data from message
-        let verification_data: VerificationData =
+        let client_msg: ClientMessage =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
+        if let Ok(_addr) = client_msg.verify_signature() {
+            // do something with addr
+        } else {
+            // raise signature verification error
+            panic!("signature verification error")
+        }
+
+        let verification_data = client_msg.verification_data;
         if verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled && !zk_utils::verify(&verification_data) {

@@ -1,6 +1,6 @@
 mod errors;
 mod eth;
-mod types;
+pub mod types;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -28,6 +28,7 @@ use aligned_batcher_lib::types::{
 };
 use clap::Subcommand;
 use ethers::utils::hex;
+use types::ClientMessage;
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
@@ -141,10 +142,15 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let repetitions = submit_args.repetitions;
             let verification_data = verification_data_from_args(submit_args)?;
 
-            let json_data = serde_json::to_string(&verification_data)?;
+            let wallet = "dcf2cbdd171a21c480aa7f53d77f31bb102282b3ff099c78e3118b37348c72f7"
+                .parse::<LocalWallet>()?;
+            let msg = ClientMessage::new(verification_data, wallet).await;
+            let msg_str = serde_json::to_string(&msg).unwrap();
+
             for _ in 0..repetitions {
-                ws_write.send(Message::Text(json_data.to_string())).await?;
-                sent_verification_data.push(verification_data.clone());
+                ws_write.send(Message::Text(msg_str.clone())).await?;
+
+                sent_verification_data.push(msg.verification_data.clone());
                 info!("Message sent...")
             }
 
@@ -395,4 +401,27 @@ fn save_response(
     );
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use ethers::signers::{LocalWallet, Signer};
+
+    #[tokio::test]
+    async fn signing_test() {
+        let msg = "Holi";
+
+        let wallet = "dcf2cbdd171a21c480aa7f53d77f31bb102282b3ff099c78e3118b37348c72f7"
+            .parse::<LocalWallet>()
+            .unwrap();
+
+        let signature = wallet.sign_message(msg).await.unwrap();
+        let recovered = signature.recover(msg).unwrap();
+
+        let verified = signature.verify(msg, recovered).unwrap();
+
+        println!("SIGNATURE: {}", signature);
+        println!("RECOVERED: {:?}", recovered);
+        println!("VERIFIED: {:?}", verified);
+    }
 }
