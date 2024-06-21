@@ -1,22 +1,22 @@
 <div class="flex flex-col space-y-3 text-foreground px-5 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize mb-12">
   <.card_preheding>Latest Batches</.card_preheding>
   <%= if @batches != :empty and @batches != [] do %>
-    <.card_background>
+    <.card_background class="overflow-x-auto">
       <table class={[
         "table-auto border-collapse w-full"
       ]}>
         <thead>
           <tr class="text-muted-foreground font-normal">
             <th class="text-left">Batch Merkle Root</th>
+            <th>Status</th>
             <th>Timestamp</th>
             <th>Submission Block Number</th>
-            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           <%= for batch <- @batches do %>
             <tr class="text-foreground gap-y-2 [&>th]:pt-3">
-              <th class="text-left">
+              <th class="text-left pr-7">
                 <.link navigate={~p"/batches/#{batch.merkle_root}"} class="group">
                   <span
                     title={batch.merkle_root}
@@ -28,18 +28,18 @@
                 </.link>
               </th>
 
-              <th class="font-normal group-hover:text-foreground/80">
-                <%= batch.submission_timestamp |> Utils.parse_timestamp_less %>
-              </th>
-
-              <th class="font-normal group-hover:text-foreground/80">
-                <%= batch.submission_block_number %>
-              </th>
-
               <th class={[
-                "font-medium text-base rounded-full"
+                "font-medium text-base rounded-full px-6"
               ]}>
                 <.dynamic_badge status={batch.is_verified} />
+              </th>
+
+              <th class="font-normal group-hover:text-foreground/80 px-12">
+                <%= batch.submission_timestamp |> Utils.parse_timestamp_less() %>
+              </th>
+
+              <th class="font-normal group-hover:text-foreground/80 px-20">
+                <%= batch.submission_block_number %>
               </th>
             </tr>
           <% end %>
