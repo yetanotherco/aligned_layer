@@ -57,7 +57,8 @@ defmodule Explorer.MixProject do
       {:ethers, "~> 0.4.4"},
       {:ethereumex, "~> 0.10"},
       {:ecto_sql, "~> 3.0"},
-      {:postgrex, ">= 0.0.0"}
+      {:postgrex, ">= 0.0.0"},
+      {:mutex, "~> 2.0"}
     ]
   end
 
