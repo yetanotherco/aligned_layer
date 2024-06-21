@@ -2,7 +2,7 @@ use crate::gnark::verify_gnark;
 use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
 use crate::sp1::verify_sp1_proof;
-use aligned_batcher_lib::types::{ProvingSystemId, VerificationData};
+use aligned_sdk::models::{ProvingSystemId, VerificationData};
 use log::{debug, warn};
 
 pub(crate) fn verify(verification_data: &VerificationData) -> bool {

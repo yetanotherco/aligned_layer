@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::eth::BatchVerifiedEventStream;
-use aligned_batcher_lib::types::{
+use aligned_sdk::models::{
     BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;

@@ -8,8 +8,6 @@ use std::io::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
-use aligned_batcher_lib::types::VerificationCommitmentBatch;
-use aligned_batcher_lib::types::VerificationDataCommitment;
 use env_logger::Env;
 use ethers::prelude::*;
 use futures_util::{
@@ -23,9 +21,11 @@ use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use aligned_batcher_lib::types::{
-    parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData,
+use aligned_sdk::models::{
+    parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationCommitmentBatch,
+    VerificationData, VerificationDataCommitment,
 };
+
 use clap::Subcommand;
 use ethers::utils::hex;
 

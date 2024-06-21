@@ -4,7 +4,7 @@ use futures_util::stream::SplitSink;
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
-use aligned_batcher_lib::types::{VerificationData, VerificationDataCommitment};
+use aligned_sdk::models::{VerificationData, VerificationDataCommitment};
 
 pub(crate) type BatchQueueEntry = (
     VerificationData,

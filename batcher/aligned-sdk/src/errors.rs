@@ -1,4 +1,3 @@
-
 use core::fmt;
 use std::io;
 use std::path::PathBuf;
@@ -11,6 +10,7 @@ pub enum SubmitError {
     InvalidProvingSystem(String),
     EthError(String),
     IoError(PathBuf, io::Error),
+    GenericError(String),
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
@@ -22,6 +22,12 @@ impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
 impl From<serde_json::Error> for SubmitError {
     fn from(e: serde_json::Error) -> Self {
         SubmitError::SerdeError(e)
+    }
+}
+
+impl From<anyhow::Error> for SubmitError {
+    fn from(e: anyhow::Error) -> Self {
+        SubmitError::GenericError(e.to_string())
     }
 }
 
@@ -44,6 +50,7 @@ impl fmt::Debug for SubmitError {
             }
             SubmitError::SerdeError(e) => write!(f, "Serialization error: {}", e),
             SubmitError::EthError(e) => write!(f, "Ethereum error: {}", e),
+            SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
         }
     }
 }

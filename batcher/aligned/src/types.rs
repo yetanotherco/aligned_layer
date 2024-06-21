@@ -1,4 +1,4 @@
-use aligned_batcher_lib::types::{BatchInclusionData, VerificationDataCommitment};
+use aligned_sdk::models::{BatchInclusionData, VerificationDataCommitment};
 use lambdaworks_crypto::merkle_tree::proof::Proof;
 use serde::{Deserialize, Serialize};
 

@@ -5,6 +5,8 @@ use lambdaworks_crypto::merkle_tree::{
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+use tokio::net::TcpStream;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 pub enum ProvingSystemId {
@@ -129,6 +131,37 @@ impl BatchInclusionData {
     }
 }
 
+pub struct SubmitArgs {
+    pub ws_stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    pub verification_data: VerificationData,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AlignedVerificationData {
+    pub verification_data_commitment: VerificationDataCommitment,
+    pub batch_merkle_root: [u8; 32],
+    pub batch_inclusion_proof: Proof<[u8; 32]>,
+    pub index_in_batch: usize,
+}
+
+impl AlignedVerificationData {
+    pub fn new(
+        verification_data_commitment: &VerificationDataCommitment,
+        inclusion_data: &BatchInclusionData,
+    ) -> Self {
+        let batch_merkle_root = inclusion_data.batch_merkle_root;
+        let batch_inclusion_proof = &inclusion_data.batch_inclusion_proof;
+        let index_in_batch = inclusion_data.index_in_batch;
+
+        Self {
+            verification_data_commitment: verification_data_commitment.clone(),
+            batch_merkle_root,
+            batch_inclusion_proof: batch_inclusion_proof.clone(),
+            index_in_batch,
+        }
+    }
+}
+
 pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
     match proving_system {
         "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
@@ -138,27 +171,5 @@ pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSyste
         "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
         "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
         _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA]", proving_system))
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn hash_new_parent_is_correct() {
-        let mut hasher = Keccak256::new();
-        hasher.update(vec![1u8]);
-        let child_1 = hasher.finalize_reset().into();
-        hasher.update(vec![2u8]);
-        let child_2 = hasher.finalize().into();
-
-        let parent = VerificationCommitmentBatch::hash_new_parent(&child_1, &child_2);
-
-        // This value is built using Openzeppelin's module for Merkle Trees, in particular using
-        // the SimpleMerkleTree. For more details see the openzeppelin_merkle_tree/merkle_tree.js script.
-        let expected_parent = "71d8979cbfae9b197a4fbcc7d387b1fae9560e2f284d30b4e90c80f6bc074f57";
-
-        assert_eq!(hex::encode(parent), expected_parent)
     }
 }
