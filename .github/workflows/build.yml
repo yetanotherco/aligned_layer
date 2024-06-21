@@ -15,6 +15,12 @@ jobs:
     steps:
       - name: Set up cargo cache
         uses: Swatinem/rust-cache@v2
+        with: 
+          workspaces: "
+            operator/sp1/lib
+            operator/risc_zero/lib
+            operator/halo2kzg/lib
+            operator/halo2ipa/lib"
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
