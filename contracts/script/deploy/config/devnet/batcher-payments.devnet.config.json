@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "owner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "deployer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "upgrader": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "initalPausedStatus": 0
+  },
+  "address": {
+    "batcherWallet": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "alignedLayerServiceManager": "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
+  }
+}

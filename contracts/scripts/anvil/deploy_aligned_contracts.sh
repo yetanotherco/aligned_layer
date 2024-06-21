@@ -25,6 +25,8 @@ forge script script/deploy/AlignedLayerDeployer.s.sol \
     --sig "run(string memory existingDeploymentInfoPath, string memory deployConfigPath, string memory outputPath)"
 
 # Can't deploy on another script, current open issue: https://github.com/foundry-rs/foundry/issues/7952
+
+# Deploy the Batch Inclusion Static Caller Contract
 forge script script/deploy/VerifyBatchInclusionCallerDeployer.s.sol \
     $ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS \
     --rpc-url "http://localhost:8545" \
@@ -33,20 +35,13 @@ forge script script/deploy/VerifyBatchInclusionCallerDeployer.s.sol \
     --slow \
     --sig "run(address _targetContract)"
 
-
-BATCHER_WALLET=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
-# using anvil prefunded:
-# (1) 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 (10000.000000000000000000 ETH)
-# (1) 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
-
-# Deploy the contracts
+# Deploy Batcher Payments Contract
 forge script script/deploy/BatcherPaymentsDeployer.s.sol \
-    $ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS \
-    $BATCHER_WALLET \
+    ./script/deploy/config/devnet/batcher-payments.devnet.config.json \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
     --broadcast \
-    --sig "run(address existingDeploymentInfoPath, address deployConfigPath)"
+    --sig "run(string batcherConfigPath)"
 
 # Kill the anvil process to save state
 pkill anvil

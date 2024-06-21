@@ -29,8 +29,6 @@ contract BatcherPayments {
         emit PaymentReceived(msg.sender, msg.value);
     }
 
-// cast call 0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3 "createNewTask(bytes32, string, address[], uint256)" 0x402e72e03fc4285de6fe4513151f15675fdccc1846d7633b11116e97be27dc37 "hola" "[0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC]" 123 --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
-
     // PUBLIC FUNCTIONS
     function createNewTask(
         bytes32 batchMerkleRoot,
