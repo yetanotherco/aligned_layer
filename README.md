@@ -117,21 +117,21 @@ curl -H "Content-Type: application/json" \
 
 To get the call data for yours, you can use the ```encode_verification_data.py```:
 
-To use it, first clone then repository, then move to it's folder, and install the dependencies with a python venv:
+To use it, first clone then repository, then move to the repository folder, and install the dependencies with a python venv:
 
 ```bash
 python3 -m venv .aligned_venv
 source .aligned_venv/bin/activate
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r examples/verify/requirements.txt
 ```
 
 Then:
 
 ```bash
-python3 encode_verification_data.py --aligned-verification-data ~/.aligned/aligned_verification_data/*.json
+python3 examples/verify/encode_verification_data.py --aligned-verification-data ~/.aligned/aligned_verification_data/*.json
 ```
 
-If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](contracts/src/core/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
+If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](examples/verify/src/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
 
 ```solidity
 (bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
@@ -148,6 +148,9 @@ If you want to verify your proof in your own contract, use a static call to the 
 );
 require(callWasSuccessfull, "static_call failed");
 ```
+
+If you want to learn more about how to check if your proof was verified in aligned, 
+check the [Guide](./examples/verify/README.md).
 
 If you want to send more types of proofs, read our [send proofs guide](./README_SEND_PROOFS.md).
 

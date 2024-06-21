@@ -1,7 +1,7 @@
 pragma solidity =0.8.12;
 
 import {Script} from "forge-std/Script.sol";
-import {VerifyBatchInclusionCaller} from "../../src/core/VerifyBatchInclusionCaller.sol";
+import {VerifyBatchInclusionCaller} from "../src/VerifyBatchInclusionCaller.sol";
 
 contract VerifyBatchInclusionCallerDeployer is Script {
     function run(address _targetContract) external returns (address) {

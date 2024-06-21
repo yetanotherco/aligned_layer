@@ -3,6 +3,7 @@ from json import load
 from eth_abi import encode
 from Crypto.Hash import keccak
 
+
 def encode_call(file):
     with open(file) as f:
         data = load(f)
@@ -20,7 +21,7 @@ def encode_call(file):
         for i in range(0, len(merkle_path_arr)):
             merkle_proof += bytearray(merkle_path_arr[i])
 
-        index = data['verification_data_batch_index']
+        index = data['index_in_batch']
 
         output = encode(['bytes32', 'bytes32', 'bytes32', 'bytes20', 'bytes32', 'bytes', 'uint256'],
                         [proof_commitment, pub_input_commitment, proving_system_aux_data_commitment,
@@ -30,7 +31,7 @@ def encode_call(file):
         k.update(b'verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)')
         signature = k.hexdigest()[:8]
 
-        return "0x" + signature + output.hex()
+        return '0x' + signature + output.hex()
 
 
 if __name__ == "__main__":
