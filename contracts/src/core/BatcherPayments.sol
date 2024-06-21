@@ -41,25 +41,21 @@ contract BatcherPayments {
         
         // discount from each payer
         // will revert if one of them has insufficient balance
-        require(proofSubmitters[0] >= pricePerProof, "Insufficient balance");
-        PaymentBalances[proofSubmitters[0]] -= pricePerProof
-        // for(uint256 i=0; i < proofSubmitters.length; i++){
-        //     address payer = proofSubmitters[i];
-        //     require(PaymentBalances[payer] >= pricePerProof, "Insufficient balance");
-        //     PaymentBalances[payer] -= pricePerProof;
-        //     // discountFromPayer(user, pricePerProof);
-        // }
+        for(uint256 i=0; i < proofSubmitters.length; i++){
+            address payer = proofSubmitters[i];
+            discountFromPayer(payer, pricePerProof);
+        }
 
-        // // call alignedLayerServiceManager
-        // // with value to fund the task's response
-        // (bool success, ) = AlignedLayerServiceManager.call{value: msg.value}(
-        //     abi.encodeWithSignature(
-        //         "createNewTask(bytes32,string)",
-        //         batchMerkleRoot,
-        //         batchDataPointer
-        //     )
-        // );
-        // require(success, "AlignedLayerServiceManager createNewTask call failed");
+        // call alignedLayerServiceManager
+        // with value to fund the task's response
+        (bool success, ) = AlignedLayerServiceManager.call{value: msg.value}(
+            abi.encodeWithSignature(
+                "createNewTask(bytes32,string)",
+                batchMerkleRoot,
+                batchDataPointer
+            )
+        );
+        require(success, "AlignedLayerServiceManager createNewTask call failed");
     }
 
     function withdraw(uint256 amount) external {
