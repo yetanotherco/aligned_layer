@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Set up cargo cache
+        uses: Swatinem/rust-cache@v2
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
