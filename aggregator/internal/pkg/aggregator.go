@@ -208,8 +208,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
