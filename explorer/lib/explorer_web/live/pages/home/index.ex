@@ -15,7 +15,7 @@ defmodule ExplorerWeb.Home.Index do
          "Please enter a valid proof batch hash, these should be hex values (0x69...)."
        )}
     else
-      {:noreply, push_navigate(socket, to: "/batches/#{batch_merkle_root}")}
+      {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root}")}
     end
   end
 
