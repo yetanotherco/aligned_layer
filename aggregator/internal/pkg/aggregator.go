@@ -54,7 +54,7 @@ type Aggregator struct {
 	batchesIdxByRoot map[[32]byte]uint32
 
 	// Stores the taskCreatedBlock for each batch bt batch index
-	blockNumbersByIdx map[uint32]uint64
+	batchCreatedBlockByIdx map[uint32]uint64
 
 	// This task index is to communicate with the local BLS
 	// Service.
@@ -93,7 +93,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	batchesRootByIdx := make(map[uint32][32]byte)
 	batchesIdxByRoot := make(map[[32]byte]uint32)
-	blockNumbersByIdx := make(map[uint32]uint64)
+	batchCreatedBlockByIdx := make(map[uint32]uint64)
 
 	chainioConfig := sdkclients.BuildAllConfig{
 		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
@@ -130,12 +130,12 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsWriter:        avsWriter,
 		NewBatchChan:     newBatchChan,
 
-		batchesRootByIdx: batchesRootByIdx,
-		batchesIdxByRoot: batchesIdxByRoot,
-		blockNumbersByIdx: blockNumbersByIdx,
-		nextBatchIndex:   nextBatchIndex,
-		taskMutex:        &sync.Mutex{},
-		walletMutex:      &sync.Mutex{},
+		batchesRootByIdx:       batchesRootByIdx,
+		batchesIdxByRoot:       batchesIdxByRoot,
+		batchCreatedBlockByIdx: batchCreatedBlockByIdx,
+		nextBatchIndex:         nextBatchIndex,
+		taskMutex:              &sync.Mutex{},
+		walletMutex:            &sync.Mutex{},
 
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
@@ -209,7 +209,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
-	taskCreatedBlock := agg.blockNumbersByIdx[blsAggServiceResp.TaskIndex]
+	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
 	agg.taskMutex.Unlock()
 
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
@@ -328,7 +328,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	}
 
 	agg.batchesIdxByRoot[batchMerkleRoot] = batchIndex
-	agg.blockNumbersByIdx[batchIndex] = uint64(taskCreatedBlock)
+	agg.batchCreatedBlockByIdx[batchIndex] = uint64(taskCreatedBlock)
 	agg.batchesRootByIdx[batchIndex] = batchMerkleRoot
 	agg.nextBatchIndex += 1
 
