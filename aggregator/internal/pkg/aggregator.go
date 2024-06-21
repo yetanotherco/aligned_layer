@@ -222,7 +222,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		return
 	}
 
-	blockNumber := currentBlock
 	if currentBlock <= taskCreatedBlock {
 		agg.logger.Info("Waiting for new block to send aggregated response onchain",
 			"taskIndex", blsAggServiceResp.TaskIndex,
@@ -242,12 +241,10 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		head := <-c
 		sub.Unsubscribe()
 
-		blockNumber = head.Number.Uint64()
-
 		agg.logger.Info("New block",
 			"taskIndex", blsAggServiceResp.TaskIndex,
 			"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
-			"blockNumber", blockNumber)
+			"blockNumber", head.Number.Uint64())
 	}
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
