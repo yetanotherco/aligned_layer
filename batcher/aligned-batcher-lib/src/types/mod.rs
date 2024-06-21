@@ -43,7 +43,6 @@ impl From<VerificationData> for VerificationDataCommitment {
         let mut hasher = Keccak256::new();
 
         // compute proof commitment
-        // hasher.update(verification_data.proof.as_slice());
         let proof_commitment = hash_with_hasher(verification_data.proof.as_slice(), &mut hasher);
 
         // compute public input commitment
