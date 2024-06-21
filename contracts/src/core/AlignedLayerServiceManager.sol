@@ -142,8 +142,6 @@ contract AlignedLayerServiceManager is
             batchesState[batchMerkleRoot].batcherAddress
         ] -= txCost;
         payable(msg.sender).transfer(txCost);
-
-        delete batchesState[batchMerkleRoot].batcherAddress;
     }
 
     function verifyBatchInclusion(
