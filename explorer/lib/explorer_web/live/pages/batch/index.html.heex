@@ -1,5 +1,5 @@
 <div class="flex flex-col space-y-3 px-5 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
-  <%= if @newBatchInfo != :empty do %>
+  <%= if @current_batch != :empty do %>
     <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
       Batch Details
     </.card_preheding>
@@ -10,46 +10,50 @@
       Merkle Root Hash:
       <p class="break-all font-normal"><%= @merkle_root %></p>
       Amount of Proofs in this Batch:
-      <p class="break-all font-normal"><%= @amount_of_proofs %></p>
-      Block Hash:
-      <p class="break-all font-normal"><%= @newBatchInfo.block_hash %></p>
-      Block Number:
+      <p class="break-all font-normal"><%= @current_batch.amount_of_proofs %></p>
+      Submission Block Number:
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://holesky.etherscan.io/block/#{@newBatchInfo.block_number}"}
+        href={"https://holesky.etherscan.io/block/#{@current_batch.submission_block_number}"}
         class="break-all font-normal"
       >
-        <%= @newBatchInfo.block_number %>
+        <%= @current_batch.submission_block_number %>
       </.a>
-      Batch Submission Transaction Hash:
+      Submission Transaction Hash:
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://holesky.etherscan.io/tx/#{@newBatchInfo.transaction_hash}"}
+        href={"https://holesky.etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
         class="break-all font-normal"
       >
-        <%= @newBatchInfo.transaction_hash %>
+        <%= @current_batch.submission_transaction_hash %>
       </.a>
-      Aligned Contract Address:
-      <.a
-        target="_blank"
-        rel="noopener"
-        href={"https://holesky.etherscan.io/address/#{@newBatchInfo.address}"}
-        class="break-all font-normal"
-      >
-        <%= @newBatchInfo.address %>
-      </.a>
-      <%!-- Batch data:
-      <.a
-        target="_blank"
-        rel="noopener"
-        href={"#{@newBatchInfo.new_batch.batchDataPointer}"}
-        class="break-all font-normal"
-      >
-        <%= @newBatchInfo.new_batch.batchDataPointer %>
-      </.a> --%>
-      Status: <.dynamic_badge class="w-fit" status={@batchWasResponded} />
+      Submission Timestamp:
+      <p class="break-all font-normal"><%= @current_batch.submission_timestamp |> Utils.parse_timestamp %></p>
+      Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
+      <%= if @current_batch.is_verified do %>
+        Response Block Number:
+        <.a
+          target="_blank"
+          rel="noopener"
+          href={"https://holesky.etherscan.io/block/#{@current_batch.response_block_number}"}
+          class="break-all font-normal"
+        >
+          <%= @current_batch.response_block_number %>
+        </.a>
+        Response Transaction Hash:
+        <.a
+          target="_blank"
+          rel="noopener"
+          href={"https://holesky.etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
+          class="break-all font-normal"
+        >
+          <%= @current_batch.response_transaction_hash %>
+        </.a>
+        Response Timestamp:
+        <p class="break-all font-normal"><%= @current_batch.response_timestamp |> Utils.parse_timestamp %></p>
+      <% end %>
     </.card>
   <% else %>
     <div class="flex flex-col space-y-6 justify-center grow relative text-center">

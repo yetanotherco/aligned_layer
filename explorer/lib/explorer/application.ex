@@ -15,18 +15,22 @@ defmodule Explorer.Application do
       Explorer.Repo,
       # Start the Finch HTTP client for getting data from batch_data_pointer
       {Finch, name: Explorer.Finch},
-      # Start the periodic task
-      {Explorer.Periodically, []},
       # Start a worker by calling: Explorer.Worker.start_link(arg)
       # {Explorer.Worker, arg},
       # Start to serve requests, typically the last entry
       ExplorerWeb.Endpoint
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
+    # Start the periodic task, with its own supervisor and mutex
     opts = [strategy: :one_for_one, name: Explorer.Supervisor]
     Supervisor.start_link(children, opts)
+
+    periodic_children = [
+      {Explorer.Periodically, []},
+      {Mutex, name: BatchMutex, meta: "Used to prevent concurrent downloads"}
+    ]
+    periodic_opts = [strategy: :one_for_all, name: Explorer.Periodically.Supervisor]
+    Supervisor.start_link(periodic_children, periodic_opts)
   end
 
   # Tell Phoenix to update the endpoint configuration
