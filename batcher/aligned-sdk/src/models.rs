@@ -1,11 +1,15 @@
 use anyhow::anyhow;
 use ethers::types::Address;
+use futures_util::stream::{SplitSink, SplitStream};
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+use std::sync::Arc;
 use tokio::net::TcpStream;
+use tokio::sync::Mutex;
+use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
@@ -132,11 +136,12 @@ impl BatchInclusionData {
 }
 
 pub struct SubmitArgs {
-    pub ws_stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    pub ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    pub ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     pub verification_data: VerificationData,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AlignedVerificationData {
     pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],

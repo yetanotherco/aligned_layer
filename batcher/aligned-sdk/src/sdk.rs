@@ -1,7 +1,7 @@
 use crate::errors;
 use crate::models::{
-    AlignedVerificationData, BatchInclusionData, SubmitArgs, VerificationCommitmentBatch,
-    VerificationData, VerificationDataCommitment,
+    AlignedVerificationData, BatchInclusionData, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 
 use std::sync::Arc;
@@ -18,37 +18,33 @@ use futures_util::{
     SinkExt, StreamExt, TryStreamExt,
 };
 
-pub async fn submit(submit_args: SubmitArgs) -> Result<(), errors::SubmitError> {
-    let (mut ws_write, ws_read) = submit_args.ws_stream.split();
-
+pub async fn submit(
+    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    verification_data: VerificationData,
+) -> Result<Option<Vec<VerificationDataCommitment>>, errors::SubmitError> {
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
     let mut sent_verification_data: Vec<VerificationData> = Vec::new();
 
-    let json_data = serde_json::to_string(&submit_args.verification_data)?;
+    let json_data = serde_json::to_string(&verification_data)?;
 
+    let mut ws_write = ws_write.lock().await;
     ws_write.send(Message::Text(json_data.to_string())).await?;
-    sent_verification_data.push(submit_args.verification_data.clone());
+    sent_verification_data.push(verification_data.clone());
     info!("Message sent...");
 
     // This vector is reversed so that when responses are received, the commitments corresponding
     // to that response can simply be popped of this vector.
-    let mut verification_data_commitments_rev: Vec<VerificationDataCommitment> =
-        sent_verification_data
-            .into_iter()
-            .map(|vd| vd.into())
-            .rev()
-            .collect();
+    let verification_data_commitments_rev: Vec<VerificationDataCommitment> = sent_verification_data
+        .into_iter()
+        .map(|vd| vd.into())
+        .rev()
+        .collect();
 
-    let ws_write = Arc::new(Mutex::new(ws_write));
-    receive(ws_read, ws_write, &mut verification_data_commitments_rev)
-        .await
-        .map_err(|e| anyhow::anyhow!("Submit error {}", e))?;
-
-    Ok(())
+    Ok(Some(verification_data_commitments_rev))
 }
 
-async fn receive(
+pub async fn receive(
     ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
@@ -134,12 +130,13 @@ mod test {
     use tokio_tungstenite::connect_async;
     #[tokio::test]
     async fn submit_proof_is_correct() -> Result<(), SubmitError> {
-        let proof = read_file(PathBuf::from(
-            "/Users/nicolasrampoldi/.aligned/test_files/sp1_fibonacci.proof",
-        ))?;
-        let elf = Some(read_file(PathBuf::from(
-            "/Users/nicolasrampoldi/.aligned/test_files/sp1_fibonacci-elf",
-        ))?);
+        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof"))?;
+        let elf = Some(read_file(
+            base_dir.join("test_files/sp1/sp1_fibonacci-elf"),
+        )?);
+
         let (ws_stream, _) = connect_async("ws://localhost:8080")
             .await
             .map_err(|e| SubmitError::ConnectionError(e))?;
@@ -156,12 +153,25 @@ mod test {
             proof_generator_addr: proof_generator_addr,
         };
 
-        let submit_args = SubmitArgs {
-            ws_stream,
-            verification_data,
-        };
+        let (ws_write, ws_read) = ws_stream.split();
 
-        submit(submit_args).await?;
+        let ws_write_mutex = Arc::new(Mutex::new(ws_write));
+
+        let mut verification_data_commitments_rev =
+            submit(ws_write_mutex.clone(), verification_data)
+                .await?
+                .unwrap();
+
+        let aligned_verification_data = receive(
+            ws_read,
+            ws_write_mutex,
+            &mut verification_data_commitments_rev,
+        )
+        .await?
+        .unwrap();
+
+        println!("{:?}", aligned_verification_data);
+
         assert!(true);
         Ok(())
     }
