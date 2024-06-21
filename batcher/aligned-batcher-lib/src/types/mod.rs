@@ -5,6 +5,7 @@ use lambdaworks_crypto::merkle_tree::{
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+use crate::utils::hash_with_hasher;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 pub enum ProvingSystemId {
@@ -42,14 +43,13 @@ impl From<VerificationData> for VerificationDataCommitment {
         let mut hasher = Keccak256::new();
 
         // compute proof commitment
-        hasher.update(verification_data.proof.as_slice());
-        let proof_commitment = hasher.finalize_reset().into();
+        // hasher.update(verification_data.proof.as_slice());
+        let proof_commitment = hash_with_hasher(verification_data.proof.as_slice(), &mut hasher);
 
         // compute public input commitment
         let mut pub_input_commitment = [0u8; 32];
         if let Some(pub_input) = &verification_data.pub_input {
-            hasher.update(pub_input);
-            pub_input_commitment = hasher.finalize_reset().into();
+            pub_input_commitment = hash_with_hasher(pub_input, &mut hasher)
         }
 
         // compute proving system auxiliary data commitment
@@ -59,11 +59,9 @@ impl From<VerificationData> for VerificationDataCommitment {
         // of Groth16 and PLONK, stands for the verification key.
         if let Some(vm_program_code) = &verification_data.vm_program_code {
             debug_assert_eq!(verification_data.proving_system, ProvingSystemId::SP1);
-            hasher.update(vm_program_code);
-            proving_system_aux_data_commitment = hasher.finalize_reset().into();
+            proving_system_aux_data_commitment = hash_with_hasher(vm_program_code, &mut hasher)
         } else if let Some(verification_key) = &verification_data.verification_key {
-            hasher.update(verification_key);
-            proving_system_aux_data_commitment = hasher.finalize_reset().into();
+            proving_system_aux_data_commitment = hash_with_hasher(verification_key, &mut hasher)
         }
 
         // serialize proof generator address to bytes

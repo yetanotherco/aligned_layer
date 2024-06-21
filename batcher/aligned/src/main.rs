@@ -33,6 +33,7 @@ use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
+use crate::AlignedCommands::GetVerificationKeyCommitment;
 
 use clap::{Parser, ValueEnum};
 
@@ -49,6 +50,10 @@ pub enum AlignedCommands {
     Submit(SubmitArgs),
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
+
+    // GetVericiationKey, command name is get-vk-commitment
+    #[clap(about = "Create verification key for proving system", name = "get-vk-commitment")]
+    GetVerificationKeyCommitment(GetVerificationKeyCommitmentArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -107,6 +112,15 @@ pub struct VerifyProofOnchainArgs {
         default_value = "devnet"
     )]
     chain: Chain,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetVerificationKeyCommitmentArgs {
+    #[arg(name = "File name", long = "input")]
+    input_file: PathBuf,
+    #[arg(name = "Output file", long = "output")]
+    output_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -170,7 +184,6 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             )
             .await?;
         }
-
         VerifyProofOnchain(verify_inclusion_args) => {
             let contract_address = match verify_inclusion_args.chain {
                 Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
@@ -220,6 +233,19 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 }
 
                 Err(err) => error!("Error while reading batch inclusion verification: {}", err),
+            }
+        }
+        GetVerificationKeyCommitment(args) => {
+            let content = read_file(args.input_file)?;
+            let hash = aligned_batcher_lib::utils::hash(&content);
+
+            info!("Commitment: {}", hex::encode(hash));
+            if let Some(output_file) = args.output_file {
+                let mut file = File::create(output_file.clone())
+                    .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))?;
+
+                file.write_all(hex::encode(hash).as_bytes())
+                    .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))?;
             }
         }
     }
