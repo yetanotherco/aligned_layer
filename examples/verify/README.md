@@ -48,11 +48,11 @@ This will output the encoded call. You can then use this encoded call to check y
 
 ```bash
 curl -H "Content-Type: application/json" \
-    --data '{"jsonrpc":"2.0","method":"eth_call","params":[{"to": "<CONTRACT_ADDRESS>", "data": "<CALL_DATA>"}]}]' \
+    --data '{"jsonrpc":"2.0","method":"eth_call","params":[{"to": "<CONTRACT_ADDRESS>", "data": "<CALL_DATA>"}]}' \
     -X POST <RPC_URL>
 ```
 
-Replace `<CONTRACT_ADDRESS>` with the address of the contract you deployed earlier, `<CALL_DATA>` with the encoded call, 
+Replace `<CONTRACT_ADDRESS>` with the address of the contract you deployed earlier (or `0x58F280BeBE9B34c9939C3C39e0890C81f163B623` for Aligned ServiceManager in Holesky), `<CALL_DATA>` with the encoded call, 
 and `<RPC_URL>` with the RPC URL of the blockchain you are using.
 
 The output data should be something like this:

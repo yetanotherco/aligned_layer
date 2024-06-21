@@ -1,6 +1,6 @@
 from web3 import Web3
 from argparse import ArgumentParser
-from encode_call import encode_call
+from encode_verification_data import encode_call
 
 
 def main():
