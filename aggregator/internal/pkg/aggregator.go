@@ -207,11 +207,25 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
-	agg.logger.Info("Threshold reached. Sending aggregated response onchain.",
+	agg.logger.Info("Threshold reached. Waiting for block to send aggregated response onchain.",
 		"taskIndex", blsAggServiceResp.TaskIndex,
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
-	var err error
+
+	// Subscribe to new head
+	c := make(chan *gethtypes.Header)
+	sub, err := agg.AggregatorConfig.BaseConfig.EthWsClient.SubscribeNewHead(context.Background(), c)
+	if err != nil {
+		agg.logger.Error("Error subscribing to new head", "err", err)
+		return
+	}
+
+	// Read channel for the new block
+	head := <-c
+	sub.Unsubscribe()
+
+	agg.logger.Info("New block. Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
+		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]), "blockNumber", head.Number)
 
 	for i := 0; i < MaxSentTxRetries; i++ {
 		_, err = agg.sendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
