@@ -173,9 +173,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 LocalWallet::new(&mut thread_rng())
             };
 
-            let mut msg = ClientMessage::new(verification_data, wallet).await;
-            let fake_signature = vec![2u8; 65];
-            msg.signature = Signature::try_from(fake_signature.as_slice()).unwrap();
+            let msg = ClientMessage::new(verification_data, wallet).await;
             let msg_str = serde_json::to_string(&msg).unwrap();
 
             for _ in 0..repetitions {
