@@ -3,7 +3,6 @@ use std::io;
 use std::path::PathBuf;
 
 pub enum SubmitError {
-    // Error variants here
     ConnectionError(tokio_tungstenite::tungstenite::Error),
     SerdeError(serde_json::Error),
     MissingParameter(String),
@@ -22,12 +21,6 @@ impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
 impl From<serde_json::Error> for SubmitError {
     fn from(e: serde_json::Error) -> Self {
         SubmitError::SerdeError(e)
-    }
-}
-
-impl From<anyhow::Error> for SubmitError {
-    fn from(e: anyhow::Error) -> Self {
-        SubmitError::GenericError(e.to_string())
     }
 }
 
@@ -51,6 +44,20 @@ impl fmt::Debug for SubmitError {
             SubmitError::SerdeError(e) => write!(f, "Serialization error: {}", e),
             SubmitError::EthError(e) => write!(f, "Ethereum error: {}", e),
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
+        }
+    }
+}
+
+pub enum VerificationError {
+    ParsingError(String),
+    EthError(String),
+}
+
+impl fmt::Debug for VerificationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            VerificationError::ParsingError(e) => write!(f, "Parsing error: {}", e),
+            VerificationError::EthError(e) => write!(f, "Ethereum error: {}", e),
         }
     }
 }

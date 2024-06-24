@@ -25,6 +25,11 @@ pub async fn submit(
     ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: Vec<VerificationData>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
+    if verification_data.is_empty() {
+        return Err(errors::SubmitError::MissingParameter(
+            "verification_data".to_string(),
+        ));
+    }
     let ws_write_clone = ws_write.clone();
     let mut ws_write = ws_write.lock().await;
 
@@ -72,7 +77,7 @@ pub async fn verify_proof_onchain(
     aligned_verification_data: AlignedVerificationData,
     chain: Chain,
     eth_rpc_provider: Provider<Http>,
-) -> Result<bool, errors::SubmitError> {
+) -> Result<bool, errors::VerificationError> {
     let contract_address = match chain {
         Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
         Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
@@ -88,9 +93,7 @@ pub async fn verify_proof_onchain(
 
     let verification_data_comm = aligned_verification_data.verification_data_commitment;
 
-    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address)
-        .await
-        .map_err(|e| errors::SubmitError::EthError(e.to_string()))?;
+    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
     let call = service_manager.verify_batch_inclusion(
         verification_data_comm.proof_commitment,
@@ -104,7 +107,7 @@ pub async fn verify_proof_onchain(
 
     let result = call
         .await
-        .map_err(|e| errors::SubmitError::EthError(e.to_string()))?;
+        .map_err(|e| errors::VerificationError::EthError(e.to_string()))?;
 
     Ok(result)
 }
@@ -197,6 +200,7 @@ mod test {
     use crate::errors::SubmitError;
     use crate::models::ProvingSystemId;
     use ethers::types::Address;
+    use ethers::types::H160;
 
     use std::path::PathBuf;
     use std::str::FromStr;
@@ -204,59 +208,109 @@ mod test {
     use tokio_tungstenite::connect_async;
 
     #[tokio::test]
-    async fn submit_two_proofs_is_correct() -> Result<(), SubmitError> {
+    async fn test_submit_success() {
         let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-        let proof_1 = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof"))?;
-        let elf_1 = Some(read_file(
-            base_dir.join("test_files/sp1/sp1_fibonacci-elf"),
-        )?);
+        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
+        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci-elf")).unwrap());
 
         let (ws_stream, _) = connect_async("ws://localhost:8080")
             .await
-            .map_err(|e| SubmitError::ConnectionError(e))?;
+            .map_err(|e| SubmitError::ConnectionError(e))
+            .unwrap();
 
-        let proof_generator_addr_1 =
+        let proof_generator_addr =
             Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
 
-        let verification_data_1 = VerificationData {
+        let verification_data = VerificationData {
             proving_system: ProvingSystemId::SP1,
-            proof: proof_1,
+            proof,
             pub_input: None,
             verification_key: None,
-            vm_program_code: elf_1,
-            proof_generator_addr: proof_generator_addr_1,
+            vm_program_code: elf,
+            proof_generator_addr,
         };
 
-        let proof_2 = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof"))?;
-
-        let elf_2 = Some(read_file(
-            base_dir.join("test_files/sp1/sp1_fibonacci-elf"),
-        )?);
-
-        let proof_generator_addr_2 =
-            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76650").unwrap();
-
-        let verification_data_2 = VerificationData {
-            proving_system: ProvingSystemId::SP1,
-            proof: proof_2,
-            pub_input: None,
-            verification_key: None,
-            vm_program_code: elf_2,
-            proof_generator_addr: proof_generator_addr_2,
-        };
-
-        let verification_data = vec![verification_data_1, verification_data_2];
+        let verification_data = vec![verification_data];
 
         let (ws_write, ws_read) = ws_stream.split();
 
         let ws_write_mutex = Arc::new(Mutex::new(ws_write));
 
         let aligned_verification_data = submit(ws_write_mutex.clone(), ws_read, verification_data)
-            .await?
+            .await
+            .unwrap()
             .unwrap();
 
-        println!("{:?}", aligned_verification_data);
+        ws_write_mutex.lock().await.close().await.unwrap();
+
+        assert_eq!(aligned_verification_data.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_submit_failure() {
+        let (ws_stream, _) = connect_async("ws://localhost:8080")
+            .await
+            .map_err(|e| SubmitError::ConnectionError(e))
+            .unwrap();
+
+        //Create an erroneous verification data vector
+        let contract_addr = H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap();
+
+        let verification_data = vec![VerificationData {
+            proving_system: ProvingSystemId::SP1,
+            proof: vec![],
+            pub_input: None,
+            verification_key: None,
+            vm_program_code: None,
+            proof_generator_addr: contract_addr,
+        }];
+
+        let (ws_write, ws_read) = ws_stream.split();
+
+        let ws_write_mutex = Arc::new(Mutex::new(ws_write));
+
+        let result = submit(ws_write_mutex.clone(), ws_read, verification_data).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_verify_proof_onchain_success() {
+        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+        let proof = read_file(base_dir.join("test_files/groth16_bn254/plonk.proof")).unwrap();
+        let pub_input =
+            read_file(base_dir.join("test_files/groth16_bn254/plonk_pub_input.pub")).ok();
+        let vk = read_file(base_dir.join("test_files/groth16_bn254/plonk.vk")).ok();
+
+        let proof_generator_addr =
+            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
+
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Groth16Bn254,
+            proof,
+            pub_input: pub_input,
+            verification_key: vk,
+            vm_program_code: None,
+            proof_generator_addr,
+        };
+
+        let verification_data = vec![verification_data];
+
+        let (ws_stream, _) = connect_async("ws://localhost:8080")
+            .await
+            .map_err(|e| SubmitError::ConnectionError(e))
+            .unwrap();
+
+        let (ws_write, ws_read) = ws_stream.split();
+
+        let ws_write_mutex = Arc::new(Mutex::new(ws_write));
+
+        let aligned_verification_data = submit(ws_write_mutex.clone(), ws_read, verification_data)
+            .await
+            .unwrap()
+            .unwrap();
 
         let eth_rpc_provider = Provider::<Http>::try_from("http://localhost:8545").unwrap();
 
@@ -265,11 +319,63 @@ mod test {
             Chain::Devnet,
             eth_rpc_provider.clone(),
         )
-        .await?;
+        .await
+        .unwrap();
 
         assert!(result);
+    }
 
-        Ok(())
+    #[tokio::test]
+    async fn test_verify_proof_onchain_failure() {
+        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
+        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci-elf")).unwrap());
+
+        let proof_generator_addr =
+            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
+
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::SP1,
+            proof,
+            pub_input: None,
+            verification_key: None,
+            vm_program_code: elf,
+            proof_generator_addr,
+        };
+
+        let verification_data = vec![verification_data];
+
+        let (ws_stream, _) = connect_async("ws://localhost:8080")
+            .await
+            .map_err(|e| SubmitError::ConnectionError(e))
+            .unwrap();
+
+        let (ws_write, ws_read) = ws_stream.split();
+
+        let ws_write_mutex = Arc::new(Mutex::new(ws_write));
+
+        let aligned_verification_data = submit(ws_write_mutex.clone(), ws_read, verification_data)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let eth_rpc_provider = Provider::<Http>::try_from("http://localhost:8545").unwrap();
+
+        let mut aligned_verification_data_modified = aligned_verification_data[0].clone();
+
+        // Modify the index in batch to make the verification fail
+        aligned_verification_data_modified.index_in_batch = 99;
+
+        let result = verify_proof_onchain(
+            aligned_verification_data_modified,
+            Chain::Devnet,
+            eth_rpc_provider.clone(),
+        )
+        .await
+        .unwrap();
+
+        assert!(!result);
     }
 
     fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
