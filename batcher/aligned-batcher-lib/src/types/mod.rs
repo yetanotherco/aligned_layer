@@ -153,9 +153,11 @@ pub struct ClientMessage {
 }
 
 impl ClientMessage {
+    /// Client message is a wrap around verification data and its signature.
+    /// The signature is obtained by calculating the commitments and then hashing them.
     pub async fn new(verification_data: VerificationData, wallet: Wallet<SigningKey>) -> Self {
-        let verification_data_str = serde_json::to_string(&verification_data).unwrap();
-        let signature = wallet.sign_message(&verification_data_str).await.unwrap();
+        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.clone().into());
+        let signature = wallet.sign_message(&hashed_leaf).await.unwrap();
 
         ClientMessage {
             verification_data,
@@ -165,10 +167,9 @@ impl ClientMessage {
 
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
         let verification_data_str = serde_json::to_string(&self.verification_data).unwrap();
-        let recovered = self
-            .signature
-            .recover(verification_data_str.clone())
-            .unwrap();
+        let hashed_leaf =
+            VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
+        let recovered = self.signature.recover(hashed_leaf).unwrap();
         self.signature.verify(verification_data_str, recovered)?;
         Ok(recovered)
     }

@@ -1,12 +1,14 @@
 use aligned_batcher_lib::types::{
-    BatchInclusionData, VerificationData, VerificationDataCommitment,
+    BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 use ethers::{
     core::k256::ecdsa::SigningKey,
     signers::{Signer, Wallet},
     types::Signature,
 };
-use lambdaworks_crypto::merkle_tree::proof::Proof;
+use lambdaworks_crypto::merkle_tree::{
+    merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -44,6 +46,7 @@ pub struct ClientMessage {
 impl ClientMessage {
     pub async fn new(verification_data: VerificationData, wallet: Wallet<SigningKey>) -> Self {
         let verification_data_str = serde_json::to_string(&verification_data).unwrap();
+        let hashed_leaf = VerificationCommitmentBatch::hash_one(verification_data.into());
         let signature = wallet.sign_message(&verification_data_str).await.unwrap();
 
         ClientMessage {
