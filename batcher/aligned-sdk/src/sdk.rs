@@ -22,7 +22,7 @@ pub async fn submit(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: Vec<VerificationData>,
-) -> Result<Option<Vec<VerificationDataCommitment>>, errors::SubmitError> {
+) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let ws_write_clone = ws_write.clone();
     let mut ws_write = ws_write.lock().await;
 
@@ -50,7 +50,7 @@ pub async fn submit(
 
     let num_responses = Arc::new(Mutex::new(0));
 
-    receive(
+    let aligned_verification_data = receive(
         ws_read,
         ws_write_clone,
         verification_data.len(),
@@ -59,7 +59,7 @@ pub async fn submit(
     )
     .await?;
 
-    Ok(Some(verification_data_commitments_rev))
+    Ok(aligned_verification_data)
 }
 
 async fn receive(
@@ -68,10 +68,12 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<Option<AlignedVerificationData>, anyhow::Error> {
+) -> Result<Option<Vec<AlignedVerificationData>>, anyhow::Error> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
         ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
+
+    let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
 
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
@@ -102,10 +104,10 @@ async fn receive(
                         verification_data_commitments_rev.pop().unwrap_or_default();
 
                     if verify_response(&verification_data_commitment, &batch_inclusion_data) {
-                        return Ok(Some(AlignedVerificationData::new(
+                        aligned_verification_data.push(AlignedVerificationData::new(
                             &verification_data_commitment,
                             &batch_inclusion_data,
-                        )));
+                        ));
                     }
                 }
                 Err(e) => {
@@ -115,7 +117,7 @@ async fn receive(
             if *num_responses_lock == total_messages {
                 info!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
-                return Ok(None);
+                return Ok(Some(aligned_verification_data));
             }
         }
     }
