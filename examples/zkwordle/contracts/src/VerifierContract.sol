@@ -11,6 +11,9 @@ contract VerifierContract is ERC721URIStorage {
 
     bytes32 public elfCommitment = 0x4b9d9da7c31481ab20cc689580306796871409002bb2c21b56cc4a56ca0cb01b;
 
+    // map to check if proof has already been submitted
+    mapping(bytes32 => bool) public mintedProofs;
+
     constructor(address _alignedServiceManager) ERC721("ZK Wordle Solved", "ZKW") {
         alignedServiceManager = _alignedServiceManager;
     }
@@ -25,6 +28,10 @@ contract VerifierContract is ERC721URIStorage {
         uint256 verificationDataBatchIndex
     ) external returns (uint256) {
         require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
+        require(address(proofGeneratorAddr) == msg.sender, "proofGeneratorAddr does not match");
+
+        bytes32 fullHash = keccak256(abi.encodePacked(pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex));
+        require(!mintedProofs[fullHash], "proof already minted");
 
         (bool callWasSuccessfull, bytes memory proofIsIncluded) = alignedServiceManager.staticcall(
             abi.encodeWithSignature(
@@ -44,8 +51,10 @@ contract VerifierContract is ERC721URIStorage {
         bool proofIsIncludedBool = abi.decode(proofIsIncluded, (bool));
         require(proofIsIncludedBool, "proof not included in batch");
 
+        mintedProofs[fullHash] = true;
+
         uint256 tokenId = _nextTokenId++;
-        _mint(address(proofGeneratorAddr), tokenId);
+        _mint(msg.sender, tokenId);
         _setTokenURI(tokenId, "https://zkwordle.com/proofs/1");
 
         return tokenId;
