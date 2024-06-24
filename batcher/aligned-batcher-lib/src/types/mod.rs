@@ -127,7 +127,7 @@ impl BatchInclusionData {
             .unwrap();
 
         BatchInclusionData {
-            batch_merkle_root: batch_merkle_tree.root.clone(),
+            batch_merkle_root: batch_merkle_tree.root,
             batch_inclusion_proof,
             index_in_batch: verification_data_batch_index,
         }
@@ -157,7 +157,7 @@ impl ClientMessage {
     /// The signature is obtained by calculating the commitments and then hashing them.
     pub async fn new(verification_data: VerificationData, wallet: Wallet<SigningKey>) -> Self {
         let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.clone().into());
-        let signature = wallet.sign_message(&hashed_leaf).await.unwrap();
+        let signature = wallet.sign_message(hashed_leaf).await.unwrap();
 
         ClientMessage {
             verification_data,

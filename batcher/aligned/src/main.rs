@@ -357,7 +357,7 @@ fn read_file_option(
 ) -> Result<Vec<u8>, BatcherClientError> {
     let file_name =
         file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
-    read_file(&file_name)
+    read_file(file_name)
 }
 
 fn verify_response(
@@ -370,7 +370,7 @@ fn verify_response(
     if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
         &batch_inclusion_data.batch_merkle_root,
         batch_inclusion_data.index_in_batch,
-        &verification_data_commitment,
+        verification_data_commitment,
     ) {
         info!("Done. Data sent matches batcher answer");
         return true;
@@ -392,7 +392,7 @@ fn save_response(
         + ".json";
 
     let batch_inclusion_data_path =
-        batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
+        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
     let aligned_verification_data =
         AlignedVerificationData::new(verification_data_commitment, batch_inclusion_data);
 
