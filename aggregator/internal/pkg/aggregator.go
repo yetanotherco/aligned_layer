@@ -53,6 +53,9 @@ type Aggregator struct {
 	// and can start from zero
 	batchesIdxByRoot map[[32]byte]uint32
 
+	// Stores the taskCreatedBlock for each batch bt batch index
+	batchCreatedBlockByIdx map[uint32]uint64
+
 	// This task index is to communicate with the local BLS
 	// Service.
 	// Note: In case of a reboot it can start from 0 again
@@ -90,6 +93,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	batchesRootByIdx := make(map[uint32][32]byte)
 	batchesIdxByRoot := make(map[[32]byte]uint32)
+	batchCreatedBlockByIdx := make(map[uint32]uint64)
 
 	chainioConfig := sdkclients.BuildAllConfig{
 		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
@@ -126,11 +130,12 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsWriter:        avsWriter,
 		NewBatchChan:     newBatchChan,
 
-		batchesRootByIdx: batchesRootByIdx,
-		batchesIdxByRoot: batchesIdxByRoot,
-		nextBatchIndex:   nextBatchIndex,
-		taskMutex:        &sync.Mutex{},
-		walletMutex:      &sync.Mutex{},
+		batchesRootByIdx:       batchesRootByIdx,
+		batchesIdxByRoot:       batchesIdxByRoot,
+		batchCreatedBlockByIdx: batchCreatedBlockByIdx,
+		nextBatchIndex:         nextBatchIndex,
+		taskMutex:              &sync.Mutex{},
+		walletMutex:            &sync.Mutex{},
 
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
@@ -180,7 +185,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		agg.logger.Warn("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err)
 		return
 	}
-
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
 	for _, nonSignerPubkey := range blsAggServiceResp.NonSignersPubkeysG1 {
 		nonSignerPubkeys = append(nonSignerPubkeys, utils.ConvertToBN254G1Point(nonSignerPubkey))
@@ -204,14 +208,47 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
-	agg.logger.Info("Threshold reached. Sending aggregated response onchain.",
-		"taskIndex", blsAggServiceResp.TaskIndex,
+	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
-	var err error
+
+	currentBlock, err := agg.AggregatorConfig.BaseConfig.EthRpcClient.BlockNumber(context.Background())
+	if err != nil {
+		agg.logger.Error("Error getting current block number", "err", err)
+		return
+	}
+
+	if currentBlock <= taskCreatedBlock {
+		agg.logger.Info("Waiting for new block to send aggregated response onchain",
+			"taskIndex", blsAggServiceResp.TaskIndex,
+			"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
+			"taskCreatedBlock", taskCreatedBlock,
+			"currentBlock", currentBlock)
+
+		// Subscribe to new head
+		c := make(chan *gethtypes.Header)
+		sub, err := agg.AggregatorConfig.BaseConfig.EthWsClient.SubscribeNewHead(context.Background(), c)
+		if err != nil {
+			agg.logger.Error("Error subscribing to new head", "err", err)
+			return
+		}
+
+		// Read channel for the new block
+		head := <-c
+		sub.Unsubscribe()
+
+		agg.logger.Info("New block",
+			"taskIndex", blsAggServiceResp.TaskIndex,
+			"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
+			"blockNumber", head.Number.Uint64())
+	}
+
+	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
+		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
 		_, err = agg.sendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
@@ -288,6 +325,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 	}
 
 	agg.batchesIdxByRoot[batchMerkleRoot] = batchIndex
+	agg.batchCreatedBlockByIdx[batchIndex] = uint64(taskCreatedBlock)
 	agg.batchesRootByIdx[batchIndex] = batchMerkleRoot
 	agg.nextBatchIndex += 1
 
