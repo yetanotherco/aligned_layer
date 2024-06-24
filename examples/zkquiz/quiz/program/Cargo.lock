@@ -446,6 +446,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "quiz-program"
+version = "0.1.0"
+dependencies = [
+ "sp1-zkvm",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -715,13 +722,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f593a95398737aeed53e489c785df13f3618e41dbcd6718c6addbf1395aa6876"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "wordle-program"
-version = "0.1.0"
-dependencies = [
- "sp1-zkvm",
 ]
 
 [[package]]

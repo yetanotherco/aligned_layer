@@ -3502,6 +3502,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "quiz-script"
+version = "0.1.0"
+dependencies = [
+ "sp1-helper",
+ "sp1-sdk",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5681,14 +5689,6 @@ checksum = "a277a57398d4bfa075df44f501a17cfdf8542d224f0d36095a2adc7aee4ef0a5"
 dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "wordle-script"
-version = "0.1.0"
-dependencies = [
- "sp1-helper",
- "sp1-sdk",
 ]
 
 [[package]]

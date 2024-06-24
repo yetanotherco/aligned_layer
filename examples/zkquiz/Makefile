@@ -2,15 +2,15 @@ deploy_verifier:
 	@./contracts/deploy.sh
 
 generate_proof:
-	@cd wordle/script && cargo run -r
+	@cd quiz/script && cargo run -r
 
 PROOF_GEN_ADDR=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
 submit_proof:
 	@aligned submit \
     --proving_system SP1 \
-    --proof wordle/script/proof-with-io.json \
-    --vm_program wordle/program/elf/riscv32im-succinct-zkvm-elf \
+    --proof quiz/script/proof-with-io.json \
+    --vm_program quiz/program/elf/riscv32im-succinct-zkvm-elf \
     --proof_generator_addr $(PROOF_GEN_ADDR) \
     --conn wss://batcher.alignedlayer.com
 

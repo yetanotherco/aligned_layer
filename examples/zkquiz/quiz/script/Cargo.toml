@@ -1,7 +1,7 @@
 [workspace]
 [package]
 version = "0.1.0"
-name = "wordle-script"
+name = "quiz-script"
 edition = "2021"
 
 [dependencies]
