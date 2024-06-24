@@ -4,7 +4,7 @@ use crate::models::{
     AlignedVerificationData, BatchInclusionData, Chain, VerificationCommitmentBatch,
     VerificationData, VerificationDataCommitment,
 };
-
+use sha3::{Digest, Keccak256};
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::tungstenite::Message;
@@ -218,6 +218,12 @@ pub async fn verify_proof_onchain(
         .map_err(|e| errors::VerificationError::EthError(e.to_string()))?;
 
     Ok(result)
+}
+
+pub fn get_verification_key_commitment(content: &[u8]) -> [u8; 32] {
+    let mut hasher = Keccak256::new();
+    hasher.update(content);
+    hasher.finalize().into()
 }
 
 #[cfg(test)]
