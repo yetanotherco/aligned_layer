@@ -9,12 +9,17 @@ fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
 
+    let question = "What's your name?";
+    println!("{}", question);
+    let name = read_answer();
+    stdin.write(&name);
+
     let question1 = "What is the capital of France?";
     let answers1 = ["London", "Berlin", "Paris"];
     ask_question(question1, &answers1, &mut stdin);
 
     let question2 = "What is the first letter of the alphabet?";
-    let answers2 = ["A", "B", "C"];
+    let answers2 = ["A", "C", "B"];
     ask_question(question2, &answers2, &mut stdin);
 
     let question3 = "What is the second planet from the sun?";
@@ -57,10 +62,14 @@ fn ask_question(question: &str, answers: &[&str], sp1_stdin: &mut SP1Stdin) {
         println!("{}. {}", (b'a' + i as u8) as char, answer);
     }
 
-    let mut choice = String::new();
-    io::stdin().read_line(&mut choice).expect("Failed to read from stdin");
-    let choice = choice.chars().next()
+    let choice = read_answer().chars().next()
         .expect("failed to get first char");
     sp1_stdin.write(&choice);
+}
+
+fn read_answer() -> String {
+    let mut answer = String::new();
+    io::stdin().read_line(&mut answer).expect("Failed to read from stdin");
+    answer.trim().to_string()
 }
 

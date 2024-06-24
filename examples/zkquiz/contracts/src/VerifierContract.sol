@@ -8,7 +8,7 @@ contract VerifierContract is ERC721 {
 
     address public alignedServiceManager;
 
-    bytes32 public elfCommitment = 0x875acd4ee99557f7a29004fc8b08ca6eb0cee2cef8f151061c71fe1d6418fe50;
+    bytes32 public elfCommitment = 0x47314d4388b1201d758a774d38884bf52377712c7f63801b10d98bc3835a12dc;
 
     // map to check if proof has already been submitted
     mapping(bytes32 => bool) public mintedProofs;
