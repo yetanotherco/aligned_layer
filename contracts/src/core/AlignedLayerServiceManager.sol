@@ -18,7 +18,8 @@ import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerSto
 contract AlignedLayerServiceManager is
     ServiceManagerBase,
     BLSSignatureChecker,
-    AlignedLayerServiceManagerStorage
+    AlignedLayerServiceManagerStorage,
+    Pausable
 {
     uint256 internal constant THRESHOLD_DENOMINATOR = 100;
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
@@ -49,14 +50,25 @@ contract AlignedLayerServiceManager is
         _disableInitializers();
     }
 
-    function initialize(address _initialOwner) public initializer {
+    /**
+    * @notice Initializes the contract with the initial owner.
+    * @param _initialOwner The initial owner of the contract.
+    * @param _pauserRegistry a registry of addresses that can pause the contract
+    * @param _initialPausedStatus pause status after calling initialize
+    */
+    function initialize(
+        address _initialOwner,
+        IPauserRegistry _pauserRegistry,
+        uint256 _initialPausedStatus
+    ) public initializer {
         _transferOwnership(_initialOwner);
+        _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
-    ) external payable {
+    ) external payable whenNotPaused {
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock == 0,
             "Batch was already verified"
@@ -76,7 +88,7 @@ contract AlignedLayerServiceManager is
         // Root is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
-    ) external {
+    ) external whenNotPaused {
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
         // Note: This is a hacky solidity way to see that the element exists
