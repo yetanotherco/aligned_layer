@@ -20,6 +20,21 @@ use futures_util::{
     SinkExt, StreamExt, TryStreamExt,
 };
 
+/// Submits the proofs to the batcher to be verified and returns a vector of Aligned verification data.
+/// # Arguments
+/// * `ws_write` - A mutex-protected split sink to write messages to the websocket.
+/// * `ws_read` - A split stream to read messages from the websocket.
+/// * `verification_data` - A vector of verification data to be submitted to the batcher.
+/// # Returns
+/// * A vector of Aligned verification data.
+/// # Errors
+/// * If the verification data vector is empty.
+/// * If there is an error serializing the verification data.
+/// * If there is an error sending the message to the websocket.
+/// * If there is an error receiving the response from the websocket.
+/// * If there is an error closing the websocket.
+/// * If there is an error deserializing the response from the websocket.
+/// * If the connection was closed before receiving all messages.
 pub async fn submit(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
@@ -71,45 +86,6 @@ pub async fn submit(
     .await?;
 
     Ok(aligned_verification_data)
-}
-
-pub async fn verify_proof_onchain(
-    aligned_verification_data: AlignedVerificationData,
-    chain: Chain,
-    eth_rpc_provider: Provider<Http>,
-) -> Result<bool, errors::VerificationError> {
-    let contract_address = match chain {
-        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
-    };
-
-    // All the elements from the merkle proof have to be concatenated
-    let merkle_proof: Vec<u8> = aligned_verification_data
-        .batch_inclusion_proof
-        .merkle_path
-        .into_iter()
-        .flatten()
-        .collect();
-
-    let verification_data_comm = aligned_verification_data.verification_data_commitment;
-
-    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
-
-    let call = service_manager.verify_batch_inclusion(
-        verification_data_comm.proof_commitment,
-        verification_data_comm.pub_input_commitment,
-        verification_data_comm.proving_system_aux_data_commitment,
-        verification_data_comm.proof_generator_addr,
-        aligned_verification_data.batch_merkle_root,
-        merkle_proof.into(),
-        aligned_verification_data.index_in_batch.into(),
-    );
-
-    let result = call
-        .await
-        .map_err(|e| errors::VerificationError::EthError(e.to_string()))?;
-
-    Ok(result)
 }
 
 async fn receive(
@@ -192,6 +168,56 @@ fn verify_response(
 
     error!("Verification data commitments and batcher response with merkle root {} and index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
     false
+}
+
+/// Checks if the proof has been verified with Aligned and is included in the batch.
+/// # Arguments
+/// * `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
+/// * `chain` - The chain on which the verification will be done.
+/// * `eth_rpc_provider` - The Ethereum RPC provider.
+/// # Returns
+/// * A boolean indicating whether the proof was verified on-chain and is included in the batch.
+/// # Errors
+/// * If there is an error creating the service manager.
+/// * If there is an error calling the service manager.
+/// * If there is an error verifying the proof on-chain.
+pub async fn verify_proof_onchain(
+    aligned_verification_data: AlignedVerificationData,
+    chain: Chain,
+    eth_rpc_provider: Provider<Http>,
+) -> Result<bool, errors::VerificationError> {
+    let contract_address = match chain {
+        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+    };
+
+    // All the elements from the merkle proof have to be concatenated
+    let merkle_proof: Vec<u8> = aligned_verification_data
+        .batch_inclusion_proof
+        .merkle_path
+        .into_iter()
+        .flatten()
+        .collect();
+
+    let verification_data_comm = aligned_verification_data.verification_data_commitment;
+
+    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
+
+    let call = service_manager.verify_batch_inclusion(
+        verification_data_comm.proof_commitment,
+        verification_data_comm.pub_input_commitment,
+        verification_data_comm.proving_system_aux_data_commitment,
+        verification_data_comm.proof_generator_addr,
+        aligned_verification_data.batch_merkle_root,
+        merkle_proof.into(),
+        aligned_verification_data.index_in_batch.into(),
+    );
+
+    let result = call
+        .await
+        .map_err(|e| errors::VerificationError::EthError(e.to_string()))?;
+
+    Ok(result)
 }
 
 #[cfg(test)]
