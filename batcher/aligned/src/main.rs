@@ -32,9 +32,9 @@ use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
+use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
-use crate::AlignedCommands::GetVerificationKeyCommitment;
 
 use clap::{Parser, ValueEnum};
 
@@ -53,7 +53,10 @@ pub enum AlignedCommands {
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
     // GetVericiationKey, command name is get-vk-commitment
-    #[clap(about = "Create verification key for proving system", name = "get-vk-commitment")]
+    #[clap(
+        about = "Create verification key for proving system",
+        name = "get-vk-commitment"
+    )]
     GetVerificationKeyCommitment(GetVerificationKeyCommitmentArgs),
 }
 
