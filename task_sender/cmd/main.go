@@ -327,6 +327,8 @@ func ParseProvingSystem(provingSystemStr string) (common.ProvingSystemId, error)
 		return common.Halo2KZG, nil
 	case "halo2_ipa":
 		return common.Halo2IPA, nil
+	case "halo2_axiom":
+		return common.Halo2Axiom, nil
 	default:
 		var unknownValue common.ProvingSystemId
 		return unknownValue, fmt.Errorf("unsupported proving system: %s", provingSystemStr)

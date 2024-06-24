@@ -31,6 +31,8 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Groth16Bn254, nil
 	case "SP1":
 		return SP1, nil
+	case "Halo2Axiom":
+		return Halo2Axiom, nil
 	case "Halo2KZG":
 		return Halo2KZG, nil
 	case "Halo2IPA":
@@ -52,6 +54,8 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "Groth16Bn254", nil
 	case SP1:
 		return "SP1", nil
+	case Halo2Axiom:
+		return "Halo2Axiom", nil
 	case Halo2KZG:
 		return "Halo2KZG", nil
 	case Halo2IPA:

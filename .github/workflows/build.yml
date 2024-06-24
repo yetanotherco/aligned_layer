@@ -22,6 +22,8 @@ jobs:
         run: make build_sp1_linux
       - name: Build Risc Zero go bindings
         run: make build_risc_zero_linux
+      - name: Build Halo2-Axiom bindings
+        run: make build_halo2_axiom_linux
       - name: Build Halo2-KZG bindings
         run: make build_halo2_kzg_linux
       - name: Build Halo2-IPA bindings

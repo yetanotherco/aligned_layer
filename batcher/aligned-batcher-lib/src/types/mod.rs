@@ -15,6 +15,7 @@ pub enum ProvingSystemId {
     Halo2KZG,
     Halo2IPA,
     Risc0,
+    Halo2Axiom,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -126,6 +127,19 @@ impl BatchInclusionData {
             batch_inclusion_proof,
             index_in_batch: verification_data_batch_index,
         }
+    }
+}
+
+pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
+    match proving_system {
+        "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
+        "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
+        "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
+        "SP1" => Ok(ProvingSystemId::SP1),
+        "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
+        "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
+        "Halo2Axiom" => Ok(ProvingSystemId::Halo2Axiom),
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA, Halo2Axiom]", proving_system))
     }
 }
 
