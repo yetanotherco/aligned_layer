@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use ethers::types::Address;
 use futures_util::stream::{SplitSink, SplitStream};
 use lambdaworks_crypto::merkle_tree::{
@@ -171,16 +170,4 @@ impl AlignedVerificationData {
 pub enum Chain {
     Devnet,
     Holesky,
-}
-
-pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
-    match proving_system {
-        "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
-        "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
-        "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
-        "SP1" => Ok(ProvingSystemId::SP1),
-        "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
-        "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
-        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA]", proving_system))
-    }
 }

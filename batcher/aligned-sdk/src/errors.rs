@@ -2,6 +2,32 @@ use core::fmt;
 use std::io;
 use std::path::PathBuf;
 
+pub enum AlignedError {
+    SubmitError(SubmitError),
+    VerificationError(VerificationError),
+}
+
+impl From<SubmitError> for AlignedError {
+    fn from(e: SubmitError) -> Self {
+        AlignedError::SubmitError(e)
+    }
+}
+
+impl From<VerificationError> for AlignedError {
+    fn from(e: VerificationError) -> Self {
+        AlignedError::VerificationError(e)
+    }
+}
+
+impl fmt::Debug for AlignedError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            AlignedError::SubmitError(e) => write!(f, "Submit error: {:?}", e),
+            AlignedError::VerificationError(e) => write!(f, "Verification error: {:?}", e),
+        }
+    }
+}
+
 pub enum SubmitError {
     ConnectionError(tokio_tungstenite::tungstenite::Error),
     SerdeError(serde_json::Error),

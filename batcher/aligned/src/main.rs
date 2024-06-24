@@ -1,6 +1,5 @@
 mod errors;
 mod eth;
-mod types;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -8,30 +7,23 @@ use std::io::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
+use aligned_sdk::errors::SubmitError;
 use env_logger::Env;
 use ethers::prelude::*;
-use futures_util::{
-    future,
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt, TryStreamExt,
-};
+use futures_util::StreamExt;
 use log::{error, info};
-use tokio::{net::TcpStream, sync::Mutex};
+use tokio::sync::Mutex;
 use tokio_tungstenite::connect_async;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use aligned_sdk::models::{
-    parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationCommitmentBatch,
-    VerificationData, VerificationDataCommitment,
-};
+use aligned_sdk::models::{AlignedVerificationData, ProvingSystemId, VerificationData};
+
+use aligned_sdk::utils::parse_proving_system;
 
 use clap::Subcommand;
 use ethers::utils::hex;
 use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
-use crate::types::AlignedVerificationData;
 use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -134,59 +126,48 @@ pub enum Chain {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), errors::BatcherClientError> {
+async fn main() -> Result<(), aligned_sdk::errors::AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let args: AlignedArgs = AlignedArgs::parse();
 
     match args.command {
         Submit(submit_args) => {
-            let url = url::Url::parse(&submit_args.connect_addr).map_err(|e| {
-                errors::BatcherClientError::InvalidUrl(e, submit_args.connect_addr.clone())
-            })?;
-
-            let (ws_stream, _) = connect_async(url).await?;
+            let (ws_stream, _) = connect_async(&submit_args.connect_addr)
+                .await
+                .map_err(aligned_sdk::errors::SubmitError::ConnectionError)?;
 
             info!("WebSocket handshake has been successfully completed");
-            let (mut ws_write, ws_read) = ws_stream.split();
+            let (ws_write, ws_read) = ws_stream.split();
+
+            let ws_write_mutex = Arc::new(Mutex::new(ws_write));
 
             let batch_inclusion_data_directory_path =
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
 
-            // The sent verification data will be stored here so that we can calculate
-            // their commitments later.
-            let mut sent_verification_data: Vec<VerificationData> = Vec::new();
+            std::fs::create_dir_all(&batch_inclusion_data_directory_path).map_err(|e| {
+                aligned_sdk::errors::SubmitError::IoError(
+                    batch_inclusion_data_directory_path.clone(),
+                    e,
+                )
+            })?;
 
-            let repetitions = submit_args.repetitions;
-            let verification_data = verification_data_from_args(submit_args)?;
+            let verification_data = verification_data_from_args(submit_args).unwrap();
 
-            let json_data = serde_json::to_string(&verification_data)?;
-            for _ in 0..repetitions {
-                ws_write.send(Message::Text(json_data.to_string())).await?;
-                sent_verification_data.push(verification_data.clone());
-                info!("Message sent...")
+            let verification_data_arr = vec![verification_data.clone()];
+
+            let aligned_verification_data_vec =
+                aligned_sdk::submit(ws_write_mutex, ws_read, verification_data_arr).await?;
+
+            if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
+                for aligned_verification_data in aligned_verification_data_vec {
+                    save_response(
+                        batch_inclusion_data_directory_path.clone(),
+                        &aligned_verification_data,
+                    )?;
+                }
+            } else {
+                error!("No batch inclusion data was received from the batcher");
             }
-
-            let num_responses = Arc::new(Mutex::new(0));
-            let ws_write = Arc::new(Mutex::new(ws_write));
-
-            // This vector is reversed so that when responses are received, the commitments corresponding
-            // to that response can simply be popped of this vector.
-            let mut verification_data_commitments_rev: Vec<VerificationDataCommitment> =
-                sent_verification_data
-                    .into_iter()
-                    .map(|vd| vd.into())
-                    .rev()
-                    .collect();
-
-            receive(
-                ws_read,
-                ws_write,
-                repetitions,
-                num_responses,
-                batch_inclusion_data_directory_path,
-                &mut verification_data_commitments_rev,
-            )
-            .await?;
         }
         VerifyProofOnchain(verify_inclusion_args) => {
             let contract_address = match verify_inclusion_args.chain {
@@ -198,7 +179,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 File::open(verify_inclusion_args.batch_inclusion_data).unwrap();
             let reader = BufReader::new(batch_inclusion_file);
             let aligned_verification_data: AlignedVerificationData =
-                serde_json::from_reader(reader)?;
+                serde_json::from_reader(reader).unwrap();
 
             // All the elements from the merkle proof have to be concatenated
             let merkle_proof: Vec<u8> = aligned_verification_data
@@ -214,8 +195,9 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
 
-            let service_manager =
-                eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
+            let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address)
+                .await
+                .unwrap();
 
             let call = service_manager.verify_batch_inclusion(
                 verification_data_comm.proof_commitment,
@@ -248,11 +230,11 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
             info!("Commitment: {}", hex::encode(hash));
             if let Some(output_file) = args.output_file {
-                let mut file = File::create(output_file.clone())
-                    .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))?;
+                let mut file = File::create(output_file.clone()).unwrap();
 
                 file.write_all(hex::encode(hash).as_bytes())
-                    .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))?;
+                    .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))
+                    .unwrap();
             }
         }
     }
@@ -260,75 +242,15 @@ async fn main() -> Result<(), errors::BatcherClientError> {
     Ok(())
 }
 
-async fn receive(
-    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    total_messages: usize,
-    num_responses: Arc<Mutex<usize>>,
-    batch_inclusion_data_directory_path: PathBuf,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<(), BatcherClientError> {
-    // Responses are filtered to only admit binary or close messages.
-    let mut response_stream =
-        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
-
-    std::fs::create_dir_all(&batch_inclusion_data_directory_path)
-        .map_err(|e| BatcherClientError::IoError(batch_inclusion_data_directory_path.clone(), e))?;
-
-    while let Some(Ok(msg)) = response_stream.next().await {
-        if let Message::Close(close_frame) = msg {
-            if let Some(close_msg) = close_frame {
-                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
-                ws_write.lock().await.close().await?;
-                return Ok(());
-            }
-            error!("Connection was closed before receiving all messages. Try submitting your proof again");
-            ws_write.lock().await.close().await?;
-            return Ok(());
+fn verification_data_from_args(
+    args: SubmitArgs,
+) -> Result<VerificationData, aligned_sdk::errors::SubmitError> {
+    let proving_system =
+        if let Some(proving_system) = parse_proving_system(&args.proving_system_flag)? {
+            proving_system
         } else {
-            let mut num_responses_lock = num_responses.lock().await;
-            *num_responses_lock += 1;
-
-            let data = msg.into_data();
-            match serde_json::from_slice::<BatchInclusionData>(&data) {
-                Ok(batch_inclusion_data) => {
-                    info!("Received response from batcher");
-                    info!(
-                        "Batch merkle root: {}",
-                        hex::encode(batch_inclusion_data.batch_merkle_root)
-                    );
-                    info!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-                    info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
-
-                    let verification_data_commitment =
-                        verification_data_commitments_rev.pop().unwrap_or_default();
-
-                    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
-                        save_response(
-                            batch_inclusion_data_directory_path.clone(),
-                            &verification_data_commitment,
-                            &batch_inclusion_data,
-                        )?;
-                    }
-                }
-                Err(e) => {
-                    error!("Error while deserializing batcher response: {}", e);
-                }
-            }
-            if *num_responses_lock == total_messages {
-                info!("All messages responded. Closing connection...");
-                ws_write.lock().await.close().await?;
-                return Ok(());
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, BatcherClientError> {
-    let proving_system = parse_proving_system(&args.proving_system_flag)
-        .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
+            return Err(SubmitError::InvalidProvingSystem(args.proving_system_flag));
+        };
 
     // Read proof file
     let proof = read_file(args.proof_file_name)?;
@@ -369,54 +291,27 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
     })
 }
 
-fn read_file(file_name: PathBuf) -> Result<Vec<u8>, BatcherClientError> {
-    std::fs::read(&file_name).map_err(|e| BatcherClientError::IoError(file_name, e))
+fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
+    std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
 }
 
-fn read_file_option(
-    param_name: &str,
-    file_name: Option<PathBuf>,
-) -> Result<Vec<u8>, BatcherClientError> {
-    let file_name =
-        file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
+fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<u8>, SubmitError> {
+    let file_name = file_name.ok_or(SubmitError::MissingParameter(param_name.to_string()))?;
     read_file(file_name)
-}
-
-fn verify_response(
-    verification_data_commitment: &VerificationDataCommitment,
-    batch_inclusion_data: &BatchInclusionData,
-) -> bool {
-    info!("Verifying response data matches sent proof data ...");
-    let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
-
-    if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
-        &batch_inclusion_data.batch_merkle_root,
-        batch_inclusion_data.index_in_batch,
-        &verification_data_commitment,
-    ) {
-        info!("Done. Data sent matches batcher answer");
-        return true;
-    }
-
-    error!("Verification data commitments and batcher response with merkle root {} and index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
-    false
 }
 
 fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
-    verification_data_commitment: &VerificationDataCommitment,
-    batch_inclusion_data: &BatchInclusionData,
-) -> Result<(), BatcherClientError> {
-    let batch_merkle_root = &hex::encode(batch_inclusion_data.batch_merkle_root)[..8];
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), SubmitError> {
+    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
         + "_"
-        + &batch_inclusion_data.index_in_batch.to_string()
+        + &aligned_verification_data.index_in_batch.to_string()
         + ".json";
 
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
-    let aligned_verification_data =
-        AlignedVerificationData::new(verification_data_commitment, batch_inclusion_data);
 
     let data = serde_json::to_vec(&aligned_verification_data)?;
 
