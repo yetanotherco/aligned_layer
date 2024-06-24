@@ -35,9 +35,9 @@ use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
+use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
-use crate::AlignedCommands::GetVerificationKeyCommitment;
 
 use clap::{Parser, ValueEnum};
 
@@ -56,7 +56,10 @@ pub enum AlignedCommands {
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
     // GetVericiationKey, command name is get-vk-commitment
-    #[clap(about = "Create verification key for proving system", name = "get-vk-commitment")]
+    #[clap(
+        about = "Create verification key for proving system",
+        name = "get-vk-commitment"
+    )]
     GetVerificationKeyCommitment(GetVerificationKeyCommitmentArgs),
 }
 
@@ -170,7 +173,9 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 LocalWallet::new(&mut thread_rng())
             };
 
-            let msg = ClientMessage::new(verification_data, wallet).await;
+            let mut msg = ClientMessage::new(verification_data, wallet).await;
+            let fake_signature = vec![2u8; 65];
+            msg.signature = Signature::try_from(fake_signature.as_slice()).unwrap();
             let msg_str = serde_json::to_string(&msg).unwrap();
 
             for _ in 0..repetitions {
@@ -253,7 +258,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             }
         }
         GetVerificationKeyCommitment(args) => {
-            let content = read_file(args.input_file)?;
+            let content = read_file(&args.input_file)?;
 
             let mut hasher = Keccak256::new();
             hasher.update(&content);

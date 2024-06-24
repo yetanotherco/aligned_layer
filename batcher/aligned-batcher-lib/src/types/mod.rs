@@ -170,7 +170,7 @@ impl ClientMessage {
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
         let hashed_leaf =
             VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
-        let recovered = self.signature.recover(hashed_leaf).unwrap();
+        let recovered = self.signature.recover(hashed_leaf)?;
         self.signature.verify(hashed_leaf, recovered)?;
         Ok(recovered)
     }
