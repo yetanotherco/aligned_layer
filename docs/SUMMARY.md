@@ -7,7 +7,7 @@
 * [Features](about_aligned/features.md)
 * [Use cases](about_aligned/use_cases.md)
 * [Operator Guide](../README_OPERATOR.md)
-* [Trying the testnet](../README.md)
+* [Trying the testnet](about_aligned/try_it/README.md)
 * [Modular approach](about_aligned/modular_approach.md)
 * [Role of EigenLayer](about_aligned/role_of_eigenlayer.md)
 * [How does Aligned work?](about_aligned/how_does_aligned_work.md)
