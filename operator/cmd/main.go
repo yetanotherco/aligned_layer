@@ -8,6 +8,11 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/cmd/actions"
 )
 
+var (
+	// This will be set by the Go linker during build time
+	Version string
+)
+
 func main() {
 	app := &cli.App{
 		Name: "Aligned Layer Node Operator",
@@ -16,6 +21,7 @@ func main() {
 			actions.StartCommand,
 			actions.DepositIntoStrategyCommand,
 		},
+		Version: Version,
 	}
 
 	err := app.Run(os.Args)

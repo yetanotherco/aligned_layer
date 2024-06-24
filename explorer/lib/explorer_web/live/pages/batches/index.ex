@@ -5,13 +5,9 @@ defmodule ExplorerWeb.Batches.Index do
   def mount(params, _, socket) do
     current_page = get_current_page(params)
 
-    page_size = 7
+    page_size = 12
 
-    batches =
-      AlignedLayerServiceManager.get_new_batch_events(%{amount: page_size * current_page})
-      |> Enum.map(&AlignedLayerServiceManager.extract_new_batch_event_info/1)
-      |> Enum.map(&AlignedLayerServiceManager.find_if_batch_was_responded/1)
-      |> Enum.reverse()
+    batches = Batches.get_latest_batches(%{amount: page_size * current_page})
 
     {:ok, assign(socket, current_page: current_page, batches: batches, page_title: "Batches")}
   end
