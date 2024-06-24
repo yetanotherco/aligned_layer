@@ -3,7 +3,7 @@
 # cd to the directory of this script so that this can be run from anywhere
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1 ; pwd -P )
 
-# At this point we are in examples/zkwordle
+# At this point we are in examples/zkquiz
 cd "$parent_path" || exit 1
 
 source .env
