@@ -18,7 +18,7 @@ endif
 FFI_FOR_RELEASE ?= true
 
 ifeq ($(FFI_FOR_RELEASE),true)
-    RELEASE_FLAG=--release
+	RELEASE_FLAG=--release
 	TARGET_REL_PATH=release
 else
 	RELEASE_FLAG=
