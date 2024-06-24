@@ -89,6 +89,8 @@ pub struct SubmitArgs {
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
+    #[arg(name = "Path to local keystore", long = "keystore_path")]
+    keystore_path: PathBuf,
 }
 
 #[derive(Parser, Debug)]
@@ -139,18 +141,18 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             // their commitments later.
             let mut sent_verification_data: Vec<VerificationData> = Vec::new();
 
+            let keystore_path = &submit_args.keystore_path;
             let repetitions = submit_args.repetitions;
-            let verification_data = verification_data_from_args(submit_args)?;
+            let verification_data = verification_data_from_args(&submit_args)?;
 
             let password =
                 rpassword::prompt_password("Please enter your keystore password: ").unwrap();
-            let wallet = Wallet::decrypt_keystore(keypath, password);
+            let wallet = Wallet::decrypt_keystore(keystore_path, password).unwrap();
             let msg = ClientMessage::new(verification_data, wallet).await;
             let msg_str = serde_json::to_string(&msg).unwrap();
 
             for _ in 0..repetitions {
                 ws_write.send(Message::Text(msg_str.clone())).await?;
-
                 sent_verification_data.push(msg.verification_data.clone());
                 info!("Message sent...")
             }
@@ -300,12 +302,12 @@ async fn receive(
     Ok(())
 }
 
-fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, BatcherClientError> {
+fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, BatcherClientError> {
     let proving_system = parse_proving_system(&args.proving_system_flag)
-        .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
+        .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag.clone()))?;
 
     // Read proof file
-    let proof = read_file(args.proof_file_name)?;
+    let proof = read_file(&args.proof_file_name)?;
 
     let mut pub_input: Option<Vec<u8>> = None;
     let mut verification_key: Option<Vec<u8>> = None;
@@ -315,7 +317,7 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
         ProvingSystemId::SP1 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
-                args.vm_program_code_file_name,
+                args.vm_program_code_file_name.as_ref(),
             )?);
         }
         ProvingSystemId::Halo2KZG
@@ -323,10 +325,13 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
         | ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
-            verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
+            verification_key = Some(read_file_option(
+                "--vk",
+                args.verification_key_file_name.as_ref(),
+            )?);
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.as_ref(),
             )?);
         }
     }
@@ -343,17 +348,17 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
     })
 }
 
-fn read_file(file_name: PathBuf) -> Result<Vec<u8>, BatcherClientError> {
-    std::fs::read(&file_name).map_err(|e| BatcherClientError::IoError(file_name, e))
+fn read_file(file_name: &PathBuf) -> Result<Vec<u8>, BatcherClientError> {
+    std::fs::read(file_name).map_err(|e| BatcherClientError::IoError(file_name.clone(), e))
 }
 
 fn read_file_option(
     param_name: &str,
-    file_name: Option<PathBuf>,
+    file_name: Option<&PathBuf>,
 ) -> Result<Vec<u8>, BatcherClientError> {
     let file_name =
         file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
-    read_file(file_name)
+    read_file(&file_name)
 }
 
 fn verify_response(
@@ -402,27 +407,4 @@ fn save_response(
     );
 
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    use ethers::signers::{LocalWallet, Signer};
-
-    #[tokio::test]
-    async fn signing_test() {
-        let msg = "Holi";
-
-        let wallet = "dcf2cbdd171a21c480aa7f53d77f31bb102282b3ff099c78e3118b37348c72f7"
-            .parse::<LocalWallet>()
-            .unwrap();
-
-        let signature = wallet.sign_message(msg).await.unwrap();
-        let recovered = signature.recover(msg).unwrap();
-
-        let verified = signature.verify(msg, recovered).unwrap();
-
-        println!("SIGNATURE: {}", signature);
-        println!("RECOVERED: {:?}", recovered);
-        println!("VERIFIED: {:?}", verified);
-    }
 }
