@@ -53,12 +53,12 @@ pub async fn submit(
     let mut sent_verification_data: Vec<VerificationData> = Vec::new();
 
     for verification_data in verification_data.iter() {
-        let json_data = serde_json::to_string(&verification_data)
-            .map_err(|e| errors::SubmitError::SerdeError(e))?;
+        let json_data =
+            serde_json::to_string(&verification_data).map_err(errors::SubmitError::SerdeError)?;
         ws_write
             .send(Message::Text(json_data.to_string()))
             .await
-            .map_err(|e| errors::SubmitError::ConnectionError(e))?;
+            .map_err(errors::SubmitError::ConnectionError)?;
         sent_verification_data.push(verification_data.clone());
         debug!("Message sent...");
     }
@@ -160,7 +160,7 @@ fn verify_response(
     if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
         &batch_inclusion_data.batch_merkle_root,
         batch_inclusion_data.index_in_batch,
-        &verification_data_commitment,
+        verification_data_commitment,
     ) {
         debug!("Done. Data sent matches batcher answer");
         return true;

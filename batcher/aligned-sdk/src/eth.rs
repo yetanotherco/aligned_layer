@@ -10,7 +10,7 @@ abigen!(
     "abi/AlignedLayerServiceManager.json"
 );
 
-pub type AlignedLayerServiceManager = AlignedLayerServiceManagerContract<Provider<Http>>;
+type AlignedLayerServiceManager = AlignedLayerServiceManagerContract<Provider<Http>>;
 
 pub async fn aligned_service_manager(
     provider: Provider<Http>,

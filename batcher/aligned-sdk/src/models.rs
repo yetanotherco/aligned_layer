@@ -128,7 +128,7 @@ impl BatchInclusionData {
             .unwrap();
 
         BatchInclusionData {
-            batch_merkle_root: batch_merkle_tree.root.clone(),
+            batch_merkle_root: batch_merkle_tree.root,
             batch_inclusion_proof,
             index_in_batch: verification_data_batch_index,
         }
