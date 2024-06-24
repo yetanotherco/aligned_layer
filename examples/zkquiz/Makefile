@@ -25,8 +25,7 @@ encode_verification_data:
 
 verify_proof_submission:
 	@cast send \
-		--rpc-url https://rpc.alignedlayer.com \
+		--rpc-url $(RPC_URL) \
 		--private-key $(PRIVATE_KEY) \
 		$(CONTRACT_ADDRESS) \
 		$(shell python3 encode_verification_data.py --aligned-verification-data $(ALIGNED_VERIFICATION_DATA))
-
