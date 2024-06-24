@@ -24,7 +24,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
         _disableInitializers();
     }
     function initialize (address _AlignedLayerServiceManager, address _BatcherWallet) public initializer {
-        __Ownable_init();
+        __Ownable_init(); // default is msg.sender
 
         AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
@@ -41,23 +41,30 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
         address[] calldata proofSubmitters, // one address for each payer proof, 1 user has 2 proofs? send twice that address
-        uint256 priceOfPostNewBatch
+        uint256 priceOfPostNewBatch // TODO this is constant gas, hardcode. also give a 10% extra.
     ) external onlyBatcher whenNotPaused {
-
-        uint256 initialGasLeft = gasleft();
-
         uint256 amountOfSubmitters = proofSubmitters.length;
 
         require(amountOfSubmitters > 0, "No proof submitters");
 
-        // divide the price of the task by the amount of submitters, rounding up
-        uint256 pricePerProof = priceOfPostNewBatch / amountOfSubmitters + (priceOfPostNewBatch % amountOfSubmitters == 0 ? 0 : 1);
+        uint32 tx_base_gas_cost = 95000; // base gas cost of this transaction
+        uint16 extra_user_tx_gas_cost = 6500; // upper bound of gas cost of adding a payer
+
+        // each user must pay its fraction of the gas cost of this transaction back to the batcher, rounded up
+        // plus 10% for increments in gas price
+        uint256 cost_of_this_tx = ((tx_base_gas_cost + (extra_user_tx_gas_cost * amountOfSubmitters)) * tx.gasprice * 11) / 10;
+
+        // divide the price by the amount of submitters
+        uint256 submit_price_per_proof = priceOfPostNewBatch / amountOfSubmitters;
+        uint256 tx_price_per_proof = cost_of_this_tx / amountOfSubmitters;
         
+        uint256 totalCostPerProof = submit_price_per_proof + tx_price_per_proof;
+
         // discount from each payer
         // will revert if one of them has insufficient balance
-        for(uint256 i=0; i < proofSubmitters.length; i++){
+        for(uint256 i=0; i < amountOfSubmitters; i++){
             address payer = proofSubmitters[i];
-            discountFromPayer(payer, pricePerProof);
+            discountFromPayer(payer, totalCostPerProof);
         }
 
         // call alignedLayerServiceManager
@@ -71,14 +78,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
         );
         require(success, "AlignedLayerServiceManager createNewTask call failed");
 
-        // Calculate estimation of gas used
-        // and send transaction cost back to Batcher
-        uint256 finalGasLeft = gasleft();
-
-        uint256 txCost = ((initialGasLeft - finalGasLeft + 2300) * tx.gasprice); // TODO where is this money coming from? should discount again from users
-
-        payable(BatcherWallet).transfer(txCost);
-
+        payable(BatcherWallet).transfer(cost_of_this_tx);
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
