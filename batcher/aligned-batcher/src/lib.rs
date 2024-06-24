@@ -171,6 +171,8 @@ impl Batcher {
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
+        // FIXME: We are not doing anything for the moment with the address from the
+        // sender, this logic should be added for the payment system.
         if let Ok(_addr) = client_msg.verify_signature() {
             // do something with addr
         } else {

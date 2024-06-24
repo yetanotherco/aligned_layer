@@ -165,6 +165,8 @@ impl ClientMessage {
         }
     }
 
+    /// The signature of the message is verified, and when it correct, the
+    /// recovered address from the signature is returned.
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
         let hashed_leaf =
             VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
