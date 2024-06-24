@@ -44,6 +44,18 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 
 If you are experiencing issues, upgrade by running the same command.
 
+The downloaded binaries require:
+
+- MacOS Arm64 (M1 or higher)
+- Linux x86 with GLIBC_2.32 or superior (For example, Ubuntu 22.04 or higher)
+
+If you don't meet these requirements, clone the repository, install rust, and then run:
+
+```bash
+make uninstall_aligned
+make install_aligned_compiling
+```
+
 ### Try it!
 
 We are going to download a proof previously generated, send it to Aligned, and retrieve the results from Ethereum Holesky testnet. Aligned is using EigenLayer to do a fast and cheap verification of more than one thousand proofs per second.
