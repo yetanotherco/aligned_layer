@@ -170,7 +170,7 @@ batcher_fund_service_manager_balance:
 ./batcher/aligned-batcher/.env:
 	@echo "To start the Batcher ./batcher/aligned-batcher/.env needs to be manually set"; false;
 
-batcher_start: ./batcher/aligned-batcher/.env batcher_fund_service_manager_balance
+batcher_start: ./batcher/aligned-batcher/.env
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/aligned-batcher/.env
 
