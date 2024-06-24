@@ -81,6 +81,7 @@ dependencies = [
  "futures-util",
  "lambdaworks-crypto",
  "log",
+ "rpassword",
  "serde",
  "serde_json",
  "tokio",
@@ -5234,6 +5235,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rpassword"
+version = "7.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80472be3c897911d0137b2d2b9055faf6eeac5b14e324073d83bc17b191d7e3f"
+dependencies = [
+ "libc",
+ "rtoolbox",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "rrs-lib"
 version = "0.1.0"
 source = "git+https://github.com/GregAC/rrs.git#b23afc16b4e6a1fb5c4a73eb1e337e9400816507"
@@ -5241,6 +5253,16 @@ dependencies = [
  "downcast-rs",
  "num_enum 0.5.11",
  "paste",
+]
+
+[[package]]
+name = "rtoolbox"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c247d24e63230cdb56463ae328478bd5eac8b8faa8c69461a77e8e323afac90e"
+dependencies = [
+ "libc",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

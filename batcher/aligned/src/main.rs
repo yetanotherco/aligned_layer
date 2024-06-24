@@ -142,8 +142,9 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let repetitions = submit_args.repetitions;
             let verification_data = verification_data_from_args(submit_args)?;
 
-            let wallet = "dcf2cbdd171a21c480aa7f53d77f31bb102282b3ff099c78e3118b37348c72f7"
-                .parse::<LocalWallet>()?;
+            let password =
+                rpassword::prompt_password("Please enter your keystore password: ").unwrap();
+            let wallet = Wallet::decrypt_keystore(keypath, password);
             let msg = ClientMessage::new(verification_data, wallet).await;
             let msg_str = serde_json::to_string(&msg).unwrap();
 
