@@ -15,7 +15,7 @@ defmodule ExplorerWeb.Home.Index do
          "Please enter a valid proof batch hash, these should be hex values (0x69...)."
        )}
     else
-      {:noreply, push_navigate(socket, to: "/batches/#{batch_merkle_root}")}
+      {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root}")}
     end
   end
 
@@ -24,8 +24,10 @@ defmodule ExplorerWeb.Home.Index do
 
     operators_registered = get_operators_registered()
 
-    latest_batches = Batches.get_latest_batches(%{amount: 5})
-      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end) #extract only the merkle root
+    latest_batches =
+      Batches.get_latest_batches(%{amount: 5})
+      # extract only the merkle root
+      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
@@ -56,8 +58,26 @@ defmodule ExplorerWeb.Home.Index do
           IO.puts("Other transport error: #{inspect(e)}")
       end
 
+    e in FunctionClauseError ->
+      case e do
+        %FunctionClauseError{
+          module: ExplorerWeb.Home.Index
+        } ->
+          {
+            :ok,
+            assign(socket,
+              verified_batches: :empty,
+              operators_registered: :empty,
+              latest_batches: :empty,
+              verified_proofs: :empty
+            )
+            |> put_flash(:error, "Something went wrong with the RPC, please try again later.")
+          }
+      end
+
     e ->
-      raise e
+      Logger.error("Other error: #{inspect(e)}")
+      {:ok, socket |> put_flash(:error, "Something went wrong, please try again later.")}
   end
 
   # tail-call recursion
