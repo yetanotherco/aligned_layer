@@ -1,7 +1,8 @@
 use crate::errors;
+use crate::eth;
 use crate::models::{
-    AlignedVerificationData, BatchInclusionData, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+    AlignedVerificationData, BatchInclusionData, Chain, VerificationCommitmentBatch,
+    VerificationData, VerificationDataCommitment,
 };
 
 use std::sync::Arc;
@@ -11,6 +12,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use log::{error, info};
 
+use ethers::providers::{Http, Provider};
 use ethers::utils::hex;
 use futures_util::{
     future,
@@ -60,6 +62,45 @@ pub async fn submit(
     .await?;
 
     Ok(aligned_verification_data)
+}
+
+pub async fn verify_proof_onchain(
+    aligned_verification_data: AlignedVerificationData,
+    chain: Chain,
+    eth_rpc_provider: Provider<Http>,
+) -> Result<bool, errors::SubmitError> {
+    let contract_address = match chain {
+        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+    };
+
+    // All the elements from the merkle proof have to be concatenated
+    let merkle_proof: Vec<u8> = aligned_verification_data
+        .batch_inclusion_proof
+        .merkle_path
+        .into_iter()
+        .flatten()
+        .collect();
+
+    let verification_data_comm = aligned_verification_data.verification_data_commitment;
+
+    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
+
+    let call = service_manager.verify_batch_inclusion(
+        verification_data_comm.proof_commitment,
+        verification_data_comm.pub_input_commitment,
+        verification_data_comm.proving_system_aux_data_commitment,
+        verification_data_comm.proof_generator_addr,
+        aligned_verification_data.batch_merkle_root,
+        merkle_proof.into(),
+        aligned_verification_data.index_in_batch.into(),
+    );
+
+    let result = call
+        .await
+        .map_err(|e| errors::SubmitError::EthError(e.to_string()))?;
+
+    Ok(result)
 }
 
 async fn receive(
@@ -156,54 +197,8 @@ mod test {
     use std::str::FromStr;
 
     use tokio_tungstenite::connect_async;
+
     #[tokio::test]
-    // async fn submit_proof_is_correct() -> Result<(), SubmitError> {
-    //     let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-    //     let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof"))?;
-    //     let elf = Some(read_file(
-    //         base_dir.join("test_files/sp1/sp1_fibonacci-elf"),
-    //     )?);
-
-    //     let (ws_stream, _) = connect_async("ws://localhost:8080")
-    //         .await
-    //         .map_err(|e| SubmitError::ConnectionError(e))?;
-
-    //     let proof_generator_addr =
-    //         Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
-
-    //     let verification_data = VerificationData {
-    //         proving_system: ProvingSystemId::SP1,
-    //         proof: proof,
-    //         pub_input: None,
-    //         verification_key: None,
-    //         vm_program_code: elf,
-    //         proof_generator_addr: proof_generator_addr,
-    //     };
-
-    //     let (ws_write, ws_read) = ws_stream.split();
-
-    //     let ws_write_mutex = Arc::new(Mutex::new(ws_write));
-
-    //     let mut verification_data_commitments_rev =
-    //         submit(ws_write_mutex.clone(), verification_data)
-    //             .await?
-    //             .unwrap();
-
-    //     let aligned_verification_data = receive(
-    //         ws_read,
-    //         ws_write_mutex,
-    //         &mut verification_data_commitments_rev,
-    //     )
-    //     .await?
-    //     .unwrap();
-
-    //     println!("{:?}", aligned_verification_data);
-
-    //     assert!(true);
-    //     Ok(())
-    // }
-
     async fn submit_two_proofs_is_correct() -> Result<(), SubmitError> {
         let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
@@ -257,6 +252,17 @@ mod test {
             .unwrap();
 
         println!("{:?}", aligned_verification_data);
+
+        let eth_rpc_provider = Provider::<Http>::try_from("http://localhost:8545").unwrap();
+
+        let result = verify_proof_onchain(
+            aligned_verification_data[0].clone(),
+            Chain::Devnet,
+            eth_rpc_provider.clone(),
+        )
+        .await?;
+
+        assert!(result);
 
         Ok(())
     }

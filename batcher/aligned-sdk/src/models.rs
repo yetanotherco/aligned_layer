@@ -141,7 +141,7 @@ pub struct SubmitArgs {
     pub verification_data: VerificationData,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AlignedVerificationData {
     pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
@@ -165,6 +165,12 @@ impl AlignedVerificationData {
             index_in_batch,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Chain {
+    Devnet,
+    Holesky,
 }
 
 pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
