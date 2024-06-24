@@ -166,11 +166,10 @@ impl ClientMessage {
     }
 
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
-        let verification_data_str = serde_json::to_string(&self.verification_data).unwrap();
         let hashed_leaf =
             VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
         let recovered = self.signature.recover(hashed_leaf).unwrap();
-        self.signature.verify(verification_data_str, recovered)?;
+        self.signature.verify(hashed_leaf, recovered)?;
         Ok(recovered)
     }
 }

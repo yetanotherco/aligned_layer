@@ -1,6 +1,6 @@
 mod errors;
 mod eth;
-pub mod types;
+mod types;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -8,6 +8,7 @@ use std::io::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
+use aligned_batcher_lib::types::ClientMessage;
 use aligned_batcher_lib::types::VerificationCommitmentBatch;
 use aligned_batcher_lib::types::VerificationDataCommitment;
 use env_logger::Env;
@@ -28,7 +29,6 @@ use aligned_batcher_lib::types::{
 };
 use clap::Subcommand;
 use ethers::utils::hex;
-use types::ClientMessage;
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
