@@ -14,10 +14,18 @@ submit_proof:
     --proof_generator_addr $(PROOF_GEN_ADDR) \
     --conn wss://batcher.alignedlayer.com
 
-CONTRACT_ADDRESS=0xcb589D7607624168C871477F623031B21972afc6
+CONTRACT_ADDRESS=0x3b32Ec6DfdfE8dDb048028328e5750ab6E108BE6
 RPC_URL=https://ethereum-holesky-rpc.publicnode.com
-ALIGNED_VERIFICATION_DATA=./aligned_verification_data/da80e461d506fe1d0167385e017a5a01966656a4f85191cabe96aa3668093308_175.json
+ALIGNED_VERIFICATION_DATA=./aligned_verification_data/a0e7197421a011a7c0671db9adf433fa6c344568ac4ef361c58abfa5714d6508_160.json
 
 encode_verification_data:
 	@python3 encode_verification_data.py \
 		--aligned-verification-data $(ALIGNED_VERIFICATION_DATA)
+
+verify_proof_submission:
+	@cast send \
+		--rpc-url https://rpc.alignedlayer.com \
+		--private-key 2d3049d91bf27fcc829b37b14e2a9c021d8f9b9752612a818a8952cc6d9ad32a \
+		$(CONTRACT_ADDRESS) \
+		$(shell python3 encode_verification_data.py --aligned-verification-data $(ALIGNED_VERIFICATION_DATA))
+

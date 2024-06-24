@@ -7,7 +7,7 @@ const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf
 fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
-    let n = 10u32;
+    let n = 11u32;
     stdin.write(&n);
     let client = ProverClient::new();
     let (pk, vk) = client.setup(ELF);

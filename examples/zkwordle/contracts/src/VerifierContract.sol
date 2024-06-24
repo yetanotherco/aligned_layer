@@ -30,7 +30,8 @@ contract VerifierContract is ERC721URIStorage {
         require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
         require(address(proofGeneratorAddr) == msg.sender, "proofGeneratorAddr does not match");
 
-        bytes32 fullHash = keccak256(abi.encodePacked(pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr, batchMerkleRoot, merkleProof, verificationDataBatchIndex));
+        bytes32 fullHash = keccak256(abi.encodePacked(proofCommitment,
+            pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr));
         require(!mintedProofs[fullHash], "proof already minted");
 
         (bool callWasSuccessfull, bytes memory proofIsIncluded) = alignedServiceManager.staticcall(
