@@ -16,3 +16,6 @@
 [submodule "examples/zkwordle/contracts/lib/openzeppelin-contracts"]
 	path = examples/zkwordle/contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "examples/zkquiz/contracts/lib/forge-std"]
+	path = examples/zkquiz/contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
