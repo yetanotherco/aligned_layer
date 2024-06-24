@@ -16,3 +16,4 @@ clap = { version = "4.5.4", features = ["derive"] }
 lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
 ethers = { version = "2.0", features = ["ws", "rustls"] }
 aligned-sdk = { path = "../aligned-sdk"}
+sha3 = { version = "0.10.8"}

@@ -8,7 +8,7 @@ defmodule DarkMode do
       type="button"
       phx-update="ignore"
       phx-hook="DarkThemeToggle"
-      class="text-foreground hover:bg-foreground/10 rounded-lg text-sm p-2"
+      class="text-foreground hover:bg-foreground/10 rounded-lg text-sm p-2 drop-shadow-md"
     >
       <svg
         id="theme-toggle-dark-icon"
