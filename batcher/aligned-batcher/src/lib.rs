@@ -173,11 +173,12 @@ impl Batcher {
 
         // FIXME: We are not doing anything for the moment with the address from the
         // sender, this logic should be added for the payment system.
+        info!("Verifying message signature...");
         if let Ok(_addr) = client_msg.verify_signature() {
+            info!("Message signature verified");
             // do something with addr
         } else {
-            // raise signature verification error
-            panic!("signature verification error")
+            error!("Signature verification error")
         }
 
         let verification_data = client_msg.verification_data;
