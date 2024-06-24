@@ -10,7 +10,7 @@ use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use log::{error, info};
+use log::{debug, error};
 
 use ethers::providers::{Http, Provider};
 use ethers::utils::hex;
@@ -33,10 +33,14 @@ pub async fn submit(
     let mut sent_verification_data: Vec<VerificationData> = Vec::new();
 
     for verification_data in verification_data.iter() {
-        let json_data = serde_json::to_string(&verification_data)?;
-        ws_write.send(Message::Text(json_data.to_string())).await?;
+        let json_data = serde_json::to_string(&verification_data)
+            .map_err(|e| errors::SubmitError::SerdeError(e))?;
+        ws_write
+            .send(Message::Text(json_data.to_string()))
+            .await
+            .map_err(|e| errors::SubmitError::ConnectionError(e))?;
         sent_verification_data.push(verification_data.clone());
-        info!("Message sent...");
+        debug!("Message sent...");
     }
 
     drop(ws_write);
@@ -84,7 +88,9 @@ pub async fn verify_proof_onchain(
 
     let verification_data_comm = aligned_verification_data.verification_data_commitment;
 
-    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
+    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address)
+        .await
+        .map_err(|e| errors::SubmitError::EthError(e.to_string()))?;
 
     let call = service_manager.verify_batch_inclusion(
         verification_data_comm.proof_commitment,
@@ -109,7 +115,7 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<Option<Vec<AlignedVerificationData>>, anyhow::Error> {
+) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
         ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
@@ -133,13 +139,12 @@ async fn receive(
             let data = msg.into_data();
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
-                    info!("Received response from batcher");
-                    info!(
+                    debug!("Received response from batcher");
+                    debug!(
                         "Batch merkle root: {}",
                         hex::encode(batch_inclusion_data.batch_merkle_root)
                     );
-                    info!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-                    info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+                    debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
 
                     let verification_data_commitment =
                         verification_data_commitments_rev.pop().unwrap_or_default();
@@ -156,7 +161,7 @@ async fn receive(
                 }
             }
             if *num_responses_lock == total_messages {
-                info!("All messages responded. Closing connection...");
+                debug!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
                 return Ok(Some(aligned_verification_data));
             }
@@ -170,7 +175,7 @@ fn verify_response(
     verification_data_commitment: &VerificationDataCommitment,
     batch_inclusion_data: &BatchInclusionData,
 ) -> bool {
-    info!("Verifying response data matches sent proof data ...");
+    debug!("Verifying response data matches sent proof data ...");
     let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
 
     if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
@@ -178,7 +183,7 @@ fn verify_response(
         batch_inclusion_data.index_in_batch,
         &verification_data_commitment,
     ) {
-        info!("Done. Data sent matches batcher answer");
+        debug!("Done. Data sent matches batcher answer");
         return true;
     }
 
