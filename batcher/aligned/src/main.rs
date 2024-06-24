@@ -18,6 +18,7 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
+use log::warn;
 use log::{error, info};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
@@ -28,6 +29,7 @@ use aligned_batcher_lib::types::{
     parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData,
 };
 use clap::Subcommand;
+use ethers::core::rand::thread_rng;
 use ethers::utils::hex;
 
 use crate::errors::BatcherClientError;
@@ -90,7 +92,7 @@ pub struct SubmitArgs {
     )]
     batch_inclusion_data_directory_path: String,
     #[arg(name = "Path to local keystore", long = "keystore_path")]
-    keystore_path: PathBuf,
+    keystore_path: Option<PathBuf>,
 }
 
 #[derive(Parser, Debug)]
@@ -141,12 +143,18 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             // their commitments later.
             let mut sent_verification_data: Vec<VerificationData> = Vec::new();
 
-            let keystore_path = &submit_args.keystore_path;
             let repetitions = submit_args.repetitions;
             let verification_data = verification_data_from_args(&submit_args)?;
 
-            let password = rpassword::prompt_password("Please enter your keystore password:")?;
-            let wallet = Wallet::decrypt_keystore(keystore_path, password)?;
+            let keystore_path = &submit_args.keystore_path;
+            let wallet = if let Some(keystore_path) = keystore_path {
+                let password = rpassword::prompt_password("Please enter your keystore password:")?;
+                Wallet::decrypt_keystore(keystore_path, password)?
+            } else {
+                warn!("No keystore path provided, using a random private key to sign message");
+                LocalWallet::new(&mut thread_rng())
+            };
+
             let msg = ClientMessage::new(verification_data, wallet).await;
             let msg_str = serde_json::to_string(&msg).unwrap();
 
