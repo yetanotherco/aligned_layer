@@ -1,31 +1,39 @@
+deps: venv
+
+venv: venv/touchfile
+
+venv/touchfile: requirements.txt
+	@python3 -m venv venv
+	@. venv/bin/activate && pip install -r requirements.txt
+	@touch venv/touchfile
+
 deploy_verifier:
 	@./contracts/deploy.sh
 
-generate_proof:
+answer_quiz:
 	@cd quiz/script && cargo run -r
 
-PROOF_GEN_ADDR=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
 submit_proof:
 	@aligned submit \
     --proving_system SP1 \
     --proof quiz/script/proof-with-io.json \
     --vm_program quiz/program/elf/riscv32im-succinct-zkvm-elf \
-    --proof_generator_addr $(PROOF_GEN_ADDR) \
+    --proof_generator_addr $(ADDRESS) \
     --conn wss://batcher.alignedlayer.com
 
-CONTRACT_ADDRESS=0x41f1d1BD9a78Bf66EAeA2d6fb1e57d3dd415c839
+CONTRACT_ADDRESS=0x4CA5c862e3BF121E3e6A608547a0E97F7FBE124d
 RPC_URL=https://ethereum-holesky-rpc.publicnode.com
-ALIGNED_VERIFICATION_DATA=./aligned_verification_data/b43f689d980ecdc21b24d5feacc75b5e5b1de57922c6744ef6171a7189520522_37.json
+VERIFICATION_DATA=./aligned_verification_data/b43f689d980ecdc21b24d5feacc75b5e5b1de57922c6744ef6171a7189520522_37.json
 PRIVATE_KEY=ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
-encode_verification_data:
-	@python3 encode_verification_data.py \
-		--aligned-verification-data $(ALIGNED_VERIFICATION_DATA)
+encode_verification_data: venv
+	@. venv/bin/activate; python3 encode_verification_data.py --aligned-verification-data $(VERIFICATION_DATA)
 
-verify_proof_submission:
+verify_and_get_reward: venv
 	@cast send \
 		--rpc-url $(RPC_URL) \
 		--private-key $(PRIVATE_KEY) \
 		$(CONTRACT_ADDRESS) \
-		$(shell python3 encode_verification_data.py --aligned-verification-data $(ALIGNED_VERIFICATION_DATA))
+		$(shell source venv/bin/activate && python3 encode_verification_data.py --aligned-verification-data $(VERIFICATION_DATA))
