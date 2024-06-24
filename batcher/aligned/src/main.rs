@@ -28,6 +28,7 @@ use aligned_batcher_lib::types::{
 };
 use clap::Subcommand;
 use ethers::utils::hex;
+use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
@@ -237,7 +238,10 @@ async fn main() -> Result<(), errors::BatcherClientError> {
         }
         GetVerificationKeyCommitment(args) => {
             let content = read_file(args.input_file)?;
-            let hash = aligned_batcher_lib::utils::hash(&content);
+
+            let mut hasher = Keccak256::new();
+            hasher.update(&content);
+            let hash: [u8; 32] = hasher.finalize().into();
 
             info!("Commitment: {}", hex::encode(hash));
             if let Some(output_file) = args.output_file {
