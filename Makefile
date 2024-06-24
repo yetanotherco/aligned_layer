@@ -3,6 +3,7 @@
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
+AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.1.6
 
@@ -68,10 +69,9 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 3
 
-# TODO: Allow enviroment variables / different configuration files
 aggregator_start:
 	@echo "Starting Aggregator..."
-	@go run aggregator/cmd/main.go --config $(CONFIG_FILE) \
+	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
 	2>&1 | zap-pretty
 
 aggregator_send_dummy_responses:
@@ -164,10 +164,13 @@ __BATCHER__:
 
 BURST_SIZE=5
 
+batcher_fund_service_manager_balance:
+	@. ./scripts/fund_batcher_balance_in_aligned_devnet.sh
+
 ./batcher/aligned-batcher/.env:
 	@echo "To start the Batcher ./batcher/aligned-batcher/.env needs to be manually set"; false;
 
-batcher_start: ./batcher/aligned-batcher/.env
+batcher_start: ./batcher/aligned-batcher/.env batcher_fund_service_manager_balance
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/aligned-batcher/.env
 
