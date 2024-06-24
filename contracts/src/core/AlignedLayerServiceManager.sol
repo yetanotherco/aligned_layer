@@ -186,14 +186,4 @@ contract AlignedLayerServiceManager is
     receive() external payable {
         batchersBalances[msg.sender] += msg.value;
     }
-
-    function withdraw(uint256 value) external {
-        require(
-            batchersBalances[msg.sender] >= value,
-            "The value to withdraw is greater than deposited funds"
-        );
-
-        batchersBalances[msg.sender] -= value;
-        payable(msg.sender).transfer(value);
-    }
 }
