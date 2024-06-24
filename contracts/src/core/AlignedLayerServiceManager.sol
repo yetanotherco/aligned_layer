@@ -56,11 +56,15 @@ contract AlignedLayerServiceManager is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
-    ) external {
+    ) external payable {
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock == 0,
             "Batch was already verified"
         );
+
+        if (msg.value > 0) {
+            batchersBalances[msg.sender] += msg.value;
+        }
 
         require(batchersBalances[msg.sender] > 0, "Batcher balance is empty");
 
