@@ -46,24 +46,23 @@ pub async fn submit(
         ));
     }
     let ws_write_clone = ws_write.clone();
-    let mut ws_write = ws_write.lock().await;
-
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
     let mut sent_verification_data: Vec<VerificationData> = Vec::new();
+    {
+        let mut ws_write = ws_write.lock().await;
 
-    for verification_data in verification_data.iter() {
-        let json_data =
-            serde_json::to_string(&verification_data).map_err(errors::SubmitError::SerdeError)?;
-        ws_write
-            .send(Message::Text(json_data.to_string()))
-            .await
-            .map_err(errors::SubmitError::ConnectionError)?;
-        sent_verification_data.push(verification_data.clone());
-        debug!("Message sent...");
+        for verification_data in verification_data.iter() {
+            let json_data = serde_json::to_string(&verification_data)
+                .map_err(errors::SubmitError::SerdeError)?;
+            ws_write
+                .send(Message::Text(json_data.to_string()))
+                .await
+                .map_err(errors::SubmitError::ConnectionError)?;
+            sent_verification_data.push(verification_data.clone());
+            debug!("Message sent...");
+        }
     }
-
-    drop(ws_write);
 
     // This vector is reversed so that when responses are received, the commitments corresponding
     // to that response can simply be popped of this vector.
@@ -401,7 +400,6 @@ mod test {
             .await
             .unwrap()
             .unwrap();
-
 
         sleep(std::time::Duration::from_secs(10)).await;
 
