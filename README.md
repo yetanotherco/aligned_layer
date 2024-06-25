@@ -70,7 +70,7 @@ aligned verify-proof-onchain \
 --chain holesky
 ```
 
-This is reading tthe result of the verification of the proof in Ethereum.
+This is reading the result of the verification of the proof in Ethereum.
 
 7. You should get this result:
 
@@ -94,7 +94,7 @@ make uninstall_aligned
 make install_aligned_compiling
 ```
 
-### Reading the results of the proof verification in Ethereum
+### Explanation of how the results of the proof verification in Ethereum
 
 This is the same as running the following curl, with the proper CALL_DATA.
 
