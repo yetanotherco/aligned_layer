@@ -169,7 +169,7 @@ If you want to run an operator, check our [Operator Guide](./docs/guides/1_opera
 
 If you are developing in Aligned, or want to run your own devnet, check our [Infrastructure Guide](./README_INFRASTRUCTURE.md)
 
-# FAQ
+## FAQ
 
 ### What is the objective of Aligned?
     
