@@ -65,6 +65,8 @@ contract AlignedLayerServiceManager is
         _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
+    // Just to be used to upgrade contracts without the pausable functionality
+    // Once the contract is pausable this methos is not needed
     function initializePauser(
         IPauserRegistry _pauserRegistry,
         uint256 _initialPausedStatus
