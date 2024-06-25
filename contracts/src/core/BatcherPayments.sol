@@ -20,7 +20,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
     address public AlignedLayerServiceManager;
     address public BatcherWallet;
 
-    mapping(address => uint256) public PaymentBalances;
+    mapping(address => uint256) public UserBalances;
 
     // storage gap for upgradeability
     uint256[25] private __GAP;
@@ -38,7 +38,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
 
     // PAYABLE FUNCTIONS
     receive() external payable {
-        PaymentBalances[msg.sender] += msg.value;
+        UserBalances[msg.sender] += msg.value;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
@@ -104,8 +104,8 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
 
     // INTERNAL FUNCTIONS
     function discountFromPayer(address payer, uint256 amount) internal {
-        require(PaymentBalances[payer] >= amount, "Payer has insufficient balance");
-        PaymentBalances[payer] -= amount;
+        require(UserBalances[payer] >= amount, "Payer has insufficient balance");
+        UserBalances[payer] -= amount;
     }
 
     // MODIFIERS
