@@ -3,8 +3,8 @@
 * [What is Aligned?](introduction/0_what_is_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
 * [FAQ](introduction/2_fq.md)
-* Core concepts
-* Use cases
+* [Core concepts](introduction/3_core_concepts.md)
+* [Use cases](introduction/4_use_cases.md)
 
 # Guides
 
@@ -14,8 +14,8 @@
 
 # Architecture
 
-* Fast mode
-* Aggregation mode
+* [Fast mode](architecture/fast_mode.md)
+* [Aggregation mode](architecture/aggregation_mode.md)
 
 # Useful links 
 
