@@ -21,7 +21,6 @@ use aligned_sdk::utils::parse_proving_system;
 
 use clap::Subcommand;
 use ethers::utils::hex;
-use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
 use crate::AlignedCommands::GetVerificationKeyCommitment;
