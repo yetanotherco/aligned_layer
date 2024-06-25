@@ -65,6 +65,13 @@ contract AlignedLayerServiceManager is
         _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
+    function initializePauser(
+        IPauserRegistry _pauserRegistry,
+        uint256 _initialPausedStatus
+    ) public reinitializer(2) {
+        _initializePauser(_pauserRegistry, _initialPausedStatus);
+    }
+
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer

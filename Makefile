@@ -468,9 +468,17 @@ deploy_aligned_contracts: ## Deploy Aligned Contracts
 	@echo "Deploying Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_aligned_contracts.sh
 
+deploy_pauser_registry: ## Deploy Pauser Registry
+	@echo "Deploying Pauser Registry..."
+	@. contracts/scripts/.env && . contracts/scripts/deploy_pauser_registry.sh
+
 upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 	@echo "Upgrading Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
+
+upgrade_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
+	@echo "Upgrading Aligned Contracts with Pauser initialization..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_pauser_aligned_contracts.sh
 
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
