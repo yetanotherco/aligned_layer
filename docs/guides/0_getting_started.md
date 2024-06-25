@@ -70,4 +70,4 @@ Aligned works in:
 
 If you don't meet these requirements, you can compile the binaries yourself following the [README](https://github.com/yetanotherco/aligned_layer)
 
-To try Aligned with other proving systems, check the [proving systems]()
+To try Aligned with other proving systems, check the [this]() guide

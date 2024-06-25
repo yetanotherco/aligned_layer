@@ -1,17 +1,28 @@
 # Introduction
 
 * [What is aligned ?](introduction/what_is_aligned.md)
+* [Getting started](introduction/0_getting_started.md)
+* [Core concepts]()
+* [FAQ]()
+* [Use cases]()
 
 # Guides
 
-* [Getting started](introduction/0_getting_started.md)
-* [Using other proving systems](introduction/1_proving_systems.md)
+* [Submitting with every proving system](introduction/1_proving_systems.md)
+* [Operators guide]()
+* [Making your own app with Aligned]() [WIP]
 
-## About Aligned
+# Architecture
 
-* [Features](about_aligned/features.md)
+* [Fast mode]() -> agregar estructura del bache
+* [Aggregation mode]() 
 
-## Links
+# Useful links 
+
+* [All the proof aggregation solutions will use RISC-V zkvms](https://blog.alignedlayer.com/all-the-proof-aggregation-solutions-will-use-risc-v-zkvms/)
+* [Manifesto](https://blog.alignedlayer.com/aligned_manifesto/)
+
+# Contacts
 
 * [Telegram Group](https://t.me/aligned_layer)
 * [Twitter/X](https://twitter.com/alignedlayer)
