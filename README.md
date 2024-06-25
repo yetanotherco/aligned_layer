@@ -37,7 +37,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 
 We are downloading a proof previously generated, sending it to Aligned, and retrieving the results from Ethereum Holesky testnet. Aligned is using EigenLayer to do a fast and cheap verification of more than one thousand proofs per second.
 
-4. Send the proof with:
+4. Let's send the proof to be verified in Aligned:
 
 ```bash
 rm -rf ~/.aligned/aligned_verification_data/ &&
@@ -59,7 +59,9 @@ aligned submit \
 https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13```
 ```
 
-6. You can use the link to the explorer to check the status of your transaction. Then after three blocks, you can check if it has been verified with:
+You can use the link to the explorer to check the status of your transaction. 
+
+6. After three Ethereum blocks, you can check if it has been verified with:
 
 ```bash
 aligned verify-proof-onchain \
@@ -67,6 +69,8 @@ aligned verify-proof-onchain \
 --rpc https://ethereum-holesky-rpc.publicnode.com \
 --chain holesky
 ```
+
+This is reading tthe result of the verification of the proof in Ethereum.
 
 7. You should get this result:
 
@@ -89,7 +93,8 @@ If you don't meet these requirements, clone the repository, install rust, and th
 make uninstall_aligned
 make install_aligned_compiling
 ```
----
+
+### Reading the results of the proof verification in Ethereum
 
 This is the same as running the following curl, with the proper CALL_DATA.
 
