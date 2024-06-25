@@ -8,7 +8,7 @@ The following is the list of the verifiers currently supported by Aligned:
 
 The following proof systems are going to be added soon:
 - :black_square_button: Risc0
-- :black_square_button: Kimchi :black_square_button:
+- :black_square_button: Kimchi
 - :black_square_button: Halo2 - Plonk/KZG
 - :black_square_button: Halo2 - Plonk/IPA
 
