@@ -47,6 +47,7 @@ defmodule Explorer.Periodically do
     end
     PubSub.broadcast(Explorer.PubSub, "update_home", %{})
     PubSub.broadcast(Explorer.PubSub, "update_batch", %{})
+    PubSub.broadcast(Explorer.PubSub, "update_batches", %{})
     IO.inspect("Done processing from block #{fromBlock} to block #{toBlock}")
   end
 
