@@ -243,6 +243,7 @@ mod test {
 
     use std::path::PathBuf;
     use std::str::FromStr;
+    use tokio::time::sleep;
 
     use tokio_tungstenite::connect_async;
 
@@ -351,6 +352,8 @@ mod test {
             .unwrap()
             .unwrap();
 
+        sleep(std::time::Duration::from_secs(10)).await;
+
         let eth_rpc_provider = Provider::<Http>::try_from("http://localhost:8545").unwrap();
 
         let result = verify_proof_onchain(
@@ -361,7 +364,7 @@ mod test {
         .await
         .unwrap();
 
-        assert!(result);
+        assert!(result, "Proof was not verified on-chain");
     }
 
     #[tokio::test]
@@ -399,6 +402,9 @@ mod test {
             .unwrap()
             .unwrap();
 
+
+        sleep(std::time::Duration::from_secs(10)).await;
+
         let eth_rpc_provider = Provider::<Http>::try_from("http://localhost:8545").unwrap();
 
         let mut aligned_verification_data_modified = aligned_verification_data[0].clone();
@@ -414,7 +420,7 @@ mod test {
         .await
         .unwrap();
 
-        assert!(!result);
+        assert!(!result, "Proof verified on chain");
     }
 
     fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
