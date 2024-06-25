@@ -9,7 +9,7 @@
 
 ## Guides
 
-* [Submitting with every proving system](guides/0_proving_systems.md)
+* [Submitting proofs](guides/0_proving_systems.md)
 * [Operators guide](guides/1_operator_guide.md)
 * Making your own app with Aligned
 
