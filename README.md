@@ -163,7 +163,7 @@ require(callWasSuccessfull, "static_call failed");
 
 ## Operator Guide
 
-If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
+If you want to run an operator, check our [Operator Guide](./docs/guides/1_operator_guide.md)
 
 ## Aligned Infrastructure Guide
 

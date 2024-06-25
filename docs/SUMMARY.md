@@ -1,21 +1,21 @@
 # Introduction
 
-* [What is aligned ?](introduction/what_is_aligned.md)
-* [Getting started](introduction/0_getting_started.md)
-* [Core concepts]()
-* [FAQ]()
-* [Use cases]()
+* [What is Aligned?](introduction/0_what_is_aligned.md)
+* [Getting started](introduction/1_getting_started.md)
+* [FAQ](introduction/2_fq.md)
+* Core concepts
+* Use cases
 
 # Guides
 
-* [Submitting with every proving system](introduction/1_proving_systems.md)
-* [Operators guide]()
-* [Making your own app with Aligned]() [WIP]
+* [Submitting with every proving system](guides/0_proving_systems.md)
+* [Operators guide](guides/1_operator_guide.md)
+* Making your own app with Aligned
 
 # Architecture
 
-* [Fast mode]() -> agregar estructura del bache
-* [Aggregation mode]() 
+* Fast mode
+* Aggregation mode
 
 # Useful links 
 
