@@ -1,4 +1,5 @@
 defmodule Explorer.Periodically do
+  alias Phoenix.PubSub
   use GenServer
 
   def start_link(_) do
@@ -44,6 +45,7 @@ defmodule Explorer.Periodically do
     rescue
       error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
     end
+    PubSub.broadcast(Explorer.PubSub, "update", %{})
     IO.inspect("Done processing from block #{fromBlock} to block #{toBlock}")
   end
 

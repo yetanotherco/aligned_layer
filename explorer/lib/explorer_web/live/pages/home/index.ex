@@ -19,9 +19,28 @@ defmodule ExplorerWeb.Home.Index do
     end
   end
 
-  def handle_info(any, socket) do
-    any |> IO.inspect()
-    {:noreply, update(socket, :latest_batches, fn _ -> [] end)}
+  def handle_info(_, socket) do
+    IO.puts("Received update from PubSub")
+
+    verified_batches = Batches.get_amount_of_verified_batches()
+
+    operators_registered = get_operators_registered()
+
+    latest_batches =
+      Batches.get_latest_batches(%{amount: 5})
+      # extract only the merkle root
+      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
+
+    verified_proofs = Batches.get_amount_of_verified_proofs()
+
+    {:noreply,
+     assign(
+       socket,
+       verified_batches: verified_batches,
+       operators_registered: operators_registered,
+       latest_batches: latest_batches,
+       verified_proofs: verified_proofs
+     )}
   end
 
   def mount(_, _, socket) do
