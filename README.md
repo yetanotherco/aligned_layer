@@ -35,7 +35,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
 ```
 
-We are downloading a proof previously generated, send it to Aligned, and retrieve the results from Ethereum Holesky testnet. Aligned is using EigenLayer to do a fast and cheap verification of more than one thousand proofs per second.
+We are downloading a proof previously generated, sending it to Aligned, and retrieving the results from Ethereum Holesky testnet. Aligned is using EigenLayer to do a fast and cheap verification of more than one thousand proofs per second.
 
 4. Send the proof with:
 
