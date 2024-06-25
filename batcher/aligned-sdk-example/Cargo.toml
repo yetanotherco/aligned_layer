@@ -1,0 +1,13 @@
+[package]
+name = "aligned-sdk-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer" }
+ethers = { version = "2.0", features = ["ws", "rustls"] }
+futures-util = "0.3.30"
+log = "0.4.21"
+tokio = { version = "1.37.0", features = ["io-std", "time", "macros", "rt", "rt-multi-thread", "sync"] }
+tokio-tungstenite = { version = "0.23.1", features = ["rustls-tls-webpki-roots", "native-tls"] }
+env_logger = "0.11.3"

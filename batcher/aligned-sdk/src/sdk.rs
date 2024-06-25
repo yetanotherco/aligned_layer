@@ -220,6 +220,13 @@ pub async fn verify_proof_onchain(
     Ok(result)
 }
 
+/// Returns the commitment for a given verification key.
+/// # Arguments
+/// * `content` - The verification key for which the commitment will be calculated.
+/// # Returns
+/// * The verification key commitment.
+/// # Errors
+/// * None.
 pub fn get_verification_key_commitment(content: &[u8]) -> [u8; 32] {
     let mut hasher = Keccak256::new();
     hasher.update(content);
