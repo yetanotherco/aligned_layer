@@ -1,12 +1,10 @@
-mod errors;
-
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
-use aligned_sdk::errors::SubmitError;
+use aligned_sdk::errors::{AlignedError, SubmitError};
 use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
@@ -22,7 +20,6 @@ use aligned_sdk::utils::parse_proving_system;
 use clap::Subcommand;
 use ethers::utils::hex;
 
-use crate::errors::BatcherClientError;
 use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -43,7 +40,7 @@ pub enum AlignedCommands {
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
-    // GetVericiationKey, command name is get-vk-commitment
+    // GetVerificationKey, command name is get-vk-commitment
     #[clap(
         about = "Create verification key for proving system",
         name = "get-vk-commitment"
@@ -134,7 +131,7 @@ impl From<ChainArg> for aligned_sdk::models::Chain {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), aligned_sdk::errors::AlignedError> {
+async fn main() -> Result<(), AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let args: AlignedArgs = AlignedArgs::parse();
 
@@ -142,7 +139,7 @@ async fn main() -> Result<(), aligned_sdk::errors::AlignedError> {
         Submit(submit_args) => {
             let (ws_stream, _) = connect_async(&submit_args.connect_addr)
                 .await
-                .map_err(aligned_sdk::errors::SubmitError::ConnectionError)?;
+                .map_err(SubmitError::ConnectionError)?;
 
             info!("WebSocket handshake has been successfully completed");
             let (ws_write, ws_read) = ws_stream.split();
@@ -153,13 +150,10 @@ async fn main() -> Result<(), aligned_sdk::errors::AlignedError> {
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
 
             std::fs::create_dir_all(&batch_inclusion_data_directory_path).map_err(|e| {
-                aligned_sdk::errors::SubmitError::IoError(
-                    batch_inclusion_data_directory_path.clone(),
-                    e,
-                )
+                SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
-            let verification_data = verification_data_from_args(submit_args).unwrap();
+            let verification_data = verification_data_from_args(submit_args)?;
 
             let verification_data_arr = vec![verification_data.clone()];
 
@@ -180,16 +174,19 @@ async fn main() -> Result<(), aligned_sdk::errors::AlignedError> {
         VerifyProofOnchain(verify_inclusion_args) => {
             let chain = verify_inclusion_args.chain.into();
             let batch_inclusion_file =
-                File::open(verify_inclusion_args.batch_inclusion_data).unwrap();
+                File::open(verify_inclusion_args.batch_inclusion_data.clone()).map_err(|e| {
+                    SubmitError::IoError(verify_inclusion_args.batch_inclusion_data.clone(), e)
+                })?;
 
             let reader = BufReader::new(batch_inclusion_file);
 
             let aligned_verification_data: AlignedVerificationData =
-                serde_json::from_reader(reader).unwrap();
+                serde_json::from_reader(reader).map_err(SubmitError::SerdeError)?;
 
             let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
 
-            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
+            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+                .map_err(|e: url::ParseError| SubmitError::EthError(e.to_string()))?;
 
             let response = aligned_sdk::verify_proof_onchain(
                 aligned_verification_data,
@@ -211,11 +208,11 @@ async fn main() -> Result<(), aligned_sdk::errors::AlignedError> {
 
             info!("Commitment: {}", hex::encode(hash));
             if let Some(output_file) = args.output_file {
-                let mut file = File::create(output_file.clone()).unwrap();
+                let mut file = File::create(output_file.clone())
+                    .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
 
                 file.write_all(hex::encode(hash).as_bytes())
-                    .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))
-                    .unwrap();
+                    .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
             }
         }
     }
@@ -223,9 +220,7 @@ async fn main() -> Result<(), aligned_sdk::errors::AlignedError> {
     Ok(())
 }
 
-fn verification_data_from_args(
-    args: SubmitArgs,
-) -> Result<VerificationData, aligned_sdk::errors::SubmitError> {
+fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, SubmitError> {
     let proving_system =
         if let Some(proving_system) = parse_proving_system(&args.proving_system_flag)? {
             proving_system
@@ -260,7 +255,9 @@ fn verification_data_from_args(
         }
     }
 
-    let proof_generator_addr = Address::from_str(&args.proof_generator_addr).unwrap();
+    let proof_generator_addr = Address::from_str(&args.proof_generator_addr).map_err(|e| {
+        SubmitError::InvalidAddress(args.proof_generator_addr.clone(), e.to_string())
+    })?;
 
     Ok(VerificationData {
         proving_system,
@@ -292,12 +289,14 @@ fn save_response(
         + ".json";
 
     let batch_inclusion_data_path =
-        batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
+        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
     let data = serde_json::to_vec(&aligned_verification_data)?;
 
-    let mut file = File::create(&batch_inclusion_data_path).unwrap();
-    file.write_all(data.as_slice()).unwrap();
+    let mut file = File::create(&batch_inclusion_data_path)
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+    file.write_all(data.as_slice())
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
     info!(
         "Batch inclusion data written into {}",
         batch_inclusion_data_path.display()

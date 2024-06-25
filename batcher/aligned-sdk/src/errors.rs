@@ -35,6 +35,7 @@ pub enum SubmitError {
     InvalidProvingSystem(String),
     EthError(String),
     IoError(PathBuf, io::Error),
+    InvalidAddress(String, String),
     GenericError(String),
 }
 
@@ -69,6 +70,9 @@ impl fmt::Debug for SubmitError {
             }
             SubmitError::SerdeError(e) => write!(f, "Serialization error: {}", e),
             SubmitError::EthError(e) => write!(f, "Ethereum error: {}", e),
+            SubmitError::InvalidAddress(addr, msg) => {
+                write!(f, "Invalid address: {}, {}", addr, msg)
+            }
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
         }
     }
