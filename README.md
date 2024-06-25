@@ -18,57 +18,26 @@
 
 Aligned works with EigenLayer to leverage Ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasible to verify thanks to Aligned.
 
-## Operator Guide
-
-If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
-
-## Aligned Infrastructure Guide
-
-If you are developing in Aligned, or want to run your own devnet, check our [Infrastructure Guide](./README_INFRASTRUCTURE.md)
-
 ## How to use the testnet
 
-### Contract Information
-
-Testnet contract is deployed on Holesky on the address:
-
- ```0x58F280BeBE9B34c9939C3C39e0890C81f163B623```
-
-### How to use the testnet
-
-Download and install Aligned to send proofs in the testnet:
+1. Download and install Aligned to send proofs in the testnet:
 
 ```bash
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
 ```
 
-Then run the ```source``` command that should appear in the shell
+2. Then run the ```source``` command that should appear in the shell
 
-If you are experiencing issues, upgrade by running the same command.
 
-The downloaded binaries require:
-
-- MacOS Arm64 (M1 or higher)
-- Linux x86 with GLIBC_2.32 or superior (For example, Ubuntu 22.04 or higher)
-
-If you don't meet these requirements, clone the repository, install rust, and then run:
-
-```bash
-make uninstall_aligned
-make install_aligned_compiling
-```
-
-### Try it!
-
-We are going to download a proof previously generated, send it to Aligned, and retrieve the results from Ethereum Holesky testnet. Aligned is using EigenLayer to do a fast and cheap verification of more than one thousand proofs per second.
-
-Download an example SP1 proof file with it's ELF file using:
+3. Download an example SP1 proof file with it's ELF file using:
 
 ```bash
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
 ```
 
-Send the proof with:
+We are downloading a proof previously generated, send it to Aligned, and retrieve the results from Ethereum Holesky testnet. Aligned is using EigenLayer to do a fast and cheap verification of more than one thousand proofs per second.
+
+4. Send the proof with:
 
 ```bash
 rm -rf ~/.aligned/aligned_verification_data/ &&
@@ -80,7 +49,7 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com
 ```
 
-You should get a response like this:
+5. You should get a response like this:
 
 ```bash
 [2024-06-17T22:06:03Z INFO  aligned] Proof submitted to aligned. See the batch in the explorer:
@@ -90,7 +59,7 @@ You should get a response like this:
 https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13```
 ```
 
-You can use the link to the explorer to check the status of your transaction. Then after three blocks, you can check if it has been verified with:
+6. You can use the link to the explorer to check the status of your transaction. Then after three blocks, you can check if it has been verified with:
 
 ```bash
 aligned verify-proof-onchain \
@@ -99,7 +68,7 @@ aligned verify-proof-onchain \
 --chain holesky
 ```
 
-You should get this result:
+7. You should get this result:
 
 ```bash
 [2024-06-17T21:58:43Z INFO  aligned] Your proof was verified in Aligned and included in the batch!
@@ -110,6 +79,17 @@ If the proof wasn't verified you should get this result:
 ```bash
 [2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
+
+Aligned works in:
+- MacOS Arm64 (M1 or higher)
+- Linux x86 with GLIBC_2.32 or superior (For example, Ubuntu 22.04 or higher)
+If you don't meet these requirements, clone the repository, install rust, and then run:
+
+```bash
+make uninstall_aligned
+make install_aligned_compiling
+```
+---
 
 This is the same as running the following curl, with the proper CALL_DATA.
 
@@ -169,6 +149,14 @@ check the [Guide](./examples/verify/README.md).
 If you want to send more types of proofs, read our [send proofs guide](./README_SEND_PROOFS.md).
 
 If you want to know more about Aligned, read our [docs](docs/README.md).
+
+## Operator Guide
+
+If you want to run an operator, check our [Operator Guide](./README_OPERATOR.md)
+
+## Aligned Infrastructure Guide
+
+If you are developing in Aligned, or want to run your own devnet, check our [Infrastructure Guide](./README_INFRASTRUCTURE.md)
 
 ## FAQ
 
