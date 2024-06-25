@@ -19,6 +19,11 @@ defmodule ExplorerWeb.Home.Index do
     end
   end
 
+  def handle_info(any, socket) do
+    any |> IO.inspect()
+    {:noreply, update(socket, :latest_batches, fn _ -> [] end)}
+  end
+
   def mount(_, _, socket) do
     verified_batches = Batches.get_amount_of_verified_batches()
 
@@ -30,6 +35,8 @@ defmodule ExplorerWeb.Home.Index do
       |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
+
+    Phoenix.PubSub.subscribe(Explorer.PubSub, "update")
 
     {:ok,
      assign(socket,
