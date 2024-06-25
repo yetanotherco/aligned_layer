@@ -16,6 +16,8 @@
 
 ## The Project
 
+Aligned is a decentralized network of validators (Operators in the EigenLayer jargon) that verify Zero-Knowledge and Validity proofs and posts the results in Ethereum.
+Operators verify batches of proofs off-chain, sign the result of all verifications and then submit their result. The batch is identified univocally by its merkle root. The signatures of the responses of all operators are aggregated, and the aggregated signature is verified on Ethereum.
 Aligned works with EigenLayer to leverage Ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasible to verify thanks to Aligned.
 
 ## How to use the testnet
