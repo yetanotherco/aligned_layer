@@ -173,7 +173,11 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 LocalWallet::new(&mut thread_rng())
             };
 
-            let msg = ClientMessage::new(verification_data, wallet).await;
+            let mut msg = ClientMessage::new(verification_data, wallet).await;
+            let fake_signature = Signature::try_from(vec![1u8; 65].as_slice()).unwrap();
+            msg.signature = fake_signature;
+
+            // let msg = ClientMessage::new(verification_data, wallet).await;
             let msg_str = serde_json::to_string(&msg).unwrap();
 
             for _ in 0..repetitions {
@@ -447,4 +451,21 @@ fn save_response(
     );
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[tokio::test]
+    async fn signature_test() {
+        let msg = "Holi";
+
+        let mut sig = vec![3u8; 64];
+        sig.push(1u8);
+        let fake_sig = Signature::try_from(sig.as_slice()).unwrap();
+        let addr = fake_sig.recover(msg).unwrap();
+
+        fake_sig.verify(msg, addr).unwrap()
+    }
 }
