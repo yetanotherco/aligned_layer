@@ -1,5 +1,4 @@
 mod errors;
-mod eth;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -8,6 +7,7 @@ use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
 use aligned_sdk::errors::SubmitError;
+use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
 use futures_util::StreamExt;
@@ -28,7 +28,7 @@ use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -107,7 +107,7 @@ pub struct VerifyProofOnchainArgs {
         long = "chain",
         default_value = "devnet"
     )]
-    chain: Chain,
+    chain: ChainArg,
 }
 
 #[derive(Parser, Debug)]
@@ -120,9 +120,18 @@ pub struct GetVerificationKeyCommitmentArgs {
 }
 
 #[derive(Debug, Clone, ValueEnum)]
-pub enum Chain {
+enum ChainArg {
     Devnet,
     Holesky,
+}
+
+impl From<ChainArg> for aligned_sdk::models::Chain {
+    fn from(chain_arg: ChainArg) -> Self {
+        match chain_arg {
+            ChainArg::Devnet => aligned_sdk::models::Chain::Devnet,
+            ChainArg::Holesky => aligned_sdk::models::Chain::Holesky,
+        }
+    }
 }
 
 #[tokio::main]
@@ -170,63 +179,36 @@ async fn main() -> Result<(), aligned_sdk::errors::AlignedError> {
             }
         }
         VerifyProofOnchain(verify_inclusion_args) => {
-            let contract_address = match verify_inclusion_args.chain {
-                Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-                Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
-            };
-
+            let chain = verify_inclusion_args.chain.into();
             let batch_inclusion_file =
                 File::open(verify_inclusion_args.batch_inclusion_data).unwrap();
+
             let reader = BufReader::new(batch_inclusion_file);
+
             let aligned_verification_data: AlignedVerificationData =
                 serde_json::from_reader(reader).unwrap();
-
-            // All the elements from the merkle proof have to be concatenated
-            let merkle_proof: Vec<u8> = aligned_verification_data
-                .batch_inclusion_proof
-                .merkle_path
-                .into_iter()
-                .flatten()
-                .collect();
-
-            let verification_data_comm = aligned_verification_data.verification_data_commitment;
 
             let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
 
-            let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address)
-                .await
-                .unwrap();
+            let response = aligned_sdk::verify_proof_onchain(
+                aligned_verification_data,
+                chain,
+                eth_rpc_provider,
+            )
+            .await?;
 
-            let call = service_manager.verify_batch_inclusion(
-                verification_data_comm.proof_commitment,
-                verification_data_comm.pub_input_commitment,
-                verification_data_comm.proving_system_aux_data_commitment,
-                verification_data_comm.proof_generator_addr,
-                aligned_verification_data.batch_merkle_root,
-                merkle_proof.into(),
-                aligned_verification_data.index_in_batch.into(),
-            );
-
-            match call.call().await {
-                Ok(response) => {
-                    if response {
-                        info!("Your proof was verified in Aligned and included in the batch!");
-                    } else {
-                        info!("Your proof was not included in the batch.");
-                    }
-                }
-
-                Err(err) => error!("Error while reading batch inclusion verification: {}", err),
+            if response {
+                info!("Your proof was verified in Aligned and included in the batch!");
+            } else {
+                info!("Your proof was not included in the batch.");
             }
         }
         GetVerificationKeyCommitment(args) => {
             let content = read_file(args.input_file)?;
 
-            let mut hasher = Keccak256::new();
-            hasher.update(&content);
-            let hash: [u8; 32] = hasher.finalize().into();
+            let hash = aligned_sdk::get_verification_key_commitment(&content);
 
             info!("Commitment: {}", hex::encode(hash));
             if let Some(output_file) = args.output_file {
