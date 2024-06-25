@@ -96,19 +96,15 @@ make uninstall_aligned
 make install_aligned_compiling
 ```
 
-### Reading the results of the proof verification in Ethereum
+### Reading the results of proof verification in Ethereum
 
 
-#### Using CURL and an ethereum RPC
-In the previous section, in step 6, we used to verify that our proof was verified
+#### Using CURL and an Ethereum RPC
+In step 6 of the previous section, we used the `aligned verify-proof-onchain` to check that our proof was verified in Aligned.
 
-```bash
-aligned verify-proof-onchain 
-```
+Internally, this is making a call to our Aligned contract, verifying commitments are right, and that the proof is included in the batch.
 
-This internally is making a call to our Aligned contract, verifying commitments are right, and that the proof is included in the batch.
-
-That command is doing the same as the following Curl to an ethereum Node.
+That command is doing the same as the following `curl` to an Ethereum node.
 
 ```bash
 curl -H "Content-Type: application/json" \
@@ -116,7 +112,7 @@ curl -H "Content-Type: application/json" \
     -X POST https://ethereum-holesky-rpc.publicnode.com
 ```
 
-The curl returns a 0x1 if the proof and it's associated data is correct and verified in Aligned, and 0x0 if not.
+This will return 0x1 if the proof and it's associated data is correct and verified in Aligned, and 0x0 if not.
 
 For example, this a correct calldata for a verified proof:
 
@@ -126,10 +122,10 @@ curl -H "Content-Type: application/json" \
   -X POST https://ethereum-holesky-rpc.publicnode.com
 ```
 
-If you want to generate the call data yourself, you can do the following steps:
+To generate the calldata yourself, follow these steps:
 
-1. Clone the repository and move to it
-2. Create a python venv and install the dependencies 
+1. Clone the repository and move into it
+2. Create a Python virtual environment and install the dependencies with
 
 ```bash
 python3 -m venv .aligned_venv
@@ -143,11 +139,11 @@ python3 -m pip install -r examples/verify/requirements.txt
 python3 examples/verify/encode_verification_data.py --aligned-verification-data ~/.aligned/aligned_verification_data/*.json
 ```
  
-If your proof is another place, just change the parameter in the python script.
+If your verification data is in another path, just change the `--aligned-verification-data` parameter.
 
 #### Using a caller contract 
 
-To verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](examples/verify/src/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
+To verify a proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](examples/verify/src/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
 
 ```solidity
 (bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
