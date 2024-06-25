@@ -16,7 +16,9 @@
 
 ## The Project
 
-Aligned works with EigenLayer to leverage Ethereum consensus mechanism for ZK proof verification. Working outside the EVM, this allows for cheap verification of any proving system. This enables the usage of cutting edge algorithms, that may use new techniques to prove even faster. Even more, proving systems that reduce the proving overhead and add verifier overhead, now become economically feasible to verify thanks to Aligned.
+Aligned is a decentralized network of nodes that verifies Zero-Knowledge and Validity proofs and post the results in Ethereum. 
+
+These proofs can be generated and used for a tenth of the price and very low latency, allowing novel types of applications that weren't possible before in Ethereum.
 
 ## How to use the testnet
 
@@ -70,7 +72,7 @@ aligned verify-proof-onchain \
 --chain holesky
 ```
 
-This is reading tthe result of the verification of the proof in Ethereum.
+This is reading the result of the verification of the proof in Ethereum.
 
 7. You should get this result:
 
@@ -94,9 +96,15 @@ make uninstall_aligned
 make install_aligned_compiling
 ```
 
-### Reading the results of the proof verification in Ethereum
+### Reading the results of proof verification in Ethereum
 
-This is the same as running the following curl, with the proper CALL_DATA.
+
+#### Using CURL and an Ethereum RPC
+In step 6 of the previous section, we used the `aligned verify-proof-onchain` to check that our proof was verified in Aligned.
+
+Internally, this is making a call to our Aligned contract, verifying commitments are right, and that the proof is included in the batch.
+
+That command is doing the same as the following `curl` to an Ethereum node.
 
 ```bash
 curl -H "Content-Type: application/json" \
@@ -104,7 +112,7 @@ curl -H "Content-Type: application/json" \
     -X POST https://ethereum-holesky-rpc.publicnode.com
 ```
 
-This returns a 0x1 if the proof and it's associated data is correct and verified in Aligned, and 0x0 if not.
+This will return 0x1 if the proof and it's associated data is correct and verified in Aligned, and 0x0 if not.
 
 For example, this a correct calldata for a verified proof:
 
@@ -114,9 +122,10 @@ curl -H "Content-Type: application/json" \
   -X POST https://ethereum-holesky-rpc.publicnode.com
 ```
 
-To get the call data for yours, you can use the ```encode_verification_data.py```:
+To generate the calldata yourself, follow these steps:
 
-To use it, first clone then repository, then move to the repository folder, and install the dependencies with a python venv:
+1. Clone the repository and move into it
+2. Create a Python virtual environment and install the dependencies with
 
 ```bash
 python3 -m venv .aligned_venv
@@ -124,13 +133,17 @@ source .aligned_venv/bin/activate
 python3 -m pip install -r examples/verify/requirements.txt
 ```
 
-Then:
+3. Encode your proof verification data with
 
 ```bash
 python3 examples/verify/encode_verification_data.py --aligned-verification-data ~/.aligned/aligned_verification_data/*.json
 ```
+ 
+If your verification data is in another path, just change the `--aligned-verification-data` parameter.
 
-If you want to verify your proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](examples/verify/src/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
+#### Using a caller contract 
+
+To verify a proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](examples/verify/src/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
 
 ```solidity
 (bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
@@ -147,13 +160,6 @@ If you want to verify your proof in your own contract, use a static call to the 
 );
 require(callWasSuccessfull, "static_call failed");
 ```
-
-If you want to learn more about how to check if your proof was verified in aligned, 
-check the [Guide](./examples/verify/README.md).
-
-If you want to send more types of proofs, read our [send proofs guide](./README_SEND_PROOFS.md).
-
-If you want to know more about Aligned, read our [docs](docs/README.md).
 
 ## Operator Guide
 
