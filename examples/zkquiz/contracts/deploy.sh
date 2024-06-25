@@ -29,5 +29,7 @@ forge script script/Deployer.s.sol \
     "$ALIGNED_SERVICE_MANAGER_ADDRESS" \
     --rpc-url "$RPC_URL" \
     --private-key "$PRIVATE_KEY" \
+    --verify \
+    --etherscan-api-key "$ETHERSCAN_API_KEY" \
     --broadcast \
     --sig "run(address _alignedServiceManager)"

@@ -2,13 +2,14 @@
 pragma solidity ^0.8.12;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-contract VerifierContract is ERC721 {
+contract VerifierContract is ERC721URIStorage {
     uint256 private _nextTokenId;
 
     address public alignedServiceManager;
 
-    bytes32 public elfCommitment = 0x47314d4388b1201d758a774d38884bf52377712c7f63801b10d98bc3835a12dc;
+    bytes32 public elfCommitment = 0x6909c218eb3d1e67a184d763378e4033e9abfdd1e32a5343869c4648015f5db2;
 
     // map to check if proof has already been submitted
     mapping(bytes32 => bool) public mintedProofs;
@@ -30,7 +31,7 @@ contract VerifierContract is ERC721 {
         require(address(proofGeneratorAddr) == msg.sender, "proofGeneratorAddr does not match");
 
         bytes32 fullHash = keccak256(abi.encodePacked(proofCommitment,
-            pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr));
+            pubInputCommitment, provingSystemAuxDataCommitment));
         require(!mintedProofs[fullHash], "proof already minted");
 
         (bool callWasSuccessfull, bytes memory proofIsIncluded) = alignedServiceManager.staticcall(
@@ -55,7 +56,9 @@ contract VerifierContract is ERC721 {
 
         uint256 tokenId = _nextTokenId++;
         _mint(msg.sender, tokenId);
+        _setTokenURI(tokenId, "https://s3.amazonaws.com/aligned.nft/file.json");
 
         return tokenId;
     }
+
 }
