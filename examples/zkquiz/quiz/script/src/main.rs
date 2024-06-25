@@ -9,62 +9,71 @@ fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
 
-    let question = "What's your name?";
+    let question = "What's your ethereum address?";
     println!("{}", question);
     let name = read_answer();
+    // Check if the input is a valid ethereum address
+    if !name.starts_with("0x") || name.len() != 42 {
+        panic!("Invalid ethereum address");
+    }
     stdin.write(&name);
 
+    let mut user_awnsers = "".to_string();
     let question1 = "What is the capital of France?";
     let answers1 = ["London", "Berlin", "Paris"];
-    ask_question(question1, &answers1, &mut stdin);
+    user_awnsers.push(ask_question(question1, &answers1));
 
     let question2 = "What is the first letter of the alphabet?";
     let answers2 = ["A", "C", "B"];
-    ask_question(question2, &answers2, &mut stdin);
+    user_awnsers.push(ask_question(question2, &answers2));
 
     let question3 = "What is the second planet from the sun?";
     let answers3 = ["Mars", "Venus", "Mercury"];
-    ask_question(question3, &answers3, &mut stdin);
+    user_awnsers.push(ask_question(question3, &answers3));
 
     let question4 = "What is the color of the sky on a clear day?";
     let answers4 = ["Green", "Red", "Blue"];
-    ask_question(question4, &answers4, &mut stdin);
+    user_awnsers.push(ask_question(question4, &answers4));
 
     let question5 = "What is the largest ocean on Earth?";
     let answers5 = ["Atlantic", "Pacific", "Indian"];
-    ask_question(question5, &answers5, &mut stdin);
+    user_awnsers.push(ask_question(question5, &answers5));
 
-    println!("Generating Proof");
+    stdin.write(&user_awnsers);
+    println!("Generating Proof ");
 
     let client = ProverClient::new();
     let (pk, vk) = client.setup(ELF);
-    let proof = client.prove_compressed(&pk, stdin)
-        .expect("proving failed");
+    match client.prove_compressed(&pk, stdin) {
+        Ok(proof) => {
+            println!("Proof generated successfully. Verifying proof...");
+            // Verify proof.
+            client
+                .verify_compressed(&proof, &vk)
+                .expect("verification failed");
 
-    println!("Verifying proof");
+            // Save proof.
+            proof
+                .save("proof-with-io.json")
+                .expect("saving proof failed");
 
-    // Verify proof.
-    client
-        .verify_compressed(&proof, &vk)
-        .expect("verification failed");
-
-    // Save proof.
-    proof
-        .save("proof-with-io.json")
-        .expect("saving proof failed");
-
-    println!("successfully generated and verified proof for the program!")
+            println!("Successfully generated and verified proof for the program!")
+        }
+        Err(_) => {
+            println!("Proof generation failed. Incorrect answer");
+            return;
+        }
+    }
 }
 
-fn ask_question(question: &str, answers: &[&str], sp1_stdin: &mut SP1Stdin) {
+fn ask_question(question: &str, answers: &[&str]) -> char {
     println!("{}", question);
     for (i, answer) in answers.iter().enumerate() {
         println!("{}. {}", (b'a' + i as u8) as char, answer);
     }
 
-    let choice = read_answer().chars().next()
+    return read_answer().chars().next()
         .expect("failed to get first char");
-    sp1_stdin.write(&choice);
 }
 
 fn read_answer() -> String {
