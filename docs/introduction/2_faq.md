@@ -6,11 +6,11 @@ Aligned’s mission is to extend Ethereum’s zero-knowledge capabilities. We ar
     
 ### What is the throughput of Aligned?
     
-Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. Taking 3 ms per proof, Aligned could verify 300 proofs per second and, using parallelization, over 10,000 proofs per second.
+Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. Current testnet can verify more than 2500 proofs per second.
     
 ### How does the throughput of Aligned compare with Ethereum?
     
-Ethereum runs on top of the EVM. Each block is limited to 30,000,000 gas. Since the most efficient proof systems take at least 250,000 gas, Ethereum can verify 120 proofs per block. Aligned runs the code natively and leverages parallelization, reaching 10,000 proofs in the same period.
+Ethereum runs on top of the EVM. Each block is limited to 30,000,000 gas. Since the most efficient proof systems take at least 250,000 gas, Ethereum can verify 120 proofs per block. Aligned runs the code natively and leverages parallelization, reaching 30,000 proofs in the same period.
     
 ### Is Aligned an Ethereum L2?
     
@@ -98,15 +98,15 @@ You can verify proofs in Aligned using our CLI.
     
 In Ethereum (does not include access cost): 
     
-- Groth 16 proofs: 250,000 gas
+- Groth 16 proofs: >250,000 gas
 - Plonk/KZG proofs: >300,000 gas
 - STARKs: >1,000,000 gas
 - Binius/Jolt: too expensive to run!
     
 In Aligned, fast mode:
     
-- Just one proof (any!): 120,000 gas
-- Batching 1024 proofs: 120 gas + reading cost
+- Just one proof (any!): 350,000 gas
+- Batching 1024 proofs: 350 gas + reading cost
     
 It’s over 99% savings!
     
