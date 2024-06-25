@@ -153,9 +153,11 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
+            let repetitions = submit_args.repetitions;
+
             let verification_data = verification_data_from_args(submit_args)?;
 
-            let verification_data_arr = vec![verification_data.clone()];
+            let verification_data_arr = vec![verification_data; repetitions];
 
             let aligned_verification_data_vec =
                 aligned_sdk::submit(ws_write_mutex, ws_read, verification_data_arr).await?;
