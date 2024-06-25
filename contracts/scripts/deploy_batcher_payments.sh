@@ -17,4 +17,6 @@ forge script script/deploy/BatcherPaymentsDeployer.s.sol \
     --private-key $PRIVATE_KEY \
     --broadcast \
     --legacy \
+    --verify \
+    --etherscan-api-key $ETHERSCAN_API_KEY \
     --sig "run(string batcherConfigPath)"
