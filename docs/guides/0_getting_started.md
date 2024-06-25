@@ -1,5 +1,7 @@
-
 # Getting started!
+
+## Quickstart
+We will download a proviously generated SP1 proof, send it to Aligned, and retrieve the results from Ethereum Holesky testnet.
 
 1. Download and install Aligned to send proofs in the testnet:
 
@@ -7,18 +9,15 @@
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
 ```
 
-2. Then run the ```source``` command that should appear in the shell
+2. Run the ```source``` command that should appear in the shell
 
-
-3. Download an example SP1 proof file with it's ELF file using:
+3. Download the example SP1 proof file together with the ELF file of the proved program using:
 
 ```bash
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
 ```
 
-We are downloading a proof previously generated, sending it to Aligned, and retrieving the results from Ethereum Holesky testnet. Aligned is using EigenLayer to do a fast and cheap verification of more than one thousand proofs per second.
-
-4. Let's send the proof to be verified in Aligned:
+4. Send the proof to be verified in Aligned with 
 
 ```bash
 rm -rf ~/.aligned/aligned_verification_data/ &&
@@ -40,9 +39,9 @@ aligned submit \
 https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13```
 ```
 
-You can use the link to the explorer to check the status of your transaction. 
+Use the link in the response to check the status of your transaction in the Aligned explorer.
 
-6. After three Ethereum blocks, you can check if it has been verified with:
+6. After three Ethereum blocks, you should be able to check if it has been verified with the CLI using
 
 ```bash
 aligned verify-proof-onchain \
@@ -70,3 +69,5 @@ Aligned works in:
 - Linux x86 with GLIBC_2.32 or superior (For example, Ubuntu 22.04 or higher)
 
 If you don't meet these requirements, you can compile the binaries yourself following the [README](https://github.com/yetanotherco/aligned_layer)
+
+To try Aligned with other proving systems, check the [proving systems]()

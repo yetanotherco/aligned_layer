@@ -1,20 +1,20 @@
 # Supported Proving Systems
 
-Currently Aligned Supports:
+Currently, Aligned supports:
 
-:white_check_mark: Gnark - Groth16 (with BN254 and BLS12-381)
+:white_check_mark: Gnark - Groth16 (with BN254)
 :white_check_mark: Gnark - Plonk (with BN254 and BLS12-381)
 :white_check_mark: SP1
 :white_check_mark: Halo2 - Plonk/KZG
 :white_check_mark: Halo2 - Plonk/IPA
 
-The following proof systems are going to be added soon:
+The following proving systems are going to be added soon:
 :black_square_button: Risc0
 :black_square_button: Kimchi
 
 ## SP1 proof
 
-The SP1 proof needs the proof file and the vm program file.
+The SP1 proving system needs the proof file and the vm program file,
 
 ```bash
 rm -rf ./aligned_verification_data/ &&
@@ -40,7 +40,7 @@ aligned submit \
 
 ## GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
 
-The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
+GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proving systems need the proof file, the public input file and the verification key file.
 
 ```bash
 rm -rf ./aligned_verification_data/ &&
@@ -54,7 +54,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
 ```
 
-**Examples**:
+**Plonk BN254 example**:
 
 ```bash
 rm -rf ./aligned_verification_data/ &&
@@ -66,6 +66,9 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com
 ```
 
+
+**Plonk BLS12-381 example**:
+
 ```bash
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
@@ -75,6 +78,8 @@ aligned submit \
 --vk ./batcher/aligned/test_files/plonk_bls12_381/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
+
+**Groth16 BN254 example**:
 
 ```bash
 rm -rf ./aligned_verification_data/ &&
