@@ -20,7 +20,7 @@ defmodule ExplorerWeb.Home.Index do
   end
 
   def handle_info(_, socket) do
-    IO.puts("Received update from PubSub")
+    IO.puts("Received update for home from PubSub")
 
     verified_batches = Batches.get_amount_of_verified_batches()
 
@@ -55,7 +55,7 @@ defmodule ExplorerWeb.Home.Index do
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
-    Phoenix.PubSub.subscribe(Explorer.PubSub, "update")
+    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_home")
 
     {:ok,
      assign(socket,

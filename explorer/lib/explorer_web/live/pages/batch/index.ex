@@ -5,6 +5,8 @@ defmodule ExplorerWeb.Batch.Index do
   def mount(params, _, socket) do
     merkle_root = params["merkle_root"]
 
+    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_batch")
+
     if merkle_root == nil do
       {
         :empty,
@@ -18,7 +20,6 @@ defmodule ExplorerWeb.Batch.Index do
         batch -> batch
       end
 
-
     {
       :ok,
       assign(socket,
@@ -30,6 +31,18 @@ defmodule ExplorerWeb.Batch.Index do
   rescue
     _ ->
       {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty)}
+  end
+
+  def handle_info(_, socket) do
+    IO.puts("Received batch update for #{socket.assigns.merkle_root} from PubSub")
+
+    {
+      :noreply,
+      assign(
+        socket,
+        current_batch: Batches.get_batch(%{merkle_root: socket.assigns.merkle_root})
+      )
+    }
   end
 
   embed_templates "*"
