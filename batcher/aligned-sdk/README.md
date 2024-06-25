@@ -6,7 +6,6 @@ The Aligned Verification SDK facilitates the submission and verification of proo
 - [Aligned Verification SDK](#aligned-verification-sdk)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
-  - [Usage](#usage)
   - [API Reference](#api-reference)
 
 ## Installation
@@ -17,10 +16,6 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 [dependencies]
 aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer" }
 ```
-
-## Usage
-
-To see a basic example of how to use the SDK, head to `batcher/aligned-sdk-example`.
 
 ## API Reference
 
