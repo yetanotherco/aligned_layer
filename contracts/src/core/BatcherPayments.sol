@@ -41,7 +41,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
         address[] calldata proofSubmitters, // one address for each payer proof, 1 user has 2 proofs? send twice that address
-        uint256 costOfRespondToTask, // TODO hardcode gas cost? It is variable because of signature sdk. could have upper bound and multiply by current gas cost + x%. 
+        uint256 costOfRespondToTask // TODO hardcode gas cost? It is variable because of signature sdk. could have upper bound and multiply by current gas cost + x%. 
     ) external onlyBatcher whenNotPaused {
         uint256 amountOfSubmitters = proofSubmitters.length;
         require(amountOfSubmitters > 0, "No proof submitters");
@@ -50,7 +50,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
         uint256 create_task_gas_price = 60000; // gas price of createNewTask in in AlignedLayerServiceManager
         // uint256 respond_task_gas_price = 250000; // gas price of respondToTask in in AlignedLayerServiceManager
         uint16 extra_user_tx_gas_cost = 6500; // upper bound of gas cost of adding a user
-        
+
         // each user must pay its fraction of the gas cost of this transaction back to the batcher
         // + 10% for increments in gas price
         uint256 cost_of_this_tx = ((this_tx_base_gas_cost + create_task_gas_price + (extra_user_tx_gas_cost * amountOfSubmitters)) * tx.gasprice * 11) / 10;
@@ -65,17 +65,17 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
             discountFromPayer(payer, totalCostPerProof);
         }
 
-        call alignedLayerServiceManager
-        with value to fund the task's response
-        (bool success, ) = AlignedLayerServiceManager.call{value: costOfRespondToTask}( // TODO add payable to createNewTask in marians pr
+        // call alignedLayerServiceManager
+        // with value to fund the task's response
+        (bool success, bytes memory returnData) = AlignedLayerServiceManager.call{value: costOfRespondToTask}(
             abi.encodeWithSignature(
                 "createNewTask(bytes32,string)",
                 batchMerkleRoot,
                 batchDataPointer
             )
         );
-        
-        // require(success, "AlignedLayerServiceManager createNewTask call failed");
+
+        require(success, "createNewTask call failed");
 
         payable(BatcherWallet).transfer(cost_of_this_tx);
     }
@@ -83,6 +83,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
     function withdraw(uint256 amount) external whenNotPaused {
         discountFromPayer(msg.sender, amount);
         payable(msg.sender).transfer(amount);
+        emit PaymentWithdrawn(msg.sender, amount);
     }
 
     function pause() public onlyOwner {
@@ -95,7 +96,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
 
     // INTERNAL FUNCTIONS
     function discountFromPayer(address payer, uint256 amount) internal {
-        require(PaymentBalances[payer] >= amount, "Insufficient balance");
+        require(PaymentBalances[payer] >= amount, "Payer has insufficient balance");
         PaymentBalances[payer] -= amount;
     }
 
