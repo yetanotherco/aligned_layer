@@ -476,7 +476,7 @@ upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 	@echo "Upgrading Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_aligned_contracts.sh
 
-upgrade_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
+upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
 	@echo "Upgrading Aligned Contracts with Pauser initialization..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_pauser_aligned_contracts.sh
 
