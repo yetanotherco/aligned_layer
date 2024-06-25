@@ -42,6 +42,8 @@ Download and install Aligned to send proofs in the testnet:
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
 ```
 
+Then run the ```source``` command that should appear in the shell
+
 If you are experiencing issues, upgrade by running the same command.
 
 The downloaded binaries require:
