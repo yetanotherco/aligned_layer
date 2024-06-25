@@ -16,9 +16,9 @@
 
 ## The Project
 
-Aligned is a decentralized network of nodes that verify Zero-Knowledge and Validity proofs and post the results in Ethereum.
+Aligned is a decentralized network of nodes that verifies Zero-Knowledge and Validity proofs and post the results in Ethereum. 
 
-This verification is done by Aligned Operators through EigenLayer restaking to make the network secure.
+These proofs can be generated and used for a tenth of the price and very low latency, allowing novel types of applications that weren't possible before in Ethereum.
 
 ## How to use the testnet
 
