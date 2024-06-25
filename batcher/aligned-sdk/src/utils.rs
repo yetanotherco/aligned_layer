@@ -12,6 +12,5 @@ pub fn parse_proving_system(proving_system: &str) -> Result<Option<ProvingSystem
         _ => Err(SubmitError::InvalidProvingSystem(
             proving_system.to_string(),
         )),
-        // _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA]", proving_system))
     }
 }
