@@ -124,7 +124,6 @@ dependencies = [
 name = "aligned-sdk"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "ethers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-util",
  "lambdaworks-crypto",
