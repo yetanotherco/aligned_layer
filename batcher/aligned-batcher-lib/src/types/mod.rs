@@ -14,6 +14,7 @@ pub enum ProvingSystemId {
     SP1,
     Halo2KZG,
     Halo2IPA,
+    Risc0,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
