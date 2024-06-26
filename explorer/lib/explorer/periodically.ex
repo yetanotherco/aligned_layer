@@ -1,4 +1,5 @@
 defmodule Explorer.Periodically do
+  alias Phoenix.PubSub
   use GenServer
 
   def start_link(_) do
@@ -44,6 +45,7 @@ defmodule Explorer.Periodically do
     rescue
       error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
     end
+
     IO.inspect("Done processing from block #{fromBlock} to block #{toBlock}")
   end
 
@@ -62,6 +64,16 @@ defmodule Explorer.Periodically do
           |> Utils.extract_amount_of_proofs
           |> Batches.generate_changeset
           |> Batches.insert_or_update
+          |> case do
+            {:ok, _} ->
+              IO.puts("Broadcasting update_views")
+              PubSub.broadcast(Explorer.PubSub, "update_views", %{})
+            {:error, error} ->
+              IO.puts("Some error in DB operation, not broadcasting update_views")
+              IO.inspect(error)
+            nil -> nil #no changes in DB
+
+          end
 
         "Done processing batch: #{batch.merkle_root}" |> IO.inspect
         Mutex.release(BatchMutex, lock)
