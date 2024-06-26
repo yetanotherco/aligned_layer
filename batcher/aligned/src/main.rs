@@ -15,8 +15,6 @@ use tokio_tungstenite::connect_async;
 
 use aligned_sdk::models::{AlignedVerificationData, ProvingSystemId, VerificationData};
 
-use aligned_sdk::utils::parse_proving_system;
-
 use clap::Subcommand;
 use ethers::utils::hex;
 
@@ -255,12 +253,7 @@ async fn main() -> Result<(), AlignedError> {
 }
 
 fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, SubmitError> {
-    let proving_system =
-        if let Some(proving_system) = parse_proving_system(&args.proving_system_flag)? {
-            proving_system
-        } else {
-            return Err(SubmitError::InvalidProvingSystem(args.proving_system_flag));
-        };
+    let proving_system = args.proving_system_flag.into();
 
     // Read proof file
     let proof = read_file(args.proof_file_name)?;
