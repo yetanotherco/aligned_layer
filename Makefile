@@ -15,6 +15,17 @@ ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
 
+
+FFI_FOR_RELEASE ?= true
+
+ifeq ($(FFI_FOR_RELEASE),true)
+	RELEASE_FLAG=--release
+	TARGET_REL_PATH=release
+else
+	RELEASE_FLAG=
+	TARGET_REL_PATH=debug
+endif
+
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
@@ -529,12 +540,12 @@ build_binaries:
 
 __SP1_FFI__: ##
 build_sp1_macos:
-	@cd operator/sp1/lib && cargo build --release
-	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
+	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
 
 build_sp1_linux:
-	@cd operator/sp1/lib && cargo build --release
-	@cp operator/sp1/lib/target/release/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
+	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
 
 test_sp1_rust_ffi:
 	@echo "Testing SP1 Rust FFI source code..."
@@ -557,12 +568,12 @@ generate_sp1_fibonacci_proof:
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
-	@cd operator/risc_zero/lib && cargo build --release
-	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
+	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
 
 build_risc_zero_linux:
-	@cd operator/risc_zero/lib && cargo build --release
-	@cp operator/risc_zero/lib/target/release/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
+	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
 
 test_risc_zero_rust_ffi:
 	@echo "Testing RISC Zero Rust FFI source code..."
@@ -583,14 +594,14 @@ generate_risc_zero_fibonacci_proof:
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
-	@cd operator/merkle_tree/lib && cargo build --release
-	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
-	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+	@cd operator/merkle_tree/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
 build_merkle_tree_linux:
-	@cd operator/merkle_tree/lib && cargo build --release
-	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
-	@cp operator/merkle_tree/lib/target/release/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
+	@cd operator/merkle_tree/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
+	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
 test_merkle_tree_rust_ffi:
 	@echo "Testing Merkle Tree Rust FFI source code..."
@@ -606,14 +617,14 @@ test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 
 __HALO2_KZG_FFI__: ##
 build_halo2_kzg_macos:
-	@cd operator/halo2kzg/lib && cargo build --release
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.dylib operator/halo2kzg/lib/libhalo2kzg_verifier.dylib
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
+	@cd operator/halo2kzg/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.dylib operator/halo2kzg/lib/libhalo2kzg_verifier.dylib
+	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
 
 build_halo2_kzg_linux:
-	@cd operator/halo2kzg/lib && cargo build --release
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.so operator/halo2kzg/lib/libhalo2kzg_verifier.so
-	@cp operator/halo2kzg/lib/target/release/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
+	@cd operator/halo2kzg/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.so operator/halo2kzg/lib/libhalo2kzg_verifier.so
+	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
 
 test_halo2_kzg_rust_ffi:
 	@echo "Testing Halo2-KZG Rust FFI source code..."
@@ -637,14 +648,14 @@ generate_halo2_kzg_proof:
 
 __HALO2_IPA_FFI__: ##
 build_halo2_ipa_macos:
-	@cd operator/halo2ipa/lib && cargo build --release
-	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.dylib operator/halo2ipa/lib/libhalo2ipa_verifier.dylib
-	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
+	@cd operator/halo2ipa/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.dylib operator/halo2ipa/lib/libhalo2ipa_verifier.dylib
+	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
 
 build_halo2_ipa_linux:
-	@cd operator/halo2ipa/lib && cargo build --release
-	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.so operator/halo2ipa/lib/libhalo2ipa_verifier.so
-	@cp operator/halo2ipa/lib/target/release/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
+	@cd operator/halo2ipa/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.so operator/halo2ipa/lib/libhalo2ipa_verifier.so
+	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
 
 test_halo2_ipa_rust_ffi:
 	@echo "Testing Halo2-KZG Rust FFI source code..."
