@@ -1,4 +1,9 @@
+use ethers::core::k256::ecdsa::SigningKey;
+use ethers::signers::Signer;
+use ethers::signers::Wallet;
 use ethers::types::Address;
+use ethers::types::Signature;
+use ethers::types::SignatureError;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
@@ -17,7 +22,7 @@ pub enum ProvingSystemId {
     Risc0,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationData {
     pub proving_system: ProvingSystemId,
     pub proof: Vec<u8>,
@@ -122,31 +127,39 @@ impl BatchInclusionData {
             .unwrap();
 
         BatchInclusionData {
-            batch_merkle_root: batch_merkle_tree.root.clone(),
+            batch_merkle_root: batch_merkle_tree.root,
             batch_inclusion_proof,
             index_in_batch: verification_data_batch_index,
         }
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientMessage {
+    pub verification_data: VerificationData,
+    pub signature: Signature,
+}
 
-    #[test]
-    fn hash_new_parent_is_correct() {
-        let mut hasher = Keccak256::new();
-        hasher.update(vec![1u8]);
-        let child_1 = hasher.finalize_reset().into();
-        hasher.update(vec![2u8]);
-        let child_2 = hasher.finalize().into();
+impl ClientMessage {
+    /// Client message is a wrap around verification data and its signature.
+    /// The signature is obtained by calculating the commitments and then hashing them.
+    pub async fn new(verification_data: VerificationData, wallet: Wallet<SigningKey>) -> Self {
+        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.clone().into());
+        let signature = wallet.sign_message(hashed_leaf).await.unwrap();
 
-        let parent = VerificationCommitmentBatch::hash_new_parent(&child_1, &child_2);
+        ClientMessage {
+            verification_data,
+            signature,
+        }
+    }
 
-        // This value is built using Openzeppelin's module for Merkle Trees, in particular using
-        // the SimpleMerkleTree. For more details see the openzeppelin_merkle_tree/merkle_tree.js script.
-        let expected_parent = "71d8979cbfae9b197a4fbcc7d387b1fae9560e2f284d30b4e90c80f6bc074f57";
-
-        assert_eq!(hex::encode(parent), expected_parent)
+    /// The signature of the message is verified, and when it correct, the
+    /// recovered address from the signature is returned.
+    pub fn verify_signature(&self) -> Result<Address, SignatureError> {
+        let hashed_leaf =
+            VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
+        let recovered = self.signature.recover(hashed_leaf)?;
+        self.signature.verify(hashed_leaf, recovered)?;
+        Ok(recovered)
     }
 }

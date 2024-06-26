@@ -13,6 +13,8 @@ pub enum BatcherClientError {
     IoError(PathBuf, io::Error),
     SerdeError(serde_json::Error),
     EthError(String),
+    SignerError(String),
+    PasswordError(io::Error),
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for BatcherClientError {
@@ -35,13 +37,19 @@ impl From<ProviderError> for BatcherClientError {
 
 impl From<WalletError> for BatcherClientError {
     fn from(e: WalletError) -> Self {
-        BatcherClientError::EthError(e.to_string())
+        BatcherClientError::SignerError(e.to_string())
     }
 }
 
 impl From<FromHexError> for BatcherClientError {
     fn from(e: FromHexError) -> Self {
         BatcherClientError::EthError(e.to_string())
+    }
+}
+
+impl From<io::Error> for BatcherClientError {
+    fn from(e: io::Error) -> Self {
+        BatcherClientError::PasswordError(e)
     }
 }
 
@@ -64,6 +72,8 @@ impl fmt::Debug for BatcherClientError {
             }
             BatcherClientError::SerdeError(e) => write!(f, "Serialization error: {}", e),
             BatcherClientError::EthError(e) => write!(f, "Ethereum error: {}", e),
+            BatcherClientError::SignerError(e) => write!(f, "Signer error: {}", e),
+            BatcherClientError::PasswordError(e) => write!(f, "Password input error: {}", e),
         }
     }
 }
