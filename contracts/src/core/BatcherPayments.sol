@@ -8,7 +8,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
-    event PaymentWithdrawn(address indexed recipient, uint256 amount);
+    event FundsWithdrawn(address indexed recipient, uint256 amount);
     event CreatedNewTask(
         bytes32 batchMerkleRoot,
         string batchDataPointer,
@@ -102,7 +102,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
         require(UserBalances[msg.sender] >= amount, "Payer has insufficient balance");
         UserBalances[msg.sender] -= amount;
         payable(msg.sender).transfer(amount);
-        emit PaymentWithdrawn(msg.sender, amount);
+        emit FundsWithdrawn(msg.sender, amount);
     }
 
     function setThisTxBaseGasCost(uint256 amount) external onlyOwner whenNotPaused () {
