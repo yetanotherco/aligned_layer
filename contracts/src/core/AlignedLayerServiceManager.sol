@@ -59,7 +59,7 @@ contract AlignedLayerServiceManager is
     ) external payable {
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock == 0,
-            "Batch was already verified"
+            "Batch was already submitted"
         );
 
         BatchState memory batchState;
