@@ -24,7 +24,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
 
     uint256 public THIS_TX_BASE_GAS_COST; 
     uint256 public CREATE_TASK_GAS_PRICE;
-    uint256 public EXTRA_USER_TX_GAS_COST;
+    uint256 public EXTRA_USER_TX_GAS_COST; //As we must iterate over the proofSubmitters, there is an extra gas cost per extra user
 
     // storage gap for upgradeability
     uint256[25] private __GAP;
@@ -77,7 +77,8 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
         // will revert if one of them has insufficient balance
         for(uint256 i=0; i < amountOfSubmitters; i++){
             address payer = proofSubmitters[i];
-            discountFromPayer(payer, totalCostPerProof);
+            require(UserBalances[payer] >= totalCostPerProof, "Payer has insufficient balance");
+            UserBalances[payer] -= totalCostPerProof;
         }
 
         // call alignedLayerServiceManager
@@ -98,7 +99,8 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
-        discountFromPayer(msg.sender, amount);
+        require(UserBalances[msg.sender] >= amount, "Payer has insufficient balance");
+        UserBalances[msg.sender] -= amount;
         payable(msg.sender).transfer(amount);
         emit PaymentWithdrawn(msg.sender, amount);
     }
@@ -121,12 +123,6 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
 
     function unpause() public onlyOwner {
         _unpause();
-    }
-
-    // INTERNAL FUNCTIONS
-    function discountFromPayer(address payer, uint256 amount) internal {
-        require(UserBalances[payer] >= amount, "Payer has insufficient balance");
-        UserBalances[payer] -= amount;
     }
 
     // MODIFIERS
