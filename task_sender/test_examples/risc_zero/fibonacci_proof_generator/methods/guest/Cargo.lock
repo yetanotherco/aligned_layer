@@ -353,6 +353,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hex-literal"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -381,17 +387,6 @@ checksum = "c165a9ab64cf766f73521c0dd2cfdff64f488b8f0b3e621face3462d3db536d7"
 dependencies = [
  "num-integer",
  "num-traits",
-]
-
-[[package]]
-name = "num-derive"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.64",
 ]
 
 [[package]]
@@ -482,8 +477,8 @@ checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 
 [[package]]
 name = "risc0-binfmt"
-version = "0.22.0-alpha.1"
-source = "git+https://github.com/risc0/risc0?rev=6107a65aa20816be9c62da0fa507794ebb1a682e#6107a65aa20816be9c62da0fa507794ebb1a682e"
+version = "1.1.0-alpha.1"
+source = "git+https://github.com/risc0/risc0#39d729690ebe97dcb4244099948be89e538d439d"
 dependencies = [
  "anyhow",
  "elf",
@@ -495,8 +490,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-circuit-recursion"
-version = "0.22.0-alpha.1"
-source = "git+https://github.com/risc0/risc0?rev=6107a65aa20816be9c62da0fa507794ebb1a682e#6107a65aa20816be9c62da0fa507794ebb1a682e"
+version = "1.1.0-alpha.1"
+source = "git+https://github.com/risc0/risc0#39d729690ebe97dcb4244099948be89e538d439d"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -508,8 +503,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-circuit-rv32im"
-version = "0.22.0-alpha.1"
-source = "git+https://github.com/risc0/risc0?rev=6107a65aa20816be9c62da0fa507794ebb1a682e#6107a65aa20816be9c62da0fa507794ebb1a682e"
+version = "1.1.0-alpha.1"
+source = "git+https://github.com/risc0/risc0#39d729690ebe97dcb4244099948be89e538d439d"
 dependencies = [
  "anyhow",
  "risc0-binfmt",
@@ -522,8 +517,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-core"
-version = "0.22.0-alpha.1"
-source = "git+https://github.com/risc0/risc0?rev=6107a65aa20816be9c62da0fa507794ebb1a682e#6107a65aa20816be9c62da0fa507794ebb1a682e"
+version = "1.1.0-alpha.1"
+source = "git+https://github.com/risc0/risc0#39d729690ebe97dcb4244099948be89e538d439d"
 dependencies = [
  "bytemuck",
  "rand_core",
@@ -531,30 +526,34 @@ dependencies = [
 
 [[package]]
 name = "risc0-groth16"
-version = "0.22.0-alpha.1"
-source = "git+https://github.com/risc0/risc0?rev=6107a65aa20816be9c62da0fa507794ebb1a682e#6107a65aa20816be9c62da0fa507794ebb1a682e"
+version = "1.1.0-alpha.1"
+source = "git+https://github.com/risc0/risc0#39d729690ebe97dcb4244099948be89e538d439d"
 dependencies = [
  "anyhow",
  "ark-bn254",
+ "ark-ec",
  "ark-groth16",
  "ark-serialize",
+ "bytemuck",
  "hex",
  "num-bigint",
- "num-derive",
+ "risc0-binfmt",
  "risc0-zkp",
  "serde",
 ]
 
 [[package]]
 name = "risc0-zkp"
-version = "0.22.0-alpha.1"
-source = "git+https://github.com/risc0/risc0?rev=6107a65aa20816be9c62da0fa507794ebb1a682e#6107a65aa20816be9c62da0fa507794ebb1a682e"
+version = "1.1.0-alpha.1"
+source = "git+https://github.com/risc0/risc0#39d729690ebe97dcb4244099948be89e538d439d"
 dependencies = [
  "anyhow",
  "blake2",
  "bytemuck",
+ "cfg-if",
  "digest",
  "hex",
+ "hex-literal",
  "paste",
  "rand_core",
  "risc0-core",
@@ -566,8 +565,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-zkvm"
-version = "0.22.0-alpha.1"
-source = "git+https://github.com/risc0/risc0?rev=6107a65aa20816be9c62da0fa507794ebb1a682e#6107a65aa20816be9c62da0fa507794ebb1a682e"
+version = "1.1.0-alpha.1"
+source = "git+https://github.com/risc0/risc0#39d729690ebe97dcb4244099948be89e538d439d"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -590,8 +589,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-zkvm-platform"
-version = "0.22.0-alpha.1"
-source = "git+https://github.com/risc0/risc0?rev=6107a65aa20816be9c62da0fa507794ebb1a682e#6107a65aa20816be9c62da0fa507794ebb1a682e"
+version = "1.1.0-alpha.1"
+source = "git+https://github.com/risc0/risc0#39d729690ebe97dcb4244099948be89e538d439d"
 dependencies = [
  "bytemuck",
  "getrandom",

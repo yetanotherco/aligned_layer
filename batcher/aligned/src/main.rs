@@ -169,7 +169,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 let password = rpassword::prompt_password("Please enter your keystore password:")?;
                 Wallet::decrypt_keystore(keystore_path, password)?
             } else {
-                warn!("No keystore path provided, using a random private key to sign message");
+                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
                 LocalWallet::new(&mut thread_rng())
             };
 
@@ -358,7 +358,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Ba
     let mut vm_program_code: Option<Vec<u8>> = None;
 
     match proving_system {
-        ProvingSystemId::SP1 => {
+        ProvingSystemId::SP1 | ProvingSystemId::Risc0 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
                 args.vm_program_code_file_name.as_ref(),
