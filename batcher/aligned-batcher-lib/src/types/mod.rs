@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use ethers::core::k256::ecdsa::SigningKey;
 use ethers::signers::Signer;
 use ethers::signers::Wallet;
@@ -132,19 +131,6 @@ impl BatchInclusionData {
             batch_inclusion_proof,
             index_in_batch: verification_data_batch_index,
         }
-    }
-}
-
-pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
-    match proving_system {
-        "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
-        "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
-        "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
-        "SP1" => Ok(ProvingSystemId::SP1),
-        "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
-        "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
-        "Risc0" => Ok(ProvingSystemId::Risc0),
-        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA]", proving_system))
     }
 }
 
