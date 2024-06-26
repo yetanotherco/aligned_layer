@@ -1,16 +1,24 @@
 use std::fmt;
 
+use ethers::types::SignatureError;
 use tokio_tungstenite::tungstenite;
 
 pub enum BatcherError {
     ConnectionError(tungstenite::Error),
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
+    SignatureError(SignatureError),
 }
 
 impl From<tungstenite::Error> for BatcherError {
     fn from(e: tungstenite::Error) -> Self {
         BatcherError::ConnectionError(e)
+    }
+}
+
+impl From<SignatureError> for BatcherError {
+    fn from(e: SignatureError) -> Self {
+        BatcherError::SignatureError(e)
     }
 }
 
@@ -25,6 +33,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::EthereumSubscriptionError(e) => {
                 write!(f, "Ethereum subscription was not successful: {}", e)
+            }
+            BatcherError::SignatureError(e) => {
+                write!(f, "Message signature verification error: {}", e)
             }
         }
     }
