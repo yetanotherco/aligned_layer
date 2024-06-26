@@ -203,11 +203,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 LocalWallet::new(&mut thread_rng())
             };
 
-            let mut msg = ClientMessage::new(verification_data, wallet).await;
-            let fake_signature = Signature::try_from(vec![1u8; 65].as_slice()).unwrap();
-            msg.signature = fake_signature;
-
-            // let msg = ClientMessage::new(verification_data, wallet).await;
+            let msg = ClientMessage::new(verification_data, wallet).await;
             let msg_str = serde_json::to_string(&msg).unwrap();
 
             for _ in 0..repetitions {
@@ -377,8 +373,7 @@ async fn receive(
 }
 
 fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, BatcherClientError> {
-    let proving_system = parse_proving_system(&args.proving_system_flag)
-        .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag.clone()))?;
+    let proving_system = args.proving_system_flag.clone().into();
 
     // Read proof file
     let proof = read_file(&args.proof_file_name)?;
