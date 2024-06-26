@@ -4,24 +4,36 @@ Make sure you have Aligned installed as specified [here](./README.md#how-to-use-
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
-## Keystore file
-You will need a ECDSA keystore file to manage your private keys securely, which is needed for signing messages sent to the batcher.
-If you already have a keystore file, you can ignore this section and start sending proofs.
+## 1. Import/Create Keystore file
+
+If you already have a keystore file, you can ignore this section and start sending proofs. We give two examples of how to generate one. The first one using Foundry, and the second one using EigenLayerCLI
+
+### Alternative 1: With foundry
+
+Install foundry following this guide:
+
+Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
+
+- If you are creating a new account. Create a private key with:
+
+```bash
+cast wallet new-mnemonic --words 12
+```
+
+If you are using this wallet outside testnet, write down the mnemonic phrase given by anvil
+
+- Import the wallet using the private key previously generated, or whichever you want to use, and write a password to use it.
+
+```bash
+mkdir -p ~/.aligned_keystore/
+cast wallet import --private-key <YOUR_ECDSA_PRIVATE_KEY>  ~/.aligned_keystore/keystore0
+```
+
+This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
+
+### Alternative 2: With EigenlayerCLI
 
 - If you have the EigenLayer CLI installed, the keystore can be generated following [this](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#import-keys) instructions. The key will be stored into `~/.eigenlayer/operator_keys`.
-- If you have `foundry` installed, you can run the following:
-```bash
-cast wallet import --private-key <YOUR_ECDSA_PRIVATE_KEY> <KEYSTORE_FILE_NAME>
-```
-This will create the ECDSA keystore file in `~/.foundry/keystores`
-
-As an example,
-
-```bash
-cast wallet import --private-key 6842fb8f5fa574d0482818b8a825a15c4d68f542693197f2c2497e3562f335f6 test 
-```
-
-will create a keystore file `~/.foundry/keystores/test`
 
 ## SP1 proof
 
@@ -48,7 +60,7 @@ aligned submit \
 --proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
 --vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
 --conn wss://batcher.alignedlayer.com \
---keystore_path ./config-files/anvil.ecdsa.key.json
+--keystore_path ~/.aligned_keystore/keystore0
 ```
 
 ## Risc0 proof
@@ -76,7 +88,7 @@ aligned submit \
 --proof ./batcher/aligned/test_files/risc_zero/risc_zero_fibonacci.proof \
 --vm_program ./batcher/aligned/test_files/risc_zero/fibonacci_id.bin \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
---keystore_path ./config-files/anvil.ecdsa.key.json
+--keystore_path ~/.aligned_keystore/keystore0
 ```
 
 ## GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
@@ -106,7 +118,7 @@ aligned submit \
 --public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
 --vk ./batcher/aligned/test_files/plonk_bn254/plonk.vk \
 --conn wss://batcher.alignedlayer.com \
---keystore_path ./config-files/anvil.ecdsa.key.json
+--keystore_path ~/.aligned_keystore/keystore0
 ```
 
 ```bash
@@ -117,7 +129,7 @@ aligned submit \
 --public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
 --vk ./batcher/aligned/test_files/plonk_bls12_381/plonk.vk \
 --conn wss://batcher.alignedlayer.com \
---keystore_path ./config-files/anvil.ecdsa.key.json
+--keystore_path ~/.aligned_keystore/keystore0
 ```
 
 ```bash
@@ -128,5 +140,5 @@ aligned submit \
 --public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
 --vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com \
---keystore_path ./config-files/anvil.ecdsa.key.json
+--keystore_path ~/.aligned_keystore/keystore0
 ```
