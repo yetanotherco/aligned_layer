@@ -119,7 +119,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
          * not yet deployed, we give these proxies an empty contract as the initial implementation, to act as if they have no code.
          */
         alignedLayerServiceManager = AlignedLayerServiceManager(
-            address(
+            payable(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
                     address(alignedLayerProxyAdmin),
@@ -355,7 +355,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
          * not yet deployed, we give these proxies an empty contract as the initial implementation, to act as if they have no code.
          */
         alignedLayerServiceManager = AlignedLayerServiceManager(
-            address(
+            payable(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
                     address(alignedLayerProxyAdmin),
@@ -720,7 +720,10 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
     }
 
-    function _writeOutput(string memory config_data, string memory outputPath) internal {
+    function _writeOutput(
+        string memory config_data,
+        string memory outputPath
+    ) internal {
         string memory parent_object = "parent object";
 
         string memory deployed_addresses = "addresses";
