@@ -28,6 +28,8 @@ make submit_proof ADDRESS=<your_address>
 
 Make sure to use your own address as this is the address that will receive the reward.
 
+Head to [Aligned Explorer](https://explorer.alignedlayer.com/batches) and wait for the batch to be verified.
+
 Then to verify the proof was verified on aligned, and mint your nft run:
 ```bash
 make verify_and_get_reward VERIFICATION_DATA=<path_to_aligned_verification_data> PRIVATE_KEY=<your_private_key>

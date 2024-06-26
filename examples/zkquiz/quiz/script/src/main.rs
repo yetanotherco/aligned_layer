@@ -19,25 +19,17 @@ fn main() {
     stdin.write(&name);
 
     let mut user_awnsers = "".to_string();
-    let question1 = "What is the capital of France?";
-    let answers1 = ["London", "Berlin", "Paris"];
+    let question1 = "Who invented bitcoin";
+    let answers1 = ["Menem", "Vitalik", "Satoshi"];
     user_awnsers.push(ask_question(question1, &answers1));
 
-    let question2 = "What is the first letter of the alphabet?";
-    let answers2 = ["A", "C", "B"];
+    let question2 = "What is the largest ocean on Earth?";
+    let answers2 = ["Atlantic", "Indian", "Pacific"];
     user_awnsers.push(ask_question(question2, &answers2));
 
-    let question3 = "What is the second planet from the sun?";
-    let answers3 = ["Mars", "Venus", "Mercury"];
+    let question3 = "What is the most aligned color";
+    let answers3 = ["Green", "Red", "Blue"];
     user_awnsers.push(ask_question(question3, &answers3));
-
-    let question4 = "What is the color of the sky on a clear day?";
-    let answers4 = ["Green", "Red", "Blue"];
-    user_awnsers.push(ask_question(question4, &answers4));
-
-    let question5 = "What is the largest ocean on Earth?";
-    let answers5 = ["Atlantic", "Pacific", "Indian"];
-    user_awnsers.push(ask_question(question5, &answers5));
 
     stdin.write(&user_awnsers);
     println!("Generating Proof ");

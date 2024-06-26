@@ -23,7 +23,7 @@ submit_proof:
     --proof_generator_addr $(ADDRESS) \
     --conn wss://batcher.alignedlayer.com
 
-CONTRACT_ADDRESS=0x4dFcd112B180637e3220e4Ce4003c072348BEA35
+CONTRACT_ADDRESS=0xFb1C3F749FAd05065b0Bc99136fB4A94CF226176
 RPC_URL=https://ethereum-holesky-rpc.publicnode.com
 VERIFICATION_DATA=./aligned_verification_data/0a1fab5df88a71e48633cbdeedc8d1a234b790d15a8a2fd04cd6a03c1e05b5ef_212.json
 PRIVATE_KEY=ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
