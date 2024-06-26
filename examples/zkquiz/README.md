@@ -5,6 +5,7 @@
 1. [Rust](https://www.rust-lang.org/tools/install)
 2. [Python](https://www.python.org/downloads/)
 3. [Aligned](https://github.com/yetanotherco/aligned_layer)
+4. [Foundry](https://getfoundry.sh)
 
 ## Usage
 
