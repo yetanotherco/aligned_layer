@@ -169,7 +169,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 let password = rpassword::prompt_password("Please enter your keystore password:")?;
                 Wallet::decrypt_keystore(keystore_path, password)?
             } else {
-                warn!("No keystore path provided, using a random private key to sign message");
+                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
                 LocalWallet::new(&mut thread_rng())
             };
 
