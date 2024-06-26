@@ -145,6 +145,8 @@ pub enum ProvingSystemArg {
     Halo2KZG,
     #[clap(name = "Halo2IPA")]
     Halo2IPA,
+    #[clap(name = "Risc0")]
+    Risc0,
 }
 
 impl From<ProvingSystemArg> for ProvingSystemId {
@@ -156,6 +158,7 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
             ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
             ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
+            ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
         }
     }
 }
