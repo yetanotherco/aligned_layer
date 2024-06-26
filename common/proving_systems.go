@@ -14,6 +14,7 @@ const (
 	SP1
 	Halo2KZG
 	Halo2IPA
+	Risc0
 )
 
 func (t *ProvingSystemId) String() string {
@@ -34,6 +35,8 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Halo2KZG, nil
 	case "Halo2IPA":
 		return Halo2IPA, nil
+	case "Risc0":
+		return Risc0, nil
 	}
 
 	return 0, fmt.Errorf("unknown proving system: %s", provingSystem)
@@ -53,6 +56,8 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "Halo2KZG", nil
 	case Halo2IPA:
 		return "Halo2IPA", nil
+	case Risc0:
+		return "Risc0", nil
 	}
 
 	return "", fmt.Errorf("unknown proving system: %d", provingSystem)

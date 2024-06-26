@@ -1,10 +1,9 @@
 
 # Register as an Aligned operator in testnet
 
-## Requirements
+**Important note**: You must be whitelisted to become an Aligned operator.
 
-> [!NOTE]
-> You must be whitelisted to become an Aligned operator.
+## Requirements
 
 This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
 
@@ -19,7 +18,16 @@ Minimum hardware requirements:
 | **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
-## Building from Source (Recommended)
+## Step 1 - Clone the repo
+
+To start with, clone the Aligned repository and move inside it
+
+```bash
+git clone https://github.com/yetanotherco/aligned_layer.git
+cd aligned_layer
+```
+
+## Step 2 - Building the Operator
 
 We recommend building from source whenever possible. If using the docker image, these steps can be skipped.
 
@@ -64,9 +72,7 @@ To see the operator version, run:
 
 This will display the current version of the operator binary.
 
-## Configuration
-
-## When building from source
+## Step 3 - Update the configuration for your specific Operator
 
 Update the following placeholders in `./config-files/config-operator.yaml`:
 
@@ -80,31 +86,7 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
 
-
-## When using docker
-
-Update the following placeholders in `./config-files/config-operator.docker.yaml`:
-
-- `"<operator_address>"`
-- `"<earnings_receiver_address>"`
-- `"<ecdsa_key_store_password>"`
-- `"<bls_key_store_password>"`
-
-Make sure not to update the `ecdsa_key_store_location_path` and `bls_key_store_location_path`
-as they are already set to the correct path.
-
-Then create a .env file in `operator/docker/.env`.
-An example of the file can be found in `operator/docker/.env.example`.
-
-The file should contain the following variables:
-
-| Variable Name               | Description                                                                                                   |
-|-----------------------------|---------------------------------------------------------------------------------------------------------------|
-| `ECDSA_KEY_FILE_HOST`       | Absolute path to the ECDSA key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/ |
-| `BLS_KEY_FILE_HOST`         | Absolute path to the BLS key file. If generated from Eigen cli it should be in ~/.eigenlayer/operator_keys/   |
-| `OPERATOR_CONFIG_FILE_HOST` | Absolute path to the operator config file. It should be path to config-files/config-operator.docker.yaml      |
-
-## Deposit Strategy Tokens
+## Step 4 - Deposit Strategy Tokens
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
@@ -112,10 +94,12 @@ To do so there are 2 options, either doing it through EigenLayer's website, and 
 
 You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
 
-## Option 1:
+### Option 1
+
 EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
 
-## Option 2:
+### Option 2
+
 If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH.
 Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
 Change the parameter in ```---value``` if you want to wrap a different amount:
@@ -137,7 +121,7 @@ as shown in the Eigen guide.
   ```bash
   ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
   ```
-
+  </summary>
 </details>
 
 If you don't have Holesky Eth, these are some useful faucets:
@@ -145,28 +129,13 @@ If you don't have Holesky Eth, these are some useful faucets:
 - [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
 - [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
 
-## Start the operator
+## Step 5 - Start the operator
 
-## From Source (Recommended)
-
-```
+```bash
 ./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
 ```
 
-## Using Docker
-
-Ensure you have the following installed:
-
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
-
-Then run:
-
-```bash
-make operator_start_docker
-```
-
-## Unregister the operator from Aligned
+## Unregistering the operator
 
 To unregister the Aligned operator, run:
 
