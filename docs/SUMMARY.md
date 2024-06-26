@@ -1,4 +1,5 @@
 # Summary
+
 ## Introduction
 
 * [What is Aligned?](introduction/0_what_is_aligned.md)
@@ -18,7 +19,7 @@
 * [Fast mode](architecture/0_fast_mode.md)
 * [Aggregation mode](architecture/1_aggregation_mode.md)
 
-## Useful links 
+## Useful links
 
 * [All the proof aggregation solutions will use RISC-V zkvms](https://blog.alignedlayer.com/all-the-proof-aggregation-solutions-will-use-risc-v-zkvms/)
 * [Manifesto](https://blog.alignedlayer.com/aligned_manifesto/)
