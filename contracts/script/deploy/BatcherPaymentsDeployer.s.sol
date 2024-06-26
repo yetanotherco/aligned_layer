@@ -24,13 +24,31 @@ contract BatcherPaymentsDeployer is Script {
             ".address.alignedLayerServiceManager"
         );
 
+        uint256 this_tx_base_gas_cost = stdJson.readUint(
+            config_data,
+            ".amounts.this_tx_base_gas_cost"
+        );
+
+        uint256 create_task_gas_price = stdJson.readUint(
+            config_data,
+            ".amounts.create_task_gas_price"
+        );
+
+        uint256 extra_user_tx_gas_cost = stdJson.readUint(
+            config_data,
+            ".amounts.extra_user_tx_gas_cost"
+        );
+
         vm.startBroadcast();
 
         BatcherPayments batcherPayments = new BatcherPayments();
         ERC1967Proxy proxy = new ERC1967Proxy(address(batcherPayments), "");
         BatcherPayments(payable(address(proxy))).initialize(
             alignedLayerServiceManager,
-            batcherWallet
+            batcherWallet,
+            this_tx_base_gas_cost,
+            create_task_gas_price,
+            extra_user_tx_gas_cost
         );
         
         vm.stopBroadcast();

@@ -3,5 +3,10 @@
     "batcherWallet": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
     "batcherPrivateKey": "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba",
     "alignedLayerServiceManager": "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
+  },
+  "amounts": {
+    "this_tx_base_gas_cost": 42000,
+    "create_task_gas_price": 60000,
+    "extra_user_tx_gas_cost": 6500
   }
 }
