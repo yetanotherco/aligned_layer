@@ -14,7 +14,7 @@ contract VerifierContract is ERC721URIStorage {
     // map to check if proof has already been submitted
     mapping(bytes32 => bool) public mintedProofs;
 
-    constructor(address _alignedServiceManager) ERC721("Aligned Quiz Solved", "AZKQ") {
+    constructor(address _alignedServiceManager) ERC721("Aligned Layer ZK Quiz", "AZKQ") {
         alignedServiceManager = _alignedServiceManager;
     }
 
@@ -56,9 +56,15 @@ contract VerifierContract is ERC721URIStorage {
 
         uint256 tokenId = _nextTokenId++;
         _mint(msg.sender, tokenId);
-        _setTokenURI(tokenId, "https://s3.amazonaws.com/aligned.nft/file.json");
+        _setTokenURI(tokenId, "ipfs://QmUKviny9x2oQUegyJFFBAUU2q5rvu5CsPzrUaBSDukpHQ");
 
         return tokenId;
+    }
+
+    function tokenURI(uint256 tokenId) public override view virtual returns (string memory) {
+        _requireOwned(tokenId);
+
+        return "ipfs://QmUKviny9x2oQUegyJFFBAUU2q5rvu5CsPzrUaBSDukpHQ";
     }
 
 }
