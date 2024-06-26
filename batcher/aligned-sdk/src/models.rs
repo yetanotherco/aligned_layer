@@ -20,6 +20,7 @@ pub enum ProvingSystemId {
     SP1,
     Halo2KZG,
     Halo2IPA,
+    Risc0,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -134,6 +135,17 @@ impl BatchInclusionData {
     }
 }
 
+pub fn parse_proving_system(proving_system: &str) -> anyhow::Result<ProvingSystemId> {
+    match proving_system {
+        "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
+        "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
+        "Groth16Bn254" => Ok(ProvingSystemId::Groth16Bn254),
+        "SP1" => Ok(ProvingSystemId::SP1),
+        "Halo2IPA" => Ok(ProvingSystemId::Halo2IPA),
+        "Halo2KZG" => Ok(ProvingSystemId::Halo2KZG),
+        "Risc0" => Ok(ProvingSystemId::Risc0),
+        _ => Err(anyhow!("Invalid proving system: {}, Available proving systems are: [GnarkPlonkBls12_381, GnarkPlonkBn254, Groth16Bn254, SP1, Halo2KZG, Halo2IPA]", proving_system))
+    }
 pub struct SubmitArgs {
     pub ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     pub ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
