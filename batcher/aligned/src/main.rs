@@ -155,11 +155,11 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             if let Some(Ok(msg)) = ws_read.next().await {
                 match msg.into_data().try_into() {
                     Ok(data) => {
-                        let protocol_version = u16::from_be_bytes(data);
-                        if protocol_version > PROTOCOL_VERSION {
+                        let current_protocol_version = u16::from_be_bytes(data);
+                        if current_protocol_version > PROTOCOL_VERSION {
                             info!(
-                                "You are running an old version of the client, update it by installing it again running:\ncurl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash\nClient version: {}, Expected version: {}",
-                                PROTOCOL_VERSION, protocol_version
+                                "You are running an old version of the client, update it running:\ncurl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash\nClient version: {}, Expected version: {}",
+                                PROTOCOL_VERSION, current_protocol_version
                             );
                         }
                     }
