@@ -142,6 +142,36 @@ If you don't have Holesky Eth, these are some useful faucets:
 ```bash
 ./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
 ```
+OR
+### Create Systemd service (optional)
+- Create `/etc/systemd/system/aligned-operator.service` file
+```bash
+sudo vim /etc/systemd/system/aligned-operator.service
+```
+- aligned-operator service (example)
+```
+[Unit]
+Description=aligned-operator
+After=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/aligned_layer
+ExecStart=/home/ubuntu/aligned_layer/operator/build/aligned-operator start --config /home/ubuntu/aligned_layer/config-files/config-operator.yaml
+RestartSec=10
+Restart=on-failure
+LimitNOFILE=655350
+
+[Install]
+WantedBy=multi-user.target
+```
+- Start and enable the service
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable aligned-operator
+sudo systemctl start aligned-operator
+```
+
 
 ## Unregistering the operator
 
