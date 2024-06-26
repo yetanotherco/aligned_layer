@@ -20,7 +20,7 @@ fn main() {
 
     let mut user_awnsers = "".to_string();
     let question1 = "Who invented bitcoin";
-    let answers1 = ["Menem", "Vitalik", "Satoshi"];
+    let answers1 = ["Sreeram Kannan", "Vitalik Buterin", "Satoshi Nakamoto"];
     user_awnsers.push(ask_question(question1, &answers1));
 
     let question2 = "What is the largest ocean on Earth?";
