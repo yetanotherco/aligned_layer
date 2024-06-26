@@ -11,7 +11,7 @@ The SP1 proof needs the proof file and the vm program file.
 ```bash
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
---proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proving_system SP1 \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --conn wss://batcher.alignedlayer.com \
@@ -30,6 +30,32 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com
 ```
 
+## Risc0 proof
+
+The Risc0 proof needs the proof file and the vm program file (vm program file is the image id).
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system Risc0 \
+--proof <proof_file> \
+--vm_program <vm_program_file> \
+--conn wss://batcher.alignedlayer.com \
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path]
+```
+
+**Example**
+
+```bash
+rm -rf ~/.aligned/aligned_verification_data/ &&                                                                                
+aligned submit \
+--proving_system Risc0 \
+--proof ./batcher/aligned/test_files/risc_zero/risc_zero_fibonacci.proof \
+--vm_program ./batcher/aligned/test_files/risc_zero/fibonacci_id.bin \
+--aligned_verification_data_path ~/.aligned/aligned_verification_data
+```
+
 ## GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
 
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
@@ -37,7 +63,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 ```bash
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
---proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proving_system <GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
