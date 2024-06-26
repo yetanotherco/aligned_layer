@@ -73,5 +73,6 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             debug!("Gnark proof is valid: {}", is_valid);
             is_valid
         }
+        ProvingSystemId::Mina => todo!(),
     }
 }

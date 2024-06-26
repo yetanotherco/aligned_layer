@@ -147,6 +147,8 @@ pub enum ProvingSystemArg {
     Halo2IPA,
     #[clap(name = "Risc0")]
     Risc0,
+    #[clap(name = "Mina")]
+    Mina,
 }
 
 impl From<ProvingSystemArg> for ProvingSystemId {
@@ -159,6 +161,7 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
             ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
+            ProvingSystemArg::Mina => ProvingSystemId::Mina,
         }
     }
 }
@@ -384,6 +387,7 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
                 args.pub_input_file_name,
             )?);
         }
+        ProvingSystemId::Mina => todo!(),
     }
 
     let proof_generator_addr = Address::from_str(&args.proof_generator_addr).unwrap();
