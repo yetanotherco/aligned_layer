@@ -8,9 +8,6 @@ use tiny_keccak::{Hasher, Sha3};
 sp1_zkvm::entrypoint!(main);
 
 pub fn main() {
-    let name = sp1_zkvm::io::read::<String>();
-    sp1_zkvm::io::commit(&name);
-
     let answers = sp1_zkvm::io::read::<String>();
     let mut sha3 = Sha3::v256();
     let mut output = [0u8; 32];

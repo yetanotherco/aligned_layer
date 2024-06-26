@@ -9,15 +9,6 @@ fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
 
-    let question = "What's your ethereum address?";
-    println!("{}", question);
-    let name = read_answer();
-    // Check if the input is a valid ethereum address
-    if !name.starts_with("0x") || name.len() != 42 {
-        panic!("Invalid ethereum address");
-    }
-    stdin.write(&name);
-
     let mut user_awnsers = "".to_string();
     let question1 = "Who invented bitcoin";
     let answers1 = ["Sreeram Kannan", "Vitalik Buterin", "Satoshi Nakamoto"];

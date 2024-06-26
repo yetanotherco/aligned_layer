@@ -9,7 +9,7 @@ contract VerifierContract is ERC721URIStorage {
 
     address public alignedServiceManager;
 
-    bytes32 public elfCommitment = 0x3ee4f167d7910b1745133963e6838307d54a3e73d62c5d3eb7076f8cbba0f660;
+    bytes32 public elfCommitment = 0x35dd40ab04e180712996495caec915b8a7c488433acbb50c4d8d912cb55bf1f1;
 
     // map to check if proof has already been submitted
     mapping(bytes32 => bool) public mintedProofs;
@@ -31,7 +31,7 @@ contract VerifierContract is ERC721URIStorage {
         require(address(proofGeneratorAddr) == msg.sender, "proofGeneratorAddr does not match");
 
         bytes32 fullHash = keccak256(abi.encodePacked(proofCommitment,
-            pubInputCommitment, provingSystemAuxDataCommitment));
+            pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr));
         require(!mintedProofs[fullHash], "proof already minted");
 
         (bool callWasSuccessfull, bytes memory proofIsIncluded) = alignedServiceManager.staticcall(
