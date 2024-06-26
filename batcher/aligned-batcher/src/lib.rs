@@ -41,6 +41,8 @@ mod zk_utils;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
+const PROTOCOL_VERSION: u16 = 0;
+
 pub struct Batcher {
     s3_client: S3Client,
     eth_ws_provider: Provider<Ws>,
@@ -52,6 +54,7 @@ pub struct Batcher {
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
+    protocol_version: u16,
 }
 
 impl Batcher {
@@ -98,6 +101,7 @@ impl Batcher {
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
+            protocol_version: PROTOCOL_VERSION,
         }
     }
 
@@ -144,8 +148,18 @@ impl Batcher {
 
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
-
         let outgoing = Arc::new(RwLock::new(outgoing));
+
+        // Send the protocol version to the client
+        let protocol_version_msg = Message::binary(self.protocol_version.to_be_bytes().to_vec());
+
+        outgoing
+            .write()
+            .await
+            .send(protocol_version_msg)
+            .await
+            .expect("Failed to send protocol version");
+
         match incoming
             .try_filter(|msg| future::ready(msg.is_text()))
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))

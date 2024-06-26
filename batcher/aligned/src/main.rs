@@ -32,9 +32,9 @@ use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
+use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
-use crate::AlignedCommands::GetVerificationKeyCommitment;
 
 use clap::{Parser, ValueEnum};
 
@@ -53,7 +53,10 @@ pub enum AlignedCommands {
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
     // GetVericiationKey, command name is get-vk-commitment
-    #[clap(about = "Create verification key for proving system", name = "get-vk-commitment")]
+    #[clap(
+        about = "Create verification key for proving system",
+        name = "get-vk-commitment"
+    )]
     GetVerificationKeyCommitment(GetVerificationKeyCommitmentArgs),
 }
 
@@ -130,6 +133,8 @@ pub enum Chain {
     Holesky,
 }
 
+const PROTOCOL_VERSION: u16 = 0;
+
 #[tokio::main]
 async fn main() -> Result<(), errors::BatcherClientError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -144,7 +149,29 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let (ws_stream, _) = connect_async(url).await?;
 
             info!("WebSocket handshake has been successfully completed");
-            let (mut ws_write, ws_read) = ws_stream.split();
+            let (mut ws_write, mut ws_read) = ws_stream.split();
+
+            // First message from the batcher is the protocol version
+            if let Some(Ok(msg)) = ws_read.next().await {
+                match msg.into_data().try_into() {
+                    Ok(data) => {
+                        let protocol_version = u16::from_be_bytes(data);
+                        if protocol_version > PROTOCOL_VERSION {
+                            info!(
+                                "You are running an old version of the client, update it by installing it again running:\ncurl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash\nClient version: {}, Expected version: {}",
+                                PROTOCOL_VERSION, protocol_version
+                            );
+                        }
+                    }
+                    Err(_) => {
+                        error!("Error while reading protocol version");
+                        return Ok(());
+                    }
+                }
+            } else {
+                error!("Batcher did not respond with the protocol version");
+                return Ok(());
+            }
 
             let batch_inclusion_data_directory_path =
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
@@ -287,6 +314,7 @@ async fn receive(
             *num_responses_lock += 1;
 
             let data = msg.into_data();
+
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
                     info!("Received response from batcher");
