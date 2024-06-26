@@ -125,8 +125,13 @@ defmodule Batches do
       nil ->
         "New Batch, inserting to DB:" |> IO.puts()
         case Explorer.Repo.insert(changeset) do
-          {:ok, _} -> "Batch inserted successfully" |> IO.puts()
-          {:error, changeset} -> "Batch insert failed #{changeset}" |> IO.puts()
+          {:ok, _} ->
+            "Batch inserted successfully" |> IO.puts()
+            {:ok, :empty}
+
+          {:error, changeset} ->
+            "Batch insert failed #{changeset}" |> IO.puts()
+            {:error, changeset}
         end
       existing_batch ->
         try do
@@ -143,8 +148,13 @@ defmodule Batches do
             "Batch values have changed, updating in DB" |> IO.puts()
             updated_changeset = Ecto.Changeset.change(existing_batch, changeset.changes)
             case Explorer.Repo.update(updated_changeset) do
-              {:ok, _} -> "Batch updated successfully" |> IO.puts()
-              {:error, changeset} -> "Batch update failed #{changeset}" |> IO.puts()
+              {:ok, _} ->
+                "Batch updated successfully" |> IO.puts()
+                {:ok, :empty}
+
+              {:error, changeset} ->
+                "Batch update failed #{changeset}" |> IO.puts()
+                {:error, changeset}
             end
           end
         rescue
