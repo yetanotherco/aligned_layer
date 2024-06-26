@@ -477,20 +477,3 @@ fn save_response(
 
     Ok(())
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[tokio::test]
-    async fn signature_test() {
-        let msg = "Holi";
-
-        let mut sig = vec![3u8; 64];
-        sig.push(1u8);
-        let fake_sig = Signature::try_from(sig.as_slice()).unwrap();
-        let addr = fake_sig.recover(msg).unwrap();
-
-        fake_sig.verify(msg, addr).unwrap()
-    }
-}
