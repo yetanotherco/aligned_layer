@@ -1256,7 +1256,7 @@ name = "bonsai-sdk"
 version = "0.8.0"
 source = "git+https://github.com/risc0/risc0?tag=v1.0.1#79de616506543634cb5d75b9db7f3aee3640d68c"
 dependencies = [
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "risc0-groth16",
  "serde",
  "thiserror",
@@ -1301,7 +1301,7 @@ checksum = "1ee891b04274a59bd38b412188e24b849617b2e45a0fd8d057deb63e7403761b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.66",
+ "syn 2.0.67",
 ]
 
 [[package]]
