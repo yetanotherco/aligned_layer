@@ -58,7 +58,7 @@ pub struct SubmitArgs {
     )]
     connect_addr: String,
     #[arg(name = "Proving system", long = "proving_system")]
-    proving_system_flag: String,
+    proving_system_flag: ProvingSystemArg,
     #[arg(name = "Proof file path", long = "proof")]
     proof_file_name: PathBuf,
     #[arg(name = "Public input file name", long = "public_input")]
@@ -126,6 +126,38 @@ impl From<ChainArg> for aligned_sdk::models::Chain {
         match chain_arg {
             ChainArg::Devnet => aligned_sdk::models::Chain::Devnet,
             ChainArg::Holesky => aligned_sdk::models::Chain::Holesky,
+        }
+    }
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum ProvingSystemArg {
+    #[clap(name = "GnarkPlonkBls12_381")]
+    GnarkPlonkBls12_381,
+    #[clap(name = "GnarkPlonkBn254")]
+    GnarkPlonkBn254,
+    #[clap(name = "Groth16Bn254")]
+    Groth16Bn254,
+    #[clap(name = "SP1")]
+    SP1,
+    #[clap(name = "Halo2KZG")]
+    Halo2KZG,
+    #[clap(name = "Halo2IPA")]
+    Halo2IPA,
+    #[clap(name = "Risc0")]
+    Risc0,
+}
+
+impl From<ProvingSystemArg> for ProvingSystemId {
+    fn from(proving_system: ProvingSystemArg) -> Self {
+        match proving_system {
+            ProvingSystemArg::GnarkPlonkBls12_381 => ProvingSystemId::GnarkPlonkBls12_381,
+            ProvingSystemArg::GnarkPlonkBn254 => ProvingSystemId::GnarkPlonkBn254,
+            ProvingSystemArg::Groth16Bn254 => ProvingSystemId::Groth16Bn254,
+            ProvingSystemArg::SP1 => ProvingSystemId::SP1,
+            ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
+            ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
+            ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
         }
     }
 }
