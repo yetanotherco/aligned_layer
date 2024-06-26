@@ -55,7 +55,7 @@ defmodule ExplorerWeb.Home.Index do
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
-    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_home")
+    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok,
      assign(socket,

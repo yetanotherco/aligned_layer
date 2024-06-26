@@ -10,7 +10,7 @@ defmodule ExplorerWeb.Batches.Index do
 
     batches = Batches.get_latest_batches(%{amount: @page_size * current_page})
 
-    PubSub.subscribe(Explorer.PubSub, "update_batches")
+    PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok, assign(socket, current_page: current_page, batches: batches, page_title: "Batches")}
   end

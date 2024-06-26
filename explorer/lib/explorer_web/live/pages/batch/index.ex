@@ -5,7 +5,7 @@ defmodule ExplorerWeb.Batch.Index do
   def mount(params, _, socket) do
     merkle_root = params["merkle_root"]
 
-    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_batch")
+    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     if merkle_root == nil do
       {

@@ -45,9 +45,7 @@ defmodule Explorer.Periodically do
     rescue
       error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
     end
-    PubSub.broadcast(Explorer.PubSub, "update_home", %{})
-    PubSub.broadcast(Explorer.PubSub, "update_batch", %{})
-    PubSub.broadcast(Explorer.PubSub, "update_batches", %{})
+    PubSub.broadcast(Explorer.PubSub, "update_views", %{})
     IO.inspect("Done processing from block #{fromBlock} to block #{toBlock}")
   end
 
