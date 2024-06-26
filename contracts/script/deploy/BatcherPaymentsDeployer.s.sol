@@ -24,19 +24,19 @@ contract BatcherPaymentsDeployer is Script {
             ".address.alignedLayerServiceManager"
         );
 
-        uint256 this_tx_base_gas_cost = stdJson.readUint(
+        uint256 thisTxBaseGasCost = stdJson.readUint(
             config_data,
-            ".amounts.this_tx_base_gas_cost"
+            ".amounts.thisTxBaseGasCost"
         );
 
-        uint256 create_task_gas_price = stdJson.readUint(
+        uint256 createTaskGasPrice = stdJson.readUint(
             config_data,
-            ".amounts.create_task_gas_price"
+            ".amounts.createTaskGasPrice"
         );
 
-        uint256 extra_user_tx_gas_cost = stdJson.readUint(
+        uint256 extraUserTxGasCost = stdJson.readUint(
             config_data,
-            ".amounts.extra_user_tx_gas_cost"
+            ".amounts.extraUserTxGasCost"
         );
 
         vm.startBroadcast();
@@ -46,9 +46,9 @@ contract BatcherPaymentsDeployer is Script {
         BatcherPayments(payable(address(proxy))).initialize(
             alignedLayerServiceManager,
             batcherWallet,
-            this_tx_base_gas_cost,
-            create_task_gas_price,
-            extra_user_tx_gas_cost
+            thisTxBaseGasCost,
+            createTaskGasPrice,
+            extraUserTxGasCost
         );
         
         vm.stopBroadcast();
