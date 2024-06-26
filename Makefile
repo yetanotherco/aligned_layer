@@ -664,11 +664,11 @@ generate_halo2_ipa_proof:
 	echo "Generated halo2 plonk proof!"
 
 __MINA_FFI__: ##
-build_kimchi_macos:
+build_mina_macos:
 	@cd operator/kimchi/lib && cargo build --release
 	@cp operator/kimchi/lib/target/release/libkimchi_verifier_ffi.dylib operator/kimchi/lib/libkimchi_verifier.dylib
 
-build_kimchi_linux:
+build_mina_linux:
 	@cd operator/kimchi/lib && cargo build --release
 	@cp operator/kimchi/lib/target/release/libkimchi_verifier_ffi.so operator/kimchi/lib/libkimchi_verifier.so
 
