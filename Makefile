@@ -175,9 +175,6 @@ __BATCHER__:
 
 BURST_SIZE=5
 
-./batcher/aligned-batcher/.env:
-	@echo "To start the Batcher ./batcher/aligned-batcher/.env needs to be manually set"; false;
-
 batcher_start:
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/aligned-batcher/.env
