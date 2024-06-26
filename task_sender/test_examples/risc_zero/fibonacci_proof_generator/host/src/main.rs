@@ -4,7 +4,7 @@ use methods::{FIBONACCI_ELF, FIBONACCI_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
 
 const PROOF_FILE_PATH: &str = "risc_zero_fibonacci.proof";
-const FIBONACCI_ID_FILE_PATH: &str = "fibonacci_id.txt";
+const FIBONACCI_ID_FILE_PATH: &str = "fibonacci_id.bin";
 
 fn main() {
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`
@@ -54,8 +54,14 @@ fn main() {
 
     std::fs::write(PROOF_FILE_PATH, serialized).expect("Failed to write proof file");
 
-    let fibonacci_id_str = format!("{:?}", FIBONACCI_ID);
+    std::fs::write(FIBONACCI_ID_FILE_PATH, convert(&FIBONACCI_ID))
+        .expect("Failed to write fibonacci_id file");
+}
 
-    std::fs::write(FIBONACCI_ID_FILE_PATH, fibonacci_id_str).expect("Failed to write image ID file");
-
+pub fn convert(data: &[u32; 8]) -> [u8; 32] {
+    let mut res = [0; 32];
+    for i in 0..8 {
+        res[4 * i..4 * (i + 1)].copy_from_slice(&data[i].to_le_bytes());
+    }
+    res
 }

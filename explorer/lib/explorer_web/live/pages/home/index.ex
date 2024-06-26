@@ -19,6 +19,30 @@ defmodule ExplorerWeb.Home.Index do
     end
   end
 
+  def handle_info(_, socket) do
+    IO.puts("Received update for home from PubSub")
+
+    verified_batches = Batches.get_amount_of_verified_batches()
+
+    operators_registered = get_operators_registered()
+
+    latest_batches =
+      Batches.get_latest_batches(%{amount: 5})
+      # extract only the merkle root
+      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
+
+    verified_proofs = Batches.get_amount_of_verified_proofs()
+
+    {:noreply,
+     assign(
+       socket,
+       verified_batches: verified_batches,
+       operators_registered: operators_registered,
+       latest_batches: latest_batches,
+       verified_proofs: verified_proofs
+     )}
+  end
+
   def mount(_, _, socket) do
     verified_batches = Batches.get_amount_of_verified_batches()
 
@@ -30,6 +54,8 @@ defmodule ExplorerWeb.Home.Index do
       |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
+
+    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok,
      assign(socket,
