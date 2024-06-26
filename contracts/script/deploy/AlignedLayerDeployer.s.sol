@@ -31,8 +31,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
     ProxyAdmin public alignedLayerProxyAdmin;
     address public alignedLayerOwner;
     address public alignedLayerUpgrader;
-    address public pauser;
-    address public pauserAddress;
+    address public alignedLayerPauser;
     uint256 public initalPausedStatus;
     address public deployer;
 
@@ -88,8 +87,10 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             ".permissions.initalPausedStatus"
         );
 
-        pauser = address(eigenLayerPauserReg); //TODO: Change to the pauser
-        pauserAddress = stdJson.readAddress(config_data, ".permissions.pauser");
+        alignedLayerPauser = stdJson.readAddress(
+            config_data,
+            ".permissions.pauser"
+        );
 
         deployer = stdJson.readAddress(config_data, ".permissions.deployer");
         require(
@@ -106,8 +107,8 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         //deploy pauser registry
         {
             address[] memory pausers = new address[](1);
-            pausers[0] = pauserAddress;
-            pauserRegistry = new PauserRegistry(pausers, pauserAddress); // (pausers, unpauser)
+            pausers[0] = alignedLayerPauser;
+            pauserRegistry = new PauserRegistry(pausers, alignedLayerPauser); // (pausers, unpauser)
         }
 
         //deploy service manager router
@@ -226,7 +227,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
                     alignedLayerOwner,
                     churner,
                     ejector,
-                    IPauserRegistry(pauser),
+                    pauserRegistry,
                     initalPausedStatus,
                     operatorSetParams,
                     minimumStakeForQuourm,
@@ -324,18 +325,27 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             config_data,
             ".permissions.upgrader"
         );
+        alignedLayerPauser = stdJson.readAddress(
+            config_data,
+            ".permissions.pauser"
+        );
         initalPausedStatus = stdJson.readUint(
             config_data,
             ".permissions.initalPausedStatus"
         );
-
-        pauser = address(eigenLayerPauserReg);
 
         deployer = stdJson.readAddress(config_data, ".permissions.deployer");
         vm.startPrank(deployer);
 
         // deploy proxy admin for ability to upgrade proxy contracts
         alignedLayerProxyAdmin = new ProxyAdmin();
+
+        //deploy pauser registry
+        {
+            address[] memory pausers = new address[](1);
+            pausers[0] = alignedLayerPauser;
+            pauserRegistry = new PauserRegistry(pausers, alignedLayerPauser); // (pausers, unpauser)
+        }
 
         //deploy service manager router
         serviceManagerRouter = new ServiceManagerRouter();
@@ -453,7 +463,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
                     alignedLayerOwner,
                     churner,
                     ejector,
-                    IPauserRegistry(pauser),
+                    pauserRegistry,
                     initalPausedStatus,
                     operatorSetParams,
                     minimumStakeForQuourm,
@@ -478,7 +488,9 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
-                deployer
+                deployer,
+                pauserRegistry,
+                initalPausedStatus
             )
         );
 
@@ -651,7 +663,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             "registryCoordinator.ejector() != ejector"
         );
         require(
-            registryCoordinator.pauserRegistry() == IPauserRegistry(pauser),
+            registryCoordinator.pauserRegistry() == pauserRegistry,
             "registryCoordinator: pauser registry not set correctly"
         );
         require(
