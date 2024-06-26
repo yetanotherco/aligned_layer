@@ -25,7 +25,7 @@ contract RegistryCoordinatorUpgrader is Script {
         string memory aligned_deployment_file = vm.readFile(
             alignedLayerDeploymentFilePath
         );
-        
+
         // Load proxy admin
         ProxyAdmin alignedLayerProxyAdmin = ProxyAdmin(
             stdJson.readAddress(
@@ -36,19 +36,23 @@ contract RegistryCoordinatorUpgrader is Script {
 
         // Load RegistryCoordinator Proxy
         TransparentUpgradeableProxy registryCoordinator = TransparentUpgradeableProxy(
-            payable(stdJson.readAddress(
-                aligned_deployment_file,
-                ".addresses.registryCoordinator"
-            ))
-        );
+                payable(
+                    stdJson.readAddress(
+                        aligned_deployment_file,
+                        ".addresses.registryCoordinator"
+                    )
+                )
+            );
 
         // Load RegistryCoordinator dependencies
         AlignedLayerServiceManager alignedLayerServiceManager = AlignedLayerServiceManager(
-            stdJson.readAddress(
-                aligned_deployment_file,
-                ".addresses.alignedLayerServiceManager"
-            )
-        );
+                payable(
+                    stdJson.readAddress(
+                        aligned_deployment_file,
+                        ".addresses.alignedLayerServiceManager"
+                    )
+                )
+            );
         StakeRegistry stakeRegistry = StakeRegistry(
             stdJson.readAddress(
                 aligned_deployment_file,
@@ -71,20 +75,20 @@ contract RegistryCoordinatorUpgrader is Script {
         // Create a new instance of the RegistryCoordinatorImplementation
         vm.startBroadcast();
         RegistryCoordinator registryCoordinatorImplementation = new RegistryCoordinator(
-            IServiceManager(address(alignedLayerServiceManager)),
-            stakeRegistry,
-            apkRegistry,
-            indexRegistry
-        );
+                IServiceManager(address(alignedLayerServiceManager)),
+                stakeRegistry,
+                apkRegistry,
+                indexRegistry
+            );
         vm.stopBroadcast();
 
         vm.startBroadcast();
         alignedLayerProxyAdmin.upgrade(
             registryCoordinator,
             address(registryCoordinatorImplementation)
-        ); 
+        );
         vm.stopBroadcast();
-        
+
         return (
             address(registryCoordinator),
             address(registryCoordinatorImplementation)
