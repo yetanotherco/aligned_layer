@@ -39,8 +39,16 @@ Ensure you have the following installed:
 
 Also, you have to install the following dependencies for Linux:
 
+- make
+- build-essential
 - pkg-config
 - libssl-dev
+
+To install these dependencies on Debian/Ubuntu
+```bash
+sudo apt install make pkg-config libssl-dev build-essential
+```
+
 
 To install foundry, run:
 
