@@ -9,6 +9,9 @@ fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
 
+    println!("Welcome to the quiz! Please answer the following questions to generate a proof for the program.");
+    println!("You will be asked 3 questions. Please answer with the corresponding letter (a, b or c).");
+
     let mut user_awnsers = "".to_string();
     let question1 = "Who invented bitcoin";
     let answers1 = ["Sreeram Kannan", "Vitalik Buterin", "Satoshi Nakamoto"];
@@ -55,13 +58,31 @@ fn ask_question(question: &str, answers: &[&str]) -> char {
         println!("{}. {}", (b'a' + i as u8) as char, answer);
     }
 
-    return read_answer().chars().next()
-        .expect("failed to get first char");
+    return read_answer();
 }
 
-fn read_answer() -> String {
-    let mut answer = String::new();
-    io::stdin().read_line(&mut answer).expect("Failed to read from stdin");
-    answer.trim().to_string()
+fn is_valid_answer(answer: char) -> bool {
+    answer == 'a' || answer == 'b' || answer == 'c'
+}
+
+fn read_answer() -> char {
+    loop {
+        let mut answer = String::new();
+
+        io::stdin().read_line(&mut answer).expect("Failed to read from stdin");
+        answer = answer.trim().to_string();
+        if answer.len() != 1 {
+            println!("Please enter a valid answer (a, b or c)");
+            continue;
+        }
+
+        let c = answer.chars().next().unwrap();
+        if !is_valid_answer(c) {
+            println!("Please enter a valid answer (a, b or c)");
+            continue;
+        }
+
+        return c;
+    }
 }
 
