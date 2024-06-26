@@ -221,6 +221,23 @@ batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
 	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
 
+batcher_send_risc0_task:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof test_files/risc_zero/risc_zero_fibonacci.proof \
+        --vm_program test_files/risc_zero/fibonacci_id.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_risc0_burst:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof test_files/risc_zero/risc_zero_fibonacci.proof \
+        --vm_program test_files/risc_zero/fibonacci_id.bin \
+        --repetitions 15 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
@@ -550,12 +567,10 @@ __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
 	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
-	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
 
 build_risc_zero_linux:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
 	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
-	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.a operator/risc_zero/lib/librisc_zero_verifier_ffi.a
 
 test_risc_zero_rust_ffi:
 	@echo "Testing RISC Zero Rust FFI source code..."
@@ -571,11 +586,8 @@ test_risc_zero_go_bindings_linux: build_risc_zero_linux
 
 generate_risc_zero_fibonacci_proof:
 	@cd task_sender/test_examples/risc_zero/fibonacci_proof_generator && \
-		cargo clean && \
-		rm -f risc_zero_fibonacci.proof && \
 		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof generated in task_sender/test_examples/risc_zero folder" && \
-		echo "Fibonacci proof image ID generated in task_sender/test_examples/risc_zero folder"
+		echo "Fibonacci proof and image ID generated in task_sender/test_examples/risc_zero folder"
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
@@ -672,7 +684,7 @@ build_all_ffi: ## Build all FFIs
 build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
-#	@$(MAKE) build_risc_zero_macos
+	@$(MAKE) build_risc_zero_macos
 #	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
@@ -681,7 +693,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
-#	@$(MAKE) build_risc_zero_linux
+	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux

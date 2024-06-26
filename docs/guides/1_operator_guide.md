@@ -1,8 +1,7 @@
 
 # Register as an Aligned operator in testnet
 
-> [!NOTE]
-> You must be whitelisted to become an Aligned operator.
+**Important note**: You must be whitelisted to become an Aligned operator.
 
 ## Requirements
 
@@ -19,8 +18,8 @@ Minimum hardware requirements:
 | **Bandwidth** | 1 Gbps            |
 | **Storage**   | 256 GB disk space |
 
-
 ## Step 1 - Clone the repo
+
 To start with, clone the Aligned repository and move inside it
 
 ```bash
@@ -87,7 +86,7 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
 
-## Step 4: Deposit Strategy Tokens
+## Step 4 - Deposit Strategy Tokens
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
@@ -95,10 +94,12 @@ To do so there are 2 options, either doing it through EigenLayer's website, and 
 
 You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
 
-### Option 1:
+### Option 1
+
 EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
 
-### Option 2:
+### Option 2
+
 If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH.
 Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
 Change the parameter in ```---value``` if you want to wrap a different amount:
@@ -120,7 +121,7 @@ as shown in the Eigen guide.
   ```bash
   ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
   ```
-
+  </summary>
 </details>
 
 If you don't have Holesky Eth, these are some useful faucets:
@@ -129,7 +130,8 @@ If you don't have Holesky Eth, these are some useful faucets:
 - [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
 
 ## Step 5 - Start the operator
-```
+
+```bash
 ./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
 ```
 
