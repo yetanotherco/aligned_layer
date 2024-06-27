@@ -31,12 +31,14 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
     
     function initialize (
         address _AlignedLayerServiceManager,
+        address _BatcherPaymentServiceOwner,
         address _BatcherWallet, 
         uint256 _PaymentServiceCreateTaskGasCost, 
         uint256 _ServiceManagerCreateTaskGasCost,
         uint256 _ExtraUserTxGasCost
     ) public initializer {
         __Ownable_init(); // default is msg.sender
+        _transferOwnership(_BatcherPaymentServiceOwner);
 
         AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
