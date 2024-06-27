@@ -1,8 +1,8 @@
 use crate::gnark::verify_gnark;
+use crate::halo2::axiom::verify_halo2_axiom;
 use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
 use crate::risc_zero::verify_risc_zero_proof;
-use crate::halo2::axiom::verify_halo2_axiom;
 use crate::sp1::verify_sp1_proof;
 use aligned_batcher_lib::types::{ProvingSystemId, VerificationData};
 use log::{debug, warn};

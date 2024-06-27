@@ -1,9 +1,9 @@
 use std::{fs::File, io::{BufWriter, Write}};
-use halo2_axiom::{
+use halo2_aligned::{
     circuit::{Layouter, SimpleFloorPlanner, Value},
     plonk::{
         create_proof, keygen_pk, keygen_vk_custom, Advice, Circuit, Column,
-        ConstraintSystem, Fixed, Instance, Error
+        ConstraintSystem, Fixed, Instance, Error, write_params
     },
     poly::{
         kzg::{
@@ -130,9 +130,10 @@ fn main() {
     let params = ParamsKZG::<Bn256>::setup(k, OsRng);
     let compress_selectors = true;
     let vk = keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
+    let cs = vk.cs();
     let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
-
     let instances: &[&[Fr]] = &[&[circuit.0]];
+
     let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
     create_proof::<
         KZGCommitmentScheme<Bn256>,
@@ -153,31 +154,27 @@ fn main() {
     let proof = transcript.finalize();
 
     //write proof
-    std::fs::write("proof.bin", &proof[..])
-    .expect("should succeed to write new proof");
+    let f = File::create("proof.bin").unwrap();
+    let mut writer = BufWriter::new(f);
+    writer.write(&proof).unwrap();
+    writer.flush().unwrap();
 
-    //write instances
+    //write public input
     let f = File::create("pub_input.bin").unwrap();
     let mut writer = BufWriter::new(f);
     instances.to_vec().into_iter().flatten().for_each(|fp| { writer.write(&fp.to_repr()).unwrap(); });
     writer.flush().unwrap();
 
+    let cs_buf = bincode::serialize(cs).unwrap();
+
     let mut vk_buf = Vec::new();
     vk.write(&mut vk_buf, SerdeFormat::RawBytes).unwrap();
-    let vk_len = vk_buf.len();
 
-    let mut kzg_params_buf = Vec::new();
-    params.write(&mut kzg_params_buf).unwrap();
-    let kzg_params_len = kzg_params_buf.len();
+    let mut params_buf = Vec::new();
+    params.write(&mut params_buf).unwrap();
 
-    //Write everything to parameters file
-    let params_file = File::create("params.bin").unwrap();
-    let mut writer = BufWriter::new(params_file);
-    //Write Parameter Lengths as u32
-    writer.write_all(&(vk_len as u32).to_le_bytes()).unwrap();
-    writer.write_all(&(kzg_params_len as u32).to_le_bytes()).unwrap();
-    //Write Parameters
-    writer.write_all(&vk_buf).unwrap();
-    writer.write_all(&kzg_params_buf).unwrap();
-    writer.flush().unwrap();
+    // write cs, vk, params
+    let mut params_buf = Vec::new();
+    params.write(&mut params_buf).unwrap();
+    write_params::<G1Affine>(&params_buf, &cs_buf, &vk_buf, "params.bin").unwrap();
 }

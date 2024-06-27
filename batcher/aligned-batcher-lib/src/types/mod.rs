@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use ethers::types::Address;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,

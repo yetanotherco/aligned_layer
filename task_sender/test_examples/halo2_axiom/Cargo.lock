@@ -343,8 +343,9 @@ dependencies = [
 [[package]]
 name = "halo2-axiom"
 version = "0.4.4"
-source = "git+https://github.com/axiom-crypto/halo2.git#03155a49a933f4c2d88e7f1296027e795e273455"
+source = "git+https://github.com/yetanotherco/una-horquilla-halo2-mas.git?branch=feat/serde_cs#f0bd8e2437bad5c4e2f4f26931d01d0582a62fc3"
 dependencies = [
+ "bincode",
  "blake2b_simd",
  "crossbeam",
  "ff",
@@ -356,6 +357,7 @@ dependencies = [
  "rand",
  "rand_core",
  "rustc-hash",
+ "serde",
  "sha3",
  "tracing",
 ]
@@ -484,7 +486,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ea1f30cedd69f0a2954655f7188c6a834246d2bcf1e315e2ac40c4b24dc9519"
 dependencies = [
  "cfg-if",
- "rayon",
 ]
 
 [[package]]

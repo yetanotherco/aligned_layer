@@ -145,6 +145,8 @@ pub enum ProvingSystemArg {
     Halo2KZG,
     #[clap(name = "Halo2IPA")]
     Halo2IPA,
+    #[clap(name = "Halo2Axiom")]
+    Halo2Axiom,
     #[clap(name = "Risc0")]
     Risc0,
 }
@@ -158,6 +160,7 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
             ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
             ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
+            ProvingSystemArg::Halo2Axiom => ProvingSystemId::Halo2Axiom,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
         }
     }
@@ -375,6 +378,7 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
         }
         ProvingSystemId::Halo2KZG
         | ProvingSystemId::Halo2IPA
+        | ProvingSystemId::Halo2Axiom
         | ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {

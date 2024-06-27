@@ -14,6 +14,7 @@ const (
 	SP1
 	Halo2KZG
 	Halo2IPA
+	Halo2Axiom
 	Risc0
 )
 

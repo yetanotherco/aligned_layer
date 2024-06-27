@@ -180,7 +180,7 @@ BURST_SIZE=5
 
 batcher_start: ./batcher/aligned-batcher/.env
 	@echo "Starting Batcher..."
-	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/aligned-batcher/.env
+	@cargo +nightly run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/aligned-batcher/.env
 
 install_batcher:
 	@cargo +nightly-2024-04-17 install --path batcher/aligned-batcher
@@ -342,6 +342,25 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--repetitions 5 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+batcher_send_halo2_axiom_task: batcher/target/release/aligned
+	@echo "Sending Halo2 Axiom 1!=0 task to Batcher..."
+	@cd batcher/aligned/ && cargo +nightly run --release -- submit \
+		--proving_system Halo2Axiom \
+		--proof test_files/halo2_axiom/proof.bin \
+		--public_input test_files/halo2_axiom/pub_input.bin \
+		--vk test_files/halo2_axiom/params.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_halo2_axiom_task_burst_5: batcher/target/release/aligned
+	@echo "Sending Halo2 Axiom 1!=0 task to Batcher..."
+	@cd batcher/aligned/ && cargo +nightly run --release -- submit \
+		--proving_system Halo2Axiom \
+		--proof test_files/halo2_axiom/proof.bin \
+		--public_input test_files/halo2_axiom/pub_input.bin \
+		--vk test_files/halo2_axiom/params.bin \
+		--repetitions 5 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 __TASK_SENDERS__:
  # TODO add a default proving system
 
@@ -486,6 +505,27 @@ send_halo2_kzg_proof_loop: ## Send a Halo2 KZG proof using the task sender every
 		--interval 10 \
 		2>&1 | zap-pretty
 
+send_halo2_axiom_proof: ## Send a Halo2 KZG proof using the task sender
+	@echo "Sending Halo2 Axiom proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system halo2_axiom \
+		--proof task_sender/test_examples/halo2_axiom/proof.bin \
+		--public-input task_sender/test_examples/halo2_axiom/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_axiom/params.bin \
+		--config config-files/config.yaml \
+		2>&1 | zap-pretty
+
+send_halo2_axiom_proof_loop: ## Send a Halo2 KZG proof using the task sender every 10 seconds
+	@echo "Sending Halo2 Axiom proof in a loop every 10 seconds..."
+	@go run task_sender/cmd/main.go loop-tasks \
+		--proving-system halo2_axiom \
+		--proof task_sender/test_examples/halo2_axiom/proof.bin \
+		--public-input task_sender/test_examples/halo2_axiom/pub_input.bin \
+		--verification-key task_sender/test_examples/halo2_axiom/params.bin \
+		--config config-files/config.yaml \
+		--interval 10 \
+		2>&1 | zap-pretty
+
 __METRICS__:
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
@@ -589,6 +629,37 @@ generate_risc_zero_fibonacci_proof:
 		RUST_LOG=info cargo run --release && \
 		echo "Fibonacci proof and image ID generated in task_sender/test_examples/risc_zero folder"
 
+__HALO2_AXIOM_FFI__: ##
+build_halo2_axiom_macos:
+	@cd operator/halo2axiom/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/halo2axiom/lib/target/$(TARGET_REL_PATH)/libhalo2axiom_verifier_ffi.dylib operator/halo2axiom/lib/libhalo2axiom_verifier.dylib
+	@cp operator/halo2axiom/lib/target/$(TARGET_REL_PATH)/libhalo2axiom_verifier_ffi.a operator/halo2axiom/lib/libhalo2axiom_verifier.a
+
+build_halo2_axiom_linux:
+	@cd operator/halo2axiom/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/halo2axiom/lib/target/$(TARGET_REL_PATH)/libhalo2axiom_verifier_ffi.so operator/halo2axiom/lib/libhalo2axiom_verifier.so
+	@cp operator/halo2axiom/lib/target/$(TARGET_REL_PATH)/libhalo2axiom_verifier_ffi.a operator/halo2axiom/lib/libhalo2axiom_verifier.a
+
+test_halo2_axiom_rust_ffi:
+	@echo "Testing Halo2-KZG Rust FFI source code..."
+	@cd operator/halo2axiom/lib && cargo t --release
+
+test_halo2_axiom_go_bindings_macos: build_halo2_axiom_macos
+	@echo "Testing Halo2-Axiom Go bindings..."
+	go test ./operator/halo2axiom/... -v
+
+test_halo2_axiom_go_bindings_linux: build_halo2_axiom_linux
+	@echo "Testing Halo2-Axiom Go bindings..."
+	go test ./operator/halo2axiom/... -v
+
+generate_halo2_axiom_proof:
+	@cd task_sender/test_examples/halo2_axiom && \
+	cargo clean && \
+	rm params.bin proof.bin pub_input.bin && \
+	RUST_LOG=info cargo run --release && \
+	echo "Generating halo2-axiom plonk proof..." && \
+	echo "Generated halo2-axiom plonk proof!"
+
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
 	@cd operator/merkle_tree/lib && cargo build $(RELEASE_FLAG)
@@ -686,6 +757,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 #	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_halo2_axiom_macos
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
 	@echo "All macOS FFIs built successfully."
@@ -695,6 +767,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 #	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_halo2_axiom_linux
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
 	@echo "All Linux FFIs built successfully."

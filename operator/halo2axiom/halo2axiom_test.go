@@ -36,21 +36,30 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	}
 	defer paramsFile.Close()
 
+	csBuffer := make([]byte, 4)
 	vkLenBuffer := make([]byte, 4)
 	kzgParamLenBuffer := make([]byte, 4)
+	csBytes := make([]byte, halo2kzg.MaxCSSize)
 	vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
 	kzgParamsBytes := make([]byte, halo2kzg.MaxKzgParamsSize)
 
 	// Deserialize lengths of values
-	copy(vkLenBuffer, paramsFileBytes[:4])
-	copy(kzgParamLenBuffer, paramsFileBytes[4:8])
+	copy(csBuffer, paramsFileBytes[:4])
+	copy(vkLenBuffer, paramsFileBytes[4:8])
+	copy(kzgParamLenBuffer, paramsFileBytes[8:12])
 
+	csLen :=  binary.LittleEndian.Uint32(csBuffer)
 	vkLen :=  binary.LittleEndian.Uint32(vkLenBuffer)
 	kzgParamsLen :=  binary.LittleEndian.Uint32(kzgParamLenBuffer)
 
-	// Select bytes
-	vkOffset := uint32(8)
+	csOffset := uint32(12)
+	copy(csBytes, paramsFileBytes[vkOffset:(csOffset + csLen)])
+
+	// Select Vk Bytes
+	vkOffset := csOffset + csLen
 	copy(vkBytes, paramsFileBytes[vkOffset:(vkOffset + vkLen)])
+
+	// Select KZG Bytes
 	kzgParamsOffset := vkOffset + vkLen
 	copy(kzgParamsBytes, paramsFileBytes[kzgParamsOffset:])
 
@@ -66,6 +75,7 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 
 	if !halo2kzg.VerifyHalo2AxiomProof(
 		([halo2kzg.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes), 
+		([halo2kzg.MaxCSSize]byte)(csBytes), uint32(csLen),
 		([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), uint32(vkLen),
 		([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), uint32(kzgParamsLen),
 		([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), uint32(nReadPublicInputBytes),

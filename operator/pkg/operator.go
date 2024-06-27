@@ -288,12 +288,17 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- verificationResult
 	case common.Halo2Axiom:
 		// Extract Proof Bytes
-		proofBytes := make([]byte, halo2kzg.MaxProofSize)
+		proofBytes := make([]byte, halo2axiom.MaxProofSize)
 		copy(proofBytes, verificationData.Proof)
 		proofLen := (uint32)(len(verificationData.Proof))
 
 		// Extract Verification Key Bytes
 		paramsBytes := verificationData.VerificationKey
+
+		// Deserialize csLen
+		csLenBuffer := make([]byte, 4)
+		copy(csLenBuffer, paramsBytes[:4])
+		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
 
 		// Deserialize vkLen
 		vkLenBuffer := make([]byte, 4)
@@ -305,28 +310,32 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		copy(kzgParamsLenBuffer, paramsBytes[8:12])
 		kzgParamsLen := (uint32)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
 
+		// Extract Constraint System Bytes
+		csBytes := make([]byte, halo2axiom.MaxCSSize)
+		csOffset := uint32(12)
+		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
+
 		// Extract Verification Key Bytes
-		vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
-		vkOffset := uint32(8)
+		vkBytes := make([]byte, halo2axiom.MaxVerifierKeySize)
+		vkOffset := csOffset + csLen
 		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
 
 		// Extract Kzg Parameter Bytes
-		kzgParamsBytes := make([]byte,(halo2kzg.MaxKzgParamsSize))
+		kzgParamsBytes := make([]byte,(halo2axiom.MaxKzgParamsSize))
 		kzgParamsOffset := vkOffset + vkLen
-		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:])
+		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:(kzgParamsOffset + kzgParamsLen)])
 
 		// Extract Public Input Bytes
 		publicInput := verificationData.PubInput
-		publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
+		publicInputBytes := make([]byte, halo2axiom.MaxPublicInputSize)
 		copy(publicInputBytes, publicInput)
 		publicInputLen := (uint32)(len(publicInput))
 	
-		proofLen := (uint32)(len(verificationData.Proof))
-		vkLen := (uint32)(len(verificationData.VerificationKey))
-
-		verificationResult := halo2ipa.VerifyHalo2IpaProof(
+		verificationResult := halo2axiom.VerifyHalo2AxiomProof(
 			([halo2axiom.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2axiom.MaxCSSize]byte)(csBytes), csLen, 
 			([halo2axiom.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
+			([halo2axiom.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen, 
 			([halo2axiom.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
 		o.Logger.Infof("Halo2-Axiom proof verification result: %t", verificationResult)
 		results <- verificationResult
