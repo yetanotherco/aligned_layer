@@ -36,8 +36,8 @@ forge script ../examples/verify/script/VerifyBatchInclusionCallerDeployer.s.sol 
     --sig "run(address _targetContract)"
 
 # Deploy Batcher Payments Contract
-forge script script/deploy/BatcherPaymentsDeployer.s.sol \
-    ./script/deploy/config/devnet/batcher-payments.devnet.config.json \
+forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
+    ./script/deploy/config/devnet/batcher-payment-service.devnet.config.json \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
     --broadcast \

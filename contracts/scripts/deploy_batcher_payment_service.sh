@@ -11,8 +11,8 @@ cd ../
 source scripts/.env
 
 # Deploy Batcher Payments Contract
-forge script script/deploy/BatcherPaymentsDeployer.s.sol \
-    ./script/deploy/config/holesky/batcher-payments.holesky.config.json \
+forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
+    ./script/deploy/config/holesky/batcher-payment-service.holesky.config.json \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
     --broadcast \

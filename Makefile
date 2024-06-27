@@ -523,9 +523,9 @@ deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
 
-deploy_batcher_payments:
+deploy_batcher_payment_service:
 	@echo "Deploying BatcherPayments contract..."
-	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payments.sh
+	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payment_service.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build

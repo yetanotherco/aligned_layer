@@ -1,12 +1,12 @@
 pragma solidity =0.8.12;
 
-import {BatcherPayments} from "../../src/core/BatcherPayments.sol";
+import {BatcherPaymentService} from "../../src/core/BatcherPaymentService.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 
-contract BatcherPaymentsDeployer is Script {
+contract BatcherPaymentServiceDeployer is Script {
     function run(
         string memory batcherConfigPath
     ) external returns (address) {
@@ -41,9 +41,9 @@ contract BatcherPaymentsDeployer is Script {
 
         vm.startBroadcast();
 
-        BatcherPayments batcherPayments = new BatcherPayments();
-        ERC1967Proxy proxy = new ERC1967Proxy(address(batcherPayments), "");
-        BatcherPayments(payable(address(proxy))).initialize(
+        BatcherPaymentService batcherPaymentService = new BatcherPaymentService();
+        ERC1967Proxy proxy = new ERC1967Proxy(address(batcherPaymentService), "");
+        BatcherPaymentService(payable(address(proxy))).initialize(
             alignedLayerServiceManager,
             batcherWallet,
             thisTxBaseGasCost,

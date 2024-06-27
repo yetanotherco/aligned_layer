@@ -4,7 +4,7 @@ import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initia
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 
-contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeable {
+contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpgradeable {
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
