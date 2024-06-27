@@ -11,7 +11,7 @@ use aligned_batcher_lib::types::{
     VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::BatchVerifiedFilter;
+use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use futures_util::stream::{self, SplitSink};
@@ -49,6 +49,7 @@ pub struct Batcher {
     s3_client: S3Client,
     eth_ws_provider: Provider<Ws>,
     service_manager: AlignedLayerServiceManager,
+    payment_service: BatcherPaymentService,
     batch_queue: Mutex<BatchQueue>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -84,18 +85,28 @@ impl Batcher {
             .try_into()
             .unwrap();
 
-        let service_manager = eth::get_contract(
-            eth_rpc_provider,
-            config.ecdsa,
+        let service_manager = eth::get_service_manager(
+            eth_rpc_provider.clone(),
+            config.ecdsa.clone(),
             deployment_output.addresses.aligned_layer_service_manager,
         )
         .await
         .expect("Failed to get Aligned service manager contract");
 
+        let payment_service = eth::get_batcher_payment_service(
+            eth_rpc_provider,
+            config.ecdsa,
+            // deployment_output.addresses.batcher_payments_service,
+            String::from("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"),
+        )
+        .await
+        .expect("Failed to get Batcher Payment Service contract");
+
         Self {
             s3_client,
             eth_ws_provider,
             service_manager,
+            payment_service,
             batch_queue: Mutex::new(BatchQueue::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
@@ -189,9 +200,17 @@ impl Batcher {
         // FIXME: We are not doing anything for the moment with the address from the
         // sender, this logic should be added for the payment system.
         info!("Verifying message signature...");
-        if let Ok(_addr) = client_msg.verify_signature() {
+        if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
             // do something with addr
+            let user_balance = self
+                .payment_service
+                .user_balances(addr)
+                .call()
+                .await
+                .unwrap();
+
+            println!("USER BALANCE IS: {}", user_balance);
         } else {
             error!("Signature verification error")
         }

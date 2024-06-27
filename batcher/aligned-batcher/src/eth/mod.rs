@@ -9,7 +9,12 @@ use crate::config::ECDSAConfig;
 
 abigen!(
     AlignedLayerServiceManagerContract,
-    "./src/eth/abi/AlignedLayerServiceManager.json"
+    "./src/eth/abi/AlignedLayerServiceManager.json",
+);
+
+abigen!(
+    BatcherPaymentServiceContract,
+    "./src/eth/abi/BatcherPaymentService.json",
 );
 
 #[derive(Debug, Clone, EthEvent)]
@@ -27,11 +32,14 @@ pub type BatchVerifiedEventStream<'s> = EventStream<
     ContractError<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
 >;
 
+pub type BatcherPaymentService =
+    BatcherPaymentServiceContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
+
 pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
     Provider::<Http>::try_from(eth_rpc_url).map_err(|err| anyhow::anyhow!(err))
 }
 
-pub async fn get_contract(
+pub async fn get_service_manager(
     provider: Provider<Http>,
     ecdsa_config: ECDSAConfig,
     contract_address: String,
@@ -66,3 +74,35 @@ pub async fn create_new_task(
         None => Err(anyhow::anyhow!("Receipt not found")),
     }
 }
+
+pub async fn get_batcher_payment_service(
+    provider: Provider<Http>,
+    ecdsa_config: ECDSAConfig,
+    contract_address: String,
+) -> Result<BatcherPaymentService, anyhow::Error> {
+    let chain_id = provider.get_chainid().await?;
+
+    // get private key from keystore
+    let wallet = Wallet::decrypt_keystore(
+        &ecdsa_config.private_key_store_path,
+        &ecdsa_config.private_key_store_password,
+    )?
+    .with_chain_id(chain_id.as_u64());
+
+    let signer = Arc::new(SignerMiddleware::new(provider, wallet));
+
+    let service_manager =
+        BatcherPaymentService::new(H160::from_str(contract_address.as_str())?, signer);
+
+    Ok(service_manager)
+}
+
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+
+//     #[test]
+//     fn eth_rs_test() {
+//         let a = BatcherPaymentService::user_balances(&self, "0x0");
+//     }
+// }
