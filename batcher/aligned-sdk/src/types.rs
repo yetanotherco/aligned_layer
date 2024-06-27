@@ -4,17 +4,11 @@ use ethers::signers::Wallet;
 use ethers::types::Address;
 use ethers::types::Signature;
 use ethers::types::SignatureError;
-use futures_util::stream::{SplitSink, SplitStream};
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-use std::sync::Arc;
-use tokio::net::TcpStream;
-use tokio::sync::Mutex;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 pub enum ProvingSystemId {
