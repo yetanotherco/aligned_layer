@@ -4,12 +4,9 @@ use crate::types::{
     AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, VerificationCommitmentBatch,
     VerificationData, VerificationDataCommitment,
 };
-use ethers::core::rand::thread_rng;
 use ethers::prelude::k256::ecdsa::SigningKey;
-use ethers::prelude::*;
 use ethers::signers::Wallet;
 use sha3::{Digest, Keccak256};
-use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
@@ -42,7 +39,7 @@ pub const PROTOCOL_VERSION: u16 = 0;
 pub async fn submit(
     batcher_addr: &str,
     verification_data: &[VerificationData],
-    keystore_path: &Option<PathBuf>,
+    wallet: Wallet<SigningKey>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let (ws_stream, _) = connect_async(batcher_addr)
         .await
@@ -52,14 +49,6 @@ pub async fn submit(
     let (ws_write, ws_read) = ws_stream.split();
 
     let ws_write = Arc::new(Mutex::new(ws_write));
-
-    let wallet = if let Some(keystore_path) = keystore_path {
-        let password = rpassword::prompt_password("Please enter your keystore password:")?;
-        Wallet::decrypt_keystore(keystore_path, password)?
-    } else {
-        info!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-        LocalWallet::new(&mut thread_rng())
-    };
 
     _submit(ws_write, ws_read, verification_data, wallet).await
 }

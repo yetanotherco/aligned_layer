@@ -38,6 +38,7 @@ pub enum SubmitError {
     EthError(String),
     SignerError(String),
     PasswordError(io::Error),
+    KeystoreError(PathBuf, String),
     MissingParameter(String),
     InvalidProvingSystem(String),
     InvalidAddress(String, String),
@@ -98,6 +99,9 @@ impl fmt::Debug for SubmitError {
             SubmitError::EthError(e) => write!(f, "Ethereum error: {}", e),
             SubmitError::SignerError(e) => write!(f, "Signer error: {}", e),
             SubmitError::PasswordError(e) => write!(f, "Password input error: {}", e),
+            SubmitError::KeystoreError(path, e) => {
+                write!(f, "Keystore error for file: \"{}\", {}", path.display(), e)
+            }
             SubmitError::InvalidProvingSystem(proving_system) => {
                 write!(f, "Invalid proving system: {}", proving_system)
             }

@@ -7,6 +7,7 @@ use std::str::FromStr;
 use aligned_sdk::errors::{AlignedError, SubmitError};
 use clap::ValueEnum;
 use env_logger::Env;
+use ethers::core::rand::thread_rng;
 use ethers::prelude::*;
 use log::{error, info};
 
@@ -179,12 +180,23 @@ async fn main() -> Result<(), AlignedError> {
             let connect_addr = submit_args.connect_addr.clone();
             let keystore_path = submit_args.keystore_path.clone();
 
+            let wallet = if let Some(keystore_path) = keystore_path {
+                let password = rpassword::prompt_password("Please enter your keystore password:")
+                    .map_err(SubmitError::PasswordError)?;
+
+                Wallet::decrypt_keystore(keystore_path.clone(), password)
+                    .map_err(|e| SubmitError::KeystoreError(keystore_path, e.to_string()))?
+            } else {
+                info!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+                LocalWallet::new(&mut thread_rng())
+            };
+
             let verification_data = verification_data_from_args(submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
 
             let aligned_verification_data_vec =
-                submit(&connect_addr, &verification_data_arr, &keystore_path).await?;
+                submit(&connect_addr, &verification_data_arr, wallet).await?;
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
                 for aligned_verification_data in aligned_verification_data_vec {
