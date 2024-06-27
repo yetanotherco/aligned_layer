@@ -10,13 +10,7 @@ abigen!(
     "abi/AlignedLayerServiceManager.json"
 );
 
-abigen!(
-    BatcherLayerServiceManagerContract,
-    "abi/BatcherPaymentService.json"
-);
-
-pub type AlignedLayerServiceManager =
-    AlignedLayerServiceManagerContract<Provider<Http>>;
+pub type AlignedLayerServiceManager = AlignedLayerServiceManagerContract<Provider<Http>>;
 
 pub async fn aligned_service_manager(
     provider: Provider<Http>,
@@ -28,19 +22,3 @@ pub async fn aligned_service_manager(
 
     Ok(AlignedLayerServiceManager::new(contract_addr, client))
 }
-
-
-pub type BatcherPaymentService =
-    BatcherPaymentServiceContract<Provider<Http>>;
-
-pub async fn batcher_payment_service(
-    provider: Provider<Http>,
-    contract_address: &str,
-) -> Result<AlignedLayerServiceManager, BatcherClientError> {
-    let client = Arc::new(provider);
-    let contract_addr = H160::from_str(contract_address)
-        .map_err(|e| BatcherClientError::EthError(e.to_string()))?;
-
-    Ok(AlignedLayerServiceManager::new(contract_addr, client))
-}
-
