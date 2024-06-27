@@ -444,8 +444,8 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
             if let Some(tx) = tx {
                 info!(
-                    "Payment sent to the batcher successfully. Transaction hash: {}",
-                    tx
+                    "Payment sent to the batcher successfully. Tx: {}",
+                    serde_json::to_string(&tx).unwrap()
                 );
             } else {
                 error!("Transaction failed");
