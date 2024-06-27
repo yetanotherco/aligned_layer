@@ -36,6 +36,7 @@ use crate::types::AlignedVerificationData;
 use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
+use crate::AlignedCommands::PayToBatcher;
 
 use clap::{Parser, ValueEnum};
 
@@ -59,6 +60,12 @@ pub enum AlignedCommands {
         name = "get-vk-commitment"
     )]
     GetVerificationKeyCommitment(GetVerificationKeyCommitmentArgs),
+    // GetVericiationKey, command name is get-vk-commitment
+    #[clap(
+        about = "Deposits Ethereum in the batcher to pay for proofs",
+        name = "pay-for-batcher"
+    )]
+    PayToBatcher(PayToBatcherArgs)
 }
 
 #[derive(Parser, Debug)]
@@ -100,6 +107,25 @@ pub struct SubmitArgs {
     batch_inclusion_data_directory_path: String,
     #[arg(name = "Path to local keystore", long = "keystore_path")]
     keystore_path: Option<PathBuf>,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct PayToBatcherArgs {
+    #[arg(
+        name = "Batcher Eth Address",
+        long = "conn",
+        default_value = ""
+    )]
+    batcher_eth_address: String,
+    #[arg(name = "Path to local keystore", long = "keystore_path")]
+    keystore_path: Option<PathBuf>,
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String
 }
 
 #[derive(Parser, Debug)]
@@ -324,6 +350,20 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 file.write_all(hex::encode(hash).as_bytes())
                     .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))?;
             }
+        }
+        PayToBatcher(args) => { let contract_address = match 
+        args.chain {
+            Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+            Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+        };
+
+        let eth_rpc_url = args.eth_rpc_url;
+
+        let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).unwrap();
+
+        let service_manager =
+            eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
+
         }
     }
 
