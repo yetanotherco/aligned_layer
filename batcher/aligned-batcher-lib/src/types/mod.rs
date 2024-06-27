@@ -145,7 +145,16 @@ impl ClientMessage {
     /// The signature is obtained by calculating the commitments and then hashing them.
     pub async fn new(verification_data: VerificationData, wallet: Wallet<SigningKey>) -> Self {
         let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.clone().into());
+
+        println!("HASHED LEAF: {:?}", hashed_leaf);
         let signature = wallet.sign_message(hashed_leaf).await.unwrap();
+        let original = wallet.address();
+        println!("SIGNER: {:?}", wallet.signer());
+        println!("ORIGINAL ADDRESS: {:?}", wallet.address());
+        let recovered = signature.recover(hashed_leaf).unwrap();
+        println!("RECOVERED ADDRES CLIENT: {:?}", recovered);
+
+        println!("RECOVERED ADDRES CLIENT: {:?}", recovered);
 
         ClientMessage {
             verification_data,
@@ -158,6 +167,8 @@ impl ClientMessage {
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
         let hashed_leaf =
             VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
+        println!("HASHED LEAF: {:?}", hashed_leaf);
+        println!("SIGNATURE BATCHER: {:?}", self.signature);
         let recovered = self.signature.recover(hashed_leaf)?;
         self.signature.verify(hashed_leaf, recovered)?;
         Ok(recovered)

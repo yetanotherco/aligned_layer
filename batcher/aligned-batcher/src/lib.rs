@@ -14,6 +14,7 @@ use aws_sdk_s3::client::Client as S3Client;
 use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
+use ethers::types::{Address, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -200,20 +201,28 @@ impl Batcher {
         // FIXME: We are not doing anything for the moment with the address from the
         // sender, this logic should be added for the payment system.
         info!("Verifying message signature...");
-        if let Ok(addr) = client_msg.verify_signature() {
+        let submitter_addr = if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
-            // do something with addr
             let user_balance = self
                 .payment_service
                 .user_balances(addr)
                 .call()
                 .await
-                .unwrap();
+                .unwrap_or_default();
 
-            println!("USER BALANCE IS: {}", user_balance);
+            if user_balance == U256::from(0) {
+                error!("Insufficient funds for address {:?}", addr);
+                return Err(tokio_tungstenite::tungstenite::Error::Protocol(
+                    ProtocolError::HandshakeIncomplete,
+                ));
+            }
+            addr
         } else {
-            error!("Signature verification error")
-        }
+            error!("Signature verification error");
+            return Err(tokio_tungstenite::tungstenite::Error::Protocol(
+                ProtocolError::HandshakeIncomplete,
+            ));
+        };
 
         let verification_data = client_msg.verification_data;
         if verification_data.proof.len() <= self.max_proof_size {
@@ -223,7 +232,7 @@ impl Batcher {
                     ProtocolError::HandshakeIncomplete,
                 ));
             }
-            self.add_to_batch(verification_data, ws_conn_sink.clone())
+            self.add_to_batch(verification_data, ws_conn_sink.clone(), submitter_addr)
                 .await;
         } else {
             // FIXME(marian): Handle this error correctly
@@ -242,12 +251,18 @@ impl Batcher {
         self: Arc<Self>,
         verification_data: VerificationData,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+        proof_submitter_addr: Address,
     ) {
         let mut batch_queue_lock = self.batch_queue.lock().await;
         info!("Calculating verification data commitments...");
         let verification_data_comm = verification_data.clone().into();
         info!("Adding verification data to batch...");
-        batch_queue_lock.push((verification_data, verification_data_comm, ws_conn_sink));
+        batch_queue_lock.push((
+            verification_data,
+            verification_data_comm,
+            ws_conn_sink,
+            proof_submitter_addr,
+        ));
         info!("Current batch queue length: {}", batch_queue_lock.len());
     }
 
@@ -286,7 +301,7 @@ impl Batcher {
 
         let batch_verification_data: Vec<VerificationData> = batch_queue_lock
             .iter()
-            .map(|(vd, _, _)| vd.clone())
+            .map(|(vd, _, _, _)| vd.clone())
             .collect();
 
         let current_batch_size = serde_json::to_vec(&batch_verification_data).unwrap().len();
@@ -296,7 +311,7 @@ impl Batcher {
             info!("Batch max size exceded. Splitting current batch...");
             let mut acc_batch_size = 0;
             let mut finalized_batch_idx = 0;
-            for (idx, (verification_data, _, _)) in batch_queue_lock.iter().enumerate() {
+            for (idx, (verification_data, _, _, _)) in batch_queue_lock.iter().enumerate() {
                 acc_batch_size += serde_json::to_vec(verification_data).unwrap().len();
                 if acc_batch_size > self.max_batch_size {
                     finalized_batch_idx = idx;
@@ -326,7 +341,7 @@ impl Batcher {
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
             .into_iter()
-            .map(|(data, _, _)| data)
+            .map(|(data, _, _, _)| data)
             .collect();
 
         let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
@@ -336,11 +351,17 @@ impl Batcher {
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
             .clone()
             .into_iter()
-            .map(|(_, data_comm, _)| data_comm)
+            .map(|(_, data_comm, _, _)| data_comm)
             .collect();
 
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
             MerkleTree::build(&batch_data_comm);
+
+        let submitter_addresses: Vec<Address> = finalized_batch
+            .clone()
+            .into_iter()
+            .map(|(_, _, _, addr)| addr)
+            .collect();
 
         let events = self.service_manager.event::<BatchVerifiedFilter>();
         let mut stream = events
@@ -350,7 +371,7 @@ impl Batcher {
 
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
-            self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
+            self.submit_batch(&batch_bytes, &batch_merkle_tree.root, submitter_addresses)
                 .await;
             // update last uploaded batch block
             *last_uploaded_batch_block = block_number;
@@ -386,7 +407,12 @@ impl Batcher {
     }
 
     /// Post batch to s3 and submit new task to Ethereum
-    async fn submit_batch(&self, batch_bytes: &[u8], batch_merkle_root: &[u8; 32]) {
+    async fn submit_batch(
+        &self,
+        batch_bytes: &[u8],
+        batch_merkle_root: &[u8; 32],
+        submitter_addresses: Vec<Address>,
+    ) {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: {}", batch_merkle_root_hex);
@@ -400,9 +426,19 @@ impl Batcher {
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        let service_manager = &self.service_manager;
+        // let service_manager = &self.service_manager;
+        let payment_service = &self.payment_service;
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
-        match eth::create_new_task(service_manager, *batch_merkle_root, batch_data_pointer).await {
+
+        match eth::create_new_task(
+            payment_service,
+            *batch_merkle_root,
+            batch_data_pointer,
+            submitter_addresses,
+            U256::from(400000000000000u64),
+        )
+        .await
+        {
             Ok(_) => info!("Batch verification task created on Aligned contract"),
             Err(e) => error!("Failed to create batch verification task: {}", e),
         }
@@ -435,7 +471,7 @@ async fn send_batch_inclusion_data_responses(
 ) {
     stream::iter(finalized_batch.iter())
         .enumerate()
-        .for_each(|(vd_batch_idx, (_, _, ws_sink))| async move {
+        .for_each(|(vd_batch_idx, (_, _, ws_sink, _))| async move {
             let response = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
             let serialized_response =
                 serde_json::to_vec(&response).expect("Could not serialize response");
@@ -465,7 +501,7 @@ async fn send_timeout_close(finalized_batch: BatchQueue) -> Result<(), BatcherEr
         reason: Cow::from("Timeout: BatchVerified event not received"),
     }));
 
-    for (_, _, ws_sink) in finalized_batch.iter() {
+    for (_, _, ws_sink, _) in finalized_batch.iter() {
         let send_result = ws_sink.write().await.send(timeout_msg.clone()).await;
         match send_result {
             // When two or more proofs from the same client are included into a batch,

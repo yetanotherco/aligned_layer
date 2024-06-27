@@ -502,3 +502,23 @@ fn save_response(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use ethers::{core::rand::thread_rng, signers::LocalWallet};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_test() {
+        let msg = "Holi";
+
+        let wallet = LocalWallet::new(&mut thread_rng());
+        let addr = wallet.address();
+        let signature = wallet.sign_message(msg).await.unwrap();
+        let recovered = signature.recover(msg).unwrap();
+        signature.verify(msg, recovered).unwrap();
+
+        assert_eq!(addr, recovered)
+    }
+}

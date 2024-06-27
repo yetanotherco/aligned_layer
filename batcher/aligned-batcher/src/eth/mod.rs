@@ -62,11 +62,18 @@ pub async fn get_service_manager(
 }
 
 pub async fn create_new_task(
-    service_manager: &AlignedLayerServiceManager,
+    payment_service: &BatcherPaymentService,
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
+    proof_submitters: Vec<Address>,
+    respond_to_task_cost: U256,
 ) -> Result<TransactionReceipt, anyhow::Error> {
-    let call = service_manager.create_new_task(batch_merkle_root, batch_data_pointer);
+    let call = payment_service.create_new_task(
+        batch_merkle_root,
+        batch_data_pointer,
+        proof_submitters,
+        respond_to_task_cost,
+    );
     let pending_tx = call.send().await?;
 
     match pending_tx.await? {
