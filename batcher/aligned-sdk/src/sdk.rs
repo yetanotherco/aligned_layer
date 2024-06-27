@@ -15,7 +15,7 @@ use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use log::{debug, error, info};
+use log::{error, info};
 
 use ethers::providers::{Http, Provider};
 use ethers::utils::hex;
@@ -51,7 +51,7 @@ pub async fn submit(
         .await
         .map_err(errors::SubmitError::ConnectionError)?;
 
-    debug!("WebSocket handshake has been successfully completed");
+    info!("WebSocket handshake has been successfully completed");
     let (ws_write, ws_read) = ws_stream.split();
 
     let ws_write = Arc::new(Mutex::new(ws_write));
@@ -102,7 +102,7 @@ async fn _submit(
         let password = rpassword::prompt_password("Please enter your keystore password:")?;
         Wallet::decrypt_keystore(keystore_path, password)?
     } else {
-        debug!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+        info!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
         LocalWallet::new(&mut thread_rng())
     };
 
@@ -117,7 +117,7 @@ async fn _submit(
                 .await
                 .map_err(errors::SubmitError::ConnectionError)?;
             sent_verification_data.push(verification_data.clone());
-            debug!("Message sent...");
+            info!("Message sent...");
         }
     }
 
@@ -174,13 +174,13 @@ async fn receive(
             let data = msg.into_data();
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
-                    debug!("Received response from batcher");
-                    debug!(
+                    info!("Received response from batcher");
+                    info!(
                         "Batch merkle root: {}",
                         hex::encode(batch_inclusion_data.batch_merkle_root)
                     );
-                    debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-                    debug!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
+                    info!("Index in batch: {}", batch_inclusion_data.index_in_batch);
+                    info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
                     let verification_data_commitment =
                         verification_data_commitments_rev.pop().unwrap_or_default();
@@ -197,7 +197,7 @@ async fn receive(
                 }
             }
             if *num_responses_lock == total_messages {
-                debug!("All messages responded. Closing connection...");
+                info!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
                 return Ok(Some(aligned_verification_data));
             }
@@ -211,7 +211,7 @@ fn verify_response(
     verification_data_commitment: &VerificationDataCommitment,
     batch_inclusion_data: &BatchInclusionData,
 ) -> bool {
-    debug!("Verifying response data matches sent proof data ...");
+    info!("Verifying response data matches sent proof data ...");
     let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
 
     if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
@@ -219,7 +219,7 @@ fn verify_response(
         batch_inclusion_data.index_in_batch,
         verification_data_commitment,
     ) {
-        debug!("Done. Data sent matches batcher answer");
+        info!("Done. Data sent matches batcher answer");
         return true;
     }
 
