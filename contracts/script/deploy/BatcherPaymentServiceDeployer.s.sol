@@ -29,9 +29,9 @@ contract BatcherPaymentServiceDeployer is Script {
             ".amounts.thisTxBaseGasCost"
         );
 
-        uint256 createTaskGasPrice = stdJson.readUint(
+        uint256 createTaskGasCost = stdJson.readUint(
             config_data,
-            ".amounts.createTaskGasPrice"
+            ".amounts.createTaskGasCost"
         );
 
         uint256 extraUserTxGasCost = stdJson.readUint(
@@ -47,7 +47,7 @@ contract BatcherPaymentServiceDeployer is Script {
             alignedLayerServiceManager,
             batcherWallet,
             thisTxBaseGasCost,
-            createTaskGasPrice,
+            createTaskGasCost,
             extraUserTxGasCost
         );
         

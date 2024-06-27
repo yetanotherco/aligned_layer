@@ -5,7 +5,7 @@
   },
   "amounts": {
     "thisTxBaseGasCost": 42000,
-    "createTaskGasPrice": 60000,
+    "createTaskGasCost": 60000,
     "extraUserTxGasCost": 6500
   }
 }

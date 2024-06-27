@@ -18,7 +18,7 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
     mapping(address => uint256) public UserBalances;
 
     uint256 public THIS_TX_BASE_GAS_COST; 
-    uint256 public CREATE_TASK_GAS_PRICE;
+    uint256 public CREATE_TASK_GAS_COST;
     uint256 public EXTRA_USER_TX_GAS_COST; //As we must iterate over the proofSubmitters, there is an extra gas cost per extra user
 
     // storage gap for upgradeability
@@ -33,7 +33,7 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
         address _AlignedLayerServiceManager,
         address _BatcherWallet, 
         uint256 _ThisTxBaseGasCost, 
-        uint256 _CreateTaskGasPrice,
+        uint256 _CreateTaskGasCost,
         uint256 _ExtraUserTxGasCost
     ) public initializer {
         __Ownable_init(); // default is msg.sender
@@ -41,7 +41,7 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
         AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
         THIS_TX_BASE_GAS_COST = _ThisTxBaseGasCost;
-        CREATE_TASK_GAS_PRICE = _CreateTaskGasPrice;
+        CREATE_TASK_GAS_COST = _CreateTaskGasCost;
         EXTRA_USER_TX_GAS_COST = _ExtraUserTxGasCost;
     }
 
@@ -63,7 +63,7 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
         
         // each user must pay its fraction of the gas cost of this transaction back to the batcher
         // + 10% for increments in gas price
-        uint256 cost_of_this_tx = ((THIS_TX_BASE_GAS_COST + CREATE_TASK_GAS_PRICE + (EXTRA_USER_TX_GAS_COST * amountOfSubmitters)) * tx.gasprice * 11) / 10;
+        uint256 cost_of_this_tx = ((THIS_TX_BASE_GAS_COST + CREATE_TASK_GAS_COST + (EXTRA_USER_TX_GAS_COST * amountOfSubmitters)) * tx.gasprice * 11) / 10;
 
         // divide the price by the amount of submitters
         uint256 totalCostPerProof = (costOfRespondToTask + cost_of_this_tx) / amountOfSubmitters;
@@ -102,8 +102,8 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
         THIS_TX_BASE_GAS_COST = amount;
     }
 
-    function setCreateTaskGasPrice(uint256 amount) external onlyOwner whenNotPaused () {
-        CREATE_TASK_GAS_PRICE = amount;
+    function setCreateTaskGasCost(uint256 amount) external onlyOwner whenNotPaused () {
+        CREATE_TASK_GAS_COST = amount;
     }
 
     function setExtraUserTxGasCost(uint256 amount) external onlyOwner whenNotPaused () {
