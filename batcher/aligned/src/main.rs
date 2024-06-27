@@ -1,3 +1,7 @@
+mod errors;
+mod eth;
+mod types;
+
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
@@ -8,6 +12,12 @@ use aligned_sdk::errors::{AlignedError, SubmitError};
 use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
+use futures_util::{
+    future,
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt, TryStreamExt,
+};
+use log::warn;
 use log::{error, info};
 
 use aligned_sdk::models::{AlignedVerificationData, ProvingSystemId, VerificationData};
@@ -82,6 +92,8 @@ pub struct SubmitArgs {
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
+    #[arg(name = "Path to local keystore", long = "keystore_path")]
+    keystore_path: Option<PathBuf>,
 }
 
 #[derive(Parser, Debug)]
@@ -158,6 +170,8 @@ impl From<ProvingSystemArg> for ProvingSystemId {
         }
     }
 }
+
+const PROTOCOL_VERSION: u16 = 0;
 
 #[tokio::main]
 async fn main() -> Result<(), AlignedError> {

@@ -1,5 +1,10 @@
+use ethers::core::k256::ecdsa::SigningKey;
+use ethers::signers::Signer;
+use ethers::signers::Wallet;
 use ethers::types::Address;
 use futures_util::stream::{SplitSink, SplitStream};
+use ethers::types::Signature;
+use ethers::types::SignatureError;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
@@ -23,7 +28,7 @@ pub enum ProvingSystemId {
     Risc0,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationData {
     pub proving_system: ProvingSystemId,
     pub proof: Vec<u8>,
@@ -140,6 +145,11 @@ pub struct SubmitArgs {
     pub ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     pub verification_data: VerificationData,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientMessage {
+    pub verification_data: VerificationData,
+    pub signature: Signature,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AlignedVerificationData {
@@ -148,6 +158,18 @@ pub struct AlignedVerificationData {
     pub batch_inclusion_proof: Proof<[u8; 32]>,
     pub index_in_batch: usize,
 }
+impl ClientMessage {
+    /// Client message is a wrap around verification data and its signature.
+    /// The signature is obtained by calculating the commitments and then hashing them.
+    pub async fn new(verification_data: VerificationData, wallet: Wallet<SigningKey>) -> Self {
+        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.clone().into());
+        let signature = wallet.sign_message(hashed_leaf).await.unwrap();
+
+        ClientMessage {
+            verification_data,
+            signature,
+        }
+    }
 
 impl AlignedVerificationData {
     pub fn new(
@@ -164,6 +186,14 @@ impl AlignedVerificationData {
             batch_inclusion_proof: batch_inclusion_proof.clone(),
             index_in_batch,
         }
+    /// The signature of the message is verified, and when it correct, the
+    /// recovered address from the signature is returned.
+    pub fn verify_signature(&self) -> Result<Address, SignatureError> {
+        let hashed_leaf =
+            VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
+        let recovered = self.signature.recover(hashed_leaf)?;
+        self.signature.verify(hashed_leaf, recovered)?;
+        Ok(recovered)
     }
 }
 
