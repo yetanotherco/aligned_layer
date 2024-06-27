@@ -8,6 +8,7 @@ use std::io::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
+use aligned_batcher_lib::types::ClientMessage;
 use aligned_batcher_lib::types::VerificationCommitmentBatch;
 use aligned_batcher_lib::types::VerificationDataCommitment;
 use env_logger::Env;
@@ -17,16 +18,16 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
+use log::warn;
 use log::{error, info};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use aligned_batcher_lib::types::{
-    parse_proving_system, BatchInclusionData, ProvingSystemId, VerificationData,
-};
+use aligned_batcher_lib::types::{BatchInclusionData, ProvingSystemId, VerificationData};
 use clap::Subcommand;
+use ethers::core::rand::thread_rng;
 use ethers::utils::hex;
 use sha3::{Digest, Keccak256};
 
@@ -70,7 +71,7 @@ pub struct SubmitArgs {
     )]
     connect_addr: String,
     #[arg(name = "Proving system", long = "proving_system")]
-    proving_system_flag: String,
+    proving_system_flag: ProvingSystemArg,
     #[arg(name = "Proof file path", long = "proof")]
     proof_file_name: PathBuf,
     #[arg(name = "Public input file name", long = "public_input")]
@@ -97,6 +98,8 @@ pub struct SubmitArgs {
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
+    #[arg(name = "Path to local keystore", long = "keystore_path")]
+    keystore_path: Option<PathBuf>,
 }
 
 #[derive(Parser, Debug)]
@@ -131,6 +134,38 @@ pub struct GetVerificationKeyCommitmentArgs {
 pub enum Chain {
     Devnet,
     Holesky,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum ProvingSystemArg {
+    #[clap(name = "GnarkPlonkBls12_381")]
+    GnarkPlonkBls12_381,
+    #[clap(name = "GnarkPlonkBn254")]
+    GnarkPlonkBn254,
+    #[clap(name = "Groth16Bn254")]
+    Groth16Bn254,
+    #[clap(name = "SP1")]
+    SP1,
+    #[clap(name = "Halo2KZG")]
+    Halo2KZG,
+    #[clap(name = "Halo2IPA")]
+    Halo2IPA,
+    #[clap(name = "Risc0")]
+    Risc0,
+}
+
+impl From<ProvingSystemArg> for ProvingSystemId {
+    fn from(proving_system: ProvingSystemArg) -> Self {
+        match proving_system {
+            ProvingSystemArg::GnarkPlonkBls12_381 => ProvingSystemId::GnarkPlonkBls12_381,
+            ProvingSystemArg::GnarkPlonkBn254 => ProvingSystemId::GnarkPlonkBn254,
+            ProvingSystemArg::Groth16Bn254 => ProvingSystemId::Groth16Bn254,
+            ProvingSystemArg::SP1 => ProvingSystemId::SP1,
+            ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
+            ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
+            ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
+        }
+    }
 }
 
 const PROTOCOL_VERSION: u16 = 0;
@@ -181,12 +216,23 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let mut sent_verification_data: Vec<VerificationData> = Vec::new();
 
             let repetitions = submit_args.repetitions;
-            let verification_data = verification_data_from_args(submit_args)?;
+            let verification_data = verification_data_from_args(&submit_args)?;
 
-            let json_data = serde_json::to_string(&verification_data)?;
+            let keystore_path = &submit_args.keystore_path;
+            let wallet = if let Some(keystore_path) = keystore_path {
+                let password = rpassword::prompt_password("Please enter your keystore password:")?;
+                Wallet::decrypt_keystore(keystore_path, password)?
+            } else {
+                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+                LocalWallet::new(&mut thread_rng())
+            };
+
+            let msg = ClientMessage::new(verification_data, wallet).await;
+            let msg_str = serde_json::to_string(&msg).unwrap();
+
             for _ in 0..repetitions {
-                ws_write.send(Message::Text(json_data.to_string())).await?;
-                sent_verification_data.push(verification_data.clone());
+                ws_write.send(Message::Text(msg_str.clone())).await?;
+                sent_verification_data.push(msg.verification_data.clone());
                 info!("Message sent...")
             }
 
@@ -264,7 +310,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             }
         }
         GetVerificationKeyCommitment(args) => {
-            let content = read_file(args.input_file)?;
+            let content = read_file(&args.input_file)?;
 
             let mut hasher = Keccak256::new();
             hasher.update(&content);
@@ -351,12 +397,11 @@ async fn receive(
     Ok(())
 }
 
-fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, BatcherClientError> {
-    let proving_system = parse_proving_system(&args.proving_system_flag)
-        .map_err(|_| BatcherClientError::InvalidProvingSystem(args.proving_system_flag))?;
+fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, BatcherClientError> {
+    let proving_system = args.proving_system_flag.clone().into();
 
     // Read proof file
-    let proof = read_file(args.proof_file_name)?;
+    let proof = read_file(&args.proof_file_name)?;
 
     let mut pub_input: Option<Vec<u8>> = None;
     let mut verification_key: Option<Vec<u8>> = None;
@@ -366,7 +411,7 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
         ProvingSystemId::SP1 | ProvingSystemId::Risc0 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
-                args.vm_program_code_file_name,
+                args.vm_program_code_file_name.as_ref(),
             )?);
         }
         ProvingSystemId::Halo2KZG
@@ -374,10 +419,13 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
         | ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
-            verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
+            verification_key = Some(read_file_option(
+                "--vk",
+                args.verification_key_file_name.as_ref(),
+            )?);
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.as_ref(),
             )?);
         }
     }
@@ -394,13 +442,13 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
     })
 }
 
-fn read_file(file_name: PathBuf) -> Result<Vec<u8>, BatcherClientError> {
-    std::fs::read(&file_name).map_err(|e| BatcherClientError::IoError(file_name, e))
+fn read_file(file_name: &PathBuf) -> Result<Vec<u8>, BatcherClientError> {
+    std::fs::read(file_name).map_err(|e| BatcherClientError::IoError(file_name.clone(), e))
 }
 
 fn read_file_option(
     param_name: &str,
-    file_name: Option<PathBuf>,
+    file_name: Option<&PathBuf>,
 ) -> Result<Vec<u8>, BatcherClientError> {
     let file_name =
         file_name.ok_or(BatcherClientError::MissingParameter(param_name.to_string()))?;
@@ -417,7 +465,7 @@ fn verify_response(
     if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
         &batch_inclusion_data.batch_merkle_root,
         batch_inclusion_data.index_in_batch,
-        &verification_data_commitment,
+        verification_data_commitment,
     ) {
         info!("Done. Data sent matches batcher answer");
         return true;
@@ -439,7 +487,7 @@ fn save_response(
         + ".json";
 
     let batch_inclusion_data_path =
-        batch_inclusion_data_directory_path.join(&batch_inclusion_data_file_name);
+        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
     let aligned_verification_data =
         AlignedVerificationData::new(verification_data_commitment, batch_inclusion_data);
 
