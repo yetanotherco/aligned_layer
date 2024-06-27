@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/yetanotherco/aligned_layer/operator/kimchi"
+	"github.com/yetanotherco/aligned_layer/operator/mina"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -352,12 +352,12 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 	case common.Mina:
 		proofLen := (uint)(len(verificationData.Proof))
 		pubInputLen := (uint)(len(verificationData.PubInput))
-		proofBuffer := make([]byte, kimchi.MAX_PROOF_SIZE)
+		proofBuffer := make([]byte, mina.MAX_PROOF_SIZE)
 		copy(proofBuffer, verificationData.Proof)
-		pubInputBuffer := make([]byte, kimchi.MAX_PUB_INPUT_SIZE)
+		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
 		copy(pubInputBuffer, verificationData.PubInput)
 
-		verificationResult := kimchi.VerifyKimchiProof(([kimchi.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([kimchi.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		verificationResult := mina.VerifyKimchiProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
 		o.Logger.Infof("Kimchi proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:

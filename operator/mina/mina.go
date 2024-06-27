@@ -1,4 +1,4 @@
-package kimchi
+package mina
 
 /*
 #cgo darwin LDFLAGS: -L./lib -lkimchi_verifier

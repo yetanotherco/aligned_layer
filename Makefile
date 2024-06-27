@@ -665,24 +665,24 @@ generate_halo2_ipa_proof:
 
 __MINA_FFI__: ##
 build_mina_macos:
-	@cd operator/kimchi/lib && cargo build --release
-	@cp operator/kimchi/lib/target/release/libkimchi_verifier_ffi.dylib operator/kimchi/lib/libkimchi_verifier.dylib
+	@cd operator/mina/lib && cargo build --release
+	@cp operator/mina/lib/target/release/libkimchi_verifier_ffi.dylib operator/mina/lib/libkimchi_verifier.dylib
 
 build_mina_linux:
-	@cd operator/kimchi/lib && cargo build --release
-	@cp operator/kimchi/lib/target/release/libkimchi_verifier_ffi.so operator/kimchi/lib/libkimchi_verifier.so
+	@cd operator/mina/lib && cargo build --release
+	@cp operator/mina/lib/target/release/libkimchi_verifier_ffi.so operator/mina/lib/libkimchi_verifier.so
 
 test_mina_rust_ffi:
 	@echo "Testing Mina Rust FFI source code..."
-	@cd operator/kimchi/lib && cargo t --release
+	@cd operator/mina/lib && cargo t --release
 
 test_mina_go_bindings_macos: build_mina_macos
-	@echo "Testing Kimchi Go bindings..."
-	go test ./operator/kimchi/... -v
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
 
 test_mina_go_bindings_linux: build_mina_linux
-	@echo "Testing Kimchi Go bindings..."
-	go test ./operator/kimchi/... -v
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
 
 __BUILD_ALL_FFI__:
 
