@@ -1,19 +1,18 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
+use std::path::PathBuf;
 use std::str::FromStr;
-use std::{path::PathBuf, sync::Arc};
 
 use aligned_sdk::errors::{AlignedError, SubmitError};
 use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
-use futures_util::StreamExt;
 use log::{error, info};
-use tokio::sync::Mutex;
-use tokio_tungstenite::connect_async;
 
 use aligned_sdk::models::{AlignedVerificationData, ProvingSystemId, VerificationData};
+
+use aligned_sdk::sdk::{get_verification_key_commitment, submit, verify_proof_onchain};
 
 use clap::Subcommand;
 use ethers::utils::hex;
@@ -167,15 +166,6 @@ async fn main() -> Result<(), AlignedError> {
 
     match args.command {
         Submit(submit_args) => {
-            let (ws_stream, _) = connect_async(&submit_args.connect_addr)
-                .await
-                .map_err(SubmitError::ConnectionError)?;
-
-            info!("WebSocket handshake has been successfully completed");
-            let (ws_write, ws_read) = ws_stream.split();
-
-            let ws_write_mutex = Arc::new(Mutex::new(ws_write));
-
             let batch_inclusion_data_directory_path =
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
 
@@ -184,13 +174,14 @@ async fn main() -> Result<(), AlignedError> {
             })?;
 
             let repetitions = submit_args.repetitions;
+            let connect_addr = submit_args.connect_addr.clone();
 
             let verification_data = verification_data_from_args(submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
 
             let aligned_verification_data_vec =
-                aligned_sdk::submit(ws_write_mutex, ws_read, verification_data_arr).await?;
+                submit(&connect_addr, &verification_data_arr).await?;
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
                 for aligned_verification_data in aligned_verification_data_vec {
@@ -215,15 +206,10 @@ async fn main() -> Result<(), AlignedError> {
             let aligned_verification_data: AlignedVerificationData =
                 serde_json::from_reader(reader).map_err(SubmitError::SerdeError)?;
 
-            let eth_rpc_url = verify_inclusion_args.eth_rpc_url;
-
-            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-                .map_err(|e: url::ParseError| SubmitError::EthError(e.to_string()))?;
-
-            let response = aligned_sdk::verify_proof_onchain(
+            let response = verify_proof_onchain(
                 aligned_verification_data,
                 chain,
-                eth_rpc_provider,
+                &verify_inclusion_args.eth_rpc_url,
             )
             .await?;
 
@@ -236,7 +222,7 @@ async fn main() -> Result<(), AlignedError> {
         GetVerificationKeyCommitment(args) => {
             let content = read_file(args.input_file)?;
 
-            let hash = aligned_sdk::get_verification_key_commitment(&content);
+            let hash = get_verification_key_commitment(&content);
 
             info!("Commitment: {}", hex::encode(hash));
             if let Some(output_file) = args.output_file {
