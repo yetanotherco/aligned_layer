@@ -1,4 +1,7 @@
 use core::fmt;
+use ethers::providers::ProviderError;
+use ethers::signers::WalletError;
+use ethers::utils::hex::FromHexError;
 use std::io;
 use std::path::PathBuf;
 
@@ -30,11 +33,13 @@ impl fmt::Debug for AlignedError {
 
 pub enum SubmitError {
     ConnectionError(tokio_tungstenite::tungstenite::Error),
+    IoError(PathBuf, io::Error),
     SerdeError(serde_json::Error),
+    EthError(String),
+    SignerError(String),
+    PasswordError(io::Error),
     MissingParameter(String),
     InvalidProvingSystem(String),
-    EthError(String),
-    IoError(PathBuf, io::Error),
     InvalidAddress(String, String),
     GenericError(String),
 }
@@ -51,6 +56,30 @@ impl From<serde_json::Error> for SubmitError {
     }
 }
 
+impl From<ProviderError> for SubmitError {
+    fn from(e: ProviderError) -> Self {
+        SubmitError::EthError(e.to_string())
+    }
+}
+
+impl From<WalletError> for SubmitError {
+    fn from(e: WalletError) -> Self {
+        SubmitError::SignerError(e.to_string())
+    }
+}
+
+impl From<FromHexError> for SubmitError {
+    fn from(e: FromHexError) -> Self {
+        SubmitError::EthError(e.to_string())
+    }
+}
+
+impl From<io::Error> for SubmitError {
+    fn from(e: io::Error) -> Self {
+        SubmitError::PasswordError(e)
+    }
+}
+
 impl fmt::Debug for SubmitError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -59,9 +88,6 @@ impl fmt::Debug for SubmitError {
                 "Missing parameter: {} required for this proving system",
                 param
             ),
-            SubmitError::InvalidProvingSystem(proving_system) => {
-                write!(f, "Invalid proving system: {}", proving_system)
-            }
             SubmitError::ConnectionError(e) => {
                 write!(f, "Web Socket Connection error: {}", e)
             }
@@ -70,6 +96,11 @@ impl fmt::Debug for SubmitError {
             }
             SubmitError::SerdeError(e) => write!(f, "Serialization error: {}", e),
             SubmitError::EthError(e) => write!(f, "Ethereum error: {}", e),
+            SubmitError::SignerError(e) => write!(f, "Signer error: {}", e),
+            SubmitError::PasswordError(e) => write!(f, "Password input error: {}", e),
+            SubmitError::InvalidProvingSystem(proving_system) => {
+                write!(f, "Invalid proving system: {}", proving_system)
+            }
             SubmitError::InvalidAddress(addr, msg) => {
                 write!(f, "Invalid address: {}, {}", addr, msg)
             }

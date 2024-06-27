@@ -1,7 +1,3 @@
-mod errors;
-mod eth;
-mod types;
-
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
@@ -12,15 +8,9 @@ use aligned_sdk::errors::{AlignedError, SubmitError};
 use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
-use futures_util::{
-    future,
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt, TryStreamExt,
-};
-use log::warn;
 use log::{error, info};
 
-use aligned_sdk::models::{AlignedVerificationData, ProvingSystemId, VerificationData};
+use aligned_sdk::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
 
 use aligned_sdk::sdk::{get_verification_key_commitment, submit, verify_proof_onchain};
 
@@ -130,11 +120,11 @@ enum ChainArg {
     Holesky,
 }
 
-impl From<ChainArg> for aligned_sdk::models::Chain {
+impl From<ChainArg> for aligned_sdk::types::Chain {
     fn from(chain_arg: ChainArg) -> Self {
         match chain_arg {
-            ChainArg::Devnet => aligned_sdk::models::Chain::Devnet,
-            ChainArg::Holesky => aligned_sdk::models::Chain::Holesky,
+            ChainArg::Devnet => aligned_sdk::types::Chain::Devnet,
+            ChainArg::Holesky => aligned_sdk::types::Chain::Holesky,
         }
     }
 }
@@ -171,8 +161,6 @@ impl From<ProvingSystemArg> for ProvingSystemId {
     }
 }
 
-const PROTOCOL_VERSION: u16 = 0;
-
 #[tokio::main]
 async fn main() -> Result<(), AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -189,13 +177,14 @@ async fn main() -> Result<(), AlignedError> {
 
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.connect_addr.clone();
+            let keystore_path = submit_args.keystore_path.clone();
 
             let verification_data = verification_data_from_args(submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
 
             let aligned_verification_data_vec =
-                submit(&connect_addr, &verification_data_arr).await?;
+                submit(&connect_addr, &verification_data_arr, &keystore_path).await?;
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
                 for aligned_verification_data in aligned_verification_data_vec {

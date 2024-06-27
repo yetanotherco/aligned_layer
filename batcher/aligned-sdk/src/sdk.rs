@@ -1,17 +1,21 @@
 use crate::errors;
 use crate::eth;
-use crate::models::{
-    AlignedVerificationData, BatchInclusionData, Chain, VerificationCommitmentBatch,
+use crate::types::{
+    AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, VerificationCommitmentBatch,
     VerificationData, VerificationDataCommitment,
 };
+use ethers::core::rand::thread_rng;
+use ethers::prelude::*;
+use ethers::signers::Wallet;
 use sha3::{Digest, Keccak256};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use log::{debug, error};
+use log::{debug, error, info};
 
 use ethers::providers::{Http, Provider};
 use ethers::utils::hex;
@@ -20,6 +24,8 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt, TryStreamExt,
 };
+
+pub const PROTOCOL_VERSION: u16 = 0;
 
 /// Submits the proofs to the batcher to be verified and returns a vector of Aligned verification data.
 /// # Arguments
@@ -39,6 +45,7 @@ use futures_util::{
 pub async fn submit(
     batcher_addr: &str,
     verification_data: &[VerificationData],
+    keystore_path: &Option<PathBuf>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let (ws_stream, _) = connect_async(batcher_addr)
         .await
@@ -49,14 +56,38 @@ pub async fn submit(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit(ws_write, ws_read, verification_data).await
+    _submit(ws_write, ws_read, verification_data, keystore_path).await
 }
 
 async fn _submit(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: &[VerificationData],
+    keystore_path: &Option<PathBuf>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
+    // First message from the batcher is the protocol version
+    if let Some(Ok(msg)) = ws_read.next().await {
+        match msg.into_data().try_into() {
+            Ok(data) => {
+                let current_protocol_version = u16::from_be_bytes(data);
+                if current_protocol_version > PROTOCOL_VERSION {
+                    //TODO (Nico): This message is temporary, we should have a better way to handle this in the client
+                    info!(
+                        "You are running an old version of the client, update it running:\ncurl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash\nClient version: {}, Expected version: {}",
+                        PROTOCOL_VERSION, current_protocol_version
+                    );
+                }
+            }
+            Err(_) => {
+                error!("Error while reading protocol version");
+                return Ok(None);
+            }
+        }
+    } else {
+        error!("Batcher did not respond with the protocol version");
+        return Ok(None);
+    }
+
     if verification_data.is_empty() {
         return Err(errors::SubmitError::MissingParameter(
             "verification_data".to_string(),
@@ -66,20 +97,31 @@ async fn _submit(
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
     let mut sent_verification_data: Vec<VerificationData> = Vec::new();
+
+    let wallet = if let Some(keystore_path) = keystore_path {
+        let password = rpassword::prompt_password("Please enter your keystore password:")?;
+        Wallet::decrypt_keystore(keystore_path, password)?
+    } else {
+        debug!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+        LocalWallet::new(&mut thread_rng())
+    };
+
     {
         let mut ws_write = ws_write.lock().await;
 
         for verification_data in verification_data.iter() {
-            let json_data = serde_json::to_string(&verification_data)
-                .map_err(errors::SubmitError::SerdeError)?;
+            let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
+            let msg_str = serde_json::to_string(&msg).map_err(errors::SubmitError::SerdeError)?;
             ws_write
-                .send(Message::Text(json_data.to_string()))
+                .send(Message::Text(msg_str.clone()))
                 .await
                 .map_err(errors::SubmitError::ConnectionError)?;
             sent_verification_data.push(verification_data.clone());
             debug!("Message sent...");
         }
     }
+
+    let num_responses = Arc::new(Mutex::new(0));
 
     // This vector is reversed so that when responses are received, the commitments corresponding
     // to that response can simply be popped of this vector.
@@ -89,8 +131,6 @@ async fn _submit(
             .map(|vd| vd.into())
             .rev()
             .collect();
-
-    let num_responses = Arc::new(Mutex::new(0));
 
     let aligned_verification_data = receive(
         ws_read,
@@ -140,6 +180,7 @@ async fn receive(
                         hex::encode(batch_inclusion_data.batch_merkle_root)
                     );
                     debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
+                    debug!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
                     let verification_data_commitment =
                         verification_data_commitments_rev.pop().unwrap_or_default();
@@ -263,7 +304,7 @@ pub fn get_verification_key_commitment(content: &[u8]) -> [u8; 32] {
 mod test {
     use super::*;
     use crate::errors::SubmitError;
-    use crate::models::ProvingSystemId;
+    use crate::types::ProvingSystemId;
     use ethers::types::Address;
     use ethers::types::H160;
 
@@ -292,7 +333,7 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data)
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, None)
             .await
             .unwrap()
             .unwrap();
@@ -314,7 +355,7 @@ mod test {
             proof_generator_addr: contract_addr,
         }];
 
-        let result = submit("ws://localhost:8080", &verification_data).await;
+        let result = submit("ws://localhost:8080", &verification_data, None).await;
 
         assert!(result.is_ok());
     }
@@ -342,7 +383,7 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data)
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, None)
             .await
             .unwrap()
             .unwrap();
@@ -381,7 +422,7 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data)
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, None)
             .await
             .unwrap()
             .unwrap();
