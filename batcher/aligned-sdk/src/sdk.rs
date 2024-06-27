@@ -5,6 +5,7 @@ use crate::types::{
     VerificationData, VerificationDataCommitment,
 };
 use ethers::core::rand::thread_rng;
+use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use ethers::signers::Wallet;
 use sha3::{Digest, Keccak256};
@@ -27,21 +28,17 @@ use futures_util::{
 
 pub const PROTOCOL_VERSION: u16 = 0;
 
-/// Submits the proofs to the batcher to be verified and returns a vector of Aligned verification data.
+/// Submits a proof to the batcher to be verified in Aligned.
 /// # Arguments
-/// * `ws_write` - A mutex-protected split sink to write messages to the websocket.
-/// * `ws_read` - A split stream to read messages from the websocket.
-/// * `verification_data` - A vector of verification data to be submitted to the batcher.
+/// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
+/// * `verification_data` - The verification data for the proof.
+/// * `keystore_path` - The path to the keystore file used for payment.
 /// # Returns
-/// * A vector of Aligned verification data.
+/// * The aligned verification data obtained when submitting the proof.
 /// # Errors
-/// * If the verification data vector is empty.
-/// * If there is an error serializing the verification data.
-/// * If there is an error sending the message to the websocket.
-/// * If there is an error receiving the response from the websocket.
-/// * If there is an error closing the websocket.
-/// * If there is an error deserializing the response from the websocket.
-/// * If the connection was closed before receiving all messages.
+/// * If there is an error connecting to the batcher.
+/// * If there is an error serializing the message.
+/// * If there is an error deserializing the message.
 pub async fn submit(
     batcher_addr: &str,
     verification_data: &[VerificationData],
@@ -56,14 +53,22 @@ pub async fn submit(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit(ws_write, ws_read, verification_data, keystore_path).await
+    let wallet = if let Some(keystore_path) = keystore_path {
+        let password = rpassword::prompt_password("Please enter your keystore password:")?;
+        Wallet::decrypt_keystore(keystore_path, password)?
+    } else {
+        info!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+        LocalWallet::new(&mut thread_rng())
+    };
+
+    _submit(ws_write, ws_read, verification_data, wallet).await
 }
 
 async fn _submit(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: &[VerificationData],
-    keystore_path: &Option<PathBuf>,
+    wallet: Wallet<SigningKey>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // First message from the batcher is the protocol version
     if let Some(Ok(msg)) = ws_read.next().await {
@@ -97,14 +102,6 @@ async fn _submit(
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
     let mut sent_verification_data: Vec<VerificationData> = Vec::new();
-
-    let wallet = if let Some(keystore_path) = keystore_path {
-        let password = rpassword::prompt_password("Please enter your keystore password:")?;
-        Wallet::decrypt_keystore(keystore_path, password)?
-    } else {
-        info!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-        LocalWallet::new(&mut thread_rng())
-    };
 
     {
         let mut ws_write = ws_write.lock().await;
@@ -231,7 +228,7 @@ fn verify_response(
 /// # Arguments
 /// * `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
 /// * `chain` - The chain on which the verification will be done.
-/// * `eth_rpc_provider` - The Ethereum RPC provider.
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// # Returns
 /// * A boolean indicating whether the proof was verified on-chain and is included in the batch.
 /// # Errors
@@ -333,7 +330,7 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, None)
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, &None)
             .await
             .unwrap()
             .unwrap();
@@ -355,7 +352,7 @@ mod test {
             proof_generator_addr: contract_addr,
         }];
 
-        let result = submit("ws://localhost:8080", &verification_data, None).await;
+        let result = submit("ws://localhost:8080", &verification_data, &None).await;
 
         assert!(result.is_ok());
     }
@@ -383,7 +380,7 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, None)
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, &None)
             .await
             .unwrap()
             .unwrap();
@@ -422,7 +419,7 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, None)
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, &None)
             .await
             .unwrap()
             .unwrap();

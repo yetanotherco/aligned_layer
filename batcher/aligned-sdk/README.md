@@ -25,9 +25,9 @@ Submits the proofs to the batcher to be verified and returns a vector of aligned
 
 #### Arguments
 
-- `ws_write` - A mutex-protected split sink to write messages to the websocket.
-- `ws_read` - A split stream to read messages from the websocket.
-- `verification_data` - A vector of verification data to be submitted to the batcher.
+- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `verification_data` - The verification data for the proof.
+- `keystore_path` - The path to the keystore file used for payment.
 
 #### Returns
 
@@ -38,9 +38,6 @@ Submits the proofs to the batcher to be verified and returns a vector of aligned
 - `MissingParameter` if the verification data vector is empty.
 - `SerdeError` if there is an error serializing the verification data.
 - `ConnectionError` if there is an error sending the message to the websocket.
-- `ResponseError` if there is an error receiving the response from the websocket.
-- `WebSocketCloseError` if there is an error closing the websocket.
-- `DeserializationError` if there is an error deserializing the response from the websocket.
 
 ### verify_proof_onchain
 
@@ -49,8 +46,8 @@ Checks if the proof has been verified with Aligned and is included in the batch 
 #### Arguments
 
 - `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
-- `chain` - The chain on which the verification will be done (e.g., `Devnet`, `Holesky`).
-- `eth_rpc_provider` - The Ethereum RPC provider.
+- `chain` - The chain on which the verification will be done.
+- `eth_rpc_url` - The URL of the Ethereum RPC node.
 
 #### Returns
 
@@ -58,8 +55,8 @@ Checks if the proof has been verified with Aligned and is included in the batch 
 
 #### Errors
 
-- `ServiceManagerError` if there is an error creating the service manager.
-- `ServiceManagerCallError` if there is an error calling the service manager.
+- `EthError` if there is an error creating the rpc provider.
+- `ParsingError` if there is an error parsing the address of the contract.
 - `EthError` if there is an error verifying the proof on-chain.
 
 ### get_verification_key_commitment
