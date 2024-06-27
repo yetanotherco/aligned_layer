@@ -9,12 +9,7 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
-    event CreatedNewTask(
-        bytes32 batchMerkleRoot,
-        string batchDataPointer,
-        address[] proofSubmitters,
-        uint256 costOfRespondToTask
-    );
+
 
     // STORAGE
     address public AlignedLayerServiceManager;
@@ -94,8 +89,6 @@ contract BatcherPayments is Initializable, OwnableUpgradeable, PausableUpgradeab
         require(success, "createNewTask call failed");
 
         payable(BatcherWallet).transfer(cost_of_this_tx);
-
-        emit CreatedNewTask(batchMerkleRoot, batchDataPointer, proofSubmitters, costOfRespondToTask);
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
