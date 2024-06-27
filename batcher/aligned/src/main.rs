@@ -34,8 +34,8 @@ use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
+use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetVerificationKeyCommitment;
-use crate::AlignedCommands::PayToBatcher;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
@@ -64,9 +64,9 @@ pub enum AlignedCommands {
     // GetVericiationKey, command name is get-vk-commitment
     #[clap(
         about = "Deposits Ethereum in the batcher to pay for proofs",
-        name = "pay-for-batcher"
+        name = "deposit-to-batcher"
     )]
-    PayToBatcher(PayToBatcherArgs),
+    DepositToBatcher(DepositToBatcherArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -112,7 +112,7 @@ pub struct SubmitArgs {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct PayToBatcherArgs {
+pub struct DepositToBatcherArgs {
     #[arg(
         name = "Batcher Eth Address",
         long = "conn",
@@ -364,14 +364,14 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                     .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))?;
             }
         }
-        PayToBatcher(pay_to_batcher_args) => {
-            let eth_rpc_url = pay_to_batcher_args.eth_rpc_url;
+        DepositToBatcher(deposit_to_batcher_args) => {
+            let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
                 BatcherClientError::EthError(format!("Error while connecting to Ethereum: {}", e))
             })?;
 
-            let keystore_path = &pay_to_batcher_args.keystore_path;
+            let keystore_path = &deposit_to_batcher_args.keystore_path;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")?;
@@ -381,7 +381,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 return Ok(());
             };
 
-            match pay_to_batcher_args.chain {
+            match deposit_to_batcher_args.chain {
                 Chain::Devnet => wallet = wallet.with_chain_id(31337u64),
                 Chain::Holesky => wallet = wallet.with_chain_id(17000u64),
             }
@@ -405,12 +405,12 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 return Ok(());
             }
 
-            if !pay_to_batcher_args.amount.contains("ether") {
+            if !deposit_to_batcher_args.amount.contains("ether") {
                 error!("Amount should be in the format XX.XXether");
                 return Ok(());
             }
 
-            let amount = pay_to_batcher_args.amount.replace("ether", "");
+            let amount = deposit_to_batcher_args.amount.replace("ether", "");
 
             info!("Sending {} ether to the batcher", amount);
 
@@ -418,7 +418,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 BatcherClientError::EthError(format!("Error while parsing amount: {}", e))
             })?;
 
-            let batcher_addr = Address::from_str(&pay_to_batcher_args.batcher_eth_address)
+            let batcher_addr = Address::from_str(&deposit_to_batcher_args.batcher_eth_address)
                 .map_err(|e| {
                     BatcherClientError::EthError(format!(
                         "Error while parsing batcher address: {}",
@@ -443,7 +443,10 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 })?;
 
             if let Some(tx) = tx {
-                info!("Transaction sent: {}", serde_json::to_string(&tx).unwrap());
+                info!(
+                    "Payment sent to the batcher successfully. Transaction hash: {}",
+                    tx
+                );
             } else {
                 error!("Transaction failed");
             }
