@@ -140,12 +140,6 @@ impl BatchInclusionData {
     }
 }
 
-pub struct SubmitArgs {
-    pub ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    pub ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    pub verification_data: VerificationData,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientMessage {
     pub verification_data: VerificationData,
