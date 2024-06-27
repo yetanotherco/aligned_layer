@@ -27,7 +27,7 @@ Submits the proofs to the batcher to be verified and returns a vector of aligned
 
 - `batcher_addr` - The address of the batcher to which the proof will be submitted.
 - `verification_data` - The verification data for the proof.
-- `keystore_path` - The path to the keystore file used for payment.
+- `wallet` - The wallet used to sign the proof.
 
 #### Returns
 

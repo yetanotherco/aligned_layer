@@ -29,7 +29,7 @@ pub const PROTOCOL_VERSION: u16 = 0;
 /// # Arguments
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
 /// * `verification_data` - The verification data for the proof.
-/// * `keystore_path` - The path to the keystore file used for payment.
+/// * `wallet` - The wallet used to sign the proof.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
