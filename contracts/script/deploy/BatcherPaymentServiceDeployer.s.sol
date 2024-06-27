@@ -24,6 +24,11 @@ contract BatcherPaymentServiceDeployer is Script {
             ".address.alignedLayerServiceManager"
         );
 
+        address batcherPaymentServiceOwner = stdJson.readAddress(
+            config_data,
+            ".permissions.owner"
+        );
+
         uint256 paymentServiceCreateTaskGasCost = stdJson.readUint(
             config_data,
             ".amounts.paymentServiceCreateTaskGasCost"
@@ -45,6 +50,7 @@ contract BatcherPaymentServiceDeployer is Script {
         ERC1967Proxy proxy = new ERC1967Proxy(address(batcherPaymentService), "");
         BatcherPaymentService(payable(address(proxy))).initialize(
             alignedLayerServiceManager,
+            batcherPaymentServiceOwner,
             batcherWallet,
             paymentServiceCreateTaskGasCost,
             serviceManagerCreateTaskGasCost,
