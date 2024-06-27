@@ -13,7 +13,7 @@ use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use log::{error, info};
+use log::{debug, error, info};
 
 use ethers::providers::{Http, Provider};
 use ethers::utils::hex;
@@ -45,7 +45,7 @@ pub async fn submit(
         .await
         .map_err(errors::SubmitError::ConnectionError)?;
 
-    info!("WebSocket handshake has been successfully completed");
+    debug!("WebSocket handshake has been successfully completed");
     let (ws_write, ws_read) = ws_stream.split();
 
     let ws_write = Arc::new(Mutex::new(ws_write));
@@ -103,7 +103,7 @@ async fn _submit(
                 .await
                 .map_err(errors::SubmitError::ConnectionError)?;
             sent_verification_data.push(verification_data.clone());
-            info!("Message sent...");
+            debug!("Message sent...");
         }
     }
 
@@ -160,12 +160,12 @@ async fn receive(
             let data = msg.into_data();
             match serde_json::from_slice::<BatchInclusionData>(&data) {
                 Ok(batch_inclusion_data) => {
-                    info!("Received response from batcher");
-                    info!(
+                    debug!("Received response from batcher");
+                    debug!(
                         "Batch merkle root: {}",
                         hex::encode(batch_inclusion_data.batch_merkle_root)
                     );
-                    info!("Index in batch: {}", batch_inclusion_data.index_in_batch);
+                    debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
                     info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
                     let verification_data_commitment =
@@ -183,7 +183,7 @@ async fn receive(
                 }
             }
             if *num_responses_lock == total_messages {
-                info!("All messages responded. Closing connection...");
+                debug!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
                 return Ok(Some(aligned_verification_data));
             }
@@ -197,7 +197,7 @@ fn verify_response(
     verification_data_commitment: &VerificationDataCommitment,
     batch_inclusion_data: &BatchInclusionData,
 ) -> bool {
-    info!("Verifying response data matches sent proof data ...");
+    debug!("Verifying response data matches sent proof data ...");
     let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
 
     if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
@@ -205,7 +205,7 @@ fn verify_response(
         batch_inclusion_data.index_in_batch,
         verification_data_commitment,
     ) {
-        info!("Done. Data sent matches batcher answer");
+        debug!("Done. Data sent matches batcher answer");
         return true;
     }
 
@@ -298,6 +298,9 @@ mod test {
     use std::str::FromStr;
     use tokio::time::sleep;
 
+    use ethers::core::rand::thread_rng;
+    use ethers::signers::LocalWallet;
+
     #[tokio::test]
     async fn test_submit_success() {
         let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -319,7 +322,9 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, &None)
+        let wallet = LocalWallet::new(&mut thread_rng());
+
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, wallet)
             .await
             .unwrap()
             .unwrap();
@@ -341,7 +346,9 @@ mod test {
             proof_generator_addr: contract_addr,
         }];
 
-        let result = submit("ws://localhost:8080", &verification_data, &None).await;
+        let wallet = LocalWallet::new(&mut thread_rng());
+
+        let result = submit("ws://localhost:8080", &verification_data, wallet).await;
 
         assert!(result.is_ok());
     }
@@ -369,7 +376,9 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, &None)
+        let wallet = LocalWallet::new(&mut thread_rng());
+
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, wallet)
             .await
             .unwrap()
             .unwrap();
@@ -408,7 +417,9 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, &None)
+        let wallet = LocalWallet::new(&mut thread_rng());
+
+        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, wallet)
             .await
             .unwrap()
             .unwrap();

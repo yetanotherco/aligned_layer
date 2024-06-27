@@ -195,6 +195,8 @@ async fn main() -> Result<(), AlignedError> {
 
             let verification_data_arr = vec![verification_data; repetitions];
 
+            info!("Submitting proofs to the Aligned batcher...");
+
             let aligned_verification_data_vec =
                 submit(&connect_addr, &verification_data_arr, wallet).await?;
 
@@ -209,6 +211,7 @@ async fn main() -> Result<(), AlignedError> {
                 error!("No batch inclusion data was received from the batcher");
             }
         }
+
         VerifyProofOnchain(verify_inclusion_args) => {
             let chain = verify_inclusion_args.chain.into();
             let batch_inclusion_file =
@@ -221,6 +224,7 @@ async fn main() -> Result<(), AlignedError> {
             let aligned_verification_data: AlignedVerificationData =
                 serde_json::from_reader(reader).map_err(SubmitError::SerdeError)?;
 
+            info!("Verifying response data matches sent proof data...");
             let response = verify_proof_onchain(
                 aligned_verification_data,
                 chain,
