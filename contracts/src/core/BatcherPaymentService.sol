@@ -17,9 +17,9 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
 
     mapping(address => uint256) public UserBalances;
 
-    uint256 public THIS_TX_BASE_GAS_COST; 
-    uint256 public CREATE_TASK_GAS_COST;
-    uint256 public EXTRA_USER_TX_GAS_COST; //As we must iterate over the proofSubmitters, there is an extra gas cost per extra user
+    uint256 public PAYMENT_SERVICE_CREATE_TASK_GAS_COST; // Base gas cost of executing createNewTask of this contract
+    uint256 public SERVICE_MANAGER_CREATE_TASK_GAS_COST; // Gas cost of calling createNewTask in AlignedLayerServiceManager
+    uint256 public EXTRA_USER_TX_GAS_COST; // As we must iterate over the proofSubmitters, there is an extra gas cost per extra user
 
     // storage gap for upgradeability
     uint256[25] private __GAP;
@@ -32,16 +32,16 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
     function initialize (
         address _AlignedLayerServiceManager,
         address _BatcherWallet, 
-        uint256 _ThisTxBaseGasCost, 
-        uint256 _CreateTaskGasCost,
+        uint256 _PaymentServiceCreateTaskGasCost, 
+        uint256 _ServiceManagerCreateTaskGasCost,
         uint256 _ExtraUserTxGasCost
     ) public initializer {
         __Ownable_init(); // default is msg.sender
 
         AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
-        THIS_TX_BASE_GAS_COST = _ThisTxBaseGasCost;
-        CREATE_TASK_GAS_COST = _CreateTaskGasCost;
+        PAYMENT_SERVICE_CREATE_TASK_GAS_COST = _PaymentServiceCreateTaskGasCost;
+        SERVICE_MANAGER_CREATE_TASK_GAS_COST = _ServiceManagerCreateTaskGasCost;
         EXTRA_USER_TX_GAS_COST = _ExtraUserTxGasCost;
     }
 
@@ -63,10 +63,10 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
         
         // each user must pay its fraction of the gas cost of this transaction back to the batcher
         // + 10% for increments in gas price
-        uint256 cost_of_this_tx = ((THIS_TX_BASE_GAS_COST + CREATE_TASK_GAS_COST + (EXTRA_USER_TX_GAS_COST * amountOfSubmitters)) * tx.gasprice * 11) / 10;
+        uint256 currentTxCost = ((PAYMENT_SERVICE_CREATE_TASK_GAS_COST + SERVICE_MANAGER_CREATE_TASK_GAS_COST + (EXTRA_USER_TX_GAS_COST * amountOfSubmitters)) * tx.gasprice * 11) / 10;
 
         // divide the price by the amount of submitters
-        uint256 totalCostPerProof = (costOfRespondToTask + cost_of_this_tx) / amountOfSubmitters;
+        uint256 totalCostPerProof = (costOfRespondToTask + currentTxCost) / amountOfSubmitters;
 
         // discount from each payer
         // will revert if one of them has insufficient balance
@@ -88,7 +88,7 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
 
         require(success, "createNewTask call failed");
 
-        payable(BatcherWallet).transfer(cost_of_this_tx);
+        payable(BatcherWallet).transfer(currentTxCost);
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
@@ -98,12 +98,12 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
         emit FundsWithdrawn(msg.sender, amount);
     }
 
-    function setThisTxBaseGasCost(uint256 amount) external onlyOwner whenNotPaused () {
-        THIS_TX_BASE_GAS_COST = amount;
+    function setPaymentServiceCreateTaskGasCost(uint256 amount) external onlyOwner whenNotPaused () {
+        PAYMENT_SERVICE_CREATE_TASK_GAS_COST = amount;
     }
 
-    function setCreateTaskGasCost(uint256 amount) external onlyOwner whenNotPaused () {
-        CREATE_TASK_GAS_COST = amount;
+    function setServiceManagerCreateTaskGasCost(uint256 amount) external onlyOwner whenNotPaused () {
+        SERVICE_MANAGER_CREATE_TASK_GAS_COST = amount;
     }
 
     function setExtraUserTxGasCost(uint256 amount) external onlyOwner whenNotPaused () {

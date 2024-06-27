@@ -24,14 +24,14 @@ contract BatcherPaymentServiceDeployer is Script {
             ".address.alignedLayerServiceManager"
         );
 
-        uint256 thisTxBaseGasCost = stdJson.readUint(
+        uint256 paymentServiceCreateTaskGasCost = stdJson.readUint(
             config_data,
-            ".amounts.thisTxBaseGasCost"
+            ".amounts.paymentServiceCreateTaskGasCost"
         );
 
-        uint256 createTaskGasCost = stdJson.readUint(
+        uint256 serviceManagerCreateTaskGasCost = stdJson.readUint(
             config_data,
-            ".amounts.createTaskGasCost"
+            ".amounts.serviceManagerCreateTaskGasCost"
         );
 
         uint256 extraUserTxGasCost = stdJson.readUint(
@@ -46,8 +46,8 @@ contract BatcherPaymentServiceDeployer is Script {
         BatcherPaymentService(payable(address(proxy))).initialize(
             alignedLayerServiceManager,
             batcherWallet,
-            thisTxBaseGasCost,
-            createTaskGasCost,
+            paymentServiceCreateTaskGasCost,
+            serviceManagerCreateTaskGasCost,
             extraUserTxGasCost
         );
         

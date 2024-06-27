@@ -4,8 +4,8 @@
     "alignedLayerServiceManager": "0x34e54bE558bd308cAA20Eb22d0652065Ba49fE85"
   },
   "amounts": {
-    "thisTxBaseGasCost": 42000,
-    "createTaskGasCost": 60000,
+    "paymentServiceCreateTaskGasCost": 42000,
+    "serviceManagerCreateTaskGasCost": 60000,
     "extraUserTxGasCost": 6500
   }
 }
