@@ -365,6 +365,13 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             }
         }
         DepositToBatcher(deposit_to_batcher_args) => {
+            if !deposit_to_batcher_args.amount.contains("ether") {
+                error!("Amount should be in the format XX.XXether");
+                return Ok(());
+            }
+
+            let amount = deposit_to_batcher_args.amount.replace("ether", "");
+
             let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
@@ -388,11 +395,6 @@ async fn main() -> Result<(), errors::BatcherClientError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            info!(
-                "Getting balance of wallet: {}",
-                wallet.address().to_string()
-            );
-
             let balance = client
                 .get_balance(wallet.address(), None)
                 .await
@@ -404,15 +406,6 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 error!("Insufficient funds to pay to the batcher. Please deposit some Ether in your wallet.");
                 return Ok(());
             }
-
-            if !deposit_to_batcher_args.amount.contains("ether") {
-                error!("Amount should be in the format XX.XXether");
-                return Ok(());
-            }
-
-            let amount = deposit_to_batcher_args.amount.replace("ether", "");
-
-            info!("Sending {} ether to the batcher", amount);
 
             let amount_ether = parse_ether(&amount).map_err(|e| {
                 BatcherClientError::EthError(format!("Error while parsing amount: {}", e))
@@ -430,6 +423,8 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 .to(batcher_addr)
                 .value(amount_ether)
                 .from(wallet.address());
+
+            info!("Sending {} ether to the batcher", amount);
 
             let tx = client
                 .send_transaction(tx, None)
