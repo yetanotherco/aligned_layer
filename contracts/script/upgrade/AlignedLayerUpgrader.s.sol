@@ -80,17 +80,6 @@ contract AlignedLayerUpgrader is Script {
                 )
             );
 
-        vm.startBroadcast();
-
-        alignedLayerProxyAdmin.upgrade(
-            TransparentUpgradeableProxy(
-                payable(address(alignedLayerServiceManager))
-            ),
-            address(alignedLayerServiceManagerImplementation)
-        );
-
-        vm.stopBroadcast();
-
         return (
             address(alignedLayerServiceManager),
             address(alignedLayerServiceManagerImplementation)
