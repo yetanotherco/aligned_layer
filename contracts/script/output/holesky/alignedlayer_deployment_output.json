@@ -12,7 +12,9 @@
     "registryCoordinatorImplementation": "0x85977E7AbcF14F1a88E7BD75eB2653a51649c519",
     "serviceManagerRouter": "0x8dA1824Bd43089766247C5B809FCE4a825A6AB25",
     "stakeRegistry": "0x51462D5511563A0F97Bb3Ce5475E1c3905b83F4b",
-    "stakeRegistryImplementation": "0xd1555Be14931C061E06D3CE1D1Daadc1B3c6F8c7"
+    "stakeRegistryImplementation": "0xd1555Be14931C061E06D3CE1D1Daadc1B3c6F8c7",
+    "batcherPaymentService": "",
+    "batcherPaymentServiceImplementation": ""
   },
   "chainInfo": {
     "chainId": 17000,
