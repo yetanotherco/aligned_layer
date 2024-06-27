@@ -1,0 +1,4 @@
+target/
+
+protocolStateProof.json
+blockchainVerificationKey.json

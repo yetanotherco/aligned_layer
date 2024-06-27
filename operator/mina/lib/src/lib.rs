@@ -13,6 +13,8 @@ use kimchi::{
     verifier_index::VerifierIndex,
 };
 
+mod pickles_preproc;
+
 const MAX_PROOF_SIZE: usize = 10 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 50 * 1024;
 
