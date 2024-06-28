@@ -36,16 +36,43 @@ defmodule ExplorerWeb.Utils do
     "#{formatted_hour}:#{formatted_minute}:#{formatted_second} (UTC) - #{formatted_month} #{formatted_day}, #{year}"
   end
 
-  def parse_timestamp_less(timestamp) do
-    %{hour: hour, minute: minute, second: second, day: day, month: month} = timestamp
+  def parse_timeago(timestamp) do
+    current_time = DateTime.utc_now()
+    diff_seconds = DateTime.diff(current_time, timestamp)
 
-    formatted_hour = pad_leading_zero(hour)
-    formatted_minute = pad_leading_zero(minute)
-    formatted_second = pad_leading_zero(second)
-    formatted_day = pad_leading_zero(day)
-    formatted_month = format_month(month)
+    days = div(diff_seconds, 86400)
+    remaining_seconds = rem(diff_seconds, 86400)
+    minutes = div(remaining_seconds, 60)
+    hours = div(minutes, 60)
 
-    "#{formatted_hour}:#{formatted_minute}:#{formatted_second} - #{formatted_month} #{formatted_day}"
+    case days do
+      0 ->
+        case hours do
+          0 ->
+            case minutes do
+              0 ->
+                "Just now"
+
+              1 ->
+                "1 min ago"
+
+              _ ->
+                "#{minutes} mins ago"
+            end
+
+          1 ->
+            "1 hr ago"
+
+          _ ->
+            "#{hours} hrs ago"
+        end
+
+      1 ->
+        "1 day ago"
+
+      _ ->
+        "#{days} days ago"
+    end
   end
 
   def format_month(num) do

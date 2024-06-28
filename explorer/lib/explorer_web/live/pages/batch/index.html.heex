@@ -1,10 +1,10 @@
-<div class="flex flex-col space-y-3 px-5 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
+<div class="flex flex-col space-y-3 px-1 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
   <%= if @current_batch != :empty do %>
     <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
       Batch Details
     </.card_preheding>
     <.card
-      class="px-6 py-5 min-h-fit flex flex-col"
+      class="px-4 py-5 min-h-fit flex flex-col"
       inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground"
     >
       Merkle Root Hash:
