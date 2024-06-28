@@ -1,17 +1,17 @@
 package halo2kzg_test
 
 import (
-	"os"
-	"testing"
 	"encoding/binary"
 	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
+	"os"
+	"testing"
 )
 
-const ProofFilePath = "../../task_sender/test_examples/halo2_kzg/proof.bin";
+const ProofFilePath = "../../scripts/test_examples/halo2_kzg/proof.bin"
 
-const PublicInputPath = "../../task_sender/test_examples/halo2_kzg/pub_input.bin";
+const PublicInputPath = "../../scripts/test_examples/halo2_kzg/pub_input.bin"
 
-const ParamsFilePath = "../../task_sender/test_examples/halo2_kzg/params.bin";
+const ParamsFilePath = "../../scripts/test_examples/halo2_kzg/params.bin"
 
 func TestHalo2KzgProofVerifies(t *testing.T) {
 	proofFile, err := os.Open(ProofFilePath)
@@ -48,15 +48,15 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	copy(vkLenBuffer, paramsFileBytes[4:8])
 	copy(kzgParamLenBuffer, paramsFileBytes[8:12])
 
-	csLen :=  binary.LittleEndian.Uint32(csLenBuffer)
-	vkLen :=  binary.LittleEndian.Uint32(vkLenBuffer)
-	kzgParamsLen :=  binary.LittleEndian.Uint32(kzgParamLenBuffer)
+	csLen := binary.LittleEndian.Uint32(csLenBuffer)
+	vkLen := binary.LittleEndian.Uint32(vkLenBuffer)
+	kzgParamsLen := binary.LittleEndian.Uint32(kzgParamLenBuffer)
 
 	// Select bytes
 	csOffset := uint32(12)
-	copy(csBytes, paramsFileBytes[csOffset:(csOffset + csLen)])
+	copy(csBytes, paramsFileBytes[csOffset:(csOffset+csLen)])
 	vkOffset := csOffset + csLen
-	copy(vkBytes, paramsFileBytes[vkOffset:(vkOffset + vkLen)])
+	copy(vkBytes, paramsFileBytes[vkOffset:(vkOffset+vkLen)])
 	kzgParamsOffset := vkOffset + vkLen
 	copy(kzgParamsBytes, paramsFileBytes[kzgParamsOffset:])
 
@@ -71,7 +71,7 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	}
 
 	if !halo2kzg.VerifyHalo2KzgProof(
-		([halo2kzg.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes), 
+		([halo2kzg.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes),
 		([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), uint32(csLen),
 		([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), uint32(vkLen),
 		([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), uint32(kzgParamsLen),

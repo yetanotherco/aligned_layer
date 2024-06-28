@@ -17,9 +17,9 @@ while true
 do
     echo "Generating proof $counter != 0"
 
-    go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/cmd/main.go $counter
+    go run scripts/test_examples/gnark_groth16_bn254_infinite_script/cmd/main.go $counter
 
-    cd ./batcher/aligned && cargo run --release -- submit --proving_system Groth16Bn254 --proof ../../task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.proof --public_input ../../task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.pub --vk ../../task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.vk --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+    cd ./batcher/aligned && cargo run --release -- submit --proving_system Groth16Bn254 --proof ../../scripts/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.proof --public_input ../../scripts/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.pub --vk ../../scripts/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16.vk --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
     cd ../..
 
     sleep $timer

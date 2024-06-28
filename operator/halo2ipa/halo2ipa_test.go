@@ -1,17 +1,17 @@
 package halo2ipa_test
 
 import (
-	"os"
-	"testing"
 	"encoding/binary"
 	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
+	"os"
+	"testing"
 )
 
-const ProofFilePath = "../../task_sender/test_examples/halo2_ipa/proof.bin";
+const ProofFilePath = "../../scripts/test_examples/halo2_ipa/proof.bin"
 
-const PublicInputPath = "../../task_sender/test_examples/halo2_ipa/pub_input.bin";
+const PublicInputPath = "../../scripts/test_examples/halo2_ipa/pub_input.bin"
 
-const ParamsFilePath = "../../task_sender/test_examples/halo2_ipa/params.bin";
+const ParamsFilePath = "../../scripts/test_examples/halo2_ipa/params.bin"
 
 func TestHalo2IpaProofVerifies(t *testing.T) {
 	proofFile, err := os.Open(ProofFilePath)
@@ -48,15 +48,15 @@ func TestHalo2IpaProofVerifies(t *testing.T) {
 	copy(vkLenBuffer, paramsFileBytes[4:8])
 	copy(ipaParamLenBuffer, paramsFileBytes[8:12])
 
-	csLen :=  binary.LittleEndian.Uint32(csLenBuffer)
-	vkLen :=  binary.LittleEndian.Uint32(vkLenBuffer)
-	ipaParamsLen :=  binary.LittleEndian.Uint32(ipaParamLenBuffer)
+	csLen := binary.LittleEndian.Uint32(csLenBuffer)
+	vkLen := binary.LittleEndian.Uint32(vkLenBuffer)
+	ipaParamsLen := binary.LittleEndian.Uint32(ipaParamLenBuffer)
 
 	// Select bytes
 	csOffset := uint32(12)
-	copy(csBytes, paramsFileBytes[csOffset:(csOffset + csLen)])
+	copy(csBytes, paramsFileBytes[csOffset:(csOffset+csLen)])
 	vkOffset := csOffset + csLen
-	copy(vkBytes, paramsFileBytes[vkOffset:(vkOffset + vkLen)])
+	copy(vkBytes, paramsFileBytes[vkOffset:(vkOffset+vkLen)])
 	ipaParamsOffset := vkOffset + vkLen
 	copy(ipaParamsBytes, paramsFileBytes[ipaParamsOffset:])
 
@@ -71,7 +71,7 @@ func TestHalo2IpaProofVerifies(t *testing.T) {
 	}
 
 	if !halo2ipa.VerifyHalo2IpaProof(
-		([halo2ipa.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes), 
+		([halo2ipa.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes),
 		([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), uint32(csLen),
 		([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), uint32(vkLen),
 		([halo2ipa.MaxIpaParamsSize]byte)(ipaParamsBytes), uint32(ipaParamsLen),
