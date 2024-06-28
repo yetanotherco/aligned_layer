@@ -13,7 +13,7 @@ use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use log::{debug, error, info};
+use log::{debug, error};
 
 use ethers::providers::{Http, Provider};
 use ethers::utils::hex;
@@ -23,7 +23,7 @@ use futures_util::{
     SinkExt, StreamExt, TryStreamExt,
 };
 
-pub const PROTOCOL_VERSION: u16 = 0;
+pub const CURRENT_PROTOCOL_VERSION: u16 = 0;
 
 /// Submits a proof to the batcher to be verified in Aligned.
 /// # Arguments
@@ -63,13 +63,12 @@ async fn _submit(
     if let Some(Ok(msg)) = ws_read.next().await {
         match msg.into_data().try_into() {
             Ok(data) => {
-                let current_protocol_version = u16::from_be_bytes(data);
-                if current_protocol_version > PROTOCOL_VERSION {
-                    //TODO (Nico): This message is temporary, we should have a better way to handle this in the client
-                    info!(
-                        "You are running an old version of the client, update it running:\ncurl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash\nClient version: {}, Expected version: {}",
-                        PROTOCOL_VERSION, current_protocol_version
-                    );
+                let expected_protocol_version = u16::from_be_bytes(data);
+                if expected_protocol_version > CURRENT_PROTOCOL_VERSION {
+                    return Err(errors::SubmitError::ProtocolVersionMismatch(
+                        CURRENT_PROTOCOL_VERSION,
+                        expected_protocol_version,
+                    ));
                 }
             }
             Err(_) => {

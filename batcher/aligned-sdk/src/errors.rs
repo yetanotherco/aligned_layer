@@ -42,6 +42,7 @@ pub enum SubmitError {
     MissingParameter(String),
     InvalidProvingSystem(String),
     InvalidAddress(String, String),
+    ProtocolVersionMismatch(u16, u16),
     GenericError(String),
 }
 
@@ -107,6 +108,9 @@ impl fmt::Debug for SubmitError {
             }
             SubmitError::InvalidAddress(addr, msg) => {
                 write!(f, "Invalid address: {}, {}", addr, msg)
+            }
+            SubmitError::ProtocolVersionMismatch(current, expected) => {
+                write!(f, "Protocol version mismatch, SDK should be updated: current version: {} != expected version: {}", current, expected)
             }
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
         }

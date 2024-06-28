@@ -149,8 +149,11 @@ impl Batcher {
         let outgoing = Arc::new(RwLock::new(outgoing));
 
         // Send the protocol version to the client
-        let protocol_version_msg =
-            Message::binary(aligned_sdk::sdk::PROTOCOL_VERSION.to_be_bytes().to_vec());
+        let protocol_version_msg = Message::binary(
+            aligned_sdk::sdk::CURRENT_PROTOCOL_VERSION
+                .to_be_bytes()
+                .to_vec(),
+        );
 
         outgoing
             .write()
