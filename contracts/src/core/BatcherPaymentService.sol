@@ -32,10 +32,7 @@ contract BatcherPaymentService is
     function initialize(
         address _AlignedLayerServiceManager,
         address _BatcherPaymentServiceOwner,
-        address _BatcherWallet,
-        uint256 _PaymentServiceCreateTaskGasCost,
-        uint256 _ServiceManagerCreateTaskGasCost,
-        uint256 _ExtraUserTxGasCost
+        address _BatcherWallet
     ) public initializer {
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
@@ -43,9 +40,6 @@ contract BatcherPaymentService is
 
         AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
-        PAYMENT_SERVICE_CREATE_TASK_GAS_COST = _PaymentServiceCreateTaskGasCost;
-        SERVICE_MANAGER_CREATE_TASK_GAS_COST = _ServiceManagerCreateTaskGasCost;
-        EXTRA_USER_TX_GAS_COST = _ExtraUserTxGasCost;
     }
 
     // PAYABLE FUNCTIONS
@@ -69,7 +63,7 @@ contract BatcherPaymentService is
 
         require(amountOfSubmitters > 0, "No proof submitters");
 
-        require(feePerProof * amountOfSubmitters > feeForAggregator, "Not enough gas to pay the batcher")
+        require(feePerProof * amountOfSubmitters > feeForAggregator, "Not enough gas to pay the batcher");
 
         // discount from each payer
         // will revert if one of them has insufficient balance
@@ -109,24 +103,6 @@ contract BatcherPaymentService is
         UserBalances[msg.sender] -= amount;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
-    }
-
-    function setPaymentServiceCreateTaskGasCost(
-        uint256 amount
-    ) external onlyOwner whenNotPaused {
-        PAYMENT_SERVICE_CREATE_TASK_GAS_COST = amount;
-    }
-
-    function setServiceManagerCreateTaskGasCost(
-        uint256 amount
-    ) external onlyOwner whenNotPaused {
-        SERVICE_MANAGER_CREATE_TASK_GAS_COST = amount;
-    }
-
-    function setExtraUserTxGasCost(
-        uint256 amount
-    ) external onlyOwner whenNotPaused {
-        EXTRA_USER_TX_GAS_COST = amount;
     }
 
     function pause() public onlyOwner {

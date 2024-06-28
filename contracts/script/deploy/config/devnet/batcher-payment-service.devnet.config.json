@@ -4,11 +4,6 @@
     "batcherPrivateKey": "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba",
     "alignedLayerServiceManager": "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
   },
-  "amounts": {
-    "paymentServiceCreateTaskGasCost": 42000,
-    "serviceManagerCreateTaskGasCost": 60000,
-    "extraUserTxGasCost": 6500
-  },
   "permissions": {
     "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
   }
