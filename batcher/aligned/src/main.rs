@@ -365,7 +365,7 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             }
         }
         DepositToBatcher(deposit_to_batcher_args) => {
-            if !deposit_to_batcher_args.amount.contains("ether") {
+            if !deposit_to_batcher_args.amount.ends_with("ether") {
                 error!("Amount should be in the format XX.XXether");
                 return Ok(());
             }
@@ -402,14 +402,14 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                     BatcherClientError::EthError(format!("Error while getting balance: {}", e))
                 })?;
 
-            if balance <= U256::from(0) {
-                error!("Insufficient funds to pay to the batcher. Please deposit some Ether in your wallet.");
-                return Ok(());
-            }
-
             let amount_ether = parse_ether(&amount).map_err(|e| {
                 BatcherClientError::EthError(format!("Error while parsing amount: {}", e))
             })?;
+
+            if balance < amount_ether {
+                error!("Insufficient funds to pay to the batcher. Please deposit some Ether in your wallet.");
+                return Ok(());
+            }
 
             let batcher_addr = Address::from_str(&deposit_to_batcher_args.batcher_eth_address)
                 .map_err(|e| {
