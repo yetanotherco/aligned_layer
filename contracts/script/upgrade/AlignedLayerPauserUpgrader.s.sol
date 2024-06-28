@@ -90,9 +90,11 @@ contract AlignedLayerPauserUpgrader is Script {
 
         // alignedLayerServiceManager is the proxy
         AlignedLayerServiceManager alignedLayerServiceManager = AlignedLayerServiceManager(
-            stdJson.readAddress(
-                aligned_deployment_file,
-                ".addresses.alignedLayerServiceManager"
+            payable(
+                stdJson.readAddress(
+                        aligned_deployment_file,
+                        ".addresses.alignedLayerServiceManager"
+                )
             )
         );
 
