@@ -29,6 +29,11 @@ For example:
 cast send 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0 --value 1ether --rpc-url http://localhost:8545 --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
 ```
 
+After sending funds, you can check your current balance:
+```bash
+cast call 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0 "UserBalances(address)(uint256)" 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
+```
+
 The Batcher will then call something similar to the following command, to submit the batch to Aligned:
 ```bash
 cast send 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0 "createNewTask(bytes32, string, address[], uint256)" 0xc1b2a3c3aec88bb41478922438b0698add6a9a6c57170176115bda61748df59a "http://storage.alignedlayer.com/c1b2a3c3aec88bb41478922438b0698add6a9a6c57170176115bda61748df59a.json" "[0xa0Ee7A142d267C1f36714E4a8F75612F20a79720]" 1000000000000000 --private-key 0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba

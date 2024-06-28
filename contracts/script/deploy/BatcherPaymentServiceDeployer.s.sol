@@ -9,8 +9,7 @@ import "forge-std/StdJson.sol";
 contract BatcherPaymentServiceDeployer is Script {
     function run(
         string memory batcherConfigPath
-    ) external returns (address) {
-
+    ) external returns (address, address) {
         // READ JSON CONFIG DATA
         string memory config_data = vm.readFile(batcherConfigPath);
 
@@ -47,7 +46,10 @@ contract BatcherPaymentServiceDeployer is Script {
         vm.startBroadcast();
 
         BatcherPaymentService batcherPaymentService = new BatcherPaymentService();
-        ERC1967Proxy proxy = new ERC1967Proxy(address(batcherPaymentService), "");
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(batcherPaymentService),
+            ""
+        );
         BatcherPaymentService(payable(address(proxy))).initialize(
             alignedLayerServiceManager,
             batcherPaymentServiceOwner,
@@ -56,10 +58,9 @@ contract BatcherPaymentServiceDeployer is Script {
             serviceManagerCreateTaskGasCost,
             extraUserTxGasCost
         );
-        
+
         vm.stopBroadcast();
 
-        return address(proxy);
+        return (address(proxy), address(batcherPaymentService));
     }
 }
-

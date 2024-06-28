@@ -11,8 +11,8 @@ cd ../
 source scripts/.env
 
 # Deploy Batcher Payments Contract
-forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
-    ./script/deploy/config/holesky/batcher-payment-service.holesky.config.json \
+forge_output=$(forge script script/upgrade/BatcherPaymentServiceUpgrader.s.sol \
+    ./script/output/holesky/alignedlayer_deployment_output.json \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
     --broadcast \
@@ -24,20 +24,15 @@ forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
 echo "$forge_output"
 
 # Extract the batcher payment service values from the output
-# new_aligned_layer_service_manager_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
-batcher_payment_service_proxy=$(echo "$forge_output" | awk '/0: address/ {print $3}')
 batcher_payment_service_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 
 # Use the extracted value to replace the  batcher payment service values in alignedlayer_deployment_output.json and save it to a temporary file
-jq --arg batcher_payment_service_proxy "$batcher_payment_service_proxy" '.addresses.batcherPaymentService = $batcher_payment_service_proxy' "script/output/holesky/alignedlayer_deployment_output.json" > "script/output/holesky/alignedlayer_deployment_output.temp.temp.json"
-jq --arg batcher_payment_service_implementation "$batcher_payment_service_implementation" '.addresses.batcherPaymentServiceImplementation = $batcher_payment_service_implementation' "script/output/holesky/alignedlayer_deployment_output.temp.temp.json" > "script/output/holesky/alignedlayer_deployment_output.temp.json"
-
+jq --arg batcher_payment_service_implementation "$batcher_payment_service_implementation" '.addresses.batcherPaymentServiceImplementation = $batcher_payment_service_implementation' "script/output/holesky/alignedlayer_deployment_output.json" > "script/output/holesky/alignedlayer_deployment_output.temp.json"
 
 # Replace the original file with the temporary file
 mv "script/output/holesky/alignedlayer_deployment_output.temp.json" "script/output/holesky/alignedlayer_deployment_output.json"
 
 # Delete the temporary file
 rm -f "script/output/holesky/alignedlayer_deployment_output.temp.json"
-rm -f "script/output/holesky/alignedlayer_deployment_output.temp.temp.json"
 
 

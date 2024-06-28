@@ -527,6 +527,10 @@ deploy_batcher_payment_service:
 	@echo "Deploying BatcherPayments contract..."
 	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payment_service.sh
 
+upgrade_batcher_payment_service:
+	@echo "Upgrading BatcherPayments contract..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_batcher_payment_service.sh
+
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 
