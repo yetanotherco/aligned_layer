@@ -6,34 +6,24 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::errors::{AlignedError, SubmitError};
-use clap::ValueEnum;
+use aligned_sdk::types::AlignedVerificationData;
+use aligned_sdk::types::ProvingSystemId;
+use aligned_sdk::types::VerificationData;
+use clap::Parser;
 use clap::Subcommand;
-use clap::{Parser, ValueEnum};
+use clap::ValueEnum;
 use env_logger::Env;
-use ethers::core::rand::thread_rng;
 use ethers::prelude::*;
-use futures_util::{
-    future,
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt, TryStreamExt,
-};
 use log::warn;
-use log::{error, info, warn};
-use tokio::{net::TcpStream, sync::Mutex};
-use tokio_tungstenite::connect_async;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use log::{error, info};
 
 use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
 
-use clap::Subcommand;
 use ethers::utils::hex;
 
 use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
-
-use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

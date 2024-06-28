@@ -11,6 +11,7 @@ use aligned_sdk::types::{
     VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
+use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, U256};
@@ -30,7 +31,6 @@ use types::errors::BatcherError;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput, NonPayingConfig};
 use crate::eth::AlignedLayerServiceManager;
-use crate::eth::BatchVerifiedEventStream;
 
 mod config;
 mod eth;
