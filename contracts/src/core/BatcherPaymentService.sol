@@ -21,9 +21,9 @@ contract BatcherPaymentService is
 
     mapping(address => uint256) public UserBalances;
 
-    uint256 public PAYMENT_SERVICE_CREATE_TASK_GAS_COST; // Base gas cost of executing createNewTask of this contract
-    uint256 public SERVICE_MANAGER_CREATE_TASK_GAS_COST; // Gas cost of calling createNewTask in AlignedLayerServiceManager
-    uint256 public EXTRA_USER_TX_GAS_COST; // As we must iterate over the proofSubmitters, there is an extra gas cost per extra user
+    // uint256 public PAYMENT_SERVICE_CREATE_TASK_GAS_COST; // Base gas cost of executing createNewTask of this contract
+    // uint256 public SERVICE_MANAGER_CREATE_TASK_GAS_COST; // Gas cost of calling createNewTask in AlignedLayerServiceManager
+    // uint256 public EXTRA_USER_TX_GAS_COST; // As we must iterate over the proofSubmitters, there is an extra gas cost per extra user
 
     // storage gap for upgradeability
     uint256[25] private __GAP;
@@ -54,7 +54,10 @@ contract BatcherPaymentService is
 
     // PAYABLE FUNCTIONS
     receive() external payable {
+        require(UserBalances[msg.sender] + msg.value < 50000000000000000, "You can't deposit more then 0.05eth");
+
         UserBalances[msg.sender] += msg.value;
+        
         emit PaymentReceived(msg.sender, msg.value);
     }
 
