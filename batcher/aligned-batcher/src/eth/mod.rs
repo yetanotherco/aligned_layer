@@ -1,8 +1,8 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
+use ethers::prelude::k256::ecdsa::SigningKey;
 use stream::EventStream;
 
 use crate::config::ECDSAConfig;
@@ -23,7 +23,7 @@ pub struct BatchVerified {
 }
 
 pub type AlignedLayerServiceManager =
-    AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
+AlignedLayerServiceManagerContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
 pub type BatchVerifiedEventStream<'s> = EventStream<
     's,
@@ -33,7 +33,7 @@ pub type BatchVerifiedEventStream<'s> = EventStream<
 >;
 
 pub type BatcherPaymentService =
-    BatcherPaymentServiceContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
+BatcherPaymentServiceContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
 
 pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
     Provider::<Http>::try_from(eth_rpc_url).map_err(|err| anyhow::anyhow!(err))
@@ -51,7 +51,7 @@ pub async fn get_service_manager(
         &ecdsa_config.private_key_store_path,
         &ecdsa_config.private_key_store_password,
     )?
-    .with_chain_id(chain_id.as_u64());
+        .with_chain_id(chain_id.as_u64());
 
     let signer = Arc::new(SignerMiddleware::new(provider, wallet));
 
@@ -94,7 +94,7 @@ pub async fn get_batcher_payment_service(
         &ecdsa_config.private_key_store_path,
         &ecdsa_config.private_key_store_password,
     )?
-    .with_chain_id(chain_id.as_u64());
+        .with_chain_id(chain_id.as_u64());
 
     let signer = Arc::new(SignerMiddleware::new(provider, wallet));
 

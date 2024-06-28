@@ -5,32 +5,33 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::eth::BatchVerifiedEventStream;
-use aligned_batcher_lib::types::{
-    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
-};
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, U256};
-use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
+use futures_util::stream::{self, SplitSink};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error, info};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::timeout;
-use tokio_tungstenite::tungstenite::error::ProtocolError;
-use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
 use tokio_tungstenite::tungstenite::{Error, Message};
+use tokio_tungstenite::tungstenite::error::ProtocolError;
+use tokio_tungstenite::tungstenite::protocol::{CloseFrame, frame::coding::CloseCode};
 use tokio_tungstenite::WebSocketStream;
+
+use aligned_batcher_lib::types::{
+    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
+};
+use eth::{BatcherPaymentService, BatchVerifiedFilter};
 use types::batch_queue::BatchQueue;
 use types::errors::BatcherError;
 
-use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
+use crate::config::{ConfigFromYaml, ContractDeploymentOutput, NonPayingConfig};
 use crate::eth::AlignedLayerServiceManager;
+use crate::eth::BatchVerifiedEventStream;
 
 mod config;
 mod eth;
@@ -59,6 +60,7 @@ pub struct Batcher {
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     protocol_version: u16,
+    non_paying_config: Option<NonPayingConfig>,
 }
 
 impl Batcher {
@@ -91,16 +93,16 @@ impl Batcher {
             config.ecdsa.clone(),
             deployment_output.addresses.aligned_layer_service_manager,
         )
-        .await
-        .expect("Failed to get Aligned service manager contract");
+            .await
+            .expect("Failed to get Aligned service manager contract");
 
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
             config.ecdsa,
             deployment_output.addresses.batcher_payment_service,
         )
-        .await
-        .expect("Failed to get Batcher Payment Service contract");
+            .await
+            .expect("Failed to get Batcher Payment Service contract");
 
         Self {
             s3_client,
@@ -115,6 +117,7 @@ impl Batcher {
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             protocol_version: PROTOCOL_VERSION,
+            non_paying_config: config.batcher.non_paying,
         }
     }
 
@@ -202,6 +205,15 @@ impl Batcher {
         info!("Verifying message signature...");
         let submitter_addr = if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
+
+            let mut addr = addr;
+            if let Some(non_paying_config) = &self.non_paying_config {
+                if addr == non_paying_config.address {
+                    info!("Non-paying address detected. Replacing with configured address");
+                    addr = non_paying_config.replacement;
+                }
+            }
+
             let user_balance = self
                 .payment_service
                 .user_balances(addr)
@@ -215,6 +227,7 @@ impl Batcher {
                     ProtocolError::HandshakeIncomplete,
                 ));
             }
+
             addr
         } else {
             error!("Signature verification error");
@@ -356,11 +369,8 @@ impl Batcher {
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
             MerkleTree::build(&batch_data_comm);
 
-        let submitter_addresses: Vec<Address> = finalized_batch
-            .clone()
-            .into_iter()
-            .map(|(_, _, _, addr)| addr)
-            .collect();
+        let submitter_addresses = finalized_batch
+            .iter().map(|(_, _, _, addr)| *addr).collect();
 
         let events = self.service_manager.event::<BatchVerifiedFilter>();
         let mut stream = events
@@ -386,7 +396,7 @@ impl Batcher {
         // connected clients
         let await_batch_verified_fut =
             await_batch_verified_event(&mut stream, &batch_merkle_tree.root);
-        if (timeout(Duration::from_secs(60), await_batch_verified_fut).await).is_err() {
+        if timeout(Duration::from_secs(60), await_batch_verified_fut).await.is_err() {
             send_timeout_close(finalized_batch).await?;
         } else {
             send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
@@ -436,7 +446,7 @@ impl Batcher {
             submitter_addresses,
             U256::from(400000000000000u64),
         )
-        .await
+            .await
         {
             Ok(_) => info!("Batch verification task created on Aligned contract"),
             Err(e) => error!("Failed to create batch verification task: {}", e),
