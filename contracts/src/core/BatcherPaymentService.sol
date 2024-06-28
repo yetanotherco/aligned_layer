@@ -60,7 +60,7 @@ contract BatcherPaymentService is
         string calldata batchDataPointer,
         address[] calldata proofSubmitters, // one address for each payer proof, 1 user has 2 proofs? send twice that address
         uint256 gasForAggregator,
-        uint256 gasPerProof,
+        uint256 gasPerProof
     ) external onlyBatcher whenNotPaused {
         uint256 feeForAggregator = gasForAggregator * tx.gasprice;
         uint256 feePerProof = gasPerProof * tx.gasprice;
