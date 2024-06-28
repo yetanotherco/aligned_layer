@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# ethers = { version = "2.0", features = ["ws", "rustls"] }
 ethers = { tag = "v2.0.15-fix-reconnections", features = ["ws", "rustls"], git = "https://github.com/yetanotherco/ethers-rs.git" }
 anyhow = "1.0.83"
 log = { version = "0.4.21"}
