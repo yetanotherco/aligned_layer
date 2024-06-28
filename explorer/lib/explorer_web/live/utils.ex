@@ -66,6 +66,16 @@ defmodule ExplorerWeb.Utils do
     end
   end
 
+  def format_number(number) when is_integer(number) do
+    number
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.graphemes()
+    |> Enum.chunk_every(3)
+    |> Enum.join(",")
+    |> String.reverse()
+  end
+
   defp pad_leading_zero(value) do
     Integer.to_string(value) |> String.pad_leading(2, "0")
   end
@@ -73,12 +83,14 @@ end
 
 defmodule Utils do
   require Logger
+
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
-    hex = case hex_string do
-      "0x" <> _ -> String.slice(hex_string, 2..-1//1)
-      _ -> raise "Invalid hex string, missing '0x' prefix"
-    end
+    hex =
+      case hex_string do
+        "0x" <> _ -> String.slice(hex_string, 2..-1//1)
+        _ -> raise "Invalid hex string, missing '0x' prefix"
+      end
 
     # Convert the hex string to a binary
     case Base.decode16(hex, case: :mixed) do
@@ -102,15 +114,18 @@ defmodule Utils do
     300
   end
 
-  def fetch_batch_data_pointer(batch_data_pointer) do # Download Bottleneck
+  # Download Bottleneck
+  def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         case Jason.decode(body) do
           {:ok, json} -> {:ok, json}
           {:error, reason} -> {:error, {:json_decode, reason}}
         end
+
       {:ok, %Finch.Response{status: status_code}} ->
         {:error, {:http_error, status_code}}
+
       {:error, reason} ->
         {:error, {:http_error, reason}}
     end
@@ -118,15 +133,19 @@ defmodule Utils do
 
   def extract_amount_of_proofs(%BatchDB{} = batch) do
     IO.inspect("Extracting amount of proofs for batch: #{batch.merkle_root}")
-    #only get from s3 if not already in DB
-    amount_of_proofs = case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
-      nil ->
-        IO.inspect("Fetching from S3")
-        batch.data_pointer |> Utils.fetch_batch_data_pointer |> Utils.extract_amount_of_proofs_from_json
+    # only get from s3 if not already in DB
+    amount_of_proofs =
+      case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
+        nil ->
+          IO.inspect("Fetching from S3")
 
-      proofs ->
-        IO.inspect("Fetching from DB")
-        proofs
+          batch.data_pointer
+          |> Utils.fetch_batch_data_pointer()
+          |> Utils.extract_amount_of_proofs_from_json()
+
+        proofs ->
+          IO.inspect("Fetching from DB")
+          proofs
       end
 
     Map.put(batch, :amount_of_proofs, amount_of_proofs)

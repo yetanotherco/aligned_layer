@@ -16,14 +16,14 @@
   </.card>
   <.card title="verified batches">
     <%= if @verified_batches != :empty do %>
-      <%= @verified_batches %>
+      <%= @verified_batches |> Utils.format_number() %>
     <% else %>
       0
     <% end %>
   </.card>
   <.card title="Verified Proofs">
     <%= if @verified_proofs != :empty do %>
-      <%= @verified_proofs %>
+      <%= @verified_proofs |> Utils.format_number() %>
     <% else %>
       0
     <% end %>
