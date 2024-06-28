@@ -7,7 +7,8 @@ use std::time::Duration;
 
 use crate::eth::BatchVerifiedEventStream;
 use aligned_batcher_lib::types::{
-    BatchInclusionData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatchVerifiedFilter;
@@ -42,6 +43,8 @@ mod zk_utils;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
+const PROTOCOL_VERSION: u16 = 0;
+
 pub struct Batcher {
     s3_client: S3Client,
     eth_ws_provider: Provider<Ws>,
@@ -53,6 +56,7 @@ pub struct Batcher {
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
+    protocol_version: u16,
 }
 
 impl Batcher {
@@ -99,6 +103,7 @@ impl Batcher {
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
+            protocol_version: PROTOCOL_VERSION,
         }
     }
 
@@ -145,8 +150,18 @@ impl Batcher {
 
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
-
         let outgoing = Arc::new(RwLock::new(outgoing));
+
+        // Send the protocol version to the client
+        let protocol_version_msg = Message::binary(self.protocol_version.to_be_bytes().to_vec());
+
+        outgoing
+            .write()
+            .await
+            .send(protocol_version_msg)
+            .await
+            .expect("Failed to send protocol version");
+
         match incoming
             .try_filter(|msg| future::ready(msg.is_text()))
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
@@ -167,10 +182,21 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
         // Deserialize verification data from message
-        let verification_data: VerificationData =
+        let client_msg: ClientMessage =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
+        // FIXME: We are not doing anything for the moment with the address from the
+        // sender, this logic should be added for the payment system.
+        info!("Verifying message signature...");
+        if let Ok(_addr) = client_msg.verify_signature() {
+            info!("Message signature verified");
+            // do something with addr
+        } else {
+            error!("Signature verification error")
+        }
+
+        let verification_data = client_msg.verification_data;
         if verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled && !zk_utils::verify(&verification_data) {
