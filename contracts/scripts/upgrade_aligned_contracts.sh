@@ -35,7 +35,7 @@ rm -f "script/output/holesky/alignedlayer_deployment_output.temp.json"
 
 data=$(cast calldata "upgrade(address, address)" $aligned_layer_service_manager $new_aligned_layer_service_manager_implementation)
 
-if [ -z $MULTISIG ]; then
+if [ "$MULTISIG" = false ]; then
   proxy_admin=$(jq -r '.addresses.alignedLayerProxyAdmin' $OUTPUT_PATH)
   cast send $proxy_admin $data \
     --rpc-url $RPC_URL \
