@@ -3,6 +3,10 @@
     "batcherWallet": "<batcher_wallet_address>",
     "alignedLayerServiceManager": "<aligned_layer_service_manager_address>"
   },
+  "amounts": {
+    "gasForAggregator": "300000",
+    "gasPerProof": "21000"
+  },
   "permissions": {
     "owner": "<owner_address>"
   }
