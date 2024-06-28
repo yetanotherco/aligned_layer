@@ -386,7 +386,7 @@ impl Batcher {
         // connected clients
         let await_batch_verified_fut =
             await_batch_verified_event(&mut stream, &batch_merkle_tree.root);
-        if let Err(_) = timeout(Duration::from_secs(60), await_batch_verified_fut).await {
+        if (timeout(Duration::from_secs(60), await_batch_verified_fut).await).is_err() {
             send_timeout_close(finalized_batch).await?;
         } else {
             send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
