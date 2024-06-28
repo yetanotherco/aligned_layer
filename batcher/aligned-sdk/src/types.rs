@@ -158,8 +158,12 @@ impl ClientMessage {
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
         let hashed_leaf =
             VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
-        let recovered = self.signature.recover(hashed_leaf)?;
-        self.signature.verify(hashed_leaf, recovered)?;
+
+        // IMPORTANT: If the `.to_vec()` conversion is not made for `hashed_leaf`, the recovered
+        // address from the signature will not be the same as the one who signed. This is a bug in
+        // the ethers-rs library
+        let recovered = self.signature.recover(hashed_leaf.to_vec())?;
+        self.signature.verify(hashed_leaf.to_vec(), recovered)?;
         Ok(recovered)
     }
 }
