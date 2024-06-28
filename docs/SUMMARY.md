@@ -2,7 +2,7 @@
 
 ## Introduction
 
-* [What is Aligned?](introduction/0_what_is_aligned.md)
+* [About Aligned](introduction/0_about_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
 * [FAQ](introduction/2_faq.md)
 * [Core concepts](introduction/3_core_concepts.md)
