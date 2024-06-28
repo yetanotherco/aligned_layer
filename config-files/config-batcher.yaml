@@ -20,3 +20,7 @@ batcher:
   max_batch_size: 268435456 # 256 MiB
   eth_ws_reconnects: 99999999999999
   pre_verification_is_enabled: true
+  non_paying:
+    address: 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 # Anvil address 9
+    replacement: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 # Anvil address 1
+
