@@ -26,11 +26,7 @@ use aligned_batcher_lib::types::ClientMessage;
 use aligned_batcher_lib::types::VerificationCommitmentBatch;
 use aligned_batcher_lib::types::VerificationDataCommitment;
 use aligned_batcher_lib::types::{BatchInclusionData, ProvingSystemId, VerificationData};
-use clap::Subcommand;
-use ethers::core::rand::thread_rng;
-use ethers::utils::hex;
 use ethers::utils::parse_ether;
-use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
