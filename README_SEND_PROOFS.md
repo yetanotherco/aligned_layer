@@ -49,6 +49,7 @@ This commands also allows the usage of the flags:
 - `--conn` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used.
+- Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the batcher.
 
 After depositing funds, you can verify the Service has correctly recieved them, executing the following command:
 ```bash
