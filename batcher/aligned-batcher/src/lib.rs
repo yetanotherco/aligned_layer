@@ -425,7 +425,6 @@ impl Batcher {
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        // let service_manager = &self.service_manager;
         let payment_service = &self.payment_service;
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
 
