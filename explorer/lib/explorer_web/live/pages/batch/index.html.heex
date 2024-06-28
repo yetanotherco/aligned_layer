@@ -18,7 +18,7 @@
         href={"https://holesky.etherscan.io/block/#{@current_batch.submission_block_number}"}
         class="break-all font-normal"
       >
-        <%= @current_batch.submission_block_number %>
+        <%= @current_batch.submission_block_number |> Utils.format_number() %>
       </.a>
       Submission Transaction Hash:
       <.a
@@ -30,7 +30,9 @@
         <%= @current_batch.submission_transaction_hash %>
       </.a>
       Submission Timestamp:
-      <p class="break-all font-normal"><%= @current_batch.submission_timestamp |> Utils.parse_timestamp %></p>
+      <p class="break-all font-normal">
+        <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
+      </p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
         Response Block Number:
@@ -40,7 +42,7 @@
           href={"https://holesky.etherscan.io/block/#{@current_batch.response_block_number}"}
           class="break-all font-normal"
         >
-          <%= @current_batch.response_block_number %>
+          <%= @current_batch.response_block_number |> Utils.format_number() %>
         </.a>
         Response Transaction Hash:
         <.a
@@ -52,7 +54,9 @@
           <%= @current_batch.response_transaction_hash %>
         </.a>
         Response Timestamp:
-        <p class="break-all font-normal"><%= @current_batch.response_timestamp |> Utils.parse_timestamp %></p>
+        <p class="break-all font-normal">
+          <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
+        </p>
       <% end %>
     </.card>
   <% else %>
