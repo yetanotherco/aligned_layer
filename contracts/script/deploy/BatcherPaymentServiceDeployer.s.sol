@@ -28,21 +28,6 @@ contract BatcherPaymentServiceDeployer is Script {
             ".permissions.owner"
         );
 
-        uint256 paymentServiceCreateTaskGasCost = stdJson.readUint(
-            config_data,
-            ".amounts.paymentServiceCreateTaskGasCost"
-        );
-
-        uint256 serviceManagerCreateTaskGasCost = stdJson.readUint(
-            config_data,
-            ".amounts.serviceManagerCreateTaskGasCost"
-        );
-
-        uint256 extraUserTxGasCost = stdJson.readUint(
-            config_data,
-            ".amounts.extraUserTxGasCost"
-        );
-
         vm.startBroadcast();
 
         BatcherPaymentService batcherPaymentService = new BatcherPaymentService();
@@ -53,10 +38,7 @@ contract BatcherPaymentServiceDeployer is Script {
         BatcherPaymentService(payable(address(proxy))).initialize(
             alignedLayerServiceManager,
             batcherPaymentServiceOwner,
-            batcherWallet,
-            paymentServiceCreateTaskGasCost,
-            serviceManagerCreateTaskGasCost,
-            extraUserTxGasCost
+            batcherWallet
         );
 
         vm.stopBroadcast();
