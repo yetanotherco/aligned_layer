@@ -8,7 +8,10 @@
 
 <div class="-mt-14 text-foreground z-10 px-5 grid grid-cols-1 sm:grid-cols-3 justify-center gap-3 md:max-w-[42rem] mx-auto">
   <.card_link
-    href="https://holesky.eigenlayer.xyz/avs/0x58f280bebe9b34c9939c3c39e0890c81f163b623"
+    href={
+      # eigen url for mainnet is app.eigenlayer.xyz
+      "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "app")}.eigenlayer.xyz/avs/#{AlignedLayerServiceManager.get_aligned_layer_service_manager_address()}"
+    }
     title="Registered Operators"
   >
     <%= if @operators_registered != :empty do %>
@@ -17,13 +20,19 @@
       0
     <% end %>
   </.card_link>
-  <.card title="verified batches">
+  <.card_link
+    href={
+      # etherscan url for mainnet is just etherscan.io
+      "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "")}.etherscan.io/address/#{AVSDirectory.get_avs_directory_address()}"
+    }
+    title="verified batches"
+  >
     <%= if @verified_batches != :empty do %>
       <%= @verified_batches |> Utils.format_number() %>
     <% else %>
       0
     <% end %>
-  </.card>
+  </.card_link>
   <.card title="Verified Proofs">
     <%= if @verified_proofs != :empty do %>
       <%= @verified_proofs |> Utils.format_number() %>
