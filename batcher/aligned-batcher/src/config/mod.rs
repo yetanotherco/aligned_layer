@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ECDSAConfig {
     pub private_key_store_path: String,
     pub private_key_store_password: String,
@@ -36,6 +36,8 @@ impl ConfigFromYaml {
 pub struct Addresses {
     #[serde(rename = "alignedLayerServiceManager")]
     pub aligned_layer_service_manager: String,
+    #[serde(rename = "batcherPaymentService")]
+    pub batcher_payment_service: String,
 }
 
 #[derive(Debug, Deserialize)]

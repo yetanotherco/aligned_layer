@@ -175,15 +175,15 @@ __BATCHER__:
 
 BURST_SIZE=5
 
-batcher_fund_service_manager_balance:
-	@. ./scripts/fund_batcher_balance_in_aligned_devnet.sh
+user_fund_payment_service:
+	@. ./scripts/user_fund_payment_service_devnet.sh
 
 ./batcher/aligned-batcher/.env:
 	@echo "To start the Batcher ./batcher/aligned-batcher/.env needs to be manually set"; false;
 
-batcher_start: ./batcher/aligned-batcher/.env batcher_fund_service_manager_balance
+batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service 
 	@echo "Starting Batcher..."
-	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config.yaml --env-file ./batcher/aligned-batcher/.env
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
 install_batcher:
 	@cargo +nightly-2024-04-17 install --path batcher/aligned-batcher
@@ -522,7 +522,15 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
-	
+
+deploy_batcher_payment_service:
+	@echo "Deploying BatcherPayments contract..."
+	@. contracts/scripts/.env && . contracts/scripts/deploy_batcher_payment_service.sh
+
+upgrade_batcher_payment_service:
+	@echo "Upgrading BatcherPayments contract..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_batcher_payment_service.sh
+
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 

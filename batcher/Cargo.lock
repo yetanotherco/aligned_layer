@@ -77,7 +77,7 @@ dependencies = [
  "aligned-batcher-lib",
  "clap",
  "env_logger",
- "ethers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "futures-util",
  "lambdaworks-crypto",
  "log",
@@ -127,7 +127,7 @@ name = "aligned-batcher-lib"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "ethers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "hex",
  "lambdaworks-crypto",
  "log",
@@ -2160,11 +2160,9 @@ dependencies = [
  "ethers-addressbook 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-contract 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-etherscan 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-middleware 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-providers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-signers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-solc 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2175,11 +2173,11 @@ dependencies = [
  "ethers-addressbook 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "ethers-contract 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-etherscan 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-etherscan",
  "ethers-middleware 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "ethers-providers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "ethers-signers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-solc 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-solc",
 ]
 
 [[package]]
@@ -2252,13 +2250,11 @@ dependencies = [
  "const-hex",
  "dunce",
  "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-etherscan 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "eyre",
  "prettyplease",
  "proc-macro2",
  "quote",
  "regex",
- "reqwest 0.11.27",
  "serde",
  "serde_json",
  "syn 2.0.66",
@@ -2275,7 +2271,7 @@ dependencies = [
  "const-hex",
  "dunce",
  "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-etherscan 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-etherscan",
  "eyre",
  "prettyplease",
  "proc-macro2",
@@ -2382,22 +2378,6 @@ dependencies = [
 [[package]]
 name = "ethers-etherscan"
 version = "2.0.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e79e5973c26d4baf0ce55520bd732314328cabe53193286671b47144145b9649"
-dependencies = [
- "chrono",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "reqwest 0.11.27",
- "semver 1.0.23",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-name = "ethers-etherscan"
-version = "2.0.14"
 source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
 dependencies = [
  "chrono",
@@ -2420,7 +2400,6 @@ dependencies = [
  "auto_impl",
  "ethers-contract 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-etherscan 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-providers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-signers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-channel",
@@ -2446,7 +2425,7 @@ dependencies = [
  "auto_impl",
  "ethers-contract 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-etherscan 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-etherscan",
  "ethers-providers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "ethers-signers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "futures-channel",
@@ -2476,7 +2455,6 @@ dependencies = [
  "const-hex",
  "enr",
  "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-channel",
  "futures-core",
  "futures-timer",
  "futures-util",
@@ -2491,7 +2469,6 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
- "tokio-tungstenite 0.20.1",
  "tracing",
  "tracing-futures",
  "url",
@@ -2573,38 +2550,6 @@ dependencies = [
  "sha2",
  "thiserror",
  "tracing",
-]
-
-[[package]]
-name = "ethers-solc"
-version = "2.0.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66244a771d9163282646dbeffe0e6eca4dda4146b6498644e678ac6089b11edd"
-dependencies = [
- "cfg-if",
- "const-hex",
- "dirs",
- "dunce",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "glob",
- "home",
- "md-5",
- "num_cpus",
- "once_cell",
- "path-slash",
- "rayon",
- "regex",
- "semver 1.0.23",
- "serde",
- "serde_json",
- "solang-parser",
- "svm-rs",
- "thiserror",
- "tiny-keccak",
- "tokio",
- "tracing",
- "walkdir",
- "yansi",
 ]
 
 [[package]]
