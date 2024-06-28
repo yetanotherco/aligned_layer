@@ -1,0 +1,14 @@
+{
+  "address": {
+    "batcherWallet": "<batcher_wallet_address>",
+    "alignedLayerServiceManager": "<aligned_layer_service_manager_address>"
+  },
+  "amounts": {
+    "paymentServiceCreateTaskGasCost": 42000,
+    "serviceManagerCreateTaskGasCost": 60000,
+    "extraUserTxGasCost": 6500
+  },
+  "permissions": {
+    "owner": "<owner_address>"
+  }
+}
