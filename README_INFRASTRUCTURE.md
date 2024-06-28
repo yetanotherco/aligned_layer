@@ -792,6 +792,9 @@ make test
 
 ## Multisig Usage
 
+> [!WARNING]  
+> Safe Multisig Wallet is not currently supported in Holesky Testnet.
+
 You can create a Multisig wallet using [Safe](https://safe.global/).
 
 Once you have a Multisig, you can deploy the contracts using the Multisig wallet address as the upgrader, pauser, etc.
