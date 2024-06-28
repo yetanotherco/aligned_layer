@@ -41,11 +41,11 @@ in the [Quiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierCont
 
 Note that the contract has and checks that the verification key commitment is the same as the program elf.
 ```solidity
-require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");```
+require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
 ```
 
 This contracts also includes a static call to the Aligned ServiceManager contract 
-to check that the proof was verified in Aligned.
+to check that the proof was verified in Aligned. For a full version of this, you can view, use as an example guide, or inherit the [Verify Batch Inclusion Caller](../../examples/verify/src/VerifyBatchInclusionCaller.sol) smart contract.
 
 ```solidity
 (bool callWasSuccessfull, bytes memory proofIsIncluded) = alignedServiceManager.staticcall(
