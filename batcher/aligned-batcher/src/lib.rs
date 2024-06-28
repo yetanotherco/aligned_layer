@@ -205,8 +205,6 @@ impl Batcher {
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
-        // FIXME: We are not doing anything for the moment with the address from the
-        // sender, this logic should be added for the payment system.
         info!("Verifying message signature...");
         let submitter_addr = if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
@@ -445,7 +443,6 @@ impl Batcher {
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        // let service_manager = &self.service_manager;
         let payment_service = &self.payment_service;
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
 
