@@ -21,7 +21,7 @@ aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer" }
 
 ### submit
 
-Submits the proofs to the batcher to be verified and returns a vector of aligned verification data.
+Submits a proof to the batcher to be verified and returns an aligned verification data struct.
 
 #### Arguments
 
@@ -31,7 +31,27 @@ Submits the proofs to the batcher to be verified and returns a vector of aligned
 
 #### Returns
 
-- `Result<Option<Vec<AlignedVerificationData>>, SubmitError>` - A vector of aligned verification data or an error.
+- `Result<Option<AlignedVerificationData>>, SubmitError>` - An aligned verification data or an error.
+
+#### Errors
+
+- `MissingParameter` if the verification data vector is empty.
+- `SerdeError` if there is an error serializing the verification data.
+- `ConnectionError` if there is an error sending the message to the websocket.
+
+### submit_multiple
+
+Submits mulitple proofs to the batcher to be verified and returns an aligned verification data array.
+
+#### Arguments
+
+- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `verification_data` - A verification data array.
+- `wallet` - The wallet used to sign the proof.
+
+#### Returns
+
+- `Result<Option<Vec<AlignedVerificationData>>>, SubmitError>` - An aligned verification data array or an error.
 
 #### Errors
 

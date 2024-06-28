@@ -25,18 +25,18 @@ use futures_util::{
 
 pub const CURRENT_PROTOCOL_VERSION: u16 = 0;
 
-/// Submits a proof to the batcher to be verified in Aligned.
+/// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
-/// * `verification_data` - The verification data for the proof.
+/// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
 /// # Returns
-/// * The aligned verification data obtained when submitting the proof.
+/// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
 /// * If there is an error connecting to the batcher.
 /// * If there is an error serializing the message.
 /// * If there is an error deserializing the message.
-pub async fn submit(
+pub async fn submit_multiple(
     batcher_addr: &str,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
@@ -50,10 +50,10 @@ pub async fn submit(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit(ws_write, ws_read, verification_data, wallet).await
+    _submit_multiple(ws_write, ws_read, verification_data, wallet).await
 }
 
-async fn _submit(
+async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: &[VerificationData],
@@ -127,6 +127,43 @@ async fn _submit(
     .await?;
 
     Ok(aligned_verification_data)
+}
+
+/// Submits a proof to the batcher to be verified in Aligned.
+/// # Arguments
+/// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
+/// * `verification_data` - The verification data of the proof.
+/// * `wallet` - The wallet used to sign the proof.
+/// # Returns
+/// * The aligned verification data obtained when submitting the proof.
+/// # Errors
+/// * If there is an error connecting to the batcher.
+/// * If there is an error serializing the message.
+/// * If there is an error deserializing the message.
+pub async fn submit(
+    batcher_addr: &str,
+    verification_data: &VerificationData,
+    wallet: Wallet<SigningKey>,
+) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
+    let (ws_stream, _) = connect_async(batcher_addr)
+        .await
+        .map_err(errors::SubmitError::ConnectionError)?;
+
+    debug!("WebSocket handshake has been successfully completed");
+    let (ws_write, ws_read) = ws_stream.split();
+
+    let ws_write = Arc::new(Mutex::new(ws_write));
+
+    let verification_data = vec![verification_data.clone()];
+
+    let aligned_verification_data =
+        _submit_multiple(ws_write, ws_read, &verification_data, wallet).await?;
+
+    if let Some(mut aligned_verification_data) = aligned_verification_data {
+        Ok(aligned_verification_data.pop())
+    } else {
+        Ok(None)
+    }
 }
 
 async fn receive(
@@ -322,10 +359,11 @@ mod test {
 
         let wallet = LocalWallet::new(&mut thread_rng());
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, wallet)
-            .await
-            .unwrap()
-            .unwrap();
+        let aligned_verification_data =
+            submit_multiple("ws://localhost:8080", &verification_data, wallet)
+                .await
+                .unwrap()
+                .unwrap();
 
         assert_eq!(aligned_verification_data.len(), 1);
     }
@@ -346,7 +384,7 @@ mod test {
 
         let wallet = LocalWallet::new(&mut thread_rng());
 
-        let result = submit("ws://localhost:8080", &verification_data, wallet).await;
+        let result = submit_multiple("ws://localhost:8080", &verification_data, wallet).await;
 
         assert!(result.is_ok());
     }
@@ -376,10 +414,11 @@ mod test {
 
         let wallet = LocalWallet::new(&mut thread_rng());
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, wallet)
-            .await
-            .unwrap()
-            .unwrap();
+        let aligned_verification_data =
+            submit_multiple("ws://localhost:8080", &verification_data, wallet)
+                .await
+                .unwrap()
+                .unwrap();
 
         sleep(std::time::Duration::from_secs(20)).await;
 
@@ -417,10 +456,11 @@ mod test {
 
         let wallet = LocalWallet::new(&mut thread_rng());
 
-        let aligned_verification_data = submit("ws://localhost:8080", &verification_data, wallet)
-            .await
-            .unwrap()
-            .unwrap();
+        let aligned_verification_data =
+            submit_multiple("ws://localhost:8080", &verification_data, wallet)
+                .await
+                .unwrap()
+                .unwrap();
 
         sleep(std::time::Duration::from_secs(10)).await;
 

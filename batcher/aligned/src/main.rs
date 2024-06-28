@@ -14,7 +14,7 @@ use log::{error, info};
 
 use aligned_sdk::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
 
-use aligned_sdk::sdk::{get_verification_key_commitment, submit, verify_proof_onchain};
+use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
 
 use clap::Subcommand;
 use ethers::utils::hex;
@@ -199,7 +199,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Submitting proofs to the Aligned batcher...");
 
             let aligned_verification_data_vec =
-                submit(&connect_addr, &verification_data_arr, wallet).await?;
+                submit_multiple(&connect_addr, &verification_data_arr, wallet).await?;
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
                 let mut unique_batch_merkle_roots = HashSet::new();
