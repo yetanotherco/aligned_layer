@@ -103,13 +103,3 @@ pub async fn get_batcher_payment_service(
 
     Ok(service_manager)
 }
-
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-
-//     #[test]
-//     fn eth_rs_test() {
-//         let a = BatcherPaymentService::user_balances(&self, "0x0");
-//     }
-// }
