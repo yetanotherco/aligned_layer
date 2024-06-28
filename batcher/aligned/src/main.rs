@@ -406,6 +406,11 @@ async fn main() -> Result<(), errors::BatcherClientError> {
                 BatcherClientError::EthError(format!("Error while parsing amount: {}", e))
             })?;
 
+            if amount_ether <= U256::from(0) {
+                error!("Amount should be greater than 0");
+                return Ok(());
+            }
+
             if balance < amount_ether {
                 error!("Insufficient funds to pay to the batcher. Please deposit some Ether in your wallet.");
                 return Ok(());
