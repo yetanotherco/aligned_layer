@@ -5,20 +5,14 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::eth::BatchVerifiedEventStream;
-use aligned_batcher_lib::types::{
-    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
-};
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::timeout;
@@ -26,11 +20,18 @@ use tokio_tungstenite::tungstenite::error::ProtocolError;
 use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
+
+use aligned_batcher_lib::types::{
+    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
+};
+use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use types::batch_queue::BatchQueue;
 use types::errors::BatcherError;
 
-use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
+use crate::config::{ConfigFromYaml, ContractDeploymentOutput, NonPayingConfig};
 use crate::eth::AlignedLayerServiceManager;
+use crate::eth::BatchVerifiedEventStream;
 
 mod config;
 mod eth;
@@ -59,6 +60,7 @@ pub struct Batcher {
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     protocol_version: u16,
+    non_paying_config: Option<NonPayingConfig>,
 }
 
 impl Batcher {
@@ -102,6 +104,11 @@ impl Batcher {
         .await
         .expect("Failed to get Batcher Payment Service contract");
 
+        if let Some(non_paying_config) = &config.batcher.non_paying {
+            warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address {}.",
+                non_paying_config.address, non_paying_config.replacement);
+        }
+
         Self {
             s3_client,
             eth_ws_provider,
@@ -115,6 +122,7 @@ impl Batcher {
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             protocol_version: PROTOCOL_VERSION,
+            non_paying_config: config.batcher.non_paying,
         }
     }
 
@@ -197,11 +205,18 @@ impl Batcher {
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
-        // FIXME: We are not doing anything for the moment with the address from the
-        // sender, this logic should be added for the payment system.
         info!("Verifying message signature...");
         let submitter_addr = if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
+
+            let mut addr = addr;
+            if let Some(non_paying_config) = &self.non_paying_config {
+                if addr == non_paying_config.address {
+                    info!("Non-paying address detected. Replacing with configured address");
+                    addr = non_paying_config.replacement;
+                }
+            }
+
             let user_balance = self
                 .payment_service
                 .user_balances(addr)
@@ -215,6 +230,7 @@ impl Batcher {
                     ProtocolError::HandshakeIncomplete,
                 ));
             }
+
             addr
         } else {
             error!("Signature verification error");
@@ -356,10 +372,9 @@ impl Batcher {
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
             MerkleTree::build(&batch_data_comm);
 
-        let submitter_addresses: Vec<Address> = finalized_batch
-            .clone()
-            .into_iter()
-            .map(|(_, _, _, addr)| addr)
+        let submitter_addresses = finalized_batch
+            .iter()
+            .map(|(_, _, _, addr)| *addr)
             .collect();
 
         let events = self.service_manager.event::<BatchVerifiedFilter>();
@@ -386,7 +401,10 @@ impl Batcher {
         // connected clients
         let await_batch_verified_fut =
             await_batch_verified_event(&mut stream, &batch_merkle_tree.root);
-        if (timeout(Duration::from_secs(60), await_batch_verified_fut).await).is_err() {
+        if timeout(Duration::from_secs(60), await_batch_verified_fut)
+            .await
+            .is_err()
+        {
             send_timeout_close(finalized_batch).await?;
         } else {
             send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
