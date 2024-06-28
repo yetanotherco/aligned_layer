@@ -183,10 +183,10 @@ async fn main() -> Result<(), AlignedError> {
 
             let wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
-                    .map_err(SubmitError::PasswordError)?;
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
 
                 Wallet::decrypt_keystore(keystore_path.clone(), password)
-                    .map_err(|e| SubmitError::KeystoreError(keystore_path, e.to_string()))?
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
                 info!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
                 LocalWallet::new(&mut thread_rng())

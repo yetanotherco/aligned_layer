@@ -37,8 +37,6 @@ pub enum SubmitError {
     SerdeError(serde_json::Error),
     EthError(String),
     SignerError(String),
-    PasswordError(io::Error),
-    KeystoreError(PathBuf, String),
     MissingParameter(String),
     InvalidProvingSystem(String),
     InvalidAddress(String, String),
@@ -76,12 +74,6 @@ impl From<FromHexError> for SubmitError {
     }
 }
 
-impl From<io::Error> for SubmitError {
-    fn from(e: io::Error) -> Self {
-        SubmitError::PasswordError(e)
-    }
-}
-
 impl fmt::Debug for SubmitError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -99,10 +91,6 @@ impl fmt::Debug for SubmitError {
             SubmitError::SerdeError(e) => write!(f, "Serialization error: {}", e),
             SubmitError::EthError(e) => write!(f, "Ethereum error: {}", e),
             SubmitError::SignerError(e) => write!(f, "Signer error: {}", e),
-            SubmitError::PasswordError(e) => write!(f, "Password input error: {}", e),
-            SubmitError::KeystoreError(path, e) => {
-                write!(f, "Keystore error for file: \"{}\", {}", path.display(), e)
-            }
             SubmitError::InvalidProvingSystem(proving_system) => {
                 write!(f, "Invalid proving system: {}", proving_system)
             }
