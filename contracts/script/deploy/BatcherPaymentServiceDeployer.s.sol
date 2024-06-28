@@ -10,7 +10,6 @@ contract BatcherPaymentServiceDeployer is Script {
     function run(
         string memory batcherConfigPath
     ) external returns (address, address) {
-
         // READ JSON CONFIG DATA
         string memory config_data = vm.readFile(batcherConfigPath);
 
@@ -29,39 +28,21 @@ contract BatcherPaymentServiceDeployer is Script {
             ".permissions.owner"
         );
 
-        uint256 paymentServiceCreateTaskGasCost = stdJson.readUint(
-            config_data,
-            ".amounts.paymentServiceCreateTaskGasCost"
-        );
-
-        uint256 serviceManagerCreateTaskGasCost = stdJson.readUint(
-            config_data,
-            ".amounts.serviceManagerCreateTaskGasCost"
-        );
-
-        uint256 extraUserTxGasCost = stdJson.readUint(
-            config_data,
-            ".amounts.extraUserTxGasCost"
-        );
-
         vm.startBroadcast();
 
         BatcherPaymentService batcherPaymentService = new BatcherPaymentService();
-        ERC1967Proxy proxy = new ERC1967Proxy(address(batcherPaymentService), "");
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(batcherPaymentService),
+            ""
+        );
         BatcherPaymentService(payable(address(proxy))).initialize(
             alignedLayerServiceManager,
             batcherPaymentServiceOwner,
-            batcherWallet,
-            paymentServiceCreateTaskGasCost,
-            serviceManagerCreateTaskGasCost,
-            extraUserTxGasCost
+            batcherWallet
         );
-        
+
         vm.stopBroadcast();
 
-        return (
-            address(proxy),
-            address(batcherPaymentService)
-        );
+        return (address(proxy), address(batcherPaymentService));
     }
 }
