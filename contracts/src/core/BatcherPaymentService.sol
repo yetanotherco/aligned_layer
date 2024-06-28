@@ -5,12 +5,15 @@ import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/Ownabl
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpgradeable, UUPSUpgradeable {
-
+contract BatcherPaymentService is
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    UUPSUpgradeable
+{
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
-
 
     // STORAGE
     address public AlignedLayerServiceManager;
@@ -29,12 +32,12 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
     constructor() {
         _disableInitializers();
     }
-    
-    function initialize (
+
+    function initialize(
         address _AlignedLayerServiceManager,
         address _BatcherPaymentServiceOwner,
-        address _BatcherWallet, 
-        uint256 _PaymentServiceCreateTaskGasCost, 
+        address _BatcherWallet,
+        uint256 _PaymentServiceCreateTaskGasCost,
         uint256 _ServiceManagerCreateTaskGasCost,
         uint256 _ExtraUserTxGasCost
     ) public initializer {
@@ -60,29 +63,39 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
         address[] calldata proofSubmitters, // one address for each payer proof, 1 user has 2 proofs? send twice that address
-        uint256 costOfRespondToTask // TODO hardcode gas cost? It is variable because of signature sdk. could have upper bound and multiply by current gas cost + x%. 
+        uint256 costOfRespondToTask // TODO hardcode gas cost? It is variable because of signature sdk. could have upper bound and multiply by current gas cost + x%.
     ) external onlyBatcher whenNotPaused {
         uint256 amountOfSubmitters = proofSubmitters.length;
         require(amountOfSubmitters > 0, "No proof submitters");
-        
+
         // each user must pay its fraction of the gas cost of this transaction back to the batcher
         // + 10% for increments in gas price
-        uint256 currentTxCost = ((PAYMENT_SERVICE_CREATE_TASK_GAS_COST + SERVICE_MANAGER_CREATE_TASK_GAS_COST + (EXTRA_USER_TX_GAS_COST * amountOfSubmitters)) * tx.gasprice * 11) / 10;
+        uint256 currentTxCost = ((PAYMENT_SERVICE_CREATE_TASK_GAS_COST +
+            SERVICE_MANAGER_CREATE_TASK_GAS_COST +
+            (EXTRA_USER_TX_GAS_COST * amountOfSubmitters)) *
+            tx.gasprice *
+            11) / 10;
 
         // divide the price by the amount of submitters
-        uint256 totalCostPerProof = (costOfRespondToTask + currentTxCost) / amountOfSubmitters;
+        uint256 totalCostPerProof = (costOfRespondToTask + currentTxCost) /
+            amountOfSubmitters;
 
         // discount from each payer
         // will revert if one of them has insufficient balance
-        for(uint256 i=0; i < amountOfSubmitters; i++){
+        for (uint256 i = 0; i < amountOfSubmitters; i++) {
             address payer = proofSubmitters[i];
-            require(UserBalances[payer] >= totalCostPerProof, "Payer has insufficient balance");
+            require(
+                UserBalances[payer] >= totalCostPerProof,
+                "Payer has insufficient balance"
+            );
             UserBalances[payer] -= totalCostPerProof;
         }
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
-        (bool success, ) = AlignedLayerServiceManager.call{value: costOfRespondToTask}(
+        (bool success, ) = AlignedLayerServiceManager.call{
+            value: costOfRespondToTask
+        }(
             abi.encodeWithSignature(
                 "createNewTask(bytes32,string)",
                 batchMerkleRoot,
@@ -96,21 +109,30 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
-        require(UserBalances[msg.sender] >= amount, "Payer has insufficient balance");
+        require(
+            UserBalances[msg.sender] >= amount,
+            "Payer has insufficient balance"
+        );
         UserBalances[msg.sender] -= amount;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }
 
-    function setPaymentServiceCreateTaskGasCost(uint256 amount) external onlyOwner whenNotPaused () {
+    function setPaymentServiceCreateTaskGasCost(
+        uint256 amount
+    ) external onlyOwner whenNotPaused {
         PAYMENT_SERVICE_CREATE_TASK_GAS_COST = amount;
     }
 
-    function setServiceManagerCreateTaskGasCost(uint256 amount) external onlyOwner whenNotPaused () {
+    function setServiceManagerCreateTaskGasCost(
+        uint256 amount
+    ) external onlyOwner whenNotPaused {
         SERVICE_MANAGER_CREATE_TASK_GAS_COST = amount;
     }
 
-    function setExtraUserTxGasCost(uint256 amount) external onlyOwner whenNotPaused () {
+    function setExtraUserTxGasCost(
+        uint256 amount
+    ) external onlyOwner whenNotPaused {
         EXTRA_USER_TX_GAS_COST = amount;
     }
 
@@ -122,7 +144,9 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
         _unpause();
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     // MODIFIERS
     modifier onlyBatcher() {
