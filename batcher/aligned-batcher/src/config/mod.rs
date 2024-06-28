@@ -36,6 +36,8 @@ impl ConfigFromYaml {
 pub struct Addresses {
     #[serde(rename = "alignedLayerServiceManager")]
     pub aligned_layer_service_manager: String,
+    #[serde(rename = "batcherPaymentService")]
+    pub batcher_payment_service: String,
 }
 
 #[derive(Debug, Deserialize)]

@@ -97,8 +97,7 @@ impl Batcher {
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
             config.ecdsa,
-            // deployment_output.addresses.batcher_payments_service,
-            String::from("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"),
+            deployment_output.addresses.batcher_payment_service,
         )
         .await
         .expect("Failed to get Batcher Payment Service contract");
