@@ -1,12 +1,12 @@
-<div class="flex flex-col items-center justify-center w-full min-h-52 relative max-w-96 mx-auto">
-  <div class="text-center dark:text-primary z-10">
-    <label for="input_nav_search" class="text-5xl font-medium tracking-tighter drop-shadow-lg">
-      Aligned Explorer
-    </label>
-  </div>
+<div class="flex flex-col items-center justify-end w-full min-h-32 relative max-w-96 mx-auto">
+  <label
+    for="input_nav_search"
+    class="text-5xl font-medium tracking-tighter drop-shadow-lg dark:text-primary"
+  >
+    Aligned Explorer
+  </label>
 </div>
-
-<div class="-mt-14 text-foreground z-10 px-2 grid grid-cols-1 sm:grid-cols-3 justify-center gap-3 md:max-w-[50rem] mx-auto">
+<div class="mt-8 text-foreground px-2 grid grid-cols-1 sm:grid-cols-3 justify-center gap-3 md:max-w-[50rem] mx-auto">
   <.card_link
     href={
       # eigen url for mainnet is app.eigenlayer.xyz
@@ -33,7 +33,7 @@
       0
     <% end %>
   </.card_link>
-  <.card title="Verified Proofs" class="-mt-1.5 md:mt-0">
+  <.card title="Verified Proofs" class="-mt-0.5 md:mt-0">
     <%= if @verified_proofs != :empty do %>
       <%= @verified_proofs |> Utils.format_number() %>
     <% else %>
