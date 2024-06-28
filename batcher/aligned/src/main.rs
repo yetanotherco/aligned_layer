@@ -7,12 +7,22 @@ use std::str::FromStr;
 
 use aligned_sdk::errors::{AlignedError, SubmitError};
 use clap::ValueEnum;
+use clap::Subcommand;
+use clap::{Parser, ValueEnum};
 use env_logger::Env;
 use ethers::core::rand::thread_rng;
 use ethers::prelude::*;
+use futures_util::{
+    future,
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt, TryStreamExt,
+};
+use log::warn;
 use log::{error, info, warn};
-
-use aligned_sdk::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
+use tokio::{net::TcpStream, sync::Mutex};
+use tokio_tungstenite::connect_async;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
 
@@ -151,6 +161,8 @@ pub enum ProvingSystemArg {
     Risc0,
 }
 
+const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
+
 impl From<ProvingSystemArg> for ProvingSystemId {
     fn from(proving_system: ProvingSystemArg) -> Self {
         match proving_system {
@@ -201,7 +213,7 @@ async fn main() -> Result<(), AlignedError> {
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
                 warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-                LocalWallet::new(&mut thread_rng())
+                LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet")
             };
 
             let verification_data = verification_data_from_args(submit_args)?;
