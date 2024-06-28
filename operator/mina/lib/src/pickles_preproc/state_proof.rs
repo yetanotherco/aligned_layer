@@ -1,7 +1,15 @@
-use kimchi::mina_curves::pasta::Pallas;
+use kimchi::{
+    mina_curves::pasta::{Fp, Fq, Pallas},
+    poly_commitment::PolyComm,
+};
+use o1_utils::FieldHelpers;
 use serde::Deserialize;
 
-use crate::type_aliases::WrapPolyComm;
+use super::type_aliases::{WrapPolyComm, WrapScalar};
+
+type DecimalSigned = String;
+type HexPointCoordinates = [String; 2];
+type HexScalar = String;
 
 #[derive(Deserialize)]
 pub struct StateProof {
@@ -16,33 +24,33 @@ pub struct Proof {
 
 #[derive(Deserialize)]
 pub struct Bulletproof {
-    pub challenge_polynomial_commitment: Point,
-    pub delta: Point,
-    pub lr: [[Point; 2]; 15],
-    pub z_1: Scalar,
-    pub z_2: Scalar,
+    pub challenge_polynomial_commitment: HexPointCoordinates,
+    pub delta: HexPointCoordinates,
+    pub lr: [[HexPointCoordinates; 2]; 15],
+    pub z_1: HexScalar,
+    pub z_2: HexScalar,
 }
 
 #[derive(Deserialize)]
 pub struct Commitments {
-    pub t_comm: [Point; 7],
-    pub w_comm: [Point; 15],
-    pub z_comm: Point,
+    pub t_comm: [HexPointCoordinates; 7],
+    pub w_comm: [HexPointCoordinates; 15],
+    pub z_comm: HexPointCoordinates,
 }
 
 #[derive(Deserialize)]
 pub struct Evaluations {
-    pub coefficients: [Point; 15],
-    pub complete_add_selector: Point,
-    pub emul_selector: Point,
-    pub endomul_scalar_selector: Point,
-    pub generic_selector: Point,
-    pub mul_selector: Point,
-    pub poseidon_selector: Point,
-    pub s: [Point; 6],
-    pub w: [Point; 15],
-    pub z: Point,
-    pub ft_eval1: Scalar,
+    pub coefficients: [HexPointCoordinates; 15],
+    pub complete_add_selector: HexPointCoordinates,
+    pub emul_selector: HexPointCoordinates,
+    pub endomul_scalar_selector: HexPointCoordinates,
+    pub generic_selector: HexPointCoordinates,
+    pub mul_selector: HexPointCoordinates,
+    pub poseidon_selector: HexPointCoordinates,
+    pub s: [HexPointCoordinates; 6],
+    pub w: [HexPointCoordinates; 15],
+    pub z: HexPointCoordinates,
+    pub ft_eval1: HexScalar,
 }
 
 #[derive(Deserialize)]
@@ -52,7 +60,7 @@ pub struct Statement {
 
 #[derive(Deserialize)]
 pub struct MessagesForNextStepProof {
-    pub challenge_polynomial_commitments: [Point; 2],
+    pub challenge_polynomial_commitments: [HexPointCoordinates; 2],
     pub old_bulletproof_challenges: [[BulletproofChallenge; 16]; 2],
 }
 
@@ -66,14 +74,14 @@ pub struct Prechallenge {
     // OCaml doesn't support unsigned integers, these should
     // be two u64 limbs but are encoded with a sign.
     // We just need to do a cast to u64.
-    pub inner: [I64; 2],
+    pub inner: [DecimalSigned; 2],
 }
 
 #[derive(Deserialize)]
 pub struct ProofState {
     pub deferred_values: DeferredValues,
     pub messages_for_next_wrap_proof: MessagesForNextWrapProof,
-    pub sponge_digest_before_evaluations: [Scalar; 4],
+    pub sponge_digest_before_evaluations: [HexScalar; 4],
 }
 
 #[derive(Deserialize)]
@@ -92,9 +100,9 @@ pub struct BranchData {
 #[derive(Deserialize)]
 pub struct Plonk {
     pub alpha: Prechallenge,
-    pub beta: Point,
+    pub beta: HexPointCoordinates,
     pub feature_flags: FeatureFlags,
-    pub gamma: Point,
+    pub gamma: HexPointCoordinates,
     pub zeta: Prechallenge,
 }
 
@@ -112,23 +120,32 @@ pub struct FeatureFlags {
 
 #[derive(Deserialize)]
 pub struct MessagesForNextWrapProof {
-    pub challenge_polynomial_commitment: Point,
+    pub challenge_polynomial_commitment: HexPointCoordinates,
     pub old_bulletproof_challenges: [[BulletproofChallenge; 16]; 2],
 }
 
-pub type Point = [String; 2]; // hex
-pub type Scalar = String; // hex
-pub type I64 = String; // decimal signed
+impl TryFrom<HexPointCoordinates> for WrapPolyComm {
+    type Error = String;
+
+    fn try_from(value: HexPointCoordinates) -> Result<Self, Self::Error> {
+        let x = Fp::from_hex(&value[0]).map_err(|err| err.to_string())?;
+        let y = Fp::from_hex(&value[1]).map_err(|err| err.to_string())?;
+        let p = Pallas::new(x, y, false);
+        Ok(WrapPolyComm(PolyComm { elems: vec![p] }))
+    }
+}
+
+impl TryFrom<HexScalar> for WrapScalar {
+    type Error = String;
+
+    fn try_from(value: HexScalar) -> Result<Self, Self::Error> {
+        Fq::from_hex(&value)
+            .map(WrapScalar)
+            .map_err(|err| err.to_string())
+    }
+}
 
 pub fn parse(proof_json: &serde_json::Value) -> Result<StateProof, String> {
     serde_json::from_value(proof_json.to_owned())
         .map_err(|err| format!("Could not parse proof: {err}"))
-}
-
-impl Into<WrapPolyComm> for Point {
-    fn into(self) -> WrapPolyComm {
-        from hex
-        basefield from big endian
-        Pallas
-    }
 }
