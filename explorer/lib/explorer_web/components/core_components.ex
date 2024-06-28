@@ -297,6 +297,31 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+  Renders a card with a link and title that has a hyperlink icon and underline on hover.
+  """
+  attr :class, :string, default: nil
+  attr :inner_class, :string, default: nil
+  attr :title, :string, default: nil
+  attr :href, :string, required: true
+
+  slot :inner_block, default: nil
+
+  def card_link(assigns) do
+    ~H"""
+    <.link target="_blank" href={@href} class="group">
+      <.card_background class={@class}>
+        <h2 class="font-medium text-muted-foreground capitalize group-hover:underline">
+          <%= @title %>
+        </h2>
+        <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
+          <%= render_slot(@inner_block) %>
+        </span>
+      </.card_background>
+    </.link>
+    """
+  end
+
+  @doc """
     Renders an arrow icon.
   """
   attr :class, :string, default: nil
@@ -321,7 +346,7 @@ defmodule ExplorerWeb.CoreComponents do
     ~H"""
     <.link
       class={[
-        "underline underline-offset-4 font-medium	after:content-['↗'] hover:after:content-['→'] transition-all duration-150",
+        "underline underline-offset-4 font-medium	after:content-['↗'] hover:after:content-['→']",
         @class
       ]}
       {@rest}
