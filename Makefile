@@ -258,6 +258,15 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 		--vk test_files/groth16/ineq_1_groth16.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+batcher_send_sindri_groth16_bn254_task: batcher/target/release/aligned
+	@echo "Sending Groth16 Bn254 proof from Sindri 1!=0 to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Groth16Bn254 \
+		--proof ../../task_sender/test_examples/sindri/gnark/compress_groth16.proof \
+		--public_input ../../task_sender/test_examples/sindri/gnark/compress_groth16.pub \
+		--vk ../../task_sender/test_examples/sindri/gnark/compress_groth16.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 batcher_send_groth16_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
@@ -376,6 +385,17 @@ send_groth16_bn254_proof: ## Send a Groth16 BN254 proof using the task sender
 		--proof task_sender/test_examples/gnark_groth16_bn254_script/plonk.proof \
 		--public-input task_sender/test_examples/gnark_groth16_bn254_script/plonk_pub_input.pub \
 		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
+		--config config-files/config.yaml \
+		--quorum-threshold 98 \
+		2>&1 | zap-pretty
+
+send_sindri_groth16_bn254_proof: ## Send a Groth16 BN254 proof from Sindri using the task sender
+	@echo "Sending GROTH16 BN254 proof..."
+	@go run task_sender/cmd/main.go send-task \
+		--proving-system groth16_bn254 \
+		--proof task_sender/test_examples/sindri/gnark/compress_groth16.proof \
+		--public-input task_sender/test_examples/sindri/gnark/compress_groth16.pub \
+		--verification-key task_sender/test_examples/sindri/gnark/compress_groth16.vk \
 		--config config-files/config.yaml \
 		--quorum-threshold 98 \
 		2>&1 | zap-pretty

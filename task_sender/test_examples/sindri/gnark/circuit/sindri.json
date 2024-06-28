@@ -1,0 +1,10 @@
+{
+  "$schema": "https://sindri.app/api/v1/sindri-manifest-schema.json",
+  "name": "compress",
+  "circuitStructName": "Circuit",
+  "circuitType": "gnark",
+  "curve": "bn254",
+  "gnarkVersion": "v0.9.0",
+  "packageName": "compress",
+  "provingScheme": "groth16"
+}
