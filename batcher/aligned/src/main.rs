@@ -86,6 +86,8 @@ pub struct SubmitArgs {
     batch_inclusion_data_directory_path: String,
     #[arg(name = "Path to local keystore", long = "keystore_path")]
     keystore_path: Option<PathBuf>,
+    #[arg(name = "Private key", long = "private_key")]
+    private_key: Option<String>,
 }
 
 #[derive(Parser, Debug)]
@@ -181,14 +183,21 @@ async fn main() -> Result<(), AlignedError> {
             let connect_addr = submit_args.connect_addr.clone();
             let keystore_path = submit_args.keystore_path.clone();
 
-            let wallet = if let Some(keystore_path) = keystore_path {
-                let password = rpassword::prompt_password("Please enter your keystore password:")
-                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+            let keystore_path = &submit_args.keystore_path;
+            let private_key = &submit_args.private_key;
 
-                Wallet::decrypt_keystore(keystore_path.clone(), password)
-                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            if keystore_path.is_some() && private_key.is_some() {
+                warn!("Can't have a keystore path and a private key as input. Please use only one");
+                return Ok(());
+            }
+
+            let wallet = if let Some(keystore_path) = keystore_path {
+                let password = rpassword::prompt_password("Please enter your keystore password:")?;
+                Wallet::decrypt_keystore(keystore_path, password)?
+            } else if let Some(private_key) = private_key {
+                private_key.parse::<LocalWallet>()?
             } else {
-                info!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
                 LocalWallet::new(&mut thread_rng())
             };
 
