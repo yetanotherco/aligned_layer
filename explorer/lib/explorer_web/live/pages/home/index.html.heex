@@ -6,7 +6,7 @@
   </div>
 </div>
 
-<div class="-mt-14 text-foreground z-10 px-5 grid grid-cols-1 sm:grid-cols-3 justify-center gap-3 md:max-w-[42rem] mx-auto">
+<div class="-mt-14 text-foreground z-10 px-2 grid grid-cols-1 sm:grid-cols-3 justify-center gap-3 md:max-w-[50rem] mx-auto">
   <.card_link
     href={
       # eigen url for mainnet is app.eigenlayer.xyz
@@ -33,7 +33,7 @@
       0
     <% end %>
   </.card_link>
-  <.card title="Verified Proofs">
+  <.card title="Verified Proofs" class="-mt-1.5 md:mt-0">
     <%= if @verified_proofs != :empty do %>
       <%= @verified_proofs |> Utils.format_number() %>
     <% else %>
