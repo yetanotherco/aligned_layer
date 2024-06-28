@@ -4,9 +4,9 @@ import "eigenlayer-middleware/interfaces/IServiceManager.sol";
 
 contract AlignedLayerServiceManagerStorage {
     struct BatchState {
+        address batcherAddress;
         uint32 taskCreatedBlock;
         bool responded;
-        address batcherAddress;
     }
 
     /* STORAGE */

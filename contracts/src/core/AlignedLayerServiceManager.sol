@@ -145,6 +145,7 @@ contract AlignedLayerServiceManager is
         batchersBalances[
             batchesState[batchMerkleRoot].batcherAddress
         ] -= txCost;
+        delete batchesState[batchMerkleRoot].batcherAddress;
         payable(msg.sender).transfer(txCost);
     }
 
