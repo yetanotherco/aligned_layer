@@ -808,7 +808,7 @@ make upgrade_aligned_contracts
 Then, if the new implementation is correctly deployed, the script will show the following message:
 
 ```bash
-To send the transaction using multisig use this calldata
+You can propose the upgrade transaction with the multisig using this calldata
 <calldata>
 ```
 
