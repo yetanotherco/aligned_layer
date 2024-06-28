@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
@@ -201,11 +202,27 @@ async fn main() -> Result<(), AlignedError> {
                 submit(&connect_addr, &verification_data_arr, wallet).await?;
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
+                let mut unique_batch_merkle_roots = HashSet::new();
+
                 for aligned_verification_data in aligned_verification_data_vec {
                     save_response(
                         batch_inclusion_data_directory_path.clone(),
                         &aligned_verification_data,
                     )?;
+                    unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
+                }
+
+                if unique_batch_merkle_roots.len() > 1 {
+                    info!("Proofs submitted to aligned. See the batches in the explorer:");
+                } else {
+                    info!("Proofs submitted to aligned. See the batch in the explorer:");
+                }
+
+                for batch_merkle_root in unique_batch_merkle_roots {
+                    info!(
+                        "https://explorer.alignedlayer.com/batches/0x{}",
+                        hex::encode(batch_merkle_root)
+                    );
                 }
             } else {
                 error!("No batch inclusion data was received from the batcher");

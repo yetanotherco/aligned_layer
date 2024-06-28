@@ -166,7 +166,6 @@ async fn receive(
                         hex::encode(batch_inclusion_data.batch_merkle_root)
                     );
                     debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-                    info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
 
                     let verification_data_commitment =
                         verification_data_commitments_rev.pop().unwrap_or_default();
