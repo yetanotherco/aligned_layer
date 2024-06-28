@@ -23,7 +23,7 @@
   <.card_link
     href={
       # etherscan url for mainnet is just etherscan.io
-      "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "")}.etherscan.io/address/#{AVSDirectory.get_avs_directory_address()}"
+      "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "")}.etherscan.io/address/#{AlignedLayerServiceManager.get_aligned_layer_service_manager_address()}"
     }
     title="verified batches"
   >
