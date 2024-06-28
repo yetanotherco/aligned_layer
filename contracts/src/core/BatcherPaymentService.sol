@@ -3,8 +3,9 @@ pragma solidity =0.8.12;
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpgradeable {
+contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpgradeable, UUPSUpgradeable {
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
@@ -31,12 +32,15 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
     
     function initialize (
         address _AlignedLayerServiceManager,
-        address _BatcherWallet, 
+        address _BatcherPaymentServiceOwner,
+        address _BatcherWallet,
         uint256 _PaymentServiceCreateTaskGasCost, 
         uint256 _ServiceManagerCreateTaskGasCost,
         uint256 _ExtraUserTxGasCost
     ) public initializer {
         __Ownable_init(); // default is msg.sender
+        __UUPSUpgradeable_init();
+        _transferOwnership(_BatcherPaymentServiceOwner);
 
         AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
@@ -117,6 +121,8 @@ contract BatcherPaymentService is Initializable, OwnableUpgradeable, PausableUpg
     function unpause() public onlyOwner {
         _unpause();
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // MODIFIERS
     modifier onlyBatcher() {
