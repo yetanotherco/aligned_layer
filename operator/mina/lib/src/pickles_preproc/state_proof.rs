@@ -149,3 +149,28 @@ pub fn parse(proof_json: &serde_json::Value) -> Result<StateProof, String> {
     serde_json::from_value(proof_json.to_owned())
         .map_err(|err| format!("Could not parse proof: {err}"))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::StateProof;
+
+    const MINA_STATE_PROOF_VK_QUERY: &str = include_str!(
+        "../../../../../batcher/aligned/test_files/mina/mina_state_proof_vk_query.json"
+    );
+
+    #[test]
+    fn parse_protocol_state_proof() {
+        let mina_state_proof_vk_query: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(MINA_STATE_PROOF_VK_QUERY).expect("Could not parse JSON query");
+        let protocol_state_proof_json = mina_state_proof_vk_query
+            .get("data")
+            .and_then(|d| d.get("bestChain"))
+            .and_then(|d| d.get(0))
+            .and_then(|d| d.get("protocolStateProof"))
+            .and_then(|d| d.get("json"))
+            .expect("Could not parse protocol state proof: JSON structure upto protocolStateProof is unexpected");
+
+        let _state_proof: StateProof =
+            serde_json::from_value(protocol_state_proof_json.to_owned()).unwrap();
+    }
+}
