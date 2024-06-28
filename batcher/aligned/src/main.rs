@@ -10,7 +10,7 @@ use clap::ValueEnum;
 use env_logger::Env;
 use ethers::core::rand::thread_rng;
 use ethers::prelude::*;
-use log::{error, info};
+use log::{error, info, warn};
 
 use aligned_sdk::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
 
@@ -181,7 +181,6 @@ async fn main() -> Result<(), AlignedError> {
 
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.connect_addr.clone();
-            let keystore_path = submit_args.keystore_path.clone();
 
             let keystore_path = &submit_args.keystore_path;
             let private_key = &submit_args.private_key;
@@ -192,10 +191,14 @@ async fn main() -> Result<(), AlignedError> {
             }
 
             let wallet = if let Some(keystore_path) = keystore_path {
-                let password = rpassword::prompt_password("Please enter your keystore password:")?;
-                Wallet::decrypt_keystore(keystore_path, password)?
+                let password = rpassword::prompt_password("Please enter your keystore password:")
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+                Wallet::decrypt_keystore(keystore_path, password)
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else if let Some(private_key) = private_key {
-                private_key.parse::<LocalWallet>()?
+                private_key
+                    .parse::<LocalWallet>()
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
                 warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
                 LocalWallet::new(&mut thread_rng())

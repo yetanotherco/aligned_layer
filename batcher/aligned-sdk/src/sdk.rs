@@ -333,7 +333,6 @@ mod test {
     use std::str::FromStr;
     use tokio::time::sleep;
 
-    use ethers::core::rand::thread_rng;
     use ethers::signers::LocalWallet;
 
     #[tokio::test]
@@ -357,7 +356,10 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let wallet = LocalWallet::new(&mut thread_rng());
+        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))
+            .unwrap();
 
         let aligned_verification_data =
             submit_multiple("ws://localhost:8080", &verification_data, wallet)
@@ -382,7 +384,10 @@ mod test {
             proof_generator_addr: contract_addr,
         }];
 
-        let wallet = LocalWallet::new(&mut thread_rng());
+        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))
+            .unwrap();
 
         let result = submit_multiple("ws://localhost:8080", &verification_data, wallet).await;
 
@@ -412,7 +417,10 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let wallet = LocalWallet::new(&mut thread_rng());
+        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))
+            .unwrap();
 
         let aligned_verification_data =
             submit_multiple("ws://localhost:8080", &verification_data, wallet)
@@ -454,7 +462,10 @@ mod test {
 
         let verification_data = vec![verification_data];
 
-        let wallet = LocalWallet::new(&mut thread_rng());
+        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))
+            .unwrap();
 
         let aligned_verification_data =
             submit_multiple("ws://localhost:8080", &verification_data, wallet)
