@@ -1,4 +1,4 @@
-use crate::{
+use crate::pickles_preproc::{
     state_proof::StateProof,
     type_aliases::{WrapProverCommitments, WrapProverProof, WrapVerifierIndex},
 };
@@ -6,15 +6,15 @@ use crate::{
 pub fn preprocess_state_proof(
     state_proof_json: StateProof,
 ) -> (WrapVerifierIndex, WrapProverProof) {
-    let commitments = WrapProverCommitments {};
+    // let commitments = WrapProverCommitments {};
 
-    let prover_proof = WrapProverProof {
-        commitments,
-        proof,
-        evals,
-        ft_eval1,
-        prev_challenges,
-    };
+    // let prover_proof = WrapProverProof {
+    //     commitments,
+    //     proof,
+    //     evals,
+    //     ft_eval1,
+    //     prev_challenges,
+    // };
     todo!()
 }
 

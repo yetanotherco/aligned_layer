@@ -11,11 +11,12 @@ path = "src/ec_add_proof_generator/main.rs"
 crate-type = ["cdylib", "staticlib", "lib"]
 
 [dependencies]
-kimchi = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations"}
-o1-utils = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations"}
+kimchi = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations" }
+o1-utils = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations" }
 ark-ff = { version = "0.3.0", features = ["parallel", "asm"] }
 ark-ec = { version = "0.3.0", features = ["parallel"] }
 ark-poly = { version = "0.3.0", features = ["parallel"] }
 serde = "1.0.197"
+serde_json = "1.0.119"
 rmp-serde = "1.1.2"
 ark-serialize = "0.3.0"
