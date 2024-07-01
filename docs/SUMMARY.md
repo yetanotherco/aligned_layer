@@ -13,12 +13,12 @@
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
 * [Fast mode](architecture/1_fast_mode.md)
 * [Aggregation mode](architecture/2_aggregation_mode.md)
-* Components
+<!-- * Components
   * [User](./architecture/entities/user.md)
   * [Operator](./architecture/entities/operator.md)
   * [Aggregator](./architecture/entities/aggregator.md)
   * [Batcher](./architecture/entities/batcher.md)
-  * [Payment Service](./architecture/entities/payment_service.md)
+  * [Payment Service](./architecture/entities/payment_service.md) -->
 
 ## Users
 
@@ -32,7 +32,7 @@
 
 * [SDK](developer_guides/0_SDK.md)
 * [Using Aligned on your app](developer_guides/1_using_aligned_on_your_app.md)
-* [Setup Aligned](developer_guides/2_setup_aligned.md)
+<!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
 ## Useful links
 
