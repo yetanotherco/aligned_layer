@@ -369,7 +369,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 
 ```bash
 aligned \
---proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254|Risc0> \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
@@ -624,17 +624,17 @@ You can access to a tasks information by visiting `localhost:4000/batches/:merkl
 
 Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
 
-| Variable      | Description                                                                                     |
-| ------------- | ----------------------------------------------------------------------------------------------- |
-| `RPC_URL`     | The RPC URL of the network you want to connect to.                                              |
-| `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
-| `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information |
-| `PHX_HOST`    | The host URL where the Phoenix server will be running.                                          |
-| `DB_NAME` | The name of the postgres database. |
-| `DB_USER` | The username of the postgres database. |
-| `DB_PASS` | The password of the postgres database. |
-| `DB_HOST` | The host URL where the postgres database will be running. |
-| `ELIXIR_HOSTNAME` |  The hostname of your running elixir. Read [Extra Scripts](#extra-scripts) section for more details |
+| Variable              | Description                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| `RPC_URL`             | The RPC URL of the network you want to connect to.                                                 |
+| `ENVIRONMENT`         | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`.    |
+| `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information                               |
+| `PHX_HOST`            | The host URL where the Phoenix server will be running.                                             |
+| `DB_NAME`             | The name of the postgres database.                                                                 |
+| `DB_USER`             | The username of the postgres database.                                                             |
+| `DB_PASS`             | The password of the postgres database.                                                             |
+| `DB_HOST`             | The host URL where the postgres database will be running.                                          |
+| `ELIXIR_HOSTNAME`     | The hostname of your running elixir. Read [Extra Scripts](#extra-scripts) section for more details |
 
 Then you can run the explorer with this env file config by entering the following command:
 
