@@ -51,6 +51,8 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
     mkdir -p ~/.aligned_keystore/
     cast wallet import  ~/.aligned_keystore/keystore0 --interactive
     ```
+  
+  You have to paste your private key and a password for the keystore file.
 
 This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
