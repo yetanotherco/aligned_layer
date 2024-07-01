@@ -14,6 +14,14 @@
 * [Fast mode](architecture/1_fast_mode.md)
 * [Aggregation mode](architecture/2_aggregation_mode.md)
 
+### Entities
+
+* [User](./architecture/entities/user.md)
+* [Operator](./architecture/entities/operator.md)
+* [Aggregator](./architecture/entities/aggregator.md)
+* [Batcher](./architecture/entities/batcher.md)
+* [Payment Service](./architecture/entities/payment_service.md)
+
 ## Users
 
 * [Submitting proofs](user_guides/0_submitting_proofs.md)
