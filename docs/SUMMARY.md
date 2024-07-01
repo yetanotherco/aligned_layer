@@ -10,8 +10,9 @@
   
 ## Architecture
 
-* [Fast mode](architecture/0_fast_mode.md)
-* [Aggregation mode](architecture/1_aggregation_mode.md)
+* [Supported Verifiers](architecture/0_supported_verifiers.md)
+* [Fast mode](architecture/1_fast_mode.md)
+* [Aggregation mode](architecture/2_aggregation_mode.md)
 
 ## Users
 
