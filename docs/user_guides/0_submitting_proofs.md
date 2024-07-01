@@ -4,7 +4,7 @@
 
 You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
-Make sure you have Aligned installed as specified [here](./README.md#how-to-use-the-testnet).
+Make sure you have Aligned installed as specified [here](../introduction/1_getting_started.md#Quickstart).
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
