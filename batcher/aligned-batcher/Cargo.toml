@@ -29,4 +29,4 @@ halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.
 halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", branch = "feat/serde_constraint_system" }
 lazy_static = "1.4.0"
 bincode = "1.3.3"
-aligned-batcher-lib = { path = "../aligned-batcher-lib"}
+aligned-sdk = { path = "../aligned-sdk"}
