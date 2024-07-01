@@ -1,0 +1,17 @@
+[package]
+name = "aligned-sdk"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ethers = { tag = "v2.0.15-fix-reconnections", features = ["ws", "rustls"], git = "https://github.com/yetanotherco/ethers-rs.git" }
+log = { version = "0.4.21"}
+serde_json = "1.0.117"
+tokio-tungstenite = { version = "0.23.1", features = ["native-tls"] }
+futures-util = "0.3.30"
+tokio = { version = "1.37.0", features = ["io-std", "time", "macros", "rt", "rt-multi-thread", "sync"] }
+lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
+serde = { version = "1.0.201", features = ["derive"] }
+sha3 = { version = "0.10.8"}
+url = "2.5.0"
+hex = "0.4.3"
