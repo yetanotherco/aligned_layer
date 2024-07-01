@@ -1,8 +1,8 @@
 use kimchi::{circuits::wires::COLUMNS, mina_curves::pasta::Pallas, poly_commitment::PolyComm};
 
 use crate::pickles_preproc::{
-    state_proof::Commitments,
-    type_aliases::{WrapECPoint, WrapProverCommitments},
+    state_proof::{Bulletproof, Commitments},
+    type_aliases::{WrapECPoint, WrapOpeningProof, WrapProverCommitments, WrapScalar},
 };
 
 use super::{
@@ -45,6 +45,34 @@ pub fn deserialize_state_proof(
         z_comm,
         t_comm,
         lookup,
+    };
+
+    let Bulletproof {
+        challenge_polynomial_commitment: hex_sg,
+        delta: hex_delta,
+        lr: hex_lr,
+        z_1: hex_z_1,
+        z_2: hex_z_2,
+    } = state_proof.proof.bulletproof;
+    let sg = WrapECPoint::try_from(hex_sg)?.0;
+    let delta = WrapECPoint::try_from(hex_delta)?.0;
+    let lr = hex_lr
+        .into_iter()
+        .map(|(hex_p1, hex_p2)| -> Result<(Pallas, Pallas), String> {
+            let p1 = WrapECPoint::try_from(hex_p1)?.0;
+            let p2 = WrapECPoint::try_from(hex_p2)?.0;
+            Ok((p1, p2))
+        })
+        .collect::<Result<_, _>>()?;
+    let z1 = WrapScalar::try_from(hex_z_1)?.0;
+    let z2 = WrapScalar::try_from(hex_z_2)?.0;
+
+    let _opening_proof = WrapOpeningProof {
+        sg,
+        delta,
+        lr,
+        z1,
+        z2,
     };
 
     /*

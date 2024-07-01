@@ -26,7 +26,7 @@ pub struct Proof {
 pub struct Bulletproof {
     pub challenge_polynomial_commitment: HexPointCoordinates,
     pub delta: HexPointCoordinates,
-    pub lr: [[HexPointCoordinates; 2]; 15],
+    pub lr: Vec<(HexPointCoordinates, HexPointCoordinates)>,
     pub z_1: HexScalar,
     pub z_2: HexScalar,
 }
