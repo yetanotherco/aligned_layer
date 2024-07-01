@@ -13,7 +13,6 @@
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
 * [Fast mode](architecture/1_fast_mode.md)
 * [Aggregation mode](architecture/2_aggregation_mode.md)
-
 * Entities
   * [User](./architecture/entities/user.md)
   * [Operator](./architecture/entities/operator.md)
