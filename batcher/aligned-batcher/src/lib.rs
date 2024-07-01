@@ -445,13 +445,25 @@ impl Batcher {
         let payment_service = &self.payment_service;
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
 
+        let num_proofs_in_batch = submitter_addresses.len();
+
+        // FIXME: This constants should be aggregated into one constants file
+        const AGGREGATOR_COST: u128 = 400000;
+        const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
+        const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 1325;
+        const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
+
+        let gas_per_proof = (CONSTANT_COST
+            + ADDITIONAL_SUBMISSION_COST_PER_PROOF * num_proofs_in_batch as u128)
+            / num_proofs_in_batch as u128;
+
         match eth::create_new_task(
             payment_service,
             *batch_merkle_root,
             batch_data_pointer,
             submitter_addresses,
-            U256::from(350000u64), // FIXME(uri): This value should be read from /Users/urix/aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
-            U256::from(21000u64), //FIXME(uri): This value should be read from /Users/urix/aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
+            AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
+            gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )
         .await
         {
