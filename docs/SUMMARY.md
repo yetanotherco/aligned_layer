@@ -7,26 +7,25 @@
 * [FAQ](introduction/2_faq.md)
 * [Core concepts](introduction/3_core_concepts.md)
 * [Use cases](introduction/4_use_cases.md)
-
-## User Guides
-
-* [Submitting proofs](user_guides/0_submitting_proofs.md)
-
-
-## Operator Guides
-
-* [Operators guide](operator_guides/0_operator_guide.md)
-
-## Developer Guides
-
-* [SDK](developer_guides/0_SDK.md)
-* [Using Aligned on your app](developer_guides/1_using_aligned_on_your_app.md)
-* [Setup Aligned locally](developer_guides/2_setup_infrastructure.md)
-
+  
 ## Architecture
 
 * [Fast mode](architecture/0_fast_mode.md)
 * [Aggregation mode](architecture/1_aggregation_mode.md)
+
+## Users
+
+* [Submitting proofs](user_guides/0_submitting_proofs.md)
+
+## Operators
+
+* [Operators guide](operator_guides/0_operator_guide.md)
+
+## Developers
+
+* [SDK](developer_guides/0_SDK.md)
+* [Using Aligned on your app](developer_guides/1_using_aligned_on_your_app.md)
+* [Setup Aligned locally](developer_guides/2_setup_infrastructure.md)
 
 ## Useful links
 
