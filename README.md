@@ -8,17 +8,16 @@
 - [Aligned](#aligned)
   - [Table of Contents](#table-of-contents)
   - [The Project](#the-project)
+  - [How to use the testnet](#how-to-use-the-testnet)
   - [Operator Guide](#operator-guide)
   - [Aligned Infrastructure Guide](#aligned-infrastructure-guide)
-  - [How to use the testnet](#how-to-use-the-testnet)
   - [FAQ](#faq)
-  - [What is the objective of Aligned?](#what-is-the-objective-of-aligned)
 
 ## The Project
 
-Aligned is a decentralized network of nodes that verifies Zero-Knowledge and Validity proofs and post the results in Ethereum. 
+Aligned is a decentralized network of nodes that verifies Zero-Knowledge and Validity proofs, and post the results in Ethereum. 
 
-These proofs can be generated and used for a tenth of the price and very low latency, allowing novel types of applications that weren't possible before in Ethereum.
+These proofs can be generated and used for a tenth of the price, and with extremely low latency, allowing novel types of applications that weren't possible before in Ethereum.
 
 ## How to use the testnet
 
@@ -54,11 +53,11 @@ aligned submit \
 5. You should get a response like this:
 
 ```bash
-[2024-06-17T22:06:03Z INFO  aligned] Proof submitted to aligned. See the batch in the explorer:
-    https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13
-[2024-06-17T22:06:03Z INFO  aligned] Batch inclusion data written into /Users/maurofab/aligned_verification_data/8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13_225.json
-[2024-06-17T22:06:03Z INFO  aligned] All messages responded. Closing connection...
-https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13```
+[2024-07-01T19:17:54Z WARN  aligned] Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet
+[2024-07-01T19:17:54Z INFO  aligned] Submitting proofs to the Aligned batcher...
+[2024-07-01T19:19:18Z INFO  aligned] Batch inclusion data written into ./aligned_verification_data/e367d76e_0.json
+[2024-07-01T19:19:18Z INFO  aligned] Proofs submitted to aligned. See the batch in the explorer:
+[2024-07-01T19:19:18Z INFO  aligned] https://explorer.alignedlayer.com/batches/0xe367d76e832edec893d3a9027b3c231b2e3994c47acfac2e67197c13c9be0c4c
 ```
 
 You can use the link to the explorer to check the status of your transaction. 
