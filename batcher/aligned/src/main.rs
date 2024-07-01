@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use aligned_sdk::errors::{AlignedError, SubmitError};
 use aligned_sdk::types::AlignedVerificationData;
+use aligned_sdk::types::Chain;
 use aligned_sdk::types::ProvingSystemId;
 use aligned_sdk::types::VerificationData;
 use clap::Parser;
@@ -20,7 +21,9 @@ use log::{error, info};
 use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
 
 use ethers::utils::hex;
+use ethers::utils::parse_ether;
 
+use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -45,6 +48,12 @@ pub enum AlignedCommands {
         name = "get-vk-commitment"
     )]
     GetVerificationKeyCommitment(GetVerificationKeyCommitmentArgs),
+    // GetVericiationKey, command name is get-vk-commitment
+    #[clap(
+        about = "Deposits Ethereum in the batcher to pay for proofs",
+        name = "deposit-to-batcher"
+    )]
+    DepositToBatcher(DepositToBatcherArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -88,6 +97,37 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct DepositToBatcherArgs {
+    #[arg(
+        name = "Batcher Eth Address",
+        long = "batcher_addr",
+        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+    )]
+    batcher_eth_address: String,
+    #[arg(
+        name = "Path to local keystore",
+        long = "keystore_path",
+        required = true
+    )]
+    keystore_path: Option<PathBuf>,
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The Ethereum network's name",
+        long = "chain",
+        default_value = "devnet"
+    )]
+    chain: ChainArg,
+    #[arg(name = "Amount to deposit", long = "amount", required = true)]
+    amount: String,
 }
 
 #[derive(Parser, Debug)]
@@ -281,6 +321,93 @@ async fn main() -> Result<(), AlignedError> {
 
                 file.write_all(hex::encode(hash).as_bytes())
                     .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
+            }
+        }
+        DepositToBatcher(deposit_to_batcher_args) => {
+            if !deposit_to_batcher_args.amount.ends_with("ether") {
+                error!("Amount should be in the format XX.XXether");
+                return Ok(());
+            }
+
+            let chain: aligned_sdk::types::Chain = deposit_to_batcher_args.chain.into();
+
+            let amount = deposit_to_batcher_args.amount.replace("ether", "");
+
+            let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
+
+            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
+                SubmitError::EthError(format!("Error while connecting to Ethereum: {}", e))
+            })?;
+
+            let keystore_path = &deposit_to_batcher_args.keystore_path;
+
+            let mut wallet = if let Some(keystore_path) = keystore_path {
+                let password = rpassword::prompt_password("Please enter your keystore password:")
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+                Wallet::decrypt_keystore(keystore_path, password)
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else {
+                warn!("Missing keystore used for payment.");
+                return Ok(());
+            };
+
+            match chain {
+                Chain::Devnet => wallet = wallet.with_chain_id(31337u64),
+                Chain::Holesky => wallet = wallet.with_chain_id(17000u64),
+            }
+
+            let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
+
+            let balance = client
+                .get_balance(wallet.address(), None)
+                .await
+                .map_err(|e| {
+                    SubmitError::EthError(format!("Error while getting balance: {}", e))
+                })?;
+
+            let amount_ether = parse_ether(&amount)
+                .map_err(|e| SubmitError::EthError(format!("Error while parsing amount: {}", e)))?;
+
+            if amount_ether <= U256::from(0) {
+                error!("Amount should be greater than 0");
+                return Ok(());
+            }
+
+            if balance < amount_ether {
+                error!("Insufficient funds to pay to the batcher. Please deposit some Ether in your wallet.");
+                return Ok(());
+            }
+
+            let batcher_addr = Address::from_str(&deposit_to_batcher_args.batcher_eth_address)
+                .map_err(|e| {
+                    SubmitError::EthError(format!("Error while parsing batcher address: {}", e))
+                })?;
+
+            let tx = TransactionRequest::new()
+                .to(batcher_addr)
+                .value(amount_ether)
+                .from(wallet.address());
+
+            info!("Sending {} ether to the batcher", amount);
+
+            let tx = client
+                .send_transaction(tx, None)
+                .await
+                .map_err(|e| {
+                    SubmitError::EthError(format!("Error while sending transaction: {}", e))
+                })?
+                .await
+                .map_err(|e| {
+                    SubmitError::EthError(format!("Error while sending transaction: {}", e))
+                })?;
+
+            if let Some(tx) = tx {
+                info!(
+                    "Payment sent to the batcher successfully. Tx: 0x{:x}",
+                    tx.transaction_hash
+                );
+            } else {
+                error!("Transaction failed");
             }
         }
     }
