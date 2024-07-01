@@ -6,7 +6,7 @@
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
   - [Explorer](#explorer)
-  - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
+  - [Notes on project creation](#notes-on-project-creation)
   - [Tests](#tests)
 
 ## Local Devnet Setup
@@ -648,7 +648,7 @@ If you want to have some data to see on it, you can start our infinite task send
 make batcher_send_burst_groth16
 ```
 
-## Notes on project creation / devnet deployment
+## Notes on project creation
 
 Eigenlayer middleware was installed as a submodule with:
 
