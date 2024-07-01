@@ -29,18 +29,28 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
 
 - If you are creating a new account. Create a private key with:
 
-```bash
-cast wallet new-mnemonic --words 12
-```
+    ```bash
+    cast wallet new-mnemonic --words 12
+    ```
 
-If you are using this wallet outside testnet, write down the mnemonic phrase given by anvil
+    It will show you a new mnemonic phrase, and a public private key pair, similar to the following example:
 
+    ```
+    Phrase:
+    test test test test test test test test test test test test
+    
+    Accounts:
+    - Account 0:
+    Address:     0xabcd...1234
+    Private key: 0x1234...abcd
+    ```
+  
 - Import the wallet using the private key previously generated, or whichever you want to use, and write a password to use it.
 
-```bash
-mkdir -p ~/.aligned_keystore/
-cast wallet import --private-key <YOUR_ECDSA_PRIVATE_KEY>  ~/.aligned_keystore/keystore0
-```
+    ```bash
+    mkdir -p ~/.aligned_keystore/
+    cast wallet import  ~/.aligned_keystore/keystore0 --interactive
+    ```
 
 This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
