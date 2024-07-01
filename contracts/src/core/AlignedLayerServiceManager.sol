@@ -133,8 +133,8 @@ contract AlignedLayerServiceManager is
         // and send transaction cost to aggregator.
         uint256 finalGasLeft = gasleft();
 
-        // FIXME: should we add 21000 gas from the transfer + some additional for the other steps (~40k gas)?
-        uint256 txCost = (initialGasLeft - finalGasLeft + 21000) * tx.gasprice;
+        // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
+        uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
         require(
             batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=

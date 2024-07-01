@@ -1,18 +1,14 @@
-mod errors;
-mod eth;
-mod types;
-
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc};
 
-use aligned_batcher_lib::types::ClientMessage;
-use aligned_batcher_lib::types::VerificationCommitmentBatch;
-use aligned_batcher_lib::types::VerificationDataCommitment;
+use clap::Subcommand;
+use clap::{Parser, ValueEnum};
 use env_logger::Env;
 use ethers::prelude::*;
+use ethers::utils::hex;
 use futures_util::{
     future,
     stream::{SplitSink, SplitStream},
@@ -20,16 +16,16 @@ use futures_util::{
 };
 use log::warn;
 use log::{error, info};
+use sha3::{Digest, Keccak256};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
+use aligned_batcher_lib::types::ClientMessage;
+use aligned_batcher_lib::types::VerificationCommitmentBatch;
+use aligned_batcher_lib::types::VerificationDataCommitment;
 use aligned_batcher_lib::types::{BatchInclusionData, ProvingSystemId, VerificationData};
-use clap::Subcommand;
-use ethers::core::rand::thread_rng;
-use ethers::utils::hex;
-use sha3::{Digest, Keccak256};
 
 use crate::errors::BatcherClientError;
 use crate::types::AlignedVerificationData;
@@ -37,7 +33,9 @@ use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
-use clap::{Parser, ValueEnum};
+mod errors;
+mod eth;
+mod types;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -100,6 +98,8 @@ pub struct SubmitArgs {
     batch_inclusion_data_directory_path: String,
     #[arg(name = "Path to local keystore", long = "keystore_path")]
     keystore_path: Option<PathBuf>,
+    #[arg(name = "Private key", long = "private_key")]
+    private_key: Option<String>,
 }
 
 #[derive(Parser, Debug)]
@@ -153,6 +153,8 @@ pub enum ProvingSystemArg {
     #[clap(name = "Risc0")]
     Risc0,
 }
+
+const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
 
 impl From<ProvingSystemArg> for ProvingSystemId {
     fn from(proving_system: ProvingSystemArg) -> Self {
@@ -219,12 +221,21 @@ async fn main() -> Result<(), errors::BatcherClientError> {
             let verification_data = verification_data_from_args(&submit_args)?;
 
             let keystore_path = &submit_args.keystore_path;
+            let private_key = &submit_args.private_key;
+
+            if keystore_path.is_some() && private_key.is_some() {
+                warn!("Can't have a keystore path and a private key as input. Please use only one");
+                return Ok(());
+            }
+
             let wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")?;
                 Wallet::decrypt_keystore(keystore_path, password)?
+            } else if let Some(private_key) = private_key {
+                private_key.parse::<LocalWallet>()?
             } else {
                 warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-                LocalWallet::new(&mut thread_rng())
+                LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet")
             };
 
             let msg = ClientMessage::new(verification_data, wallet).await;

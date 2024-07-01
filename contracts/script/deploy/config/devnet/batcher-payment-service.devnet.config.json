@@ -5,9 +5,8 @@
     "alignedLayerServiceManager": "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
   },
   "amounts": {
-    "paymentServiceCreateTaskGasCost": 42000,
-    "serviceManagerCreateTaskGasCost": 60000,
-    "extraUserTxGasCost": 6500
+    "gasForAggregator": "300000",
+    "gasPerProof": "21000"
   },
   "permissions": {
     "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
