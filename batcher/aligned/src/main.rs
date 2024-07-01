@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use aligned_sdk::errors::{AlignedError, SubmitError};
 use aligned_sdk::types::AlignedVerificationData;
+use aligned_sdk::types::Chain;
 use aligned_sdk::types::ProvingSystemId;
 use aligned_sdk::types::VerificationData;
 use clap::Parser;
@@ -20,7 +21,9 @@ use log::{error, info};
 use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
 
 use ethers::utils::hex;
+use ethers::utils::parse_ether;
 
+use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -122,7 +125,7 @@ pub struct DepositToBatcherArgs {
         long = "chain",
         default_value = "devnet"
     )]
-    chain: Chain,
+    chain: ChainArg,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
     amount: String,
 }
@@ -318,7 +321,6 @@ async fn main() -> Result<(), AlignedError> {
 
                 file.write_all(hex::encode(hash).as_bytes())
                     .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
-                    .map_err(|e| BatcherClientError::IoError(output_file.clone(), e))?;
             }
         }
         DepositToBatcher(deposit_to_batcher_args) => {
@@ -327,25 +329,29 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
+            let chain: aligned_sdk::types::Chain = deposit_to_batcher_args.chain.into();
+
             let amount = deposit_to_batcher_args.amount.replace("ether", "");
 
             let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
-                BatcherClientError::EthError(format!("Error while connecting to Ethereum: {}", e))
+                SubmitError::EthError(format!("Error while connecting to Ethereum: {}", e))
             })?;
 
             let keystore_path = &deposit_to_batcher_args.keystore_path;
 
             let mut wallet = if let Some(keystore_path) = keystore_path {
-                let password = rpassword::prompt_password("Please enter your keystore password:")?;
-                Wallet::decrypt_keystore(keystore_path, password)?
+                let password = rpassword::prompt_password("Please enter your keystore password:")
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+                Wallet::decrypt_keystore(keystore_path, password)
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
                 warn!("Missing keystore used for payment.");
                 return Ok(());
             };
 
-            match deposit_to_batcher_args.chain {
+            match chain {
                 Chain::Devnet => wallet = wallet.with_chain_id(31337u64),
                 Chain::Holesky => wallet = wallet.with_chain_id(17000u64),
             }
@@ -356,12 +362,11 @@ async fn main() -> Result<(), AlignedError> {
                 .get_balance(wallet.address(), None)
                 .await
                 .map_err(|e| {
-                    BatcherClientError::EthError(format!("Error while getting balance: {}", e))
+                    SubmitError::EthError(format!("Error while getting balance: {}", e))
                 })?;
 
-            let amount_ether = parse_ether(&amount).map_err(|e| {
-                BatcherClientError::EthError(format!("Error while parsing amount: {}", e))
-            })?;
+            let amount_ether = parse_ether(&amount)
+                .map_err(|e| SubmitError::EthError(format!("Error while parsing amount: {}", e)))?;
 
             if amount_ether <= U256::from(0) {
                 error!("Amount should be greater than 0");
@@ -375,10 +380,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let batcher_addr = Address::from_str(&deposit_to_batcher_args.batcher_eth_address)
                 .map_err(|e| {
-                    BatcherClientError::EthError(format!(
-                        "Error while parsing batcher address: {}",
-                        e
-                    ))
+                    SubmitError::EthError(format!("Error while parsing batcher address: {}", e))
                 })?;
 
             let tx = TransactionRequest::new()
@@ -392,11 +394,11 @@ async fn main() -> Result<(), AlignedError> {
                 .send_transaction(tx, None)
                 .await
                 .map_err(|e| {
-                    BatcherClientError::EthError(format!("Error while sending transaction: {}", e))
+                    SubmitError::EthError(format!("Error while sending transaction: {}", e))
                 })?
                 .await
                 .map_err(|e| {
-                    BatcherClientError::EthError(format!("Error while sending transaction: {}", e))
+                    SubmitError::EthError(format!("Error while sending transaction: {}", e))
                 })?;
 
             if let Some(tx) = tx {
@@ -406,73 +408,6 @@ async fn main() -> Result<(), AlignedError> {
                 );
             } else {
                 error!("Transaction failed");
-            }
-        }
-    }
-
-    Ok(())
-}
-
-async fn receive(
-    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    total_messages: usize,
-    num_responses: Arc<Mutex<usize>>,
-    batch_inclusion_data_directory_path: PathBuf,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<(), BatcherClientError> {
-    // Responses are filtered to only admit binary or close messages.
-    let mut response_stream =
-        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
-
-    std::fs::create_dir_all(&batch_inclusion_data_directory_path)
-        .map_err(|e| BatcherClientError::IoError(batch_inclusion_data_directory_path.clone(), e))?;
-
-    while let Some(Ok(msg)) = response_stream.next().await {
-        if let Message::Close(close_frame) = msg {
-            if let Some(close_msg) = close_frame {
-                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
-                ws_write.lock().await.close().await?;
-                return Ok(());
-            }
-            error!("Connection was closed before receiving all messages. Try submitting your proof again");
-            ws_write.lock().await.close().await?;
-            return Ok(());
-        } else {
-            let mut num_responses_lock = num_responses.lock().await;
-            *num_responses_lock += 1;
-
-            let data = msg.into_data();
-
-            match serde_json::from_slice::<BatchInclusionData>(&data) {
-                Ok(batch_inclusion_data) => {
-                    info!("Received response from batcher");
-                    info!(
-                        "Batch merkle root: {}",
-                        hex::encode(batch_inclusion_data.batch_merkle_root)
-                    );
-                    info!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-                    info!("Proof submitted to aligned. See the batch in the explorer:\nhttps://explorer.alignedlayer.com/batches/0x{}", hex::encode(batch_inclusion_data.batch_merkle_root));
-
-                    let verification_data_commitment =
-                        verification_data_commitments_rev.pop().unwrap_or_default();
-
-                    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
-                        save_response(
-                            batch_inclusion_data_directory_path.clone(),
-                            &verification_data_commitment,
-                            &batch_inclusion_data,
-                        )?;
-                    }
-                }
-                Err(e) => {
-                    error!("Error while deserializing batcher response: {}", e);
-                }
-            }
-            if *num_responses_lock == total_messages {
-                info!("All messages responded. Closing connection...");
-                ws_write.lock().await.close().await?;
-                return Ok(());
             }
         }
     }
