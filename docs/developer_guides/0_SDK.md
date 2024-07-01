@@ -2,7 +2,7 @@
 
 The Aligned SDK facilitates the submission and verification of proofs through the Aligned batcher and checks the inclusion of these verified proofs on-chain. This README provides an overview of the SDK, its installation, usage, and API details.
 
-You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
+You can check the list of supported verifiers [here](architecture/0_supported_verifiers.md).
 
 ## Table of Contents
 - [Installation](#installation)
