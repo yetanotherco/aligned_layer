@@ -1,10 +1,12 @@
 # Submitting Proofs
 
-You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
+> [!NOTE]  
+> You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
-Make sure you have Aligned installed as specified [here](../introduction/1_getting_started.md#Quickstart).
+> [!IMPORTANT]
+> Make sure you have Aligned installed as specified [here](../introduction/1_getting_started.md#Quickstart).
 
-If you run the examples below, make sure you are in Aligned's repository root.
+> If you run the examples below, make sure you are in Aligned's repository root.
 
 ## 1. Import/Create Keystore file
 
