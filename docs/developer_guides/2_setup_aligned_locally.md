@@ -301,7 +301,7 @@ The necessary environment variables are:
 | AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
 | RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
 
-You can find an example `.env` file in [.env.example](batcher/aligned-batcher/.env.example)
+You can find an example `.env` file in [.env.example](../../batcher/aligned-batcher/.env.example)
 
 You can configure the batcher in `config-files/config.yaml`:
 
@@ -434,7 +434,7 @@ The necessary environment variables are:
 | `DEPLOY_CONFIG_PATH`            | The path to the deployment config file.                               |
 | `OUTPUT_PATH`                   | The path to the file where the deployment info will be saved.         |
 
-You can find an example `.env` file in [.env.example.holesky](contracts/scripts/.env.example.holesky)
+You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
 
 Then run the following command:
 
