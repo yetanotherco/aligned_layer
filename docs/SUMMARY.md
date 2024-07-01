@@ -12,7 +12,8 @@
 
 * [Submitting proofs](guides/0_proving_systems.md)
 * [Operators guide](guides/1_operator_guide.md)
-* Making your own app with Aligned
+* [SDK](guides/3_SDK.md)
+* [Using Aligned on your app](guides/4_using_aligned_on_your_app.md)
 
 ## Architecture
 
