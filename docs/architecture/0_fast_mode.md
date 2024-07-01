@@ -2,7 +2,9 @@
 
 ## Architecture
 Aligned’s architecture is shown in the figure below:
+
 ![Figure 1: Architecture fast mode](../images/aligned_architecture.png)
+
 The validators/AVS operators are responsible for proof verification. We also provide a light client to sample and check proofs at random. If there is a difference between Aligned’s results and the light clients, a proof service can trigger re-execution of the proof of Ethereum, leading to slashing if malicious behavior is detected.
 
 ### Flow for sending a proof and publishing the result on Ethereum (Fast Mode)
