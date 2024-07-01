@@ -11,7 +11,7 @@ const MaxProofSize = 2 * 1024 * 1024
 const MaxImageIdSize = 32
 
 func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
-	receiptFile, err := os.Open("../../task_sender/test_examples/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof")
+	receiptFile, err := os.Open("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
@@ -21,7 +21,7 @@ func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 
-	imageIdFile, err := os.Open("../../task_sender/test_examples/risc_zero/fibonacci_proof_generator/fibonacci_id.bin")
+	imageIdFile, err := os.Open("../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin")
 	if err != nil {
 		t.Errorf("could not open image id file: %s", err)
 	}

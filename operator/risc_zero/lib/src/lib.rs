@@ -30,8 +30,8 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
 mod tests {
     use super::*;
 
-    const RECEIPT: &[u8] = include_bytes!("../../../../task_sender/test_examples/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
-    const IMAGE_ID: &[u8] = include_bytes!("../../../../task_sender/test_examples/risc_zero/fibonacci_proof_generator/fibonacci_id.bin");
+    const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
+    const IMAGE_ID: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin");
 
     #[test]
     fn verify_risc_zero_receipt_with_image_id_works() {
