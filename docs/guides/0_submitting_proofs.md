@@ -1,14 +1,31 @@
-# Send proofs
+# Submitting Proofs
+## Supported verifiers
+
+The following is the list of the verifiers currently supported by Aligned:
+
+- :white_check_mark: gnark - Groth16 (with BN254)
+- :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
+- :white_check_mark: SP1
+- :white_check_mark: Risc0
+
+The following proof systems are going to be added soon:
+
+- :black_square_button: Kimchi
+- :black_square_button: Halo2 - Plonk/KZG
+- :black_square_button: Halo2 - Plonk/IPA
+
+
+## Send proofs
 
 Make sure you have Aligned installed as specified [here](./README.md#how-to-use-the-testnet).
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
-## 1. Import/Create Keystore file
+### 1. Import/Create Keystore file
 
 If you already have a keystore file, you can ignore this section and start sending proofs. We give two examples of how to generate one. The first one using Foundry, and the second one using EigenLayerCLI
 
-### Alternative 1: With foundry
+#### Alternative 1: With foundry
 
 Install foundry following this guide:
 
@@ -31,11 +48,11 @@ cast wallet import --private-key <YOUR_ECDSA_PRIVATE_KEY>  ~/.aligned_keystore/k
 
 This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
-### Alternative 2: With EigenlayerCLI
+#### Alternative 2: With EigenlayerCLI
 
 - If you have the EigenLayer CLI installed, the keystore can be generated following [this](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#import-keys) instructions. The key will be stored into `~/.eigenlayer/operator_keys`.
 
-## 2. Fund the batcher
+### 2. Fund the batcher
 
 To be able to send proofs to Aligned using the batcher, the user must fund its transactions. For this, there is a simple Batcher Payment System.
 
@@ -56,9 +73,9 @@ After depositing funds, you can verify the Service has correctly received them, 
 cast call <payment_service_smart_contract_address> "UserBalances(address)(uint256)" <address>
 ```
 
-## 3. Send your proof to the batcher
+### 3. Send your proof to the batcher
 
-### SP1 proof
+#### SP1 proof
 
 The SP1 proof needs the proof file and the vm program file.
 
@@ -86,7 +103,7 @@ aligned submit \
 --keystore_path ~/.aligned_keystore/keystore0
 ```
 
-### Risc0 proof
+#### Risc0 proof
 
 The Risc0 proof needs the proof file and the vm program file (vm program file is the image id).
 
@@ -114,7 +131,7 @@ aligned submit \
 --keystore_path ~/.aligned_keystore/keystore0
 ```
 
-### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
+#### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
 
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 

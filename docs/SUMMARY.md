@@ -10,7 +10,7 @@
 
 ## Guides
 
-* [Submitting proofs](guides/0_proving_systems.md)
+* [Submitting proofs](guides/0_submitting_proofs.md)
 * [Operators guide](guides/1_operator_guide.md)
 * [SDK](guides/2_SDK.md)
 * [Using Aligned on your app](guides/3_using_aligned_on_your_app.md)
