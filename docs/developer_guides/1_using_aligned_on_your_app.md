@@ -76,7 +76,7 @@ generate the proof.
 Then, submit the proof to Aligned for verification. 
 This can be done either with the SDK or by using the Aligned CLI.
 You can find examples of how to submit a proof using the cli 
-in the [README_SEND_PROOFS.md](../../README_SEND_PROOFS.md)).
+in the [submitting proofs guide](../user_guides/0_submitting_proofs.md).
 
 The call ZK Quiz uses is:
 ```bash
