@@ -1,11 +1,8 @@
-use kimchi::{
-    mina_curves::pasta::{Fp, Fq, Pallas},
-    poly_commitment::PolyComm,
-};
+use kimchi::mina_curves::pasta::{Fp, Fq, Pallas};
 use o1_utils::FieldHelpers;
 use serde::Deserialize;
 
-use super::type_aliases::{WrapPolyComm, WrapScalar};
+use super::type_aliases::{WrapECPoint, WrapScalar};
 
 type DecimalSigned = String;
 type HexPointCoordinates = [String; 2];
@@ -19,6 +16,9 @@ pub struct StateProof {
 
 #[derive(Deserialize)]
 pub struct Proof {
+    pub commitments: Commitments,
+    pub evaluations: Evaluations,
+    pub ft_eval1: HexScalar,
     pub bulletproof: Bulletproof,
 }
 
@@ -33,9 +33,9 @@ pub struct Bulletproof {
 
 #[derive(Deserialize)]
 pub struct Commitments {
-    pub t_comm: [HexPointCoordinates; 7],
     pub w_comm: [HexPointCoordinates; 15],
     pub z_comm: HexPointCoordinates,
+    pub t_comm: Vec<HexPointCoordinates>,
 }
 
 #[derive(Deserialize)]
@@ -50,7 +50,6 @@ pub struct Evaluations {
     pub s: [HexPointCoordinates; 6],
     pub w: [HexPointCoordinates; 15],
     pub z: HexPointCoordinates,
-    pub ft_eval1: HexScalar,
 }
 
 #[derive(Deserialize)]
@@ -124,14 +123,13 @@ pub struct MessagesForNextWrapProof {
     pub old_bulletproof_challenges: [[BulletproofChallenge; 16]; 2],
 }
 
-impl TryFrom<HexPointCoordinates> for WrapPolyComm {
+impl TryFrom<HexPointCoordinates> for WrapECPoint {
     type Error = String;
 
     fn try_from(value: HexPointCoordinates) -> Result<Self, Self::Error> {
         let x = Fp::from_hex(&value[0]).map_err(|err| err.to_string())?;
         let y = Fp::from_hex(&value[1]).map_err(|err| err.to_string())?;
-        let p = Pallas::new(x, y, false);
-        Ok(WrapPolyComm(PolyComm { elems: vec![p] }))
+        Ok(WrapECPoint(Pallas::new(x, y, false)))
     }
 }
 

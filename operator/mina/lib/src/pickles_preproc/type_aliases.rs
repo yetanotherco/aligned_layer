@@ -6,8 +6,9 @@ use kimchi::{
 };
 
 // Wrap circuit specific types
-pub struct WrapPolyComm(pub PolyComm<Pallas>);
+pub struct WrapECPoint(pub Pallas);
 pub struct WrapScalar(pub Fq);
+pub struct WrapPolyComm(pub PolyComm<Pallas>);
 pub type WrapVerifierIndex = VerifierIndex<Pallas, WrapOpeningProof>;
 pub type WrapProverProof = ProverProof<Pallas, WrapOpeningProof>;
 pub type WrapProverCommitments = ProverCommitments<Pallas>;
