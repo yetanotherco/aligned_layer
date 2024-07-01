@@ -51,7 +51,7 @@ This commands also allows the usage of the flags:
 - `--chain` to specify the chain id to be used.
 - Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the batcher.
 
-After depositing funds, you can verify the Service has correctly recieved them, executing the following command:
+After depositing funds, you can verify the Service has correctly received them, executing the following command:
 ```bash
 cast call <payment_service_smart_contract_address> "UserBalances(address)(uint256)" <address>
 ```
