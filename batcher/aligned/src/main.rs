@@ -403,8 +403,8 @@ async fn main() -> Result<(), AlignedError> {
 
             if let Some(tx) = tx {
                 info!(
-                    "Payment sent to the batcher successfully. Tx: {}",
-                    serde_json::to_string(&tx).unwrap()
+                    "Payment sent to the batcher successfully. Tx: 0x{:x}",
+                    tx.transaction_hash
                 );
             } else {
                 error!("Transaction failed");
