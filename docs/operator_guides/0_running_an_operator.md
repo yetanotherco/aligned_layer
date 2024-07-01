@@ -1,7 +1,7 @@
 
 # Register as an Aligned operator in testnet
 
-> [!IMPORTANT]
+> **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
 
 ## Requirements
