@@ -2,7 +2,7 @@
 
 ## Send proofs
 
-You can check the list of supported verifiers [here](architecture/0_supported_verifiers.md).
+You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
 Make sure you have Aligned installed as specified [here](../introduction/1_getting_started.md#Quickstart).
 
