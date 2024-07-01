@@ -20,9 +20,6 @@
   * [Batcher](./architecture/entities/batcher.md)
   * [Payment Service](./architecture/entities/payment_service.md)
 
-
-
-
 ## Users
 
 * [Submitting proofs](user_guides/0_submitting_proofs.md)
