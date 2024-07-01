@@ -15,8 +15,32 @@ defmodule ExplorerWeb.Home.Index do
          "Please enter a valid proof batch hash, these should be hex values (0x69...)."
        )}
     else
-      {:noreply, push_navigate(socket, to: "/batches/#{batch_merkle_root}")}
+      {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root}")}
     end
+  end
+
+  def handle_info(_, socket) do
+    IO.puts("Received update for home from PubSub")
+
+    verified_batches = Batches.get_amount_of_verified_batches()
+
+    operators_registered = get_operators_registered()
+
+    latest_batches =
+      Batches.get_latest_batches(%{amount: 5})
+      # extract only the merkle root
+      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
+
+    verified_proofs = Batches.get_amount_of_verified_proofs()
+
+    {:noreply,
+     assign(
+       socket,
+       verified_batches: verified_batches,
+       operators_registered: operators_registered,
+       latest_batches: latest_batches,
+       verified_proofs: verified_proofs
+     )}
   end
 
   def mount(_, _, socket) do
@@ -25,19 +49,19 @@ defmodule ExplorerWeb.Home.Index do
     operators_registered = get_operators_registered()
 
     latest_batches =
-      AlignedLayerServiceManager.get_new_batch_events(%{amount: 5})
-      |> Enum.map(fn event -> NewBatchEvent.extract_merkle_root(event) end)
-      |> Enum.reverse()
+      Batches.get_latest_batches(%{amount: 5})
+      # extract only the merkle root
+      |> Enum.map(fn %Batches{merkle_root: merkle_root} -> merkle_root end)
 
-    submitted_proofs = Batches.get_amount_of_submitted_proofs()
     verified_proofs = Batches.get_amount_of_verified_proofs()
+
+    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok,
      assign(socket,
        verified_batches: verified_batches,
        operators_registered: operators_registered,
        latest_batches: latest_batches,
-       submitted_proofs: submitted_proofs,
        verified_proofs: verified_proofs,
        page_title: "Welcome"
      )}
@@ -51,7 +75,6 @@ defmodule ExplorerWeb.Home.Index do
               verified_batches: :empty,
               operators_registered: :empty,
               latest_batches: :empty,
-              submitted_proofs: :empty,
               verified_proofs: :empty
             )
             |> put_flash(:error, "Could not connect to the backend, please try again later.")
@@ -61,8 +84,26 @@ defmodule ExplorerWeb.Home.Index do
           IO.puts("Other transport error: #{inspect(e)}")
       end
 
+    e in FunctionClauseError ->
+      case e do
+        %FunctionClauseError{
+          module: ExplorerWeb.Home.Index
+        } ->
+          {
+            :ok,
+            assign(socket,
+              verified_batches: :empty,
+              operators_registered: :empty,
+              latest_batches: :empty,
+              verified_proofs: :empty
+            )
+            |> put_flash(:error, "Something went wrong with the RPC, please try again later.")
+          }
+      end
+
     e ->
-      raise e
+      Logger.error("Other error: #{inspect(e)}")
+      {:ok, socket |> put_flash(:error, "Something went wrong, please try again later.")}
   end
 
   # tail-call recursion

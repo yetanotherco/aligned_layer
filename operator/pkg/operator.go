@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 	"log"
 	"sync"
 	"time"
@@ -144,10 +145,9 @@ func (o *Operator) Start(ctx context.Context) error {
 			sub.Unsubscribe()
 			sub = o.SubscribeToNewTasks()
 		case newBatchLog := <-o.NewTaskCreatedChan:
-			// o.Logger.Infof("Received task with index: %d\n", newTaskCreatedLog.TaskIndex)
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
-				o.Logger.Errorf("Batch did not verify", "err", err)
+				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 				continue
 			}
 			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
@@ -197,8 +197,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 
 	for result := range results {
 		if !result {
-			o.Logger.Error("Proof did not verify")
-			return nil
+			return fmt.Errorf("invalid proof")
 		}
 	}
 
@@ -259,15 +258,15 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		// Extract Constraint System Bytes
 		csBytes := make([]byte, halo2ipa.MaxConstraintSystemSize)
 		csOffset := uint32(12)
-		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
+		copy(csBytes, paramsBytes[csOffset:(csOffset+csLen)])
 
 		// Extract Verification Key Bytes
 		vkBytes := make([]byte, halo2ipa.MaxVerifierKeySize)
 		vkOffset := csOffset + csLen
-		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
+		copy(vkBytes, paramsBytes[vkOffset:(vkOffset+vkLen)])
 
 		// Extract ipa Parameter Bytes
-		IpaParamsBytes := make([]byte,(halo2ipa.MaxIpaParamsSize))
+		IpaParamsBytes := make([]byte, (halo2ipa.MaxIpaParamsSize))
 		IpaParamsOffset := vkOffset + vkLen
 		copy(IpaParamsBytes, paramsBytes[IpaParamsOffset:])
 
@@ -278,11 +277,11 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		publicInputLen := (uint32)(len(publicInput))
 
 		verificationResult := halo2ipa.VerifyHalo2IpaProof(
-			([halo2ipa.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2ipa.MaxProofSize]byte)(proofBytes), proofLen,
 			([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), csLen,
-			([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
-			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen, 
-			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
+			([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), vkLen,
+			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen,
+			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen)
 
 		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
 		results <- verificationResult
@@ -313,15 +312,15 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		// Extract Constraint System Bytes
 		csBytes := make([]byte, halo2kzg.MaxConstraintSystemSize)
 		csOffset := uint32(12)
-		copy(csBytes, paramsBytes[csOffset:(csOffset + csLen)])
+		copy(csBytes, paramsBytes[csOffset:(csOffset+csLen)])
 
 		// Extract Verification Key Bytes
 		vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
 		vkOffset := csOffset + csLen
-		copy(vkBytes, paramsBytes[vkOffset:(vkOffset + vkLen)])
+		copy(vkBytes, paramsBytes[vkOffset:(vkOffset+vkLen)])
 
 		// Extract Kzg Parameter Bytes
-		kzgParamsBytes := make([]byte,(halo2kzg.MaxKzgParamsSize))
+		kzgParamsBytes := make([]byte, (halo2kzg.MaxKzgParamsSize))
 		kzgParamsOffset := vkOffset + vkLen
 		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:])
 
@@ -332,13 +331,21 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		publicInputLen := (uint32)(len(publicInput))
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
-			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen, 
+			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen,
 			([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), csLen,
-			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen, 
-			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen, 
-			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen,)
+			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen,
+			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen,
+			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen)
 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
+		results <- verificationResult
+	case common.Risc0:
+		proofLen := (uint32)(len(verificationData.Proof))
+		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
+
+		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen, verificationData.VmProgramCode, imageIdLen)
+
+		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
@@ -366,25 +373,25 @@ func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
-		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		o.Logger.Infof("Could not deserialize proof: %v", err)
 		return false
 	}
 
 	pubInputReader := bytes.NewReader(pubInputBytes)
 	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
-		o.Logger.Errorf("Error instantiating witness: %v", err)
+		o.Logger.Infof("Error instantiating witness: %v", err)
 		return false
 	}
 	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK public input: %v", err)
+		o.Logger.Infof("Could not read PLONK public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := plonk.NewVerifyingKey(curve)
 	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
-		o.Logger.Errorf("Could not read PLONK verifying key from bytes: %v", err)
+		o.Logger.Infof("Could not read PLONK verifying key from bytes: %v", err)
 		return false
 	}
 
@@ -397,25 +404,25 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 	proofReader := bytes.NewReader(proofBytes)
 	proof := groth16.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
-		o.Logger.Errorf("Could not deserialize proof: %v", err)
+		o.Logger.Infof("Could not deserialize proof: %v", err)
 		return false
 	}
 
 	pubInputReader := bytes.NewReader(pubInputBytes)
 	pubInput, err := witness.New(curve.ScalarField())
 	if err != nil {
-		o.Logger.Errorf("Error instantiating witness: %v", err)
+		o.Logger.Infof("Error instantiating witness: %v", err)
 		return false
 	}
 	if _, err = pubInput.ReadFrom(pubInputReader); err != nil {
-		o.Logger.Errorf("Could not read Groth16 public input: %v", err)
+		o.Logger.Infof("Could not read Groth16 public input: %v", err)
 		return false
 	}
 
 	verificationKeyReader := bytes.NewReader(verificationKeyBytes)
 	verificationKey := groth16.NewVerifyingKey(curve)
 	if _, err = verificationKey.ReadFrom(verificationKeyReader); err != nil {
-		o.Logger.Errorf("Could not read Groth16 verifying key from bytes: %v", err)
+		o.Logger.Infof("Could not read Groth16 verifying key from bytes: %v", err)
 		return false
 	}
 

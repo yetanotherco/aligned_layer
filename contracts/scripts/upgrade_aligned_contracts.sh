@@ -14,6 +14,8 @@ forge_output=$(forge script script/upgrade/AlignedLayerUpgrader.s.sol \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
     --broadcast \
+    --verify \
+    --etherscan-api-key $ETHERSCAN_API_KEY \
     --sig "run(string memory eigenLayerDeploymentFilePath, string memory alignedLayerDeploymentFilePath, )")
 
 echo "$forge_output"

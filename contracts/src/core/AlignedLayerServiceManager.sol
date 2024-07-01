@@ -59,13 +59,20 @@ contract AlignedLayerServiceManager is
     ) external payable {
         require(
             batchesState[batchMerkleRoot].taskCreatedBlock == 0,
-            "Batch was already verified"
+            "Batch was already submitted"
         );
+
+        if (msg.value > 0) {
+            batchersBalances[msg.sender] += msg.value;
+        }
+
+        require(batchersBalances[msg.sender] > 0, "Batcher balance is empty");
 
         BatchState memory batchState;
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
+        batchState.batcherAddress = msg.sender;
 
         batchesState[batchMerkleRoot] = batchState;
 
@@ -77,6 +84,8 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
+        uint256 initialGasLeft = gasleft();
+
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
         // Note: This is a hacky solidity way to see that the element exists
@@ -91,6 +100,12 @@ contract AlignedLayerServiceManager is
             batchesState[batchMerkleRoot].responded == false,
             "Batch already responded"
         );
+
+        require(
+            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] > 0,
+            "Batcher has no balance"
+        );
+
         batchesState[batchMerkleRoot].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
@@ -113,6 +128,24 @@ contract AlignedLayerServiceManager is
         );
 
         emit BatchVerified(batchMerkleRoot);
+
+        // Calculate estimation of gas used, check that batcher has sufficient funds
+        // and send transaction cost to aggregator.
+        uint256 finalGasLeft = gasleft();
+
+        // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
+        uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
+
+        require(
+            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=
+                txCost,
+            "Batcher has not sufficient funds for paying this transaction"
+        );
+
+        batchersBalances[
+            batchesState[batchMerkleRoot].batcherAddress
+        ] -= txCost;
+        payable(msg.sender).transfer(txCost);
     }
 
     function verifyBatchInclusion(
@@ -122,7 +155,7 @@ contract AlignedLayerServiceManager is
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint verificationDataBatchIndex
+        uint256 verificationDataBatchIndex
     ) external view returns (bool) {
         if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
             return false;
@@ -148,5 +181,13 @@ contract AlignedLayerServiceManager is
                 hashedLeaf,
                 verificationDataBatchIndex
             );
+    }
+
+    function balanceOf(address account) public view returns (uint256) {
+        return batchersBalances[account];
+    }
+
+    receive() external payable {
+        batchersBalances[msg.sender] += msg.value;
     }
 }

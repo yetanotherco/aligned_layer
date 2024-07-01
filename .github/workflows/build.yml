@@ -6,7 +6,8 @@ on:
     branches: [main]
   pull_request:
     branches: ["*"]
-
+env:
+  FFI_FOR_RELEASE: false
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,5 +30,3 @@ jobs:
         run: go build operator/cmd/main.go
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
-      - name: Build task sender
-        run: go build task_sender/cmd/main.go
