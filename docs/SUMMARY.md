@@ -12,8 +12,8 @@
 
 * [Submitting proofs](guides/0_proving_systems.md)
 * [Operators guide](guides/1_operator_guide.md)
-* [SDK](guides/3_SDK.md)
-* [Using Aligned on your app](guides/4_using_aligned_on_your_app.md)
+* [SDK](guides/2_SDK.md)
+* [Using Aligned on your app](guides/3_using_aligned_on_your_app.md)
 
 ## Architecture
 
