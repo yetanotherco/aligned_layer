@@ -1,11 +1,6 @@
 # Submitting Proofs
 
-The following is the list of the verifiers currently supported by Aligned:
-
-- :white_check_mark: gnark - Groth16 (with BN254)
-- :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
-- :white_check_mark: SP1
-- :white_check_mark: Risc0
+{% include "../architecture/0_supported_verifiers" %}
 
 Make sure you have Aligned installed as specified [here](../introduction/1_getting_started.md#Quickstart).
 
@@ -17,9 +12,7 @@ If you already have a keystore file, you can ignore this section and start sendi
 
 ### Alternative 1: With foundry
 
-Install foundry following this guide:
-
-Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
+You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/installation).
 
 - If you are creating a new account. Create a private key with:
 
