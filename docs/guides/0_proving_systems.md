@@ -42,8 +42,8 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
---proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
---vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-sp1_fibonacci-elf \
+--proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
+--vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -69,9 +69,9 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system GnarkPlonkBn254 \
---proof ./batcher/aligned/test_files/plonk_bn254/plonk.proof \
---public_input ./batcher/aligned/test_files/plonk_bn254/plonk_pub_input.pub \
---vk ./batcher/aligned/test_files/plonk_bn254/plonk.vk \
+--proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
+--public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
+--vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -81,9 +81,9 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system GnarkPlonkBls12_381 \
---proof ./batcher/aligned/test_files/plonk_bls12_381/plonk.proof \
---public_input ./batcher/aligned/test_files/plonk_bls12_381/plonk_pub_input.pub \
---vk ./batcher/aligned/test_files/plonk_bls12_381/plonk.vk \
+--proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
+--public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
+--vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
 --conn wss://batcher.alignedlayer.com
 ```
 
@@ -93,8 +93,8 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system Groth16Bn254 \
---proof ./batcher/aligned/test_files/groth16/ineq_1_groth16.proof \
---public_input ./batcher/aligned/test_files/groth16/ineq_1_groth16.pub \
---vk ./batcher/aligned/test_files/groth16/ineq_1_groth16.vk \
+--proof ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
+--public_input ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
+--vk ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com
 ```
