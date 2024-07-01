@@ -43,7 +43,7 @@ rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
 --proof ./batcher/aligned/test_files/sp1/sp1_fibonacci.proof \
---vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-elf \
+--vm_program ./batcher/aligned/test_files/sp1/sp1_fibonacci-sp1_fibonacci-elf \
 --conn wss://batcher.alignedlayer.com
 ```
 

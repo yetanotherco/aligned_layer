@@ -225,17 +225,17 @@ mod tests {
         }
     };
 
-    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_examples/halo2_ipa/proof.bin");
+    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_ipa/proof.bin");
 
-    const PROOF_FILE_PATH: &str = "../../../scripts/test_examples/halo2_ipa/proof.bin";
+    const PROOF_FILE_PATH: &str = "../../../scripts/test_files/halo2_ipa/proof.bin";
 
-    const PUB_INPUT: &[u8] = include_bytes!("../../../../scripts/test_examples/halo2_ipa/pub_input.bin");
+    const PUB_INPUT: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_ipa/pub_input.bin");
 
-    const PUB_INPUT_PATH: &str = "../../../scripts/test_examples/halo2_ipa/pub_input.bin";
+    const PUB_INPUT_PATH: &str = "../../../scripts/test_files/halo2_ipa/pub_input.bin";
 
-    const PARAMS: &[u8] = include_bytes!("../../../../scripts/test_examples/halo2_ipa/params.bin");
+    const PARAMS: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_ipa/params.bin");
 
-    const PARAMS_FILE_PATH: &str = "../../../scripts/test_examples/halo2_ipa/params.bin";
+    const PARAMS_FILE_PATH: &str = "../../../scripts/test_files/halo2_ipa/params.bin";
 
 	#[test]
 	fn halo2_serialization_works() {

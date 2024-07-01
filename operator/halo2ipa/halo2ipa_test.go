@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-const ProofFilePath = "../../scripts/test_examples/halo2_ipa/proof.bin"
+const ProofFilePath = "../../scripts/test_files/halo2_ipa/proof.bin"
 
-const PublicInputPath = "../../scripts/test_examples/halo2_ipa/pub_input.bin"
+const PublicInputPath = "../../scripts/test_files/halo2_ipa/pub_input.bin"
 
-const ParamsFilePath = "../../scripts/test_examples/halo2_ipa/params.bin"
+const ParamsFilePath = "../../scripts/test_files/halo2_ipa/params.bin"
 
 func TestHalo2IpaProofVerifies(t *testing.T) {
 	proofFile, err := os.Open(ProofFilePath)
