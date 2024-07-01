@@ -32,6 +32,7 @@ defmodule SearchComponent do
       ]}
     >
       <input
+        phx-hook="SearchFocus"
         id={"input_#{assigns.id}"}
         class="pr-10 shadow-md flex h-10 w-full file:border-0 text-foreground file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground/20 bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-foreground/10 focus:outline-none focus:ring-1 disabled:pointer-events-none disabled:opacity-50 hover:text-foreground"
         type="search"
