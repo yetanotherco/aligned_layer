@@ -115,7 +115,7 @@ pub struct SubmitArgs {
 pub struct DepositToBatcherArgs {
     #[arg(
         name = "Batcher Eth Address",
-        long = "conn",
+        long = "batcher_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
     batcher_eth_address: String,

@@ -46,7 +46,7 @@ aligned deposit-to-batcher --keystore_path <keystore_path> --amount 0.1ether
 ```
 
 This commands also allows the usage of the flags: 
-- `--conn` to specify the address of the Batcher Payment Service smart contract.
+- `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used.
 - Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the batcher.
