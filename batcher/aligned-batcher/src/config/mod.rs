@@ -1,9 +1,16 @@
+use ethers::types::Address;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ECDSAConfig {
     pub private_key_store_path: String,
     pub private_key_store_password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NonPayingConfig {
+    pub address: Address,
+    pub replacement: Address,
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,6 +21,7 @@ pub struct BatcherConfigFromYaml {
     pub max_batch_size: usize,
     pub eth_ws_reconnects: usize,
     pub pre_verification_is_enabled: bool,
+    pub non_paying: Option<NonPayingConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -36,6 +44,8 @@ impl ConfigFromYaml {
 pub struct Addresses {
     #[serde(rename = "alignedLayerServiceManager")]
     pub aligned_layer_service_manager: String,
+    #[serde(rename = "batcherPaymentService")]
+    pub batcher_payment_service: String,
 }
 
 #[derive(Debug, Deserialize)]

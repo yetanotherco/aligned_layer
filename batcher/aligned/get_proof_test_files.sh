@@ -1,9 +1,9 @@
 #!/bin/bash
 
-SP1_ELF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/test_files/sp1/sp1_fibonacci-elf"
-SP1_PROOF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/test_files/sp1/sp1_fibonacci.proof"
+SP1_ELF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/scripts/test_files/sp1/sp1_fibonacci.elf"
+SP1_PROOF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/scripts/test_files/sp1/sp1_fibonacci.proof"
 
-SP1_ELF_NAME="sp1_fibonacci-elf"
+SP1_ELF_NAME="sp1_fibonacci.elf"
 SP1_PROOF_NAME="sp1_fibonacci.proof"
 
 BASE_DIR=$HOME

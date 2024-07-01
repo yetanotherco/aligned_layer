@@ -225,19 +225,19 @@ mod tests {
     };
 
     const PROOF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/halo2_kzg/proof.bin");
+        include_bytes!("../../../../scripts/test_files/halo2_kzg/proof.bin");
 
-    const PROOF_FILE_PATH: &str = "../../../task_sender/test_examples/halo2_kzg/proof.bin";
+    const PROOF_FILE_PATH: &str = "../../../scripts/test_files/halo2_kzg/proof.bin";
 
     const PUB_INPUT: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/halo2_kzg/pub_input.bin");
+        include_bytes!("../../../../scripts/test_files/halo2_kzg/pub_input.bin");
 
-    const PUB_INPUT_PATH: &str = "../../../task_sender/test_examples/halo2_kzg/pub_input.bin";
+    const PUB_INPUT_PATH: &str = "../../../scripts/test_files/halo2_kzg/pub_input.bin";
 
     const PARAMS: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/halo2_kzg/params.bin");
+        include_bytes!("../../../../scripts/test_files/halo2_kzg/params.bin");
 
-    const PARAMS_FILE_PATH: &str = "../../../task_sender/test_examples/halo2_kzg/params.bin";
+    const PARAMS_FILE_PATH: &str = "../../../scripts/test_files/halo2_kzg/params.bin";
 
     #[test]
     fn halo2_serialization_works() {
