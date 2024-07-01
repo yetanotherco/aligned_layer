@@ -1,12 +1,16 @@
-use kimchi::mina_curves::pasta::{Fp, Fq, Pallas};
+use kimchi::{
+    mina_curves::pasta::{Fp, Fq, Pallas},
+    proof::PointEvaluations,
+};
 use o1_utils::FieldHelpers;
 use serde::Deserialize;
 
-use super::type_aliases::{WrapECPoint, WrapScalar};
+use super::type_aliases::{WrapECPoint, WrapPointEvaluations, WrapScalar};
 
 type DecimalSigned = String;
-type HexPointCoordinates = [String; 2];
 type HexScalar = String;
+type HexPointCoordinates = [String; 2];
+type HexPointEvaluations = [String; 2];
 
 #[derive(Deserialize)]
 pub struct StateProof {
@@ -40,16 +44,16 @@ pub struct Commitments {
 
 #[derive(Deserialize)]
 pub struct Evaluations {
-    pub coefficients: [HexPointCoordinates; 15],
-    pub complete_add_selector: HexPointCoordinates,
-    pub emul_selector: HexPointCoordinates,
-    pub endomul_scalar_selector: HexPointCoordinates,
-    pub generic_selector: HexPointCoordinates,
-    pub mul_selector: HexPointCoordinates,
-    pub poseidon_selector: HexPointCoordinates,
-    pub s: [HexPointCoordinates; 6],
-    pub w: [HexPointCoordinates; 15],
-    pub z: HexPointCoordinates,
+    pub coefficients: [HexPointEvaluations; 15],
+    pub complete_add_selector: HexPointEvaluations,
+    pub emul_selector: HexPointEvaluations,
+    pub endomul_scalar_selector: HexPointEvaluations,
+    pub generic_selector: HexPointEvaluations,
+    pub mul_selector: HexPointEvaluations,
+    pub poseidon_selector: HexPointEvaluations,
+    pub s: [HexPointEvaluations; 6],
+    pub w: [HexPointEvaluations; 15],
+    pub z: HexPointEvaluations,
 }
 
 #[derive(Deserialize)]
@@ -140,6 +144,17 @@ impl TryFrom<HexScalar> for WrapScalar {
         Fq::from_hex(&value)
             .map(WrapScalar)
             .map_err(|err| err.to_string())
+    }
+}
+
+impl TryFrom<HexPointEvaluations> for WrapPointEvaluations {
+    type Error = String;
+
+    fn try_from(value: HexPointEvaluations) -> Result<Self, Self::Error> {
+        let [hex_zeta, hex_zeta_omega] = value;
+        let zeta = vec![WrapScalar::try_from(hex_zeta)?.0];
+        let zeta_omega = vec![WrapScalar::try_from(hex_zeta_omega)?.0];
+        Ok(WrapPointEvaluations(PointEvaluations { zeta, zeta_omega }))
     }
 }
 

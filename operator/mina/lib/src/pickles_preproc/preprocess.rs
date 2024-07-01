@@ -1,8 +1,16 @@
-use kimchi::{circuits::wires::COLUMNS, mina_curves::pasta::Pallas, poly_commitment::PolyComm};
+use kimchi::{
+    circuits::wires::{COLUMNS, PERMUTS},
+    mina_curves::pasta::{Fq, Pallas},
+    poly_commitment::PolyComm,
+    proof::PointEvaluations,
+};
 
 use crate::pickles_preproc::{
-    state_proof::{Bulletproof, Commitments},
-    type_aliases::{WrapECPoint, WrapOpeningProof, WrapProverCommitments, WrapScalar},
+    state_proof::{Bulletproof, Commitments, Evaluations},
+    type_aliases::{
+        WrapECPoint, WrapOpeningProof, WrapPointEvaluations, WrapProofEvaluations,
+        WrapProverCommitments, WrapScalar,
+    },
 };
 
 use super::{
@@ -73,6 +81,85 @@ pub fn deserialize_state_proof(
         lr,
         z1,
         z2,
+    };
+
+    let Evaluations {
+        coefficients: hex_coefficients,
+        complete_add_selector: hex_complete_add_selector,
+        emul_selector: hex_emul_selector,
+        endomul_scalar_selector: hex_endomul_scalar_selector,
+        generic_selector: hex_generic_selector,
+        mul_selector: hex_mul_selector,
+        poseidon_selector: hex_poseidon_selector,
+        s: hex_s,
+        w: hex_w,
+        z: hex_z,
+    } = state_proof.proof.evaluations;
+
+    let mut w: [PointEvaluations<Vec<Fq>>; COLUMNS] = std::array::from_fn(|_| PointEvaluations {
+        zeta: Vec::with_capacity(1),
+        zeta_omega: Vec::with_capacity(1),
+    });
+    for (hex_eval, eval) in hex_w.into_iter().zip(w.iter_mut()) {
+        *eval = WrapPointEvaluations::try_from(hex_eval)?.0;
+    }
+
+    let z = WrapPointEvaluations::try_from(hex_z)?.0;
+
+    let mut s: [PointEvaluations<Vec<Fq>>; PERMUTS - 1] =
+        std::array::from_fn(|_| PointEvaluations {
+            zeta: Vec::with_capacity(1),
+            zeta_omega: Vec::with_capacity(1),
+        });
+    for (hex_eval, eval) in hex_s.into_iter().zip(s.iter_mut()) {
+        *eval = WrapPointEvaluations::try_from(hex_eval)?.0;
+    }
+
+    let mut coefficients: [PointEvaluations<Vec<Fq>>; COLUMNS] =
+        std::array::from_fn(|_| PointEvaluations {
+            zeta: Vec::with_capacity(1),
+            zeta_omega: Vec::with_capacity(1),
+        });
+    for (hex_eval, eval) in hex_coefficients.into_iter().zip(coefficients.iter_mut()) {
+        *eval = WrapPointEvaluations::try_from(hex_eval)?.0;
+    }
+
+    let generic_selector = WrapPointEvaluations::try_from(hex_generic_selector)?.0;
+    let poseidon_selector = WrapPointEvaluations::try_from(hex_poseidon_selector)?.0;
+    let complete_add_selector = WrapPointEvaluations::try_from(hex_complete_add_selector)?.0;
+    let mul_selector = WrapPointEvaluations::try_from(hex_mul_selector)?.0;
+    let emul_selector = WrapPointEvaluations::try_from(hex_emul_selector)?.0;
+    let endomul_scalar_selector = WrapPointEvaluations::try_from(hex_endomul_scalar_selector)?.0;
+
+    let public = None; // TODO: Calculate public poly evaluations
+
+    let _evals = WrapProofEvaluations {
+        public,
+        w,
+        z,
+        s,
+        coefficients,
+        generic_selector,
+        poseidon_selector,
+        complete_add_selector,
+        mul_selector,
+        emul_selector,
+        endomul_scalar_selector,
+        range_check0_selector: None,
+        range_check1_selector: None,
+        foreign_field_add_selector: None,
+        foreign_field_mul_selector: None,
+        xor_selector: None,
+        rot_selector: None,
+        lookup_aggregation: None,
+        lookup_table: None,
+        lookup_sorted: std::array::from_fn(|_| None),
+        runtime_lookup_table: None,
+        runtime_lookup_table_selector: None,
+        xor_lookup_selector: None,
+        lookup_gate_lookup_selector: None,
+        range_check_lookup_selector: None,
+        foreign_field_mul_lookup_selector: None,
     };
 
     /*
