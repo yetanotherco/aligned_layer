@@ -1,7 +1,8 @@
 
 # Register as an Aligned operator in testnet
 
-**Important note**: You must be whitelisted to become an Aligned operator.
+> [!IMPORTANT]
+> [You must be whitelisted to become an Aligned operator.](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform)
 
 ## Requirements
 

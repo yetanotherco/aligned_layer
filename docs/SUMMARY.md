@@ -20,7 +20,7 @@
 
 ## Operators
 
-* [Operators guide](operator_guides/0_operator_guide.md)
+* [Running an operator](operator_guides/0_running_an_operator.md)
 
 ## Developers
 
