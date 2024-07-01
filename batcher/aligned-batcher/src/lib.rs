@@ -451,7 +451,8 @@ impl Batcher {
             *batch_merkle_root,
             batch_data_pointer,
             submitter_addresses,
-            U256::from(400000000000000u64),
+            U256::from(350000u64), // FIXME(uri): This value should be read from /Users/urix/aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
+            U256::from(21000u64), //FIXME(uri): This value should be read from /Users/urix/aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )
         .await
         {

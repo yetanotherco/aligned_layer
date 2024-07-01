@@ -66,13 +66,15 @@ pub async fn create_new_task(
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
     proof_submitters: Vec<Address>,
-    respond_to_task_cost: U256,
+    gas_for_aggregator: U256,
+    gas_per_proof: U256,
 ) -> Result<TransactionReceipt, anyhow::Error> {
     let call = payment_service.create_new_task(
         batch_merkle_root,
         batch_data_pointer,
         proof_submitters,
-        respond_to_task_cost,
+        gas_for_aggregator,
+        gas_per_proof,
     );
     let pending_tx = call.send().await?;
 

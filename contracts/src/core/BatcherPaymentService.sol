@@ -21,10 +21,6 @@ contract BatcherPaymentService is
 
     mapping(address => uint256) public UserBalances;
 
-    uint256 public PAYMENT_SERVICE_CREATE_TASK_GAS_COST; // Base gas cost of executing createNewTask of this contract
-    uint256 public SERVICE_MANAGER_CREATE_TASK_GAS_COST; // Gas cost of calling createNewTask in AlignedLayerServiceManager
-    uint256 public EXTRA_USER_TX_GAS_COST; // As we must iterate over the proofSubmitters, there is an extra gas cost per extra user
-
     // storage gap for upgradeability
     uint256[25] private __GAP;
 
@@ -36,10 +32,7 @@ contract BatcherPaymentService is
     function initialize(
         address _AlignedLayerServiceManager,
         address _BatcherPaymentServiceOwner,
-        address _BatcherWallet,
-        uint256 _PaymentServiceCreateTaskGasCost,
-        uint256 _ServiceManagerCreateTaskGasCost,
-        uint256 _ExtraUserTxGasCost
+        address _BatcherWallet
     ) public initializer {
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
@@ -47,9 +40,6 @@ contract BatcherPaymentService is
 
         AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
-        PAYMENT_SERVICE_CREATE_TASK_GAS_COST = _PaymentServiceCreateTaskGasCost;
-        SERVICE_MANAGER_CREATE_TASK_GAS_COST = _ServiceManagerCreateTaskGasCost;
-        EXTRA_USER_TX_GAS_COST = _ExtraUserTxGasCost;
     }
 
     // PAYABLE FUNCTIONS
@@ -63,38 +53,33 @@ contract BatcherPaymentService is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
         address[] calldata proofSubmitters, // one address for each payer proof, 1 user has 2 proofs? send twice that address
-        uint256 costOfRespondToTask // TODO hardcode gas cost? It is variable because of signature sdk. could have upper bound and multiply by current gas cost + x%.
+        uint256 gasForAggregator,
+        uint256 gasPerProof
     ) external onlyBatcher whenNotPaused {
+        uint256 feeForAggregator = gasForAggregator * tx.gasprice;
+        uint256 feePerProof = gasPerProof * tx.gasprice;
+
         uint256 amountOfSubmitters = proofSubmitters.length;
+
         require(amountOfSubmitters > 0, "No proof submitters");
 
-        // each user must pay its fraction of the gas cost of this transaction back to the batcher
-        // + 10% for increments in gas price
-        uint256 currentTxCost = ((PAYMENT_SERVICE_CREATE_TASK_GAS_COST +
-            SERVICE_MANAGER_CREATE_TASK_GAS_COST +
-            (EXTRA_USER_TX_GAS_COST * amountOfSubmitters)) *
-            tx.gasprice *
-            11) / 10;
-
-        // divide the price by the amount of submitters
-        uint256 totalCostPerProof = (costOfRespondToTask + currentTxCost) /
-            amountOfSubmitters;
+        require(feePerProof * amountOfSubmitters > feeForAggregator, "Not enough gas to pay the batcher");
 
         // discount from each payer
         // will revert if one of them has insufficient balance
         for (uint256 i = 0; i < amountOfSubmitters; i++) {
             address payer = proofSubmitters[i];
             require(
-                UserBalances[payer] >= totalCostPerProof,
+                UserBalances[payer] >= feePerProof,
                 "Payer has insufficient balance"
             );
-            UserBalances[payer] -= totalCostPerProof;
+            UserBalances[payer] -= feePerProof;
         }
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
         (bool success, ) = AlignedLayerServiceManager.call{
-            value: costOfRespondToTask
+            value: feeForAggregator
         }(
             abi.encodeWithSignature(
                 "createNewTask(bytes32,string)",
@@ -105,7 +90,9 @@ contract BatcherPaymentService is
 
         require(success, "createNewTask call failed");
 
-        payable(BatcherWallet).transfer(currentTxCost);
+        uint256 feeForBatcher = (feePerProof * amountOfSubmitters) - feeForAggregator;
+
+        payable(BatcherWallet).transfer(feeForBatcher);
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
@@ -116,24 +103,6 @@ contract BatcherPaymentService is
         UserBalances[msg.sender] -= amount;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
-    }
-
-    function setPaymentServiceCreateTaskGasCost(
-        uint256 amount
-    ) external onlyOwner whenNotPaused {
-        PAYMENT_SERVICE_CREATE_TASK_GAS_COST = amount;
-    }
-
-    function setServiceManagerCreateTaskGasCost(
-        uint256 amount
-    ) external onlyOwner whenNotPaused {
-        SERVICE_MANAGER_CREATE_TASK_GAS_COST = amount;
-    }
-
-    function setExtraUserTxGasCost(
-        uint256 amount
-    ) external onlyOwner whenNotPaused {
-        EXTRA_USER_TX_GAS_COST = amount;
     }
 
     function pause() public onlyOwner {
