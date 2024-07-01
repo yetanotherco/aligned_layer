@@ -25,14 +25,23 @@ defmodule ExplorerWeb.Batches.Index do
     {:noreply, assign(socket, batches: batches)}
   end
 
+  def handle_event("change_page", %{"page" => page}, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/batches?page=#{page}")}
+  end
+
   def get_current_page(params) do
     case params |> Map.get("page") do
       nil ->
         1
 
       page ->
-        number = page |> Integer.parse() |> elem(0)
-        if number < 1, do: 1, else: number
+        case Integer.parse(page) do
+          {number, _} ->
+            if number < 1, do: 1, else: number
+
+          :error ->
+            1
+        end
     end
   end
 
