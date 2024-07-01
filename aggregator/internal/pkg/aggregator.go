@@ -270,15 +270,13 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 }
 
-
-
-/// Sends response to contract and waits for transaction receipt
-/// Returns error if it fails to send tx or receipt is not found
+// / Sends response to contract and waits for transaction receipt
+// / Returns error if it fails to send tx or receipt is not found
 func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	agg.walletMutex.Lock()
 	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchMerkleRoot[:]))
 
-	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
+	txHash, txNonce, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchMerkleRoot[:]), err)
@@ -288,8 +286,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 	agg.walletMutex.Unlock()
 	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchMerkleRoot[:]))
 
-	receipt, err := utils.WaitForTransactionReceipt(
-		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
+	receipt, err := agg.avsWriter.WaitForTransactionReceiptWithIncreasingTip(context.Background(), *txHash, txNonce, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +295,6 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 
 	return receipt, nil
 }
-
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task",
