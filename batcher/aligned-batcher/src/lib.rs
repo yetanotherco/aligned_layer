@@ -5,7 +5,13 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::eth::BatchVerifiedEventStream;
+use aligned_sdk::types::{
+    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
+};
 use aws_sdk_s3::client::Client as S3Client;
+use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, U256};
@@ -20,18 +26,11 @@ use tokio_tungstenite::tungstenite::error::ProtocolError;
 use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
-
-use aligned_batcher_lib::types::{
-    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
-};
-use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use types::batch_queue::BatchQueue;
 use types::errors::BatcherError;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput, NonPayingConfig};
 use crate::eth::AlignedLayerServiceManager;
-use crate::eth::BatchVerifiedEventStream;
 
 mod config;
 mod eth;
@@ -45,8 +44,6 @@ mod zk_utils;
 
 const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
-const PROTOCOL_VERSION: u16 = 0;
-
 pub struct Batcher {
     s3_client: S3Client,
     eth_ws_provider: Provider<Ws>,
@@ -59,7 +56,6 @@ pub struct Batcher {
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
-    protocol_version: u16,
     non_paying_config: Option<NonPayingConfig>,
 }
 
@@ -121,7 +117,6 @@ impl Batcher {
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
-            protocol_version: PROTOCOL_VERSION,
             non_paying_config: config.batcher.non_paying,
         }
     }
@@ -172,7 +167,11 @@ impl Batcher {
         let outgoing = Arc::new(RwLock::new(outgoing));
 
         // Send the protocol version to the client
-        let protocol_version_msg = Message::binary(self.protocol_version.to_be_bytes().to_vec());
+        let protocol_version_msg = Message::binary(
+            aligned_sdk::sdk::CURRENT_PROTOCOL_VERSION
+                .to_be_bytes()
+                .to_vec(),
+        );
 
         outgoing
             .write()
@@ -446,12 +445,25 @@ impl Batcher {
         let payment_service = &self.payment_service;
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
 
+        let num_proofs_in_batch = submitter_addresses.len();
+
+        // FIXME: This constants should be aggregated into one constants file
+        const AGGREGATOR_COST: u128 = 400000;
+        const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
+        const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 1325;
+        const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
+
+        let gas_per_proof = (CONSTANT_COST
+            + ADDITIONAL_SUBMISSION_COST_PER_PROOF * num_proofs_in_batch as u128)
+            / num_proofs_in_batch as u128;
+
         match eth::create_new_task(
             payment_service,
             *batch_merkle_root,
             batch_data_pointer,
             submitter_addresses,
-            U256::from(400000000000000u64),
+            AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
+            gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )
         .await
         {
