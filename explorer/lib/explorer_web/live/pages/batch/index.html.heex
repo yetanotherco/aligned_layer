@@ -5,12 +5,12 @@
     </.card_preheding>
     <.card
       class="px-4 py-5 min-h-fit flex flex-col"
-      inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground"
+      inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground [&>*]:break-all [&>*]:font-normal"
     >
       Merkle Root Hash:
-      <p class="break-all font-normal"><%= @merkle_root %></p>
+      <p><%= @merkle_root %></p>
       Amount of Proofs in this Batch:
-      <p class="break-all font-normal"><%= @current_batch.amount_of_proofs %></p>
+      <p><%= @current_batch.amount_of_proofs %></p>
       Submission Block Number:
       <.a
         target="_blank"
@@ -18,7 +18,7 @@
         href={
           "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
         }
-        class="break-all font-normal"
+        class="hover:text-foreground/80"
       >
         <%= @current_batch.submission_block_number |> Utils.format_number() %>
       </.a>
@@ -27,12 +27,12 @@
         target="_blank"
         rel="noopener"
         href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
-        class="break-all font-normal"
+        class="hover:text-foreground/80"
       >
         <%= @current_batch.submission_transaction_hash %>
       </.a>
       Submission Timestamp:
-      <p class="break-all font-normal">
+      <p>
         <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
       </p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
@@ -42,7 +42,7 @@
           target="_blank"
           rel="noopener"
           href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
-          class="break-all font-normal"
+          class="hover:text-foreground/80"
         >
           <%= @current_batch.response_block_number |> Utils.format_number() %>
         </.a>
@@ -51,12 +51,12 @@
           target="_blank"
           rel="noopener"
           href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
-          class="break-all font-normal"
+          class="hover:text-foreground/80"
         >
           <%= @current_batch.response_transaction_hash %>
         </.a>
         Response Timestamp:
-        <p class="break-all font-normal">
+        <p>
           <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
         </p>
       <% end %>
