@@ -12,7 +12,7 @@
 
 * [Submitting proofs](guides/0_proving_systems.md)
 * [Operators guide](guides/1_operator_guide.md)
-* Making your own app with Aligned
+* [Making your own app with Aligned](guides/2_using_aligned_on_your_app.md)
 
 ## Architecture
 
