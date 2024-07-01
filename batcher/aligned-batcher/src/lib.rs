@@ -463,8 +463,8 @@ impl Batcher {
             *batch_merkle_root,
             batch_data_pointer,
             submitter_addresses,
-            AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from /Users/urix/aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
-            gas_per_proof.into(), //FIXME(uri): This value should be read from /Users/urix/aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
+            AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
+            gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )
         .await
         {
