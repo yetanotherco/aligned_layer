@@ -26,7 +26,7 @@
 
 * [SDK](developer_guides/0_SDK.md)
 * [Using Aligned on your app](developer_guides/1_using_aligned_on_your_app.md)
-* [Setup Aligned locally](developer_guides/2_setup_infrastructure.md)
+* [Setup Aligned locally](developer_guides/2_setup_aligned_locally.md)
 
 ## Useful links
 
