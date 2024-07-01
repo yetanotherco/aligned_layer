@@ -4,9 +4,9 @@
 
 * [About Aligned](introduction/0_about_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
-* [FAQ](introduction/2_faq.md)
-* [Core concepts](introduction/3_core_concepts.md)
-* [Use cases](introduction/4_use_cases.md)
+* [Core concepts](introduction/2_core_concepts.md)
+* [Use cases](introduction/3_use_cases.md)
+* [FAQ](introduction/4_faq.md)
   
 ## Architecture
 
