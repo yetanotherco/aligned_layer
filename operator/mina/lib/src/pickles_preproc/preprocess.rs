@@ -2,7 +2,7 @@ use kimchi::{
     circuits::wires::{COLUMNS, PERMUTS},
     mina_curves::pasta::{Fq, Pallas},
     poly_commitment::PolyComm,
-    proof::PointEvaluations,
+    proof::{PointEvaluations, RecursionChallenge},
 };
 
 use crate::pickles_preproc::{
@@ -48,7 +48,7 @@ pub fn deserialize_state_proof(
     };
     let lookup = None;
 
-    let _commitments = WrapProverCommitments {
+    let commitments = WrapProverCommitments {
         w_comm,
         z_comm,
         t_comm,
@@ -75,7 +75,7 @@ pub fn deserialize_state_proof(
     let z1 = WrapScalar::try_from(hex_z_1)?.0;
     let z2 = WrapScalar::try_from(hex_z_2)?.0;
 
-    let _opening_proof = WrapOpeningProof {
+    let proof = WrapOpeningProof {
         sg,
         delta,
         lr,
@@ -133,7 +133,7 @@ pub fn deserialize_state_proof(
 
     let public = None; // TODO: Calculate public poly evaluations
 
-    let _evals = WrapProofEvaluations {
+    let evals = WrapProofEvaluations {
         public,
         w,
         z,
@@ -162,15 +162,23 @@ pub fn deserialize_state_proof(
         foreign_field_mul_lookup_selector: None,
     };
 
-    /*
-        let prover_proof = WrapProverProof {
-            commitments,
-            proof,
-            evals,
-            ft_eval1,
-            prev_challenges,
-        };
-    */
+    let ft_eval1 = WrapScalar::try_from(state_proof.proof.ft_eval1)?.0;
+
+    // TODO: Calculate prev_challenges
+    let prev_challenges = vec![RecursionChallenge {
+        chals: Vec::new(),
+        comm: PolyComm {
+            elems: Vec::<Pallas>::new(),
+        },
+    }];
+
+    let _prover_proof = WrapProverProof {
+        commitments,
+        proof,
+        evals,
+        ft_eval1,
+        prev_challenges,
+    };
 
     todo!()
 }
