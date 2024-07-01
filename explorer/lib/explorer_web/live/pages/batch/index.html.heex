@@ -15,7 +15,9 @@
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "")}.etherscan.io/block/#{@current_batch.submission_block_number}"}
+        href={
+          "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
+        }
         class="break-all font-normal"
       >
         <%= @current_batch.submission_block_number |> Utils.format_number() %>
@@ -24,7 +26,7 @@
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "")}.etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
+        href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
         class="break-all font-normal"
       >
         <%= @current_batch.submission_transaction_hash %>
@@ -39,7 +41,7 @@
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "")}.etherscan.io/block/#{@current_batch.response_block_number}"}
+          href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
           class="break-all font-normal"
         >
           <%= @current_batch.response_block_number |> Utils.format_number() %>
@@ -48,7 +50,7 @@
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "")}.etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
+          href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
           class="break-all font-normal"
         >
           <%= @current_batch.response_transaction_hash %>
