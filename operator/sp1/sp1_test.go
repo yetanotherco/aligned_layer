@@ -11,7 +11,7 @@ const MaxProofSize = 2 * 1024 * 1024
 const MaxElfSize = 2 * 1024 * 1024
 
 func TestFibonacciSp1ProofVerifies(t *testing.T) {
-	proofFile, err := os.Open("../../task_sender/test_examples/sp1/sp1_fibonacci.proof")
+	proofFile, err := os.Open("../../scripts/test_files/sp1/sp1_fibonacci.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
@@ -21,7 +21,7 @@ func TestFibonacciSp1ProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from file")
 	}
 
-	elfFile, err := os.Open("../../task_sender/test_examples/sp1/elf")
+	elfFile, err := os.Open("../../scripts/test_files/sp1/sp1_fibonacci.elf")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
