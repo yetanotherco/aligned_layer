@@ -39,7 +39,7 @@ For SP1 you would use the elf of the program as the input file.
 You can find the example of the smart contract that verifies the proof was verified in Aligned
 in the [Quiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
 
-Note that the contract has and checks that the verification key commitment is the same as the program elf.
+Note that the contract checks that the verification key commitment is the same as the program elf.
 ```solidity
 require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
 ```
