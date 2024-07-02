@@ -8,6 +8,7 @@ use aligned_sdk::sdk::{submit, verify_proof_onchain};
 use aligned_sdk::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
 use clap::Parser;
 use dialoguer::Confirm;
+use ethers::core::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
 use ethers::signers::{LocalWallet, Signer};
@@ -48,7 +49,8 @@ async fn main() {
         .expect("Failed to read keystore password");
 
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
-        .expect("Failed to decrypt keystore").with_chain_id(17000u64);
+        .expect("Failed to decrypt keystore")
+        .with_chain_id(17000u64);
 
     // Generate proof.
     let mut stdin = SP1Stdin::new();
@@ -88,8 +90,8 @@ async fn main() {
 
             let rpc_url = args.rpc_url.clone();
 
-            let provider =
-                Provider::<Http>::try_from(rpc_url.as_str()).expect("Failed to connect to provider");
+            let provider = Provider::<Http>::try_from(rpc_url.as_str())
+                .expect("Failed to connect to provider");
 
             let signer = Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
 
@@ -112,79 +114,63 @@ async fn main() {
                 pub_input: None,
             };
 
-            match submit(BATCHER_URL, &verification_data, wallet.clone()).await {
-                Ok(Some(aligned_verification_data)) => {
-                    println!(
-                        "Proof submitted successfully on batch {}, waiting for verification...",
-                        hex::encode(aligned_verification_data.batch_merkle_root)
-                    );
+            match submit_proof_and_wait_for_verification(
+                verification_data,
+                wallet.clone(),
+                rpc_url.clone(),
+            ).await {
+                Ok(aligned_verification_data) => {
+                    println!("Proof verified in Aligned, claiming prize...");
 
-                    if let Err(e) = wait_for_proof_to_be_verified(
+                    if let Err(e) = verify_batch_inclusion(
                         aligned_verification_data.clone(),
-                        rpc_url.clone(),
+                        signer.clone(),
+                        args.verifier_contract_address,
                     )
                         .await
                     {
-                        println!("Proof verification failed: {:?}", e);
-                        return;
+                        println!("Failed to claim prize: {:?}", e);
                     }
-
-                    println!("Proof verified in Aligned, claiming prize...");
-
-                    let verifier_contract =
-                        VerifierContract::new(args.verifier_contract_address, signer.clone());
-
-                    let index_in_batch = U256::from(aligned_verification_data.index_in_batch);
-                    let merkle_path = Bytes::from(
-                        aligned_verification_data
-                            .batch_inclusion_proof
-                            .merkle_path
-                            .as_slice()
-                            .flatten()
-                            .to_vec(),
-                    );
-
-                    match verifier_contract
-                        .verify_batch_inclusion(
-                            aligned_verification_data
-                                .verification_data_commitment
-                                .proof_commitment,
-                            aligned_verification_data
-                                .verification_data_commitment
-                                .pub_input_commitment,
-                            aligned_verification_data
-                                .verification_data_commitment
-                                .proving_system_aux_data_commitment,
-                            aligned_verification_data
-                                .verification_data_commitment
-                                .proof_generator_addr,
-                            aligned_verification_data.batch_merkle_root,
-                            merkle_path,
-                            index_in_batch,
-                        )
-                        .send()
-                        .await
-                        .expect("Failed to verify batch inclusion")
-                        .await
-                    {
-                        Ok(Some(receipt)) => {
-                            println!("Prize claimed successfully. Transaction hash: {:x}", receipt.transaction_hash);
-                        }
-                        Ok(None) => {
-                            println!("Failed to claim prize: no receipt");
-                        }
-                        Err(e) => {
-                            println!("Failed to claim prize: {:?}", e);
-                        }
-                    }
-                }
-                Ok(None) => {
-                    println!("Proof submission failed, no verification data");
                 }
                 Err(e) => {
-                    println!("Proof submission failed: {:?}", e);
+                    println!("Proof verification failed: {:?}", e);
                 }
             }
+
+            // match submit(BATCHER_URL, &verification_data, wallet.clone()).await {
+            //     Ok(Some(aligned_verification_data)) => {
+            //         println!(
+            //             "Proof submitted successfully on batch {}, waiting for verification...",
+            //             hex::encode(aligned_verification_data.batch_merkle_root)
+            //         );
+            //
+            //         if let Err(e) = wait_for_proof_to_be_verified(
+            //             aligned_verification_data.clone(),
+            //             rpc_url.clone(),
+            //         )
+            //             .await
+            //         {
+            //             println!("Proof verification failed: {:?}", e);
+            //             return;
+            //         }
+            //
+            //         println!("Proof verified in Aligned, claiming prize...");
+            //
+            //         if let Err(e) = verify_batch_inclusion(
+            //             aligned_verification_data.clone(),
+            //             signer.clone(),
+            //             args.verifier_contract_address,
+            //         ).await {
+            //             println!("Failed to claim prize: {:?}", e);
+            //         }
+            //     }
+            //     Ok(None) => {
+            //         println!("Proof submission failed, no verification data");
+            //     }
+            //     Err(e) => {
+            //         println!("Proof submission failed: {:?}", e);
+            //     }
+            // }
         }
         Err(_) => {
             println!("Proof generation failed. Incorrect answer");
@@ -212,6 +198,7 @@ fn read_answer() -> char {
         io::stdin()
             .read_line(&mut answer)
             .expect("Failed to read from stdin");
+
         answer = answer.trim().to_string();
         if answer.len() != 1 {
             println!("Please enter a valid answer (a, b or c)");
@@ -228,23 +215,44 @@ fn read_answer() -> char {
     }
 }
 
-async fn wait_for_proof_to_be_verified(
-    verification_data: AlignedVerificationData,
+async fn submit_proof_and_wait_for_verification(
+    verification_data: VerificationData,
+    wallet: Wallet<SigningKey>,
     rpc_url: String,
-) -> anyhow::Result<()> {
-    for _ in 0..10 {
-        if verify_proof_onchain(verification_data.clone(), Chain::Holesky, rpc_url.as_str())
-            .await
-            .is_ok_and(|r| r)
-        {
-            return Ok(());
+) -> anyhow::Result<AlignedVerificationData> {
+    let res = submit(BATCHER_URL, &verification_data, wallet.clone())
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to submit proof for verification: {:?}", e))?;
+
+    match res {
+        Some(aligned_verification_data) => {
+            println!(
+                "Proof submitted successfully on batch {}, waiting for verification...",
+                hex::encode(aligned_verification_data.batch_merkle_root)
+            );
+
+            for _ in 0..10 {
+                if verify_proof_onchain(
+                    aligned_verification_data.clone(),
+                    Chain::Holesky,
+                    rpc_url.as_str(),
+                )
+                    .await
+                    .is_ok_and(|r| r)
+                {
+                    return Ok(aligned_verification_data);
+                }
+
+                println!("Proof not verified yet. Waiting 10 seconds before checking again...");
+                tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+            }
+
+            anyhow::bail!("Proof verification failed");
         }
-
-        println!("Proof not verified yet. Waiting 10 seconds before checking again...");
-        tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+        None => {
+            anyhow::bail!("Proof submission failed, no verification data");
+        }
     }
-
-    anyhow::bail!("Proof not verified after 10 attempts");
 }
 
 async fn pay_batcher(
@@ -282,6 +290,61 @@ async fn pay_batcher(
         }
         None => {
             anyhow::bail!("Payment failed");
+        }
+    }
+}
+
+async fn verify_batch_inclusion(
+    aligned_verification_data: AlignedVerificationData,
+    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    verifier_contract_addr: Address,
+) -> anyhow::Result<()> {
+    let verifier_contract = VerifierContract::new(verifier_contract_addr, signer);
+
+    let index_in_batch = U256::from(aligned_verification_data.index_in_batch);
+    let merkle_path = Bytes::from(
+        aligned_verification_data
+            .batch_inclusion_proof
+            .merkle_path
+            .as_slice()
+            .flatten()
+            .to_vec(),
+    );
+
+    let receipt = verifier_contract
+        .verify_batch_inclusion(
+            aligned_verification_data
+                .verification_data_commitment
+                .proof_commitment,
+            aligned_verification_data
+                .verification_data_commitment
+                .pub_input_commitment,
+            aligned_verification_data
+                .verification_data_commitment
+                .proving_system_aux_data_commitment,
+            aligned_verification_data
+                .verification_data_commitment
+                .proof_generator_addr,
+            aligned_verification_data.batch_merkle_root,
+            merkle_path,
+            index_in_batch,
+        )
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to send tx {}", e))?
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to submit tx {}", e))?;
+
+    match receipt {
+        Some(receipt) => {
+            println!(
+                "Prize claimed successfully. Transaction hash: {:x}",
+                receipt.transaction_hash
+            );
+            Ok(())
+        }
+        None => {
+            anyhow::bail!("Failed to claim prize: no receipt");
         }
     }
 }
