@@ -1,4 +1,4 @@
-name: Build and Release Rust Project
+name: Build and Release Aligned Client
 
 on:
   push:
@@ -7,7 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: aligned-x86
+          - os: macos-latest
+            artifact_name: aligned-arm64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -15,8 +23,11 @@ jobs:
       
       - name: Build batcher client
         run: make build_batcher_client
+      
+      - name: Rename binary
+        run: mv batcher/client/target/release/aligned ${{ matrix.artifact_name }}
   
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: batcher/client/target/release/aligned
+          files: ${{ matrix.artifact_name }}
