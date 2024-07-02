@@ -34,3 +34,23 @@ function respondToTask(
 This method is used by the Aggregator once the quorum for a particular task has been reached. Its main purpose is to verify the aggregated signature of the operators for the given task, and also that the quorum was reached. After verifying, an event is emmited signaling to any consumer that the batch has reached soft finality. 
 * `batchMerkleRoot` is a 256 bit hash representing the merkle root of the batch that has been verified and signed by operators.
 * `nonSignerStakesAndSignature` is a struct provided by EigenLayer middleware with information about operators signatures, stakes and quorum for the given task. 
+
+### Verify batch inclusion
+
+```solidity
+function verifyBatchInclusion(
+    bytes32 proofCommitment,
+    bytes32 pubInputCommitment,
+    bytes32 provingSystemAuxDataCommitment,
+    bytes20 proofGeneratorAddr,
+    bytes32 batchMerkleRoot,
+    bytes memory merkleProof,
+    uint256 verificationDataBatchIndex
+) external view returns (bool)
+```
+
+A method used for consumers to check that their proof was verified in Aligned. It checks that the batch were the proof was included was verified and that the proof was included in the batch verifying the merkle path.
+
+* `proofCommitment`, `pubInputCommitment`, `provingSystemAuxDataCommitment`, `proofGeneratorAddr` are the commitments to the verification data sent to the batcher.
+* `batchMerkleRoot` is a 256 bit hash representing the batch merkle root the proof was included in. 
+* `merkleProof` is the merkle path to
