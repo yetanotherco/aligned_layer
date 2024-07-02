@@ -20,10 +20,13 @@ use log::{error, info};
 
 use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
 
+use ethers::utils::format_ether;
 use ethers::utils::hex;
 use ethers::utils::parse_ether;
+use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
+use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetVerificationKeyCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -54,6 +57,8 @@ pub enum AlignedCommands {
         name = "deposit-to-batcher"
     )]
     DepositToBatcher(DepositToBatcherArgs),
+    #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
+    GetUserBalance(GetUserBalanceArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -156,6 +161,29 @@ pub struct GetVerificationKeyCommitmentArgs {
     input_file: PathBuf,
     #[arg(name = "Output file", long = "output")]
     output_file: Option<PathBuf>,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserBalanceArgs {
+    #[arg(
+        name = "Batcher Eth Address",
+        long = "batcher_addr",
+        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+    )]
+    batcher_eth_address: String,
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    user_address: String,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -410,6 +438,35 @@ async fn main() -> Result<(), AlignedError> {
                 error!("Transaction failed");
             }
         }
+        GetUserBalance(get_user_balance_args) => {
+            let eth_rpc_url = get_user_balance_args.eth_rpc_url;
+
+            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
+                SubmitError::EthError(format!("Error while connecting to Ethereum: {}", e))
+            })?;
+
+            let user_address =
+                Address::from_str(&get_user_balance_args.user_address).map_err(|e| {
+                    SubmitError::EthError(format!("Error while parsing user address: {}", e))
+                })?;
+
+            let batcher_addr = Address::from_str(&get_user_balance_args.batcher_eth_address)
+                .map_err(|e| {
+                    SubmitError::EthError(format!("Error while parsing batcher address: {}", e))
+                })?;
+
+            let balance = get_user_balance(eth_rpc_provider, batcher_addr, user_address)
+                .await
+                .map_err(|e| {
+                    SubmitError::EthError(format!("Error while getting user balance: {}", e))
+                })?;
+
+            info!(
+                "User {} has {} ether in the batcher",
+                user_address,
+                format_ether(balance)
+            );
+        }
     }
 
     Ok(())
@@ -493,4 +550,37 @@ fn save_response(
     );
 
     Ok(())
+}
+
+pub async fn get_user_balance(
+    provider: Provider<Http>,
+    contract_address: Address,
+    user_address: Address,
+) -> Result<U256, ProviderError> {
+    let function_signature = "UserBalances(address)";
+    let selector = &ethers::utils::keccak256(function_signature.as_bytes())[..4];
+
+    // Encode the function call with the user address as an argument
+    let mut call_data: Vec<u8> = vec![];
+    call_data.extend_from_slice(selector);
+    call_data.extend_from_slice(&[0u8; 12]); // Padding
+    call_data.extend_from_slice(user_address.as_bytes());
+
+    let tx = TypedTransaction::Legacy(TransactionRequest {
+        to: Some(NameOrAddress::Address(contract_address)),
+        data: Some(Bytes(call_data.into())),
+        ..Default::default()
+    });
+
+    // Send the call transaction
+    let result = provider.call_raw(&tx).await?;
+
+    if result.len() == 32 {
+        let balance = U256::from_big_endian(&result);
+        Ok(balance)
+    } else {
+        Err(ProviderError::CustomError(
+            "Invalid response from contract".to_string(),
+        ))
+    }
 }
