@@ -81,10 +81,25 @@ contract BatcherPaymentService is
 // --private-key 0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba
 
 
+//now user 2 signature:
+// 0xf0650584f85750ce5b87e52a203cfaf7ceee7e4ff7cc507a854b511998a9fede11aab3984c327498a4b271932a75035043d3b5320c7365482369637e441cca6a1c
+// f0650584f85750ce5b87e52a203cfaf7ceee7e4ff7cc507a854b511998a9fede
+// 11aab3984c327498a4b271932a75035043d3b5320c7365482369637e441cca6a
+// 1c
+
+// cast send 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0 \
+// "createNewTask(uint256,bytes32,(uint256,bytes32,bytes32,uint8)[],string,uint256,uint256)" \
+// 1 0xaeab82486c6c23487b4c475218db19e33e88bc21543ca2f625d185fddd3d26df \
+// "[(1,0xfc0e029250892062253ccc7634cd870021ed5a2c2e52889d57985012af3cdd22,0x1816aff451979c4d7a7915587030ce9e852e59f23acce859b6b2b9836fa72e0b,0x1c),(1,0xf0650584f85750ce5b87e52a203cfaf7ceee7e4ff7cc507a854b511998a9fede,0x11aab3984c327498a4b271932a75035043d3b5320c7365482369637e441cca6a,0x1c)]" \
+// "http://storage.alignedlayer.com/aeab82486c6c23487b4c475218db19e33e88bc21543ca2f625d185fddd3d26df.json" 1 10 \
+// --private-key 0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba
+
+
     // PUBLIC FUNCTIONS
     function createNewTask(
         uint256 batchId,
         bytes32 batchMerkleRoot,
+        // todo is there a way to make this a set? of non repeated values
         ProofSubmitterData[] calldata proofSubmitters, // one address for each payer proof, 1 user has 2 proofs? send twice that address
         string calldata batchDataPointer,
         uint256 gasForAggregator,
@@ -95,6 +110,9 @@ contract BatcherPaymentService is
 
         uint256 amountOfSubmitters = proofSubmitters.length;
 
+        // mapping(address => bool) memory userSubmittedInBatch;
+
+
         require(amountOfSubmitters > 0, "No proof submitters");
         require(BatchWasSubmitted[batchId] == false, "Batch already submitted"); // stops exploit of batcher making a user sign many times the same batch. only one of those proofs can be submitted
 
@@ -104,21 +122,23 @@ contract BatcherPaymentService is
         for (uint256 i = 0; i < amountOfSubmitters; i++) {
             ProofSubmitterData memory user = proofSubmitters[i];
 
-            // TODO sign with --no-hash
+            uint256 userFee = feePerProof * user.amount_of_proofs_in_batch;
+
             bytes32 messageHash = keccak256(abi.encodePacked(batchId, batchMerkleRoot, user.amount_of_proofs_in_batch));
-            // todo sign with --no-hash
-            // bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
 
             // If user signed for another batchId, or another batchMerkleRoot, or another amount_of_proofs_in_batch, it would have a different signer.
             // If wrong data was proportioned, it would have a random signer, and it won't have balance, because you can't precompute to get a desired signer. % of getting a signer with funds is almost 0.
             // Because of this, I don't think we need to compare with an "expected signer"
             address signer = ecrecover(messageHash, user.v, user.r, user.s);
+            require(userSubmittedInBatch[signer] == false, "User already submitted in batch");
+            userSubmittedInBatch[signer] = true;
+
             require(
-                UserBalances[signer] >= (feePerProof * user.amount_of_proofs_in_batch),
+                UserBalances[signer] >= (userFee),
                 "Payer has insufficient balance"
             );
-            UserBalances[signer] -= feePerProof * user.amount_of_proofs_in_batch;
-            accumulatedFee += feePerProof * user.amount_of_proofs_in_batch; // accum of total fee
+            UserBalances[signer] -= userFee;
+            accumulatedFee += userFee; // accum of total fee
         }
 
         require(accumulatedFee > feeForAggregator, "Not enough fee for aggregator and batcher");
