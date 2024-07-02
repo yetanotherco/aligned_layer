@@ -557,14 +557,12 @@ pub async fn get_user_balance(
     contract_address: Address,
     user_address: Address,
 ) -> Result<U256, ProviderError> {
-    let function_signature = "UserBalances(address)";
-    let selector = &ethers::utils::keccak256(function_signature.as_bytes())[..4];
+    let selector = &ethers::utils::keccak256("UserBalances(address)".as_bytes())[..4];
 
-    // Encode the function call with the user address as an argument
-    let mut call_data: Vec<u8> = vec![];
-    call_data.extend_from_slice(selector);
-    call_data.extend_from_slice(&[0u8; 12]); // Padding
-    call_data.extend_from_slice(user_address.as_bytes());
+    let encoded_params = ethers::abi::encode(&[ethers::abi::Token::Address(user_address)]);
+
+    let mut call_data = selector.to_vec();
+    call_data.extend_from_slice(&encoded_params);
 
     let tx = TypedTransaction::Legacy(TransactionRequest {
         to: Some(NameOrAddress::Address(contract_address)),
@@ -572,7 +570,6 @@ pub async fn get_user_balance(
         ..Default::default()
     });
 
-    // Send the call transaction
     let result = provider.call_raw(&tx).await?;
 
     if result.len() == 32 {
