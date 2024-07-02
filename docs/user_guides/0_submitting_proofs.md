@@ -52,7 +52,7 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
     cast wallet import ~/.aligned_keystore/keystore0 --interactive
     ```
   
-  You have to paste your private key and a password for the keystore file.
+  You have to paste your private key and set a password for the keystore file.
 
 This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
@@ -62,7 +62,7 @@ This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
 ## 2. Fund the batcher
 
-To be able to send proofs to Aligned using the batcher, the user must fund its transactions. For this, there is a simple Batcher Payment System.
+To be able to send proofs to Aligned using the Batcher, the user must fund its transactions. For this, there is a simple Batcher Payment System.
 
 To use it you can use the `aligned` CLI, as shown with the following example:
 
@@ -74,7 +74,7 @@ This commands also allows the usage of the flags:
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used.
-- Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the batcher.
+- Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
 
 After depositing funds, you can verify the Service has correctly received them, executing the following command:
 ```bash
@@ -96,7 +96,7 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_yo_ecdsa_keystore> 
+--keystore_path <path_to_ecdsa_keystore> 
 ```
 
 **Example**
@@ -124,7 +124,7 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_yo_ecdsa_keystore>
+--keystore_path <path_to_ecdsa_keystore>
 ```
 
 **Example**
@@ -153,7 +153,7 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_yo_ecdsa_keystore>
+--keystore_path <path_to_ecdsa_keystore>
 ```
 
 **Examples**:
