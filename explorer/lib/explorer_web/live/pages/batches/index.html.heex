@@ -51,7 +51,7 @@
       <p class="text-lg text-muted-foreground">No batches found.</p>
     </.card_background>
   <% end %>
-  <div class="flex gap-x-2 items-center justify-start w-full">
+  <div class="flex gap-x-2 items-center justify-center md:justify-start w-full">
     <%= if @current_page > 1 do %>
       <.link navigate={~p"/batches?page=#{@current_page - 1}"}>
         <.button class="text-muted-foreground flex size-10 items-center group">
