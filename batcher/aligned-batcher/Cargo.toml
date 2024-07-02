@@ -22,7 +22,7 @@ anyhow = "1.0.83"
 ethers = { tag = "v2.0.15-fix-reconnections", features = ["ws", "rustls"], git = "https://github.com/yetanotherco/ethers-rs.git" }
 lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
 serde_yaml = "0.9.34"
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.5-testnet" }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.8-testnet" }
 risc0-zkvm = { git = "https://github.com/risc0/risc0", tag="v1.0.1" }
 halo2curves = { version = "0.6.0", default-features = false }
 halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", branch = "feat/serde_constraint_system"}
