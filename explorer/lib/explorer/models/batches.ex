@@ -69,6 +69,16 @@ defmodule Batches do
     Explorer.Repo.all(query)
   end
 
+  def get_paginated_batches(%{page: page, page_size: page_size}) do
+    query = from(b in Batches,
+      order_by: [desc: b.submission_block_number],
+      limit: ^page_size,
+      offset: ^((page - 1) * page_size),
+      select: b)
+
+    Explorer.Repo.all(query)
+  end
+
   def get_amount_of_verified_batches() do
     query = from(b in Batches,
       where: b.is_verified == true,
