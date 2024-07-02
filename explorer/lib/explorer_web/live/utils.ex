@@ -141,7 +141,6 @@ defmodule Utils do
     300
   end
 
-  # Download Bottleneck
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
