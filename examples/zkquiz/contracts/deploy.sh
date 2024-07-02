@@ -6,8 +6,6 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1 ; pwd -P )
 # At this point we are in examples/zkquiz
 cd "$parent_path" || exit 1
 
-source .env
-
 if [ -z "$ALIGNED_SERVICE_MANAGER_ADDRESS" ]; then
     echo "ALIGNED_SERVICE_MANAGER_ADDRESS is not set. Please set it in .env"
     exit 1
@@ -29,7 +27,5 @@ forge script script/Deployer.s.sol \
     "$ALIGNED_SERVICE_MANAGER_ADDRESS" \
     --rpc-url "$RPC_URL" \
     --private-key "$PRIVATE_KEY" \
-    --verify \
-    --etherscan-api-key "$ETHERSCAN_API_KEY" \
     --broadcast \
     --sig "run(address _alignedServiceManager)"
