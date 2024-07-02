@@ -59,25 +59,28 @@ contract BatcherPaymentService is
         emit PaymentReceived(msg.sender, msg.value);
     }
 
+// first
+// cast keccak "0x0000000000000000000000000000000000000000000000000000000000000001aeab82486c6c23487b4c475218db19e33e88bc21543ca2f625d185fddd3d26df0000000000000000000000000000000000000000000000000000000000000001"
+// : 0x5a843f6bc5c050067cae5625d51fbd9fb53adad732da202c7502bf1e23d4efeb
+
+// then
+// cast wallet sign \
+// 0x5a843f6bc5c050067cae5625d51fbd9fb53adad732da202c7502bf1e23d4efeb \
+// --private-key 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a --no-hash
+// : 0xfc0e029250892062253ccc7634cd870021ed5a2c2e52889d57985012af3cdd221816aff451979c4d7a7915587030ce9e852e59f23acce859b6b2b9836fa72e0b1c
+// fc0e029250892062253ccc7634cd870021ed5a2c2e52889d57985012af3cdd22
+// 1816aff451979c4d7a7915587030ce9e852e59f23acce859b6b2b9836fa72e0b
+// 1c
+
+//finally
 // cast send 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0 \
-// "createNewTask(uint256,bytes32,(uint256,uint8,bytes32,bytes32)[],string,uint256,uint256)" \
-// 1 \
-// 0xaeab82486c6c23487b4c475218db19e33e88bc21543ca2f625d185fddd3d26df \
-// "[(1,0x1c,0x3fbde0481c48a7d9408aab36a32666aa8572cd854fb88379da71b1dda95c9593,0xcf1b9774b6c47e0f0b98c99794636f1f790feb1a6e0073dea9b64a387f783a8e)]" \
-// "http://storage.alignedlayer.com/aeab82486c6c23487b4c475218db19e33e88bc21543ca2f625d185fddd3d26df.json" \
-// 1 10 \
+// "createNewTask(uint256,bytes32,(uint256,bytes32,bytes32,uint8)[],string,uint256,uint256)" \
+// 1 0xaeab82486c6c23487b4c475218db19e33e88bc21543ca2f625d185fddd3d26df \
+// "[(1,0xfc0e029250892062253ccc7634cd870021ed5a2c2e52889d57985012af3cdd22,0x1816aff451979c4d7a7915587030ce9e852e59f23acce859b6b2b9836fa72e0b,0x1c)]" \
+// "http://storage.alignedlayer.com/aeab82486c6c23487b4c475218db19e33e88bc21543ca2f625d185fddd3d26df.json" 1 10 \
 // --private-key 0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba
 
-// cast wallet sign \
-// "0000000000000000000000000000000000000000000000000000000000000001aeab82486c6c23487b4c475218db19e33e88bc21543ca2f625d185fddd3d26df0000000000000000000000000000000000000000000000000000000000000001" \
-// --private-key 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 
-// signature:
-// 0xcf1b9774b6c47e0f0b98c99794636f1f790feb1a6e0073dea9b64a387f783a8e3fbde0481c48a7d9408aab36a32666aa8572cd854fb88379da71b1dda95c95931c
-// :
-// cf1b9774b6c47e0f0b98c99794636f1f790feb1a6e0073dea9b64a387f783a8e
-// 3fbde0481c48a7d9408aab36a32666aa8572cd854fb88379da71b1dda95c9593
-// 1c
     // PUBLIC FUNCTIONS
     function createNewTask(
         uint256 batchId,
@@ -103,13 +106,13 @@ contract BatcherPaymentService is
 
             // TODO sign with --no-hash
             bytes32 messageHash = keccak256(abi.encodePacked(batchId, batchMerkleRoot, user.amount_of_proofs_in_batch));
-            // todo sign with --no-header
-            bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
+            // todo sign with --no-hash
+            // bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
 
             // If user signed for another batchId, or another batchMerkleRoot, or another amount_of_proofs_in_batch, it would have a different signer.
             // If wrong data was proportioned, it would have a random signer, and it won't have balance, because you can't precompute to get a desired signer. % of getting a signer with funds is almost 0.
             // Because of this, I don't think we need to compare with an "expected signer"
-            address signer = ecrecover(ethSignedMessageHash, user.v, user.r, user.s);
+            address signer = ecrecover(messageHash, user.v, user.r, user.s);
             require(
                 UserBalances[signer] >= (feePerProof * user.amount_of_proofs_in_batch),
                 "Payer has insufficient balance"
