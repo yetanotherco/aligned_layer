@@ -1,12 +1,13 @@
 use kimchi::{
     circuits::wires::{COLUMNS, PERMUTS},
     mina_curves::pasta::{Fq, Pallas},
-    poly_commitment::PolyComm,
+    mina_poseidon::sponge::ScalarChallenge,
+    poly_commitment::{srs::endos, PolyComm},
     proof::{PointEvaluations, RecursionChallenge},
 };
 
 use crate::pickles_preproc::{
-    state_proof::{Bulletproof, Commitments, Evaluations},
+    state_proof::{Bulletproof, Commitments, Evaluations, WRAP_PREV_CHALLENGES},
     type_aliases::{
         WrapECPoint, WrapOpeningProof, WrapPointEvaluations, WrapProofEvaluations,
         WrapProverCommitments, WrapScalar,
@@ -14,7 +15,9 @@ use crate::pickles_preproc::{
 };
 
 use super::{
-    state_proof::StateProof,
+    state_proof::{
+        BulletproofChallenge, HexPointCoordinates, StateProof, WRAP_SCALARS_PER_CHALLENGE,
+    },
     type_aliases::{WrapProverProof, WrapVerifierIndex},
 };
 
@@ -164,13 +167,17 @@ pub fn deserialize_state_proof(
 
     let ft_eval1 = WrapScalar::try_from(state_proof.proof.ft_eval1)?.0;
 
-    // TODO: Calculate prev_challenges
-    let prev_challenges = vec![RecursionChallenge {
-        chals: Vec::new(),
-        comm: PolyComm {
-            elems: Vec::<Pallas>::new(),
-        },
-    }];
+    let prev_challenges = compute_prev_challenges(
+        state_proof
+            .statement
+            .proof_state
+            .messages_for_next_wrap_proof
+            .old_bulletproof_challenges,
+        state_proof
+            .statement
+            .messages_for_next_step_proof
+            .challenge_polynomial_commitments,
+    )?;
 
     let _prover_proof = WrapProverProof {
         commitments,
@@ -183,6 +190,46 @@ pub fn deserialize_state_proof(
     todo!()
 }
 
-pub fn compute_prev_challenges() {
-    todo!()
+pub fn compute_prev_challenges(
+    old_bulletproof_challenges: [[BulletproofChallenge; WRAP_SCALARS_PER_CHALLENGE];
+        WRAP_PREV_CHALLENGES],
+    challenge_polynomial_commitments: [HexPointCoordinates; WRAP_PREV_CHALLENGES],
+) -> Result<Vec<RecursionChallenge<Pallas>>, String> {
+    let mut recursion_challenges = Vec::with_capacity(WRAP_PREV_CHALLENGES);
+
+    for (chal, comm) in old_bulletproof_challenges
+        .into_iter()
+        .zip(challenge_polynomial_commitments.into_iter())
+    {
+        let mut chals = Vec::with_capacity(WRAP_SCALARS_PER_CHALLENGE);
+        for prechallenge in chal.into_iter().map(|chal| chal.prechallenge) {
+            let [limb0, limb1] = prechallenge.inner;
+
+            let limb0 = u64::from_be_bytes(
+                limb0
+                    .parse::<i64>()
+                    .map_err(|err| err.to_string())?
+                    .to_be_bytes(),
+            ) as u128;
+            let limb1 = u64::from_be_bytes(
+                limb1
+                    .parse::<i64>()
+                    .map_err(|err| err.to_string())?
+                    .to_be_bytes(),
+            ) as u128;
+
+            let field = Fq::from(limb0 | (limb1 << 64));
+
+            let (_, endo_r) = endos::<Pallas>();
+            chals.push(ScalarChallenge(field).to_field(&endo_r));
+        }
+
+        let comm = PolyComm {
+            elems: vec![WrapECPoint::try_from(comm)?.0],
+        };
+
+        recursion_challenges.push(RecursionChallenge { chals, comm });
+    }
+
+    Ok(recursion_challenges)
 }

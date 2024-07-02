@@ -7,10 +7,13 @@ use serde::Deserialize;
 
 use super::type_aliases::{WrapECPoint, WrapPointEvaluations, WrapScalar};
 
-type DecimalSigned = String;
-type HexScalar = String;
-type HexPointCoordinates = [String; 2];
-type HexPointEvaluations = [String; 2];
+pub const WRAP_PREV_CHALLENGES: usize = 2;
+pub const WRAP_SCALARS_PER_CHALLENGE: usize = 15;
+
+pub type DecimalSigned = String;
+pub type HexScalar = String;
+pub type HexPointCoordinates = [String; 2];
+pub type HexPointEvaluations = [String; 2];
 
 #[derive(Deserialize)]
 pub struct StateProof {
@@ -58,6 +61,7 @@ pub struct Evaluations {
 
 #[derive(Deserialize)]
 pub struct Statement {
+    pub proof_state: ProofState,
     pub messages_for_next_step_proof: MessagesForNextStepProof,
 }
 
@@ -124,13 +128,15 @@ pub struct FeatureFlags {
 #[derive(Deserialize)]
 pub struct MessagesForNextWrapProof {
     pub challenge_polynomial_commitment: HexPointCoordinates,
-    pub old_bulletproof_challenges: [[BulletproofChallenge; 16]; 2],
+    pub old_bulletproof_challenges:
+        [[BulletproofChallenge; WRAP_SCALARS_PER_CHALLENGE]; WRAP_PREV_CHALLENGES],
 }
 
 impl TryFrom<HexPointCoordinates> for WrapECPoint {
     type Error = String;
 
     fn try_from(value: HexPointCoordinates) -> Result<Self, Self::Error> {
+        // TODO: Handle point at infinity.
         let x = Fp::from_hex(&value[0]).map_err(|err| err.to_string())?;
         let y = Fp::from_hex(&value[1]).map_err(|err| err.to_string())?;
         Ok(WrapECPoint(Pallas::new(x, y, false)))
