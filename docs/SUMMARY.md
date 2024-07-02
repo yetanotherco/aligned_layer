@@ -4,20 +4,35 @@
 
 * [About Aligned](introduction/0_about_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
-* [FAQ](introduction/2_faq.md)
-* [Core concepts](introduction/3_core_concepts.md)
-* [Use cases](introduction/4_use_cases.md)
-
-## Guides
-
-* [Submitting proofs](guides/0_proving_systems.md)
-* [Operators guide](guides/1_operator_guide.md)
-* [Making your own app with Aligned](guides/2_using_aligned_on_your_app.md)
-
+* [Core concepts](introduction/2_core_concepts.md)
+* [Use cases](introduction/3_use_cases.md)
+* [FAQ](introduction/4_faq.md)
+  
 ## Architecture
 
-* [Fast mode](architecture/0_fast_mode.md)
-* [Aggregation mode](architecture/1_aggregation_mode.md)
+* [Supported Verifiers](architecture/0_supported_verifiers.md)
+* [Fast mode](architecture/1_fast_mode.md)
+* [Aggregation mode](architecture/2_aggregation_mode.md)
+<!-- * Components
+  * [User](./architecture/entities/user.md)
+  * [Operator](./architecture/entities/operator.md)
+  * [Aggregator](./architecture/entities/aggregator.md)
+  * [Batcher](./architecture/entities/batcher.md)
+  * [Payment Service](./architecture/entities/payment_service.md) -->
+
+## Users
+
+* [Submitting proofs](user_guides/0_submitting_proofs.md)
+
+## Operators
+
+* [Running an operator](operator_guides/0_running_an_operator.md)
+
+## Developers
+
+* [SDK](developer_guides/0_SDK.md)
+* [Using Aligned on your app](developer_guides/1_using_aligned_on_your_app.md)
+<!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
 ## Useful links
 

@@ -1,12 +1,13 @@
-# Aligned Verification SDK
+# Aligned SDK
 
-The Aligned Verification SDK facilitates the submission and verification of proofs through the Aligned batcher and checks the inclusion of these verified proofs on-chain. This README provides an overview of the SDK, its installation, usage, and API details.
+The Aligned SDK aims to help developers interact with Aligned in a simple way.
+Some of its functionalities include submitting and verify proofs through the Aligned batcher, as well as checks the inclusion of the verified proofs on-chain. This guide provides an overview of the SDK, its installation, usage, and API details.
+
+You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
 ## Table of Contents
-- [Aligned Verification SDK](#aligned-verification-sdk)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [API Reference](#api-reference)
+- [Installation](#installation)
+- [API Reference](#api-reference)
 
 ## Installation
 

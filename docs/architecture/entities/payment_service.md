@@ -1,4 +1,4 @@
-# Batcher Payments
+# Payment Service
 
 ## Introduction
 
