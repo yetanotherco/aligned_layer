@@ -1,62 +1,68 @@
-<div class="flex flex-col space-y-3 px-5 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
+<div class="flex flex-col space-y-3 px-1 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
   <%= if @current_batch != :empty do %>
     <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
       Batch Details
     </.card_preheding>
     <.card
-      class="px-6 py-5 min-h-fit flex flex-col rounded-3xl"
-      inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground"
+      class="px-4 py-5 min-h-fit flex flex-col"
+      inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground [&>*]:break-all [&>*]:font-normal"
     >
       Merkle Root Hash:
-      <p class="break-all font-normal"><%= @merkle_root %></p>
+      <p><%= @merkle_root %></p>
       Amount of Proofs in this Batch:
-      <p class="break-all font-normal"><%= @current_batch.amount_of_proofs %></p>
+      <p><%= @current_batch.amount_of_proofs %></p>
       Submission Block Number:
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://holesky.etherscan.io/block/#{@current_batch.submission_block_number}"}
-        class="break-all font-normal"
+        href={
+          "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
+        }
+        class="hover:text-foreground/80"
       >
-        <%= @current_batch.submission_block_number %>
+        <%= @current_batch.submission_block_number |> Utils.format_number() %>
       </.a>
       Submission Transaction Hash:
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://holesky.etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
-        class="break-all font-normal"
+        href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
+        class="hover:text-foreground/80"
       >
         <%= @current_batch.submission_transaction_hash %>
       </.a>
       Submission Timestamp:
-      <p class="break-all font-normal"><%= @current_batch.submission_timestamp |> Utils.parse_timestamp %></p>
+      <p>
+        <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
+      </p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
         Response Block Number:
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://holesky.etherscan.io/block/#{@current_batch.response_block_number}"}
-          class="break-all font-normal"
+          href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
+          class="hover:text-foreground/80"
         >
-          <%= @current_batch.response_block_number %>
+          <%= @current_batch.response_block_number |> Utils.format_number() %>
         </.a>
         Response Transaction Hash:
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://holesky.etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
-          class="break-all font-normal"
+          href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
+          class="hover:text-foreground/80"
         >
           <%= @current_batch.response_transaction_hash %>
         </.a>
         Response Timestamp:
-        <p class="break-all font-normal"><%= @current_batch.response_timestamp |> Utils.parse_timestamp %></p>
+        <p>
+          <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
+        </p>
       <% end %>
     </.card>
   <% else %>
-    <div class="flex flex-col space-y-6 justify-center grow relative text-center">
+    <div class="flex flex-col space-y-6 justify-center grow relative text-center md:pt-14">
       <h1 class="text-5xl font-semibold">Oops!</h1>
       <h2 class="text-xl font-medium">
         The batch you are looking for <br /> doesn't exist.
