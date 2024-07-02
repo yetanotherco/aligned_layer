@@ -1,0 +1,36 @@
+# Smart contracts
+
+## Aligned Layer Service Manager
+Besides the base [EigenLayer middleware contracts](https://github.com/Layr-Labs/eigenlayer-middleware/tree/mainnet/src), the core contract for Aligned is [AlignedLayerServiceManager](../../contracts/src/core/AlignedLayerServiceManager.sol). It is in charge of creating new batch verification tasks, storing batches state and verify operator responses.
+
+### API 
+
+#### Create new task
+
+The signature of the contract method is
+
+```solidity
+function createNewTask(
+    bytes32 batchMerkleRoot,
+    string calldata batchDataPointer
+) external payable
+```
+
+This method is called to create a new batch verification task that will broadcast an event to all operators, signaling that there are new proofs awaiting to be verified.
+* `batchMerkleRoot` is a 256 bit hash corresponding to the merkle root of the proofs batch to be verified by operators.
+* `batchDataPointer` is a string representing a link to some specific data storage location. This is used by operators to download the entire batch of proofs.
+
+#### Respond to task
+
+The signature of the contract method is
+
+```solidity
+function respondToTask(
+    bytes32 batchMerkleRoot,
+    NonSignerStakesAndSignature memory nonSignerStakesAndSignature
+) external
+```
+
+This method is used by the Aggregator once the quorum for a particular task has been reached. Its main purpose is to verify the aggregated signature of the operators for the given task, and also that the quorum was reached. After verifying, an event is emmited signaling to any consumer that the batch has reached soft finality. 
+* `batchMerkleRoot` is a 256 bit hash representing the merkle root of the batch that has been verified and signed by operators.
+* `nonSignerStakesAndSignature` is a struct provided by EigenLayer middleware with information about operators signatures, stakes and quorum for the given task. 

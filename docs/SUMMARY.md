@@ -19,6 +19,7 @@
   * [Aggregator](./architecture/entities/aggregator.md)
   * [Batcher](./architecture/entities/batcher.md)
   * [Payment Service](./architecture/entities/payment_service.md) -->
+* [Smart contracts](architecture/3_smart_contracts.md)
 
 ## Users
 
