@@ -23,8 +23,11 @@ import { LiveSocket } from "phoenix_live_view";
 import topbar from "../vendor/topbar";
 
 import darkModeHook from "../vendor/dark_mode";
+import searchFocusHook from "../vendor/search_focus";
+
 let Hooks = {};
 Hooks.DarkThemeToggle = darkModeHook;
+Hooks.SearchFocus = searchFocusHook;
 
 let csrfToken = document
 	.querySelector("meta[name='csrf-token']")

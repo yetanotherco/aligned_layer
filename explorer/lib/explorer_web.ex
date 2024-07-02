@@ -54,6 +54,8 @@ defmodule ExplorerWeb do
       use Phoenix.LiveView,
         layout: {ExplorerWeb.Layouts, :app}
 
+      on_mount ExplorerWeb.Flash
+
       unquote(html_helpers())
     end
   end
@@ -61,6 +63,8 @@ defmodule ExplorerWeb do
   def live_component do
     quote do
       use Phoenix.LiveComponent
+
+      import ExplorerWeb.Flash, only: [put_flash!: 3]
 
       unquote(html_helpers())
     end
