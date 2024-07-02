@@ -7,8 +7,6 @@ Besides the base [EigenLayer middleware contracts](https://github.com/Layr-Labs/
 
 #### Create new task
 
-The signature of the contract method is
-
 ```solidity
 function createNewTask(
     bytes32 batchMerkleRoot,
@@ -21,8 +19,6 @@ This method is called to create a new batch verification task that will broadcas
 * `batchDataPointer` is a string representing a link to some specific data storage location. This is used by operators to download the entire batch of proofs.
 
 #### Respond to task
-
-The signature of the contract method is
 
 ```solidity
 function respondToTask(
@@ -53,4 +49,7 @@ A method used for consumers to check that their proof was verified in Aligned. I
 
 * `proofCommitment`, `pubInputCommitment`, `provingSystemAuxDataCommitment`, `proofGeneratorAddr` are the commitments to the verification data sent to the batcher.
 * `batchMerkleRoot` is a 256 bit hash representing the batch merkle root the proof was included in. 
-* `merkleProof` is the merkle path to
+* `merkleProof` is the merkle path from the hashed leaf built from the verification data commitments to the root.
+* `verificationDataBatchIndex` is the index of the proof in the batch were it was included. 
+
+## Deployments
