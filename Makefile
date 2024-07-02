@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.1.6
+OPERATOR_VERSION=v0.2.1
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -207,16 +207,16 @@ batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof test_files/sp1/sp1_fibonacci.proof \
-		--vm_program test_files/sp1/sp1_fibonacci-elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof test_files/sp1/sp1_fibonacci.proof \
-		--vm_program test_files/sp1/sp1_fibonacci-elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -228,16 +228,16 @@ batcher_send_risc0_task:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof test_files/risc_zero/risc_zero_fibonacci.proof \
-        --vm_program test_files/risc_zero/fibonacci_id.bin \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof test_files/risc_zero/risc_zero_fibonacci.proof \
-        --vm_program test_files/risc_zero/fibonacci_id.bin \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -245,18 +245,18 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof test_files/plonk_bn254/plonk.proof \
-		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
-		--vk test_files/plonk_bn254/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof test_files/plonk_bn254/plonk.proof \
-		--public_input test_files/plonk_bn254/plonk_pub_input.pub \
-		--vk test_files/plonk_bn254/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions 15
 
@@ -264,18 +264,18 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
-		--proof test_files/plonk_bls12_381/plonk.proof \
-		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
-		--vk test_files/plonk_bls12_381/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
-		--proof test_files/plonk_bls12_381/plonk.proof \
-		--public_input test_files/plonk_bls12_381/plonk_pub_input.pub \
-		--vk test_files/plonk_bls12_381/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions 15
 
@@ -284,210 +284,85 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
-		--proof test_files/groth16/ineq_1_groth16.proof \
-		--public_input test_files/groth16/ineq_1_groth16.pub \
-		--vk test_files/groth16/ineq_1_groth16.vk \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_groth16_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
-		--proof test_files/groth16/ineq_1_groth16.proof \
-		--public_input test_files/groth16/ineq_1_groth16.pub \
-		--vk test_files/groth16/ineq_1_groth16.vk \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
-	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
+batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
+	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
 	@./batcher/aligned/send_infinite_tasks.sh 4
 
 batcher_send_burst_groth16: batcher/target/release/aligned
 	@echo "Sending a burst of tasks to Batcher..."
-	@mkdir -p task_sender/test_examples/gnark_groth16_bn254_infinite_script/infinite_proofs
+	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
 batcher_send_halo2_ipa_task: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2IPA \
-		--proof test_files/halo2_ipa/proof.bin \
-		--public_input test_files/halo2_ipa/pub_input.bin \
-		--vk test_files/halo2_ipa/params.bin \
+		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
+		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
+		--vk ../../scripts/test_files/halo2_ipa/params.bin \
 
 batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2IPA \
-		--proof test_files/halo2_ipa/proof.bin \
-		--public_input test_files/halo2_ipa/pub_input.bin \
-		--vk test_files/halo2_ipa/params.bin \
+		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
+		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
+		--vk ../../scripts/test_files/halo2_ipa/params.bin \
 		--repetitions 5
 
 batcher_send_halo2_kzg_task: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2KZG \
-		--proof test_files/halo2_kzg/proof.bin \
-		--public_input test_files/halo2_kzg/pub_input.bin \
-		--vk test_files/halo2_kzg/params.bin \
+		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
+		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
+		--vk ../../scripts/test_files/halo2_kzg/params.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Halo2KZG \
-		--proof test_files/halo2_kzg/proof.bin \
-		--public_input test_files/halo2_kzg/pub_input.bin \
-		--vk test_files/halo2_kzg/params.bin \
+		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
+		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
+		--vk ../../scripts/test_files/halo2_kzg/params.bin \
 		--repetitions 5 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-__TASK_SENDERS__:
+__GENERATE_PROOFS__:
  # TODO add a default proving system
-
-send_plonk_bls12_381_proof: ## Send a PLONK BLS12_381 proof using the task sender
-	@echo "Sending PLONK BLS12_381 proof..."
-	@go run task_sender/cmd/main.go send-task \
-		--proving-system plonk_bls12_381 \
-		--proof task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.proof \
-		--public-input task_sender/test_examples/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
-		--config config-files/config.yaml \
-		--quorum-threshold 98 \
-		2>&1 | zap-pretty
-
-send_plonk_bls12_381_proof_loop: ## Send a PLONK BLS12_381 proof using the task sender every 10 seconds
-	@echo "Sending PLONK BLS12_381 proof in a loop every 10 seconds..."
-	@go run task_sender/cmd/main.go loop-tasks \
-		--proving-system plonk_bls12_381 \
-		--proof task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.proof \
-		--public-input task_sender/test_examples/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/gnark_plonk_bls12_381_script/plonk.vk \
-		--config config-files/config.yaml \
-		--interval 10 \
-		2>&1 | zap-pretty
 
 generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
 	@echo "Running gnark_plonk_bls12_381 script..."
-	@go run task_sender/test_examples/gnark_plonk_bls12_381_script/main.go
-
-
-send_plonk_bn254_proof: ## Send a PLONK BN254 proof using the task sender
-	@echo "Sending PLONK BN254 proof..."
-	@go run task_sender/cmd/main.go send-task \
-		--proving-system plonk_bn254 \
-		--proof task_sender/test_examples/gnark_plonk_bn254_script/plonk.proof \
-		--public-input task_sender/test_examples/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
-		--config config-files/config.yaml \
-		2>&1 | zap-pretty
-
-send_plonk_bn254_proof_loop: ## Send a PLONK BN254 proof using the task sender every 10 seconds
-	@echo "Sending PLONK BN254 proof in a loop every 10 seconds..."
-	@go run task_sender/cmd/main.go loop-tasks \
-		--proving-system plonk_bn254 \
-		--proof task_sender/test_examples/gnark_plonk_bn254_script/plonk.proof \
-		--public-input task_sender/test_examples/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/gnark_plonk_bn254_script/plonk.vk \
-		--config config-files/config.yaml \
-		--interval 10 \
-		2>&1 | zap-pretty
+	@go run scripts/test_files/gnark_plonk_bls12_381_script/main.go
 
 generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_plonk_bn254 script..."
-	@go run task_sender/test_examples/gnark_plonk_bn254_script/main.go
-
-send_groth16_bn254_proof: ## Send a Groth16 BN254 proof using the task sender
-	@echo "Sending GROTH16 BN254 proof..."
-	@go run task_sender/cmd/main.go send-task \
-		--proving-system groth16_bn254 \
-		--proof task_sender/test_examples/gnark_groth16_bn254_script/plonk.proof \
-		--public-input task_sender/test_examples/gnark_groth16_bn254_script/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
-		--config config-files/config.yaml \
-		--quorum-threshold 98 \
-		2>&1 | zap-pretty
-
-send_groth16_bn254_proof_loop: ## Send a Groth16 BN254 proof using the task sender every 10 seconds
-	@echo "Sending GROTH16 BN254 proof in a loop every 10 seconds..."
-	@go run task_sender/cmd/main.go loop-tasks \
-		--proving-system groth16_bn254 \
-		--proof task_sender/test_examples/gnark_groth16_bn254_script/plonk.proof \
-		--public-input task_sender/test_examples/gnark_groth16_bn254_script/plonk_pub_input.pub \
-		--verification-key task_sender/test_examples/gnark_groth16_bn254_script/plonk.vk \
-		--config config-files/config.yaml \
-		--interval 10 \
-		2>&1 | zap-pretty
-
-send_infinite_groth16_bn254_proof: ## Send a different Groth16 BN254 proof using the task sender every 3 seconds
-	@echo "Sending a different GROTH16 BN254 proof in a loop every 3 seconds..."
-	@go run task_sender/cmd/main.go infinite-tasks \
-		--proving-system groth16_bn254 \
-		--config config-files/config.yaml \
-		--interval 3 \
-		2>&1 | zap-pretty
-
+	@go run scripts/test_files/gnark_plonk_bn254_script/main.go
 
 generate_groth16_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
-	@go run task_sender/test_examples/gnark_groth16_bn254_script/main.go
+	@go run scripts/test_files/gnark_groth16_bn254_script/main.go
 
 generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254_ineq script..."
-	@go run task_sender/test_examples/gnark_groth16_bn254_infinite_script/main.go 1
-
-send_sp1_proof:
-	@go run task_sender/cmd/main.go send-task \
-    		--proving-system sp1 \
-    		--proof task_sender/test_examples/sp1/sp1_fibonacci.proof \
-    		--public-input task_sender/test_examples/sp1/elf/riscv32im-succinct-zkvm-elf \
-    		--config config-files/config.yaml \
-    		2>&1 | zap-pretty
-
-send_halo2_ipa_proof: ## Send a Halo2 IPA proof using the task sender
-	@echo "Sending Halo2 IPA proof..."
-	@go run task_sender/cmd/main.go send-task \
-		--proving-system halo2_ipa \
-		--proof task_sender/test_examples/halo2_ipa/proof.bin \
-		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
-		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
-		--config config-files/config.yaml \
-		2>&1 | zap-pretty
-
-send_halo2_ipa_proof_loop: ## Send a Halo2 IPA proof using the task sender every 10 seconds
-	@echo "Sending Halo2 IPA proof in a loop every 10 seconds..."
-	@go run task_sender/cmd/main.go loop-tasks \
-		--proving-system halo2_ipa \
-		--proof task_sender/test_examples/halo2_ipa/proof.bin \
-		--public-input task_sender/test_examples/halo2_ipa/pub_input.bin \
-		--verification-key task_sender/test_examples/halo2_ipa/params.bin \
-		--config config-files/config.yaml \
-		--interval 10 \
-		2>&1 | zap-pretty
-
-send_halo2_kzg_proof: ## Send a Halo2 KZG proof using the task sender
-	@echo "Sending Halo2 KZG proof..."
-	@go run task_sender/cmd/main.go send-task \
-		--proving-system halo2_kzg \
-		--proof task_sender/test_examples/halo2_kzg/proof.bin \
-		--public-input task_sender/test_examples/halo2_kzg/pub_input.bin \
-		--verification-key task_sender/test_examples/halo2_kzg/params.bin \
-		--config config-files/config.yaml \
-		2>&1 | zap-pretty
-
-send_halo2_kzg_proof_loop: ## Send a Halo2 KZG proof using the task sender every 10 seconds
-	@echo "Sending Halo2 KZG proof in a loop every 10 seconds..."
-	@go run task_sender/cmd/main.go loop-tasks \
-		--proving-system halo2_kzg \
-		--proof task_sender/test_examples/halo2_kzg/proof.bin \
-		--public-input task_sender/test_examples/halo2_kzg/pub_input.bin \
-		--verification-key task_sender/test_examples/halo2_kzg/params.bin \
-		--config config-files/config.yaml \
-		--interval 10 \
-		2>&1 | zap-pretty
+	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
@@ -540,11 +415,8 @@ build_binaries:
 	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
 	@echo "Aggregator built into /aggregator/build/aligned-aggregator"
 	@echo "Building aligned layer operator..."
-	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Aligned layer operator built into /operator/build/aligned-operator"
-	@echo "Building task sender.."
-	@go build -o ./task_sender/build/aligned-task-sender ./task_sender/cmd/main.go
-	@echo "Task sender built into /task_sender/build/aligned-task-sender"
 
 __SP1_FFI__: ##
 build_sp1_macos:
@@ -567,12 +439,12 @@ test_sp1_go_bindings_linux: build_sp1_linux
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
-# @cp -r task_sender/test_examples/sp1/fibonacci_proof_generator/script/elf task_sender/test_examples/sp1/
+# @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.elf scripts/test_files/sp1/
 generate_sp1_fibonacci_proof:
-	@cd task_sender/test_examples/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
-	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf task_sender/test_examples/sp1/elf
-	@mv task_sender/test_examples/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof task_sender/test_examples/sp1/
-	@echo "Fibonacci proof and ELF generated in task_sender/test_examples/sp1 folder"
+	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
+	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci.elf
+	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
+	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
@@ -596,9 +468,9 @@ test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:
-	@cd task_sender/test_examples/risc_zero/fibonacci_proof_generator && \
+	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
 		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof and image ID generated in task_sender/test_examples/risc_zero folder"
+		echo "Fibonacci proof and image ID generated in scripts/test_files/risc_zero folder"
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
@@ -647,7 +519,7 @@ test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
 	go test ./operator/halo2kzg/... -v
 
 generate_halo2_kzg_proof:
-	@cd task_sender/test_examples/halo2_kzg && \
+	@cd scripts/test_files/halo2_kzg && \
 	cargo clean && \
 	rm params.bin proof.bin pub_input.bin && \
 	RUST_LOG=info cargo run --release && \
@@ -678,7 +550,7 @@ test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
 	go test ./operator/halo2ipa/... -v
 
 generate_halo2_ipa_proof:
-	@cd task_sender/test_examples/halo2_ipa && \
+	@cd scripts/test_files/halo2_ipa && \
 	cargo clean && \
 	rm params.bin proof.bin pub_input.bin && \
 	RUST_LOG=info cargo run --release && \
