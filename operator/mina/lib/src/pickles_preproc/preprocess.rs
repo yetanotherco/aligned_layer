@@ -233,3 +233,108 @@ pub fn compute_prev_challenges(
 
     Ok(recursion_challenges)
 }
+
+#[cfg(test)]
+mod tests {
+    use kimchi::{
+        mina_curves::pasta::{Fp, Fq, Pallas},
+        poly_commitment::PolyComm,
+    };
+    use o1_utils::FieldHelpers;
+
+    use crate::pickles_preproc::state_proof::{
+        BulletproofChallenge, Prechallenge, WRAP_SCALARS_PER_CHALLENGE,
+    };
+
+    use super::compute_prev_challenges;
+
+    #[test]
+    fn prev_challenges_tests() {
+        // reference values were taken from OpenMina's tests, and checked by calling Mina's
+        // `to_field()` OCaml function.
+        // https://github.com/openmina/openmina/blob/main/ledger/src/proofs/public_input/scalar_challenge.rs#L120
+
+        let bulletproof_challenges_1: [BulletproofChallenge; WRAP_SCALARS_PER_CHALLENGE] = [
+            ["7486980280913238963", "4173194488927267133"],
+            ["-8437921285878338178", "-2241273202573544127"],
+            ["7651331705457292674", "-3583141513394030281"],
+            ["-3464302417307075879", "-436261906098457727"],
+            ["8255044994932440761", "5640094314955753085"],
+            ["-2513734760972484960", "1161566061253204655"],
+            ["7525998242613288472", "3436443803216159028"],
+            ["6809231383204761158", "-1877195934091894696"],
+            ["-2746520749286704399", "-3783224604272248786"],
+            ["-36686536733916892", "-7835584350097226223"],
+            ["-487486487490201322", "2756145684490201109"],
+            ["-2928903316653004982", "346819656816504982"],
+            ["-6510054999844554738", "5242613218253829938"],
+            ["-9192160905410203809", "9069127704639200224"],
+            ["-1805085648820294365", "4705625510417283644"],
+        ]
+        .map(|prechallenge| BulletproofChallenge {
+            prechallenge: Prechallenge {
+                inner: prechallenge.map(str::to_string),
+            },
+        });
+        let bulletproof_challenges_0: [BulletproofChallenge; WRAP_SCALARS_PER_CHALLENGE] = [
+            ["7486980280913238963", "4173194488927267133"],
+            ["-8437921285878338178", "-2241273202573544127"],
+            ["7651331705457292674", "-3583141513394030281"],
+            ["-3464302417307075879", "-436261906098457727"],
+            ["8255044994932440761", "5640094314955753085"],
+            ["-2513734760972484960", "1161566061253204655"],
+            ["7525998242613288472", "3436443803216159028"],
+            ["6809231383204761158", "-1877195934091894696"],
+            ["-2746520749286704399", "-3783224604272248786"],
+            ["-36686536733916892", "-7835584350097226223"],
+            ["-487486487490201322", "2756145684490201109"],
+            ["-2928903316653004982", "346819656816504982"],
+            ["-6510054999844554738", "5242613218253829938"],
+            ["-9192160905410203809", "9069127704639200224"],
+            ["-1805085648820294365", "4705625510417283644"],
+        ]
+        .map(|prechallenge| BulletproofChallenge {
+            prechallenge: Prechallenge {
+                inner: prechallenge.map(str::to_string),
+            },
+        });
+
+        let old_bulletproof_challenges = [bulletproof_challenges_0, bulletproof_challenges_1];
+        let challenge_polynomial_commitments = [
+            ["1", "2"].map(str::to_string),
+            ["1", "2"].map(str::to_string),
+        ];
+
+        let prev_challenges =
+            compute_prev_challenges(old_bulletproof_challenges, challenge_polynomial_commitments)
+                .unwrap();
+
+        let mut ocaml_results = [
+            "29DA5323EE2A35AFA4DF5EF02FD009F8D2FC7A2840525EBE06D519BD10DE22A9",
+            "1D52604A0D982FD2B0E3123CDE4F801B4ED1D7159B4E5B592014F6F248742A24",
+            "07407D5D1BF2A0345F94610AE734EBA90DA7377FF0D9F394D7ABB16A44F412B4",
+            "0D35562107CCF36FCEE46BE6D07CACDED87E5A8134B6B6EBF37B4202419E7FC5",
+            "08184AD059400E9C0F4BC42FE7CA928645AE2FFE06827B8FEF0A85E383129B73",
+            "3E50BB9FA5E9622478755CD1A00FF52376E02EC668615C0ACE437A8202F2B303",
+            "067953A48294C5A2B9D834F5F11B98D7D202A856E654E350ABEF4ECA1A32F835",
+            "11ADB6896D03E99B915AC779FB33C67C90AB7D34CBEFC6FC7AEB6E29C9633C9F",
+            "2F17B8300653C1CBADD031C71F53127D76A1074574BEFD64F4535B45473FE702",
+            "2D8FC93295F902A7AAABC447ADACAFCEB4D3691742D8F6EB7691D24FA51E8D4F",
+            "2D6B91A4A7C41007DEA2D7C55FB80FDAC61F7BBBD0A5C1036239C791147B4BA4",
+            "28BDA221025B5B8F684CB66E6E23301C189EB2100A1AADD482C151C159CA5E34",
+            "26D8EC29B0C0769401BFA8659E6C49563CAB16911DA6052B8F442460C5091639",
+            "1448AB1F39A083F31B21BC22FE150BA031D8E2D9DD2D0146C73A38763B0611C6",
+            "05BEBF5D1E8D15AF1F90E6FEA892000B8FAB1EB5BE8662E3E3CC1DBFA8C90F73",
+        ]
+        .map(|hex| Fq::from_hex(hex).unwrap());
+        ocaml_results.reverse();
+
+        assert_eq!(prev_challenges[0].chals, ocaml_results);
+        assert_eq!(
+            prev_challenges[0].comm,
+            PolyComm {
+                elems: vec![Pallas::new(Fp::from(1), Fp::from(2), false)]
+            }
+        );
+    }
+}

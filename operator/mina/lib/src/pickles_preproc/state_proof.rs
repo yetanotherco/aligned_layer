@@ -139,7 +139,11 @@ impl TryFrom<HexPointCoordinates> for WrapECPoint {
         // TODO: Handle point at infinity.
         let x = Fp::from_hex(&value[0]).map_err(|err| err.to_string())?;
         let y = Fp::from_hex(&value[1]).map_err(|err| err.to_string())?;
-        Ok(WrapECPoint(Pallas::new(x, y, false)))
+        let point = Pallas::new(x, y, false);
+        if !point.is_on_curve() {
+            return Err("Deserialized point is not on curve.".to_string());
+        }
+        Ok(WrapECPoint(point))
     }
 }
 
