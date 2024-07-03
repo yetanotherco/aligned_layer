@@ -7,7 +7,7 @@
 * [Core concepts](introduction/2_core_concepts.md)
 * [Use cases](introduction/3_use_cases.md)
 * [FAQ](introduction/4_faq.md)
-  
+
 ## Architecture
 
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
@@ -28,6 +28,8 @@
 * [Submitting proofs](guides/0_submitting_proofs.md)
 * [SDK](guides/1_SDK.md)
 * [Using Aligned on your app](guides/2_using_aligned_on_your_app.md)
+* [Generating proofs for Aligned](guides/3_generating_proofs.md)
+
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
 ## Operators

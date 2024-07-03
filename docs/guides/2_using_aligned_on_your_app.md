@@ -5,7 +5,7 @@ in the [ZKQuiz example](../../examples/zkquiz).
 
 This example shows a sample app that generates a SP1 proof 
 that a user knows the answers to a quiz, then submits the proof 
-to Aligned for verification. 
+to Aligned for verification.
 Finally, it includes a smart contract that verifies that a proof 
 was verified in Aligned and mints an NFT.
 
@@ -14,7 +14,7 @@ was verified in Aligned and mints an NFT.
 ### Step 1 - Write your ZK Proof
 
 Write your ZK proof using any of the proving systems supported by Aligned.
-For this example, we use the SP1 proving system.
+For this example, we use the SP1 proving system. The current SP1 version used in Aligned is v1.0.8-testnet.
 
 You can find the example of the quiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) 
 as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) 
