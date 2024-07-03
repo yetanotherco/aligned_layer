@@ -1,4 +1,4 @@
-## Core Concepts
+## Key Terms
 
 - **Proof:** cryptographic data that attests to the validity of a given computation. The concrete data and size depend on the proof system and program used.
 - **Verification:** an algorithm that takes the proof, and associated public data and verification key/program and outputs whether the proof is valid or not.
