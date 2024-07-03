@@ -1,4 +1,4 @@
-<div class="flex flex-col space-y-3 text-foreground px-5 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize mb-12">
+<div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize mb-12">
   <.card_preheding>Latest Batches</.card_preheding>
   <%= if @batches != :empty and @batches != [] do %>
     <.card_background class="overflow-x-auto">
@@ -16,7 +16,7 @@
         <tbody>
           <%= for batch <- @batches do %>
             <tr class="text-foreground gap-y-2 [&>th]:pt-3">
-              <th class="text-left pr-7">
+              <th class="text-left pr-4">
                 <.link navigate={~p"/batches/#{batch.merkle_root}"} class="group">
                   <span
                     title={batch.merkle_root}
@@ -29,29 +29,64 @@
               </th>
 
               <th class={[
-                "font-medium text-base rounded-full px-6"
+                "font-medium text-base rounded-full px-4"
               ]}>
                 <.dynamic_badge status={batch.is_verified} />
               </th>
 
-              <th class="font-normal group-hover:text-foreground/80 px-12">
-                <%= batch.submission_timestamp |> Utils.parse_timestamp_less() %>
+              <th class="font-normal group-hover:text-foreground/80 min-w-32 px-4 normal-case">
+                <%= batch.submission_timestamp |> Utils.parse_timeago() %>
               </th>
 
               <th class="font-normal group-hover:text-foreground/80 px-20">
-                <%= batch.submission_block_number %>
+                <%= batch.submission_block_number |> Utils.format_number() %>
               </th>
             </tr>
           <% end %>
         </tbody>
       </table>
     </.card_background>
+  <% else %>
+    <.card_background class="overflow-x-auto min-h-[38.45rem] flex flex-col items-center justify-center gap-2">
+      <p class="text-lg text-muted-foreground">No batches found.</p>
+    </.card_background>
+  <% end %>
+  <div class="flex gap-x-2 items-center justify-center md:justify-start w-full">
+    <%= if @current_page > 1 do %>
+      <.link navigate={~p"/batches?page=#{@current_page - 1}"}>
+        <.button class="text-muted-foreground flex size-10 items-center group">
+          <.icon
+            name="hero-arrow-left-solid"
+            class="group-hover:-translate-x-1 transition-all duration-150 size-4"
+          />
+          <span class="sr-only">Previous Page</span>
+        </.button>
+      </.link>
+    <% end %>
+    <form phx-submit="change_page" class="flex items-center">
+      <label for="page" class="text-foreground sr-only">Page: </label>
+      <input
+        name="page"
+        id="page"
+        type="number"
+        class={[
+          "border border-foreground/20 text-muted-foreground w-20 focus:ring-primary",
+          "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
+          "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
+          "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        ]}
+        value={@current_page}
+        min="1"
+      />
+    </form>
     <.link navigate={~p"/batches?page=#{@current_page + 1}"}>
-      <.button class="text-muted-foreground flex self-center">
-        Show More
+      <.button class="text-muted-foreground flex size-10 items-center group">
+        <.icon
+          name="hero-arrow-right-solid"
+          class="group-hover:translate-x-1 transition-all duration-150 size-4"
+        />
+        <span class="sr-only">Next Page</span>
       </.button>
     </.link>
-  <% else %>
-    <p class="text-lg">No batches found</p>
-  <% end %>
+  </div>
 </div>

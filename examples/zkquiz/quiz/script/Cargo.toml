@@ -5,7 +5,7 @@ name = "quiz-script"
 edition = "2021"
 
 [dependencies]
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.5-testnet" }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.8-testnet" }
 aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer" }
 ethers = { tag = "v2.0.15-fix-reconnections", features = ["ws", "rustls"], git = "https://github.com/yetanotherco/ethers-rs.git" }
 rpassword = "7.3.1"
@@ -18,4 +18,4 @@ hex = "0.4.3"
 dialoguer = "0.11.0"
 
 [build-dependencies]
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.5-testnet" }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.8-testnet" }
