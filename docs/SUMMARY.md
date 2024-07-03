@@ -21,19 +21,16 @@
   * [Payment Service](./architecture/entities/payment_service.md) -->
 * [Smart contracts](architecture/3_smart_contracts.md)
 
-## Users
+## Guides
 
-* [Submitting proofs](user_guides/0_submitting_proofs.md)
+* [Submitting proofs](guides/0_submitting_proofs.md)
+* [SDK](guides/1_SDK.md)
+* [Using Aligned on your app](guides/2_using_aligned_on_your_app.md)
+<!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
 ## Operators
 
 * [Running an operator](operator_guides/0_running_an_operator.md)
-
-## Developers
-
-* [SDK](developer_guides/0_SDK.md)
-* [Using Aligned on your app](developer_guides/1_using_aligned_on_your_app.md)
-<!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
 ## Useful links
 
