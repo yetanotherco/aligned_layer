@@ -1,3 +1,6 @@
+use std::char;
+
+use ark_ff::PrimeField;
 use kimchi::{
     mina_curves::pasta::{Fp, Fq, Pallas},
     proof::PointEvaluations,
@@ -137,8 +140,21 @@ impl TryFrom<HexPointCoordinates> for WrapECPoint {
 
     fn try_from(value: HexPointCoordinates) -> Result<Self, Self::Error> {
         // TODO: Handle point at infinity.
-        let x = Fp::from_hex(&value[0]).map_err(|err| err.to_string())?;
-        let y = Fp::from_hex(&value[1]).map_err(|err| err.to_string())?;
+        let [x, y] = value.map(|mut hex| {
+            if hex.chars().count() % 2 != 0 {
+                hex.insert(0, '0');
+            }
+            let mut bytes: Vec<u8> = hex::decode(hex)
+                .map_err(|err| err.to_string())?
+                .into_iter()
+                .rev()
+                .collect();
+            bytes.resize(32, 0);
+            Fp::from_bytes(&bytes).map_err(|err| err.to_string())
+        });
+        let x = x?;
+        let y = y?;
+
         let point = Pallas::new(x, y, false);
         if !point.is_on_curve() {
             return Err("Deserialized point is not on curve.".to_string());

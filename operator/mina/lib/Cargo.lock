@@ -552,6 +552,7 @@ dependencies = [
  "ark-ff",
  "ark-poly",
  "ark-serialize",
+ "hex",
  "kimchi",
  "o1-utils",
  "rmp-serde",
