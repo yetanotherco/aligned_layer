@@ -67,7 +67,12 @@ To be able to send proofs to Aligned using the Batcher, the user must fund its t
 To use it you can use the `aligned` CLI, as shown with the following example:
 
 ```bash
-aligned deposit-to-batcher --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 --rpc https://ethereum-holesky-rpc.publicnode.com --chain holesky --keystore_path <keystore_path> --amount 0.1ether
+aligned deposit-to-batcher \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--chain holesky \
+--keystore_path <keystore_path> \
+--amount 0.1ether
 ```
 
 This commands allows the usage of the following flags: 
@@ -81,7 +86,10 @@ This commands allows the usage of the following flags:
 After depositing funds, you can verify the Service has correctly received them, executing the following command:
 
 ```bash
-aligned get-user-balance --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 --rpc https://ethereum-holesky-rpc.publicnode.com --user_addr <user_addr>
+aligned get-user-balance \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--user_addr <user_addr>
 ```
 
 This commands allows the usage of the following flags: 
