@@ -2,23 +2,6 @@ defmodule ExplorerWeb.Home.Index do
   require Logger
   use ExplorerWeb, :live_view
 
-  def handle_event("search_batch", %{"batch" => batch_params}, socket) do
-    batch_merkle_root = Map.get(batch_params, "merkle_root")
-    is_batch_merkle_root_valid = String.match?(batch_merkle_root, ~r/^0x[a-fA-F0-9]+$/)
-
-    if not is_batch_merkle_root_valid do
-      {:noreply,
-       socket
-       |> assign(batch_merkle_root: batch_merkle_root)
-       |> put_flash(
-         :error,
-         "Please enter a valid proof batch hash, these should be hex values (0x69...)."
-       )}
-    else
-      {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root}")}
-    end
-  end
-
   def handle_info(_, socket) do
     IO.puts("Received update for home from PubSub")
 
