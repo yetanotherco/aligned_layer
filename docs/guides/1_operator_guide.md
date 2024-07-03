@@ -100,7 +100,7 @@ EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/re
 
 ### Option 2
 
-If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH.
+If you have ETH and need to convert it to WETH you can use the following command, which will convert 1 Eth to WETH.
 Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
 Change the parameter in ```---value``` if you want to wrap a different amount:
 
