@@ -10,8 +10,8 @@ The following is the list of the verifiers currently supported by Aligned:
 
 - :white_check_mark: gnark - Groth16 (with BN254)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
-- :white_check_mark: SP1
-- :white_check_mark: Risc0
+- :white_check_mark: SP1 (v1.0.8-testnet)
+- :white_check_mark: Risc0 (v1.0.1)
 
 The following proof systems are going to be added soon:
 
@@ -86,6 +86,8 @@ aligned get-user-balance --user_addr <user_addr>
 
 ### SP1 proof
 
+The current SP1 version used in Aligned is v1.0.8-testnet.
+
 The SP1 proof needs the proof file and the vm program file.
 
 ```bash
@@ -113,6 +115,8 @@ aligned submit \
 ```
 
 ### Risc0 proof
+
+The current Risc0 version used in Aligned is v1.0.1.
 
 The Risc0 proof needs the proof file and the vm program file (vm program file is the image id).
 
