@@ -21,7 +21,6 @@
   * [Operator](./architecture/components/4_operator.md)
   * [Aggregator](./architecture/components/5_aggregator.md)
   * [Explorer](./architecture/components/6_explorer.md)
-* [Contract Addresses](architecture/3_smart_contracts.md)
 
 ## Guides
 
@@ -29,6 +28,7 @@
 * [SDK](guides/1_SDK.md)
 * [Using Aligned on your app](guides/2_using_aligned_on_your_app.md)
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)
+* [Contract Addresses](architecture/4_smart_contracts.md)
 
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 

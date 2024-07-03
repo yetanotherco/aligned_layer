@@ -4,13 +4,13 @@ The Payment Service is the Component in charge of handling user's payments to fu
 
 To be able to use the batcher, a user must fund its transactions. For this, there is a simple Batcher Payment System.
 
-The Batcher has a Batcher Payments smart contract, which is in charge of recieving user's payments, and which guarantees the batcher can only spend this money to send users' proofs to Aligned.
+The Batcher has associated a Batcher Payments smart contract, which is in charge of recieving user's payments, and which guarantees the batcher can only spend this money to send users' proofs to Aligned.
 
-Users must first deposit into this contract, via a normal transfer to its address.
+Users must first deposit into this contract, via a normal transfer to its address, where the Batcher Payment System will update the User's balance.
 
 Then, users can send proofs to the Batcher, the Batcher will preemptively check if the user has funds for this, and once accumulating the whole batch, the Batcher will call its smart contract with the data it has recieved from the users.
 
-The smart contract will then discount the corresponding amount of funds from each of the senders' balances, and create a new Batch in [Aligned Service Manager](./3_service_manager_contract.md), sending with it the corresponding amount of tokens for the batch verification.
+The smart contract will then discount the corresponding amount of funds from each of the senders' balances, and create a new Batch in [Aligned Service Manager](./3_service_manager_contract.md), sending with it the corresponding amount of tokens for the batch verification to be paid to the [Aggregator](./5_aggregator.md).
 
 Users can then withdraw extra funds deposited to the Batcher Payments smart contract, or leave them to fund future proofs.
 
