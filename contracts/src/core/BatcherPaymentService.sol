@@ -125,4 +125,42 @@ contract BatcherPaymentService is
         );
         _;
     }
+
+    // Chores of 555-
+    function calculateMerkleRoot(bytes32[] calldata leaves) public pure returns (bytes32) {
+        //there are half as many nodes in the layer above the leaves
+        uint256 numNodesInLayer = leaves.length / 2;
+        //create a layer to store the internal nodes
+        bytes32[] memory layer = new bytes32[](numNodesInLayer);
+        //fill the layer with the pairwise hashes of the leaves
+        for (uint256 i = 0; i < numNodesInLayer; i++) {
+            layer[i] = keccak256(abi.encodePacked(leaves[2 * i], leaves[2 * i + 1]));
+        }
+        //the next layer above has half as many nodes
+        numNodesInLayer /= 2;
+        //while we haven't computed the root
+        while (numNodesInLayer != 0) {
+            //overwrite the first numNodesInLayer nodes in layer with the pairwise hashes of their children
+            for (uint256 i = 0; i < numNodesInLayer; i++) {
+                layer[i] = keccak256(abi.encodePacked(layer[2 * i], layer[2 * i + 1]));
+            }
+            //the next layer above has half as many nodes
+            numNodesInLayer /= 2;
+        }
+        //the first node in the layer is the root
+        return layer[0];
+    }
+
+    function verifySignatures(bytes32[] calldata msgHashes, bytes32[] calldata r, bytes32[] calldata s, uint8[] calldata v) public pure {
+        for (uint256 i = 0; i < msgHashes.length; i++) {
+            address signer = ecrecover(msgHashes[i], v[i], r[i], s[i]);
+        }
+    }
 }
+
+// cast send 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0 "verifySignatures(bytes32[],bytes32[],bytes32[],uint8[])" \
+// "[0x5a843f6bc5c050067cae5625d51fbd9fb53adad732da202c7502bf1e23d4efeb,0x5a843f6bc5c050067cae5625d51fbd9fb53adad732da202c7502bf1e23d4efeb,0x5a843f6bc5c050067cae5625d51fbd9fb53adad732da202c7502bf1e23d4efeb,0x5a843f6bc5c050067cae5625d51fbd9fb53adad732da202c7502bf1e23d4efeb]" \
+// "[0xfc0e029250892062253ccc7634cd870021ed5a2c2e52889d57985012af3cdd22,0xfc0e029250892062253ccc7634cd870021ed5a2c2e52889d57985012af3cdd22,0xfc0e029250892062253ccc7634cd870021ed5a2c2e52889d57985012af3cdd22,0xfc0e029250892062253ccc7634cd870021ed5a2c2e52889d57985012af3cdd22]" \
+// "[0x1816aff451979c4d7a7915587030ce9e852e59f23acce859b6b2b9836fa72e0b,0x1816aff451979c4d7a7915587030ce9e852e59f23acce859b6b2b9836fa72e0b,0x1816aff451979c4d7a7915587030ce9e852e59f23acce859b6b2b9836fa72e0b,0x1816aff451979c4d7a7915587030ce9e852e59f23acce859b6b2b9836fa72e0b]" \
+// "[0x1c,0x1c,0x1c,0x1c]" \
+// --private-key 0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba
