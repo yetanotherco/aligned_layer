@@ -16,8 +16,8 @@
 * Components
   <!-- * [User](./architecture/components/0_user.md) -->
   * [Batcher](./architecture/components/1_batcher.md)
-  * [Payment Service](./architecture/components/2_payment_service_contract.md)
-  * [Service manager](./architecture/components/3_service_manager_contract.md)
+  * [Payment Service Contract](./architecture/components/2_payment_service_contract.md)
+  * [Service Manager Contract](./architecture/components/3_service_manager_contract.md)
   * [Operator](./architecture/components/4_operator.md)
   * [Aggregator](./architecture/components/5_aggregator.md)
   * [Explorer](./architecture/components/6_explorer.md)
