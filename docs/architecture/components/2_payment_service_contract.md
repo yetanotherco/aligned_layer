@@ -1,6 +1,6 @@
 # Payment Service
 
-The Payment Service is the Component in charge of handling user's payments to fund the verification of their proofs. 
+The Payment Service handles User's payments to fund the verification of their proofs. 
 
 To be able to use the batcher, a user must fund its transactions. For this, there is a simple Batcher Payment System.
 
@@ -14,7 +14,7 @@ The smart contract will then discount the corresponding amount of funds from eac
 
 Users can then withdraw extra funds deposited to the Batcher Payments smart contract, or leave them to fund future proofs.
 
-This way, the Batcher can only use User funds to fund the verification of the User's proofs.
+This way, the Batcher can only use User funds to pay for the verification of the User's proofs.
 
 ## Details of the contract
 

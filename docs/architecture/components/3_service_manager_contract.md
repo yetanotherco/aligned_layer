@@ -1,6 +1,6 @@
 # Aligned Service Manager Contract
 
-The Aligned Service Manager handles the reception of new batches to Aligned, keep their status on-chain, and receive their response.
+The Aligned Service Manager handles the reception of new batches to Aligned, keeps their status on-chain, and receives their response.
 
 It is a smart contract which recieves all new batches, with their merkle root and a pointer to where is the batch currently stored. When received, this manager will emit an Event for the [Operators](./4_operator.md) to know when there is a new batch to verify.
 
