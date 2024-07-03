@@ -364,7 +364,7 @@ To install the batcher client to send a specific proof, run:
 make install_batcher_client
 ```
 
-The SP1 proof needs the proof file and the vm program file.
+The SP1 and Risc0 proofs need the proof file and the vm program file. The current SP1 version used in Aligned is v1.0.8-testnet and the current Risc0 version used in Aligned is v1.0.1.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
