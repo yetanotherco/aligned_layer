@@ -6,7 +6,7 @@ As stated in the EigenLayer paper:
 
 In this context, the concept of modularity goes against the initial approach to constructing blockchains, the monolithic approach, in which a single blockchain is responsible for performing all tasks such as processing transactions, checking for accuracy, and getting nodes to agree on them. This working method gives rise to certain inherent problems when it comes to expansion, resulting in expensive hardware, limited control, and high overhead.
 
-By introducing modularity to the blockchain, it enables the splitting up of its processes among multiple specialized layers. This approach has been used to create networks like rollups, a kind of scaling solution that processes transactions on other layer and then 'rolls' them up into batches for inclusion on the main blockchain. This helps lessen the strain on the main blockchain, resulting in faster and more cost-effective transactions, all while ensuring the security of the primary L1 chain remains intact.
+By introducing modularity to the blockchain, enables the splitting up of its processes among multiple specialized layers. This approach has been used to create networks like rollups, a kind of scaling solution that processes transactions on other layer and then 'rolls' them up into batches for inclusion on the main blockchain. This helps lessen the strain on the main blockchain, resulting in faster and more cost-effective transactions, all while ensuring the security of the primary L1 chain remains intact.
 
 The difference can be appreciated here:
 
