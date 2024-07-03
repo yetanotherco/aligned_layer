@@ -17,7 +17,7 @@ use sp1_sdk::{ProverClient, SP1Stdin};
 
 abigen!(
     VerifierContract,
-    "../../contracts/out/VerifierContract.sol/VerifierContract.json"
+    "VerifierContract.json",
 );
 
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
