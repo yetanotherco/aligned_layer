@@ -1,8 +1,23 @@
-# Send proofs
+# Submitting Proofs
 
-Make sure you have Aligned installed as specified [here](./README.md#how-to-use-the-testnet).
+Make sure you have Aligned installed as specified [here](../introduction/1_getting_started.md#Quickstart).
 
 If you run the examples below, make sure you are in Aligned's repository root.
+
+## Supported Verifiers
+
+The following is the list of the verifiers currently supported by Aligned:
+
+- :white_check_mark: gnark - Groth16 (with BN254)
+- :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
+- :white_check_mark: SP1
+- :white_check_mark: Risc0
+
+The following proof systems are going to be added soon:
+
+- :black_square_button: Kimchi
+- :black_square_button: Halo2 - Plonk/KZG
+- :black_square_button: Halo2 - Plonk/IPA
 
 ## 1. Import/Create Keystore file
 
@@ -10,24 +25,34 @@ If you already have a keystore file, you can ignore this section and start sendi
 
 ### Alternative 1: With foundry
 
-Install foundry following this guide:
-
-Install [Foundry](https://book.getfoundry.sh/getting-started/installation):
+You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/installation).
 
 - If you are creating a new account. Create a private key with:
 
-```bash
-cast wallet new-mnemonic --words 12
-```
+    ```bash
+    cast wallet new-mnemonic --words 12
+    ```
 
-If you are using this wallet outside testnet, write down the mnemonic phrase given by anvil
+    It will show you a new mnemonic phrase, and a public private key pair, similar to the following example:
 
+    ```
+    Phrase:
+    test test test test test test test test test test test test
+    
+    Accounts:
+    - Account 0:
+    Address:     0xabcd...1234
+    Private key: 0x1234...abcd
+    ```
+  
 - Import the wallet using the private key previously generated, or whichever you want to use, and write a password to use it.
 
-```bash
-mkdir -p ~/.aligned_keystore/
-cast wallet import --private-key <YOUR_ECDSA_PRIVATE_KEY>  ~/.aligned_keystore/keystore0
-```
+    ```bash
+    mkdir -p ~/.aligned_keystore/
+    cast wallet import ~/.aligned_keystore/keystore0 --interactive
+    ```
+  
+  You have to paste your private key and set a password for the keystore file.
 
 This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
@@ -37,7 +62,7 @@ This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
 ## 2. Fund the batcher
 
-To be able to send proofs to Aligned using the batcher, the user must fund its transactions. For this, there is a simple Batcher Payment System.
+To be able to send proofs to Aligned using the Batcher, the user must fund its transactions. For this, there is a simple Batcher Payment System.
 
 To use it you can use the `aligned` CLI, as shown with the following example:
 
@@ -49,7 +74,7 @@ This commands also allows the usage of the flags:
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used.
-- Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the batcher.
+- Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
 
 After depositing funds, you can verify the Service has correctly received them, executing the following command:
 
@@ -72,7 +97,7 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_yo_ecdsa_keystore> 
+--keystore_path <path_to_ecdsa_keystore> 
 ```
 
 **Example**
@@ -100,7 +125,7 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_yo_ecdsa_keystore>
+--keystore_path <path_to_ecdsa_keystore>
 ```
 
 **Example**
@@ -129,7 +154,7 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_yo_ecdsa_keystore>
+--keystore_path <path_to_ecdsa_keystore>
 ```
 
 **Examples**:
