@@ -1,8 +1,6 @@
 # Batcher
 
-Batcher is the Component in charge of recieving User's proofs.
-
-The Batcher will recieve proofs from different Users, build a merkle root from these proofs, upload the proofs to an S3 (so that the operators can download them), and submit this information to the [Aligned Service Manager](./3_service_manager_contract.md).
+The Batcher will recieve proofs from different Users, bundle them in a batch of proofs, build a merkle root from these, upload the batch to an S3 (so that the operators can download them), and submit this information to the [Aligned Service Manager](./3_service_manager_contract.md).
 
 To avoid trust assumptions, the Batcher has some specific interesting mechanisms;
 
