@@ -7,7 +7,7 @@ Aligned’s architecture is shown in the figure below:
 
 Here, the validators/AVS operators are the ones responsible for proof verification. They fetch the proof data from the data service and verify it using the different proving systems supported by Aligned.
 
-### Full flow sending a proof and publishing the result on Ethereum
+### Flow for sending a proof and publishing the result on Ethereum
 The flow for sending a proof and having the results on Ethereum is as follows:
 1. The user uses a provided CLI or SDK to send one proof or many to the batcher, and waits.
 2. The batcher answers with a BatchInclusionData for each proof.
