@@ -554,10 +554,10 @@ test_jolt_go_bindings_linux: build_jolt_linux
 	go test ./operator/jolt/... -v
 
 generate_jolt_fibonacci_proof:
-	@cd task_sender/test_examples/jolt/fibonacci && JOLT_SAVE=true cargo run --release
+	@cd scripts/test_files/jolt/fibonacci && JOLT_SAVE=true cargo run --release
 
 generate_jolt_sha3_proof:
-	@cd task_sender/test_examples/jolt/sha3-ex && JOLT_SAVE=true cargo run --release
+	@cd scripts/test_files/jolt/sha3-ex && JOLT_SAVE=true cargo run --release
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:

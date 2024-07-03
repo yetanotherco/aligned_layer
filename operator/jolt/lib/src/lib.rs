@@ -44,15 +44,15 @@ mod tests {
 
     // Fibonacci
     const FIB_PROOF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/fibonacci/fibonacci-guest.proof");
+        include_bytes!("../../../../scripts/test_files/jolt/fibonacci/fibonacci-guest.proof");
     const FIB_ELF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/fibonacci/elf/fibonacci-guest.elf");
+        include_bytes!("../../../../scripts/test_files/jolt/fibonacci/fibonacci-guest.elf");
 
     // Sha3
     const SHA3_PROOF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/sha3-ex/sha3-guest.proof");
+        include_bytes!("../../../../scripts/test_files/jolt/sha3-ex/sha3-guest.proof");
     const SHA3_ELF: &[u8] =
-        include_bytes!("../../../../task_sender/test_examples/jolt/sha3-ex/elf/sha3-guest.elf");
+        include_bytes!("../../../../scripts/test_files/jolt/sha3-ex/sha3-guest.elf");
 
     fn verify_jolt_proof_with_elf_works(proof: &[u8], elf: &[u8]) {
         let proof_len = proof.len();
