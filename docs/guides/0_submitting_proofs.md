@@ -67,20 +67,35 @@ To be able to send proofs to Aligned using the Batcher, the user must fund its t
 To use it you can use the `aligned` CLI, as shown with the following example:
 
 ```bash
-aligned deposit-to-batcher --keystore_path <keystore_path> --amount 0.1ether
+aligned deposit-to-batcher \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--chain holesky \
+--keystore_path <keystore_path> \
+--amount 0.1ether
 ```
 
-This commands also allows the usage of the flags: 
+This commands allows the usage of the following flags: 
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
-- `--chain` to specify the chain id to be used.
-- Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
+- `--chain` to specify the chain id to be used. Could be holesky or devnet.
+- `--keystore_path` the path to the keystore.
+- `--amount` the amount of ethers to transfer to the Batcher.
+- Note: `--amount` flag parameter must be with the shown format. The amount followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
 
 After depositing funds, you can verify the Service has correctly received them, executing the following command:
 
 ```bash
-aligned get-user-balance --user_addr <user_addr>
+aligned get-user-balance \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--user_addr <user_addr>
 ```
+
+This commands allows the usage of the following flags: 
+- `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
+- `--rpc` to specify the rpc url to be used.
+- `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Send your proof to the batcher
 
