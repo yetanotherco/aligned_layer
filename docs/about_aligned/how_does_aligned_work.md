@@ -66,7 +66,7 @@ The task batch consists of a Merkle tree containing the relevant information for
 - A commitment to the program or a commitment to the verification key (depending on the proof system used).
 - The address of the proof’s generator/submitter (optional).
 
-A diagram for the batch is shown on the figure below:
+A diagram for the batch is shown in the figure below:
 
 ![Figure 2: Structure of a batch](../images/batch.png)
 
