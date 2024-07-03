@@ -1,12 +1,5 @@
 # Generating Proofs For Aligned
 
-## Table of contents
-
-- [SP1](#sp1)
-    - [Dependencies](#dependencies)
-    - [How to generate a proof](#how-to-generate-a-proof)
-    - [How to get the proof verified by Aligned](#how-to-get-the-proof-verified-by-aligned)
-
 ## SP1
 
 ### Dependencies
