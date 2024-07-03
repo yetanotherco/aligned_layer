@@ -22,4 +22,4 @@ The flow for sending a proof and having the results on Ethereum is as follows:
 4. The operators, using the data in Ethereum, download the proofs from the DataService. They then verify that the Merkle root is equal to the one in Ethereum, and verifies all the proofs.
 5. If the proofs are valid, they sign the root and send this to the BLS signature aggregator.
 6. The signature aggregator accumulates the signed responses until reaching the quorum, then sends the aggregated signature to Ethereum.
-7. Ethereum verifies the aggregated signatures and changes the state of the batch to verified.
+7. Ethereum verifies the aggregated signatures and changes the state of the batch to verify.
