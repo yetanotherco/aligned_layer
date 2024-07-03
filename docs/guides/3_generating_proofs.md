@@ -39,7 +39,7 @@ After generating the proof, you will have to find two different files:
 - proof file: usually found under `script` directory, with the name `proof.json` or similar
 - elf file: usually found under `program/elf/` directory
 
-Then, you can send the proof to the AlignedLayer network by running the following command
+Then, you can send the proof to the Aligned network by running the following command
 
 ```bash
 aligned submit \
