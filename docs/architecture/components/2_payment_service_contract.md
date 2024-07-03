@@ -1,6 +1,6 @@
-# Payment Service Contract
+# Payment Service
 
-## Introduction
+The Payment Service is the Component in charge of handling user's payments to fund the verification of their proofs. 
 
 To be able to use the batcher, a user must fund its transactions. For this, there is a simple Batcher Payment System.
 

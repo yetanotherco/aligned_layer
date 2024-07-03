@@ -1,6 +1,6 @@
 # Aligned Service Manager Contract
 
-The Aligned Service Manager is the Entity in charge of handling the reception of new batches to Aligned, their status, and their response.
+The Aligned Service Manager is the Component in charge of handling the reception of new batches to Aligned, their status, and their response.
 
 It is a smart contract which recieves all new batches, with their merkle root and a pointer to where is the batch currently stored. When received, this manager will emit an Event for the [Operators](./4_operator.md) to know when there is a new batch to verify.
 
