@@ -317,7 +317,7 @@ mod tests {
             compute_prev_challenges(old_bulletproof_challenges, challenge_polynomial_commitments)
                 .unwrap();
 
-        let mut ocaml_results = [
+        let ocaml_results = [
             "A922DE10BD19D506BE5E5240287AFCD2F809D02FF05EDFA4AF352AEE2353DA29",
             "242A7448F2F61420595B4E9B15D7D14E1B804FDE3C12E3B0D22F980D4A60521D",
             "B412F4446AB1ABD794F3D9F07F37A70DA9EB34E70A61945F34A0F21B5D7D4007",
@@ -335,13 +335,12 @@ mod tests {
             "730FC9A8BF1DCCE3E36286BEB51EAB8F0B0092A8FEE6901FAF158D1E5DBFBE05",
         ]
         .map(|hex| Fq::from_hex(hex).unwrap());
-        ocaml_results.reverse();
 
         assert_eq!(prev_challenges[0].chals, ocaml_results);
         assert_eq!(
             prev_challenges[0].comm,
             PolyComm {
-                elems: vec![Pallas::new(Fp::from(1), Fp::from(2), false)]
+                elems: vec![Pallas::new(Fp::from(-1), Fp::from(2), false)]
             }
         );
     }

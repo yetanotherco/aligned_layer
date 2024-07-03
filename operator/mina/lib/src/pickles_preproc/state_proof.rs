@@ -1,6 +1,3 @@
-use std::char;
-
-use ark_ff::PrimeField;
 use kimchi::{
     mina_curves::pasta::{Fp, Fq, Pallas},
     proof::PointEvaluations,
