@@ -7,15 +7,13 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
     image_id: *const u8,
     image_id_len: u32,
 ) -> bool {
-    let receipt_bytes = unsafe {
-        assert!(!receipt_bytes.is_null());
-        std::slice::from_raw_parts(receipt_bytes, receipt_len as usize)
-    };
+    if receipt_bytes.is_null() || image_id.is_null() {
+        return false;
+    }
 
-    let image_id = unsafe {
-        assert!(!image_id.is_null());
-        std::slice::from_raw_parts(image_id, image_id_len as usize)
-    };
+    let receipt_bytes = unsafe { std::slice::from_raw_parts(receipt_bytes, receipt_len as usize) };
+
+    let image_id = unsafe { std::slice::from_raw_parts(image_id, image_id_len as usize) };
 
     let mut image_id_array = [0u8; 32];
     image_id_array.copy_from_slice(image_id);
@@ -31,7 +29,9 @@ mod tests {
     use super::*;
 
     const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
-    const IMAGE_ID: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin");
+    const IMAGE_ID: &[u8] = include_bytes!(
+        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin"
+    );
 
     #[test]
     fn verify_risc_zero_receipt_with_image_id_works() {
