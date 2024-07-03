@@ -77,8 +77,9 @@ This commands also allows the usage of the flags:
 - Note: `--amount` flag parameter must be with the shown format, followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
 
 After depositing funds, you can verify the Service has correctly received them, executing the following command:
+
 ```bash
-cast call <payment_service_smart_contract_address> "UserBalances(address)(uint256)" <address>
+aligned get-user-balance --user_addr <user_addr>
 ```
 
 ## 3. Send your proof to the batcher
