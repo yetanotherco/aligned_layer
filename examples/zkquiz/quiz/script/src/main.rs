@@ -136,41 +136,6 @@ async fn main() {
                     println!("Proof verification failed: {:?}", e);
                 }
             }
-
-            // match submit(BATCHER_URL, &verification_data, wallet.clone()).await {
-            //     Ok(Some(aligned_verification_data)) => {
-            //         println!(
-            //             "Proof submitted successfully on batch {}, waiting for verification...",
-            //             hex::encode(aligned_verification_data.batch_merkle_root)
-            //         );
-            //
-            //         if let Err(e) = wait_for_proof_to_be_verified(
-            //             aligned_verification_data.clone(),
-            //             rpc_url.clone(),
-            //         )
-            //             .await
-            //         {
-            //             println!("Proof verification failed: {:?}", e);
-            //             return;
-            //         }
-            //
-            //         println!("Proof verified in Aligned, claiming prize...");
-            //
-            //         if let Err(e) = verify_batch_inclusion(
-            //             aligned_verification_data.clone(),
-            //             signer.clone(),
-            //             args.verifier_contract_address,
-            //         ).await {
-            //             println!("Failed to claim prize: {:?}", e);
-            //         }
-            //     }
-            //     Ok(None) => {
-            //         println!("Proof submission failed, no verification data");
-            //     }
-            //     Err(e) => {
-            //         println!("Proof submission failed: {:?}", e);
-            //     }
-            // }
         }
         Err(_) => {
             println!("Proof generation failed. Incorrect answer");
