@@ -14,7 +14,7 @@
 * [Aggregation mode](architecture/2_aggregation_mode.md)
 * [Fast mode](architecture/1_fast_mode.md)
 * Components
-  * [User](./architecture/components/0_user.md)
+  <!-- * [User](./architecture/components/0_user.md) -->
   * [Batcher](./architecture/components/1_batcher.md)
   * [Payment Service](./architecture/components/2_payment_service_contract.md)
   * [Service manager](./architecture/components/3_service_manager_contract.md)
