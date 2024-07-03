@@ -11,14 +11,16 @@
 ## Architecture
 
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
-* [Fast mode](architecture/1_fast_mode.md)
 * [Aggregation mode](architecture/2_aggregation_mode.md)
-<!-- * Components
-  * [User](./architecture/entities/user.md)
-  * [Operator](./architecture/entities/operator.md)
-  * [Aggregator](./architecture/entities/aggregator.md)
-  * [Batcher](./architecture/entities/batcher.md)
-  * [Payment Service](./architecture/entities/payment_service.md) -->
+* [Fast mode](architecture/1_fast_mode.md)
+* Components
+  * [User](./architecture/components/0_user.md)
+  * [Batcher](./architecture/components/1_batcher.md)
+  * [Payment Service](./architecture/components/2_payment_service_contract.md)
+  * [Service manager](./architecture/components/3_service_manager_contract.md)
+  * [Operator](./architecture/components/4_operator.md)
+  * [Aggregator](./architecture/components/5_aggregator.md)
+  * [Explorer](./architecture/components/6_explorer.md)
 * [Smart contracts](architecture/3_smart_contracts.md)
 
 ## Guides
