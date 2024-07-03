@@ -7,18 +7,20 @@
 * [Core concepts](introduction/2_core_concepts.md)
 * [Use cases](introduction/3_use_cases.md)
 * [FAQ](introduction/4_faq.md)
-  
+
 ## Architecture
 
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
 * [Fast mode](architecture/1_fast_mode.md)
 * [Aggregation mode](architecture/2_aggregation_mode.md)
+
 <!-- * Components
   * [User](./architecture/entities/user.md)
   * [Operator](./architecture/entities/operator.md)
   * [Aggregator](./architecture/entities/aggregator.md)
   * [Batcher](./architecture/entities/batcher.md)
   * [Payment Service](./architecture/entities/payment_service.md) -->
+
 * [Smart contracts](architecture/3_smart_contracts.md)
 
 ## Guides
@@ -26,6 +28,8 @@
 * [Submitting proofs](guides/0_submitting_proofs.md)
 * [SDK](guides/1_SDK.md)
 * [Using Aligned on your app](guides/2_using_aligned_on_your_app.md)
+* [Generating proofs for Aligned](guides/3_generating_proofs.md)
+
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
 ## Operators
