@@ -23,7 +23,7 @@ This way, the Batcher can only use User funds to fund the verification of the Us
 #### Receive funds
 
 ```solidity
-    receive() external payable {
+    receive() external payable
 ```
 
 This function will be called every time a User transfers funds to the smart contract. It will not only receive the funds, but it will also register internally how much did the User deposit, to keep track of each User's funds separately. 
