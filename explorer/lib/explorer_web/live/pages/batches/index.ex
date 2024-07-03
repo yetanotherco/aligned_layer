@@ -3,12 +3,12 @@ defmodule ExplorerWeb.Batches.Index do
   require Logger
   use ExplorerWeb, :live_view
 
-  @page_size 12
+  @page_size 15
 
   def mount(params, _, socket) do
     current_page = get_current_page(params)
 
-    batches = Batches.get_latest_batches(%{amount: @page_size * current_page})
+    batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
 
     PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -20,9 +20,13 @@ defmodule ExplorerWeb.Batches.Index do
 
     current_page = socket.assigns.current_page
 
-    batches = Batches.get_latest_batches(%{amount: @page_size * current_page})
+    batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
 
     {:noreply, assign(socket, batches: batches)}
+  end
+
+  def handle_event("change_page", %{"page" => page}, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/batches?page=#{page}")}
   end
 
   def get_current_page(params) do
@@ -31,8 +35,13 @@ defmodule ExplorerWeb.Batches.Index do
         1
 
       page ->
-        number = page |> Integer.parse() |> elem(0)
-        if number < 1, do: 1, else: number
+        case Integer.parse(page) do
+          {number, _} ->
+            if number < 1, do: 1, else: number
+
+          :error ->
+            1
+        end
     end
   end
 
