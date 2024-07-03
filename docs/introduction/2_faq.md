@@ -6,7 +6,7 @@ Aligned’s mission is to extend Ethereum’s zero-knowledge capabilities. We ar
     
 ### What is the throughput of Aligned?
     
-Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. Current testnet can verify more than 2500 proofs per second.
+Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. The current testnet can verify more than 2500 proofs per second.
     
 ### How does the throughput of Aligned compare with Ethereum?
     
