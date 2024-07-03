@@ -1,4 +1,4 @@
-# Smart contracts
+# Aligned contract addresses
 
 ## Holesky deployments
 

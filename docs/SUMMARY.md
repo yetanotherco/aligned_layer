@@ -21,7 +21,7 @@
   * [Operator](./architecture/components/4_operator.md)
   * [Aggregator](./architecture/components/5_aggregator.md)
   * [Explorer](./architecture/components/6_explorer.md)
-* [Smart contracts](architecture/3_smart_contracts.md)
+* [Contract Addresses](architecture/3_smart_contracts.md)
 
 ## Guides
 
