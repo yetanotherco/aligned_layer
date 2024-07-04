@@ -1,6 +1,6 @@
 # Batcher
 
-The Batcher recieves proofs from different Users, bundle them in a batch of proofs, build a merkle root from these, upload the batch to a data service (like an S3 bucket), and submit this information to the [Aligned Service Manager](./3_service_manager_contract.md).
+The Batcher receives proofs from different Users, bundles them in a batch of proofs, builds a merkle root from these, uploads the batch to a data service (like an S3 bucket), and submits this information to the [Aligned Service Manager](./3_service_manager_contract.md).
 
 To avoid trust assumptions, the Batcher has some specific mechanisms;
 
