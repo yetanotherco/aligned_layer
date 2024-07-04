@@ -27,7 +27,7 @@
 
 * [Submitting proofs](guides/0_submitting_proofs.md)
 * [SDK](guides/1_SDK.md)
-* [Integrating Aligned into your Application](guides/2_integration_aligned_into_your_application)
+* [Integrating Aligned into your Application](guides/2_integration_aligned_into_your_application.md)
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)
 
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
