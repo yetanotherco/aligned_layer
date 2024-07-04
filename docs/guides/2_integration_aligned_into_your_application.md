@@ -87,6 +87,7 @@ You can find the example of the smart contract that checks the proof was verifie
 in the [Quiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
 
 Note that the contract checks that the verification key commitment is the same as the program elf.
+
 ```solidity
 require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
 ```
@@ -114,82 +115,17 @@ bool proofIsIncludedBool = abi.decode(proofIsIncluded, (bool));
 require(proofIsIncludedBool, "proof not included in batch");
 ```
 
-### Step 3 - Have your app generate the proof and submit it to Aligned
+### Step 3 - Submit and verify the proof to Aligned
 
-First, generate the proof. 
-For SP1 this means having the [script](../../examples/zkquiz/quiz/script/src/main.rs)
-generate the proof.
+First, generate the proof. For SP1 this means having the [script](../../examples/zkquiz/quiz/script/src/main.rs) generate the proof.
 
-Then, submit the proof to Aligned for verification. 
-This can be done either with the SDK or by using the Aligned CLI.
-You can find examples of how to submit a proof using the cli 
-in the [submitting proofs guide](0_submitting_proofs.md).
+Then, submit the proof to Aligned for verification. This can be done either with the SDK or by using the Aligned CLI.
 
-The call ZK Quiz uses is:
-```bash
-aligned submit \
-    --proving_system SP1 \
-    --proof quiz/script/proof-with-io.json \
-    --vm_program quiz/program/elf/riscv32im-succinct-zkvm-elf \
-    --proof_generator_addr <user_address> \
-    --conn wss://batcher.alignedlayer.com
-```
+#### Using the SDK
 
-### Step 4 - Verify the proof was verified in Aligned
+To submit a proof using the SDK, you can use the `submit` function, and then you can use the `verify_proof_onchain` to check if the proof was correctly verified in Aligned.
 
-Once the proof is verified in Aligned, 
-you can verify that it was verified from your smart contract.
+You can find the example of the proof submission and verificatoin in the [Quiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
 
-The full example of this flow can be found on the [ZKQuiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
-
-An example [python script](../../examples/zkquiz/encode_verification_data.py) can be found to encode the call data from the json output of the Aligned cli. 
-
-```python
-from argparse import ArgumentParser
-from json import load
-from eth_abi import encode
-from Crypto.Hash import keccak
-
-
-def encode_call(file):
-    with open(file) as f:
-        data = load(f)
-
-        verification_data_commitment = data['verification_data_commitment']
-        proof_commitment = bytearray(verification_data_commitment['proof_commitment'])
-        pub_input_commitment = bytearray(verification_data_commitment['pub_input_commitment'])
-        proving_system_aux_data_commitment = bytearray(
-            verification_data_commitment['proving_system_aux_data_commitment'])
-        proof_generator_addr = bytearray(verification_data_commitment['proof_generator_addr'])
-        batch_merkle_root = bytearray(data['batch_merkle_root'])
-
-        merkle_path_arr = data['batch_inclusion_proof']['merkle_path']
-        merkle_proof = bytearray()
-        for i in range(0, len(merkle_path_arr)):
-            merkle_proof += bytearray(merkle_path_arr[i])
-
-        index = data['index_in_batch']
-
-        output = encode(['bytes32', 'bytes32', 'bytes32', 'bytes20', 'bytes32', 'bytes', 'uint256'],
-                        [proof_commitment, pub_input_commitment, proving_system_aux_data_commitment,
-                         proof_generator_addr, batch_merkle_root, merkle_proof, index])
-
-        k = keccak.new(digest_bits=256)
-        k.update(b'verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)')
-        signature = k.hexdigest()[:8]
-
-        return '0x' + signature + output.hex()
-```
-
-This is then used to call the smart contract using cast:
-
-```bash
-cast send \
-    --rpc-url <rpc_url> \
-    --private-key <private_key> \
-    <contract_address> \
-    <encoded_calldata>
-```
-
-This call can be done from any library that can interact with the Ethereum blockchain.
-
+#### Using the CLI
+You can find examples of how to submit a proof using the cli in the [submitting proofs guide](0_submitting_proofs.md).
