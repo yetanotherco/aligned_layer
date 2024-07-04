@@ -125,7 +125,7 @@ Then, submit the proof to Aligned for verification. This can be done either with
 
 To submit a proof using the SDK, you can use the `submit` function, and then you can use the `verify_proof_onchain` to check if the proof was correctly verified in Aligned.
 
-You can find the example of the proof submission and verificatoin in the [Quiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
+You can find the example of the proof submission and verification in the [Quiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
 
 #### Using the CLI
 You can find examples of how to submit a proof using the cli in the [submitting proofs guide](0_submitting_proofs.md).
