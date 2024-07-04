@@ -965,6 +965,10 @@ dependencies = [
 name = "kimchi-verifier-ffi"
 version = "0.1.0"
 dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-poly",
+ "ark-serialize",
  "hex",
  "kimchi",
  "mina-tree",
