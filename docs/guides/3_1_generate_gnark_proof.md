@@ -2,7 +2,7 @@
 
  ## Step 1 : Set up your enviroment
 
- - 1 Install Go: Make suere you have Go installed. You can download it from here
+ - 1 Install Go: Make suere you have Go installed. You can download it from [here](https://go.dev/doc/install)
 
  - 2 Initialize a Go Module: Create a new directory for your project and initializa a Go module
 
