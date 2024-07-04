@@ -1,11 +1,10 @@
 # Integrating Aligned into your Application
 
-Aligned can be integrated into your applications in a few simple steps to provide a way to verify ZK proofs generated inside your system.  
+Aligned can be integrated into your applications in a few simple steps to provide a way to verify ZK proofs generated inside your system.
 
-This example shows a sample app that generates an SP1 proof that a user knows the answers to a quiz, then submits the proof to Aligned for verification.
-Finally, it includes a smart contract that verifies that a proof was verified in Aligned and mints an NFT.
+This example shows a sample app that generates an SP1 proof that a user knows the answers to a quiz, then submits the proof to Aligned for verification. Finally, it includes a smart contract that verifies that a proof was verified in Aligned and mints an NFT.
 
-You can find an example of the full flow of using Aligned on your app in the [ZKQuiz example](../../examples/zkquiz). 
+You can find an example of the full flow of using Aligned in your app in the [ZKQuiz example](../../examples/zkquiz). 
 
 ## Steps
 
@@ -122,7 +121,83 @@ Then, submit the proof to Aligned for verification. This can be done either with
 
 To submit a proof using the SDK, you can use the `submit` function, and then you can use the `verify_proof_onchain` to check if the proof was correctly verified in Aligned.
 
-You can find the example of the proof submission and verification in the [Quiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
+The following code is an example of how to submit a proof using the SDK:
+
+```rust
+use aligned_sdk::sdk::submit;
+use aligned_sdk::types::{ProvingSystemId, VerificationData};
+use ethers::prelude::*;
+
+const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
+const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
+
+async fn submit_proof_to_aligned(
+proof: Vec<u8>,
+wallet: Wallet<SigningKey>
+) -> Result<AlignedVerificationData, anyhow::Error> {
+let verification_data = VerificationData {
+    proving_system: ProvingSystemId::SP1,
+    proof,
+    proof_generator_addr: wallet.address(),
+    vm_program_code: Some(ELF.to_vec()),
+    verification_key: None,
+    pub_input: None,
+};
+
+    submit(BATCHER_URL, &verification_data, wallet).await
+        .map_err(|e| anyhow::anyhow!("Failed to submit proof: {:?}", e))
+}
+
+#[tokio::main]
+async fn main() {
+let wallet = // Initialize wallet
+let proof = // Generate or obtain proof
+
+    match submit_proof_to_aligned(proof, wallet).await {
+        Ok(aligned_verification_data) => println!("Proof submitted successfully"),
+        Err(err) => println!("Error: {:?}", err),
+    }
+}
+```
+
+The following code is an example of how to verify the proof was correctly verified in Aligned using the SDK:
+
+```rust
+use aligned_sdk::sdk::verify_proof_onchain;
+use aligned_sdk::types::{AlignedVerificationData, Chain};
+use ethers::prelude::*;
+use tokio::time::{sleep, Duration};
+
+async fn wait_for_proof_verification(
+    aligned_verification_data: AlignedVerificationData,
+    rpc_url: String,
+) -> Result<(), anyhow::Error> {
+    for _ in 0..10 {
+        if verify_proof_onchain(aligned_verification_data.clone(), Chain::Holesky, rpc_url.as_str()).await.is_ok_and(|r| r) {
+            println!("Proof verified successfully.");
+            return Ok(());
+        }
+        println!("Proof not verified yet. Waiting 10 seconds before checking again...");
+        sleep(Duration::from_secs(10)).await;
+    }
+    anyhow::bail!("Proof verification failed")
+}
+
+#[tokio::main]
+async fn main() {
+    let aligned_verification_data = // Obtain aligned verification data
+    let rpc_url = "https://ethereum-holesky-rpc.publicnode.com".to_string();
+
+    match wait_for_proof_verification(aligned_verification_data, rpc_url).await {
+        Ok(_) => println!("Proof verified"),
+        Err(err) => println!("Error: {:?}", err),
+    }
+}
+```
+
+You can find an example of the proof submission and verification in the [Quiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
+
+The example generates a proof, instantiate a wallet to submit the proof, and then submits the proof to Aligned for verification. It then waits for the proof to be verified in Aligned.
 
 #### Using the CLI
 You can find examples of how to submit a proof using the CLI in the [submitting proofs guide](0_submitting_proofs.md).
