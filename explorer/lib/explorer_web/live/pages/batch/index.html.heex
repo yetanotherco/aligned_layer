@@ -60,21 +60,16 @@
           <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
         </p>
         Share:
-        <a
-          href="https://twitter.com/intent/tweet?text=Just%20submitted%20a%20proof%20via%20@alignedlayer%0AI%20am%20now%20%23aligned%20✅%0A"
-          target="_blank"
-          class="twitter-share-button"
-          data-size="large"
-          data-related="alignedlayer"
-          data-dnt="true"
-          data-show-count="false"
-        >
-          <button class="bg-black text-neutral-50 font-bold text-sm leading-3 rounded-full hover:bg-neutral-700 px-3.5 -py-1">
-            <span class="text-lg font-normal">𝕏</span> Post
-          </button>
-        </a>
-        <script async src="https://platform.twitter.com/widgets.js" charset="utf-8">
-        </script>
+        <%!-- 
+          %20 represents a space
+          %23 represents the hash symbol (#)
+          %0A represents a line feed (LF) or Unix-style newline
+         --%>
+        <.live_component
+          id={"tweet_#{@merkle_root}"}
+          module={TweetComponent}
+          text="Just%20submitted%20a%20proof%20via%20@alignedlayer%0AI%20am%20now%20%23aligned%20✅%0A"
+        />
       <% end %>
     </.card>
   <% else %>
