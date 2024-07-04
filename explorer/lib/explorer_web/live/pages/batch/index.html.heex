@@ -1,4 +1,4 @@
-<div class="relative flex flex-col space-y-3 px-1 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
+<div class="flex flex-col space-y-3 px-1 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
   <%= if @current_batch != :empty do %>
     <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
       Batch Details
@@ -81,7 +81,7 @@
       <img
         class="z-0 w-64 rounded-xl mx-auto"
         alt="block not found"
-        src={~p"/images/not-found.jpeg"}
+        src={~p"/images/not-found.webp"}
       />
       <.link navigate={~p"/"}>
         <.button>
