@@ -15,7 +15,8 @@ defmodule TweetComponent do
         data-size="large"
         data-related="alignedlayer"
         data-dnt="true"
-        data-show-count="false"
+        data-show-count="truefalse"
+        data-url=" "
       >
         <button class={[
           "bg-black text-neutral-50 hover:bg-neutral-700 px-3 pb-0.5",

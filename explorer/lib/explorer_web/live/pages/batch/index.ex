@@ -26,6 +26,8 @@ defmodule ExplorerWeb.Batch.Index do
       assign(socket,
         merkle_root: merkle_root,
         current_batch: current_batch,
+        network: System.get_env("ENVIRONMENT"),
+        site_url: System.get_env("PHX_HOST"),
         page_title: Utils.shorten_hash(merkle_root)
       )
     }
