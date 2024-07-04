@@ -40,16 +40,24 @@
 
 
 
+```fmt```: Standard Go library for formatted input/output.
 
- ```fmt```: Standard Go library for formatted input/output.
- ```log```: Standard Go library for event logging.
+```log```: Standard Go library for event logging.
+
  ```os```: Standard Go library for interacting with the operating system.
+
  ```path/filepath```: Standard Go library for portable file path manipulation.
+
  ```github.com/consensys/gnark-crypto/ecc```: Provides cryptographic operations over elliptic curves.
+
  ```github.com/consensys/gnark/backend/plonk``` Gnark backend for the PLONK proving system.
+
  ```github.com/consensys/gnark/constraint/bn254```: Provides types and functions to work with constraint systems specifically for the BN254 curve.
+
  ```github.com/consensys/gnark/frontend```: Provides the API for defining constraints and creating witness data.
+
  ```github.com/consensys/gnark/test/unsafekzg```: Gnark testing utilities for KZG commitments.
+ 
  ```github.com/consensys/gnark/frontend/cs/scs```: Gnark frontend for the SCS (Sparse Constraint System) builder.
 
 
@@ -140,8 +148,6 @@
  		panic("KZG setup error")
  	}
  ```
-
-
 
  ```r1cs := ccs.(*cs.SparseR1CS)``` converts the compiled circuit to a sparse R1CS(Rank-1 Constraint Systems) format required by the SRS generation.
 
