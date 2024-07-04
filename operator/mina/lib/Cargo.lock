@@ -971,6 +971,7 @@ dependencies = [
  "ark-serialize",
  "hex",
  "kimchi",
+ "mina-p2p-messages",
  "mina-tree",
  "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
  "rmp-serde",
