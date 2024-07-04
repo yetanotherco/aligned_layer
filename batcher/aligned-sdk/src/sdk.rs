@@ -1,5 +1,6 @@
 use crate::errors;
 use crate::eth;
+use crate::types::ResponseMessage;
 use crate::types::{
     AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, VerificationCommitmentBatch,
     VerificationData, VerificationDataCommitment,
@@ -123,6 +124,7 @@ async fn _submit_multiple(
         verification_data.len(),
         num_responses,
         &mut verification_data_commitments_rev,
+        true,
     )
     .await?;
 
@@ -172,12 +174,14 @@ async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
+    wait_for_verification: bool,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream =
         ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
 
     let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
+    let mut awaiting_verification = false;
 
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
@@ -191,11 +195,15 @@ async fn receive(
             return Ok(None);
         } else {
             let mut num_responses_lock = num_responses.lock().await;
-            *num_responses_lock += 1;
 
             let data = msg.into_data();
-            match serde_json::from_slice::<BatchInclusionData>(&data) {
-                Ok(batch_inclusion_data) => {
+            match serde_json::from_slice::<ResponseMessage>(&data) {
+                Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
+                    // If we are awaiting verification, we should not process the next batch inclusion data
+                    if awaiting_verification {
+                        error!("Received batch inclusion data while awaiting verification");
+                        continue;
+                    }
                     debug!("Received response from batcher");
                     debug!(
                         "Batch merkle root: {}",
@@ -212,11 +220,33 @@ async fn receive(
                             &batch_inclusion_data,
                         ));
                     }
+                    // If we are waiting for verification, we should not increment the number of responses
+                    if wait_for_verification {
+                        awaiting_verification = true;
+                        continue;
+                    }
+                }
+                Ok(ResponseMessage::Verified(_)) => {
+                    // If we are not waiting for verification, we should not process the verification message
+                    if !wait_for_verification {
+                        error!("Received unexpected verification message");
+                        continue;
+                    }
+                    // If we are not awaiting verification, we should not process the verification message
+                    if !awaiting_verification {
+                        error!("Received Verification message out of sequence");
+                        continue;
+                    }
+                    debug!("Proof verified on-chain");
+                    awaiting_verification = false;
                 }
                 Err(e) => {
                     error!("Error while deserializing batcher response: {}", e);
                 }
             }
+
+            *num_responses_lock += 1;
+
             if *num_responses_lock == total_messages {
                 debug!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
@@ -340,7 +370,7 @@ mod test {
         let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
         let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
-        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci-elf")).unwrap());
+        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci.elf")).unwrap());
 
         let proof_generator_addr =
             Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
@@ -446,7 +476,7 @@ mod test {
         let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
         let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
-        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci-elf")).unwrap());
+        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci.elf")).unwrap());
 
         let proof_generator_addr =
             Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();

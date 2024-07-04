@@ -7,8 +7,8 @@ use std::time::Duration;
 
 use crate::eth::BatchVerifiedEventStream;
 use aligned_sdk::types::{
-    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+    BatchInclusionData, ClientMessage, ResponseMessage, VerificationCommitmentBatch,
+    VerificationData, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{BatchVerifiedFilter, BatcherPaymentService};
@@ -350,7 +350,6 @@ impl Batcher {
         &self,
         block_number: u64,
         finalized_batch: BatchQueue,
-        wait_for_verification: bool,
     ) -> Result<(), BatcherError> {
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
@@ -390,10 +389,7 @@ impl Batcher {
             *last_uploaded_batch_block = block_number;
         }
 
-        if !wait_for_verification {
-            send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
-            return Ok(());
-        }
+        send_batch_inclusion_data_responses(finalized_batch.clone(), &batch_merkle_tree).await;
 
         // This future is created to be passed to the timeout function, so that if it is not resolved
         // within the timeout interval an error is raised. If the event is received, responses are sent to
@@ -406,7 +402,8 @@ impl Batcher {
         {
             send_timeout_close(finalized_batch).await?;
         } else {
-            send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
+            info!("Sending verified response...");
+            send_verified_response(finalized_batch).await;
         }
 
         Ok(())
@@ -416,8 +413,7 @@ impl Batcher {
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number, finalized_batch, false)
-                .await?;
+            self.finalize_batch(block_number, finalized_batch).await?;
         }
         Ok(())
     }
@@ -493,6 +489,31 @@ async fn await_batch_verified_event<'s>(
     Ok(())
 }
 
+async fn send_verified_response(finalized_batch: BatchQueue) {
+    stream::iter(finalized_batch.iter())
+        .enumerate()
+        .for_each(|(_, (_, _, ws_sink, _))| async move {
+            let response = ResponseMessage::Verified(1);
+            let serialized_response =
+                serde_json::to_vec(&response).expect("Could not serialize response");
+
+            let sending_result = ws_sink
+                .write()
+                .await
+                .send(Message::binary(serialized_response))
+                .await;
+
+            match sending_result {
+                Err(Error::AlreadyClosed) => (),
+                Err(e) => error!("Error while sending verified response: {}", e),
+                Ok(_) => (),
+            }
+
+            info!("Response sent");
+        })
+        .await;
+}
+
 async fn send_batch_inclusion_data_responses(
     finalized_batch: BatchQueue,
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
@@ -500,7 +521,9 @@ async fn send_batch_inclusion_data_responses(
     stream::iter(finalized_batch.iter())
         .enumerate()
         .for_each(|(vd_batch_idx, (_, _, ws_sink, _))| async move {
-            let response = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+            let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+            let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+
             let serialized_response =
                 serde_json::to_vec(&response).expect("Could not serialize response");
 
