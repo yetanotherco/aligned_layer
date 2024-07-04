@@ -9,6 +9,8 @@ use kimchi::poly_commitment::commitment::CommitmentCurve;
 use kimchi::verifier::verify;
 use kimchi::{mina_curves::pasta::Vesta, poly_commitment::srs::SRS, verifier_index::VerifierIndex};
 
+pub mod openmina_block_verifier;
+
 const MAX_PROOF_SIZE: usize = 10 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 50 * 1024;
 
@@ -122,4 +124,3 @@ mod test {
         .is_ok());
     }
 }
-
