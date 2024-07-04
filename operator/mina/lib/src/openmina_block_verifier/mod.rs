@@ -1,3 +1,5 @@
+mod protocol_state_proof;
+
 pub fn parse_query_to_mina_block_header(mina_state_proof_vk_query: &str) {
     todo!()
 }
