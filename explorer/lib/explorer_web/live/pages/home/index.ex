@@ -46,6 +46,9 @@ defmodule ExplorerWeb.Home.Index do
        operators_registered: operators_registered,
        latest_batches: latest_batches,
        verified_proofs: verified_proofs,
+       service_manager_address:
+         AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
+       network: System.get_env("ENVIRONMENT"),
        page_title: "Welcome"
      )}
   rescue

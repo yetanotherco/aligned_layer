@@ -10,7 +10,7 @@
   <.card_link
     href={
       # eigen url for mainnet is app.eigenlayer.xyz
-      "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/mainnet/, "app")}.eigenlayer.xyz/avs/#{AlignedLayerServiceManager.get_aligned_layer_service_manager_address()}"
+      "https://#{@network |> String.replace(~r/mainnet/, "app")}.eigenlayer.xyz/avs/#{@service_manager_address}"
     }
     title="Registered Operators"
   >
@@ -22,7 +22,7 @@
   </.card_link>
   <.card_link
     href={
-      "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/address/#{AlignedLayerServiceManager.get_aligned_layer_service_manager_address()}"
+      "https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/address/#{@service_manager_address}"
     }
     title="verified batches"
   >
