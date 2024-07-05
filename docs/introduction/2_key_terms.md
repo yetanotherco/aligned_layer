@@ -42,7 +42,7 @@ The **Light Client** samples random tasks from the Service Manager, checks the p
 
 ### Proof Service
 
-The**Proof Service** receives results from the Light Clients; in case there are differences with the results posted by Aligned, it triggers a re-verification on Ethereum. Note that this re-verification can also be triggered by any user.
+The **Proof Service** receives results from the Light Clients; in case there are differences with the results posted by Aligned, it triggers a re-verification on Ethereum. Note that this re-verification can also be triggered by any user.
 
 ### Proof Aggregator
 
