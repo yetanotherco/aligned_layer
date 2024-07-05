@@ -8,7 +8,6 @@ package risc_zero
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 )
 
