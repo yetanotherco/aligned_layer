@@ -18,7 +18,7 @@ From here we can visualize:
 
 - the whole `Merkle Root`
 - `Amount of Proofs` in the batch
-- Ethereum's `Submission Block Number` , linked to etherscan
+- Ethereum's `Submission Block Number`, linked to etherscan
 - `Submission Transaction Hash`, linked to etherscan
 - `Submission Timestamp` of the batch
 - `Status`, either `Pending` or `Verified`
