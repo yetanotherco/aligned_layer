@@ -1,6 +1,6 @@
 # Operator
 
-The Operators are responsible for verifying the ZK Proofs. They are the Eigenlayer restakers. They are the ones who insert the financial security to the system, and leverage Ethereum's security into any AVS they take part of (in this case, Aligned).
+The Operators verify the ZK Proofs and are the Eigenlayer restakers. They also insert the financial security into the system, and leverage Ethereum's security for any AVS they take part in (e.g. Aligned).
 
 Operators read [Aligned Service Manager](./3_service_manager_contract.md) new batch Events. In them, they have the necessary information to verify a batch, its Merkle Root and its data pointer. 
 
