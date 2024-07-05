@@ -4,7 +4,7 @@ The Aligned Service Manager handles the reception of new batches to Aligned, kee
 
 It is a smart contract which recieves all new batches, with their merkle root and a pointer to where is the batch currently stored. When received, this manager will emit an Event for the [Operators](./4_operator.md) to know when there is a new batch to verify.
 
-Then, when recieving a response from the [Aggregator](./5_aggregator.md), with Operator's aggregated BLS signatures, the Aligned Service Manager check the BLS signature to verify the Operators were in fact those who processed the batch and responded its status.
+Then, when receiving a response from the [Aggregator](./5_aggregator.md), with Operator's aggregated BLS signatures, the Aligned Service Manager checks the BLS signature to verify the Operators were in fact those who processed the batch and its responded status.
 
 Once verified, it will emit another Event, for anyone interested (for example, the [Explorer](./6_explorer.md)) to know that the batch was verified by the operators. This batch is now verified and Users can know their proofs inside the batch were proven and verified leveraging Ethereum's security. 
 
