@@ -197,7 +197,7 @@ async fn main() {
 
 You can find an example of the proof submission and verification in the [Quiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
 
-The example generates a proof, instantiate a wallet to submit the proof, and then submits the proof to Aligned for verification. It then waits for the proof to be verified in Aligned.
+The example generates a proof, instantiates a wallet to submit the proof, and then submits the proof to Aligned for verification. It then waits for the proof to be verified in Aligned.
 
 #### Using the CLI
 You can find examples of how to submit a proof using the CLI in the [submitting proofs guide](0_submitting_proofs.md).
