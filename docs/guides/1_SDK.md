@@ -5,10 +5,6 @@ Some of its functionalities include submitting and verify proofs through the Ali
 
 You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
-## Table of Contents
-- [Installation](#installation)
-- [API Reference](#api-reference)
-
 ## Installation
 
 To use this SDK in your Rust project, add the following to your `Cargo.toml`:
