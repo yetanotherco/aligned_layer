@@ -26,7 +26,7 @@ mod test {
     use super::verify_protocol_state_proof;
 
     const MINA_PROTOCOL_STATE_PROOF_BASE64_QUERY: &str = include_str!(
-        "../../../../../batcher/aligned/test_files/mina/mina_protocol_state_proof_base64.json"
+        "../../../../../batcher/aligned/test_files/mina/mina_devnet_protocol_state_proof_base64.json"
     );
 
     #[test]
