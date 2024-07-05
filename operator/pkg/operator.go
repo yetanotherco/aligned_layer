@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/binary"
-"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
@@ -35,7 +34,6 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
 type Operator struct {
@@ -174,20 +172,16 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 		"batch merkle root", newBatchLog.BatchMerkleRoot,
 	)
 
-	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer)
+	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
 	}
 
-	merkleRootVerificationResult := o.verifyMerkleRoot(newBatchLog.BatchMerkleRoot, verificationDataBatch)
-	if !merkleRootVerificationResult {
-		return fmt.Errorf("merkle root verification failed")
-	}
-
 	verificationDataBatchLen := len(verificationDataBatch)
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
+	fmt.Println("in some place");
 	wg.Add(verificationDataBatchLen)
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
@@ -347,6 +341,8 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Risc0:
+		fmt.Println("in common.Risc0:");
+
 		proofLen := (uint32)(len(verificationData.Proof))
 		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
 
@@ -440,82 +436,4 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 func (o *Operator) SignTaskResponse(batchMerkleRoot [32]byte) *bls.Signature {
 	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchMerkleRoot)
 	return &responseSignature
-}
-
-func (o *Operator) verifyMerkleRoot(expectedBatchMerkleRoot [32]byte, verificationDataBatch []VerificationData) bool {
-	// pub extern "C" fn verify_merkle_tree_batch_ffi(
-	// 	batch_bytes: &[u8; MAX_BATCH_SIZE],
-	// 	batch_len: usize,
-	// 	merkle_root: &[u8; 32]
-	// ) -> bool {
-
-	// computedMerkleRoot := o.ComputeMerkleRoot(hashedLeaves)
-	// fmt.Printf("Expected Merkle Root: %x\n", expectedBatchMerkleRoot)
-	// fmt.Printf("Computed Merkle Root: %x\n", computedMerkleRoot)
-	// return expectedBatchMerkleRoot == computedMerkleRoot
-
-	// use to calculate merkle_tree =
-	// func VerifyMerkleTreeBatch(batchBuffer [MaxBatchSize]byte, batchLen uint, merkleRootBuffer [32]byte) bool {
-
-	var verificationDataBytes []byte
-	// var hashedLeaves [][32]byte
-	// Concat fields into a single byte slice
-	for _, v := range verificationDataBatch {
-		var verificationData []byte
-
-		verificationData = append(verificationData, v.Proof...)
-		verificationData = append(verificationData, v.PubInput...)
-		verificationData = append(verificationData, v.VerificationKey...)
-		verificationData = append(verificationData, v.VmProgramCode...)
-
-		//FIX hardcoded to see if this is what is missing
-		proofGeneratorAddress := "0x66f9664f97F2b50F62D13eA064982f936dE76657"
-		// Remove the "0x" prefix
-		proofGeneratorAddress = proofGeneratorAddress[2:]
-		// Convert hex string to byte slice
-		proofGeneratorAddressBytes, err := hex.DecodeString(proofGeneratorAddress)
-		if err != nil {
-			fmt.Printf("Error decoding hex string: %v\n", err)
-			return false
-		}
-		
-		verificationData = append(verificationData, proofGeneratorAddressBytes...)
-		verificationDataBytes = append(verificationDataBytes, verificationData...)
-	}
-
-	var verificationDataArray [merkle_tree.MaxBatchSize]byte
-	copy(verificationDataArray[:], verificationDataBytes)
-	return merkle_tree.VerifyMerkleTreeBatch(verificationDataArray, uint(len(verificationDataBatch)), expectedBatchMerkleRoot)
-}
-
-func ComputeHash(data []byte) [32]byte {
-	hash := crypto.Keccak256(data) // rust uses Keccak256
-	var result [32]byte
-	copy(result[:], hash)
-	return result
-}
-
-func (o *Operator) ComputeMerkleRoot(nodes [][32]byte) [32]byte {
-	if len(nodes) == 0 {
-		return [32]byte{}
-	}
-	if len(nodes) == 1 {
-		return nodes[0]
-	}
-
-	//build next level of nodes
-	var newLevel [][32]byte
-	for i := 0; i < len(nodes); i += 2 {
-		if i+1 < len(nodes) {
-			// Hash the concatenation of two adjacent nodes
-			nodeConcatenation := append(nodes[i][:], nodes[i+1][:]...)
-			newLevel = append(newLevel, ComputeHash(nodeConcatenation))
-		} else {
-			// If there is less than expected nodes, this will duplicate the last element
-			nodeConcatenation := append(nodes[i][:], nodes[i][:]...)
-			newLevel = append(newLevel, ComputeHash(nodeConcatenation))
-		}
-	}
-
-	return o.ComputeMerkleRoot(newLevel)
 }

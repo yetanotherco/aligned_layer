@@ -3,13 +3,14 @@ package operator
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 	"io"
 	"net/http"
 )
 
-func (o *Operator) getBatchFromS3(proofUrl string) ([]VerificationData, error) {
-	o.Logger.Infof("Getting batch from S3..., proofUrl: %s", proofUrl)
-	resp, err := http.Head(proofUrl)
+func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {
+	o.Logger.Infof("Getting batch from S3..., batchURL: %s", batchURL)
+	resp, err := http.Head(batchURL)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +25,7 @@ func (o *Operator) getBatchFromS3(proofUrl string) ([]VerificationData, error) {
 			resp.ContentLength, o.Config.Operator.MaxBatchSize)
 	}
 
-	resp, err = http.Get(proofUrl)
+	resp, err = http.Get(batchURL)
 	if err != nil {
 		return nil, err
 	}
@@ -35,14 +36,20 @@ func (o *Operator) getBatchFromS3(proofUrl string) ([]VerificationData, error) {
 		}
 	}(resp.Body)
 
-	proof, err := io.ReadAll(resp.Body)
+	batchBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
+	// Checks if downloaded merkle root is the same as the expected one
+	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
+	if !merkle_root_check {
+		return nil, fmt.Errorf("merkle Root check failed")
+	}
+
 	var batch []VerificationData
 
-	err = json.Unmarshal(proof, &batch)
+	err = json.Unmarshal(batchBytes, &batch)
 	if err != nil {
 		return nil, err
 	}
