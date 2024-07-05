@@ -14,7 +14,6 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     }
     
     let batch_bytes = unsafe { std::slice::from_raw_parts(batch_ptr, batch_len) };
-    println!("after unsafe: {}", batch_bytes.clone().len());
 
     let batch = match serde_json::from_slice::<Vec<VerificationData>>(batch_bytes) {
         Ok(batch) => batch,
