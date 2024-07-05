@@ -166,17 +166,17 @@ const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
 
 async fn submit_proof_to_aligned(
-proof: Vec<u8>,
-wallet: Wallet<SigningKey>
+    proof: Vec<u8>,
+    wallet: Wallet<SigningKey>
 ) -> Result<AlignedVerificationData, anyhow::Error> {
-let verification_data = VerificationData {
-    proving_system: ProvingSystemId::SP1,
-    proof,
-    proof_generator_addr: wallet.address(),
-    vm_program_code: Some(ELF.to_vec()),
-    verification_key: None,
-    pub_input: None,
-};
+    let verification_data = VerificationData {
+        proving_system: ProvingSystemId::SP1,
+        proof,
+        proof_generator_addr: wallet.address(),
+        vm_program_code: Some(ELF.to_vec()),
+        verification_key: None,
+        pub_input: None,
+    };
 
     submit(BATCHER_URL, &verification_data, wallet).await
         .map_err(|e| anyhow::anyhow!("Failed to submit proof: {:?}", e))
@@ -184,8 +184,8 @@ let verification_data = VerificationData {
 
 #[tokio::main]
 async fn main() {
-let wallet = // Initialize wallet
-let proof = // Generate or obtain proof
+    let wallet = // Initialize wallet
+    let proof = // Generate or obtain proof
 
     match submit_proof_to_aligned(proof, wallet).await {
         Ok(aligned_verification_data) => println!("Proof submitted successfully"),
