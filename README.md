@@ -166,4 +166,4 @@ If you want to run an operator, check our [Operator Guide](./docs/operator_guide
 
 ## Aligned Infrastructure Guide
 
-If you are developing in Aligned, or want to run your own devnet, check our [setup Aligned guide](./docs/developer_guides/2_setup_aligned.md)
+If you are developing in Aligned, or want to run your own devnet, check our [setup Aligned guide](docs/guides/3_setup_aligned.md)
