@@ -8,7 +8,7 @@ In the landing page we can see information such as how many [Operators](./4_oper
 
 ![](../../images/explorer-landing-page.png)
 
-From here, we can search for a specific batch by its merkle root, we can directly jump to any one of the last 5 submitted batches, and we can easily go to the `Latest Batches` page, where we navigate through pages of different proofs, ordered by latest submission, and easily view their on-chain status, timestamp, and block number.
+From here, we can search for a specific batch by its Merkle Root, we can directly jump to any one of the last 5 submitted batches, and we can easily go to the `Latest Batches` page, where we can navigate through the various pages of batches of proofs submitted to aligned, ordered by latest submission, and easily check their on-chain status, timestamp, and block number.
 
 ![](../../images/explorer-latest-batches.png)
 
