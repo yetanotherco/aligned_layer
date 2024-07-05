@@ -386,12 +386,11 @@ impl Batcher {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
             // update last uploaded batch block
             *last_uploaded_batch_block = block_number;
-            // This is a hotfix until we merge https://github.com/yetanotherco/aligned_layer/pull/365
-            drop(last_uploaded_batch_block);
             info!("Batch Finalizer: Last uploaded batch block updated to: {}. Lock unlocked", block_number);
-            self.submit_batch(&batch_bytes, &batch_merkle_tree.root, submitter_addresses)
-                .await;
         }
+        // Moving this outside the previous scope is a hotfix until we merge https://github.com/yetanotherco/aligned_layer/pull/365
+        self.submit_batch(&batch_bytes, &batch_merkle_tree.root, submitter_addresses)
+            .await;
 
         if !wait_for_verification {
             send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
