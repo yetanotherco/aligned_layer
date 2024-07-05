@@ -14,9 +14,11 @@ Currently, proof verification in Ethereum is expensive and throughput is limited
 
 Proof technology has been evolving over the last decade, with new arguments, fields, commitments and other tools appearing every day. It is hard to try new ideas if verification costs are high and there is a considerable go-to-market time, as a consequence of development time of new, gas-optimized smart contracts, or the inclusion of new precompiles to make them affordable.
 
-Aligned provides an alternative to reduce costs and increase throughput significantly. This is achieved by two different modes: the fast mode and the aggregation/slow mode. 
+Aligned provides an alternative to reduce costs and increase throughput significantly. This is achieved by two different modes: **fast mode** and **aggregation mode**. 
 
-The fast mode works with a subset of Ethereum’s validators via restaking. Validators (also called Operators) receive proofs, verify them using the verification code written in Rust or another higher-level language, and sign messages with BLS signatures. If a two-thirds majority agrees, the results are posted in Ethereum. Since Aligned’s operators only need to run the verification code on bare metal, we have several advantages compared to running it on top of the EVM:
+The fast mode works with a subset of Ethereum’s validators via restaking. Validators (also known as Operators) receive proofs, verify them using the verification code written in Rust or any other higher-level language, and then sign messages with BLS signatures. If a two-thirds (2/3) majority agrees, the results are posted in Ethereum. 
+
+Since Aligned’s operators only need to run the verification code on bare metal, we have several advantages compared to running it on top of the EVM:
 
 - The code can be optimized for speed, not gas consumption.
 - We can leverage parallelization to increase throughput.
