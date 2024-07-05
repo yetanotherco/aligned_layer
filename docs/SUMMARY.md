@@ -26,7 +26,7 @@
 ## Guides
 
 * [Submitting proofs](guides/0_submitting_proofs.md)
-* [Generating & Submiting Proofs with ZKRust](guides/0_5_using_zkrust.md)
+* [Generating & Submitting Proofs with ZKRust](guides/0_5_using_zkrust.md)
 * [SDK](guides/1_SDK.md)
 * [Using Aligned on your app](guides/2_using_aligned_on_your_app.md)
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)

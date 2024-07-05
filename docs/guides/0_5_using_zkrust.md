@@ -1,11 +1,10 @@
-# Generating & Submiting proofs to Aligned using ZKRust
+# Generating & Submitting proofs to Aligned using ZKRust
 
 ## Dependencies
 
 To generate and submit proofs to Aligned using ZKRust, you need to have the following dependencies installed:
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
-- [ZKRust](https://github.com/lambdaclass/zkRust)
 
 ## Generate & Submit proofs
 
