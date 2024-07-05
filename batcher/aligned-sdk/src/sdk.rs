@@ -290,34 +290,11 @@ pub async fn submit_and_wait(
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
-    let (ws_stream, _) = connect_async(batcher_addr)
-        .await
-        .map_err(errors::SubmitError::ConnectionError)?;
-
-    debug!("WebSocket handshake has been successfully completed");
-    let (ws_write, ws_read) = ws_stream.split();
-
-    let ws_write = Arc::new(Mutex::new(ws_write));
-
     let verification_data = vec![verification_data.clone()];
 
-    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e: url::ParseError| errors::SubmitError::EthError(e.to_string()))?;
-
-    let contract_address = match chain {
-        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
-    };
-
-    let aligned_verification_data = _submit_multiple_and_wait(
-        ws_write,
-        ws_read,
-        eth_rpc_provider,
-        contract_address,
-        &verification_data,
-        wallet,
-    )
-    .await?;
+    let aligned_verification_data =
+        submit_multiple_and_wait(batcher_addr, eth_rpc_url, chain, &verification_data, wallet)
+            .await?;
 
     if let Some(mut aligned_verification_data) = aligned_verification_data {
         Ok(aligned_verification_data.pop())
