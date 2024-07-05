@@ -19,6 +19,7 @@ serde_json = "1.0.118"
 hex = "0.4.3"
 mina-tree = { git = "https://github.com/lambdaclass/openmina/", branch = "mina_bridge" }
 mina-p2p-messages = { git = "https://github.com/lambdaclass/openmina/", branch = "mina_bridge" }
+base64 = "0.22.1"
 
 [patch.crates-io]
 ark-ff = { git = "https://github.com/openmina/algebra", branch = "openmina" }

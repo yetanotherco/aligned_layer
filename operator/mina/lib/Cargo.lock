@@ -969,6 +969,7 @@ dependencies = [
  "ark-ff",
  "ark-poly",
  "ark-serialize",
+ "base64 0.22.1",
  "hex",
  "kimchi",
  "mina-p2p-messages",
