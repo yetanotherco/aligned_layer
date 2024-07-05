@@ -4,7 +4,7 @@ The Batcher receives proofs from different Users, bundles them in a batch of pro
 
 To avoid trust assumptions, the Batcher has some specific mechanisms;
 
-So that the User is sure that his proof was included in a batch, the Batcher will send to each User the Merkle Proof (or Merkle Path). With this, the User can rebuild the Merkle Root starting from his proof, thus verifying his proof was actually included in the batch.
+To ensure that the User is sure that their proof was included in a batch, the Batcher will send to each User the Merkle Proof (or Merkle Path). With this, the User can rebuild the Merkle Root starting from their proof, thus verifying it was actually included in the batch.
 
 Also, to avoid unnecesarry proof submissions, the Batcher does a preliminary verification of the submitted proofs, to avoid as much as possible the submission of false proofs in a batch.
 
