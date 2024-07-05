@@ -149,9 +149,7 @@ require(proofIsIncludedBool, "proof not included in batch");
 
 ### Step 3 - Submit and verify the proof to Aligned
 
-First, generate the proof. For SP1, this means having the [script](../../examples/zkquiz/quiz/script/src/main.rs) generate the proof.
-
-Then, submit the proof to Aligned for verification. This can be done either with the SDK or by using the Aligned CLI.
+The proof submission and verification can be done either with the SDK or by using the Aligned CLI.
 
 #### Using the SDK
 
