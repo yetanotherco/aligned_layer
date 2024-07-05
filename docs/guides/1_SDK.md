@@ -6,8 +6,10 @@ Some of its functionalities include submitting and verify proofs through the Ali
 You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
 ## Table of Contents
-- [Installation](#installation)
-- [API Reference](#api-reference)
+- [Aligned SDK](#aligned-sdk)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [API Reference](#api-reference)
 
 ## Installation
 
@@ -47,6 +49,44 @@ Submits mulitple proofs to the batcher to be verified and returns an aligned ver
 #### Arguments
 
 - `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `verification_data` - A verification data array.
+- `wallet` - The wallet used to sign the proof.
+
+#### Returns
+
+- `Result<Option<Vec<AlignedVerificationData>>>, SubmitError>` - An aligned verification data array or an error.
+
+#### Errors
+
+- `MissingParameter` if the verification data vector is empty.
+- `SerdeError` if there is an error serializing the verification data.
+- `ConnectionError` if there is an error sending the message to the websocket.
+
+### submit_and_wait
+
+Submits a proof to the batcher to be verified, waits for the verification on ethereum and returns an aligned verification data struct.
+
+#### Arguments
+
+- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `eth_rpc_url` - The URL of the Ethereum RPC node.
+- `chain` - The chain on which the verification will be done.
+- `verification_data` - The verification data for the proof.
+- `wallet` - The wallet used to sign the proof.
+
+#### Returns
+
+- `Result<Option<AlignedVerificationData>>, SubmitError>` - An aligned verification data or an error.
+
+### submit_multiple_and_wait
+
+Submits mulitple proofs to the batcher to be verified, waits for the verification on Ethereum and returns an aligned verification data array.
+
+#### Arguments
+
+- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `eth_rpc_url` - The URL of the Ethereum RPC node.
+- `chain` - The chain on which the verification will be done.
 - `verification_data` - A verification data array.
 - `wallet` - The wallet used to sign the proof.
 

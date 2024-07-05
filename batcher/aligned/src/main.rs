@@ -70,12 +70,6 @@ pub struct SubmitArgs {
         default_value = "ws://localhost:8080"
     )]
     connect_addr: String,
-    #[arg(
-        name = "Ethereum RPC provider address",
-        long = "rpc",
-        default_value = "http://localhost:8545"
-    )]
-    eth_rpc_url: String,
     #[arg(name = "Proving system", long = "proving_system")]
     proving_system_flag: ProvingSystemArg,
     #[arg(name = "Proof file path", long = "proof")]
@@ -108,12 +102,6 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
-    #[arg(
-        name = "The Ethereum network's name",
-        long = "chain",
-        default_value = "devnet"
-    )]
-    chain: ChainArg,
 }
 
 #[derive(Parser, Debug)]
@@ -262,8 +250,6 @@ async fn main() -> Result<(), AlignedError> {
             })?;
 
             let repetitions = submit_args.repetitions;
-            let eth_rpc_url = submit_args.eth_rpc_url.clone();
-            let chain = submit_args.chain.clone().into();
             let connect_addr = submit_args.connect_addr.clone();
 
             let keystore_path = &submit_args.keystore_path;
@@ -294,14 +280,8 @@ async fn main() -> Result<(), AlignedError> {
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let aligned_verification_data_vec = submit_multiple(
-                &connect_addr,
-                &eth_rpc_url,
-                chain,
-                &verification_data_arr,
-                wallet,
-            )
-            .await?;
+            let aligned_verification_data_vec =
+                submit_multiple(&connect_addr, &verification_data_arr, wallet).await?;
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
                 let mut unique_batch_merkle_roots = HashSet::new();
