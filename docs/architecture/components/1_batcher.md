@@ -8,5 +8,5 @@ To ensure that the User is sure that their proof was included in a batch, the Ba
 
 Also, to avoid unnecessary proof submissions, the Batcher performs a preliminary verification of the submitted proofs, to minimize the submission of false proofs in a batch.
 
-But, of course each proof has a cost of verification, so each batch must contain some sort of payment for it to be verified. To handle this payment of each batch, the Batcher will submit the batch, but not directly to the Aligned Service Manager, but through its [Batcher Payment Service](./2_payment_service_contract.md).
+However each proof has a cost of verification, so each batch must contain some sort of payment for it to be verified. To handle this payment of each batch, the Batcher submits the batch through its [Batcher Payment Service](./2_payment_service_contract.md).
 
