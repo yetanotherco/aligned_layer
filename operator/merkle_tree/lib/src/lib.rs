@@ -12,7 +12,6 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
         println!("batch_ptr == null || batch_len == 0 {}", batch_len);
         return false;
     }
-    println!("batch_len: {}", batch_len);
     
     let batch_bytes = unsafe { std::slice::from_raw_parts(batch_ptr, batch_len) };
     println!("after unsafe: {}", batch_bytes.clone().len());
