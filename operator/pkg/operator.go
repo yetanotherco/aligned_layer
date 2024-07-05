@@ -181,7 +181,6 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	verificationDataBatchLen := len(verificationDataBatch)
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
-	fmt.Println("in some place");
 	wg.Add(verificationDataBatchLen)
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
@@ -341,8 +340,6 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Risc0:
-		fmt.Println("in common.Risc0:");
-
 		proofLen := (uint32)(len(verificationData.Proof))
 		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
 

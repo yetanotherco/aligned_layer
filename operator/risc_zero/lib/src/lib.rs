@@ -12,23 +12,17 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
         return false;
     }
 
-    println!("in verify_risc_zero_receipt_ffi after check");
 
     let receipt_bytes = unsafe { std::slice::from_raw_parts(receipt_bytes, receipt_len as usize) };
-    println!("in verify_risc_zero_receipt_ffi after unsafe 1");
 
     let image_id = unsafe { std::slice::from_raw_parts(image_id, image_id_len as usize) };
-    println!("in verify_risc_zero_receipt_ffi after unsafe 2");
 
     let mut image_id_array = [0u8; 32];
     image_id_array.copy_from_slice(image_id);
 
     if let Ok(receipt) = bincode::deserialize::<Receipt>(receipt_bytes) {
-        println!("in verify_risc_zero_receipt_ffi returning");
         return receipt.verify(image_id_array).is_ok();
     }
-    println!("in verify_risc_zero_receipt_ffi returning");
-
     false
 }
 
