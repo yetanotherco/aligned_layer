@@ -4,7 +4,7 @@
 
 * [About Aligned](introduction/0_about_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
-* [Core concepts](introduction/2_core_concepts.md)
+* [Key Terms](introduction/2_key_terms)
 * [Use cases](introduction/3_use_cases.md)
 * [FAQ](introduction/4_faq.md)
 

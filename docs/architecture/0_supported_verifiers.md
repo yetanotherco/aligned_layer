@@ -1,5 +1,7 @@
 # Supported verifiers
 
+Aligned Layer's support for multiple proof systems is a significant advantage, as it allows users to choose the most suitable system based on their specific requirements.
+
 The following is the list of the verifiers currently supported by Aligned:
 
 - :white_check_mark: gnark - Groth16 (with BN254)
