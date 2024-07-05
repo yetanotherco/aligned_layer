@@ -41,7 +41,7 @@ You can get holesky eth from the [faucet](https://cloud.google.com/application/w
 ```bash
 cargo run --release -- prove-sp1 \
     --submit-to-aligned-with-keystore <path_to_keystore> \
-    examples/fibonacci_no_std .
+    examples/fibonacci .
 ```
 
 This command will generate a proof for the Fibonacci example circuit and submit it to Aligned using the keystore provided.
