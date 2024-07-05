@@ -10,7 +10,7 @@ import "C"
 import "unsafe"
 
 const (
-	MaxBatchSize = 8301009
+	MaxBatchSize = 3716926
 )
 
 func VerifyMerkleTreeBatch(batchBuffer [MaxBatchSize]byte, batchLen uint, merkleRootBuffer [32]byte) bool {

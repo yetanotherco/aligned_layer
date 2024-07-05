@@ -2,7 +2,8 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use aligned_sdk::types::{VerificationData, VerificationDataCommitment, VerificationCommitmentBatch};
 
 // TODO: Ten times the size of one proof, could be changed later
-const MAX_BATCH_SIZE: usize = 2 * 1024 * 1024 * 10;
+// const MAX_BATCH_SIZE: usize = 2 * 1024 * 1024 * 10;
+const MAX_BATCH_SIZE: usize = 3716926;
 
 #[no_mangle]
 pub extern "C" fn verify_merkle_tree_batch_ffi(

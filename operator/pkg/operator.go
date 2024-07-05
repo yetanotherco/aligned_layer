@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/binary"
-	"encoding/hex"
+"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
@@ -35,6 +35,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
 type Operator struct {
@@ -442,18 +443,25 @@ func (o *Operator) SignTaskResponse(batchMerkleRoot [32]byte) *bls.Signature {
 }
 
 func (o *Operator) verifyMerkleRoot(expectedBatchMerkleRoot [32]byte, verificationDataBatch []VerificationData) bool {
-	var hashedLeaves [][32]byte
+	// pub extern "C" fn verify_merkle_tree_batch_ffi(
+	// 	batch_bytes: &[u8; MAX_BATCH_SIZE],
+	// 	batch_len: usize,
+	// 	merkle_root: &[u8; 32]
+	// ) -> bool {
+
+	// computedMerkleRoot := o.ComputeMerkleRoot(hashedLeaves)
+	// fmt.Printf("Expected Merkle Root: %x\n", expectedBatchMerkleRoot)
+	// fmt.Printf("Computed Merkle Root: %x\n", computedMerkleRoot)
+	// return expectedBatchMerkleRoot == computedMerkleRoot
+
+	// use to calculate merkle_tree =
+	// func VerifyMerkleTreeBatch(batchBuffer [MaxBatchSize]byte, batchLen uint, merkleRootBuffer [32]byte) bool {
+
+	var verificationDataBytes []byte
+	// var hashedLeaves [][32]byte
 	// Concat fields into a single byte slice
 	for _, v := range verificationDataBatch {
 		var verificationData []byte
-
-		// Looking at the Rust code,
-		// ProvingSystemId is not being encoded into the merkle leaf
-		provingSystemIdBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(provingSystemIdBytes, uint16(v.ProvingSystemId))
-		fmt.Printf("Proving System ID: %d\n", v.ProvingSystemId)
-		fmt.Printf("provingSystemIdBytes: %d\n", provingSystemIdBytes)
-		// verificationData = append(verificationData, provingSystemIdBytes...)
 
 		verificationData = append(verificationData, v.Proof...)
 		verificationData = append(verificationData, v.PubInput...)
@@ -470,30 +478,14 @@ func (o *Operator) verifyMerkleRoot(expectedBatchMerkleRoot [32]byte, verificati
 			fmt.Printf("Error decoding hex string: %v\n", err)
 			return false
 		}
-		fmt.Printf("Proof Generator Address bytes: %s\n", proofGeneratorAddressBytes)
 		
 		verificationData = append(verificationData, proofGeneratorAddressBytes...)
-
-		// no proof_generator_addr ??
-		// Rust:
-		// fn hash_data(leaf: &Self::Data) -> Self::Node {
-		//     let mut hasher = Keccak256::new();
-		//     hasher.update(leaf.proof_commitment);
-		//     hasher.update(leaf.pub_input_commitment);
-		//     hasher.update(leaf.proving_system_aux_data_commitment);
-		//     hasher.update(leaf.proof_generator_addr);
-
-		//     hasher.finalize().into()
-		// }
-
-		// Hash the concatenated data
-		hashedLeaves = append(hashedLeaves, ComputeHash(verificationData))
+		verificationDataBytes = append(verificationDataBytes, verificationData...)
 	}
 
-	computedMerkleRoot := o.ComputeMerkleRoot(hashedLeaves)
-	fmt.Printf("Expected Merkle Root: %x\n", expectedBatchMerkleRoot)
-	fmt.Printf("Computed Merkle Root: %x\n", computedMerkleRoot)
-	return expectedBatchMerkleRoot == computedMerkleRoot
+	var verificationDataArray [merkle_tree.MaxBatchSize]byte
+	copy(verificationDataArray[:], verificationDataBytes)
+	return merkle_tree.VerifyMerkleTreeBatch(verificationDataArray, uint(len(verificationDataBatch)), expectedBatchMerkleRoot)
 }
 
 func ComputeHash(data []byte) [32]byte {
