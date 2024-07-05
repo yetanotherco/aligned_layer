@@ -2,7 +2,7 @@
 
 The Aligned Service Manager handles the reception of new batches to Aligned, keeps their status on-chain, and receives their response.
 
-It is a smart contract which recieves all new batches, with their merkle root and a pointer to where is the batch currently stored. When received, this manager will emit an Event for the [Operators](./4_operator.md) to know when there is a new batch to verify.
+It is a smart contract which receives all new batches, with their Merkle Root and a pointer to where the batch is currently stored. When received, this manager will emit an Event for the [Operators](./4_operator.md) to know when there is a new batch to verify.
 
 Then, when receiving a response from the [Aggregator](./5_aggregator.md), with Operator's aggregated BLS signatures, the Aligned Service Manager checks the BLS signature to verify the Operators were in fact those who processed the batch and its responded status.
 
