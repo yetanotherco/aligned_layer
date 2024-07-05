@@ -6,9 +6,7 @@ You can find an example of the full flow of using Aligned in your app in the [ZK
 
 This example shows a sample app that generates an SP1 proof that a user knows the answers to a quiz, then submits the proof to Aligned for verification. Finally, it includes a smart contract that verifies that a proof was verified in Aligned and mints an NFT.
 
-## Steps
-
-### Step 1 - Generate your ZK Proof
+## 1. Generate your ZK Proof
 
 Generate your ZK proofs using any of the proving systems supported by Aligned.
 For this example, we use the SP1 proving system. The current SP1 version used in Aligned is v1.0.8-testnet.
@@ -51,7 +49,7 @@ fn main() {
 
 You can find an example of the quiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) that generates it in the [ZKQuiz example](../../examples/zkquiz) directory.
 
-### Step 2 - Write your smart contract
+## 2. Write your smart contract
 
 To check if a proof was verified in Aligned, you need to call to the Aligned ServiceManager contract inside your smart contract.
 
@@ -147,7 +145,7 @@ bool proofIsIncludedBool = abi.decode(proofIsIncluded, (bool));
 require(proofIsIncludedBool, "proof not included in batch");
 ```
 
-### Step 3 - Submit and verify the proof to Aligned
+## 3. Submit and verify the proof to Aligned
 
 The proof submission and verification can be done either with the SDK or by using the Aligned CLI.
 
