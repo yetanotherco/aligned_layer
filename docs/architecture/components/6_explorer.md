@@ -15,6 +15,7 @@ From here, we can search for a specific batch by its Merkle Root, we can directl
 From there we can also click any individual batch Merkle Root to view its details.
 
 From here we can visualize:
+
 - the whole `Merkle Root`
 - `Amount of Proofs` in the batch
 - Ethereum's `Submission Block Number` , linked to etherscan
