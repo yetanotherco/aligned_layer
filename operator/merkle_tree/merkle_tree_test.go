@@ -31,7 +31,7 @@ func TestVerifyMerkleTreeBatch(t *testing.T) {
 	copy(merkleRoot[:], byteSliceFromMerkleRoot)
 
 	if !VerifyMerkleTreeBatch(([MaxBatchSize]byte)(byteValue), uint(len(byteValue)), merkleRoot) {
-		t.Errorf("Batch did not verify")
+		t.Errorf("Batch did not verify Merkle Root")
 	}
 
 }
