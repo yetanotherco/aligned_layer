@@ -10,7 +10,7 @@ Once verified, it will emit another Event, for anyone interested (for example, t
 
 ## Details of the contract
 
-Besides the base [EigenLayer middleware contracts](https://github.com/Layr-Labs/eigenlayer-middleware/tree/mainnet/src), the core contract for Aligned is [AlignedLayerServiceManager](../../contracts/src/core/AlignedLayerServiceManager.sol). It is in charge of creating new batch verification tasks, storing batches state and verify operator responses.
+Besides the base [EigenLayer middleware contracts](https://github.com/Layr-Labs/eigenlayer-middleware/tree/mainnet/src), the core contract for Aligned is [AlignedLayerServiceManager](../../contracts/src/core/AlignedLayerServiceManager.sol). It is in charge of creating new batch verification tasks, storing batches state and verifying operator responses.
 
 ### API 
 
@@ -57,7 +57,7 @@ function verifyBatchInclusion(
 A method used for consumers to check that their proof was verified in Aligned. It checks that the batch were the proof was included was verified and that the proof was included in the batch verifying the merkle path.
 
 * `proofCommitment`, `pubInputCommitment`, `provingSystemAuxDataCommitment`, `proofGeneratorAddr` are the commitments to the verification data sent to the batcher.
-* `batchMerkleRoot` is a 256 bit hash representing the batch merkle root the proof was included in. 
-* `merkleProof` is the merkle path from the hashed leaf built from the verification data commitments to the root.
+* `batchMerkleRoot` is a 256 bit hash representing the batch Merkle Root the proof was included in. 
+* `merkleProof` is the Merkle path from the hashed leaf built from the verification data commitments to the root.
 * `verificationDataBatchIndex` is the index of the proof in the batch were it was included. 
   
