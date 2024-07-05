@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
@@ -176,6 +177,11 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
+	}
+
+	merkleRootVerificationResult := o.verifyMerkleRoot(newBatchLog.BatchMerkleRoot, verificationDataBatch)
+	if !merkleRootVerificationResult {
+		return fmt.Errorf("merkle root verification failed")
 	}
 
 	verificationDataBatchLen := len(verificationDataBatch)
@@ -433,4 +439,91 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 func (o *Operator) SignTaskResponse(batchMerkleRoot [32]byte) *bls.Signature {
 	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchMerkleRoot)
 	return &responseSignature
+}
+
+func (o *Operator) verifyMerkleRoot(expectedBatchMerkleRoot [32]byte, verificationDataBatch []VerificationData) bool {
+	var hashedLeaves [][32]byte
+	// Concat fields into a single byte slice
+	for _, v := range verificationDataBatch {
+		var verificationData []byte
+
+		// Looking at the Rust code,
+		// ProvingSystemId is not being encoded into the merkle leaf
+		provingSystemIdBytes := make([]byte, 2)
+		binary.BigEndian.PutUint16(provingSystemIdBytes, uint16(v.ProvingSystemId))
+		fmt.Printf("Proving System ID: %d\n", v.ProvingSystemId)
+		fmt.Printf("provingSystemIdBytes: %d\n", provingSystemIdBytes)
+		// verificationData = append(verificationData, provingSystemIdBytes...)
+
+		verificationData = append(verificationData, v.Proof...)
+		verificationData = append(verificationData, v.PubInput...)
+		verificationData = append(verificationData, v.VerificationKey...)
+		verificationData = append(verificationData, v.VmProgramCode...)
+
+		//FIX hardcoded to see if this is what is missing
+		proofGeneratorAddress := "0x66f9664f97F2b50F62D13eA064982f936dE76657"
+		// Remove the "0x" prefix
+		proofGeneratorAddress = proofGeneratorAddress[2:]
+		// Convert hex string to byte slice
+		proofGeneratorAddressBytes, err := hex.DecodeString(proofGeneratorAddress)
+		if err != nil {
+			fmt.Printf("Error decoding hex string: %v\n", err)
+			return false
+		}
+		fmt.Printf("Proof Generator Address bytes: %s\n", proofGeneratorAddressBytes)
+		
+		verificationData = append(verificationData, proofGeneratorAddressBytes...)
+
+		// no proof_generator_addr ??
+		// Rust:
+		// fn hash_data(leaf: &Self::Data) -> Self::Node {
+		//     let mut hasher = Keccak256::new();
+		//     hasher.update(leaf.proof_commitment);
+		//     hasher.update(leaf.pub_input_commitment);
+		//     hasher.update(leaf.proving_system_aux_data_commitment);
+		//     hasher.update(leaf.proof_generator_addr);
+
+		//     hasher.finalize().into()
+		// }
+
+		// Hash the concatenated data
+		hashedLeaves = append(hashedLeaves, ComputeHash(verificationData))
+	}
+
+	computedMerkleRoot := o.ComputeMerkleRoot(hashedLeaves)
+	fmt.Printf("Expected Merkle Root: %x\n", expectedBatchMerkleRoot)
+	fmt.Printf("Computed Merkle Root: %x\n", computedMerkleRoot)
+	return expectedBatchMerkleRoot == computedMerkleRoot
+}
+
+func ComputeHash(data []byte) [32]byte {
+	hash := crypto.Keccak256(data) // rust uses Keccak256
+	var result [32]byte
+	copy(result[:], hash)
+	return result
+}
+
+func (o *Operator) ComputeMerkleRoot(nodes [][32]byte) [32]byte {
+	if len(nodes) == 0 {
+		return [32]byte{}
+	}
+	if len(nodes) == 1 {
+		return nodes[0]
+	}
+
+	//build next level of nodes
+	var newLevel [][32]byte
+	for i := 0; i < len(nodes); i += 2 {
+		if i+1 < len(nodes) {
+			// Hash the concatenation of two adjacent nodes
+			nodeConcatenation := append(nodes[i][:], nodes[i+1][:]...)
+			newLevel = append(newLevel, ComputeHash(nodeConcatenation))
+		} else {
+			// If there is less than expected nodes, this will duplicate the last element
+			nodeConcatenation := append(nodes[i][:], nodes[i][:]...)
+			newLevel = append(newLevel, ComputeHash(nodeConcatenation))
+		}
+	}
+
+	return o.ComputeMerkleRoot(newLevel)
 }
