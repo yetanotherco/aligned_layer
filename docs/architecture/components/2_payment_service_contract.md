@@ -41,7 +41,7 @@ This function will be called every time a User transfers funds to the smart cont
     ) external onlyBatcher
 ```
 
-This function will be executed only by the Batcher, when he has a batch to post to Aligned. It contains all the information needed to post the batch in [Aligned Service Manager](./3_service_manager_contract.md) (`batchMerkleRoot` and `batchDataPointer`), plus an array containing which are the `proofSubmitters`, so as to discount `gasPerProof` from these, and also the `gasForAggregator`, declaring how much will need go to pay the response of the batch.
+This function will be executed only by the Batcher, when it has a batch to post to Aligned. It contains all the information needed to post the batch in [Aligned Service Manager](./3_service_manager_contract.md) (`batchMerkleRoot` and `batchDataPointer`), plus an array containing which are the `proofSubmitters`, so as to discount `gasPerProof` from these, and also the `gasForAggregator`, declaring how much will need to go pay for the response of the batch.
 
 #### Withdraw
 
