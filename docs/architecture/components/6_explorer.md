@@ -12,7 +12,7 @@ From here, we can search for a specific batch by its Merkle Root, we can directl
 
 ![](../../images/explorer-latest-batches.png)
 
-From there we can also click any individual batch merkle root to view its details.
+From there we can also click any individual batch Merkle Root to view its details.
 
 From here we can visualize:
 - the whole `Merkle Root`
