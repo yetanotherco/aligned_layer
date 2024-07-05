@@ -2,9 +2,9 @@
 
 Aligned can be integrated into your applications in a few simple steps to provide a way to verify ZK proofs generated inside your system.
 
-This example shows a sample app that generates an SP1 proof that a user knows the answers to a quiz, then submits the proof to Aligned for verification. Finally, it includes a smart contract that verifies that a proof was verified in Aligned and mints an NFT.
+You can find an example of the full flow of using Aligned in your app in the [ZKQuiz example](../../examples/zkquiz).
 
-You can find an example of the full flow of using Aligned in your app in the [ZKQuiz example](../../examples/zkquiz). 
+This example shows a sample app that generates an SP1 proof that a user knows the answers to a quiz, then submits the proof to Aligned for verification. Finally, it includes a smart contract that verifies that a proof was verified in Aligned and mints an NFT.
 
 ## Steps
 
@@ -12,6 +12,42 @@ You can find an example of the full flow of using Aligned in your app in the [ZK
 
 Generate your ZK proofs using any of the proving systems supported by Aligned.
 For this example, we use the SP1 proving system. The current SP1 version used in Aligned is v1.0.8-testnet.
+
+```rust
+use sp1_sdk::{ProverClient, SP1Stdin};
+use std::io;
+
+const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
+
+fn generate_sp1_proof(user_answers: &str) -> Result<Vec<u8>, &'static str> {
+    let mut stdin = SP1Stdin::new();
+    stdin.write(user_answers);
+
+    let client = ProverClient::new();
+    let (pk, vk) = client.setup(ELF);
+
+    match client.prove_compressed(&pk, stdin) {
+        Ok(proof) => {
+            client.verify_compressed(&proof, &vk).expect("verification failed");
+            println!("Proof generated and verified successfully.");
+            Ok(proof)
+        }
+        Err(_) => {
+            println!("Proof generation failed. Incorrect answer");
+            Err("Proof generation failed")
+        }
+    }
+}
+
+fn main() {
+    // Example user answers
+    let user_answers = "abc";
+    match generate_sp1_proof(user_answers) {
+        Ok(proof) => println!("Proof: {:?}", proof),
+        Err(err) => println!("Error: {}", err),
+    }
+}
+```
 
 You can find an example of the quiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) that generates it in the [ZKQuiz example](../../examples/zkquiz) directory.
 
