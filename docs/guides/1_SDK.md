@@ -24,6 +24,14 @@ aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer" }
 
 Submits a proof to the batcher to be verified and returns an aligned verification data struct.
 
+```rust
+pub async fn submit(
+    batcher_addr: &str,
+    verification_data: &VerificationData,
+    wallet: Wallet<SigningKey>,
+) -> Result<Option<AlignedVerificationData>, errors::SubmitError>
+```
+
 #### Arguments
 
 - `batcher_addr` - The address of the batcher to which the proof will be submitted.
@@ -43,6 +51,14 @@ Submits a proof to the batcher to be verified and returns an aligned verificatio
 ### submit_multiple
 
 Submits mulitple proofs to the batcher to be verified and returns an aligned verification data array.
+
+```rust
+pub async fn submit_multiple(
+    batcher_addr: &str,
+    verification_data: &[VerificationData],
+    wallet: Wallet<SigningKey>,
+) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError>
+```
 
 #### Arguments
 
@@ -64,6 +80,14 @@ Submits mulitple proofs to the batcher to be verified and returns an aligned ver
 
 Checks if the proof has been verified with Aligned and is included in the batch on-chain.
 
+```rust
+pub async fn verify_proof_onchain(
+    aligned_verification_data: AlignedVerificationData,
+    chain: Chain,
+    eth_rpc_url: &str,
+) -> Result<bool, errors::VerificationError>
+```
+
 #### Arguments
 
 - `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
@@ -83,6 +107,12 @@ Checks if the proof has been verified with Aligned and is included in the batch 
 ### get_verification_key_commitment
 
 Generates a keccak256 hash commitment of the verification key.
+
+```rust
+pub fn get_verification_key_commitment(
+    content: &[u8]
+) -> [u8; 32]
+```
 
 #### Arguments
 
