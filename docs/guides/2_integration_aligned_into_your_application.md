@@ -53,7 +53,7 @@ You can find an example of the quiz proof [program](../../examples/zkquiz/quiz/p
 
 ### Step 2 - Write your smart contract
 
-To check if a proof was verified in Aligned, you need to call to the Aligned ServiceManager contract inside your smart contract. 
+To check if a proof was verified in Aligned, you need to call to the Aligned ServiceManager contract inside your smart contract.
 
 Also, you will need a way to check that the proven program is your own.
 
@@ -234,4 +234,5 @@ You can find an example of the proof submission and verification in the [Quiz Pr
 The example generates a proof, instantiates a wallet to submit the proof, and then submits the proof to Aligned for verification. It then waits for the proof to be verified in Aligned.
 
 #### Using the CLI
+
 You can find examples of how to submit a proof using the CLI in the [submitting proofs guide](0_submitting_proofs.md).
