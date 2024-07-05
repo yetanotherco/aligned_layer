@@ -74,6 +74,16 @@ impl From<FromHexError> for SubmitError {
     }
 }
 
+impl From<VerificationError> for SubmitError {
+    fn from(e: VerificationError) -> Self {
+        match e {
+            VerificationError::ParsingError(e) => SubmitError::GenericError(e),
+            VerificationError::EthError(e) => SubmitError::EthError(e),
+            VerificationError::BatchVerifiedEventStreamError(e) => SubmitError::GenericError(e),
+        }
+    }
+}
+
 impl fmt::Debug for SubmitError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -108,6 +118,7 @@ impl fmt::Debug for SubmitError {
 pub enum VerificationError {
     ParsingError(String),
     EthError(String),
+    BatchVerifiedEventStreamError(String),
 }
 
 impl fmt::Debug for VerificationError {
@@ -115,6 +126,21 @@ impl fmt::Debug for VerificationError {
         match self {
             VerificationError::ParsingError(e) => write!(f, "Parsing error: {}", e),
             VerificationError::EthError(e) => write!(f, "Ethereum error: {}", e),
+            VerificationError::BatchVerifiedEventStreamError(e) => {
+                write!(f, "`BatchVerified` event stream error: {}", e)
+            }
+        }
+    }
+}
+
+impl fmt::Display for VerificationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            VerificationError::ParsingError(e) => write!(f, "Parsing error: {}", e),
+            VerificationError::EthError(e) => write!(f, "Ethereum error: {}", e),
+            VerificationError::BatchVerifiedEventStreamError(e) => {
+                write!(f, "`BatchVerified` event stream error: {}", e)
+            }
         }
     }
 }

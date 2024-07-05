@@ -1,5 +1,6 @@
 use crate::errors;
 use crate::eth;
+use crate::eth::BatchVerifiedFilter;
 use crate::types::ResponseMessage;
 use crate::types::{
     AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, VerificationCommitmentBatch,
@@ -8,13 +9,18 @@ use crate::types::{
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::signers::Wallet;
 use sha3::{Digest, Keccak256};
+use std::collections::HashSet;
 use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::timeout;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use log::{debug, error};
+use crate::eth::BatchVerifiedEventStream;
+
+use log::{debug, error, info};
 
 use ethers::providers::{Http, Provider};
 use ethers::utils::hex;
@@ -39,6 +45,8 @@ pub const CURRENT_PROTOCOL_VERSION: u16 = 0;
 /// * If there is an error deserializing the message.
 pub async fn submit_multiple(
     batcher_addr: &str,
+    eth_rpc_url: &str,
+    chain: Chain,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
@@ -51,29 +59,50 @@ pub async fn submit_multiple(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit_multiple(ws_write, ws_read, verification_data, wallet).await
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e: url::ParseError| errors::SubmitError::EthError(e.to_string()))?;
+
+    let contract_address = match chain {
+        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+    };
+
+    _submit_multiple(
+        ws_write,
+        ws_read,
+        eth_rpc_provider,
+        contract_address,
+        verification_data,
+        wallet,
+    )
+    .await
 }
 
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    eth_rpc_provider: Provider<Http>,
+    contract_address: &str,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // First message from the batcher is the protocol version
     if let Some(Ok(msg)) = ws_read.next().await {
-        match msg.into_data().try_into() {
-            Ok(data) => {
-                let expected_protocol_version = u16::from_be_bytes(data);
-                if expected_protocol_version > CURRENT_PROTOCOL_VERSION {
+        match serde_json::from_slice::<ResponseMessage>(&msg.into_data()) {
+            Ok(ResponseMessage::ProtocolVersion(protocol_version)) => {
+                if protocol_version > CURRENT_PROTOCOL_VERSION {
                     return Err(errors::SubmitError::ProtocolVersionMismatch(
                         CURRENT_PROTOCOL_VERSION,
-                        expected_protocol_version,
+                        protocol_version,
                     ));
                 }
             }
-            Err(_) => {
-                error!("Error while reading protocol version");
+            Ok(_) => {
+                error!("Batcher did not respond with the protocol version");
+                return Ok(None);
+            }
+            Err(e) => {
+                error!("Error while deserializing protocol version: {}", e);
                 return Ok(None);
             }
         }
@@ -121,6 +150,8 @@ async fn _submit_multiple(
     let aligned_verification_data = receive(
         ws_read,
         ws_write_clone,
+        eth_rpc_provider,
+        contract_address,
         verification_data.len(),
         num_responses,
         &mut verification_data_commitments_rev,
@@ -144,6 +175,8 @@ async fn _submit_multiple(
 /// * If there is an error deserializing the message.
 pub async fn submit(
     batcher_addr: &str,
+    eth_rpc_url: &str,
+    chain: Chain,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
@@ -158,8 +191,23 @@ pub async fn submit(
 
     let verification_data = vec![verification_data.clone()];
 
-    let aligned_verification_data =
-        _submit_multiple(ws_write, ws_read, &verification_data, wallet).await?;
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e: url::ParseError| errors::SubmitError::EthError(e.to_string()))?;
+
+    let contract_address = match chain {
+        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+    };
+
+    let aligned_verification_data = _submit_multiple(
+        ws_write,
+        ws_read,
+        eth_rpc_provider,
+        contract_address,
+        &verification_data,
+        wallet,
+    )
+    .await?;
 
     if let Some(mut aligned_verification_data) = aligned_verification_data {
         Ok(aligned_verification_data.pop())
@@ -171,6 +219,8 @@ pub async fn submit(
 async fn receive(
     ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    eth_rpc_provider: Provider<Http>,
+    contract_address: &str,
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
@@ -181,7 +231,19 @@ async fn receive(
         ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
 
     let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
-    let mut awaiting_verification = false;
+
+    let service_manager = eth::aligned_service_manager(eth_rpc_provider.clone(), contract_address)
+        .await
+        .map_err(|e| errors::SubmitError::EthError(e.to_string()))?;
+
+    let events = service_manager.event::<BatchVerifiedFilter>();
+
+    let mut stream = events
+        .stream()
+        .await
+        .map_err(|e| errors::VerificationError::BatchVerifiedEventStreamError(e.to_string()))?;
+
+    let mut verified_batch_merkle_roots = HashSet::new();
 
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
@@ -195,15 +257,11 @@ async fn receive(
             return Ok(None);
         } else {
             let mut num_responses_lock = num_responses.lock().await;
+            *num_responses_lock += 1;
 
             let data = msg.into_data();
             match serde_json::from_slice::<ResponseMessage>(&data) {
                 Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
-                    // If we are awaiting verification, we should not process the next batch inclusion data
-                    if awaiting_verification {
-                        error!("Received batch inclusion data while awaiting verification");
-                        continue;
-                    }
                     debug!("Received response from batcher");
                     debug!(
                         "Batch merkle root: {}",
@@ -220,33 +278,45 @@ async fn receive(
                             &batch_inclusion_data,
                         ));
                     }
-                    // If we are waiting for verification, we should not increment the number of responses
-                    if wait_for_verification {
-                        awaiting_verification = true;
-                        continue;
+
+                    if wait_for_verification
+                        && !verified_batch_merkle_roots
+                            .contains(&batch_inclusion_data.batch_merkle_root)
+                    {
+                        let await_batch_verified_fut = await_batch_verified_event(
+                            &mut stream,
+                            &batch_inclusion_data.batch_merkle_root,
+                        );
+
+                        match timeout(Duration::from_secs(60), await_batch_verified_fut).await {
+                            Ok(Ok(_)) => {
+                                info!("Batch operator signatures verified on Ethereum");
+                                verified_batch_merkle_roots
+                                    .insert(batch_inclusion_data.batch_merkle_root);
+                            }
+                            Ok(Err(e)) => {
+                                error!(
+                                    "Error awaiting for batch signature verification event: {}",
+                                    e
+                                );
+                            }
+                            Err(_) => {
+                                info!(
+                                    "Batch operator signatures were not verified yet on Ethereum"
+                                );
+                            }
+                        }
                     }
                 }
-                Ok(ResponseMessage::Verified(_)) => {
-                    // If we are not waiting for verification, we should not process the verification message
-                    if !wait_for_verification {
-                        error!("Received unexpected verification message");
-                        continue;
-                    }
-                    // If we are not awaiting verification, we should not process the verification message
-                    if !awaiting_verification {
-                        error!("Received Verification message out of sequence");
-                        continue;
-                    }
-                    debug!("Proof verified on-chain");
-                    awaiting_verification = false;
+                Ok(ResponseMessage::ProtocolVersion(_)) => {
+                    error!(
+                        "Batcher responded with protocol version instead of batch inclusion data"
+                    );
                 }
                 Err(e) => {
                     error!("Error while deserializing batcher response: {}", e);
                 }
             }
-
-            *num_responses_lock += 1;
-
             if *num_responses_lock == total_messages {
                 debug!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
@@ -276,6 +346,27 @@ fn verify_response(
 
     error!("Verification data commitments and batcher response with merkle root {} and index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
     false
+}
+
+// Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
+async fn await_batch_verified_event<'s>(
+    events_stream: &mut BatchVerifiedEventStream<'s>,
+    batch_merkle_root: &[u8; 32],
+) -> Result<(), errors::VerificationError> {
+    while let Some(event_result) = events_stream.next().await {
+        if let Ok(event) = event_result {
+            if &event.batch_merkle_root == batch_merkle_root {
+                info!("Batch operator signatures verified on Ethereum");
+                break;
+            }
+        } else {
+            error!("Error awaiting for batch signature verification event");
+            return Err(errors::VerificationError::BatchVerifiedEventStreamError(
+                "Error awaiting for batch signature verification event".to_string(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Checks if the proof has been verified with Aligned and is included in the batch.
@@ -391,11 +482,16 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data =
-            submit_multiple("ws://localhost:8080", &verification_data, wallet)
-                .await
-                .unwrap()
-                .unwrap();
+        let aligned_verification_data = submit_multiple(
+            "ws://localhost:8080",
+            "http://localhost:8545",
+            Chain::Devnet,
+            &verification_data,
+            wallet,
+        )
+        .await
+        .unwrap()
+        .unwrap();
 
         assert_eq!(aligned_verification_data.len(), 1);
     }
@@ -419,7 +515,14 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let result = submit_multiple("ws://localhost:8080", &verification_data, wallet).await;
+        let result = submit_multiple(
+            "ws://localhost:8080",
+            "http://localhost:8545",
+            Chain::Devnet,
+            &verification_data,
+            wallet,
+        )
+        .await;
 
         assert!(result.is_ok());
     }
@@ -452,11 +555,16 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data =
-            submit_multiple("ws://localhost:8080", &verification_data, wallet)
-                .await
-                .unwrap()
-                .unwrap();
+        let aligned_verification_data = submit_multiple(
+            "ws://localhost:8080",
+            "http://localhost:8545",
+            Chain::Devnet,
+            &verification_data,
+            wallet,
+        )
+        .await
+        .unwrap()
+        .unwrap();
 
         sleep(std::time::Duration::from_secs(20)).await;
 
@@ -497,11 +605,16 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data =
-            submit_multiple("ws://localhost:8080", &verification_data, wallet)
-                .await
-                .unwrap()
-                .unwrap();
+        let aligned_verification_data = submit_multiple(
+            "ws://localhost:8080",
+            "http://localhost:8545",
+            Chain::Devnet,
+            &verification_data,
+            wallet,
+        )
+        .await
+        .unwrap()
+        .unwrap();
 
         sleep(std::time::Duration::from_secs(10)).await;
 

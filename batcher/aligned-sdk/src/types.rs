@@ -197,7 +197,7 @@ impl AlignedVerificationData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
-    Verified(u8),
+    ProtocolVersion(u16),
 }
 
 #[derive(Debug, Clone)]
