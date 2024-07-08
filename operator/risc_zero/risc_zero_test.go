@@ -7,31 +7,23 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 )
 
-const MaxProofSize = 2 * 1024 * 1024
-const MaxImageIdSize = 32
-
 func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
-	receiptFile, err := os.Open("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof")
+	receiptBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	receiptBytes := make([]byte, MaxProofSize)
-	nReadReceiptBytes, err := receiptFile.Read(receiptBytes)
-	if err != nil {
-		t.Errorf("could not read bytes from file")
-	}
 
-	imageIdFile, err := os.Open("../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin")
+	imageIdBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin")
 	if err != nil {
 		t.Errorf("could not open image id file: %s", err)
 	}
-	imageIdBytes := make([]byte, MaxImageIdSize)
-	nReadImageIdBytes, err := imageIdFile.Read(imageIdBytes)
+
+	publicInputBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub")
 	if err != nil {
-		t.Errorf("could not read bytes from file")
+		t.Errorf("could not open public input file: %s", err)
 	}
 
-	if !risc_zero.VerifyRiscZeroReceipt(receiptBytes, uint32(nReadReceiptBytes), imageIdBytes, uint32(nReadImageIdBytes)) {
+	if !risc_zero.VerifyRiscZeroReceipt(receiptBytes, uint32(len(receiptBytes)), imageIdBytes, uint32(len(imageIdBytes)), publicInputBytes, uint32(len(publicInputBytes))) {
 		t.Errorf("proof did not verify")
 	}
 }
