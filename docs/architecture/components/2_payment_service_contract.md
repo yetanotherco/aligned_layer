@@ -8,7 +8,7 @@ The Batcher has an associated Batcher Payments smart contract, which is in charg
 
 Users must first deposit into this contract, via a normal transfer to its address, where the Batcher Payment System will update the User's balance.
 
-Then, users can send proofs to the Batcher, the Batcher will preemptively check if the user has funds for this, and once accumulating the whole batch, the Batcher will call its smart contract with the data it has received from the users.
+Then, users can send proofs to the Batcher, the Batcher will preemptively check if the user has funds for this, and once accumulated the whole batch, the Batcher will call its smart contract with the data it has received from the users.
 
 The smart contract will then discount the corresponding amount of funds from each of the senders' balances, and create a new Batch in [Aligned Service Manager](./3_service_manager_contract.md), sending with it the corresponding amount of tokens for the batch verification to be paid to the [Aggregator](./5_aggregator.md).
 
