@@ -109,13 +109,18 @@ First, open the risc0 host file and add the following code to export image id & 
 fn main() {
     // your code here
   
-    std::fs::write("<image_id_file_path>", convert(&<METHOD_ID>))
-            .expect("Failed to write fibonacci_id file");
+    // <METHOD_ID> is the method id of the function you want to prove
+    // <method_id_file_path> is the path where the method id will be saved
+    std::fs::write("<method_id_file_path>", convert(&<METHOD_ID>))
+            .expect("Failed to write method_id file");
   
+    // <pub_input_file_path> is the path where the public input will be saved
     std::fs::write("<pub_input_file_path>", receipt.journal.bytes)
             .expect("Failed to write pub_input file");
 }
 
+
+// Convert u32 array to u8 array for storage
 pub fn convert(data: &[u32; 8]) -> [u8; 32] {
     let mut res = [0; 32];
     for i in 0..8 {
@@ -146,7 +151,7 @@ Then, you can send the proof to the Aligned network by running the following com
 aligned submit \
   --proving_system Risc0 \
   --proof <proof_file_path> \
-  --vm_program <image_id_file_path> \
+  --vm_program <method_id_file_path> \
   --public_input <pub_input_file_path> \
   --conn wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr>
