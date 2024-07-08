@@ -51,7 +51,7 @@ You can find an example of the quiz proof [program](../../examples/zkquiz/quiz/p
 
 ## 2. Write your smart contract
 
-To check if a proof was verified in Aligned, you need to call to the Aligned ServiceManager contract inside your smart contract.
+To check if a proof was verified in Aligned, you need to make a call to the `AlignedServiceManager` contract inside your smart contract.
 
 Also, you will need a way to check that the proven program is your own.
 
