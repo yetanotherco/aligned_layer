@@ -1,36 +1,28 @@
-use crate::errors;
-use crate::eth;
-use crate::eth::BatchVerifiedFilter;
-use crate::types::ResponseMessage;
-use crate::types::{
-    AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, VerificationCommitmentBatch,
-    VerificationData, VerificationDataCommitment,
+use crate::{
+    communication::{receive, receive_and_wait, send_messages},
+    errors, eth,
+    protocol::check_protocol_version,
+    types::{
+        AlignedVerificationData, Chain, ClientMessage, VerificationData, VerificationDataCommitment,
+    },
 };
-use ethers::prelude::k256::ecdsa::SigningKey;
-use ethers::signers::Wallet;
+
+use ethers::{
+    prelude::k256::ecdsa::SigningKey,
+    providers::{Http, Provider},
+    signers::Wallet,
+};
 use sha3::{Digest, Keccak256};
-use std::collections::HashSet;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::timeout;
 use tokio::{net::TcpStream, sync::Mutex};
-use tokio_tungstenite::connect_async;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
-use crate::eth::BatchVerifiedEventStream;
+use log::debug;
 
-use log::{debug, error};
-
-use ethers::providers::{Http, Provider};
-use ethers::utils::hex;
 use futures_util::{
-    future,
     stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt, TryStreamExt,
+    SinkExt, StreamExt,
 };
-
-pub const CURRENT_PROTOCOL_VERSION: u16 = 0;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
@@ -186,22 +178,7 @@ async fn _submit_multiple(
     let ws_write_clone = ws_write.clone();
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
-    let mut sent_verification_data: Vec<VerificationData> = Vec::new();
-
-    {
-        let mut ws_write = ws_write.lock().await;
-
-        for verification_data in verification_data.iter() {
-            let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
-            let msg_str = serde_json::to_string(&msg).map_err(errors::SubmitError::SerdeError)?;
-            ws_write
-                .send(Message::Text(msg_str.clone()))
-                .await
-                .map_err(errors::SubmitError::ConnectionError)?;
-            sent_verification_data.push(verification_data.clone());
-            debug!("Message sent...");
-        }
-    }
+    let sent_verification_data = send_messages(ws_write, verification_data, wallet).await?;
 
     let num_responses = Arc::new(Mutex::new(0));
 
@@ -296,134 +273,6 @@ pub async fn submit(
     }
 }
 
-async fn receive(
-    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    total_messages: usize,
-    num_responses: Arc<Mutex<usize>>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
-    // Responses are filtered to only admit binary or close messages.
-    let mut response_stream =
-        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
-
-    let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
-
-    while let Some(Ok(msg)) = response_stream.next().await {
-        if let Message::Close(close_frame) = msg {
-            if let Some(close_msg) = close_frame {
-                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
-                ws_write.lock().await.close().await?;
-                return Ok(None);
-            }
-            error!("Connection was closed before receiving all messages. Try submitting your proof again");
-            ws_write.lock().await.close().await?;
-            return Ok(None);
-        } else {
-            let mut num_responses_lock = num_responses.lock().await;
-            *num_responses_lock += 1;
-
-            let data = msg.into_data();
-            match serde_json::from_slice::<ResponseMessage>(&data) {
-                Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
-                    debug!("Received response from batcher");
-                    debug!(
-                        "Batch merkle root: {}",
-                        hex::encode(batch_inclusion_data.batch_merkle_root)
-                    );
-                    debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-
-                    let verification_data_commitment =
-                        verification_data_commitments_rev.pop().unwrap_or_default();
-
-                    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
-                        aligned_verification_data.push(AlignedVerificationData::new(
-                            &verification_data_commitment,
-                            &batch_inclusion_data,
-                        ));
-                    }
-                }
-                Ok(ResponseMessage::ProtocolVersion(_)) => {
-                    error!(
-                        "Batcher responded with protocol version instead of batch inclusion data"
-                    );
-                }
-                Err(e) => {
-                    error!("Error while deserializing batcher response: {}", e);
-                }
-            }
-            if *num_responses_lock == total_messages {
-                debug!("All messages responded. Closing connection...");
-                ws_write.lock().await.close().await?;
-                return Ok(Some(aligned_verification_data));
-            }
-        }
-    }
-
-    Ok(None)
-}
-
-async fn receive_and_wait(
-    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    eth_rpc_provider: Provider<Http>,
-    contract_address: &str,
-    total_messages: usize,
-    num_responses: Arc<Mutex<usize>>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
-    // Responses are filtered to only admit binary or close messages.
-    let mut response_stream =
-        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
-
-    let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
-
-    let service_manager = eth::aligned_service_manager(eth_rpc_provider.clone(), contract_address)
-        .await
-        .map_err(|e| errors::SubmitError::EthError(e.to_string()))?;
-
-    let events = service_manager.event::<BatchVerifiedFilter>();
-
-    let mut stream = events
-        .stream()
-        .await
-        .map_err(|e| errors::SubmitError::BatchVerifiedEventStreamError(e.to_string()))?;
-
-    // Two different proofs can return the same batch_merkle_root and we don't want wait for the same event twice.
-    let mut verified_batch_merkle_roots = HashSet::new();
-
-    while let Some(Ok(msg)) = response_stream.next().await {
-        if let Message::Close(close_frame) = msg {
-            if let Some(close_msg) = close_frame {
-                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
-                ws_write.lock().await.close().await?;
-                return Ok(None);
-            }
-            error!("Connection was closed before receiving all messages. Try submitting your proof again");
-            ws_write.lock().await.close().await?;
-            return Ok(None);
-        } else {
-            process_message(
-                msg,
-                &mut aligned_verification_data,
-                verification_data_commitments_rev,
-                &mut stream,
-                &mut verified_batch_merkle_roots,
-                num_responses.clone(),
-            )
-            .await?;
-
-            if *num_responses.lock().await == total_messages {
-                debug!("All messages responded. Closing connection...");
-                ws_write.lock().await.close().await?;
-                return Ok(Some(aligned_verification_data));
-            }
-        }
-    }
-
-    Ok(None)
-}
-
 /// Checks if the proof has been verified with Aligned and is included in the batch.
 /// # Arguments
 /// * `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
@@ -495,172 +344,6 @@ pub fn get_verification_key_commitment(content: &[u8]) -> [u8; 32] {
     let mut hasher = Keccak256::new();
     hasher.update(content);
     hasher.finalize().into()
-}
-
-fn verify_response(
-    verification_data_commitment: &VerificationDataCommitment,
-    batch_inclusion_data: &BatchInclusionData,
-) -> bool {
-    debug!("Verifying response data matches sent proof data ...");
-    let batch_inclusion_proof = batch_inclusion_data.batch_inclusion_proof.clone();
-
-    if batch_inclusion_proof.verify::<VerificationCommitmentBatch>(
-        &batch_inclusion_data.batch_merkle_root,
-        batch_inclusion_data.index_in_batch,
-        verification_data_commitment,
-    ) {
-        debug!("Done. Data sent matches batcher answer");
-        return true;
-    }
-
-    error!("Verification data commitments and batcher response with merkle root {} and index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
-    false
-}
-
-// Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
-async fn await_batch_verified_event<'s>(
-    events_stream: &mut BatchVerifiedEventStream<'s>,
-    batch_merkle_root: &[u8; 32],
-) -> Result<(), errors::SubmitError> {
-    while let Some(event_result) = events_stream.next().await {
-        if let Ok(event) = event_result {
-            if &event.batch_merkle_root == batch_merkle_root {
-                debug!("Batch operator signatures verified on Ethereum");
-                break;
-            }
-        } else {
-            error!("Error awaiting for batch signature verification event");
-            return Err(errors::SubmitError::BatchVerifiedEventStreamError(
-                "Error awaiting for batch signature verification event".to_string(),
-            ));
-        }
-    }
-    Ok(())
-}
-
-async fn process_message<'s>(
-    msg: Message,
-    aligned_verification_data: &mut Vec<AlignedVerificationData>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-    stream: &mut BatchVerifiedEventStream<'s>,
-    verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
-    num_responses: Arc<Mutex<usize>>,
-) -> Result<(), errors::SubmitError> {
-    let mut num_responses_lock = num_responses.lock().await;
-    *num_responses_lock += 1;
-
-    let data = msg.into_data();
-    match serde_json::from_slice::<ResponseMessage>(&data) {
-        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
-            handle_batch_inclusion_data(
-                batch_inclusion_data,
-                aligned_verification_data,
-                verification_data_commitments_rev,
-                stream,
-                verified_batch_merkle_roots,
-            )
-            .await?;
-        }
-        Ok(ResponseMessage::ProtocolVersion(_)) => {
-            error!("Batcher responded with protocol version instead of batch inclusion data");
-        }
-        Err(e) => {
-            error!("Error while deserializing batcher response: {}", e);
-        }
-    }
-
-    Ok(())
-}
-
-async fn handle_batch_inclusion_data<'s>(
-    batch_inclusion_data: BatchInclusionData,
-    aligned_verification_data: &mut Vec<AlignedVerificationData>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-    stream: &mut BatchVerifiedEventStream<'s>,
-    verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
-) -> Result<(), errors::SubmitError> {
-    debug!("Received response from batcher");
-    debug!(
-        "Batch merkle root: {}",
-        hex::encode(batch_inclusion_data.batch_merkle_root)
-    );
-    debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-
-    let verification_data_commitment = verification_data_commitments_rev.pop().unwrap_or_default();
-
-    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
-        aligned_verification_data.push(AlignedVerificationData::new(
-            &verification_data_commitment,
-            &batch_inclusion_data,
-        ));
-    }
-
-    let batch_merkle_root = batch_inclusion_data.batch_merkle_root.to_vec();
-
-    if !verified_batch_merkle_roots.contains(&batch_merkle_root) {
-        await_batch_verification(stream, &batch_inclusion_data.batch_merkle_root).await?;
-        verified_batch_merkle_roots.insert(batch_merkle_root);
-    }
-
-    Ok(())
-}
-
-async fn await_batch_verification<'s>(
-    stream: &mut BatchVerifiedEventStream<'s>,
-    batch_merkle_root: &[u8; 32],
-) -> Result<(), errors::SubmitError> {
-    let await_batch_verified_fut = await_batch_verified_event(stream, batch_merkle_root);
-
-    match timeout(Duration::from_secs(60), await_batch_verified_fut).await {
-        Ok(Ok(_)) => {
-            debug!("Batch operator signatures verified on Ethereum");
-        }
-        Ok(Err(e)) => {
-            error!(
-                "Error awaiting for batch signature verification event: {}",
-                e
-            );
-        }
-        Err(_) => {
-            debug!("Batch operator signatures were not verified yet on Ethereum");
-        }
-    }
-
-    Ok(())
-}
-
-async fn check_protocol_version(
-    ws_read: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-) -> Result<(), errors::SubmitError> {
-    if let Some(Ok(msg)) = ws_read.next().await {
-        match serde_json::from_slice::<ResponseMessage>(&msg.into_data()) {
-            Ok(ResponseMessage::ProtocolVersion(protocol_version)) => {
-                if protocol_version > CURRENT_PROTOCOL_VERSION {
-                    return Err(errors::SubmitError::ProtocolVersionMismatch(
-                        CURRENT_PROTOCOL_VERSION,
-                        protocol_version,
-                    ));
-                }
-            }
-            Ok(_) => {
-                error!("Batcher did not respond with the protocol version");
-                return Err(errors::SubmitError::GenericError(
-                    "No protocol version received".to_string(),
-                ));
-            }
-            Err(e) => {
-                error!("Error while deserializing batcher response: {}", e);
-                return Err(errors::SubmitError::SerdeError(e));
-            }
-        }
-    } else {
-        error!("Batcher did not respond with the protocol version");
-        return Err(errors::SubmitError::GenericError(
-            "No protocol version received".to_string(),
-        ));
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
