@@ -66,7 +66,7 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             }
 
             warn!("Trying to verify Risc0 proof but image id or public input was not provided. Returning false");
-            return false;
+            false
         }
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
