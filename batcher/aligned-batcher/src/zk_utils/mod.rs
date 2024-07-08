@@ -1,10 +1,12 @@
+use log::{debug, warn};
+
+use aligned_sdk::types::{ProvingSystemId, VerificationData};
+
 use crate::gnark::verify_gnark;
 use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
-use aligned_sdk::types::{ProvingSystemId, VerificationData};
-use log::{debug, warn};
 
 pub(crate) fn verify(verification_data: &VerificationData) -> bool {
     match verification_data.proving_system {
@@ -44,13 +46,17 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             is_valid
         }
         ProvingSystemId::Risc0 => {
-            if let Some(image_id_slice) = &verification_data.vm_program_code {
-                let mut image_id = [0u8; 32];
-                image_id.copy_from_slice(image_id_slice.as_slice());
-                return verify_risc_zero_proof(verification_data.proof.as_slice(), &image_id);
+            if verification_data.vm_program_code.is_none() || verification_data.pub_input.is_none() {
+                warn!("Trying to verify Risc0 proof but image id or public input was not provided. Returning false");
+                return false;
             }
-            warn!("Trying to verify Risc0 proof but image ID was not provided. Returning false");
-            false
+
+            let image_id_slice = verification_data.vm_program_code.as_ref().unwrap().as_slice();
+            let public_input = verification_data.pub_input.as_ref().unwrap().as_slice();
+
+            let mut image_id = [0u8; 32];
+            image_id.copy_from_slice(image_id_slice);
+            return verify_risc_zero_proof(verification_data.proof.as_slice(), &image_id, public_input);
         }
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
