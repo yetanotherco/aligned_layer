@@ -22,21 +22,12 @@ pub async fn handle_batch_inclusion_data<'s>(
     stream: &mut BatchVerifiedEventStream<'s>,
     verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
 ) -> Result<(), errors::SubmitError> {
-    debug!("Received response from batcher");
-    debug!(
-        "Batch merkle root: {}",
-        hex::encode(batch_inclusion_data.batch_merkle_root)
-    );
-    debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-
-    let verification_data_commitment = verification_data_commitments_rev.pop().unwrap_or_default();
-
-    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
-        aligned_verification_data.push(AlignedVerificationData::new(
-            &verification_data_commitment,
-            &batch_inclusion_data,
-        ));
-    }
+    handle_batch_inclusion_data_without_await(
+        batch_inclusion_data.clone(),
+        aligned_verification_data,
+        verification_data_commitments_rev,
+    )
+    .await?;
 
     let batch_merkle_root = batch_inclusion_data.batch_merkle_root.to_vec();
 
