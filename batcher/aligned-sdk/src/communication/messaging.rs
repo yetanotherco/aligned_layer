@@ -69,7 +69,7 @@ pub async fn receive(
             ws_write.lock().await.close().await?;
             return Ok(None);
         } else {
-            process_message_without_await(
+            process_batch_inclusion_data_without_await(
                 msg,
                 &mut aligned_verification_data,
                 verification_data_commitments_rev,
@@ -128,7 +128,7 @@ pub async fn receive_and_wait(
             ws_write.lock().await.close().await?;
             return Ok(None);
         } else {
-            process_message(
+            process_batch_inclusion_data(
                 msg,
                 &mut aligned_verification_data,
                 verification_data_commitments_rev,
@@ -149,7 +149,7 @@ pub async fn receive_and_wait(
     Ok(None)
 }
 
-async fn process_message<'s>(
+async fn process_batch_inclusion_data<'s>(
     msg: Message,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
@@ -183,7 +183,7 @@ async fn process_message<'s>(
     Ok(())
 }
 
-async fn process_message_without_await(
+async fn process_batch_inclusion_data_without_await(
     msg: Message,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
