@@ -112,6 +112,7 @@ defmodule AlignedLayerServiceManager do
       response_transaction_hash: batch_response.transaction_hash,
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
+      proof_hashes: nil
     }
   end
 
@@ -133,6 +134,7 @@ defmodule AlignedLayerServiceManager do
           response_transaction_hash: batch_response.transaction_hash,
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
+          proof_hashes: unverified_batch.proof_hashes
         }
     end
   end

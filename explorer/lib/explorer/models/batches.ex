@@ -14,6 +14,7 @@ defmodule Batches do
     field :response_transaction_hash, :string
     field :response_timestamp, :utc_datetime
     field :data_pointer, :string
+    field :proof_hashes, {:array, :string}
 
     timestamps()
   end
@@ -21,8 +22,8 @@ defmodule Batches do
   @doc false
   def changeset(new_batch, updates) do
     new_batch
-    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer])
-    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash])
+    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer, :proof_hashes])
+    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :proof_hashes])
     |> validate_format(:merkle_root, ~r/0x[a-fA-F0-9]{64}/)
     |> unique_constraint(:merkle_root)
     |> validate_number(:amount_of_proofs, greater_than: 0)
@@ -44,7 +45,8 @@ defmodule Batches do
       response_block_number: batch_db.response_block_number,
       response_transaction_hash: batch_db.response_transaction_hash,
       response_timestamp: batch_db.response_timestamp,
-      data_pointer: batch_db.data_pointer
+      data_pointer: batch_db.data_pointer,
+      proof_hashes: batch_db.proof_hashes
     }
   end
 
@@ -118,10 +120,10 @@ defmodule Batches do
     end
   end
 
-  def get_amount_of_proofs(%{merkle_root: merkle_root}) do
+  def get_proof_info(%{merkle_root: merkle_root}) do
     query = from(b in Batches,
       where: b.merkle_root == ^merkle_root,
-      select: b.amount_of_proofs)
+      select: [b.amount_of_proofs, b.proof_hashes])
 
     case Explorer.Repo.one(query) do
       nil -> nil

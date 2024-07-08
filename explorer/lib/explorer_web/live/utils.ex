@@ -141,6 +141,25 @@ defmodule Utils do
     300
   end
 
+  def calculate_proof_hashes({:ok, batch_json}) do
+    # TODO calculate hash
+    IO.inspect("Calculating proof hashes")
+    ["0x1234567890", "0x1234567890", "0x1234567890"]
+  end
+
+  def calculate_proof_hashes({:error, _}) do
+    []
+  end
+
+  def extract_info_from_json(json) do
+    IO.inspect("Extracting info from JSON")
+    amount_of_proofs = json |> extract_amount_of_proofs_from_json()
+    proof_hashes = json |> calculate_proof_hashes()
+    IO.inspect("Amount of proofs: #{amount_of_proofs}")
+    IO.inspect("Proof hashes: #{proof_hashes}")
+    [amount_of_proofs, proof_hashes]
+  end
+
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
@@ -157,23 +176,25 @@ defmodule Utils do
     end
   end
 
-  def extract_amount_of_proofs(%BatchDB{} = batch) do
+  def extract_info_from_data_pointer(%BatchDB{} = batch) do
     IO.inspect("Extracting amount of proofs for batch: #{batch.merkle_root}")
     # only get from s3 if not already in DB
-    amount_of_proofs =
-      case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
+    [amount_of_proofs, proof_hashes] =
+      case Batches.get_proof_info(%{merkle_root: batch.merkle_root}) do
         nil ->
           IO.inspect("Fetching from S3")
 
           batch.data_pointer
           |> Utils.fetch_batch_data_pointer()
-          |> Utils.extract_amount_of_proofs_from_json()
+          |> Utils.extract_info_from_json()
 
-        proofs ->
-          IO.inspect("Fetching from DB")
-          proofs
+        [amount_of_proofs, proof_hashes] ->
+          IO.inspect("Fetching from DB") #already processed and stored the S3 data
+          [amount_of_proofs, proof_hashes]
       end
 
-    Map.put(batch, :amount_of_proofs, amount_of_proofs)
+    batch
+      |> Map.put(:amount_of_proofs, amount_of_proofs)
+      |> Map.put(:proof_hashes, proof_hashes)
   end
 end

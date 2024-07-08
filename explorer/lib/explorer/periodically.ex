@@ -61,7 +61,7 @@ defmodule Explorer.Periodically do
       {:ok, lock} ->
         "Processing batch: #{batch.merkle_root}" |> IO.inspect
         batch
-          |> Utils.extract_amount_of_proofs
+          |> Utils.extract_info_from_data_pointer
           |> Batches.generate_changeset
           |> Batches.insert_or_update
           |> case do
