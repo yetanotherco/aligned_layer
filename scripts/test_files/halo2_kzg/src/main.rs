@@ -132,7 +132,7 @@ fn main() {
     let cs = vk.clone().cs;
     let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
 
-    let instances: &[&[Fr]] = &[&[circuit.0]];
+    let instances = vec![vec![circuit.0]];
     let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
     create_proof::<
         KZGCommitmentScheme<Bn256>,
@@ -145,7 +145,7 @@ fn main() {
         &params,
         &pk,
         &[circuit.clone()],
-        &[instances],
+        &[instances.clone()],
         OsRng,
         &mut transcript,
     )

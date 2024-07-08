@@ -263,7 +263,7 @@ mod tests {
             &params,
             &pk,
             &[circuit.clone()],
-            &[instances],
+            &[instances.clone()],
             OsRng,
             &mut transcript,
         )
