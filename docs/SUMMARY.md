@@ -13,7 +13,6 @@
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
 * [Aggregation mode](architecture/2_aggregation_mode.md)
 * [Fast mode](architecture/1_fast_mode.md)
-* Components
   * [Batcher](./architecture/components/1_batcher.md)
   * [Payment Service Contract](./architecture/components/2_payment_service_contract.md)
   * [Service Manager Contract](./architecture/components/3_service_manager_contract.md)
