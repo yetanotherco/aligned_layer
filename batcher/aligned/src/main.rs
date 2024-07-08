@@ -13,8 +13,8 @@ use ethers::prelude::*;
 use ethers::utils::format_ether;
 use ethers::utils::hex;
 use ethers::utils::parse_ether;
-use log::{error, info};
 use log::warn;
+use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use aligned_sdk::errors::{AlignedError, SubmitError};
@@ -328,7 +328,7 @@ async fn main() -> Result<(), AlignedError> {
                 chain,
                 &verify_inclusion_args.eth_rpc_url,
             )
-                .await?;
+            .await?;
 
             if response {
                 info!("Your proof was verified in Aligned and included in the batch!");
