@@ -315,7 +315,7 @@ async fn _verify_proof_onchain(
 /// * The verification key commitment.
 /// # Errors
 /// * None.
-pub fn get_verification_key_commitment(content: &[u8]) -> [u8; 32] {
+pub fn get_commitment(content: &[u8]) -> [u8; 32] {
     let mut hasher = Keccak256::new();
     hasher.update(content);
     hasher.finalize().into()

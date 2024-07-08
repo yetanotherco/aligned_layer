@@ -18,7 +18,7 @@ use ethers::prelude::*;
 use log::warn;
 use log::{error, info};
 
-use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
+use aligned_sdk::sdk::{get_commitment, submit_multiple, verify_proof_onchain};
 
 use ethers::utils::format_ether;
 use ethers::utils::hex;
@@ -339,7 +339,7 @@ async fn main() -> Result<(), AlignedError> {
         GetCommitment(args) => {
             let content = read_file(args.input_file)?;
 
-            let hash = get_verification_key_commitment(&content);
+            let hash = get_commitment(&content);
 
             info!("Commitment: {}", hex::encode(hash));
             if let Some(output_file) = args.output_file {

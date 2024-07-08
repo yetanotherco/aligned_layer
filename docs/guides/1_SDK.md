@@ -100,12 +100,12 @@ pub async fn verify_proof_onchain(
 - `ParsingError` if there is an error parsing the address of the contract.
 - `EthError` if there is an error verifying the proof on-chain.
 
-### get_verification_key_commitment
+### get_commitment
 
 Generates a keccak256 hash commitment of the verification key.
 
 ```rust
-pub fn get_verification_key_commitment(
+pub fn get_commitment(
     content: &[u8]
 ) -> [u8; 32]
 ```
