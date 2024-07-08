@@ -89,29 +89,7 @@ async fn _submit_multiple_and_wait(
     wallet: Wallet<SigningKey>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // First message from the batcher is the protocol version
-    if let Some(Ok(msg)) = ws_read.next().await {
-        match serde_json::from_slice::<ResponseMessage>(&msg.into_data()) {
-            Ok(ResponseMessage::ProtocolVersion(protocol_version)) => {
-                if protocol_version > CURRENT_PROTOCOL_VERSION {
-                    return Err(errors::SubmitError::ProtocolVersionMismatch(
-                        CURRENT_PROTOCOL_VERSION,
-                        protocol_version,
-                    ));
-                }
-            }
-            Ok(_) => {
-                error!("Batcher did not respond with the protocol version");
-                return Ok(None);
-            }
-            Err(e) => {
-                error!("Error while deserializing protocol version: {}", e);
-                return Ok(None);
-            }
-        }
-    } else {
-        error!("Batcher did not respond with the protocol version");
-        return Ok(None);
-    }
+    check_protocol_version(&mut ws_read).await?;
 
     if verification_data.is_empty() {
         return Err(errors::SubmitError::MissingParameter(
@@ -198,29 +176,7 @@ async fn _submit_multiple(
     wallet: Wallet<SigningKey>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // First message from the batcher is the protocol version
-    if let Some(Ok(msg)) = ws_read.next().await {
-        match serde_json::from_slice::<ResponseMessage>(&msg.into_data()) {
-            Ok(ResponseMessage::ProtocolVersion(protocol_version)) => {
-                if protocol_version > CURRENT_PROTOCOL_VERSION {
-                    return Err(errors::SubmitError::ProtocolVersionMismatch(
-                        CURRENT_PROTOCOL_VERSION,
-                        protocol_version,
-                    ));
-                }
-            }
-            Ok(_) => {
-                error!("Batcher did not respond with the protocol version");
-                return Ok(None);
-            }
-            Err(e) => {
-                error!("Error while deserializing protocol version: {}", e);
-                return Ok(None);
-            }
-        }
-    } else {
-        error!("Batcher did not respond with the protocol version");
-        return Ok(None);
-    }
+    check_protocol_version(&mut ws_read).await?;
 
     if verification_data.is_empty() {
         return Err(errors::SubmitError::MissingParameter(
@@ -668,6 +624,40 @@ async fn await_batch_verification<'s>(
         Err(_) => {
             debug!("Batch operator signatures were not verified yet on Ethereum");
         }
+    }
+
+    Ok(())
+}
+
+async fn check_protocol_version(
+    ws_read: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+) -> Result<(), errors::SubmitError> {
+    if let Some(Ok(msg)) = ws_read.next().await {
+        match serde_json::from_slice::<ResponseMessage>(&msg.into_data()) {
+            Ok(ResponseMessage::ProtocolVersion(protocol_version)) => {
+                if protocol_version > CURRENT_PROTOCOL_VERSION {
+                    return Err(errors::SubmitError::ProtocolVersionMismatch(
+                        CURRENT_PROTOCOL_VERSION,
+                        protocol_version,
+                    ));
+                }
+            }
+            Ok(_) => {
+                error!("Batcher did not respond with the protocol version");
+                return Err(errors::SubmitError::GenericError(
+                    "No protocol version received".to_string(),
+                ));
+            }
+            Err(e) => {
+                error!("Error while deserializing batcher response: {}", e);
+                return Err(errors::SubmitError::SerdeError(e));
+            }
+        }
+    } else {
+        error!("Batcher did not respond with the protocol version");
+        return Err(errors::SubmitError::GenericError(
+            "No protocol version received".to_string(),
+        ));
     }
 
     Ok(())
