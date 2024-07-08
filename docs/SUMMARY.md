@@ -29,6 +29,7 @@
 * [SDK](guides/1_SDK.md)
 * [Integrating Aligned into your Application](guides/2_integration_aligned_into_your_application.md)
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)
+* [Generating & submitting proofs of Rust code with ZKRust](guides/0_5_using_zkrust.md)
 
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
