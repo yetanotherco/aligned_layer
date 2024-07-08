@@ -9,8 +9,10 @@
     >
       Merkle Root Hash:
       <p><%= @merkle_root %></p>
+
       Amount of Proofs in this Batch:
       <p><%= @current_batch.amount_of_proofs %></p>
+
       Proofs in this batch:
       <%= for proof_hash <- @current_batch.proof_hashes do %>
         <p><%= proof_hash %></p>
@@ -27,6 +29,7 @@
       >
         <%= @current_batch.submission_block_number |> Utils.format_number() %>
       </.a>
+
       Submission Transaction Hash:
       <.a
         target="_blank"
@@ -36,10 +39,12 @@
       >
         <%= @current_batch.submission_transaction_hash %>
       </.a>
+
       Submission Timestamp:
       <p>
         <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
       </p>
+      
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
         Response Block Number:
@@ -51,6 +56,7 @@
         >
           <%= @current_batch.response_block_number |> Utils.format_number() %>
         </.a>
+
         Response Transaction Hash:
         <.a
           target="_blank"
@@ -60,6 +66,7 @@
         >
           <%= @current_batch.response_transaction_hash %>
         </.a>
+
         Response Timestamp:
         <p>
           <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
