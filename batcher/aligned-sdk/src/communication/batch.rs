@@ -51,7 +51,10 @@ pub async fn handle_batch_inclusion_data_without_await<'s>(
     );
     debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
 
-    let verification_data_commitment = verification_data_commitments_rev.pop().unwrap_or_default();
+    let verification_data_commitment =
+        verification_data_commitments_rev.pop().ok_or_else(|| {
+            errors::SubmitError::GenericError("Verification data commitments are empty".to_string())
+        })?;
 
     if verify_response(&verification_data_commitment, &batch_inclusion_data) {
         aligned_verification_data.push(AlignedVerificationData::new(
