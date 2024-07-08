@@ -117,7 +117,7 @@ contract YourContract {
 
 You can find an example of the smart contract that checks if the proof was verified in Aligned in the [Quiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
 
-Note that the contract checks that the verification key commitment is the same as the program ELF.
+Note that the contract checks that the verification key commitment is the same as the program ELF commitment.
 
 ```solidity
 require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
