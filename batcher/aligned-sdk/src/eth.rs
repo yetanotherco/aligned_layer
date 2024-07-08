@@ -4,7 +4,7 @@ use std::sync::Arc;
 use ethers::prelude::*;
 use stream::EventStream;
 
-use crate::errors::VerificationError;
+use crate::core::errors::VerificationError;
 
 abigen!(
     AlignedLayerServiceManagerContract,

@@ -1,10 +1,16 @@
 use crate::{
-    communication::{receive, receive_and_wait, send_messages},
-    errors, eth,
-    protocol::check_protocol_version,
-    types::{
-        AlignedVerificationData, Chain, ClientMessage, VerificationData, VerificationDataCommitment,
+    communication::{
+        messaging::{receive, receive_and_wait, send_messages},
+        protocol::check_protocol_version,
     },
+    core::{
+        errors,
+        types::{
+            AlignedVerificationData, Chain, ClientMessage, VerificationData,
+            VerificationDataCommitment,
+        },
+    },
+    eth,
 };
 
 use ethers::{
@@ -349,8 +355,7 @@ pub fn get_verification_key_commitment(content: &[u8]) -> [u8; 32] {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::errors::SubmitError;
-    use crate::types::ProvingSystemId;
+    use crate::core::{errors::SubmitError, types::ProvingSystemId};
     use ethers::types::Address;
     use ethers::types::H160;
 

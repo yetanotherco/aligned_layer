@@ -3,7 +3,7 @@ use log::error;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use crate::{errors::SubmitError, types::ResponseMessage};
+use crate::core::{errors::SubmitError, types::ResponseMessage};
 
 pub const CURRENT_PROTOCOL_VERSION: u16 = 0;
 

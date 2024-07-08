@@ -3,7 +3,7 @@ extern crate core;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use aligned_sdk::types::{
+use aligned_sdk::core::types::{
     BatchInclusionData, ClientMessage, ResponseMessage, VerificationCommitmentBatch,
     VerificationData, VerificationDataCommitment,
 };
@@ -150,8 +150,9 @@ impl Batcher {
         let (outgoing, incoming) = ws_stream.split();
         let outgoing = Arc::new(RwLock::new(outgoing));
 
-        let protocol_version_msg =
-            ResponseMessage::ProtocolVersion(aligned_sdk::protocol::CURRENT_PROTOCOL_VERSION);
+        let protocol_version_msg = ResponseMessage::ProtocolVersion(
+            aligned_sdk::communication::protocol::CURRENT_PROTOCOL_VERSION,
+        );
 
         let serialized_protocol_version_msg = serde_json::to_vec(&protocol_version_msg)
             .expect("Could not serialize protocol version message");

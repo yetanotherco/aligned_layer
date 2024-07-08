@@ -1,5 +1,4 @@
-use crate::errors::SubmitError;
-use crate::types::ProvingSystemId;
+use crate::core::{errors::SubmitError, types::ProvingSystemId};
 
 pub fn parse_proving_system(proving_system: &str) -> Result<Option<ProvingSystemId>, SubmitError> {
     match proving_system {

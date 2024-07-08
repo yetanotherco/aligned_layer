@@ -5,12 +5,12 @@ use log::{debug, error};
 use tokio::time::timeout;
 
 use crate::{
-    errors,
-    eth::BatchVerifiedEventStream,
-    types::{
+    core::errors,
+    core::types::{
         AlignedVerificationData, BatchInclusionData, VerificationCommitmentBatch,
         VerificationDataCommitment,
     },
+    eth::BatchVerifiedEventStream,
 };
 
 const AWAIT_BATCH_VERIFICATION_TIMEOUT: u64 = 60;

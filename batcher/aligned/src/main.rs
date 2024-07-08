@@ -5,11 +5,10 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::errors::{AlignedError, SubmitError};
-use aligned_sdk::types::AlignedVerificationData;
-use aligned_sdk::types::Chain;
-use aligned_sdk::types::ProvingSystemId;
-use aligned_sdk::types::VerificationData;
+use aligned_sdk::core::{
+    errors::{AlignedError, SubmitError},
+    types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
+};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -192,11 +191,11 @@ enum ChainArg {
     Holesky,
 }
 
-impl From<ChainArg> for aligned_sdk::types::Chain {
+impl From<ChainArg> for Chain {
     fn from(chain_arg: ChainArg) -> Self {
         match chain_arg {
-            ChainArg::Devnet => aligned_sdk::types::Chain::Devnet,
-            ChainArg::Holesky => aligned_sdk::types::Chain::Holesky,
+            ChainArg::Devnet => Chain::Devnet,
+            ChainArg::Holesky => Chain::Holesky,
         }
     }
 }
@@ -357,7 +356,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let chain: aligned_sdk::types::Chain = deposit_to_batcher_args.chain.into();
+            let chain: Chain = deposit_to_batcher_args.chain.into();
 
             let amount = deposit_to_batcher_args.amount.replace("ether", "");
 

@@ -9,13 +9,17 @@ use futures_util::stream::SplitSink;
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 use crate::{
-    batch::{handle_batch_inclusion_data, handle_batch_inclusion_data_without_await},
-    errors::SubmitError,
-    eth::{aligned_service_manager, BatchVerifiedEventStream, BatchVerifiedFilter},
-    types::{
-        AlignedVerificationData, ClientMessage, ResponseMessage, VerificationData,
-        VerificationDataCommitment,
+    communication::batch::{
+        handle_batch_inclusion_data, handle_batch_inclusion_data_without_await,
     },
+    core::{
+        errors::SubmitError,
+        types::{
+            AlignedVerificationData, ClientMessage, ResponseMessage, VerificationData,
+            VerificationDataCommitment,
+        },
+    },
+    eth::{aligned_service_manager, BatchVerifiedEventStream, BatchVerifiedFilter},
 };
 
 pub async fn send_messages(
