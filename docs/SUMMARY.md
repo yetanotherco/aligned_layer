@@ -4,7 +4,7 @@
 
 * [About Aligned](introduction/0_about_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
-* [Core concepts](introduction/2_core_concepts.md)
+* [Key Terms](introduction/2_key_terms.md)
 * [Use cases](introduction/3_use_cases.md)
 * [FAQ](introduction/4_faq.md)
 
@@ -29,6 +29,7 @@
 * [SDK](guides/1_SDK.md)
 * [Using Aligned on your app](guides/2_using_aligned_on_your_app.md)
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)
+* [Generating & submitting proofs of Rust code with ZKRust](guides/0_5_using_zkrust.md)
 
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
