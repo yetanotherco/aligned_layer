@@ -55,7 +55,7 @@ To check if a proof was verified in Aligned, you need to call to the Aligned Ser
 
 Also, you will need a way to check that the proven program is your own.
 
-The aligned CLI provides a way for you to get the verification key commitment without actually generating and submitting a proof.
+The Aligned CLI provides a way for you to get the verification key commitment without actually generating and submitting a proof.
 
 You can do this by running the following command:
 
@@ -115,9 +115,9 @@ contract YourContract {
 }
 ```
 
-You can find the example of the smart contract that checks the proof was verified in Aligned in the [Quiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
+You can find an example of the smart contract that checks if the proof was verified in Aligned in the [Quiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
 
-Note that the contract checks that the verification key commitment is the same as the program elf.
+Note that the contract checks that the verification key commitment is the same as the program ELF.
 
 ```solidity
 require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
@@ -151,7 +151,7 @@ The proof submission and verification can be done either with the SDK or by usin
 
 #### Using the SDK
 
-To submit a proof using the SDK, you can use the `submit` function, and then you can use the `verify_proof_onchain` to check if the proof was correctly verified in Aligned.
+To submit a proof using the SDK, you can use the `submit` function, and then you can use the `verify_proof_onchain` function to check if the proof was correctly verified in Aligned.
 
 The following code is an example of how to submit a proof using the SDK:
 
