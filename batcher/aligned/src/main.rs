@@ -27,7 +27,7 @@ use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetUserBalance;
-use crate::AlignedCommands::GetVerificationKeyCommitment;
+use crate::AlignedCommands::GetCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
@@ -45,13 +45,12 @@ pub enum AlignedCommands {
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
-    // GetVerificationKey, command name is get-vk-commitment
+    // Get commitment for file, command name is get-commitment
     #[clap(
-        about = "Create verification key for proving system",
-        name = "get-vk-commitment"
+        about = "Get commitment for file",
+        name = "get-commitment"
     )]
-    GetVerificationKeyCommitment(GetVerificationKeyCommitmentArgs),
-    // GetVericiationKey, command name is get-vk-commitment
+    GetCommitment(GetCommitmentArgs),
     #[clap(
         about = "Deposits Ethereum in the batcher to pay for proofs",
         name = "deposit-to-batcher"
@@ -156,7 +155,7 @@ pub struct VerifyProofOnchainArgs {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct GetVerificationKeyCommitmentArgs {
+pub struct GetCommitmentArgs {
     #[arg(name = "File name", long = "input")]
     input_file: PathBuf,
     #[arg(name = "Output file", long = "output")]
@@ -337,7 +336,7 @@ async fn main() -> Result<(), AlignedError> {
                 info!("Your proof was not included in the batch.");
             }
         }
-        GetVerificationKeyCommitment(args) => {
+        GetCommitment(args) => {
             let content = read_file(args.input_file)?;
 
             let hash = get_verification_key_commitment(&content);
