@@ -97,7 +97,7 @@ For more instructions on how to submit proofs, check the [Submitting proofs guid
 ### Dependencies
 
 This guide assumes that:
-- Risc0 prover installed (instructions [here](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain))
+- Risc0 toolchain installed (instructions [here](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain))
 - Risc0 project to generate the proofs (instructions [here](https://dev.risczero.com/api/zkvm/quickstart#2-create-a-new-project))
 - Aligned installed (instructions [here](../introduction/1_getting_started.md#quickstart))
 
