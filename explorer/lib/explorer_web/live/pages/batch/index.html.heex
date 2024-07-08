@@ -11,6 +11,11 @@
       <p><%= @merkle_root %></p>
       Amount of Proofs in this Batch:
       <p><%= @current_batch.amount_of_proofs %></p>
+      Proofs in this batch:
+      <%= for proof_hash <- @current_batch.proof_hashes do %>
+        <p><%= proof_hash %></p>
+      <% end %>
+
       Submission Block Number:
       <.a
         target="_blank"
