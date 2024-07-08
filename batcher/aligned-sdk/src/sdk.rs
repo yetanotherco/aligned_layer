@@ -447,67 +447,17 @@ async fn receive_and_wait(
             ws_write.lock().await.close().await?;
             return Ok(None);
         } else {
-            let mut num_responses_lock = num_responses.lock().await;
-            *num_responses_lock += 1;
+            process_message(
+                msg,
+                &mut aligned_verification_data,
+                verification_data_commitments_rev,
+                &mut stream,
+                &mut verified_batch_merkle_roots,
+                num_responses.clone(),
+            )
+            .await?;
 
-            let data = msg.into_data();
-            match serde_json::from_slice::<ResponseMessage>(&data) {
-                Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
-                    debug!("Received response from batcher");
-                    debug!(
-                        "Batch merkle root: {}",
-                        hex::encode(batch_inclusion_data.batch_merkle_root)
-                    );
-                    debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
-
-                    let verification_data_commitment =
-                        verification_data_commitments_rev.pop().unwrap_or_default();
-
-                    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
-                        aligned_verification_data.push(AlignedVerificationData::new(
-                            &verification_data_commitment,
-                            &batch_inclusion_data,
-                        ));
-                    }
-
-                    if !verified_batch_merkle_roots
-                        .contains(&batch_inclusion_data.batch_merkle_root)
-                    {
-                        let await_batch_verified_fut = await_batch_verified_event(
-                            &mut stream,
-                            &batch_inclusion_data.batch_merkle_root,
-                        );
-
-                        match timeout(Duration::from_secs(60), await_batch_verified_fut).await {
-                            Ok(Ok(_)) => {
-                                debug!("Batch operator signatures verified on Ethereum");
-                                verified_batch_merkle_roots
-                                    .insert(batch_inclusion_data.batch_merkle_root);
-                            }
-                            Ok(Err(e)) => {
-                                error!(
-                                    "Error awaiting for batch signature verification event: {}",
-                                    e
-                                );
-                            }
-                            Err(_) => {
-                                debug!(
-                                    "Batch operator signatures were not verified yet on Ethereum"
-                                );
-                            }
-                        }
-                    }
-                }
-                Ok(ResponseMessage::ProtocolVersion(_)) => {
-                    error!(
-                        "Batcher responded with protocol version instead of batch inclusion data"
-                    );
-                }
-                Err(e) => {
-                    error!("Error while deserializing batcher response: {}", e);
-                }
-            }
-            if *num_responses_lock == total_messages {
+            if *num_responses.lock().await == total_messages {
                 debug!("All messages responded. Closing connection...");
                 ws_write.lock().await.close().await?;
                 return Ok(Some(aligned_verification_data));
@@ -629,6 +579,97 @@ async fn await_batch_verified_event<'s>(
             ));
         }
     }
+    Ok(())
+}
+
+async fn process_message<'s>(
+    msg: Message,
+    aligned_verification_data: &mut Vec<AlignedVerificationData>,
+    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
+    stream: &mut BatchVerifiedEventStream<'s>,
+    verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
+    num_responses: Arc<Mutex<usize>>,
+) -> Result<(), errors::SubmitError> {
+    let mut num_responses_lock = num_responses.lock().await;
+    *num_responses_lock += 1;
+
+    let data = msg.into_data();
+    match serde_json::from_slice::<ResponseMessage>(&data) {
+        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
+            handle_batch_inclusion_data(
+                batch_inclusion_data,
+                aligned_verification_data,
+                verification_data_commitments_rev,
+                stream,
+                verified_batch_merkle_roots,
+            )
+            .await?;
+        }
+        Ok(ResponseMessage::ProtocolVersion(_)) => {
+            error!("Batcher responded with protocol version instead of batch inclusion data");
+        }
+        Err(e) => {
+            error!("Error while deserializing batcher response: {}", e);
+        }
+    }
+
+    Ok(())
+}
+
+async fn handle_batch_inclusion_data<'s>(
+    batch_inclusion_data: BatchInclusionData,
+    aligned_verification_data: &mut Vec<AlignedVerificationData>,
+    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
+    stream: &mut BatchVerifiedEventStream<'s>,
+    verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
+) -> Result<(), errors::SubmitError> {
+    debug!("Received response from batcher");
+    debug!(
+        "Batch merkle root: {}",
+        hex::encode(batch_inclusion_data.batch_merkle_root)
+    );
+    debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
+
+    let verification_data_commitment = verification_data_commitments_rev.pop().unwrap_or_default();
+
+    if verify_response(&verification_data_commitment, &batch_inclusion_data) {
+        aligned_verification_data.push(AlignedVerificationData::new(
+            &verification_data_commitment,
+            &batch_inclusion_data,
+        ));
+    }
+
+    let batch_merkle_root = batch_inclusion_data.batch_merkle_root.to_vec();
+
+    if !verified_batch_merkle_roots.contains(&batch_merkle_root) {
+        await_batch_verification(stream, &batch_inclusion_data.batch_merkle_root).await?;
+        verified_batch_merkle_roots.insert(batch_merkle_root);
+    }
+
+    Ok(())
+}
+
+async fn await_batch_verification<'s>(
+    stream: &mut BatchVerifiedEventStream<'s>,
+    batch_merkle_root: &[u8; 32],
+) -> Result<(), errors::SubmitError> {
+    let await_batch_verified_fut = await_batch_verified_event(stream, batch_merkle_root);
+
+    match timeout(Duration::from_secs(60), await_batch_verified_fut).await {
+        Ok(Ok(_)) => {
+            debug!("Batch operator signatures verified on Ethereum");
+        }
+        Ok(Err(e)) => {
+            error!(
+                "Error awaiting for batch signature verification event: {}",
+                e
+            );
+        }
+        Err(_) => {
+            debug!("Batch operator signatures were not verified yet on Ethereum");
+        }
+    }
+
     Ok(())
 }
 
