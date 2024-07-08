@@ -472,7 +472,7 @@ test_risc_zero_go_bindings_linux: build_risc_zero_linux
 generate_risc_zero_fibonacci_proof:
 	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
 		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof and image ID generated in scripts/test_files/risc_zero folder"
+		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
