@@ -14,7 +14,6 @@
 * [Aggregation mode](architecture/2_aggregation_mode.md)
 * [Fast mode](architecture/1_fast_mode.md)
 * Components
-  <!-- * [User](./architecture/components/0_user.md) -->
   * [Batcher](./architecture/components/1_batcher.md)
   * [Payment Service Contract](./architecture/components/2_payment_service_contract.md)
   * [Service Manager Contract](./architecture/components/3_service_manager_contract.md)
@@ -28,7 +27,8 @@
 * [SDK](guides/1_SDK.md)
 * [Using Aligned on your app](guides/2_using_aligned_on_your_app.md)
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)
-* [Contract Addresses](architecture/4_smart_contracts.md)
+* [Contract Addresses](architecture/4_contract_addresses.md)
+* [Generating & submitting proofs of Rust code with ZKRust](guides/0_5_using_zkrust.md)
 
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 

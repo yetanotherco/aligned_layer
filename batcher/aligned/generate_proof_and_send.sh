@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check that USER_PRIVATE_KEY is not empty
-if [[ "$USER_PRIVATE_KEY" -eq "" ]]; then
+if [[ -z "$USER_PRIVATE_KEY" ]]; then
   echo "USER_PRIVATE_KEY is empty, using default value 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
   USER_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 fi;
