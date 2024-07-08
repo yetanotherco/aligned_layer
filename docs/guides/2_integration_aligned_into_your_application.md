@@ -53,7 +53,7 @@ You can find an example of the quiz proof [program](../../examples/zkquiz/quiz/p
 
 To check if a proof was verified in Aligned, you need to make a call to the `AlignedServiceManager` contract inside your smart contract.
 
-Also, you will need a way to check that the proven program is your own.
+Also, you will need a way to check that the proven program is the correct one.
 
 The Aligned CLI provides a way for you to get the verification key commitment without actually generating and submitting a proof.
 
