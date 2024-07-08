@@ -4,7 +4,7 @@ Aligned can be integrated into your applications in a few simple steps to provid
 
 You can find an example of the full flow of using Aligned in your app in the [ZKQuiz example](../../examples/zkquiz).
 
-This example shows a sample app that generates an SP1 proof that a user knows the answers to a quiz, then submits the proof to Aligned for verification. Finally, it includes a smart contract that verifies that a proof was verified in Aligned and mints an NFT.
+This example shows a sample app that generates an SP1 proof that a user knows the answers to a quiz and then submits the proof to Aligned for verification. Finally, it includes a smart contract that verifies that a proof was verified in Aligned and mints an NFT.
 
 ## 1. Generate your ZK Proof
 
