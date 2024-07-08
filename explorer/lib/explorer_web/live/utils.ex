@@ -142,21 +142,19 @@ defmodule Utils do
   end
 
   def calculate_proof_hashes({:ok, batch_json}) do
-    # TODO calculate hash
-    IO.inspect("Calculating proof hashes")
-    ["0x1234567890", "0x1234567890", "0x1234567890"]
-  end
-
-  def calculate_proof_hashes({:error, _}) do
-    []
+    batch_json
+      |> Enum.map(
+        fn proof ->
+          :crypto.hash(:sha3_256, proof["proof"])
+            |> Base.encode16(case: :lower)
+            |> (&("0x" <> &1)).()
+        end)
   end
 
   def extract_info_from_json(json) do
     IO.inspect("Extracting info from JSON")
     amount_of_proofs = json |> extract_amount_of_proofs_from_json()
     proof_hashes = json |> calculate_proof_hashes()
-    IO.inspect("Amount of proofs: #{amount_of_proofs}")
-    IO.inspect("Proof hashes: #{proof_hashes}")
     [amount_of_proofs, proof_hashes]
   end
 
