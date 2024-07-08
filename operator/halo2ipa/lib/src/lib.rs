@@ -55,7 +55,7 @@ public_input_len: u32,
             if let Ok(params) = Params::read::<_>(&mut BufReader::new(&ipa_params_buf[..(ipa_params_len as usize)])) {
                 if let Ok(res) = read_fr(&public_input_buf[..(public_input_len as usize)]) {
                     let strategy = SingleStrategy::new(&params);
-                    let instances = res.as_slice();
+                    let instances = res;
                     let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof_buf[..(proof_len as usize)]);
                     return verify_proof::<
                         IPACommitmentScheme<G1Affine>,
@@ -63,7 +63,7 @@ public_input_len: u32,
                         Challenge255<G1Affine>,
                         Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
                         SingleStrategy<G1Affine>,
-                    >(&params, &vk, strategy, &[&[instances]], &mut transcript).is_ok()
+                    >(&params, &vk, strategy, &[vec![instances]], &mut transcript).is_ok()
                 }
             }
         }
@@ -247,7 +247,7 @@ mod tests {
         let cs = vk.clone().cs;
         let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
 
-        let instances: &[&[Fr]] = &[&[circuit.0]];
+        let instances = vec![vec![circuit.0]];
         let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
         create_proof::<
             IPACommitmentScheme<G1Affine>,
@@ -285,7 +285,7 @@ mod tests {
         let mut buf = Vec::new();
         f.read_to_end(&mut buf).unwrap();
         let res = read_fr(&buf).unwrap();
-        let instances = res.as_slice();
+        let instances = res;
         
         let mut vk_buf = Vec::new();
         vk.write(&mut vk_buf, SerdeFormat::RawBytes).unwrap();
@@ -350,7 +350,7 @@ mod tests {
             &params,
             &vk,
             strategy,
-            &[&[instances]],
+            &[vec![instances]],
             &mut transcript
         )
         .is_ok());

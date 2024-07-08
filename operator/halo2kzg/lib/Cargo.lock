@@ -308,7 +308,7 @@ dependencies = [
 [[package]]
 name = "halo2_backend"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?branch=feat/serde_constraint_system#f918881d3b2df8346f7e3617652f5d8164dcd692"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -326,7 +326,7 @@ dependencies = [
 [[package]]
 name = "halo2_frontend"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?branch=feat/serde_constraint_system#f918881d3b2df8346f7e3617652f5d8164dcd692"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -339,7 +339,7 @@ dependencies = [
 [[package]]
 name = "halo2_middleware"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?branch=feat/serde_constraint_system#f918881d3b2df8346f7e3617652f5d8164dcd692"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
 dependencies = [
  "ff",
  "halo2curves",
@@ -350,7 +350,7 @@ dependencies = [
 [[package]]
 name = "halo2_proofs"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?branch=feat/serde_constraint_system#f918881d3b2df8346f7e3617652f5d8164dcd692"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
 dependencies = [
  "bincode",
  "group",
