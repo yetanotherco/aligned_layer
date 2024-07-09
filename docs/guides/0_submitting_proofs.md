@@ -33,7 +33,7 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
     cast wallet new-mnemonic --words 12
     ```
 
-    It will show you a new mnemonic phrase, and a public private key pair, similar to the following example:
+    It will show you a new mnemonic phrase, and a public-private key pair, similar to the following example:
 
     ```
     Phrase:
