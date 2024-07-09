@@ -3,7 +3,7 @@ use mina_p2p_messages::{binprot::BinProtRead, v2::MinaBaseProofStableV2};
 
 pub fn parse_base64(protocol_state_proof_base64: &str) -> Result<MinaBaseProofStableV2, String> {
     let protocol_state_proof_binprot = BASE64_URL_SAFE
-        .decode(protocol_state_proof_base64)
+        .decode(protocol_state_proof_base64.trim_end())
         .map_err(|err| err.to_string())?;
 
     MinaBaseProofStableV2::binprot_read(&mut protocol_state_proof_binprot.as_slice())

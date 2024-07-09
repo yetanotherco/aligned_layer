@@ -4,7 +4,7 @@ use kimchi::mina_curves::pasta::Fp;
 use mina_p2p_messages::v2::StateHash;
 
 pub fn parse_base58(protocol_state_hash_base58: &str) -> Result<Fp, String> {
-    StateHash::from_str(&protocol_state_hash_base58)
+    StateHash::from_str(protocol_state_hash_base58.trim_end())
         .map_err(|err| err.to_string())?
         .to_fp()
         .map_err(|err| err.to_string())

@@ -1,126 +1,88 @@
-use std::sync::Arc;
-
-use kimchi::curve::KimchiCurve;
-use kimchi::groupmap::GroupMap;
-use kimchi::mina_curves::pasta::{Fp, Pallas, VestaParameters};
-use kimchi::mina_poseidon::constants::PlonkSpongeConstantsKimchi;
-use kimchi::mina_poseidon::sponge::{DefaultFqSponge, DefaultFrSponge};
-use kimchi::poly_commitment::commitment::CommitmentCurve;
-use kimchi::verifier::verify;
-use kimchi::{mina_curves::pasta::Vesta, poly_commitment::srs::SRS, verifier_index::VerifierIndex};
+use kimchi::mina_curves::pasta::Fp;
+use mina_tree::proofs::verification::verify_block;
+use mina_tree::proofs::verifier_index::{get_verifier_index, VerifierKind};
+use mina_tree::verifier::get_srs;
+use openmina_block_verifier::protocol_state;
+use openmina_block_verifier::protocol_state_proof;
 
 pub mod openmina_block_verifier;
 
-const MAX_PROOF_SIZE: usize = 10 * 1024;
-const MAX_PUB_INPUT_SIZE: usize = 50 * 1024;
-
-type SpongeParams = PlonkSpongeConstantsKimchi;
-type BaseSponge = DefaultFqSponge<VestaParameters, SpongeParams>;
-type ScalarSponge = DefaultFrSponge<Fp, SpongeParams>;
+// TODO: check these
+const MAX_PROOF_SIZE: usize = 15 * 1024;
+const MAX_PUB_INPUT_SIZE: usize = 1024;
 
 #[no_mangle]
-pub extern "C" fn verify_kimchi_proof_ffi(
+pub extern "C" fn verify_protocol_state_proof_ffi(
     proof_bytes: &[u8; MAX_PROOF_SIZE],
     proof_len: usize,
-    pub_input_bytes: &[u8; MAX_PUB_INPUT_SIZE],
-    pub_input_len: usize,
+    public_input_bytes: &[u8; MAX_PUB_INPUT_SIZE],
+    public_input_len: usize,
 ) -> bool {
-    let proof = if let Ok(proof) = rmp_serde::from_slice(&proof_bytes[..proof_len]) {
-        proof
-    } else {
-        return false;
-    };
-
-    let verifier_index = if let Ok(verifier_index) =
-        deserialize_kimchi_pub_input(pub_input_bytes[..pub_input_len].to_vec())
+    let protocol_state_proof_base64 =
+        if let Ok(protocol_state_proof_base64) = std::str::from_utf8(&proof_bytes[..proof_len]) {
+            protocol_state_proof_base64
+        } else {
+            return false;
+        };
+    let protocol_state_hash_base58 = if let Ok(protocol_state_hash_base58) =
+        std::str::from_utf8(&public_input_bytes[..public_input_len - 1])
     {
-        verifier_index
+        protocol_state_hash_base58
     } else {
         return false;
     };
 
-    let group_map = <Vesta as CommitmentCurve>::Map::setup();
+    let protocol_state_proof = if let Ok(protocol_state_proof) =
+        protocol_state_proof::parse_base64(protocol_state_proof_base64)
+    {
+        protocol_state_proof
+    } else {
+        return false;
+    };
+    let protocol_state_hash =
+        if let Ok(protocol_state_hash) = protocol_state::parse_base58(protocol_state_hash_base58) {
+            protocol_state_hash
+        } else {
+            return false;
+        };
 
-    verify::<Vesta, BaseSponge, ScalarSponge>(&group_map, &verifier_index, &proof, &Vec::new())
-        .is_ok()
-}
+    let verifier_index = get_verifier_index(VerifierKind::Blockchain);
+    let srs = get_srs::<Fp>();
+    let srs = srs.lock().unwrap();
 
-fn deserialize_kimchi_pub_input(
-    pub_input_bytes: Vec<u8>,
-) -> Result<VerifierIndex<Vesta>, Box<dyn std::error::Error>> {
-    let mut verifier_index: VerifierIndex<Vesta> = rmp_serde::from_slice(&pub_input_bytes)?;
-
-    let mut srs = SRS::<Vesta>::create(verifier_index.max_poly_size);
-    // add necessary fields to verifier index
-    srs.add_lagrange_basis(verifier_index.domain);
-    // we only need srs to be embedded in the verifier index, so no need to return it
-    verifier_index.srs = Arc::new(srs).into();
-    verifier_index.endo = Pallas::endos().0;
-
-    Ok(verifier_index)
+    verify_block(
+        &protocol_state_proof,
+        protocol_state_hash,
+        &verifier_index,
+        &srs,
+    )
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
 
-    use kimchi::groupmap::GroupMap;
-    use kimchi::proof::ProverProof;
-    use kimchi::{poly_commitment::commitment::CommitmentCurve, verifier::verify};
-
-    const KIMCHI_PROOF: &[u8] = include_bytes!("../kimchi_ec_add.proof");
-    const KIMCHI_VERIFIER_INDEX: &[u8] = include_bytes!("../kimchi_verifier_index.bin");
+    const PROTOCOL_STATE_PROOF: &[u8] =
+        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state_proof.proof");
+    const PROTOCOL_STATE_HASH: &[u8] =
+        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state_hash.pub");
 
     #[test]
-    fn kimchi_ec_add_proof_verifies() {
+    fn protocol_state_proof_verifies() {
         let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
-        let proof_size = KIMCHI_PROOF.len();
-        proof_buffer[..proof_size].clone_from_slice(KIMCHI_PROOF);
+        let proof_size = PROTOCOL_STATE_PROOF.len();
+        proof_buffer[..proof_size].clone_from_slice(PROTOCOL_STATE_PROOF);
 
         let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = KIMCHI_VERIFIER_INDEX.len();
-        pub_input_buffer[..pub_input_size].clone_from_slice(KIMCHI_VERIFIER_INDEX);
+        let pub_input_size = PROTOCOL_STATE_HASH.len();
+        pub_input_buffer[..pub_input_size].clone_from_slice(PROTOCOL_STATE_HASH);
 
-        let result =
-            verify_kimchi_proof_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
-
-        assert!(result)
-    }
-
-    #[test]
-    fn serialize_deserialize_pub_input_works() {
-        let proof: ProverProof<Vesta> = rmp_serde::from_slice(KIMCHI_PROOF)
-            .expect("Could not deserialize kimchi proof from file");
-
-        let mut verifier_index: VerifierIndex<Vesta> = rmp_serde::from_slice(KIMCHI_VERIFIER_INDEX)
-            .expect("Could not deserialize verifier index");
-
-        let mut srs = SRS::<Vesta>::create(verifier_index.max_poly_size);
-
-        srs.add_lagrange_basis(verifier_index.domain);
-        verifier_index.srs = Arc::new(srs.clone()).into();
-        verifier_index.endo = Pallas::endos().0;
-
-        // sanity check that the proof verifies with the loaded files
-        let group_map = <Vesta as CommitmentCurve>::Map::setup();
-        assert!(verify::<Vesta, BaseSponge, ScalarSponge>(
-            &group_map,
-            &verifier_index,
-            &proof,
-            &Vec::new(),
-        )
-        .is_ok());
-
-        // serialize and then deserialize aggregated kimchi pub inputs
-        let pub_input_bytes = rmp_serde::to_vec(&verifier_index).unwrap();
-        let deserialized_verifier_index = deserialize_kimchi_pub_input(pub_input_bytes).unwrap();
-        // verify the proof with the deserialized pub input (verifier index)
-        assert!(verify::<Vesta, BaseSponge, ScalarSponge>(
-            &group_map,
-            &deserialized_verifier_index,
-            &proof,
-            &Vec::new(),
-        )
-        .is_ok());
+        let result = verify_protocol_state_proof_ffi(
+            &proof_buffer,
+            proof_size,
+            &pub_input_buffer,
+            pub_input_size,
+        );
+        assert!(result);
     }
 }
