@@ -10,8 +10,7 @@ pub fn parse_base64(
 
     let protocol_state_proof_base64 = mina_state_proof_vk_query
             .get("data")
-            .and_then(|d| d.get("bestChain"))
-            .and_then(|d| d.get(0))
+            .and_then(|d| d.get("block"))
             .and_then(|d| d.get("protocolStateProof"))
             .and_then(|d| d.get("base64"))
             .ok_or("Could not parse protocol state proof: JSON structure upto protocolStateProof is unexpected")?.to_owned();
@@ -33,7 +32,7 @@ mod tests {
     use super::parse_base64;
 
     const MINA_PROTOCOL_STATE_PROOF_BASE64_QUERY: &str = include_str!(
-        "../../../../../batcher/aligned/test_files/mina/mina_devnet_protocol_state_proof_base64.json"
+        "../../../../../batcher/aligned/test_files/mina/mina_devnet_protocol_query.json"
     );
 
     #[test]

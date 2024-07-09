@@ -6,19 +6,25 @@ use mina_tree::{
     },
     verifier::get_srs,
 };
+use protocol_state::parse_base58;
 use protocol_state_proof::parse_base64;
 
+mod protocol_state;
 mod protocol_state_proof;
 
-pub fn verify_protocol_state_proof(
-    mina_protocol_state_proof_base64_query: &str,
-) -> Result<bool, String> {
-    let protocol_state_proof = parse_base64(mina_protocol_state_proof_base64_query)?;
+pub fn verify_protocol_state_proof(mina_protocol_query: &str) -> Result<bool, String> {
+    let protocol_state_proof = parse_base64(mina_protocol_query)?;
+    let protocol_state_hash = parse_base58(mina_protocol_query)?;
     let verifier_index = get_verifier_index(VerifierKind::Blockchain);
     let srs = get_srs::<Fp>();
     let srs = srs.lock().unwrap();
 
-    Ok(verify_block(&protocol_state_proof, &verifier_index, &srs))
+    Ok(verify_block(
+        &protocol_state_proof,
+        protocol_state_hash,
+        &verifier_index,
+        &srs,
+    ))
 }
 
 #[cfg(test)]
@@ -26,7 +32,7 @@ mod test {
     use super::verify_protocol_state_proof;
 
     const MINA_PROTOCOL_STATE_PROOF_BASE64_QUERY: &str = include_str!(
-        "../../../../../batcher/aligned/test_files/mina/mina_devnet_protocol_state_proof_base64.json"
+        "../../../../../batcher/aligned/test_files/mina/mina_devnet_protocol_query.json"
     );
 
     #[test]
