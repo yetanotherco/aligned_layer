@@ -1,3 +1,5 @@
+mod consensus_state;
+
 use std::str::FromStr;
 
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
