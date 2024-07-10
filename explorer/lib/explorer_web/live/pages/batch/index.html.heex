@@ -9,69 +9,72 @@
     >
       Merkle Root Hash:
       <p><%= @merkle_root %></p>
-
       Amount of Proofs in this Batch:
       <p><%= @current_batch.amount_of_proofs %></p>
-
-      Proofs in this batch:
-      <%= for proof_hash <- @current_batch.proof_hashes do %>
-        <p><%= proof_hash %></p>
-      <% end %>
-
       Submission Block Number:
       <.a
         target="_blank"
         rel="noopener"
         href={
-          "https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
+          "https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
         }
         class="hover:text-foreground/80"
       >
         <%= @current_batch.submission_block_number |> Utils.format_number() %>
       </.a>
-
       Submission Transaction Hash:
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
+        href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
         class="hover:text-foreground/80"
       >
         <%= @current_batch.submission_transaction_hash %>
       </.a>
-
       Submission Timestamp:
       <p>
         <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
       </p>
-      
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
         Response Block Number:
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
+          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
           class="hover:text-foreground/80"
         >
           <%= @current_batch.response_block_number |> Utils.format_number() %>
         </.a>
-
         Response Transaction Hash:
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://#{System.get_env("ENVIRONMENT") |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
+          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
           class="hover:text-foreground/80"
         >
           <%= @current_batch.response_transaction_hash %>
         </.a>
-
         Response Timestamp:
         <p>
           <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
         </p>
+        Share:
+        <%!-- 
+          %20 represents a space
+          %23 represents the hash symbol (#)
+          %0A represents a line feed (LF) or Unix-style newline
+         --%>
+        <.live_component
+          id={"tweet_#{@merkle_root}"}
+          module={TweetComponent}
+          text={"Just%20submitted%20a%20proof%20via%20@alignedlayer%0AI%20am%20now%20%23aligned%20✅%0A#{@site_url}/batches/#{@merkle_root}"}
+        />
       <% end %>
+      Proofs in this batch:
+      <div class="h-32 overflow-y-auto text-foreground">
+        <p :for={proof_hash <- @current_batch.proof_hashes}><%= proof_hash %></p>
+      </div>
     </.card>
   <% else %>
     <div class="flex flex-col space-y-6 justify-center grow relative text-center md:pt-14">
@@ -82,7 +85,7 @@
       <img
         class="z-0 w-64 rounded-xl mx-auto"
         alt="block not found"
-        src={~p"/images/not-found.jpeg"}
+        src={~p"/images/not-found.webp"}
       />
       <.link navigate={~p"/"}>
         <.button>

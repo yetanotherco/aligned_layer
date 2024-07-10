@@ -2,6 +2,7 @@ defmodule ExplorerWeb.Batch.Index do
   require Logger
   use ExplorerWeb, :live_view
 
+  @impl true
   def mount(params, _, socket) do
     merkle_root = params["merkle_root"]
 
@@ -28,6 +29,8 @@ defmodule ExplorerWeb.Batch.Index do
       assign(socket,
         merkle_root: merkle_root,
         current_batch: current_batch,
+        network: System.get_env("ENVIRONMENT"),
+        site_url: System.get_env("PHX_HOST"),
         page_title: Utils.shorten_hash(merkle_root)
       )
     }
@@ -36,6 +39,7 @@ defmodule ExplorerWeb.Batch.Index do
       {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty, current_batch: :empty)}
   end
 
+  @impl true
   def handle_info(_, socket) do
     IO.puts("Received batch update for #{socket.assigns.merkle_root} from PubSub")
 
