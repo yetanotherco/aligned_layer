@@ -67,20 +67,19 @@ pub async fn receive(
                 "Connection was closed without close message before receiving all messages"
                     .to_string(),
             ));
-        } else {
-            process_batch_inclusion_data_without_await(
-                msg,
-                &mut aligned_verification_data,
-                verification_data_commitments_rev,
-                num_responses.clone(),
-            )
-            .await?;
+        }
+        process_batch_inclusion_data_without_await(
+            msg,
+            &mut aligned_verification_data,
+            verification_data_commitments_rev,
+            num_responses.clone(),
+        )
+        .await?;
 
-            if *num_responses.lock().await == total_messages {
-                debug!("All messages responded. Closing connection...");
-                ws_write.lock().await.close().await?;
-                return Ok(Some(aligned_verification_data));
-            }
+        if *num_responses.lock().await == total_messages {
+            debug!("All messages responded. Closing connection...");
+            ws_write.lock().await.close().await?;
+            return Ok(Some(aligned_verification_data));
         }
     }
 
@@ -125,22 +124,21 @@ pub async fn receive_and_wait(
                 "Connection was closed without close message before receiving all messages"
                     .to_string(),
             ));
-        } else {
-            process_batch_inclusion_data(
-                msg,
-                &mut aligned_verification_data,
-                verification_data_commitments_rev,
-                &mut event_stream,
-                &mut verified_batch_merkle_roots,
-                num_responses.clone(),
-            )
-            .await?;
+        }
+        process_batch_inclusion_data(
+            msg,
+            &mut aligned_verification_data,
+            verification_data_commitments_rev,
+            &mut event_stream,
+            &mut verified_batch_merkle_roots,
+            num_responses.clone(),
+        )
+        .await?;
 
-            if *num_responses.lock().await == total_messages {
-                debug!("All messages responded. Closing connection...");
-                ws_write.lock().await.close().await?;
-                return Ok(Some(aligned_verification_data));
-            }
+        if *num_responses.lock().await == total_messages {
+            debug!("All messages responded. Closing connection...");
+            ws_write.lock().await.close().await?;
+            return Ok(Some(aligned_verification_data));
         }
     }
 
