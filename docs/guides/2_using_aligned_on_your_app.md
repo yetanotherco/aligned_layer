@@ -44,7 +44,7 @@ Note that the contract checks that the verification key commitment is the same a
 require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
 ```
 
-This contracts also includes a static call to the Aligned ServiceManager contract 
+This contract also includes a static call to the Aligned ServiceManager contract 
 to check that the proof was verified in Aligned. For a full version of this, you can view, use as an example guide, or inherit the [Verify Batch Inclusion Caller](../../examples/verify/src/VerifyBatchInclusionCaller.sol) smart contract.
 
 ```solidity
@@ -95,7 +95,7 @@ you can verify that it was verified from your smart contract.
 
 The full example of this flow can be found on the [ZKQuiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
 
-An example [python script](../../examples/zkquiz/encode_verification_data.py) can be found 
+An example [python script](../../examples/verify/encode_verification_data.py) can be found 
 to encode the call data from the json output of the Aligned cli. 
 This is then used to call the smart contract using cast:
 

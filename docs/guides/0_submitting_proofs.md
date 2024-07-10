@@ -33,7 +33,7 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
     cast wallet new-mnemonic --words 12
     ```
 
-    It will show you a new mnemonic phrase, and a public private key pair, similar to the following example:
+    It will show you a new mnemonic phrase, and a public-private key pair, similar to the following example:
 
     ```
     Phrase:
@@ -155,6 +155,7 @@ aligned submit \
 --proving_system Risc0 \
 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
 --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+--conn wss://batcher.alignedlayer.com \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0
 ```

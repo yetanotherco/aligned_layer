@@ -1,4 +1,4 @@
-## Fast mode in an nutshell
+## Fast mode in a nutshell
 
 ## Architecture
 Aligned’s architecture is shown in the figure below:
