@@ -8,8 +8,15 @@ This example shows a sample app that generates an SP1 proof that a user knows th
 
 ## 1. Generate your ZK Proof
 
-Generate your ZK proofs using any of the proving systems supported by Aligned.
-For this example, we use the SP1 proving system. The current SP1 version used in Aligned is v1.0.8-testnet.
+To submit proofs to Aligned and get them verified, first you need to generate those proofs. For this example, we use the SP1 proving system. The current SP1 version used in Aligned is v1.0.8-testnet.
+
+The following code shows how to generate an SP1 proof using the SP1 SDK.
+
+It loads an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format) file. To generate an ELF file you can follow SP1 [guides](https://docs.succinct.xyz/getting-started/quickstart.html?highlight=elf#generate-proof).
+
+Once you have the ELF file, you have to read the user input if needed and generate the proof. In the example we hardcoded the user input in the main function, but you can read from terminal or any other source.
+
+After generating the proof, you can verify it.
 
 ```rust
 use sp1_sdk::{ProverClient, SP1Stdin};
