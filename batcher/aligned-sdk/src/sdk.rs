@@ -308,11 +308,11 @@ async fn _verify_proof_onchain(
     Ok(result)
 }
 
-/// Returns the commitment for a given verification key.
+/// Returns the commitment for a given input. Input can be verification key, public input, etc.
 /// # Arguments
-/// * `content` - The verification key for which the commitment will be calculated.
+/// * `content` - The content for which the commitment will be calculated.
 /// # Returns
-/// * The verification key commitment.
+/// * The commitment.
 /// # Errors
 /// * None.
 pub fn get_commitment(content: &[u8]) -> [u8; 32] {
