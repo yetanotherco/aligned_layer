@@ -10,7 +10,7 @@ Once verified, it will emit another Event, for anyone interested (for example, t
 
 ## Details of the contract
 
-Besides the base [EigenLayer middleware contracts](https://github.com/Layr-Labs/eigenlayer-middleware/tree/mainnet/src), the core contract for Aligned is [AlignedLayerServiceManager](../../contracts/src/core/AlignedLayerServiceManager.sol). It is in charge of creating new batch verification tasks, storing batches state and verifying operator responses.
+Besides the base [EigenLayer middleware contracts](https://github.com/Layr-Labs/eigenlayer-middleware/tree/mainnet/src), the core contract for Aligned is [AlignedLayerServiceManager](../../../contracts/src/core/AlignedLayerServiceManager.sol). It is in charge of creating new batch verification tasks, storing batches state and verifying operator responses.
 
 ### API
 
