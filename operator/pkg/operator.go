@@ -342,8 +342,10 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 	case common.Risc0:
 		proofLen := (uint32)(len(verificationData.Proof))
 		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
+		pubInputLen := (uint32)(len(verificationData.PubInput))
 
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen, verificationData.VmProgramCode, imageIdLen)
+		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen,
+			verificationData.VmProgramCode, imageIdLen, verificationData.PubInput, pubInputLen)
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
