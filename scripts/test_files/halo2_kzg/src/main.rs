@@ -123,6 +123,11 @@ impl Circuit<Fr> for StandardPlonk {
     }
 }
 
+use halo2_proofs::poly::kzg::strategy::SingleStrategy;
+use halo2_proofs::poly::kzg::multiopen::VerifierSHPLONK;
+use halo2_proofs::transcript::Blake2bRead;
+use halo2_proofs::plonk::verify_proof;
+use halo2_proofs::transcript::TranscriptReadBuffer;
 fn main() {
     let k = 4;
     let circuit = StandardPlonk(Fr::random(OsRng));
@@ -133,13 +138,13 @@ fn main() {
     let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
 
     let instances = vec![vec![circuit.0]];
-    let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
+    let mut transcript = Blake2bWrite::<_, _, Challenge255<G1Affine>>::init(Vec::new());
     create_proof::<
         KZGCommitmentScheme<Bn256>,
-        ProverSHPLONK<'_, Bn256>,
+        ProverSHPLONK<Bn256>,
         Challenge255<G1Affine>,
         _,
-        Blake2bWrite<Vec<u8>, G1Affine, Challenge255<_>>,
+        Blake2bWrite<_, G1Affine, Challenge255<G1Affine>>,
         _,
     >(
         &params,
@@ -150,7 +155,22 @@ fn main() {
         &mut transcript,
     )
     .expect("prover should not fail");
+
     let proof = transcript.finalize();
+    let vk_params = params.verifier_params();
+    let strategy = SingleStrategy::new(&vk_params);
+    let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof[..]);
+
+    verify_proof::<
+    KZGCommitmentScheme<Bn256>,
+    VerifierSHPLONK<Bn256>,
+    Challenge255<G1Affine>,
+    Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
+    SingleStrategy<Bn256>,
+    >(
+        &vk_params, &vk, strategy, &[instances.clone()], &mut transcript
+    )
+    .expect("verifier should not fail");
 
     //write proof
     std::fs::write("proof.bin", &proof[..])
