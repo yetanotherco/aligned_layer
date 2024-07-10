@@ -37,43 +37,33 @@ defmodule ExplorerWeb.Utils do
   end
 
   def parse_timeago(timestamp) do
-    current_time = DateTime.utc_now()
-    diff_seconds = DateTime.diff(current_time, timestamp)
+    diff_seconds = DateTime.utc_now() |> DateTime.diff(timestamp)
 
-    days = div(diff_seconds, 86400)
-    remaining_seconds = rem(diff_seconds, 86400)
-    minutes = div(remaining_seconds, 60)
-    hours = div(minutes, 60)
-
-    case days do
-      0 ->
-        case hours do
-          0 ->
-            case minutes do
-              0 ->
-                "Just now"
-
-              1 ->
-                "1 min ago"
-
-              _ ->
-                "#{minutes} mins ago"
-            end
-
-          1 ->
-            "1 hr ago"
-
-          _ ->
-            "#{hours} hrs ago"
-        end
-
-      1 ->
-        "1 day ago"
-
-      _ ->
-        "#{days} days ago"
+    cond do
+      diff_seconds < 60 -> "Just now"
+      diff_seconds < 3600 -> format_minutes(diff_seconds)
+      diff_seconds < 86400 -> format_hours(diff_seconds)
+      true -> format_days(diff_seconds)
     end
   end
+
+  defp format_minutes(seconds) do
+    minutes = div(seconds, 60)
+    pluralize(minutes, "min")
+  end
+
+  defp format_hours(seconds) do
+    hours = div(seconds, 3600)
+    pluralize(hours, "hr")
+  end
+
+  defp format_days(seconds) do
+    days = div(seconds, 86400)
+    pluralize(days, "day")
+  end
+
+  defp pluralize(1, unit), do: "1 #{unit} ago"
+  defp pluralize(count, unit), do: "#{count} #{unit}s ago"
 
   def format_month(num) do
     case num do
