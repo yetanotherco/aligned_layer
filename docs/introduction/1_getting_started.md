@@ -3,7 +3,7 @@
 In this tutorial you will learn how to send your first SP1 proofs to get verified in Aligned in under 3 minutes.
 
 ## Quickstart
-We will download a proviously generated SP1 proof, send it to Aligned for verification, and retrieve the results from Ethereum Holesky testnet.
+We will download a previously generated SP1 proof, send it to Aligned for verification, and retrieve the results from Ethereum Holesky testnet.
 
 1. Download and install Aligned to send proofs in the testnet:
 
