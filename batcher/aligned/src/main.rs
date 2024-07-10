@@ -387,7 +387,12 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Bat
                 args.pub_input_file_name,
             )?);
         }
-        ProvingSystemId::Mina => todo!(),
+        ProvingSystemId::Mina => {
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name,
+            )?)
+        }
     }
 
     let proof_generator_addr = Address::from_str(&args.proof_generator_addr).unwrap();
