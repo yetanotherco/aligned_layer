@@ -183,6 +183,7 @@ pub async fn verify_proof_onchain(
 #### Errors
 
 - `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `EthereumCallError` if there is an error in the Ethereum call.
 - `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 
 ### get_verification_key_commitment

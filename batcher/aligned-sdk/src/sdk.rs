@@ -302,6 +302,7 @@ pub async fn submit(
 /// * A boolean indicating whether the proof was verified on-chain and is included in the batch.
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumCallError` if there is an error in the Ethereum call.
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 pub async fn verify_proof_onchain(
     aligned_verification_data: AlignedVerificationData,
@@ -349,7 +350,7 @@ async fn _verify_proof_onchain(
 
     let result = call
         .await
-        .map_err(|e| errors::VerificationError::EthereumProviderError(e.to_string()))?;
+        .map_err(|e| errors::VerificationError::EthereumCallError(e.to_string()))?;
 
     Ok(result)
 }

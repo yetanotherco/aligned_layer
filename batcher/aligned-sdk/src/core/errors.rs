@@ -83,6 +83,7 @@ impl From<VerificationError> for SubmitError {
         match e {
             VerificationError::HexDecodingError(e) => SubmitError::HexDecodingError(e.to_string()),
             VerificationError::EthereumProviderError(e) => SubmitError::EthereumProviderError(e),
+            VerificationError::EthereumCallError(e) => SubmitError::EthereumProviderError(e),
         }
     }
 }
@@ -142,6 +143,7 @@ impl fmt::Display for SubmitError {
 pub enum VerificationError {
     HexDecodingError(String),
     EthereumProviderError(String),
+    EthereumCallError(String),
 }
 
 impl fmt::Display for VerificationError {
@@ -151,6 +153,7 @@ impl fmt::Display for VerificationError {
             VerificationError::EthereumProviderError(e) => {
                 write!(f, "Ethereum provider error: {}", e)
             }
+            VerificationError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
         }
     }
 }

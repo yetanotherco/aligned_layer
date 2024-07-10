@@ -529,8 +529,9 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         }
     }
 
-    let proof_generator_addr = Address::from_str(&args.proof_generator_addr)
-        .map_err(|e| SubmitError::InvalidEthereumAddress(args.proof_generator_addr.clone()))?;
+    let proof_generator_addr = Address::from_str(&args.proof_generator_addr).map_err(|e| {
+        SubmitError::InvalidEthereumAddress(format!("Error while parsing address: {}", e))
+    })?;
 
     Ok(VerificationData {
         proving_system,
