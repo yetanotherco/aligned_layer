@@ -357,7 +357,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
 		copy(pubInputBuffer, verificationData.PubInput)
 
-		verificationResult := mina.VerifyKimchiProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		verificationResult := mina.VerifyProtocolStateProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
 		o.Logger.Infof("Kimchi proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:

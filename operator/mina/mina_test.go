@@ -31,7 +31,7 @@ func TestEcAddKimchiProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from kimchi aggregated public input")
 	}
 
-	if !mina.VerifyKimchiProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), uint(proofLen), ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), uint(pubInputLen)) {
+	if !mina.VerifyProtocolStateProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), uint(proofLen), ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), uint(pubInputLen)) {
 		t.Errorf("proof did not verify")
 	}
 }
