@@ -40,9 +40,16 @@ use futures_util::{
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
-/// * If there is an error connecting to the batcher.
-/// * If there is an error serializing the message.
-/// * If there is an error deserializing the message.
+/// * `MissingRequiredParameter` if the verification data vector is empty.
+/// * `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+/// * `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+/// * `SerializationError` if there is an error deserializing the message sent from the batcher.
+/// * `WebSocketConnectionError` if there is an error connecting to the batcher.
+/// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
+/// * `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+/// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple_and_wait(
     batcher_addr: &str,
     eth_rpc_url: &str,
@@ -148,9 +155,13 @@ async fn _submit_multiple_and_wait(
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
-/// * If there is an error connecting to the batcher.
-/// * If there is an error serializing the message.
-/// * If there is an error deserializing the message.
+/// * `MissingRequiredParameter` if the verification data vector is empty.
+/// * `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+/// * `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+/// * `SerializationError` if there is an error deserializing the message sent from the batcher.
+/// * `WebSocketConnectionError` if there is an error connecting to the batcher.
+/// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+/// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_addr: &str,
     verification_data: &[VerificationData],
@@ -220,9 +231,16 @@ async fn _submit_multiple(
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
-/// * If there is an error connecting to the batcher.
-/// * If there is an error serializing the message.
-/// * If there is an error deserializing the message.
+/// * `MissingRequiredParameter` if the verification data vector is empty.
+/// * `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+/// * `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+/// * `SerializationError` if there is an error deserializing the message sent from the batcher.
+/// * `WebSocketConnectionError` if there is an error connecting to the batcher.
+/// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
+/// * `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+/// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_and_wait(
     batcher_addr: &str,
     eth_rpc_url: &str,
@@ -251,9 +269,13 @@ pub async fn submit_and_wait(
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
-/// * If there is an error connecting to the batcher.
-/// * If there is an error serializing the message.
-/// * If there is an error deserializing the message.
+/// * `MissingRequiredParameter` if the verification data vector is empty.
+/// * `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+/// * `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+/// * `SerializationError` if there is an error deserializing the message sent from the batcher.
+/// * `WebSocketConnectionError` if there is an error connecting to the batcher.
+/// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+/// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_addr: &str,
     verification_data: &VerificationData,
@@ -279,9 +301,8 @@ pub async fn submit(
 /// # Returns
 /// * A boolean indicating whether the proof was verified on-chain and is included in the batch.
 /// # Errors
-/// * If there is an error creating the service manager.
-/// * If there is an error calling the service manager.
-/// * If there is an error verifying the proof on-chain.
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 pub async fn verify_proof_onchain(
     aligned_verification_data: AlignedVerificationData,
     chain: Chain,

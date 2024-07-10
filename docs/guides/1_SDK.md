@@ -40,9 +40,13 @@ pub async fn submit(
 
 #### Errors
 
-- `MissingParameter` if the verification data vector is empty.
-- `SerdeError` if there is an error serializing the verification data.
-- `ConnectionError` if there is an error sending the message to the websocket.
+- `MissingRequiredParameter` if the verification data vector is empty.
+- `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+- `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+- `SerializationError` if there is an error deserializing the message sent from the batcher.
+- `WebSocketConnectionError` if there is an error connecting to the batcher.
+- `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `GenericError` if the error doesn't match any of the previous ones.
 
 ### submit_multiple
 
@@ -68,9 +72,13 @@ pub async fn submit_multiple(
 
 #### Errors
 
-- `MissingParameter` if the verification data vector is empty.
-- `SerdeError` if there is an error serializing the verification data.
-- `ConnectionError` if there is an error sending the message to the websocket.
+- `MissingRequiredParameter` if the verification data vector is empty.
+- `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+- `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+- `SerializationError` if there is an error deserializing the message sent from the batcher.
+- `WebSocketConnectionError` if there is an error connecting to the batcher.
+- `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `GenericError` if the error doesn't match any of the previous ones.
 
 ### submit_and_wait
 
@@ -97,6 +105,19 @@ pub async fn submit_and_wait(
 #### Returns
 
 - `Result<Option<AlignedVerificationData>>, SubmitError>` - An aligned verification data or an error.
+
+#### Errors
+
+- `MissingRequiredParameter` if the verification data vector is empty.
+- `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+- `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+- `SerializationError` if there is an error deserializing the message sent from the batcher.
+- `WebSocketConnectionError` if there is an error connecting to the batcher.
+- `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
+- `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+- `GenericError` if the error doesn't match any of the previous ones.
 
 ### submit_multiple_and_wait
 
@@ -126,9 +147,16 @@ pub async fn submit_multiple_and_wait(
 
 #### Errors
 
-- `MissingParameter` if the verification data vector is empty.
-- `SerdeError` if there is an error serializing the verification data.
-- `ConnectionError` if there is an error sending the message to the websocket.
+- `MissingRequiredParameter` if the verification data vector is empty.
+- `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+- `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+- `SerializationError` if there is an error deserializing the message sent from the batcher.
+- `WebSocketConnectionError` if there is an error connecting to the batcher.
+- `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
+- `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+- `GenericError` if the error doesn't match any of the previous ones.
 
 ### verify_proof_onchain
 
@@ -154,9 +182,8 @@ pub async fn verify_proof_onchain(
 
 #### Errors
 
-- `EthError` if there is an error creating the rpc provider.
-- `ParsingError` if there is an error parsing the address of the contract.
-- `EthError` if there is an error verifying the proof on-chain.
+- `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 
 ### get_verification_key_commitment
 
