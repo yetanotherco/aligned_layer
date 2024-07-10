@@ -8,53 +8,11 @@ This example shows a sample app that generates an SP1 proof that a user knows th
 
 ## 1. Generate your ZK Proof
 
-To submit proofs to Aligned and get them verified, first you need to generate those proofs. For this example, we use the SP1 proving system. The current SP1 version used in Aligned is v1.0.8-testnet.
+To submit proofs to Aligned and get them verified, first you need to generate those proofs. Every proving system has its own way of generating proofs.
 
-The following code shows how to generate an SP1 proof using the SP1 SDK.
+You can find examples of how to generate proofs [here](3_generating_proofs.md).
 
-It loads an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format) file. To generate an ELF file you can follow SP1 [guides](https://docs.succinct.xyz/getting-started/quickstart.html?highlight=elf#generate-proof).
-
-Once you have the ELF file, you have to read the user input if needed and generate the proof. In the example we hardcoded the user input in the main function, but you can read from terminal or any other source.
-
-After generating the proof, you can verify it.
-
-```rust
-use sp1_sdk::{ProverClient, SP1Stdin};
-use std::io;
-
-const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
-
-fn generate_sp1_proof(user_answers: &str) -> Result<Vec<u8>, &'static str> {
-    let mut stdin = SP1Stdin::new();
-    stdin.write(user_answers);
-
-    let client = ProverClient::new();
-    let (pk, vk) = client.setup(ELF);
-
-    match client.prove_compressed(&pk, stdin) {
-        Ok(proof) => {
-            client.verify_compressed(&proof, &vk).expect("verification failed");
-            println!("Proof generated and verified successfully.");
-            Ok(proof)
-        }
-        Err(_) => {
-            println!("Proof generation failed. Incorrect answer");
-            Err("Proof generation failed")
-        }
-    }
-}
-
-fn main() {
-    // Example user answers
-    let user_answers = "abc";
-    match generate_sp1_proof(user_answers) {
-        Ok(proof) => println!("Proof: {:?}", proof),
-        Err(err) => println!("Error: {}", err),
-    }
-}
-```
-
-You can find an example of the quiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) that generates it in the [ZKQuiz example](../../examples/zkquiz) directory.
+Also you can find an example of the ZKQuiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) that generates it in the [ZKQuiz example](../../examples/zkquiz) directory.
 
 ## 2. Write your smart contract
 
