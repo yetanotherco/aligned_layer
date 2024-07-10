@@ -11,8 +11,8 @@ import (
 	"unsafe"
 )
 
-const MAX_PROOF_SIZE = 10 * 1024
-const MAX_PUB_INPUT_SIZE = 3 * 1024 * 1024
+const MAX_PROOF_SIZE = 15 * 1024
+const MAX_PUB_INPUT_SIZE = 1024
 
 func VerifyKimchiProof(proofBuffer [MAX_PROOF_SIZE]byte, proofLen uint, pubInputBuffer [MAX_PUB_INPUT_SIZE]byte, pubInputLen uint) bool {
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
