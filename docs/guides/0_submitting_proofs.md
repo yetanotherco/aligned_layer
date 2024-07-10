@@ -76,6 +76,7 @@ aligned deposit-to-batcher \
 ```
 
 These commands allows the usage of the following flags:
+
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used. Could be holesky or devnet.
@@ -93,6 +94,7 @@ aligned get-user-balance \
 ```
 
 These commands allows the usage of the following flags:
+
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--user_addr` the address of the user that funded the Batcher.
