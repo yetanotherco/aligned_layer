@@ -33,11 +33,11 @@ pub async fn send_messages(
 
     for verification_data in verification_data.iter() {
         let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
-        let msg_str = serde_json::to_string(&msg).map_err(SubmitError::SerdeError)?;
+        let msg_str = serde_json::to_string(&msg).map_err(SubmitError::SerializationError)?;
         ws_write
             .send(Message::Text(msg_str.clone()))
             .await
-            .map_err(SubmitError::ConnectionError)?;
+            .map_err(SubmitError::WebSocketConnectionError)?;
         sent_verification_data.push(verification_data.clone());
         debug!("Message sent...");
     }
@@ -61,7 +61,9 @@ pub async fn receive(
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
             if let Some(close_msg) = close_frame {
-                return Err(SubmitError::ConnectionClosedError(close_msg.to_owned()));
+                return Err(SubmitError::WebSocketClosedUnexpectedlyError(
+                    close_msg.to_owned(),
+                ));
             }
             return Err(SubmitError::GenericError(
                 "Connection was closed without close message before receiving all messages"
@@ -103,7 +105,7 @@ pub async fn receive_and_wait(
 
     let service_manager = aligned_service_manager(eth_rpc_provider.clone(), contract_address)
         .await
-        .map_err(|e| SubmitError::EthError(e.to_string()))?;
+        .map_err(|e| SubmitError::HexDecodingError(e.to_string()))?;
 
     let events = service_manager.event::<BatchVerifiedFilter>();
 
@@ -118,7 +120,9 @@ pub async fn receive_and_wait(
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
             if let Some(close_msg) = close_frame {
-                return Err(SubmitError::ConnectionClosedError(close_msg.to_owned()));
+                return Err(SubmitError::WebSocketClosedUnexpectedlyError(
+                    close_msg.to_owned(),
+                ));
             }
             return Err(SubmitError::GenericError(
                 "Connection was closed without close message before receiving all messages"
@@ -169,13 +173,13 @@ async fn process_batch_inclusion_data<'s>(
             .await?;
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
-            return Err(SubmitError::GenericError(
+            return Err(SubmitError::UnexpectedBatcherResponse(
                 "Batcher responded with protocol version instead of batch inclusion data"
                     .to_string(),
             ));
         }
         Err(e) => {
-            return Err(SubmitError::SerdeError(e));
+            return Err(SubmitError::SerializationError(e));
         }
     }
 
@@ -201,13 +205,13 @@ async fn process_batch_inclusion_data_without_await(
             );
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
-            return Err(SubmitError::GenericError(
+            return Err(SubmitError::UnexpectedBatcherResponse(
                 "Batcher responded with protocol version instead of batch inclusion data"
                     .to_string(),
             ));
         }
         Err(e) => {
-            return Err(SubmitError::SerdeError(e));
+            return Err(SubmitError::SerializationError(e));
         }
     }
 

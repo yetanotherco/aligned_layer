@@ -320,7 +320,7 @@ async fn main() -> Result<(), AlignedError> {
             let reader = BufReader::new(batch_inclusion_file);
 
             let aligned_verification_data: AlignedVerificationData =
-                serde_json::from_reader(reader).map_err(SubmitError::SerdeError)?;
+                serde_json::from_reader(reader).map_err(SubmitError::SerializationError)?;
 
             info!("Verifying response data matches sent proof data...");
             let response = verify_proof_onchain(
@@ -363,7 +363,10 @@ async fn main() -> Result<(), AlignedError> {
             let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
-                SubmitError::EthError(format!("Error while connecting to Ethereum: {}", e))
+                SubmitError::EthereumProviderError(format!(
+                    "Error while connecting to Ethereum: {}",
+                    e
+                ))
             })?;
 
             let keystore_path = &deposit_to_batcher_args.keystore_path;
@@ -389,11 +392,15 @@ async fn main() -> Result<(), AlignedError> {
                 .get_balance(wallet.address(), None)
                 .await
                 .map_err(|e| {
-                    SubmitError::EthError(format!("Error while getting balance: {}", e))
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while getting balance: {}",
+                        e
+                    ))
                 })?;
 
-            let amount_ether = parse_ether(&amount)
-                .map_err(|e| SubmitError::EthError(format!("Error while parsing amount: {}", e)))?;
+            let amount_ether = parse_ether(&amount).map_err(|e| {
+                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
+            })?;
 
             if amount_ether <= U256::from(0) {
                 error!("Amount should be greater than 0");
@@ -407,7 +414,10 @@ async fn main() -> Result<(), AlignedError> {
 
             let batcher_addr = Address::from_str(&deposit_to_batcher_args.batcher_eth_address)
                 .map_err(|e| {
-                    SubmitError::EthError(format!("Error while parsing batcher address: {}", e))
+                    SubmitError::HexDecodingError(format!(
+                        "Error while parsing batcher address: {}",
+                        e
+                    ))
                 })?;
 
             let tx = TransactionRequest::new()
@@ -421,11 +431,17 @@ async fn main() -> Result<(), AlignedError> {
                 .send_transaction(tx, None)
                 .await
                 .map_err(|e| {
-                    SubmitError::EthError(format!("Error while sending transaction: {}", e))
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while sending transaction: {}",
+                        e
+                    ))
                 })?
                 .await
                 .map_err(|e| {
-                    SubmitError::EthError(format!("Error while sending transaction: {}", e))
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while sending transaction: {}",
+                        e
+                    ))
                 })?;
 
             if let Some(tx) = tx {
@@ -441,23 +457,35 @@ async fn main() -> Result<(), AlignedError> {
             let eth_rpc_url = get_user_balance_args.eth_rpc_url;
 
             let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
-                SubmitError::EthError(format!("Error while connecting to Ethereum: {}", e))
+                SubmitError::EthereumProviderError(format!(
+                    "Error while connecting to Ethereum: {}",
+                    e
+                ))
             })?;
 
             let user_address =
                 Address::from_str(&get_user_balance_args.user_address).map_err(|e| {
-                    SubmitError::EthError(format!("Error while parsing user address: {}", e))
+                    SubmitError::HexDecodingError(format!(
+                        "Error while parsing user address: {}",
+                        e
+                    ))
                 })?;
 
             let batcher_addr = Address::from_str(&get_user_balance_args.batcher_eth_address)
                 .map_err(|e| {
-                    SubmitError::EthError(format!("Error while parsing batcher address: {}", e))
+                    SubmitError::HexDecodingError(format!(
+                        "Error while parsing batcher address: {}",
+                        e
+                    ))
                 })?;
 
             let balance = get_user_balance(eth_rpc_provider, batcher_addr, user_address)
                 .await
                 .map_err(|e| {
-                    SubmitError::EthError(format!("Error while getting user balance: {}", e))
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while getting user balance: {}",
+                        e
+                    ))
                 })?;
 
             info!(
@@ -501,9 +529,8 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         }
     }
 
-    let proof_generator_addr = Address::from_str(&args.proof_generator_addr).map_err(|e| {
-        SubmitError::InvalidAddress(args.proof_generator_addr.clone(), e.to_string())
-    })?;
+    let proof_generator_addr = Address::from_str(&args.proof_generator_addr)
+        .map_err(|e| SubmitError::InvalidEthereumAddress(args.proof_generator_addr.clone()))?;
 
     Ok(VerificationData {
         proving_system,
@@ -520,7 +547,9 @@ fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
 }
 
 fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<u8>, SubmitError> {
-    let file_name = file_name.ok_or(SubmitError::MissingParameter(param_name.to_string()))?;
+    let file_name = file_name.ok_or(SubmitError::MissingRequiredParameter(
+        param_name.to_string(),
+    ))?;
     read_file(file_name)
 }
 

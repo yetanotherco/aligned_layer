@@ -151,7 +151,7 @@ impl Batcher {
         let outgoing = Arc::new(RwLock::new(outgoing));
 
         let protocol_version_msg = ResponseMessage::ProtocolVersion(
-            aligned_sdk::communication::protocol::CURRENT_PROTOCOL_VERSION,
+            aligned_sdk::communication::protocol::EXPECTED_PROTOCOL_VERSION,
         );
 
         let serialized_protocol_version_msg = serde_json::to_vec(&protocol_version_msg)

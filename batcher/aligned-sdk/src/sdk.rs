@@ -52,7 +52,7 @@ pub async fn submit_multiple_and_wait(
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let (ws_stream, _) = connect_async(batcher_addr)
         .await
-        .map_err(errors::SubmitError::ConnectionError)?;
+        .map_err(errors::SubmitError::WebSocketConnectionError)?;
 
     debug!("WebSocket handshake has been successfully completed");
     let (ws_write, ws_read) = ws_stream.split();
@@ -60,7 +60,7 @@ pub async fn submit_multiple_and_wait(
     let ws_write = Arc::new(Mutex::new(ws_write));
 
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e: url::ParseError| errors::SubmitError::EthError(e.to_string()))?;
+        .map_err(|e: url::ParseError| errors::SubmitError::EthereumProviderError(e.to_string()))?;
 
     let contract_address = match chain {
         Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
@@ -90,7 +90,7 @@ async fn _submit_multiple_and_wait(
     check_protocol_version(&mut ws_read).await?;
 
     if verification_data.is_empty() {
-        return Err(errors::SubmitError::MissingParameter(
+        return Err(errors::SubmitError::MissingRequiredParameter(
             "verification_data".to_string(),
         ));
     }
@@ -104,11 +104,12 @@ async fn _submit_multiple_and_wait(
 
         for verification_data in verification_data.iter() {
             let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
-            let msg_str = serde_json::to_string(&msg).map_err(errors::SubmitError::SerdeError)?;
+            let msg_str =
+                serde_json::to_string(&msg).map_err(errors::SubmitError::SerializationError)?;
             ws_write
                 .send(Message::Text(msg_str.clone()))
                 .await
-                .map_err(errors::SubmitError::ConnectionError)?;
+                .map_err(errors::SubmitError::WebSocketConnectionError)?;
             sent_verification_data.push(verification_data.clone());
             debug!("Message sent...");
         }
@@ -157,7 +158,7 @@ pub async fn submit_multiple(
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let (ws_stream, _) = connect_async(batcher_addr)
         .await
-        .map_err(errors::SubmitError::ConnectionError)?;
+        .map_err(errors::SubmitError::WebSocketConnectionError)?;
 
     debug!("WebSocket handshake has been successfully completed");
     let (ws_write, ws_read) = ws_stream.split();
@@ -177,7 +178,7 @@ async fn _submit_multiple(
     check_protocol_version(&mut ws_read).await?;
 
     if verification_data.is_empty() {
-        return Err(errors::SubmitError::MissingParameter(
+        return Err(errors::SubmitError::MissingRequiredParameter(
             "verification_data".to_string(),
         ));
     }
@@ -286,8 +287,10 @@ pub async fn verify_proof_onchain(
     chain: Chain,
     eth_rpc_url: &str,
 ) -> Result<bool, errors::VerificationError> {
-    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e: url::ParseError| errors::VerificationError::EthError(e.to_string()))?;
+    let eth_rpc_provider =
+        Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
+            errors::VerificationError::EthereumProviderError(e.to_string())
+        })?;
     _verify_proof_onchain(aligned_verification_data, chain, eth_rpc_provider).await
 }
 
@@ -325,7 +328,7 @@ async fn _verify_proof_onchain(
 
     let result = call
         .await
-        .map_err(|e| errors::VerificationError::EthError(e.to_string()))?;
+        .map_err(|e| errors::VerificationError::EthereumProviderError(e.to_string()))?;
 
     Ok(result)
 }

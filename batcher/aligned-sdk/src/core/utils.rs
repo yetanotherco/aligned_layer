@@ -9,7 +9,7 @@ pub fn parse_proving_system(proving_system: &str) -> Result<Option<ProvingSystem
         "Halo2IPA" => Ok(Some(ProvingSystemId::Halo2IPA)),
         "Halo2KZG" => Ok(Some(ProvingSystemId::Halo2KZG)),
         "Risc0" => Ok(Some(ProvingSystemId::Risc0)),
-        _ => Err(SubmitError::InvalidProvingSystem(
+        _ => Err(SubmitError::UnsupportedProvingSystem(
             proving_system.to_string(),
         )),
     }

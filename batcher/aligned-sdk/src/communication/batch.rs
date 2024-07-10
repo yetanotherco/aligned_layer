@@ -1,7 +1,7 @@
 use std::{collections::HashSet, time::Duration};
 
 use futures_util::StreamExt;
-use log::{debug, error};
+use log::debug;
 use tokio::time::timeout;
 
 use crate::{
@@ -50,10 +50,9 @@ pub fn handle_batch_inclusion_data_without_await(
     );
     debug!("Index in batch: {}", batch_inclusion_data.index_in_batch);
 
-    let verification_data_commitment =
-        verification_data_commitments_rev.pop().ok_or_else(|| {
-            errors::SubmitError::GenericError("Verification data commitments are empty".to_string())
-        })?;
+    let verification_data_commitment = verification_data_commitments_rev
+        .pop()
+        .ok_or_else(|| errors::SubmitError::EmptyVerificationDataCommitments)?;
 
     if verify_response(&verification_data_commitment, &batch_inclusion_data) {
         aligned_verification_data.push(AlignedVerificationData::new(
@@ -84,9 +83,9 @@ async fn await_batch_verification<'s>(
             return Err(e);
         }
         Err(_) => {
-            return Err(errors::SubmitError::AwaitBatchVerificationTimeout(
-                AWAIT_BATCH_VERIFICATION_TIMEOUT,
-            ));
+            return Err(errors::SubmitError::BatchVerificationTimeout {
+                timeout_seconds: AWAIT_BATCH_VERIFICATION_TIMEOUT,
+            });
         }
     }
 
@@ -132,6 +131,6 @@ fn verify_response(
         return true;
     }
 
-    error!("Verification data commitments and batcher response with merkle root {} and index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
+    debug!("Verification data commitments and batcher response with merkle root {} and index in batch {} don't match", hex::encode(batch_inclusion_data.batch_merkle_root), batch_inclusion_data.index_in_batch);
     false
 }

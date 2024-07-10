@@ -1,11 +1,11 @@
 use core::fmt;
 use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
-use ethers::utils::hex::FromHexError;
 use std::io;
 use std::path::PathBuf;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
+#[derive(Debug)]
 pub enum AlignedError {
     SubmitError(SubmitError),
     VerificationError(VerificationError),
@@ -23,110 +23,66 @@ impl From<VerificationError> for AlignedError {
     }
 }
 
-impl fmt::Debug for AlignedError {
+impl fmt::Display for AlignedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            AlignedError::SubmitError(e) => write!(f, "Submit error: {:?}", e),
-            AlignedError::VerificationError(e) => write!(f, "Verification error: {:?}", e),
+            AlignedError::SubmitError(e) => write!(f, "Submit error: {}", e),
+            AlignedError::VerificationError(e) => write!(f, "Verification error: {}", e),
         }
     }
 }
 
+#[derive(Debug)]
 pub enum SubmitError {
-    ConnectionError(tokio_tungstenite::tungstenite::Error),
-    ConnectionClosedError(CloseFrame<'static>),
+    WebSocketConnectionError(tokio_tungstenite::tungstenite::Error),
+    WebSocketClosedUnexpectedlyError(CloseFrame<'static>),
     IoError(PathBuf, io::Error),
-    SerdeError(serde_json::Error),
-    EthError(String),
-    SignerError(String),
-    MissingParameter(String),
-    InvalidProvingSystem(String),
-    InvalidAddress(String, String),
-    ProtocolVersionMismatch(u16, u16),
+    SerializationError(serde_json::Error),
+    EthereumProviderError(String),
+    HexDecodingError(String),
+    WalletSignerError(String),
+    MissingRequiredParameter(String),
+    UnsupportedProvingSystem(String),
+    InvalidEthereumAddress(String),
+    ProtocolVersionMismatch { current: u16, expected: u16 },
     BatchVerifiedEventStreamError(String),
-    AwaitBatchVerificationTimeout(u64),
+    BatchVerificationTimeout { timeout_seconds: u64 },
+    NoResponseFromBatcher,
+    UnexpectedBatcherResponse(String),
+    EmptyVerificationDataCommitments,
+    EmptyVerificationDataList,
     GenericError(String),
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
     fn from(e: tokio_tungstenite::tungstenite::Error) -> Self {
-        SubmitError::ConnectionError(e)
+        SubmitError::WebSocketConnectionError(e)
     }
 }
 
 impl From<serde_json::Error> for SubmitError {
     fn from(e: serde_json::Error) -> Self {
-        SubmitError::SerdeError(e)
+        SubmitError::SerializationError(e)
     }
 }
 
 impl From<ProviderError> for SubmitError {
     fn from(e: ProviderError) -> Self {
-        SubmitError::EthError(e.to_string())
+        SubmitError::EthereumProviderError(e.to_string())
     }
 }
 
 impl From<WalletError> for SubmitError {
     fn from(e: WalletError) -> Self {
-        SubmitError::SignerError(e.to_string())
-    }
-}
-
-impl From<FromHexError> for SubmitError {
-    fn from(e: FromHexError) -> Self {
-        SubmitError::EthError(e.to_string())
+        SubmitError::WalletSignerError(e.to_string())
     }
 }
 
 impl From<VerificationError> for SubmitError {
     fn from(e: VerificationError) -> Self {
         match e {
-            VerificationError::ParsingError(e) => SubmitError::GenericError(e),
-            VerificationError::EthError(e) => SubmitError::EthError(e),
-        }
-    }
-}
-
-impl fmt::Debug for SubmitError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            SubmitError::MissingParameter(param) => write!(
-                f,
-                "Missing parameter: {} required for this proving system",
-                param
-            ),
-            SubmitError::ConnectionError(e) => {
-                write!(f, "Web Socket Connection error: {}", e)
-            }
-            SubmitError::ConnectionClosedError(e) => {
-                write!(f, "Web Socket Connection closed: {:?}", e)
-            }
-            SubmitError::IoError(path, e) => {
-                write!(f, "IO error for file: \"{}\", {}", path.display(), e)
-            }
-            SubmitError::SerdeError(e) => write!(f, "Serialization error: {}", e),
-            SubmitError::EthError(e) => write!(f, "Ethereum error: {}", e),
-            SubmitError::SignerError(e) => write!(f, "Signer error: {}", e),
-            SubmitError::InvalidProvingSystem(proving_system) => {
-                write!(f, "Invalid proving system: {}", proving_system)
-            }
-            SubmitError::InvalidAddress(addr, msg) => {
-                write!(f, "Invalid address: {}, {}", addr, msg)
-            }
-            SubmitError::ProtocolVersionMismatch(current, expected) => {
-                write!(f, "Protocol version mismatch, SDK should be updated: current version: {} != expected version: {}", current, expected)
-            }
-            SubmitError::BatchVerifiedEventStreamError(e) => {
-                write!(f, "`BatchVerified` event stream error: {}", e)
-            }
-            SubmitError::AwaitBatchVerificationTimeout(timeout) => {
-                write!(
-                    f,
-                    "Await batch verification timeout elapsed, waited for {} seconds",
-                    timeout
-                )
-            }
-            SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
+            VerificationError::HexDecodingError(e) => SubmitError::HexDecodingError(e.to_string()),
+            VerificationError::EthereumProviderError(e) => SubmitError::EthereumProviderError(e),
         }
     }
 }
@@ -134,66 +90,67 @@ impl fmt::Debug for SubmitError {
 impl fmt::Display for SubmitError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            SubmitError::MissingParameter(param) => write!(
+            SubmitError::WebSocketConnectionError(e) => {
+                write!(f, "WebSocket connection error: {}", e)
+            }
+            SubmitError::WebSocketClosedUnexpectedlyError(close_frame) => {
+                write!(f, "WebSocket closed unexpectedly: {}", close_frame)
+            }
+            SubmitError::IoError(path, e) => write!(f, "IO error: {}: {}", path.display(), e),
+            SubmitError::SerializationError(e) => write!(f, "Serialization error: {}", e),
+            SubmitError::EthereumProviderError(e) => write!(f, "Ethereum provider error: {}", e),
+            SubmitError::HexDecodingError(e) => write!(f, "Hex decoding error: {}", e),
+            SubmitError::WalletSignerError(e) => write!(f, "Wallet signer error: {}", e),
+            SubmitError::MissingRequiredParameter(param) => {
+                write!(f, "Missing required parameter: {}", param)
+            }
+            SubmitError::UnsupportedProvingSystem(proving_system) => {
+                write!(f, "Unsupported proving system: {}", proving_system)
+            }
+            SubmitError::InvalidEthereumAddress(address) => {
+                write!(f, "Invalid Ethereum address: {}", address)
+            }
+            SubmitError::ProtocolVersionMismatch { current, expected } => write!(
                 f,
-                "Missing parameter: {} required for this proving system",
-                param
+                "Protocol version mismatch: current={}, expected={}",
+                current, expected
             ),
-            SubmitError::ConnectionError(e) => {
-                write!(f, "Web Socket Connection error: {}", e)
-            }
-            SubmitError::ConnectionClosedError(e) => {
-                write!(f, "Web Socket Connection closed: {:?}", e)
-            }
-            SubmitError::IoError(path, e) => {
-                write!(f, "IO error for file: \"{}\", {}", path.display(), e)
-            }
-            SubmitError::SerdeError(e) => write!(f, "Serialization error: {}", e),
-            SubmitError::EthError(e) => write!(f, "Ethereum error: {}", e),
-            SubmitError::SignerError(e) => write!(f, "Signer error: {}", e),
-            SubmitError::InvalidProvingSystem(proving_system) => {
-                write!(f, "Invalid proving system: {}", proving_system)
-            }
-            SubmitError::InvalidAddress(addr, msg) => {
-                write!(f, "Invalid address: {}, {}", addr, msg)
-            }
-            SubmitError::ProtocolVersionMismatch(current, expected) => {
-                write!(f, "Protocol version mismatch, SDK should be updated: current version: {} != expected version: {}", current, expected)
-            }
             SubmitError::BatchVerifiedEventStreamError(e) => {
-                write!(f, "`BatchVerified` event stream error: {}", e)
+                write!(f, "Batch verified event stream error: {}", e)
             }
-            SubmitError::AwaitBatchVerificationTimeout(timeout) => {
+            SubmitError::BatchVerificationTimeout { timeout_seconds } => {
                 write!(
                     f,
-                    "Await batch verification timeout elapsed, waited for {} seconds",
-                    timeout
+                    "Batch verification timed out after {} seconds",
+                    timeout_seconds
                 )
             }
+            SubmitError::NoResponseFromBatcher => write!(f, "No response received from batcher"),
+            SubmitError::UnexpectedBatcherResponse(response) => {
+                write!(f, "Unexpected batcher response: {}", response)
+            }
+            SubmitError::EmptyVerificationDataCommitments => {
+                write!(f, "Verification data commitments are empty")
+            }
+            SubmitError::EmptyVerificationDataList => write!(f, "Verification data list is empty"),
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
         }
     }
 }
 
+#[derive(Debug)]
 pub enum VerificationError {
-    ParsingError(String),
-    EthError(String),
-}
-
-impl fmt::Debug for VerificationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            VerificationError::ParsingError(e) => write!(f, "Parsing error: {}", e),
-            VerificationError::EthError(e) => write!(f, "Ethereum error: {}", e),
-        }
-    }
+    HexDecodingError(String),
+    EthereumProviderError(String),
 }
 
 impl fmt::Display for VerificationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            VerificationError::ParsingError(e) => write!(f, "Parsing error: {}", e),
-            VerificationError::EthError(e) => write!(f, "Ethereum error: {}", e),
+            VerificationError::HexDecodingError(e) => write!(f, "Hex decoding error: {}", e),
+            VerificationError::EthereumProviderError(e) => {
+                write!(f, "Ethereum provider error: {}", e)
+            }
         }
     }
 }
