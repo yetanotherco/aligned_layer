@@ -46,12 +46,6 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             is_valid
         }
         ProvingSystemId::Risc0 => {
-            if verification_data.vm_program_code.is_none() || verification_data.pub_input.is_none()
-            {
-                warn!("Trying to verify Risc0 proof but image id or public input was not provided. Returning false");
-                return false;
-            }
-
             if let (Some(image_id_slice), Some(pub_input)) = (
                 &verification_data.vm_program_code,
                 &verification_data.pub_input,
