@@ -7,7 +7,6 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
     image_id: *const u8,
     image_id_len: u32,
 ) -> bool {
-    println!("in verify_risc_zero_receipt_ffi");
     if receipt_bytes.is_null() || image_id.is_null() {
         return false;
     }
