@@ -21,13 +21,13 @@ The following proof systems are going to be added soon:
 
 ## 1. Import/Create Keystore file
 
-If you already have a keystore file, you can ignore this section and start sending proofs. We give two examples of how to generate one. The first one using Foundry, and the second one using EigenLayerCLI
+If you already have a keystore file, you can ignore this section and start sending proofs. We give two examples of how to generate one. The first one using Foundry, and the second one using EigenLayer CLI
 
 ### Alternative 1: With foundry
 
 You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/installation).
 
-- If you are creating a new account. Create a private key with:
+- If you are creating a new account, create a private key with:
 
     ```bash
     cast wallet new-mnemonic --words 12
@@ -56,7 +56,7 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
 
 This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
-### Alternative 2: With EigenlayerCLI
+### Alternative 2: With EigenLayer CLI
 
 - If you have the EigenLayer CLI installed, the keystore can be generated following [this](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#import-keys) instructions. The key will be stored into `~/.eigenlayer/operator_keys`.
 
@@ -75,7 +75,8 @@ aligned deposit-to-batcher \
 --amount 0.1ether
 ```
 
-This commands allows the usage of the following flags:
+These commands allows the usage of the following flags:
+
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used. Could be holesky or devnet.
@@ -83,7 +84,7 @@ This commands allows the usage of the following flags:
 - `--amount` the amount of ethers to transfer to the Batcher.
 - Note: `--amount` flag parameter must be with the shown format. The amount followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
 
-After depositing funds, you can verify the Service has correctly received them, executing the following command:
+After depositing funds, you can verify the Service has correctly received them by executing the following command:
 
 ```bash
 aligned get-user-balance \
@@ -92,7 +93,8 @@ aligned get-user-balance \
 --user_addr <user_addr>
 ```
 
-This commands allows the usage of the following flags:
+These commands allows the usage of the following flags:
+
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--user_addr` the address of the user that funded the Batcher.
