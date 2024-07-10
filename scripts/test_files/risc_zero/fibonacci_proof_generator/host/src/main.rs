@@ -4,6 +4,7 @@ use methods::{FIBONACCI_ELF, FIBONACCI_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
 
 const PROOF_FILE_PATH: &str = "risc_zero_fibonacci.proof";
+const PUB_INPUT_FILE_PATH: &str = "risc_zero_fibonacci.pub";
 const FIBONACCI_ID_FILE_PATH: &str = "fibonacci_id.bin";
 
 fn main() {
@@ -56,6 +57,9 @@ fn main() {
 
     std::fs::write(FIBONACCI_ID_FILE_PATH, convert(&FIBONACCI_ID))
         .expect("Failed to write fibonacci_id file");
+
+    std::fs::write(PUB_INPUT_FILE_PATH, receipt.journal.bytes)
+        .expect("Failed to write pub_input file");
 }
 
 pub fn convert(data: &[u32; 8]) -> [u8; 32] {

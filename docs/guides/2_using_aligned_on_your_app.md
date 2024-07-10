@@ -31,7 +31,7 @@ without actually generating and submitting a proof.
 You can do this by running the following command:
 
 ```bash
-aligned get-vk-commitment --input <path_to_input_file>
+aligned get-commitment --input <path_to_input_file>
 ```
 
 For SP1 you would use the elf of the program as the input file.

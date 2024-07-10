@@ -186,12 +186,12 @@ pub async fn verify_proof_onchain(
 - `EthereumCallError` if there is an error in the Ethereum call.
 - `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 
-### get_verification_key_commitment
+### get_commitment
 
 Generates a keccak256 hash commitment of the verification key.
 
 ```rust
-pub fn get_verification_key_commitment(
+pub fn get_commitment(
     content: &[u8]
 ) -> [u8; 32]
 ```

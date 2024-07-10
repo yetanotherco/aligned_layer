@@ -44,12 +44,20 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             is_valid
         }
         ProvingSystemId::Risc0 => {
-            if let Some(image_id_slice) = &verification_data.vm_program_code {
+            if let (Some(image_id_slice), Some(pub_input)) = (
+                &verification_data.vm_program_code,
+                &verification_data.pub_input,
+            ) {
                 let mut image_id = [0u8; 32];
                 image_id.copy_from_slice(image_id_slice.as_slice());
-                return verify_risc_zero_proof(verification_data.proof.as_slice(), &image_id);
+                return verify_risc_zero_proof(
+                    verification_data.proof.as_slice(),
+                    &image_id,
+                    pub_input,
+                );
             }
-            warn!("Trying to verify Risc0 proof but image ID was not provided. Returning false");
+
+            warn!("Trying to verify Risc0 proof but image id or public input was not provided. Returning false");
             false
         }
         ProvingSystemId::GnarkPlonkBls12_381
