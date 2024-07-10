@@ -10,7 +10,7 @@ This example shows a sample app that generates an SP1 proof that a user knows th
 
 To submit proofs to Aligned and get them verified, first you need to generate those proofs. Every proving system has its own way of generating proofs.
 
-You can find examples of how to generate proofs [here](3_generating_proofs.md).
+You can find examples of how to generate proofs in the [generating proofs guide](3_generating_proofs.md).
 
 Also you can find an example of the ZKQuiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) that generates it in the [ZKQuiz example](../../examples/zkquiz) directory.
 
@@ -192,7 +192,7 @@ async fn main() {
 }
 ```
 
-You can find an example of the proof submission and verification in the [Quiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
+You can find an example of the proof submission and verification in the [ZKQuiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
 
 The example generates a proof, instantiates a wallet to submit the proof, and then submits the proof to Aligned for verification. It then waits for the proof to be verified in Aligned.
 
