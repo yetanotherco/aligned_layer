@@ -1,7 +1,7 @@
 defmodule SearchComponent do
   use ExplorerWeb, :live_component
 
-  # do live redirect
+  @impl true
   def handle_event("search_batch", %{"batch" => batch_params}, socket) do
     batch_merkle_root = Map.get(batch_params, "merkle_root")
     is_batch_merkle_root_valid = String.match?(batch_merkle_root, ~r/^0x[a-fA-F0-9]+$/)
@@ -21,6 +21,7 @@ defmodule SearchComponent do
 
   attr :class, :string, default: nil
 
+  @impl true
   def render(assigns) do
     ~H"""
     <form

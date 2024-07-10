@@ -5,6 +5,7 @@ defmodule ExplorerWeb.Batches.Index do
 
   @page_size 15
 
+  @impl true
   def mount(params, _, socket) do
     current_page = get_current_page(params)
 
@@ -15,6 +16,7 @@ defmodule ExplorerWeb.Batches.Index do
     {:ok, assign(socket, current_page: current_page, batches: batches, page_title: "Batches")}
   end
 
+  @impl true
   def handle_info(_, socket) do
     IO.puts("Received update for batches from PubSub")
 
@@ -25,11 +27,12 @@ defmodule ExplorerWeb.Batches.Index do
     {:noreply, assign(socket, batches: batches)}
   end
 
+  @impl true
   def handle_event("change_page", %{"page" => page}, socket) do
     {:noreply, push_navigate(socket, to: ~p"/batches?page=#{page}")}
   end
 
-  def get_current_page(params) do
+  defp get_current_page(params) do
     case params |> Map.get("page") do
       nil ->
         1
