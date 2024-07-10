@@ -22,12 +22,11 @@ pub async fn handle_batch_inclusion_data<'s>(
     stream: &mut BatchVerifiedEventStream<'s>,
     verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
 ) -> Result<(), errors::SubmitError> {
-    handle_batch_inclusion_data_without_await(
+    let _ = handle_batch_inclusion_data_without_await(
         batch_inclusion_data.clone(),
         aligned_verification_data,
         verification_data_commitments_rev,
-    )
-    .await?;
+    );
 
     let batch_merkle_root = batch_inclusion_data.batch_merkle_root.to_vec();
 
@@ -39,7 +38,7 @@ pub async fn handle_batch_inclusion_data<'s>(
     Ok(())
 }
 
-pub async fn handle_batch_inclusion_data_without_await<'s>(
+pub fn handle_batch_inclusion_data_without_await<'s>(
     batch_inclusion_data: BatchInclusionData,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,

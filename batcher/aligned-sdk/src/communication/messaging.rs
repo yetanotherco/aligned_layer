@@ -195,12 +195,11 @@ async fn process_batch_inclusion_data_without_await(
     let data = msg.into_data();
     match serde_json::from_slice::<ResponseMessage>(&data) {
         Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
-            handle_batch_inclusion_data_without_await(
+            let _ = handle_batch_inclusion_data_without_await(
                 batch_inclusion_data,
                 aligned_verification_data,
                 verification_data_commitments_rev,
-            )
-            .await?;
+            );
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
             error!("Batcher responded with protocol version instead of batch inclusion data");
