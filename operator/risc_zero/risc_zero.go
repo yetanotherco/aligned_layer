@@ -9,8 +9,9 @@ package risc_zero
 import "C"
 import "unsafe"
 
-func VerifyRiscZeroReceipt(receiptBuffer []byte, receiptLen uint32, imageIdBuffer []byte, imageIdLen uint32) bool {
+func VerifyRiscZeroReceipt(receiptBuffer []byte, receiptLen uint32, imageIdBuffer []byte, imageIdLen uint32, publicInput []byte, publicInputLen uint32) bool {
 	receiptPtr := (*C.uchar)(unsafe.Pointer(&receiptBuffer[0]))
 	imageIdPtr := (*C.uchar)(unsafe.Pointer(&imageIdBuffer[0]))
-	return (bool)(C.verify_risc_zero_receipt_ffi(receiptPtr, (C.uint32_t)(receiptLen), imageIdPtr, (C.uint32_t)(imageIdLen)))
+	publicInputPtr := (*C.uchar)(unsafe.Pointer(&publicInput[0]))
+	return (bool)(C.verify_risc_zero_receipt_ffi(receiptPtr, (C.uint32_t)(receiptLen), imageIdPtr, (C.uint32_t)(imageIdLen), publicInputPtr, (C.uint32_t)(publicInputLen)))
 }

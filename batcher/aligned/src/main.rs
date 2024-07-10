@@ -5,25 +5,24 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::errors::{AlignedError, SubmitError};
-use aligned_sdk::types::AlignedVerificationData;
-use aligned_sdk::types::Chain;
-use aligned_sdk::types::ProvingSystemId;
-use aligned_sdk::types::VerificationData;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
-use log::warn;
-use log::{error, info};
-
-use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
-
 use ethers::utils::format_ether;
 use ethers::utils::hex;
 use ethers::utils::parse_ether;
+use log::warn;
+use log::{error, info};
 use transaction::eip2718::TypedTransaction;
+
+use aligned_sdk::errors::{AlignedError, SubmitError};
+use aligned_sdk::sdk::{get_verification_key_commitment, submit_multiple, verify_proof_onchain};
+use aligned_sdk::types::AlignedVerificationData;
+use aligned_sdk::types::Chain;
+use aligned_sdk::types::ProvingSystemId;
+use aligned_sdk::types::VerificationData;
 
 use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetUserBalance;
@@ -483,10 +482,20 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
     let mut vm_program_code: Option<Vec<u8>> = None;
 
     match proving_system {
-        ProvingSystemId::SP1 | ProvingSystemId::Risc0 => {
+        ProvingSystemId::SP1 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
                 args.vm_program_code_file_name,
+            )?);
+        }
+        ProvingSystemId::Risc0 => {
+            vm_program_code = Some(read_file_option(
+                "--vm_program",
+                args.vm_program_code_file_name,
+            )?);
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name,
             )?);
         }
         ProvingSystemId::Halo2KZG

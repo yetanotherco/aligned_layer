@@ -38,20 +38,20 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
     ```
     Phrase:
     test test test test test test test test test test test test
-    
+
     Accounts:
     - Account 0:
     Address:     0xabcd...1234
     Private key: 0x1234...abcd
     ```
-  
+
 - Import the wallet using the private key previously generated, or whichever you want to use, and write a password to use it.
 
     ```bash
     mkdir -p ~/.aligned_keystore/
     cast wallet import ~/.aligned_keystore/keystore0 --interactive
     ```
-  
+
   You have to paste your private key and set a password for the keystore file.
 
 This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
@@ -75,7 +75,7 @@ aligned deposit-to-batcher \
 --amount 0.1ether
 ```
 
-This commands allows the usage of the following flags: 
+This commands allows the usage of the following flags:
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used. Could be holesky or devnet.
@@ -92,7 +92,7 @@ aligned get-user-balance \
 --user_addr <user_addr>
 ```
 
-This commands allows the usage of the following flags: 
+This commands allows the usage of the following flags:
 - `--batcher_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc` to specify the rpc url to be used.
 - `--user_addr` the address of the user that funded the Batcher.
@@ -114,7 +114,7 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_to_ecdsa_keystore> 
+--keystore_path <path_to_ecdsa_keystore>
 ```
 
 **Example**
@@ -141,6 +141,7 @@ aligned submit \
 --proving_system Risc0 \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
+--pub_input <pub_input_file> \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
@@ -150,11 +151,12 @@ aligned submit \
 **Example**
 
 ```bash
-rm -rf ~/.aligned/aligned_verification_data/ &&                                                                                
+rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system Risc0 \
 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
 --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
 --conn wss://batcher.alignedlayer.com \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0
