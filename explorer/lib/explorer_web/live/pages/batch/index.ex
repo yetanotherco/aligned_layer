@@ -20,6 +20,9 @@ defmodule ExplorerWeb.Batch.Index do
         batch -> batch
       end
 
+    IO.inspect("current_batch")
+    IO.inspect(current_batch)
+
     {
       :ok,
       assign(socket,
@@ -30,7 +33,7 @@ defmodule ExplorerWeb.Batch.Index do
     }
   rescue
     _ ->
-      {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty)}
+      {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty, current_batch: :empty)}
   end
 
   def handle_info(_, socket) do
