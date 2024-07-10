@@ -95,7 +95,7 @@ you can verify that it was verified from your smart contract.
 
 The full example of this flow can be found on the [ZKQuiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
 
-An example [python script](../../examples/zkquiz/encode_verification_data.py) can be found 
+An example [python script](../../examples/verify/encode_verification_data.py) can be found 
 to encode the call data from the json output of the Aligned cli. 
 This is then used to call the smart contract using cast:
 
