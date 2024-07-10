@@ -1,4 +1,4 @@
-<div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize mb-12">
+<div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
   <.card_preheding>Latest Batches</.card_preheding>
   <%= if @batches != :empty and @batches != [] do %>
     <.card_background class="overflow-x-auto">
@@ -14,35 +14,33 @@
           </tr>
         </thead>
         <tbody>
-          <%= for batch <- @batches do %>
-            <tr class="text-foreground gap-y-2 [&>th]:pt-3">
-              <th class="text-left pr-4">
-                <.link navigate={~p"/batches/#{batch.merkle_root}"} class="group">
-                  <span
-                    title={batch.merkle_root}
-                    class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80"
-                  >
-                    <%= Utils.shorten_hash(batch.merkle_root) %>
-                    <.right_arrow />
-                  </span>
-                </.link>
-              </th>
+          <tr :for={batch <- @batches} class="text-foreground gap-y-2 [&>th]:pt-3">
+            <th class="text-left pr-4">
+              <.link navigate={~p"/batches/#{batch.merkle_root}"} class="group">
+                <span
+                  title={batch.merkle_root}
+                  class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80"
+                >
+                  <%= Utils.shorten_hash(batch.merkle_root) %>
+                  <.right_arrow />
+                </span>
+              </.link>
+            </th>
 
-              <th class={[
-                "font-medium text-base rounded-full px-4"
-              ]}>
-                <.dynamic_badge status={batch.is_verified} />
-              </th>
+            <th class={[
+              "font-medium text-base rounded-full px-4"
+            ]}>
+              <.dynamic_badge status={batch.is_verified} />
+            </th>
 
-              <th class="font-normal group-hover:text-foreground/80 min-w-32 px-4 normal-case">
-                <%= batch.submission_timestamp |> Utils.parse_timeago() %>
-              </th>
+            <th class="font-normal group-hover:text-foreground/80 min-w-32 px-4 normal-case">
+              <%= batch.submission_timestamp |> Utils.parse_timeago() %>
+            </th>
 
-              <th class="font-normal group-hover:text-foreground/80 px-20">
-                <%= batch.submission_block_number |> Utils.format_number() %>
-              </th>
-            </tr>
-          <% end %>
+            <th class="font-normal group-hover:text-foreground/80 px-20">
+              <%= batch.submission_block_number |> Utils.format_number() %>
+            </th>
+          </tr>
         </tbody>
       </table>
     </.card_background>
