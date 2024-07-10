@@ -62,8 +62,8 @@ impl From<VerificationData> for VerificationDataCommitment {
         // FIXME(marian): This should probably be reworked, for the moment when the proving
         // system is SP1, `proving_system_aux_data` stands for the compiled ELF, while in the case
         // of Groth16 and PLONK, stands for the verification key.
+
         if let Some(vm_program_code) = &verification_data.vm_program_code {
-            debug_assert_eq!(verification_data.proving_system, ProvingSystemId::SP1);
             hasher.update(vm_program_code);
             proving_system_aux_data_commitment = hasher.finalize_reset().into();
         } else if let Some(verification_key) = &verification_data.verification_key {
