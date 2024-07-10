@@ -44,7 +44,7 @@ Note that the contract checks that the verification key commitment is the same a
 require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
 ```
 
-This contracts also includes a static call to the Aligned ServiceManager contract 
+This contract also includes a static call to the Aligned ServiceManager contract 
 to check that the proof was verified in Aligned. For a full version of this, you can view, use as an example guide, or inherit the [Verify Batch Inclusion Caller](../../examples/verify/src/VerifyBatchInclusionCaller.sol) smart contract.
 
 ```solidity
