@@ -10,9 +10,9 @@ This example shows a sample app that generates an SP1 proof that a user knows th
 
 To submit proofs to Aligned and get them verified, first you need to generate those proofs. Every proving system has its own way of generating proofs.
 
-You can find examples of how to generate proofs in the [generating proofs guide](3_generating_proofs.md).
+You can find examples on how to generate proofs in the [generating proofs guide](3_generating_proofs.md).
 
-Also you can find an example of the ZKQuiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) that generates it in the [ZKQuiz example](../../examples/zkquiz) directory.
+Also, you can find an example of the ZKQuiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) that generates it in the [ZKQuiz example directory](../../examples/zkquiz).
 
 ## 2. Write your smart contract
 
@@ -28,7 +28,7 @@ You can do this by running the following command:
 aligned get-vk-commitment --input <path_to_input_file>
 ```
 
-The following is an example of how to call the `verifyBatchInclusionMethod` from the Aligned ServiceManager contract in your smart contract.
+The following is an example of how to call the `verifyBatchInclusionMethod` from the `AlignedServiceManager` contract in your smart contract.
 
 ```solidity
 contract YourContract {
@@ -82,13 +82,13 @@ contract YourContract {
 
 You can find an example of the smart contract that checks if the proof was verified in Aligned in the [Quiz Verifier Contract](../../examples/zkquiz/contracts/src/VerifierContract.sol).
 
-Note that the contract checks that the verification key commitment is the same as the program ELF commitment.
+Note that the contract checks if the verification key commitment is the same as the program ELF commitment.
 
 ```solidity
 require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
 ```
 
-This contract also includes a static call to the Aligned ServiceManager contract to check if the proof was verified in Aligned.
+This contract also includes a static call to the `AlignedServiceManager` contract to check if the proof was verified in Aligned.
 
 ```solidity
 (bool callWasSuccessfull, bytes memory proofIsIncluded) = alignedServiceManager.staticcall(
@@ -194,7 +194,7 @@ async fn main() {
 
 You can find an example of the proof submission and verification in the [ZKQuiz Program](../../examples/zkquiz/quiz/script/src/main.rs).
 
-The example generates a proof, instantiates a wallet to submit the proof, and then submits the proof to Aligned for verification. It then waits for the proof to be verified in Aligned.
+This example generates a proof, instantiates a wallet to submit the proof, and then submits the proof to Aligned for verification. It then waits for the proof to be verified in Aligned.
 
 #### Using the CLI
 
