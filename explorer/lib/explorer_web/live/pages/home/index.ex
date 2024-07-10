@@ -2,9 +2,8 @@ defmodule ExplorerWeb.Home.Index do
   require Logger
   use ExplorerWeb, :live_view
 
+  @impl true
   def handle_info(_, socket) do
-    IO.puts("Received update for home from PubSub")
-
     verified_batches = Batches.get_amount_of_verified_batches()
 
     operators_registered = get_operators_registered()
@@ -26,6 +25,7 @@ defmodule ExplorerWeb.Home.Index do
      )}
   end
 
+  @impl true
   def mount(_, _, socket) do
     verified_batches = Batches.get_amount_of_verified_batches()
 
@@ -46,6 +46,9 @@ defmodule ExplorerWeb.Home.Index do
        operators_registered: operators_registered,
        latest_batches: latest_batches,
        verified_proofs: verified_proofs,
+       service_manager_address:
+         AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
+       network: System.get_env("ENVIRONMENT"),
        page_title: "Welcome"
      )}
   rescue
@@ -104,7 +107,7 @@ defmodule ExplorerWeb.Home.Index do
     end
   end
 
-  def get_operators_registered() do
+  defp get_operators_registered() do
     AVSDirectory.get_operator_status_updated_events()
     |> (fn {status, data} when status == :ok -> count_operators_registered(data) end).()
   end
