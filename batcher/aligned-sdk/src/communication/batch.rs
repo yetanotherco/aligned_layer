@@ -38,7 +38,7 @@ pub async fn handle_batch_inclusion_data<'s>(
     Ok(())
 }
 
-pub fn handle_batch_inclusion_data_without_await<'s>(
+pub fn handle_batch_inclusion_data_without_await(
     batch_inclusion_data: BatchInclusionData,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,

@@ -258,19 +258,10 @@ pub async fn submit(
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
-    let (ws_stream, _) = connect_async(batcher_addr)
-        .await
-        .map_err(errors::SubmitError::ConnectionError)?;
-
-    debug!("WebSocket handshake has been successfully completed");
-    let (ws_write, ws_read) = ws_stream.split();
-
-    let ws_write = Arc::new(Mutex::new(ws_write));
-
     let verification_data = vec![verification_data.clone()];
 
     let aligned_verification_data =
-        _submit_multiple(ws_write, ws_read, &verification_data, wallet).await?;
+        submit_multiple(batcher_addr, &verification_data, wallet).await?;
 
     if let Some(mut aligned_verification_data) = aligned_verification_data {
         Ok(aligned_verification_data.pop())
