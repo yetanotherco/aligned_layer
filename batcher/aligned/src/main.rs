@@ -9,6 +9,7 @@ use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::{get_commitment, submit_multiple, verify_proof_onchain};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
