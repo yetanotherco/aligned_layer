@@ -19,7 +19,7 @@ pub async fn handle_batch_inclusion_data<'s>(
     batch_inclusion_data: BatchInclusionData,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-    stream: &mut BatchVerifiedEventStream<'s>,
+    event_stream: &mut BatchVerifiedEventStream<'s>,
     verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
 ) -> Result<(), errors::SubmitError> {
     let _ = handle_batch_inclusion_data_without_await(
@@ -31,7 +31,7 @@ pub async fn handle_batch_inclusion_data<'s>(
     let batch_merkle_root = batch_inclusion_data.batch_merkle_root.to_vec();
 
     if !verified_batch_merkle_roots.contains(&batch_merkle_root) {
-        await_batch_verification(stream, &batch_inclusion_data.batch_merkle_root).await?;
+        await_batch_verification(event_stream, &batch_inclusion_data.batch_merkle_root).await?;
         verified_batch_merkle_roots.insert(batch_merkle_root);
     }
 
@@ -66,10 +66,10 @@ pub fn handle_batch_inclusion_data_without_await(
 }
 
 async fn await_batch_verification<'s>(
-    stream: &mut BatchVerifiedEventStream<'s>,
+    event_stream: &mut BatchVerifiedEventStream<'s>,
     batch_merkle_root: &[u8; 32],
 ) -> Result<(), errors::SubmitError> {
-    let await_batch_verified_fut = await_batch_verified_event(stream, batch_merkle_root);
+    let await_batch_verified_fut = await_batch_verified_event(event_stream, batch_merkle_root);
 
     match timeout(
         Duration::from_secs(AWAIT_BATCH_VERIFICATION_TIMEOUT),
@@ -96,10 +96,10 @@ async fn await_batch_verification<'s>(
 
 // Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
 async fn await_batch_verified_event<'s>(
-    events_stream: &mut BatchVerifiedEventStream<'s>,
+    event_stream: &mut BatchVerifiedEventStream<'s>,
     batch_merkle_root: &[u8; 32],
 ) -> Result<(), errors::SubmitError> {
-    while let Some(event_result) = events_stream.next().await {
+    while let Some(event_result) = event_stream.next().await {
         if let Ok(event) = event_result {
             if &event.batch_merkle_root == batch_merkle_root {
                 debug!("Batch operator signatures verified on Ethereum");

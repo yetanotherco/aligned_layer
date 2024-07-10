@@ -109,7 +109,7 @@ pub async fn receive_and_wait(
 
     let events = service_manager.event::<BatchVerifiedFilter>();
 
-    let mut stream = events
+    let mut event_stream = events
         .stream()
         .await
         .map_err(|e| SubmitError::BatchVerifiedEventStreamError(e.to_string()))?;
@@ -132,7 +132,7 @@ pub async fn receive_and_wait(
                 msg,
                 &mut aligned_verification_data,
                 verification_data_commitments_rev,
-                &mut stream,
+                &mut event_stream,
                 &mut verified_batch_merkle_roots,
                 num_responses.clone(),
             )
@@ -153,7 +153,7 @@ async fn process_batch_inclusion_data<'s>(
     msg: Message,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-    stream: &mut BatchVerifiedEventStream<'s>,
+    event_stream: &mut BatchVerifiedEventStream<'s>,
     verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
     num_responses: Arc<Mutex<usize>>,
 ) -> Result<(), SubmitError> {
@@ -167,7 +167,7 @@ async fn process_batch_inclusion_data<'s>(
                 batch_inclusion_data,
                 aligned_verification_data,
                 verification_data_commitments_rev,
-                stream,
+                event_stream,
                 verified_batch_merkle_roots,
             )
             .await?;
