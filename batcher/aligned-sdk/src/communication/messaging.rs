@@ -1,6 +1,6 @@
 use ethers::providers::{Http, Provider};
 use futures_util::{future, stream::SplitStream, SinkExt, StreamExt, TryStreamExt};
-use log::{debug, error};
+use log::debug;
 use std::{collections::HashSet, sync::Arc};
 use tokio::{net::TcpStream, sync::Mutex};
 
@@ -61,13 +61,12 @@ pub async fn receive(
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
             if let Some(close_msg) = close_frame {
-                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
-                ws_write.lock().await.close().await?;
-                return Ok(None);
+                return Err(SubmitError::ConnectionClosedError(close_msg.to_owned()));
             }
-            error!("Connection was closed before receiving all messages. Try submitting your proof again");
-            ws_write.lock().await.close().await?;
-            return Ok(None);
+            return Err(SubmitError::GenericError(
+                "Connection was closed without close message before receiving all messages"
+                    .to_string(),
+            ));
         } else {
             process_batch_inclusion_data_without_await(
                 msg,
@@ -120,13 +119,12 @@ pub async fn receive_and_wait(
     while let Some(Ok(msg)) = response_stream.next().await {
         if let Message::Close(close_frame) = msg {
             if let Some(close_msg) = close_frame {
-                error!("Connection was closed before receiving all messages. Reason: {}. Try submitting your proof again", close_msg.to_owned());
-                ws_write.lock().await.close().await?;
-                return Ok(None);
+                return Err(SubmitError::ConnectionClosedError(close_msg.to_owned()));
             }
-            error!("Connection was closed before receiving all messages. Try submitting your proof again");
-            ws_write.lock().await.close().await?;
-            return Ok(None);
+            return Err(SubmitError::GenericError(
+                "Connection was closed without close message before receiving all messages"
+                    .to_string(),
+            ));
         } else {
             process_batch_inclusion_data(
                 msg,
@@ -173,10 +171,13 @@ async fn process_batch_inclusion_data<'s>(
             .await?;
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
-            error!("Batcher responded with protocol version instead of batch inclusion data");
+            return Err(SubmitError::GenericError(
+                "Batcher responded with protocol version instead of batch inclusion data"
+                    .to_string(),
+            ));
         }
         Err(e) => {
-            error!("Error while deserializing batcher response: {}", e);
+            return Err(SubmitError::SerdeError(e));
         }
     }
 
@@ -202,10 +203,13 @@ async fn process_batch_inclusion_data_without_await(
             );
         }
         Ok(ResponseMessage::ProtocolVersion(_)) => {
-            error!("Batcher responded with protocol version instead of batch inclusion data");
+            return Err(SubmitError::GenericError(
+                "Batcher responded with protocol version instead of batch inclusion data"
+                    .to_string(),
+            ));
         }
         Err(e) => {
-            error!("Error while deserializing batcher response: {}", e);
+            return Err(SubmitError::SerdeError(e));
         }
     }
 

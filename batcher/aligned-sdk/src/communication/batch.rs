@@ -81,13 +81,12 @@ async fn await_batch_verification<'s>(
             debug!("Batch operator signatures verified on Ethereum");
         }
         Ok(Err(e)) => {
-            error!(
-                "Error awaiting for batch signature verification event: {}",
-                e
-            );
+            return Err(e);
         }
         Err(_) => {
-            debug!("Batch operator signatures were not verified yet on Ethereum");
+            return Err(errors::SubmitError::AwaitBatchVerificationTimeout(
+                AWAIT_BATCH_VERIFICATION_TIMEOUT,
+            ));
         }
     }
 
@@ -100,16 +99,18 @@ async fn await_batch_verified_event<'s>(
     batch_merkle_root: &[u8; 32],
 ) -> Result<(), errors::SubmitError> {
     while let Some(event_result) = event_stream.next().await {
-        if let Ok(event) = event_result {
-            if &event.batch_merkle_root == batch_merkle_root {
-                debug!("Batch operator signatures verified on Ethereum");
-                break;
+        match event_result {
+            Ok(event) => {
+                if &event.batch_merkle_root == batch_merkle_root {
+                    debug!("Batch operator signatures verified on Ethereum");
+                    break;
+                }
             }
-        } else {
-            error!("Error awaiting for batch signature verification event");
-            return Err(errors::SubmitError::BatchVerifiedEventStreamError(
-                "Error awaiting for batch signature verification event".to_string(),
-            ));
+            Err(e) => {
+                return Err(errors::SubmitError::BatchVerifiedEventStreamError(
+                    e.to_string(),
+                ));
+            }
         }
     }
     Ok(())

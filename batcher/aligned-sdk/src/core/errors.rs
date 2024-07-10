@@ -4,6 +4,7 @@ use ethers::signers::WalletError;
 use ethers::utils::hex::FromHexError;
 use std::io;
 use std::path::PathBuf;
+use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
 pub enum AlignedError {
     SubmitError(SubmitError),
@@ -33,6 +34,7 @@ impl fmt::Debug for AlignedError {
 
 pub enum SubmitError {
     ConnectionError(tokio_tungstenite::tungstenite::Error),
+    ConnectionClosedError(CloseFrame<'static>),
     IoError(PathBuf, io::Error),
     SerdeError(serde_json::Error),
     EthError(String),
@@ -42,6 +44,7 @@ pub enum SubmitError {
     InvalidAddress(String, String),
     ProtocolVersionMismatch(u16, u16),
     BatchVerifiedEventStreamError(String),
+    AwaitBatchVerificationTimeout(u64),
     GenericError(String),
 }
 
@@ -95,6 +98,9 @@ impl fmt::Debug for SubmitError {
             SubmitError::ConnectionError(e) => {
                 write!(f, "Web Socket Connection error: {}", e)
             }
+            SubmitError::ConnectionClosedError(e) => {
+                write!(f, "Web Socket Connection closed: {:?}", e)
+            }
             SubmitError::IoError(path, e) => {
                 write!(f, "IO error for file: \"{}\", {}", path.display(), e)
             }
@@ -112,6 +118,13 @@ impl fmt::Debug for SubmitError {
             }
             SubmitError::BatchVerifiedEventStreamError(e) => {
                 write!(f, "`BatchVerified` event stream error: {}", e)
+            }
+            SubmitError::AwaitBatchVerificationTimeout(timeout) => {
+                write!(
+                    f,
+                    "Await batch verification timeout elapsed, waited for {} seconds",
+                    timeout
+                )
             }
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
         }
@@ -129,6 +142,9 @@ impl fmt::Display for SubmitError {
             SubmitError::ConnectionError(e) => {
                 write!(f, "Web Socket Connection error: {}", e)
             }
+            SubmitError::ConnectionClosedError(e) => {
+                write!(f, "Web Socket Connection closed: {:?}", e)
+            }
             SubmitError::IoError(path, e) => {
                 write!(f, "IO error for file: \"{}\", {}", path.display(), e)
             }
@@ -146,6 +162,13 @@ impl fmt::Display for SubmitError {
             }
             SubmitError::BatchVerifiedEventStreamError(e) => {
                 write!(f, "`BatchVerified` event stream error: {}", e)
+            }
+            SubmitError::AwaitBatchVerificationTimeout(timeout) => {
+                write!(
+                    f,
+                    "Await batch verification timeout elapsed, waited for {} seconds",
+                    timeout
+                )
             }
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
         }
