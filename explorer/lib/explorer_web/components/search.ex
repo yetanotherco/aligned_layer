@@ -41,10 +41,10 @@ defmodule SearchComponent do
         name="batch[merkle_root]"
       />
       <.button
+        icon="magnifying-glass-solid"
         type="submit"
-        class="absolute right-5 sm:right-1 -top-0.5 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-transparent border-none text-muted-foreground hover:text-foreground size-10 rounded-full shadow-none hover:bg-transparent"
+        class="absolute right-5 sm:right-1 top-0 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-transparent border-none text-muted-foreground hover:text-foreground size-10 rounded-full shadow-none hover:bg-transparent"
       >
-        <.icon name="hero-magnifying-glass-solid" class="size-4" />
         <span class="sr-only">Search</span>
       </.button>
     </form>
