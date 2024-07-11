@@ -4,14 +4,14 @@ use log::{debug, warn};
 pub fn verify_protocol_state_proof_integrity(proof: &[u8], public_input: &[u8]) -> bool {
     debug!("Reading Mina protocol state proof base64");
     let protocol_state_proof_base64 =
-        if let Ok(protocol_state_proof_base64) = std::str::from_utf8(&proof) {
+        if let Ok(protocol_state_proof_base64) = std::str::from_utf8(proof) {
             protocol_state_proof_base64
         } else {
             return false;
         };
     debug!("Reading Mina protocol state hash base58");
     let protocol_state_hash_base58 =
-        if let Ok(protocol_state_hash_base58) = std::str::from_utf8(&public_input) {
+        if let Ok(protocol_state_hash_base58) = std::str::from_utf8(public_input) {
             protocol_state_hash_base58
         } else {
             return false;
