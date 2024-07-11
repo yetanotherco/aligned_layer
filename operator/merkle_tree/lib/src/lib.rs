@@ -16,7 +16,7 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
 
     let batch = match serde_json::from_slice::<Vec<VerificationData>>(batch_bytes) {
         Ok(batch) => batch,
-        Err(e) => {
+        Err(_e) => {
             return false;
         }
     };
