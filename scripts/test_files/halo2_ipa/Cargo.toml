@@ -7,8 +7,8 @@ edition = "2021"
 bincode = "1.3.3"
 halo2curves = { version = "0.6.0", default-features = false }
 rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }
-halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", branch = "feat/serde_constraint_system"}
-halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", branch = "feat/serde_constraint_system" }
+halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", rev = "a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"}
+halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", rev = "a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"}
 ff = "0.13"
 
 [dev-dependencies]
