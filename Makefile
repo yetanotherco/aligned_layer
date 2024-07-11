@@ -230,6 +230,7 @@ batcher_send_risc0_task:
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_risc0_burst:
@@ -238,6 +239,7 @@ batcher_send_risc0_burst:
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
         --repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -470,7 +472,7 @@ test_risc_zero_go_bindings_linux: build_risc_zero_linux
 generate_risc_zero_fibonacci_proof:
 	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
 		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof and image ID generated in scripts/test_files/risc_zero folder"
+		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
