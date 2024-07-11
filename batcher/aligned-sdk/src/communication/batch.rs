@@ -53,7 +53,10 @@ pub async fn await_batch_verification(
             return Ok(());
         }
 
-        debug!("Proof not verified yet. Waiting 10 seconds before checking again...");
+        debug!(
+            "Proof not verified yet. Waiting {} seconds before checking again...",
+            TIME_BETWEEN_RETRIES
+        );
         tokio::time::sleep(tokio::time::Duration::from_secs(TIME_BETWEEN_RETRIES)).await;
     }
     Err(errors::SubmitError::BatchVerificationTimeout {
