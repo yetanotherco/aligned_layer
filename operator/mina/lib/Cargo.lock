@@ -1126,6 +1126,7 @@ dependencies = [
  "bs58 0.5.1",
  "hex",
  "kimchi",
+ "lazy_static",
  "mina-p2p-messages",
  "mina-tree",
  "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",

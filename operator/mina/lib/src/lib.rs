@@ -1,12 +1,20 @@
 use std::str::FromStr;
 
+use ark_ec::short_weierstrass_jacobian::GroupAffine;
 use base64::prelude::*;
-use kimchi::mina_curves::pasta::Fp;
+use kimchi::mina_curves::pasta::{Fp, PallasParameters};
+use kimchi::verifier_index::VerifierIndex;
+use lazy_static::lazy_static;
 use mina_p2p_messages::binprot::BinProtRead;
 use mina_p2p_messages::v2::{MinaBaseProofStableV2, StateHash};
 use mina_tree::proofs::verification::verify_block;
 use mina_tree::proofs::verifier_index::{get_verifier_index, VerifierKind};
 use mina_tree::verifier::get_srs;
+
+lazy_static! {
+    static ref VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
+        get_verifier_index(VerifierKind::Blockchain);
+}
 
 // TODO(xqft): check proof size
 const MAX_PROOF_SIZE: usize = 16 * 1024;
@@ -46,14 +54,15 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
             return false;
         };
 
-    let verifier_index = get_verifier_index(VerifierKind::Blockchain);
+    // TODO(xqft): srs should be a static, but can't make it so because it doesn't have all its
+    // parameters initialized.
     let srs = get_srs::<Fp>();
     let srs = srs.lock().unwrap();
 
     verify_block(
         &protocol_state_proof,
         protocol_state_hash,
-        &verifier_index,
+        &VERIFIER_INDEX,
         &srs,
     )
 }
