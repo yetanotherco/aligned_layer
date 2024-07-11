@@ -523,7 +523,7 @@ test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
 generate_halo2_kzg_proof:
 	@cd scripts/test_files/halo2_kzg && \
 	cargo clean && \
-	rm params.bin proof.bin pub_input.bin && \
+	rm -f params.bin proof.bin pub_input.bin && \
 	RUST_LOG=info cargo run --release && \
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
@@ -554,7 +554,7 @@ test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
 generate_halo2_ipa_proof:
 	@cd scripts/test_files/halo2_ipa && \
 	cargo clean && \
-	rm params.bin proof.bin pub_input.bin && \
+	rm -f params.bin proof.bin pub_input.bin && \
 	RUST_LOG=info cargo run --release && \
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
