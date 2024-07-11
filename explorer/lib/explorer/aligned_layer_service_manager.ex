@@ -87,9 +87,6 @@ defmodule AlignedLayerServiceManager do
   def extract_new_batch_event_info(event) do
     new_batch = parse_new_batch_event(event)
 
-    IO.inspect("New batch event:")
-    IO.inspect(event)
-
     {:ok,
      %NewBatchInfo{
        address: event |> Map.get(:address),
@@ -142,7 +139,8 @@ defmodule AlignedLayerServiceManager do
       response_transaction_hash: batch_response.transaction_hash,
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
-      proof_hashes: nil
+      proof_hashes: nil,
+      cost_per_proof: get_cost_per_proof(), #TODO i HERE IS THE COST PER PROOF
     }
   end
 
@@ -169,6 +167,7 @@ defmodule AlignedLayerServiceManager do
           response_transaction_hash: batch_response.transaction_hash,
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
+          cost_per_proof: unverified_batch.cost_per_proof,
           proof_hashes: nil #don't need this value to update an existing but unverified batch, it is on another table
         }
     end
@@ -214,14 +213,18 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def get_cost_per_proof() do
-    @gas_per_proof
-  end
-
   def get_current_gas_price() do
     case Ethers.current_gas_price() do
-      {:ok, gas_price} -> gas_price
+      {:ok, gas_price} ->
+        gas_price
       {:error, error} -> raise("Error fetching gas price: #{error}")
+    end
+  end
+
+  def get_cost_per_proof() do
+    case Integer.parse(@gas_per_proof) do
+      {value, _} -> value * get_current_gas_price()
+      :error -> raise("Error parsing @gas_per_proof")
     end
   end
 end

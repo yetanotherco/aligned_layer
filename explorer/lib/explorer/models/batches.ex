@@ -47,6 +47,7 @@ defmodule Batches do
       response_transaction_hash: batch_db.response_transaction_hash,
       response_timestamp: batch_db.response_timestamp,
       data_pointer: batch_db.data_pointer,
+      cost_per_proof: batch_db.cost_per_proof
     }
   end
 
@@ -133,7 +134,7 @@ defmodule Batches do
           |> Ecto.Multi.insert_all(:insert_all, Proofs, proofs)
 
           case Explorer.Repo.transaction(multi) do
-            {:ok, %{insert_batch: _batch, insert_proofs: _proofs}} ->
+            {:ok, _} ->
               IO.puts("Batch inserted successfully")
               {:ok, :success}
 
