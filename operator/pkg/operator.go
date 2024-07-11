@@ -358,7 +358,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		copy(pubInputBuffer, verificationData.PubInput)
 
 		verificationResult := mina.VerifyProtocolStateProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
-		o.Logger.Infof("Kimchi proof verification result: %t", verificationResult)
+		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")

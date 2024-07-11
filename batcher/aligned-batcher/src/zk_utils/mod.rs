@@ -73,6 +73,12 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
             debug!("Gnark proof is valid: {}", is_valid);
             is_valid
         }
-        ProvingSystemId::Mina => todo!(),
+        ProvingSystemId::Mina => {
+            let pub_input = verification_data
+                .pub_input
+                .as_ref()
+                .expect("Public input is required");
+            true // FIXME: pre-verify proof before submitting
+        }
     }
 }
