@@ -241,7 +241,7 @@ defmodule ExplorerWeb.CoreComponents do
       ]}
       {@rest}
     >
-      <.icon :if={@icon != nil} name={"hero-#{@icon}"} class={"size-4 #{@icon_class}"} />
+      <.icon :if={@icon != nil} name={"hero-#{@icon}"} class={"size-4 stroke-inherit #{@icon_class}"} />
       <%= render_slot(@inner_block) %>
     </button>
     """
