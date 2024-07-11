@@ -318,7 +318,7 @@ async fn main() -> Result<(), AlignedError> {
 
             info!("Verifying response data matches sent proof data...");
             let response = verify_proof_onchain(
-                aligned_verification_data,
+                &aligned_verification_data,
                 chain,
                 &verify_inclusion_args.eth_rpc_url,
             )

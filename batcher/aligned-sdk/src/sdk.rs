@@ -1,14 +1,12 @@
 use crate::{
     communication::{
-        messaging::{receive, receive_and_wait, send_messages},
+        batch::await_batch_verification,
+        messaging::{receive, send_messages},
         protocol::check_protocol_version,
     },
     core::{
         errors,
-        types::{
-            AlignedVerificationData, Chain, ClientMessage, VerificationData,
-            VerificationDataCommitment,
-        },
+        types::{AlignedVerificationData, Chain, VerificationData, VerificationDataCommitment},
     },
     eth,
 };
@@ -27,7 +25,7 @@ use log::debug;
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
+    StreamExt,
 };
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
@@ -57,92 +55,22 @@ pub async fn submit_multiple_and_wait(
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
-    let (ws_stream, _) = connect_async(batcher_addr)
-        .await
-        .map_err(errors::SubmitError::WebSocketConnectionError)?;
+    let aligned_verification_data =
+        submit_multiple(batcher_addr, verification_data, wallet).await?;
 
-    debug!("WebSocket handshake has been successfully completed");
-    let (ws_write, ws_read) = ws_stream.split();
-
-    let ws_write = Arc::new(Mutex::new(ws_write));
-
-    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e: url::ParseError| errors::SubmitError::EthereumProviderError(e.to_string()))?;
-
-    let contract_address = match chain {
-        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
-    };
-
-    _submit_multiple_and_wait(
-        ws_write,
-        ws_read,
-        eth_rpc_provider,
-        contract_address,
-        verification_data,
-        wallet,
-    )
-    .await
-}
-
-async fn _submit_multiple_and_wait(
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    eth_rpc_provider: Provider<Http>,
-    contract_address: &str,
-    verification_data: &[VerificationData],
-    wallet: Wallet<SigningKey>,
-) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
-    // First message from the batcher is the protocol version
-    check_protocol_version(&mut ws_read).await?;
-
-    if verification_data.is_empty() {
-        return Err(errors::SubmitError::MissingRequiredParameter(
-            "verification_data".to_string(),
-        ));
-    }
-    let ws_write_clone = ws_write.clone();
-    // The sent verification data will be stored here so that we can calculate
-    // their commitments later.
-    let mut sent_verification_data: Vec<VerificationData> = Vec::new();
-
-    {
-        let mut ws_write = ws_write.lock().await;
-
-        for verification_data in verification_data.iter() {
-            let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
-            let msg_str =
-                serde_json::to_string(&msg).map_err(errors::SubmitError::SerializationError)?;
-            ws_write
-                .send(Message::Text(msg_str.clone()))
-                .await
-                .map_err(errors::SubmitError::WebSocketConnectionError)?;
-            sent_verification_data.push(verification_data.clone());
-            debug!("Message sent...");
+    match &aligned_verification_data {
+        Some(aligned_verification_data) => {
+            for aligned_verification_data_item in aligned_verification_data.iter() {
+                await_batch_verification(
+                    aligned_verification_data_item,
+                    eth_rpc_url,
+                    chain.clone(),
+                )
+                .await?;
+            }
         }
+        None => return Ok(None),
     }
-
-    let num_responses = Arc::new(Mutex::new(0));
-
-    // This vector is reversed so that when responses are received, the commitments corresponding
-    // to that response can simply be popped of this vector.
-    let mut verification_data_commitments_rev: Vec<VerificationDataCommitment> =
-        sent_verification_data
-            .into_iter()
-            .map(|vd| vd.into())
-            .rev()
-            .collect();
-
-    let aligned_verification_data = receive_and_wait(
-        ws_read,
-        ws_write_clone,
-        eth_rpc_provider,
-        contract_address,
-        verification_data.len(),
-        num_responses,
-        &mut verification_data_commitments_rev,
-    )
-    .await?;
 
     Ok(aligned_verification_data)
 }
@@ -305,7 +233,7 @@ pub async fn submit(
 /// * `EthereumCallError` if there is an error in the Ethereum call.
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 pub async fn verify_proof_onchain(
-    aligned_verification_data: AlignedVerificationData,
+    aligned_verification_data: &AlignedVerificationData,
     chain: Chain,
     eth_rpc_url: &str,
 ) -> Result<bool, errors::VerificationError> {
@@ -317,24 +245,27 @@ pub async fn verify_proof_onchain(
 }
 
 async fn _verify_proof_onchain(
-    aligned_verification_data: AlignedVerificationData,
+    aligned_verification_data: &AlignedVerificationData,
     chain: Chain,
     eth_rpc_provider: Provider<Http>,
 ) -> Result<bool, errors::VerificationError> {
     let contract_address = match chain {
         Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
+        Chain::Holesky => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
     };
 
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data
         .batch_inclusion_proof
         .merkle_path
+        .clone()
         .into_iter()
         .flatten()
         .collect();
 
-    let verification_data_comm = aligned_verification_data.verification_data_commitment;
+    let verification_data_comm = aligned_verification_data
+        .verification_data_commitment
+        .clone();
 
     let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
@@ -494,7 +425,7 @@ mod test {
         sleep(std::time::Duration::from_secs(20)).await;
 
         let result = verify_proof_onchain(
-            aligned_verification_data[0].clone(),
+            &aligned_verification_data[0],
             Chain::Devnet,
             "http://localhost:8545",
         )
@@ -549,7 +480,7 @@ mod test {
         aligned_verification_data_modified.batch_merkle_root[0] = 0;
 
         let result = verify_proof_onchain(
-            aligned_verification_data_modified,
+            &aligned_verification_data_modified,
             Chain::Devnet,
             "http://localhost:8545",
         )

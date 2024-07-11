@@ -1,7 +1,6 @@
-use ethers::providers::{Http, Provider};
 use futures_util::{future, stream::SplitStream, SinkExt, StreamExt, TryStreamExt};
 use log::debug;
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 
 use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet};
@@ -9,9 +8,7 @@ use futures_util::stream::SplitSink;
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 use crate::{
-    communication::batch::{
-        handle_batch_inclusion_data, handle_batch_inclusion_data_without_await,
-    },
+    communication::batch::handle_batch_inclusion_data,
     core::{
         errors::SubmitError,
         types::{
@@ -19,7 +16,6 @@ use crate::{
             VerificationDataCommitment,
         },
     },
-    eth::{aligned_service_manager, BatchVerifiedEventStream, BatchVerifiedFilter},
 };
 
 pub async fn send_messages(
@@ -70,71 +66,10 @@ pub async fn receive(
                     .to_string(),
             ));
         }
-        process_batch_inclusion_data_without_await(
-            msg,
-            &mut aligned_verification_data,
-            verification_data_commitments_rev,
-            num_responses.clone(),
-        )
-        .await?;
-
-        if *num_responses.lock().await == total_messages {
-            debug!("All messages responded. Closing connection...");
-            ws_write.lock().await.close().await?;
-            return Ok(Some(aligned_verification_data));
-        }
-    }
-
-    Ok(None)
-}
-
-pub async fn receive_and_wait(
-    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    eth_rpc_provider: Provider<Http>,
-    contract_address: &str,
-    total_messages: usize,
-    num_responses: Arc<Mutex<usize>>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<Option<Vec<AlignedVerificationData>>, SubmitError> {
-    // Responses are filtered to only admit binary or close messages.
-    let mut response_stream =
-        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
-
-    let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
-
-    let service_manager = aligned_service_manager(eth_rpc_provider.clone(), contract_address)
-        .await
-        .map_err(|e| SubmitError::HexDecodingError(e.to_string()))?;
-
-    let events = service_manager.event::<BatchVerifiedFilter>();
-
-    let mut event_stream = events
-        .stream()
-        .await
-        .map_err(|e| SubmitError::BatchVerifiedEventStreamError(e.to_string()))?;
-
-    // Two different proofs can return the same batch_merkle_root and we don't want wait for the same event twice.
-    let mut verified_batch_merkle_roots = HashSet::new();
-
-    while let Some(Ok(msg)) = response_stream.next().await {
-        if let Message::Close(close_frame) = msg {
-            if let Some(close_msg) = close_frame {
-                return Err(SubmitError::WebSocketClosedUnexpectedlyError(
-                    close_msg.to_owned(),
-                ));
-            }
-            return Err(SubmitError::GenericError(
-                "Connection was closed without close message before receiving all messages"
-                    .to_string(),
-            ));
-        }
         process_batch_inclusion_data(
             msg,
             &mut aligned_verification_data,
             verification_data_commitments_rev,
-            &mut event_stream,
-            &mut verified_batch_merkle_roots,
             num_responses.clone(),
         )
         .await?;
@@ -149,44 +84,7 @@ pub async fn receive_and_wait(
     Ok(None)
 }
 
-async fn process_batch_inclusion_data<'s>(
-    msg: Message,
-    aligned_verification_data: &mut Vec<AlignedVerificationData>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-    event_stream: &mut BatchVerifiedEventStream<'s>,
-    verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
-    num_responses: Arc<Mutex<usize>>,
-) -> Result<(), SubmitError> {
-    let mut num_responses_lock = num_responses.lock().await;
-    *num_responses_lock += 1;
-
-    let data = msg.into_data();
-    match serde_json::from_slice::<ResponseMessage>(&data) {
-        Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
-            handle_batch_inclusion_data(
-                batch_inclusion_data,
-                aligned_verification_data,
-                verification_data_commitments_rev,
-                event_stream,
-                verified_batch_merkle_roots,
-            )
-            .await?;
-        }
-        Ok(ResponseMessage::ProtocolVersion(_)) => {
-            return Err(SubmitError::UnexpectedBatcherResponse(
-                "Batcher responded with protocol version instead of batch inclusion data"
-                    .to_string(),
-            ));
-        }
-        Err(e) => {
-            return Err(SubmitError::SerializationError(e));
-        }
-    }
-
-    Ok(())
-}
-
-async fn process_batch_inclusion_data_without_await(
+async fn process_batch_inclusion_data(
     msg: Message,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
@@ -198,7 +96,7 @@ async fn process_batch_inclusion_data_without_await(
     let data = msg.into_data();
     match serde_json::from_slice::<ResponseMessage>(&data) {
         Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
-            let _ = handle_batch_inclusion_data_without_await(
+            let _ = handle_batch_inclusion_data(
                 batch_inclusion_data,
                 aligned_verification_data,
                 verification_data_commitments_rev,

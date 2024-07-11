@@ -1,44 +1,20 @@
-use std::{collections::HashSet, time::Duration};
-
-use futures_util::StreamExt;
 use log::debug;
-use tokio::time::timeout;
 
 use crate::{
-    core::errors,
-    core::types::{
-        AlignedVerificationData, BatchInclusionData, VerificationCommitmentBatch,
-        VerificationDataCommitment,
+    core::{
+        errors,
+        types::{
+            AlignedVerificationData, BatchInclusionData, Chain, VerificationCommitmentBatch,
+            VerificationDataCommitment,
+        },
     },
-    eth::BatchVerifiedEventStream,
+    sdk::verify_proof_onchain,
 };
 
-const AWAIT_BATCH_VERIFICATION_TIMEOUT: u64 = 60;
+const AWAIT_BATCH_VERIFICATION_RETRIES: u64 = 10;
+const AWAIT_BATCH_VERIFICATION_TIMEOUT: u64 = 10;
 
-pub async fn handle_batch_inclusion_data<'s>(
-    batch_inclusion_data: BatchInclusionData,
-    aligned_verification_data: &mut Vec<AlignedVerificationData>,
-    verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-    event_stream: &mut BatchVerifiedEventStream<'s>,
-    verified_batch_merkle_roots: &mut HashSet<Vec<u8>>,
-) -> Result<(), errors::SubmitError> {
-    let _ = handle_batch_inclusion_data_without_await(
-        batch_inclusion_data.clone(),
-        aligned_verification_data,
-        verification_data_commitments_rev,
-    );
-
-    let batch_merkle_root = batch_inclusion_data.batch_merkle_root.to_vec();
-
-    if !verified_batch_merkle_roots.contains(&batch_merkle_root) {
-        await_batch_verification(event_stream, &batch_inclusion_data.batch_merkle_root).await?;
-        verified_batch_merkle_roots.insert(batch_merkle_root);
-    }
-
-    Ok(())
-}
-
-pub fn handle_batch_inclusion_data_without_await(
+pub fn handle_batch_inclusion_data(
     batch_inclusion_data: BatchInclusionData,
     aligned_verification_data: &mut Vec<AlignedVerificationData>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
@@ -64,55 +40,28 @@ pub fn handle_batch_inclusion_data_without_await(
     Ok(())
 }
 
-async fn await_batch_verification<'s>(
-    event_stream: &mut BatchVerifiedEventStream<'s>,
-    batch_merkle_root: &[u8; 32],
+pub async fn await_batch_verification(
+    aligned_verification_data: &AlignedVerificationData,
+    rpc_url: &str,
+    chain: Chain,
 ) -> Result<(), errors::SubmitError> {
-    let await_batch_verified_fut = await_batch_verified_event(event_stream, batch_merkle_root);
+    for _ in 0..AWAIT_BATCH_VERIFICATION_RETRIES {
+        if verify_proof_onchain(aligned_verification_data, chain.clone(), rpc_url)
+            .await
+            .is_ok_and(|r| r)
+        {
+            return Ok(());
+        }
 
-    match timeout(
-        Duration::from_secs(AWAIT_BATCH_VERIFICATION_TIMEOUT),
-        await_batch_verified_fut,
-    )
-    .await
-    {
-        Ok(Ok(_)) => {
-            debug!("Batch operator signatures verified on Ethereum");
-        }
-        Ok(Err(e)) => {
-            return Err(e);
-        }
-        Err(_) => {
-            return Err(errors::SubmitError::BatchVerificationTimeout {
-                timeout_seconds: AWAIT_BATCH_VERIFICATION_TIMEOUT,
-            });
-        }
+        debug!("Proof not verified yet. Waiting 10 seconds before checking again...");
+        tokio::time::sleep(tokio::time::Duration::from_secs(
+            AWAIT_BATCH_VERIFICATION_TIMEOUT,
+        ))
+        .await;
     }
-
-    Ok(())
-}
-
-// Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
-async fn await_batch_verified_event<'s>(
-    event_stream: &mut BatchVerifiedEventStream<'s>,
-    batch_merkle_root: &[u8; 32],
-) -> Result<(), errors::SubmitError> {
-    while let Some(event_result) = event_stream.next().await {
-        match event_result {
-            Ok(event) => {
-                if &event.batch_merkle_root == batch_merkle_root {
-                    debug!("Batch operator signatures verified on Ethereum");
-                    break;
-                }
-            }
-            Err(e) => {
-                return Err(errors::SubmitError::BatchVerifiedEventStreamError(
-                    e.to_string(),
-                ));
-            }
-        }
-    }
-    Ok(())
+    Err(errors::SubmitError::BatchVerificationTimeout {
+        timeout_seconds: (AWAIT_BATCH_VERIFICATION_TIMEOUT * AWAIT_BATCH_VERIFICATION_RETRIES),
+    })
 }
 
 fn verify_response(

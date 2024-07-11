@@ -2,7 +2,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use ethers::prelude::*;
-use stream::EventStream;
 
 use crate::core::errors::VerificationError;
 
@@ -10,13 +9,6 @@ abigen!(
     AlignedLayerServiceManagerContract,
     "abi/AlignedLayerServiceManager.json"
 );
-
-pub type BatchVerifiedEventStream<'s> = EventStream<
-    's,
-    FilterWatcher<'s, Http, Log>,
-    BatchVerifiedFilter,
-    ContractError<Provider<Http>>,
->;
 
 type AlignedLayerServiceManager = AlignedLayerServiceManagerContract<Provider<Http>>;
 

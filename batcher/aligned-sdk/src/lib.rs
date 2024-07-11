@@ -4,7 +4,7 @@ pub mod core {
 }
 
 pub mod communication {
-    mod batch;
+    pub(crate) mod batch;
     pub(crate) mod messaging;
     pub mod protocol;
 }
