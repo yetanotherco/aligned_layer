@@ -1,7 +1,6 @@
 pub mod core {
     pub mod errors;
     pub mod types;
-    pub mod utils;
 }
 
 pub mod communication {
