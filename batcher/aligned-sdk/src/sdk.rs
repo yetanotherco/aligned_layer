@@ -541,12 +541,12 @@ mod test {
         .unwrap()
         .unwrap();
 
-        sleep(std::time::Duration::from_secs(10)).await;
+        sleep(std::time::Duration::from_secs(20)).await;
 
         let mut aligned_verification_data_modified = aligned_verification_data[0].clone();
 
-        // Modify the index in batch to make the verification fail
-        aligned_verification_data_modified.index_in_batch = 99;
+        // Modify the batch merkle root so that the verification fails
+        aligned_verification_data_modified.batch_merkle_root[0] = 0;
 
         let result = verify_proof_onchain(
             aligned_verification_data_modified,
