@@ -1,7 +1,7 @@
 # Aligned SDK
 
 The Aligned SDK aims to help developers interact with Aligned in a simple way.
-Some of its functionalities include submitting and verify proofs through the Aligned batcher, as well as checks the inclusion of the verified proofs on-chain. This guide provides an overview of the SDK, its installation, usage, and API details.
+Some of its functionalities include submitting and verifying proofs through the Aligned Batcher, as well as checking the inclusion of the verified proofs on-chain. This guide provides an overview of the SDK, its installation, usage, and API details.
 
 You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
@@ -46,7 +46,7 @@ pub async fn submit(
 
 ### submit_multiple
 
-Submits mulitple proofs to the batcher to be verified and returns an aligned verification data array.
+Submits multiple proofs to the batcher to be verified and returns an aligned verification data array.
 
 ```rust
 pub async fn submit_multiple(
@@ -100,12 +100,12 @@ pub async fn verify_proof_onchain(
 - `ParsingError` if there is an error parsing the address of the contract.
 - `EthError` if there is an error verifying the proof on-chain.
 
-### get_verification_key_commitment
+### get_commitment
 
 Generates a keccak256 hash commitment of the verification key.
 
 ```rust
-pub fn get_verification_key_commitment(
+pub fn get_commitment(
     content: &[u8]
 ) -> [u8; 32]
 ```
