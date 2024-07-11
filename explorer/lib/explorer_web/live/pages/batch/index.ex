@@ -8,29 +8,18 @@ defmodule ExplorerWeb.Batch.Index do
 
     Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
-    if merkle_root == nil do
-      {
-        :empty,
-        assign(socket, newBatchEvent: :empty, batchWasResponded: :empty)
-      }
-    end
-
     current_batch =
       case Batches.get_batch(%{merkle_root: merkle_root}) do
         nil -> :empty
         batch -> batch
       end
 
-    proofs_struct = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
-    proofs = proofs_struct
-    |> Enum.map(fn proof -> "0x" <> Base.encode16(proof.proof_hash, case: :lower) end)
-
     {
       :ok,
       assign(socket,
         merkle_root: merkle_root,
         current_batch: current_batch,
-        proof_hashes: proofs,
+        proof_hashes: get_proofs(merkle_root),
         network: System.get_env("ENVIRONMENT"),
         site_url: System.get_env("PHX_HOST"),
         page_title: Utils.shorten_hash(merkle_root)
@@ -45,6 +34,7 @@ defmodule ExplorerWeb.Batch.Index do
          current_batch: :empty,
          newBatchInfo: :empty,
          batchWasResponded: :empty,
+         proof_hashes: :empty,
          proofs: :empty
        )}
   end
@@ -60,6 +50,11 @@ defmodule ExplorerWeb.Batch.Index do
         current_batch: Batches.get_batch(%{merkle_root: socket.assigns.merkle_root})
       )
     }
+  end
+
+  defp get_proofs(merkle_root) do
+    Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
+    |> Enum.map(fn proof -> "0x" <> Base.encode16(proof.proof_hash, case: :lower) end)
   end
 
   # @Gian the load button should do something like the following:
