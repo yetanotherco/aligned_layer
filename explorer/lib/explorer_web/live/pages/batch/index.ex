@@ -53,8 +53,13 @@ defmodule ExplorerWeb.Batch.Index do
   end
 
   @impl true
-  def handle_event("load_proofs", _value, socket) do
+  def handle_event("show_proofs", _value, socket) do
     {:noreply, assign(socket, proof_hashes: get_proofs(socket.assigns.merkle_root))}
+  end
+
+  @impl true
+  def handle_event("hide_proofs", _value, socket) do
+    {:noreply, assign(socket, proof_hashes: :empty)}
   end
 
   defp get_proofs(merkle_root) do

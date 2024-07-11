@@ -71,14 +71,17 @@
           text={"Just%20submitted%20a%20proof%20via%20@alignedlayer%0AI%20am%20now%20%23aligned%20✅%0A#{@site_url}/batches/#{@merkle_root}"}
         />
       <% end %>
+      Proofs in this batch:
       <%= if @proof_hashes != :empty do %>
-        Proofs in this batch:
-        <div class="h-32 overflow-y-auto text-foreground">
+        <div class="h-32 overflow-y-auto text-foreground space-y-2">
           <p :for={proof <- @proof_hashes}><%= proof %></p>
+          <.button class="w-fit text-foreground inline-flex items-center gap-1.5" phx-click="hide_proofs">
+            <.icon name="hero-eye-slash" class="size-3" /> Hide Proofs
+          </.button>
         </div>
       <% else %>
-        <.button class="w-fit text-foreground" phx-click="load_proofs">
-          Load Proofs
+        <.button class="w-fit text-foreground inline-flex items-center gap-1.5" phx-click="show_proofs">
+          <.icon name="hero-eye" class="size-3" /> Show Proofs
         </.button>
       <% end %>
     </.card>
