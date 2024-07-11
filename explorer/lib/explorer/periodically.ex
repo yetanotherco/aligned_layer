@@ -18,7 +18,7 @@ defmodule Explorer.Periodically do
 
   def handle_info(:work, count) do
     # Reads and process last n blocks for new batches or batch changes
-      read_block_qty = 8
+      read_block_qty = 800 #TODO rollback to 8
       latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
       read_from_block = max(0, latest_block_number - read_block_qty)
 

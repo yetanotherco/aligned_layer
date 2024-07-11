@@ -87,6 +87,7 @@ defmodule AlignedLayerServiceManager do
   def extract_new_batch_event_info(event) do
     new_batch = parse_new_batch_event(event)
 
+    IO.inspect("New batch event:")
     IO.inspect(event)
 
     {:ok,
