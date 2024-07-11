@@ -9,6 +9,6 @@ pub mod communication {
     pub mod protocol;
 }
 
-pub mod eth;
+mod eth;
 
 pub mod sdk;
