@@ -3,21 +3,27 @@ name = "kimchi-verifier-ffi"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "mina-ecadd-proof-generator"
-path = "src/ec_add_proof_generator/main.rs"
-
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
 
 [dependencies]
-kimchi = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations"}
-o1-utils = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations"}
+kimchi = { git = "https://github.com/openmina/proof-systems", branch = "ledger-newtypes-rampup4-vrf" }
+o1-utils = { git = "https://github.com/lambdaclass/proof-systems", branch = "add-verifier-serializations" }
 ark-ff = { version = "0.3.0", features = ["parallel", "asm"] }
 ark-ec = { version = "0.3.0", features = ["parallel"] }
 ark-poly = { version = "0.3.0", features = ["parallel"] }
+ark-serialize = "0.3.0"
 serde = "1.0.197"
 rmp-serde = "1.1.2"
-ark-serialize = "0.3.0"
 serde_json = "1.0.118"
 hex = "0.4.3"
+mina-tree = { git = "https://github.com/lambdaclass/openmina/", branch = "mina_bridge" }
+mina-p2p-messages = { git = "https://github.com/lambdaclass/openmina/", branch = "mina_bridge" }
+base64 = "0.22.1"
+bs58 = "0.5.1"
+
+[patch.crates-io]
+ark-ff = { git = "https://github.com/openmina/algebra", branch = "openmina" }
+ark-ec = { git = "https://github.com/openmina/algebra", branch = "openmina" }
+ark-poly = { git = "https://github.com/openmina/algebra", branch = "openmina" }
+ark-serialize = { git = "https://github.com/openmina/algebra", branch = "openmina" }
