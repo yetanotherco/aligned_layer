@@ -115,7 +115,7 @@ EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/re
 
 ### Option 2
 
-If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 Eth to WETH.
+If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 ETH to WETH.
 Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
 Change the parameter in ```---value``` if you want to wrap a different amount:
 
@@ -126,7 +126,7 @@ cast send 0x94373a4919B3240D86eA41593D5eBa789FEF3848 --rpc-url https://ethereum-
 Here `<private_key>` is the placeholder for the ECDSA key specified in the output when generating your keys with the EigenLayer CLI.
 
 Finally, to end the staking process, you need to deposit into the WETH strategy,
-as shown in the Eigen guide.
+as shown in the EigenLayer guide.
 
 <details>
   <summary>An alternative using the CLI (only when running without docker)</summary>
@@ -139,7 +139,7 @@ as shown in the Eigen guide.
   </summary>
 </details>
 
-If you don't have Holesky Eth, these are some useful faucets:
+If you don't have Holesky ETH, these are some useful faucets:
 
 - [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
 - [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)

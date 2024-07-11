@@ -245,6 +245,21 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+  Root background component.
+  """
+  slot :inner_block, default: nil
+
+  def root_background(assigns) do
+    ~H"""
+    <div class="bg-[url(/images/home.webp)] bg-cover min-h-screen">
+      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-primary/80">
+        <%= render_slot(@inner_block) %>
+      </main>
+    </div>
+    """
+  end
+
+  @doc """
     Renders a card background.
   """
   attr :class, :string, default: nil
