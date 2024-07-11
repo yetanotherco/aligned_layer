@@ -8,27 +8,27 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/mina"
 )
 
-func TestEcAddKimchiProofVerifies(t *testing.T) {
+func TestMinaStateProofVerifies(t *testing.T) {
 	fmt.Println(os.Getwd())
-	proofFile, err := os.Open("lib/kimchi_ec_add.proof")
+	proofFile, err := os.Open("../../batcher/aligned/test_files/mina/protocol_state_proof.proof")
 	if err != nil {
-		t.Errorf("could not open kimchi proof file")
+		t.Errorf("could not open mina state proof file")
 	}
 
 	proofBuffer := make([]byte, mina.MAX_PROOF_SIZE)
 	proofLen, err := proofFile.Read(proofBuffer)
 	if err != nil {
-		t.Errorf("could not read bytes from kimchi proof file")
+		t.Errorf("could not read bytes from mina state proof file")
 	}
 
-	pubInputFile, err := os.Open("lib/kimchi_verifier_index.bin")
+	pubInputFile, err := os.Open("../../batcher/aligned/test_files/mina/protocol_state_hash.pub")
 	if err != nil {
-		t.Errorf("could not open kimchi aggregated public input file")
+		t.Errorf("could not open mina state hash file")
 	}
 	pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
 	pubInputLen, err := pubInputFile.Read(pubInputBuffer)
 	if err != nil {
-		t.Errorf("could not read bytes from kimchi aggregated public input")
+		t.Errorf("could not read bytes from mina state hash")
 	}
 
 	if !mina.VerifyProtocolStateProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), uint(proofLen), ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), uint(pubInputLen)) {
