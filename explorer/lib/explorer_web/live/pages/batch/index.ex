@@ -29,6 +29,7 @@ defmodule ExplorerWeb.Batch.Index do
       assign(socket,
         merkle_root: merkle_root,
         current_batch: current_batch,
+        proofs: :empty,
         network: System.get_env("ENVIRONMENT"),
         site_url: System.get_env("PHX_HOST"),
         page_title: Utils.shorten_hash(merkle_root)
@@ -36,7 +37,7 @@ defmodule ExplorerWeb.Batch.Index do
     }
   rescue
     _ ->
-      {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty, current_batch: :empty)}
+      {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty, current_batch: :empty, proofs: :empty)}
   end
 
   @impl true
@@ -51,6 +52,14 @@ defmodule ExplorerWeb.Batch.Index do
       )
     }
   end
+
+  # @Gian the load button should do something like the following:
+  # def load_proofs() do
+  #   proofs = Proofs.get_proofs_from_batch(%{merkle_root: @merkle_root})
+  #   assign(socket,
+  #     proofs: proofs
+  #   )
+  # end
 
   embed_templates "*"
 end

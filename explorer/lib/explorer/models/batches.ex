@@ -14,7 +14,6 @@ defmodule Batches do
     field :response_transaction_hash, :string
     field :response_timestamp, :utc_datetime
     field :data_pointer, :string
-    has_many :proofs, Proofs, foreign_key: :batch_merkle_root
 
     timestamps()
   end
@@ -62,7 +61,7 @@ defmodule Batches do
     where: b.merkle_root == ^merkle_root,
     select: b)
 
-    Explorer.Repo.one(query) |> Explorer.Repo.preload(:proofs) # TODO remove preload, and has_many from schema. make it a separate call, a "load batch proofs" in frontend, to reduce network load
+    Explorer.Repo.one(query)
   end
 
   def get_latest_batches(%{amount: amount}) do
