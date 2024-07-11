@@ -76,9 +76,18 @@
         />
       <% end %>
       Proofs in this batch:
-      <div class="h-32 overflow-y-auto text-foreground">
-        <p :for={proof_hash <- @current_batch.proof_hashes}><%= proof_hash %></p>
-      </div>
+      <%= if @proof_hashes != :empty do %>
+        <div class="h-32 overflow-y-auto text-foreground space-y-2">
+          <p :for={proof <- @proof_hashes}><%= proof %></p>
+          <.button class="w-fit text-foreground inline-flex items-center gap-1.5" phx-click="hide_proofs">
+            <.icon name="hero-eye-slash" class="size-3" /> Hide Proofs
+          </.button>
+        </div>
+      <% else %>
+        <.button class="w-fit text-foreground inline-flex items-center gap-1.5" phx-click="show_proofs">
+          <.icon name="hero-eye" class="size-3" /> Show Proofs
+        </.button>
+      <% end %>
     </.card>
   <% else %>
     <div class="flex flex-col space-y-6 justify-center grow relative text-center md:pt-14">

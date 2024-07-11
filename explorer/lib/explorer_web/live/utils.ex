@@ -123,29 +123,21 @@ defmodule Utils do
     |> Enum.reverse()
   end
 
-  def extract_amount_of_proofs_from_json({:ok, batch_json}) do
-    batch_json |> Enum.count()
-  end
-
-  def extract_amount_of_proofs_from_json({:error, _}) do
-    300
-  end
-
   def calculate_proof_hashes({:ok, batch_json}) do
+    IO.inspect("Calculating proof hashes")
     batch_json
       |> Enum.map(
         fn proof ->
           :crypto.hash(:sha3_256, proof["proof"])
-            |> Base.encode16(case: :lower)
-            |> (&("0x" <> &1)).()
+            # TODO removed this because i want to store as bytea, not a string.
+            # |> Base.encode16(case: :lower)
+            # |> (&("0x" <> &1)).()
         end)
   end
 
-  def extract_info_from_json(json) do
-    IO.inspect("Extracting info from JSON")
-    amount_of_proofs = json |> extract_amount_of_proofs_from_json()
-    proof_hashes = json |> calculate_proof_hashes()
-    [amount_of_proofs, proof_hashes]
+  def calculate_proof_hashes({:error, reason}) do
+    IO.inspect("Error calculating proof hashes: #{inspect(reason)}")
+    []
   end
 
   def fetch_batch_data_pointer(batch_data_pointer) do
@@ -165,24 +157,24 @@ defmodule Utils do
   end
 
   def extract_info_from_data_pointer(%BatchDB{} = batch) do
-    IO.inspect("Extracting amount of proofs for batch: #{batch.merkle_root}")
+    IO.inspect("Extracting batch's proofs info: #{batch.merkle_root}")
     # only get from s3 if not already in DB
-    [amount_of_proofs, proof_hashes] =
-      case Batches.get_proof_info(%{merkle_root: batch.merkle_root}) do
+    proof_hashes =
+      case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
         nil ->
           IO.inspect("Fetching from S3")
 
           batch.data_pointer
-          |> Utils.fetch_batch_data_pointer()
-          |> Utils.extract_info_from_json()
+            |> Utils.fetch_batch_data_pointer()
+            |> Utils.calculate_proof_hashes()
 
-        [amount_of_proofs, proof_hashes] ->
+        proof_hashes ->
           IO.inspect("Fetching from DB") #already processed and stored the S3 data
-          [amount_of_proofs, proof_hashes]
+          proof_hashes
       end
 
     batch
-      |> Map.put(:amount_of_proofs, amount_of_proofs)
       |> Map.put(:proof_hashes, proof_hashes)
+      |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
   end
 end
