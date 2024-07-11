@@ -134,22 +134,22 @@ fn main() {
     let params = ParamsKZG::<Bn256>::setup(k, OsRng);
     let compress_selectors = true;
     let vk = keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
-    let cs = vk.clone().cs;
     let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
-
     let instances = vec![vec![circuit.0]];
+    let cs = vk.clone().cs;
+
     let mut transcript = Blake2bWrite::<_, _, Challenge255<G1Affine>>::init(Vec::new());
     create_proof::<
         KZGCommitmentScheme<Bn256>,
-        ProverSHPLONK<Bn256>,
+        ProverSHPLONK<'_, Bn256>,
         Challenge255<G1Affine>,
         _,
-        Blake2bWrite<_, G1Affine, Challenge255<G1Affine>>,
+        Blake2bWrite<Vec<u8>, G1Affine, Challenge255<G1Affine>>,
         _,
     >(
         &params,
         &pk,
-        &[circuit.clone()],
+        &[circuit],
         &[instances.clone()],
         OsRng,
         &mut transcript,
@@ -159,7 +159,7 @@ fn main() {
     let proof = transcript.finalize();
     let vk_params = params.verifier_params();
     let strategy = SingleStrategy::new(&vk_params);
-    let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(&proof[..]);
+    let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
 
     verify_proof::<
     KZGCommitmentScheme<Bn256>,
@@ -176,7 +176,7 @@ fn main() {
     std::fs::write("proof.bin", &proof[..])
     .expect("should succeed to write new proof");
 
-    //write instances
+    //write public inputs
     let f = File::create("pub_input.bin").unwrap();
     let mut writer = BufWriter::new(f);
     instances.to_vec().into_iter().flatten().for_each(|fp| { writer.write(&fp.to_repr()).unwrap(); });
@@ -186,17 +186,19 @@ fn main() {
     vk.write(&mut vk_buf, SerdeFormat::RawBytes).unwrap();
     let vk_len = vk_buf.len();
     let mut kzg_params_buf = Vec::new();
-    params.write(&mut kzg_params_buf).unwrap();
+    vk_params.write(&mut kzg_params_buf).unwrap();
     let kzg_params_len = kzg_params_buf.len();
 
     //Write everything to parameters file
     let params_file = File::create("params.bin").unwrap();
     let mut writer = BufWriter::new(params_file);
     let cs_buf = bincode::serialize(&cs).unwrap();
+
     //Write Parameter Lengths as u32
     writer.write_all(&(cs_buf.len() as u32).to_le_bytes()).unwrap();
     writer.write_all(&(vk_len as u32).to_le_bytes()).unwrap();
     writer.write_all(&(kzg_params_len as u32).to_le_bytes()).unwrap();
+
     //Write Parameters
     writer.write_all(&cs_buf).unwrap();
     writer.write_all(&vk_buf).unwrap();
