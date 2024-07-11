@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{env::VarError, fmt};
 
 use tokio_tungstenite::tungstenite;
 
@@ -6,6 +6,7 @@ pub enum BatcherError {
     ConnectionError(tungstenite::Error),
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
+    S3EnvVariableError(String, VarError),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -25,6 +26,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::EthereumSubscriptionError(e) => {
                 write!(f, "Ethereum subscription was not successful: {}", e)
+            }
+            BatcherError::S3EnvVariableError(v, e) => {
+                write!(f, "Error while fetching the {} env variable: {}", v, e)
             }
         }
     }

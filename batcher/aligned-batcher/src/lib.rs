@@ -34,13 +34,12 @@ mod config;
 mod eth;
 pub mod gnark;
 pub mod halo2;
+pub mod mina;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
-
-const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
 
 pub struct Batcher {
     s3_client: S3Client,
@@ -306,7 +305,7 @@ impl Batcher {
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
             self.submit_batch(&batch_bytes, &batch_merkle_tree.root)
-                .await;
+                .await?;
             // update last uploaded batch block
             *last_uploaded_batch_block = block_number;
         }
@@ -341,26 +340,52 @@ impl Batcher {
     }
 
     /// Post batch to s3 and submit new task to Ethereum
-    async fn submit_batch(&self, batch_bytes: &[u8], batch_merkle_root: &[u8; 32]) {
+    async fn submit_batch(
+        &self,
+        batch_bytes: &[u8],
+        batch_merkle_root: &[u8; 32],
+    ) -> Result<(), BatcherError> {
+        let s3_bucket_name: String = std::env::var("AWS_BUCKET_NAME")
+            .map_err(|e| BatcherError::S3EnvVariableError("AWS_BUCKET_NAME".to_owned(), e))?;
+        let s3_bucket_name_is_domain = std::env::var("AWS_BUCKET_NAME_IS_DOMAIN").is_ok();
+
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: {}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
-        s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes.to_vec(), &file_name)
-            .await
-            .expect("Failed to upload object to S3");
+        s3::upload_object(
+            &s3_client,
+            &s3_bucket_name,
+            batch_bytes.to_vec(),
+            &file_name,
+        )
+        .await
+        .expect("Failed to upload object to S3");
 
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
         let service_manager = &self.service_manager;
-        let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
+
+        let batch_data_pointer = if s3_bucket_name_is_domain {
+            "https://".to_owned() + &s3_bucket_name + "/" + &file_name
+        } else {
+            let s3_region: String = std::env::var("AWS_REGION")
+                .map_err(|e| BatcherError::S3EnvVariableError("AWS_REGION".to_owned(), e))?;
+            "https://".to_owned()
+                + &s3_bucket_name
+                + ".s3."
+                + &s3_region
+                + ".amazonaws.com/"
+                + &file_name
+        };
         match eth::create_new_task(service_manager, *batch_merkle_root, batch_data_pointer).await {
             Ok(_) => info!("Batch verification task created on Aligned contract"),
             Err(e) => error!("Failed to create batch verification task: {}", e),
         }
+        Ok(())
     }
 }
 /// Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
