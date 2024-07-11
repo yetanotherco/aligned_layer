@@ -11,8 +11,8 @@ use crate::{
     sdk::verify_proof_onchain,
 };
 
-const AWAIT_BATCH_VERIFICATION_RETRIES: u64 = 10;
-const AWAIT_BATCH_VERIFICATION_TIMEOUT: u64 = 10;
+const RETRIES: u64 = 10;
+const TIME_BETWEEN_RETRIES: u64 = 10;
 
 pub fn handle_batch_inclusion_data(
     batch_inclusion_data: BatchInclusionData,
@@ -45,7 +45,7 @@ pub async fn await_batch_verification(
     rpc_url: &str,
     chain: Chain,
 ) -> Result<(), errors::SubmitError> {
-    for _ in 0..AWAIT_BATCH_VERIFICATION_RETRIES {
+    for _ in 0..RETRIES {
         if verify_proof_onchain(aligned_verification_data, chain.clone(), rpc_url)
             .await
             .is_ok_and(|r| r)
@@ -54,13 +54,10 @@ pub async fn await_batch_verification(
         }
 
         debug!("Proof not verified yet. Waiting 10 seconds before checking again...");
-        tokio::time::sleep(tokio::time::Duration::from_secs(
-            AWAIT_BATCH_VERIFICATION_TIMEOUT,
-        ))
-        .await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(TIME_BETWEEN_RETRIES)).await;
     }
     Err(errors::SubmitError::BatchVerificationTimeout {
-        timeout_seconds: (AWAIT_BATCH_VERIFICATION_TIMEOUT * AWAIT_BATCH_VERIFICATION_RETRIES),
+        timeout_seconds: (TIME_BETWEEN_RETRIES * RETRIES),
     })
 }
 
