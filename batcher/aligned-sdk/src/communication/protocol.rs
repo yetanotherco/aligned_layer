@@ -4,7 +4,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use crate::core::{errors::SubmitError, types::ResponseMessage};
 
-pub const EXPECTED_PROTOCOL_VERSION: u16 = 0;
+pub const EXPECTED_PROTOCOL_VERSION: u16 = 1;
 
 pub async fn check_protocol_version(
     ws_read: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
