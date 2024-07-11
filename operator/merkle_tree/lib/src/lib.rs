@@ -9,7 +9,6 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     merkle_root: &[u8; 32]
 ) -> bool {
     if batch_ptr.is_null() || batch_len == 0 {
-        println!("batch_ptr == null || batch_len == 0 {}", batch_len);
         return false;
     }
     
@@ -18,7 +17,6 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     let batch = match serde_json::from_slice::<Vec<VerificationData>>(batch_bytes) {
         Ok(batch) => batch,
         Err(e) => {
-            println!("Error: {:?}", e);
             return false;
         }
     };
