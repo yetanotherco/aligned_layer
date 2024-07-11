@@ -18,6 +18,7 @@ pub async fn check_protocol_version(
                         expected: EXPECTED_PROTOCOL_VERSION,
                     });
                 }
+                return Ok(());
             }
             Ok(_) => {
                 return Err(SubmitError::UnexpectedBatcherResponse(
@@ -29,7 +30,6 @@ pub async fn check_protocol_version(
             }
         }
     }
-
     Err(SubmitError::UnexpectedBatcherResponse(
         "Batcher did not respond with the protocol version".to_string(),
     ))
