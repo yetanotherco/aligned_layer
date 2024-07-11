@@ -8,8 +8,8 @@ use mina_tree::proofs::verification::verify_block;
 use mina_tree::proofs::verifier_index::{get_verifier_index, VerifierKind};
 use mina_tree::verifier::get_srs;
 
-// TODO: check these
-const MAX_PROOF_SIZE: usize = 15 * 1024;
+// TODO(xqft): check proof size
+const MAX_PROOF_SIZE: usize = 16 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 1024;
 
 #[no_mangle]
