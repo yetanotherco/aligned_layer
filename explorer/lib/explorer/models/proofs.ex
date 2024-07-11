@@ -6,7 +6,6 @@ defmodule Proofs do
   schema "proofs" do
     field :batch_merkle_root, :string
     field :proof_hash, :binary
-    # belongs_to :batch, Batches
 
     timestamps()
   end

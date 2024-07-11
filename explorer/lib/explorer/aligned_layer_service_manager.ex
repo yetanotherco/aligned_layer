@@ -134,7 +134,7 @@ defmodule AlignedLayerServiceManager do
           response_transaction_hash: batch_response.transaction_hash,
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
-          proof_hashes: nil #don't need this value to update an existing but enverified batch, it is on another table
+          proof_hashes: nil #don't need this value to update an existing but unverified batch, it is on another table
         }
     end
   end

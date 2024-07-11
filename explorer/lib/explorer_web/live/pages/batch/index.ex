@@ -24,12 +24,14 @@ defmodule ExplorerWeb.Batch.Index do
     IO.inspect("current_batch")
     IO.inspect(current_batch)
 
+    proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
+
     {
       :ok,
       assign(socket,
         merkle_root: merkle_root,
         current_batch: current_batch,
-        proofs: :empty,
+        proof_hashes: proofs,
         network: System.get_env("ENVIRONMENT"),
         site_url: System.get_env("PHX_HOST"),
         page_title: Utils.shorten_hash(merkle_root)
@@ -55,7 +57,7 @@ defmodule ExplorerWeb.Batch.Index do
 
   # @Gian the load button should do something like the following:
   # def load_proofs() do
-  #   proofs = Proofs.get_proofs_from_batch(%{merkle_root: @merkle_root})
+  #   proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
   #   assign(socket,
   #     proofs: proofs
   #   )

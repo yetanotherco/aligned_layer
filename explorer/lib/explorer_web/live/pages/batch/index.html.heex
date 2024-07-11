@@ -73,7 +73,7 @@
       <% end %>
       Proofs in this batch:
       <div class="h-32 overflow-y-auto text-foreground">
-        <p :for={proof_hash <- @current_batch.proof_hashes}><%= proof_hash %></p>
+        <p :for={proof <- @proof_hashes}><%= proof.proof_hash %></p>
       </div>
     </.card>
   <% else %>
