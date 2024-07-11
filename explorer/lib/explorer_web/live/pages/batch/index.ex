@@ -21,10 +21,9 @@ defmodule ExplorerWeb.Batch.Index do
         batch -> batch
       end
 
-    IO.inspect("current_batch")
-    IO.inspect(current_batch)
-
-    proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
+    proofs_struct = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
+    proofs = proofs_struct
+    |> Enum.map(fn proof -> "0x" <> Base.encode16(proof.proof_hash, case: :lower) end)
 
     {
       :ok,
@@ -39,7 +38,15 @@ defmodule ExplorerWeb.Batch.Index do
     }
   rescue
     _ ->
-      {:ok, assign(socket, merkle_root: :empty, newBatchInfo: :empty, batchWasResponded: :empty, current_batch: :empty, proofs: :empty)}
+      {:ok,
+       socket
+       |> assign(
+         merkle_root: :empty,
+         current_batch: :empty,
+         newBatchInfo: :empty,
+         batchWasResponded: :empty,
+         proofs: :empty
+       )}
   end
 
   @impl true

@@ -72,8 +72,8 @@
         />
       <% end %>
       Proofs in this batch:
-      <div class="h-32 overflow-y-auto text-foreground">
-        <p :for={proof <- @proof_hashes}><%= proof.proof_hash %></p>
+      <div :if={@proof_hashes != :empty} class="h-32 overflow-y-auto text-foreground">
+        <p :for={proof <- @proof_hashes}><%= proof %></p>
       </div>
     </.card>
   <% else %>
