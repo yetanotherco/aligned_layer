@@ -28,11 +28,9 @@ pub async fn check_protocol_version(
                 return Err(SubmitError::SerializationError(e));
             }
         }
-    } else {
-        return Err(SubmitError::UnexpectedBatcherResponse(
-            "Batcher did not respond with the protocol version".to_string(),
-        ));
     }
 
-    Ok(())
+    Err(SubmitError::UnexpectedBatcherResponse(
+        "Batcher did not respond with the protocol version".to_string(),
+    ))
 }
