@@ -190,4 +190,11 @@ contract AlignedLayerServiceManager is
     receive() external payable {
         batchersBalances[msg.sender] += msg.value;
     }
+
+    function checkPublicInput(
+        bytes calldata publicInput,
+        bytes32 hash
+    ) public pure returns (bool) {
+        return keccak256(publicInput) == hash;
+    }
 }
