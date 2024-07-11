@@ -4,7 +4,20 @@
     "bestChain": [
       {
         "protocolState": {
-          "previousStateHash": "3NLAmT67BvsADswuJ6xpt3yNEVgmn5R8pkJTFvQtsZQD54aLhFmV"
+          "previousStateHash": "3NLAmT67BvsADswuJ6xpt3yNEVgmn5R8pkJTFvQtsZQD54aLhFmV",
+          "consensusState": {
+            "slotSinceGenesis": "490386",
+            "epochCount": "6",
+            "stakingEpochData": {
+              "lockCheckpoint": "3NL1BXat9KbW83ZeZC2zq2GfkxXwn5oEWr5jcXbbA99W36G2iM26"
+            },
+            "nextEpochData": {
+              "lockCheckpoint": "3NKQDxPs3RJj5GZMJjsf9RGBoQohuiP6V8niCcs3k3v3qPDPjDJ5"
+            },
+            "minWindowDensity": "3",
+            "blockHeight": "326404",
+            "lastVrfOutput": "48H5vHuQcxgd8xNVPUpHrCFiwe6jZB8fpS2ZJ4SnhAqyQgg5LSpX"
+          }
         }
       }
     ],
