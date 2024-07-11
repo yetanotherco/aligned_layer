@@ -40,7 +40,7 @@ defmodule Proofs do
       [] ->
         nil
       result ->
-        [result, result |> Enum.count()]
+        result
     end
   end
 
