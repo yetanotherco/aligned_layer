@@ -3,9 +3,10 @@ package operator
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 	"io"
 	"net/http"
+
+	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
 func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {
@@ -42,10 +43,12 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 	}
 
 	// Checks if downloaded merkle root is the same as the expected one
+	o.Logger.Infof("Verifying batch merkle tree...")
 	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
 	if !merkle_root_check {
-		return nil, fmt.Errorf("merkle Root check failed")
+		return nil, fmt.Errorf("merkle root check failed")
 	}
+	o.Logger.Infof("Batch merkle tree verified")
 
 	var batch []VerificationData
 
