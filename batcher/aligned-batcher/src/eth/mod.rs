@@ -1,3 +1,4 @@
+use std::iter::repeat;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -72,11 +73,7 @@ pub async fn create_new_task(
 ) -> Result<TransactionReceipt, anyhow::Error> {
     let signatures = signatures
         .iter()
-        .map(|s| SignatureData {
-            v: s.v as u8,
-            r: s.r.into(),
-            s: s.s.into(),
-        })
+        .map(signature_data_from_signature)
         .collect::<Vec<SignatureData>>();
 
     // pad leaves to next power of 2
@@ -84,7 +81,7 @@ pub async fn create_new_task(
     let last_leaf = leaves[leaves_len - 1];
     let leaves = leaves
         .into_iter()
-        .chain(std::iter::repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
+        .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
         .collect::<Vec<[u8; 32]>>();
 
     let call = payment_service.create_new_task(
@@ -123,4 +120,12 @@ pub async fn get_batcher_payment_service(
         BatcherPaymentService::new(H160::from_str(contract_address.as_str())?, signer);
 
     Ok(service_manager)
+}
+
+fn signature_data_from_signature(signature: &Signature) -> SignatureData {
+    SignatureData {
+        v: signature.v as u8,
+        r: signature.r.into(),
+        s: signature.s.into(),
+    }
 }

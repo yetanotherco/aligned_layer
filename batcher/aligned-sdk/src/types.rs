@@ -1,5 +1,4 @@
 use ethers::core::k256::ecdsa::SigningKey;
-use ethers::core::rand;
 use ethers::signers::Signer;
 use ethers::signers::Wallet;
 use ethers::types::Address;
