@@ -331,6 +331,31 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--repetitions 5 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+batcher_send_mina_task:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof test_files/mina/protocol_state_proof.proof \
+		--public_input test_files/mina/protocol_state_hash.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_task_bad:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof test_files/mina/protocol_state_proof.proof \
+		--public_input test_files/mina/bad_protocol_state_hash.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof test_files/mina/protocol_state_proof.proof \
+		--public_input test_files/mina/protocol_state_hash.pub \
+		--repetitions 15 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 __TASK_SENDERS__:
  # TODO add a default proving system
 
@@ -666,11 +691,11 @@ generate_halo2_ipa_proof:
 __MINA_FFI__: ##
 build_mina_macos:
 	@cd operator/mina/lib && cargo build --release
-	@cp operator/mina/lib/target/release/libkimchi_verifier_ffi.dylib operator/mina/lib/libkimchi_verifier.dylib
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.dylib operator/mina/lib/libmina_state_verifier.dylib
 
 build_mina_linux:
 	@cd operator/mina/lib && cargo build --release
-	@cp operator/mina/lib/target/release/libkimchi_verifier_ffi.so operator/mina/lib/libkimchi_verifier.so
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.so operator/mina/lib/libmina_state_verifier.so
 
 test_mina_rust_ffi:
 	@echo "Testing Mina Rust FFI source code..."

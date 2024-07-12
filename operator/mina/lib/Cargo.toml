@@ -1,5 +1,5 @@
 [package]
-name = "kimchi-verifier-ffi"
+name = "mina-state-verifier-ffi"
 version = "0.1.0"
 edition = "2021"
 
@@ -21,6 +21,7 @@ mina-tree = { git = "https://github.com/lambdaclass/openmina/", branch = "mina_b
 mina-p2p-messages = { git = "https://github.com/lambdaclass/openmina/", branch = "mina_bridge" }
 base64 = "0.22.1"
 bs58 = "0.5.1"
+lazy_static = "1.5.0"
 
 [patch.crates-io]
 ark-ff = { git = "https://github.com/openmina/algebra", branch = "openmina" }
