@@ -182,7 +182,7 @@ contract BatcherPaymentService is
         for (uint256 i = 0; i < signatures.length; i++) {
             require(
                 !submittedSignatures[hashes[i]],
-                "Signature already submitted"
+                "Signature already submitted" // Signatures have a SALT, so they can't be reused
             );
 
             submittedSignatures[hashes[i]] = true;
