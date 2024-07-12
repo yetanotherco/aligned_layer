@@ -97,57 +97,129 @@ If you want to start the explorer for the devnet, see how to run it using it's [
 
 Next, you can use some of the send proofs make targets. All these proofs are pre-generated and for testing purposes, feel free to generate your own tests to submit to Aligned.
 
-#### Groth16
-
-WIP: checking the following make targets
-
-Send 5 Groth16 proofs each second:
-
-```bash
-make batcher_send_burst_groth16
-```
-
-Send Groth 16 proofs each 2 seconds:
-
-```bash
-make batcher_send_infinite_groth16
-```
-
-Send an individual Groth 16 proof:
-
-```bash
-make batcher_send_groth16_task
-```
-
-To send an individual test SP1 proof:
+<details>
+<summary>SP1</summary>
+<br>
+Send an individual proof:
 
 ```bash
 make batcher_send_sp1_task
 ```
 
+Send a burst of 15 proofs:
+
 ```bash
 make batcher_send_sp1_burst
 ```
 
+Send proofs indefinetly:
+
+```bash
+batcher_send_infinite_sp1
+```
+</details>
+
+<details>
+<summary>Risc0</summary>
+<br>
+Send an individual proof:
+
+```bash
+batcher_send_risc0_task
+```
+
+Send a burst of 15 proofs:
+
 ```bash
 make batcher_send_risc0_burst
 ```
+</details>
+
+<details>
+<summary>Plonk</summary>
+<br>
+Send an individual bn254 proof:
 
 ```bash
-make batcher_send_plonk_bn254_burst
+batcher_send_plonk_bn254_task
 ```
 
-```bash
-make batcher_send_plonk_bls12_381_burst
-```
+Send a burst of 15 bn254 proofs:
 
 ```bash
-make batcher_send_halo2_ipa_task_burst_5
+batcher_send_plonk_bn254_burst
 ```
 
+Send an individual bl12 proof:
+
 ```bash
-make batcher_send_halo2_kzg_task_burst_5
+batcher_send_plonk_bls12_381_task
 ```
+
+Send a burst of 15 bl12 proofs:
+
+```bash
+batcher_send_plonk_bls12_381_burst
+```
+</details>
+
+
+<details>
+<summary>Groth16</summary>
+<br>
+Send an individual bn254 proof:
+
+```bash
+batcher_send_groth16_bn254_task
+```
+
+Send a burst of 15 bn254 proofs:
+
+```bash
+batcher_send_groth16_burst
+```
+
+Send bn254 proofs indefinetly:
+
+```bash
+batcher_send_infinite_groth16
+```
+
+Send bn254 proof bursts indefinetly:
+
+```bash
+batcher_send_burst_groth16
+```
+</details>
+
+<details>
+<summary>Halo2</summary>
+<br>
+Send an individual IPA proof:
+
+```bash
+batcher_send_halo2_ipa_task
+```
+
+Send a burst of 5 IPA proofs:
+
+```bash
+batcher_send_halo2_ipa_task_burst_5
+```
+
+Send an individual KZG proof:
+
+```bash
+batcher_send_halo2_kzg_task
+```
+
+Send a burst of 5 KZG proofs:
+
+```bash
+batcher_send_halo2_kzg_task_burst_5
+```
+</details>
+
 
 ### Detailed Testnet Deployment
 
