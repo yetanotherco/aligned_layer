@@ -1,10 +1,10 @@
 package mina
 
 /*
-#cgo darwin LDFLAGS: -L./lib -lkimchi_verifier
-#cgo linux LDFLAGS: -L./lib -lkimchi_verifier -ldl -lrt -lm
+#cgo darwin LDFLAGS: -L./lib -lmina_state_verifier
+#cgo linux LDFLAGS: -L./lib -lmina_state_verifier -ldl -lrt -lm
 
-#include "lib/kimchi.h"
+#include "lib/mina_verifier.h"
 */
 import "C"
 import (
