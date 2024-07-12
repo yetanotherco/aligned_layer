@@ -65,14 +65,25 @@ pub async fn create_new_task(
     payment_service: &BatcherPaymentService,
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
-    proof_submitters: Vec<Address>,
+    leaves: Vec<[u8; 32]>,
+    signatures: Vec<Signature>,
     gas_for_aggregator: U256,
     gas_per_proof: U256,
 ) -> Result<TransactionReceipt, anyhow::Error> {
+    let signatures = signatures
+        .iter()
+        .map(|s| SignatureData {
+            v: s.v as u8,
+            r: s.r.into(),
+            s: s.s.into(),
+        })
+        .collect::<Vec<SignatureData>>();
+
     let call = payment_service.create_new_task(
         batch_merkle_root,
         batch_data_pointer,
-        proof_submitters,
+        leaves,
+        signatures,
         gas_for_aggregator,
         gas_per_proof,
     );

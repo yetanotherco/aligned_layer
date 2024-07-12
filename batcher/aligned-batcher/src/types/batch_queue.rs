@@ -1,6 +1,5 @@
 use std::sync::Arc;
-
-use ethers::types::Address;
+use ethers::types::Signature;
 use futures_util::stream::SplitSink;
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
@@ -11,7 +10,7 @@ pub(crate) type BatchQueueEntry = (
     VerificationData,
     VerificationDataCommitment,
     Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-    Address,
+    Signature,
 );
 
 pub(crate) type BatchQueue = Vec<BatchQueueEntry>;

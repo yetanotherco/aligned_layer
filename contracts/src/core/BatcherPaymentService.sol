@@ -15,6 +15,12 @@ contract BatcherPaymentService is
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
 
+    struct SignatureData {
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+    }
+
     // STORAGE
     address public AlignedLayerServiceManager;
     address public BatcherWallet;
@@ -52,29 +58,29 @@ contract BatcherPaymentService is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        address[] calldata proofSubmitters, // one address for each payer proof, 1 user has 2 proofs? send twice that address
+        bytes32[] calldata leaves, // padded to the next power of 2
+        SignatureData[] calldata signatureData, // keep actual length
         uint256 gasForAggregator,
         uint256 gasPerProof
     ) external onlyBatcher whenNotPaused {
+        uint256 count = leaves.length;
+        require(count > 0, "No proof submitters");
+        require(count >= signatureData.length, "Not enough leaves");
+        require(
+            (count & (count - 1)) == 0,
+            "Leaves length is not a power of 2"
+        );
+
         uint256 feeForAggregator = gasForAggregator * tx.gasprice;
         uint256 feePerProof = gasPerProof * tx.gasprice;
 
-        uint256 amountOfSubmitters = proofSubmitters.length;
+        require(
+            feePerProof * count > feeForAggregator,
+            "Not enough gas to pay the aggregator"
+        );
 
-        require(amountOfSubmitters > 0, "No proof submitters");
-
-        require(feePerProof * amountOfSubmitters > feeForAggregator, "Not enough gas to pay the batcher");
-
-        // discount from each payer
-        // will revert if one of them has insufficient balance
-        for (uint256 i = 0; i < amountOfSubmitters; i++) {
-            address payer = proofSubmitters[i];
-            require(
-                UserBalances[payer] >= feePerProof,
-                "Payer has insufficient balance"
-            );
-            UserBalances[payer] -= feePerProof;
-        }
+        checkMerkleRoot(leaves, batchMerkleRoot);
+        verifySignatures(leaves, signatureData, feePerProof);
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
@@ -90,9 +96,9 @@ contract BatcherPaymentService is
 
         require(success, "createNewTask call failed");
 
-        uint256 feeForBatcher = (feePerProof * amountOfSubmitters) - feeForAggregator;
-
-        payable(BatcherWallet).transfer(feeForBatcher);
+        payable(BatcherWallet).transfer(
+            (feePerProof * count) - feeForAggregator
+        );
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
@@ -124,5 +130,59 @@ contract BatcherPaymentService is
             "Only Batcher can call this function"
         );
         _;
+    }
+
+    // Chores of 555-
+    function checkMerkleRoot(
+        bytes32[] calldata leaves,
+        bytes32 batchMerkleRoot
+    ) public pure {
+        //there are half as many nodes in the layer above the leaves
+        uint256 numNodesInLayer = leaves.length / 2;
+        //create a layer to store the internal nodes
+        bytes32[] memory layer = new bytes32[](numNodesInLayer);
+        //fill the layer with the pairwise hashes of the leaves
+        for (uint256 i = 0; i < numNodesInLayer; i++) {
+            layer[i] = keccak256(
+                abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
+            );
+        }
+        //the next layer above has half as many nodes
+        numNodesInLayer /= 2;
+        //while we haven't computed the root
+        while (numNodesInLayer != 0) {
+            //overwrite the first numNodesInLayer nodes in layer with the pairwise hashes of their children
+            for (uint256 i = 0; i < numNodesInLayer; i++) {
+                layer[i] = keccak256(
+                    abi.encodePacked(layer[2 * i], layer[2 * i + 1])
+                );
+            }
+            //the next layer above has half as many nodes
+            numNodesInLayer /= 2;
+        }
+
+        //the first node in the layer is the root
+        require(layer[0] == batchMerkleRoot, "Invalid merkle root");
+    }
+
+    function verifySignatures(
+        bytes32[] calldata hashes,
+        SignatureData[] calldata signatureData,
+        uint256 feePerProof
+    ) private {
+        address signer;
+        for (uint256 i = 0; i < signatureData.length; i++) {
+            signer = ecrecover(
+                hashes[i],
+                signatureData[i].v,
+                signatureData[i].r,
+                signatureData[i].s
+            );
+            require(
+                UserBalances[signer] >= feePerProof,
+                "Payer has insufficient balance"
+            );
+            UserBalances[signer] -= feePerProof;
+        }
     }
 }

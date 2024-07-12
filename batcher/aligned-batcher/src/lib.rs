@@ -14,10 +14,11 @@ use aws_sdk_s3::client::Client as S3Client;
 use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
-use ethers::types::{Address, U256};
+use ethers::types::{Address, Signature, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
@@ -246,7 +247,7 @@ impl Batcher {
                     ProtocolError::HandshakeIncomplete,
                 ));
             }
-            self.add_to_batch(verification_data, ws_conn_sink.clone(), submitter_addr)
+            self.add_to_batch(verification_data, ws_conn_sink.clone(), client_msg.signature)
                 .await;
         } else {
             // FIXME(marian): Handle this error correctly
@@ -265,7 +266,7 @@ impl Batcher {
         self: Arc<Self>,
         verification_data: VerificationData,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-        proof_submitter_addr: Address,
+        proof_submitter_sig: Signature,
     ) {
         let mut batch_queue_lock = self.batch_queue.lock().await;
         info!("Calculating verification data commitments...");
@@ -275,7 +276,7 @@ impl Batcher {
             verification_data,
             verification_data_comm,
             ws_conn_sink,
-            proof_submitter_addr,
+            proof_submitter_sig,
         ));
         info!("Current batch queue length: {}", batch_queue_lock.len());
     }
@@ -371,11 +372,6 @@ impl Batcher {
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
             MerkleTree::build(&batch_data_comm);
 
-        let submitter_addresses = finalized_batch
-            .iter()
-            .map(|(_, _, _, addr)| *addr)
-            .collect();
-
         let events = self.service_manager.event::<BatchVerifiedFilter>();
         let mut stream = events
             .stream()
@@ -391,9 +387,14 @@ impl Batcher {
                 block_number
             );
         }
+
+        let leaves: Vec<[u8; 32]> = batch_data_comm
+            .iter()
+            .map(|comm| VerificationCommitmentBatch::hash_data(&comm))
+            .collect();
+
         // Moving this outside the previous scope is a hotfix until we merge https://github.com/yetanotherco/aligned_layer/pull/365
-        self.submit_batch(&batch_bytes, &batch_merkle_tree.root, submitter_addresses)
-            .await;
+        self.submit_batch(&batch_bytes, &batch_merkle_tree.root, leaves, vec![]).await;
 
         if !wait_for_verification {
             send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
@@ -432,7 +433,8 @@ impl Batcher {
         &self,
         batch_bytes: &[u8],
         batch_merkle_root: &[u8; 32],
-        submitter_addresses: Vec<Address>,
+        leaves: Vec<[u8;32]>,
+        signatures: Vec<Signature>,
     ) {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
@@ -450,7 +452,7 @@ impl Batcher {
         let payment_service = &self.payment_service;
         let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
 
-        let num_proofs_in_batch = submitter_addresses.len();
+        let num_proofs_in_batch = leaves.len();
 
         // FIXME: This constants should be aggregated into one constants file
         const AGGREGATOR_COST: u128 = 400000;
@@ -466,7 +468,8 @@ impl Batcher {
             payment_service,
             *batch_merkle_root,
             batch_data_pointer,
-            submitter_addresses,
+            leaves,
+            signatures,
             AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
             gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )
