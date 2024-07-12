@@ -79,6 +79,14 @@ pub async fn create_new_task(
         })
         .collect::<Vec<SignatureData>>();
 
+    // pad leaves to next power of 2
+    let leaves_len = leaves.len();
+    let last_leaf = leaves[leaves_len - 1];
+    let leaves = leaves
+        .into_iter()
+        .chain(std::iter::repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
+        .collect::<Vec<[u8; 32]>>();
+
     let call = payment_service.create_new_task(
         batch_merkle_root,
         batch_data_pointer,
