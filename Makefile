@@ -326,7 +326,7 @@ batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
 		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_ipa/params.bin \
-		--repetitions 15
+		--repetitions 5
 
 batcher_send_halo2_kzg_task: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
@@ -344,7 +344,7 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
 		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_kzg/params.bin \
-		--repetitions 15 \
+		--repetitions 5 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 __GENERATE_PROOFS__:
