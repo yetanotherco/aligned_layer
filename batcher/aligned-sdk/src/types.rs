@@ -1,4 +1,5 @@
 use ethers::core::k256::ecdsa::SigningKey;
+use ethers::core::rand;
 use ethers::signers::Signer;
 use ethers::signers::Wallet;
 use ethers::types::Address;
@@ -30,6 +31,7 @@ pub struct VerificationData {
     pub verification_key: Option<Vec<u8>>,
     pub vm_program_code: Option<Vec<u8>>,
     pub proof_generator_addr: Address,
+    pub nonce: [u8; 32],
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -40,6 +42,8 @@ pub struct VerificationDataCommitment {
     // depending on the proving system.
     pub proving_system_aux_data_commitment: [u8; 32],
     pub proof_generator_addr: [u8; 20],
+    // random number to make the commitment unique
+    pub nonce: [u8; 32],
 }
 
 impl From<VerificationData> for VerificationDataCommitment {
@@ -73,12 +77,14 @@ impl From<VerificationData> for VerificationDataCommitment {
 
         // serialize proof generator address to bytes
         let proof_generator_addr = verification_data.proof_generator_addr.into();
+        let nonce = verification_data.nonce;
 
         VerificationDataCommitment {
             proof_commitment,
             pub_input_commitment,
             proving_system_aux_data_commitment,
             proof_generator_addr,
+            nonce,
         }
     }
 }
@@ -96,6 +102,7 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
         hasher.update(leaf.pub_input_commitment);
         hasher.update(leaf.proving_system_aux_data_commitment);
         hasher.update(leaf.proof_generator_addr);
+        hasher.update(leaf.nonce);
 
         hasher.finalize().into()
     }

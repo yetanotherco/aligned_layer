@@ -27,6 +27,9 @@ contract BatcherPaymentService is
 
     mapping(address => uint256) public UserBalances;
 
+    // map to check signature is only submitted once
+    mapping(bytes32 => bool) public submittedSignatures;
+
     // storage gap for upgradeability
     uint256[25] private __GAP;
 
@@ -132,7 +135,6 @@ contract BatcherPaymentService is
         _;
     }
 
-    // Chores of 555-
     function checkMerkleRoot(
         bytes32[] calldata leaves,
         bytes32 batchMerkleRoot
@@ -172,6 +174,13 @@ contract BatcherPaymentService is
     ) private {
         address signer;
         for (uint256 i = 0; i < signatureData.length; i++) {
+            require(
+                !submittedSignatures[hashes[i]],
+                "Signature already submitted"
+            );
+
+            submittedSignatures[hashes[i]] = true;
+
             signer = ecrecover(
                 hashes[i],
                 signatureData[i].v,
