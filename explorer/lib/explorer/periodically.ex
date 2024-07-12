@@ -18,7 +18,7 @@ defmodule Explorer.Periodically do
 
   def handle_info(:work, count) do
     # Reads and process last n blocks for new batches or batch changes
-      read_block_qty = 800 #TODO rollback to 8
+      read_block_qty = 8 # rollback to 800 if needed
       latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
       read_from_block = max(0, latest_block_number - read_block_qty)
 
@@ -27,9 +27,9 @@ defmodule Explorer.Periodically do
     # Gets previous unverified batches and checks if they were verified
       run_every_n_iterations = 8
       new_count = rem(count + 1, run_every_n_iterations)
-      if new_count == 0 do
+      # if new_count == 0 do
         Task.start(&process_unverified_batches/0)
-      end
+      # end
 
     {:noreply, new_count}
   end
@@ -85,15 +85,15 @@ defmodule Explorer.Periodically do
     "verifying previous unverified batches..." |> IO.inspect()
     unverified_batches = Batches.get_unverified_batches()
 
-    array_of_changest_tuples =
+    array_of_changeset_tuples =
       unverified_batches
         |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
         |> Enum.reject(&is_nil/1)
         |> Enum.map(&Batches.generate_changesets/1)
 
     Enum.map(
-      array_of_changest_tuples,
-      fn [batch_changeset, proofs] ->
+      array_of_changeset_tuples,
+      fn {batch_changeset, proofs} ->
         Batches.insert_or_update(batch_changeset, proofs)
       end)
   end

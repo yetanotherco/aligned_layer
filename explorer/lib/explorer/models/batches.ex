@@ -14,6 +14,7 @@ defmodule Batches do
     field :response_transaction_hash, :string
     field :response_timestamp, :utc_datetime
     field :data_pointer, :string
+    # Elixir's default integer type effectively serves the same purpose as bigint, handling arbitrarily large integers out of the box.
     field :cost_per_proof, :integer
 
     timestamps()
