@@ -59,7 +59,7 @@ pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u
             if let Ok(params) = Params::read::<_>(&mut BufReader::new(&ipa_params_buffer[..])) {
                 if let Ok(res) = read_fr(public_input) {
                     let strategy = SingleStrategy::new(&params);
-                    let instances = res.as_slice();
+                    let instances = res;
                     let mut transcript =
                         Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(proof);
                     return verify_proof::<
@@ -69,7 +69,7 @@ pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u
                         Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
                         SingleStrategy<G1Affine>,
                     >(
-                        &params, &vk, strategy, &[&[instances]], &mut transcript
+                        &params, &vk, strategy, &[vec![instances]], &mut transcript
                     )
                     .is_ok();
                 }
