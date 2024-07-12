@@ -56,7 +56,7 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 			&bind.WatchOpts{}, newTaskCreatedChan, nil,
 		)
 		if err != nil {
-			s.logger.Info("Failed to subscribe to new AlignedLayer tasks", "err", err)
+			s.logger.Warn("Failed to subscribe to new AlignedLayer tasks", "err", err)
 			time.Sleep(RetryInterval)
 			continue
 		}
