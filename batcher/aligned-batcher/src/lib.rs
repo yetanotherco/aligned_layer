@@ -14,7 +14,7 @@ use aws_sdk_s3::client::Client as S3Client;
 use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
-use ethers::types::{Address, Signature, U256};
+use ethers::types::{Signature, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -206,7 +206,7 @@ impl Batcher {
                 .expect("Failed to deserialize task");
 
         info!("Verifying message signature...");
-        let submitter_addr = if let Ok(addr) = client_msg.verify_signature() {
+        if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
 
             let mut addr = addr;
@@ -390,7 +390,7 @@ impl Batcher {
 
         let leaves: Vec<[u8; 32]> = batch_data_comm
             .iter()
-            .map(|comm| VerificationCommitmentBatch::hash_data(&comm))
+            .map(VerificationCommitmentBatch::hash_data)
             .collect();
 
         // Moving this outside the previous scope is a hotfix until we merge https://github.com/yetanotherco/aligned_layer/pull/365
