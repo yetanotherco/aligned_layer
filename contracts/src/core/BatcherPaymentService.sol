@@ -62,28 +62,34 @@ contract BatcherPaymentService is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
         bytes32[] calldata leaves, // padded to the next power of 2
-        SignatureData[] calldata signatureData, // keep actual length
+        SignatureData[] calldata signatures, // keep actual length
         uint256 gasForAggregator,
         uint256 gasPerProof
     ) external onlyBatcher whenNotPaused {
-        uint256 count = leaves.length;
-        require(count > 0, "No proof submitters");
-        require(count >= signatureData.length, "Not enough leaves");
-        require(
-            (count & (count - 1)) == 0,
-            "Leaves length is not a power of 2"
-        );
+        uint256 leavesQty = leaves.length;
+        uint256 signaturesQty = signatures.length;
 
         uint256 feeForAggregator = gasForAggregator * tx.gasprice;
         uint256 feePerProof = gasPerProof * tx.gasprice;
 
+        require(leavesQty > 0, "No leaves submitted");
+        require(signaturesQty > 0, "No proof submitter signatures");
+        require(leavesQty >= signatures.length, "Not enough leaves");
         require(
-            feePerProof * count > feeForAggregator,
+            (leavesQty & (leavesQty - 1)) == 0,
+            "Leaves length is not a power of 2"
+        );
+
+        require(feeForAggregator > 0, "No gas for aggregator");
+        require(feePerProof > 0, "No gas per proof");
+
+        require(
+            feePerProof * signaturesQty > feeForAggregator,
             "Not enough gas to pay the aggregator"
         );
 
         checkMerkleRoot(leaves, batchMerkleRoot);
-        verifySignatures(leaves, signatureData, feePerProof);
+        verifySignatures(leaves, signatures, feePerProof);
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
@@ -100,7 +106,7 @@ contract BatcherPaymentService is
         require(success, "createNewTask call failed");
 
         payable(BatcherWallet).transfer(
-            (feePerProof * count) - feeForAggregator
+            (feePerProof * signaturesQty) - feeForAggregator
         );
     }
 
@@ -168,12 +174,12 @@ contract BatcherPaymentService is
     }
 
     function verifySignatures(
-        bytes32[] calldata hashes,
-        SignatureData[] calldata signatureData,
+        bytes32[] calldata hashes, // merkle tree leaves
+        SignatureData[] calldata signatures,
         uint256 feePerProof
     ) private {
         address signer;
-        for (uint256 i = 0; i < signatureData.length; i++) {
+        for (uint256 i = 0; i < signatures.length; i++) {
             require(
                 !submittedSignatures[hashes[i]],
                 "Signature already submitted"
@@ -183,9 +189,9 @@ contract BatcherPaymentService is
 
             signer = ecrecover(
                 hashes[i],
-                signatureData[i].v,
-                signatureData[i].r,
-                signatureData[i].s
+                signatures[i].v,
+                signatures[i].r,
+                signatures[i].s
             );
             require(
                 UserBalances[signer] >= feePerProof,
