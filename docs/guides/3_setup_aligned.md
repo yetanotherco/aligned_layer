@@ -71,10 +71,17 @@ make anvil_start_with_block_time
 ```
 
 The following will start the [Aggregator](../architecture/components/5_aggregator.md):
-This 
 ```bash
 make aggregator_start
 ```
+
+<details>
+<summary>To start the aggregator with a custom configuration:</summary>
+<br>
+```bash
+make aggregator_start CONFIG_FILE=<path_to_config_file>
+```
+</details>
 
 The following will start an [Operator](../architecture/components/4_operator.md), note it also registers it:
 ```bash
@@ -85,11 +92,195 @@ If you need to start again the operator, and it's already registered, you can us
 ```bash
 make operator_start
 ```
+<details>
+<summary>More information about Operator registration:</summary>
+<br>
+Operator needs to register in both EigenLayer and Aligned. Then it can start verifying proofs.
+
+##### Register into EigenLayer
+
+To register an operator in EigenLayer Devnet with the default configuration, run:
+
+```bash
+make operator_register_with_eigen_layer
+```
+
+To register an operator in EigenLayer with a custom configuration, run:
+
+```bash
+make operator_register_with_eigen_layer CONFIG_FILE=<path_to_config_file>
+```
+
+##### Register into Aligned
+
+To register an operator in Aligned with the default configuration, run:
+
+```bash
+make operator_register_with_aligned_layer
+```
+
+To register an operator in Aligned with a custom configuration, run:
+
+```bash
+make operator_register_with_aligned_layer CONFIG_FILE=<path_to_config_file>
+```
+
+##### Full Registration in Anvil with one command
+
+To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with the default configuration, run:
+
+```bash
+make operator_full_registration
+```
+
+To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with a custom configuration, run:
+
+```bash
+make operator_full_registration CONFIG_FILE=<path_to_config_file>
+```
+
+##### Deposit Strategy Tokens in Anvil local devnet
+
+There is an ERC20 token deployed in the Anvil chain to use as strategy token with EigenLayer.
+
+To deposit strategy tokens in the Anvil chain with the default configuration, run:
+
+```bash
+make operator_mint_mock_tokens
+make operator_deposit_into_mock_strategy
+```
+
+To deposit strategy tokens in the Anvil chain with a custom configuration, run:
+
+```bash
+make operator_mint_mock_tokens CONFIG_FILE=<path_to_config_file>
+make operator_deposit_into_mock_strategy CONFIG_FILE=<path_to_config_file>
+```
+
+#### Deposit Strategy tokens in Holesky/Mainnet
+
+EigenLayer strategies are available in [eigenlayer-strategies](https://holesky.eigenlayer.xyz/restake).
+
+For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
+
+To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
+
+#### Config
+
+There is a default configuration for devnet purposes in `config-files/config.yaml`.
+Also, there are 3 different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
+
+The configuration file has the following structure:
+
+```yaml
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: <production/development>
+aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
+eigen_layer_deployment_config_file_path: <path_to_eigen_layer_deployment_config_file>
+eth_rpc_url: <http_rpc_url>
+eth_ws_url: <ws_rpc_url>
+eigen_metrics_ip_port_address: <ip:port>
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: <path_to_ecdsa_private_key_store>
+  private_key_store_password: <ecdsa_private_key_store_password>
+
+## BLS Configurations
+bls:
+  private_key_store_path: <path_to_bls_private_key_store>
+  private_key_store_password: <bls_private_key_store_password>
+
+## Operator Configurations
+operator:
+  aggregator_rpc_server_ip_port_address: <ip:port> # This is the aggregator url
+  address: <operator_address>
+  earnings_receiver_address: <earnings_receiver_address> # This is the address where the operator will receive the earnings, it can be the same as the operator address
+  delegation_approver_address: "0x0000000000000000000000000000000000000000"
+  staker_opt_out_window_blocks: 0
+  metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+# Operators variables needed for register it in EigenLayer
+el_delegation_manager_address: <el_delegation_manager_address> # This is the address of the EigenLayer delegationManager
+private_key_store_path: <path_to_bls_private_key_store>
+bls_private_key_store_path: <bls_private_key_store_password>
+signer_type: local_keystore
+chain_id: <chain_id>
+```
+
+Changing operator keys:
+
+Operator keys can be changed if needed.
+
+To create a keystore, run:
+
+```bash
+cast wallet new-mnemonic
+cast wallet import <keystore-name> --private-key <private-key>
+```
+
+To create an ECDSA keystore, run:
+
+```bash
+eigenlayer operator keys import --key-type ecdsa <keystore-name> <private-key>
+```
+
+To create a BLS keystore, run:
+
+```bash
+eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
+```
+
+</details>
+
 
 The following will start the [Batcher](../architecture/components/1_batcher.md)
 ```bash
 make batcher_start
 ```
+<details>
+<summary>More information about Batcher configuration:</summary>
+<br>
+
+To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/aligned-batcher/`).
+
+The necessary environment variables are:
+
+| Variable Name         | Description                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
+| AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
+| AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
+| AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
+| RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
+
+You can find an example `.env` file in [.env.example](../../batcher/aligned-batcher/.env.example)
+
+You can configure the batcher in `config-files/config.yaml`:
+
+```yaml
+# Common variables for all the services
+eth_rpc_url: <http_rpc_url>
+eth_ws_url: <ws_rpc_url>
+aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
+
+## Batcher Configurations
+batcher:
+  block_interval: <block_interval>
+  batch_size_interval: <batch_size_interval>
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: <path_to_ecdsa_private_key_store>
+  private_key_store_password: <ecdsa_private_key_store_password>
+```
+
+#### Run
+
+```bash
+make batcher_start
+```
+</details>
 
 If you want to start the explorer for the devnet, see how to run it using it's [documentation](#explorer) below.
 
@@ -220,248 +411,9 @@ batcher_send_halo2_kzg_task_burst_5
 ```
 </details>
 
-
-### Detailed Testnet Deployment
-
-#### Changing operator keys
-
-Operator keys can be changed if needed.
-
-To create a keystore, run:
-
-```bash
-cast wallet new-mnemonic
-cast wallet import <keystore-name> --private-key <private-key>
-```
-
-To create an ECDSA keystore, run:
-
-```bash
-eigenlayer operator keys import --key-type ecdsa <keystore-name> <private-key>
-```
-
-To create a BLS keystore, run:
-
-```bash
-eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
-```
-
-#### Aggregator
-
-If you want to run the aggregator with the default configuration, run:
-
-```bash
-make aggregator_start
-```
-
-To start the aggregator with a custom configuration, run:
-
-```bash
-make aggregator_start CONFIG_FILE=<path_to_config_file>
-```
-
-#### Operator
-
-Operator needs to register in both EigenLayer and Aligned. Then it can start verifying proofs.
-
-##### Register into EigenLayer
-
-To register an operator in EigenLayer Devnet with the default configuration, run:
-
-```bash
-make operator_register_with_eigen_layer
-```
-
-To register an operator in EigenLayer with a custom configuration, run:
-
-```bash
-make operator_register_with_eigen_layer CONFIG_FILE=<path_to_config_file>
-```
-
-##### Register into Aligned
-
-To register an operator in Aligned with the default configuration, run:
-
-```bash
-make operator_register_with_aligned_layer
-```
-
-To register an operator in Aligned with a custom configuration, run:
-
-```bash
-make operator_register_with_aligned_layer CONFIG_FILE=<path_to_config_file>
-```
-
-##### Full Registration in Anvil with one command
-
-To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with the default configuration, run:
-
-```bash
-make operator_full_registration
-```
-
-To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with a custom configuration, run:
-
-```bash
-make operator_full_registration CONFIG_FILE=<path_to_config_file>
-```
-
-##### Deposit Strategy Tokens in Anvil local devnet
-
-There is an ERC20 token deployed in the Anvil chain to use as strategy token with EigenLayer.
-
-To deposit strategy tokens in the Anvil chain with the default configuration, run:
-
-```bash
-make operator_mint_mock_tokens
-make operator_deposit_into_mock_strategy
-```
-
-To deposit strategy tokens in the Anvil chain with a custom configuration, run:
-
-```bash
-make operator_mint_mock_tokens CONFIG_FILE=<path_to_config_file>
-make operator_deposit_into_mock_strategy CONFIG_FILE=<path_to_config_file>
-```
-
-#### Deposit Strategy tokens in Holesky/Mainnet
-
-EigenLayer strategies are available in [eigenlayer-strategies](https://holesky.eigenlayer.xyz/restake).
-
-For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
-
-To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
-
-#### Config
-
-There is a default configuration for devnet purposes in `config-files/config.yaml`.
-Also, there are 3 different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
-
-The configuration file has the following structure:
-
-```yaml
-# Common variables for all the services
-# 'production' only prints info and above. 'development' also prints debug
-environment: <production/development>
-aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
-eigen_layer_deployment_config_file_path: <path_to_eigen_layer_deployment_config_file>
-eth_rpc_url: <http_rpc_url>
-eth_ws_url: <ws_rpc_url>
-eigen_metrics_ip_port_address: <ip:port>
-
-## ECDSA Configurations
-ecdsa:
-  private_key_store_path: <path_to_ecdsa_private_key_store>
-  private_key_store_password: <ecdsa_private_key_store_password>
-
-## BLS Configurations
-bls:
-  private_key_store_path: <path_to_bls_private_key_store>
-  private_key_store_password: <bls_private_key_store_password>
-
-## Operator Configurations
-operator:
-  aggregator_rpc_server_ip_port_address: <ip:port> # This is the aggregator url
-  address: <operator_address>
-  earnings_receiver_address: <earnings_receiver_address> # This is the address where the operator will receive the earnings, it can be the same as the operator address
-  delegation_approver_address: "0x0000000000000000000000000000000000000000"
-  staker_opt_out_window_blocks: 0
-  metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
-# Operators variables needed for register it in EigenLayer
-el_delegation_manager_address: <el_delegation_manager_address> # This is the address of the EigenLayer delegationManager
-private_key_store_path: <path_to_bls_private_key_store>
-bls_private_key_store_path: <bls_private_key_store_password>
-signer_type: local_keystore
-chain_id: <chain_id>
-```
-
-#### Run
-
-If you want to run the operator with the default configuration, run:
-
-```bash
-make operator_start
-```
-
-To start the operator with a custom configuration, run:
-
-```bash
-make operator_start CONFIG_FILE=<path_to_config_file>
-```
-
-### Batcher
-
-#### Batcher Config
-
-To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/aligned-batcher/`).
-
-The necessary environment variables are:
-
-| Variable Name         | Description                                                                                                                    |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
-| AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
-| AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
-| AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
-| RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
-
-You can find an example `.env` file in [.env.example](../../batcher/aligned-batcher/.env.example)
-
-You can configure the batcher in `config-files/config.yaml`:
-
-```yaml
-# Common variables for all the services
-eth_rpc_url: <http_rpc_url>
-eth_ws_url: <ws_rpc_url>
-aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
-
-## Batcher Configurations
-batcher:
-  block_interval: <block_interval>
-  batch_size_interval: <batch_size_interval>
-
-## ECDSA Configurations
-ecdsa:
-  private_key_store_path: <path_to_ecdsa_private_key_store>
-  private_key_store_password: <ecdsa_private_key_store_password>
-```
-
-#### Run
-
-```bash
-make batcher_start
-```
-
-### Send tasks
-
-#### Sending a Task to the Batcher using our Rust TaskSender CLI
-
-#### Send one SP1 proof
-
-```bash
-make batcher_send_sp1_task
-```
-
-#### Send one Groth 16 proof
-
-```bash
-make batcher_send_groth16_bn254_task
-```
-
-#### Send infinite Groth 16 proofs
-
-```bash
-make batcher_send_infinite_groth16
-```
-
-#### Send burst of Groth 16 proofs
-
-```bash
-make batcher_send_burst_groth16
-```
-
-#### Send specific proof
-
+<details>
+<summary>Send a specific proof:</summary>
+<br>
 To install the batcher client to send a specific proof, run:
 
 ```bash
@@ -480,6 +432,10 @@ aligned \
 --proof_generator_addr [proof_generator_addr] \
 --aligned_verification_data_path [aligned_verification_data_path]
 ```
+</details>
+
+
+#wip
 
 ## Deploying Aligned Contracts to Holesky or Testnet
 
