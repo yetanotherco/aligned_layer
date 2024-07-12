@@ -1,33 +1,5 @@
-<nav class="px-4 sm:px-6 lg:px-8 fixed top-0 w-full inline-flex justify-between p-3 border-b border-foreground/10 backdrop-blur-md backdrop-saturate-200 z-50">
-  <div class="flex items-center gap-8">
-    <.link class="text-3xl" navigate={~p"/"}>
-      🟩
-    </.link>
-    <.link class="text-foreground/80 hover:text-foreground font-semibold" navigate={~p"/batches"}>
-      Batches
-    </.link>
-  </div>
-  <div class="items-center gap-4 font-semibold leading-6 text-foreground/80 flex [&>a]:hidden sm:[&>a]:inline-block">
-    <a
-      class="hover:text-foreground drop-shadow-md"
-      target="_blank"
-      href="https://x.com/alignedlayer"
-    >
-      @alignedlayer
-    </a>
-    <a
-      class="hover:text-foreground drop-shadow-md"
-      target="_blank"
-      href="https://github.com/yetanotherco/aligned_layer"
-    >
-      GitHub
-    </a>
-    <DarkMode.button />
-  </div>
-</nav>
-<div class="bg-[url(/images/home.png)] bg-cover min-h-screen">
+<.live_component module={NavComponent} id="navbar" />
+<.root_background>
   <.flash_group flash={@flash} />
-  <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-primary/80">
-    <%= @inner_content %>
-  </main>
-</div>
+  <%= @inner_content %>
+</.root_background>

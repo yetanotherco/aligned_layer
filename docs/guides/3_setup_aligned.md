@@ -6,7 +6,7 @@
   - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
   - [Metrics](#metrics)
   - [Explorer](#explorer)
-  - [Notes on project creation / devnet deployment](#notes-on-project-creation--devnet-deployment)
+  - [Notes on project creation](#notes-on-project-creation)
   - [Tests](#tests)
 
 ## Local Devnet Setup
@@ -226,7 +226,7 @@ EigenLayer strategies are available in [eigenlayer-strategies](https://holesky.e
 
 For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
-To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/stage-2-testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
+To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
 
 #### Config
 
@@ -301,7 +301,7 @@ The necessary environment variables are:
 | AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
 | RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
 
-You can find an example `.env` file in [.env.example](batcher/aligned-batcher/.env.example)
+You can find an example `.env` file in [.env.example](../../batcher/aligned-batcher/.env.example)
 
 You can configure the batcher in `config-files/config.yaml`:
 
@@ -364,123 +364,17 @@ To install the batcher client to send a specific proof, run:
 make install_batcher_client
 ```
 
-The SP1 proof needs the proof file and the vm program file.
+The SP1 and Risc0 proofs need the proof file and the vm program file. The current SP1 version used in Aligned is v1.0.8-testnet and the current Risc0 version used in Aligned is v1.0.1.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
 aligned \
---proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254|Risc0> \
 --proof <proof_file> \
 --public-input <public_input_file> \
 --vm_program <vm_program_file> \
 --proof_generator_addr [proof_generator_addr] \
 --aligned_verification_data_path [aligned_verification_data_path]
-```
-
-### Task Sender
-
-#### Task Sender Config
-
-There is a default configuration for devnet purposes in `config-files/config.yaml`.
-
-The configuration file have the following structure:
-
-```yaml
-# Common variables for all the services
-# 'production' only prints info and above. 'development' also prints debug
-environment: <production/development>
-aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_config_file>
-eigen_layer_deployment_config_file_path: <path_to_eigen_layer_deployment_config_file>
-eth_rpc_url: <http_rpc_url>
-eth_ws_url: <ws_rpc_url>
-eigen_metrics_ip_port_address: <ip:port>
-
-## ECDSA Configurations
-ecdsa:
-  private_key_store_path: <path_to_ecdsa_private_key_store>
-  private_key_store_password: <ecdsa_private_key_store_password>
-```
-
-### Send PLONK BLS12_381 proof
-
-To send a single PLONK BLS12_381 proof, run:
-
-```bash
-make send_plonk_bls12_381_proof
-```
-
-To send PLONK BLS12_381 proofs in loop, run:
-
-```bash
-make send_plonk_bls12_381_proof_loop
-```
-
-#### Send PLONK BN254 proof
-
-To send a single PLONK BN254 proof, run:
-
-```bash
-make send_plonk_bn254_proof
-```
-
-To send PLONK BN254 proofs in loop, run:
-
-```bash
-make send_plonk_bn254_proof_loop
-```
-
-#### Send Groth 16 BN254 proof
-
-To send a single Groth 16 BN254 proof, run:
-
-```bash
-make send_groth16_bn254_proof
-```
-
-To send Groth 16 BN254 proofs in loop, run:
-
-```bash
-make send_groth16_bn254_proof_loop
-```
-
-To send different Groth 16 BN254 proofs in loop, run:
-
-```bash
-make send_infinite_groth16_bn254_proof
-```
-
-#### Send SP1 proof
-
-To send a single SP1 proof, run:
-
-```bash
-make send_sp1_proof
-```
-
-#### Send a specific proof
-
-```bash
-go run task_sender/cmd/main.go send-task \
---proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1> \
---proof <proof_file> \
---public-input <public_input_file> \
---verification-key <verification_key_file> \
---config <config_file> \
---quorum-threshold <quorum_threshold> \
-2>&1 | zap-pretty
-```
-
-#### Send a specific proof in loop
-
-```bash
-go run task_sender/cmd/main.go loop-tasks \
-    --proving-system <plonk_bls12_381|plonk_bn254|groth16_bn254|sp1> \
-    --proof <proof_file> \
-    --public-input <public_input_file> \
-    --verification-key <verification_key_file> \
-    --config <config_file> \
-    --quorum-threshold <quorum_threshold> \
-    --interval <interval-in-seconds>
 ```
 
 ## Deploying Aligned Contracts to Holesky or Testnet
@@ -540,7 +434,7 @@ The necessary environment variables are:
 | `DEPLOY_CONFIG_PATH`            | The path to the deployment config file.                               |
 | `OUTPUT_PATH`                   | The path to the file where the deployment info will be saved.         |
 
-You can find an example `.env` file in [.env.example.holesky](contracts/scripts/.env.example.holesky)
+You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
 
 Then run the following command:
 
@@ -730,17 +624,17 @@ You can access to a tasks information by visiting `localhost:4000/batches/:merkl
 
 Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
 
-| Variable      | Description                                                                                     |
-| ------------- | ----------------------------------------------------------------------------------------------- |
-| `RPC_URL`     | The RPC URL of the network you want to connect to.                                              |
-| `ENVIRONMENT` | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
-| `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information |
-| `PHX_HOST`    | The host URL where the Phoenix server will be running.                                          |
-| `DB_NAME` | The name of the postgres database. |
-| `DB_USER` | The username of the postgres database. |
-| `DB_PASS` | The password of the postgres database. |
-| `DB_HOST` | The host URL where the postgres database will be running. |
-| `ELIXIR_HOSTNAME` |  The hostname of your running elixir. Read [Extra Scripts](#extra-scripts) section for more details |
+| Variable              | Description                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| `RPC_URL`             | The RPC URL of the network you want to connect to.                                                 |
+| `ENVIRONMENT`         | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`.    |
+| `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information                               |
+| `PHX_HOST`            | The host URL where the Phoenix server will be running.                                             |
+| `DB_NAME`             | The name of the postgres database.                                                                 |
+| `DB_USER`             | The username of the postgres database.                                                             |
+| `DB_PASS`             | The password of the postgres database.                                                             |
+| `DB_HOST`             | The host URL where the postgres database will be running.                                          |
+| `ELIXIR_HOSTNAME`     | The hostname of your running elixir. Read [Extra Scripts](#extra-scripts) section for more details |
 
 Then you can run the explorer with this env file config by entering the following command:
 
@@ -754,7 +648,7 @@ If you want to have some data to see on it, you can start our infinite task send
 make batcher_send_burst_groth16
 ```
 
-## Notes on project creation / devnet deployment
+## Notes on project creation
 
 Eigenlayer middleware was installed as a submodule with:
 

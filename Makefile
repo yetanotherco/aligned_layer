@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.1.6
+OPERATOR_VERSION=v0.2.1
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -230,6 +230,7 @@ batcher_send_risc0_task:
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_risc0_burst:
@@ -238,6 +239,7 @@ batcher_send_risc0_burst:
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
         --repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -415,7 +417,7 @@ build_binaries:
 	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
 	@echo "Aggregator built into /aggregator/build/aligned-aggregator"
 	@echo "Building aligned layer operator..."
-	@go build -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Aligned layer operator built into /operator/build/aligned-operator"
 
 __SP1_FFI__: ##
@@ -470,7 +472,7 @@ test_risc_zero_go_bindings_linux: build_risc_zero_linux
 generate_risc_zero_fibonacci_proof:
 	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
 		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof and image ID generated in scripts/test_files/risc_zero folder"
+		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
@@ -521,7 +523,7 @@ test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
 generate_halo2_kzg_proof:
 	@cd scripts/test_files/halo2_kzg && \
 	cargo clean && \
-	rm params.bin proof.bin pub_input.bin && \
+	rm -f params.bin proof.bin pub_input.bin && \
 	RUST_LOG=info cargo run --release && \
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
@@ -552,7 +554,7 @@ test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
 generate_halo2_ipa_proof:
 	@cd scripts/test_files/halo2_ipa && \
 	cargo clean && \
-	rm params.bin proof.bin pub_input.bin && \
+	rm -f params.bin proof.bin pub_input.bin && \
 	RUST_LOG=info cargo run --release && \
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"

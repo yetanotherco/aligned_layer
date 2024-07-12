@@ -16,7 +16,7 @@ config :explorer, ExplorerWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: ExplorerWeb.ErrorHTML, json: ExplorerWeb.ErrorJSON],
-    layout: false
+    root_layout: {ExplorerWeb.Layouts, :root}
   ],
   pubsub_server: Explorer.PubSub,
   live_view: [signing_salt: "XkOXIXZ0"]

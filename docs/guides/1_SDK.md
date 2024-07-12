@@ -1,12 +1,9 @@
-# Aligned Verification SDK
+# Aligned SDK
 
-The Aligned Verification SDK facilitates the submission and verification of proofs through the Aligned batcher and checks the inclusion of these verified proofs on-chain. This README provides an overview of the SDK, its installation, usage, and API details.
+The Aligned SDK aims to help developers interact with Aligned in a simple way.
+Some of its functionalities include submitting and verifying proofs through the Aligned Batcher, as well as checking the inclusion of the verified proofs on-chain. This guide provides an overview of the SDK, its installation, usage, and API details.
 
-## Table of Contents
-- [Aligned Verification SDK](#aligned-verification-sdk)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [API Reference](#api-reference)
+You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
 ## Installation
 
@@ -22,6 +19,14 @@ aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer" }
 ### submit
 
 Submits a proof to the batcher to be verified and returns an aligned verification data struct.
+
+```rust
+pub async fn submit(
+    batcher_addr: &str,
+    verification_data: &VerificationData,
+    wallet: Wallet<SigningKey>,
+) -> Result<Option<AlignedVerificationData>, errors::SubmitError>
+```
 
 #### Arguments
 
@@ -41,7 +46,15 @@ Submits a proof to the batcher to be verified and returns an aligned verificatio
 
 ### submit_multiple
 
-Submits mulitple proofs to the batcher to be verified and returns an aligned verification data array.
+Submits multiple proofs to the batcher to be verified and returns an aligned verification data array.
+
+```rust
+pub async fn submit_multiple(
+    batcher_addr: &str,
+    verification_data: &[VerificationData],
+    wallet: Wallet<SigningKey>,
+) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError>
+```
 
 #### Arguments
 
@@ -63,6 +76,14 @@ Submits mulitple proofs to the batcher to be verified and returns an aligned ver
 
 Checks if the proof has been verified with Aligned and is included in the batch on-chain.
 
+```rust
+pub async fn verify_proof_onchain(
+    aligned_verification_data: AlignedVerificationData,
+    chain: Chain,
+    eth_rpc_url: &str,
+) -> Result<bool, errors::VerificationError>
+```
+
 #### Arguments
 
 - `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
@@ -79,9 +100,15 @@ Checks if the proof has been verified with Aligned and is included in the batch 
 - `ParsingError` if there is an error parsing the address of the contract.
 - `EthError` if there is an error verifying the proof on-chain.
 
-### get_verification_key_commitment
+### get_commitment
 
 Generates a keccak256 hash commitment of the verification key.
+
+```rust
+pub fn get_commitment(
+    content: &[u8]
+) -> [u8; 32]
+```
 
 #### Arguments
 

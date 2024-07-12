@@ -51,23 +51,27 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
             SerdeFormat::RawBytes,
             cs,
         ) {
-            if let Ok(params) = Params::read::<_>(&mut BufReader::new(
+            if let Ok(vk_params) = Params::read::<_>(&mut BufReader::new(
                 &kzg_params_buf[..(kzg_params_len as usize)],
             )) {
                 if let Ok(res) = read_fr(&public_input_buf[..(public_input_len as usize)]) {
-                    let strategy = SingleStrategy::new(&params);
-                    let instances = res.as_slice();
+                    let strategy = SingleStrategy::new(&vk_params);
+                    let instances = res;
                     let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(
                         &proof_buf[..(proof_len as usize)],
                     );
                     return verify_proof::<
                         KZGCommitmentScheme<Bn256>,
-                        VerifierSHPLONK<'_, Bn256>,
+                        VerifierSHPLONK<Bn256>,
                         Challenge255<G1Affine>,
                         Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
-                        SingleStrategy<'_, Bn256>,
+                        SingleStrategy<Bn256>,
                     >(
-                        &params, &vk, strategy, &[&[instances]], &mut transcript
+                        &vk_params,
+                        &vk,
+                        strategy,
+                        &[vec![instances]],
+                        &mut transcript,
                     )
                     .is_ok();
                 }
@@ -224,33 +228,26 @@ mod tests {
         io::{BufWriter, Read, Write},
     };
 
-    const PROOF: &[u8] =
-        include_bytes!("../../../../scripts/test_files/halo2_kzg/proof.bin");
-
-    const PROOF_FILE_PATH: &str = "../../../scripts/test_files/halo2_kzg/proof.bin";
+    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_kzg/proof.bin");
 
     const PUB_INPUT: &[u8] =
         include_bytes!("../../../../scripts/test_files/halo2_kzg/pub_input.bin");
 
-    const PUB_INPUT_PATH: &str = "../../../scripts/test_files/halo2_kzg/pub_input.bin";
-
-    const PARAMS: &[u8] =
-        include_bytes!("../../../../scripts/test_files/halo2_kzg/params.bin");
-
-    const PARAMS_FILE_PATH: &str = "../../../scripts/test_files/halo2_kzg/params.bin";
+    const PARAMS: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_kzg/params.bin");
 
     #[test]
     fn halo2_serialization_works() {
-        let k = 4;
+        // Setup Proof Params
         let circuit = StandardPlonk(Fr::random(OsRng));
-        let params = ParamsKZG::<Bn256>::setup(k, OsRng);
+        let params = ParamsKZG::<Bn256>::setup(4, OsRng);
         let compress_selectors = true;
         let vk =
             keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
-        let cs = vk.clone().cs;
         let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
+        let instances = vec![vec![circuit.0]];
+        let cs = vk.clone().cs;
 
-        let instances: &[&[Fr]] = &[&[circuit.0]];
+        // Create Proof
         let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
         create_proof::<
             KZGCommitmentScheme<Bn256>,
@@ -262,46 +259,58 @@ mod tests {
         >(
             &params,
             &pk,
-            &[circuit.clone()],
-            &[instances],
+            &[circuit],
+            &[instances.clone()],
             OsRng,
             &mut transcript,
         )
         .expect("prover should not fail");
+
         let proof = transcript.finalize();
+        let vk_params = params.verifier_params();
+        let strategy = SingleStrategy::new(&vk_params);
+        let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
+
+        // Verify Proof
+        verify_proof::<
+            KZGCommitmentScheme<Bn256>,
+            VerifierSHPLONK<Bn256>,
+            Challenge255<G1Affine>,
+            Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
+            SingleStrategy<Bn256>,
+        >(
+            &vk_params,
+            &vk,
+            strategy,
+            &[instances.clone()],
+            &mut transcript,
+        )
+        .expect("verifier should not fail");
 
         //write proof
-        std::fs::write(PROOF_FILE_PATH, &proof[..]).expect("should succeed to write new proof");
+        std::fs::write("proof.bin", &proof[..]).expect("should succeed to write new proof");
 
-        //read proof
-        let proof = std::fs::read(PROOF_FILE_PATH).expect("should succeed to read proof");
-
-        //write public input
-        let f = File::create(PUB_INPUT_PATH).unwrap();
+        //write public inputs
+        let f = File::create("pub_input.bin").unwrap();
         let mut writer = BufWriter::new(f);
         instances.to_vec().into_iter().flatten().for_each(|fp| {
             writer.write(&fp.to_repr()).unwrap();
         });
         writer.flush().unwrap();
 
-        //read instances
-        let mut f = File::open(PUB_INPUT_PATH).unwrap();
-        let mut buf = Vec::new();
-        f.read_to_end(&mut buf).unwrap();
-        let res = read_fr(&buf).unwrap();
-        let instances = res.as_slice();
-
         let mut vk_buf = Vec::new();
         vk.write(&mut vk_buf, SerdeFormat::RawBytes).unwrap();
         let vk_len = vk_buf.len();
+
         let mut kzg_params_buf = Vec::new();
-        params.write(&mut kzg_params_buf).unwrap();
+        vk_params.write(&mut kzg_params_buf).unwrap();
         let kzg_params_len = kzg_params_buf.len();
 
         //Write everything to parameters file
-        let params_file = File::create(PARAMS_FILE_PATH).unwrap();
+        let params_file = File::create("params.bin").unwrap();
         let mut writer = BufWriter::new(params_file);
         let cs_buf = bincode::serialize(&cs).unwrap();
+
         //Write Parameter Lengths as u32
         writer
             .write_all(&(cs_buf.len() as u32).to_le_bytes())
@@ -310,16 +319,26 @@ mod tests {
         writer
             .write_all(&(kzg_params_len as u32).to_le_bytes())
             .unwrap();
+
         //Write Parameters
         writer.write_all(&cs_buf).unwrap();
         writer.write_all(&vk_buf).unwrap();
         writer.write_all(&kzg_params_buf).unwrap();
         writer.flush().unwrap();
 
-        let mut f = File::open(PARAMS_FILE_PATH).unwrap();
+        //read proof
+        let proof = std::fs::read("proof.bin").expect("should succeed to read proof");
+
+        //read instances
+        let mut f = File::open("pub_input.bin").unwrap();
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+        let res = read_fr(&buf).unwrap();
+        let instances = res;
+
+        let mut f = File::open("params.bin").unwrap();
         let mut params_buf = Vec::new();
         f.read_to_end(&mut params_buf).unwrap();
-        println!("params_buf len: {:?}", params_buf.len());
 
         // Select Constraint System Bytes
         let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
@@ -351,26 +370,35 @@ mod tests {
         let kzg_offset = vk_offset + vk_len;
         kzg_params_buffer[..kzg_params_len].clone_from_slice(&params_buf[kzg_offset..]);
 
-        let cs = bincode::deserialize(&cs_buf[..cs_len]).unwrap();
+        let cs = bincode::deserialize(&cs_buffer[..cs_len]).unwrap();
         let vk = VerifyingKey::<G1Affine>::read(
             &mut BufReader::new(&vk_buffer[..vk_len]),
             SerdeFormat::RawBytes,
             cs,
         )
         .unwrap();
-        let params =
+        let vk_params =
             Params::read::<_>(&mut BufReader::new(&kzg_params_buffer[..kzg_params_len])).unwrap();
 
-        let strategy = SingleStrategy::new(&params);
+        let strategy = SingleStrategy::new(&vk_params);
         let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
         assert!(verify_proof::<
             KZGCommitmentScheme<Bn256>,
-            VerifierSHPLONK<'_, Bn256>,
+            VerifierSHPLONK<Bn256>,
             Challenge255<G1Affine>,
             Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
-            SingleStrategy<'_, Bn256>,
-        >(&params, &vk, strategy, &[&[instances]], &mut transcript)
+            SingleStrategy<Bn256>,
+        >(
+            &vk_params,
+            &vk,
+            strategy,
+            &[vec![instances]],
+            &mut transcript
+        )
         .is_ok());
+        std::fs::remove_file("proof.bin").unwrap();
+        std::fs::remove_file("pub_input.bin").unwrap();
+        std::fs::remove_file("params.bin").unwrap();
     }
 
     #[test]
