@@ -28,8 +28,7 @@
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)
 * [Contract Addresses](guides/4_contract_addresses.md)
 * [Generating & submitting proofs of Rust code with ZKRust](guides/0_5_using_zkrust.md)
-
-<!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
+* [Setup Aligned Infrastructure Locally](guides/3_setup_aligned.md)
 
 ## Operators
 
