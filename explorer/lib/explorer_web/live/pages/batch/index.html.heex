@@ -11,10 +11,12 @@
       <p><%= @merkle_root %></p>
       Amount of Proofs in this Batch:
       <p><%= @current_batch.amount_of_proofs %></p>
-      Cost per Proof:
-      <p>
-        <%= @current_batch.cost_per_proof %> wei
-      </p>
+      <%= if @current_batch.cost_per_proof != nil do %>
+        Cost per Proof:
+        <p>
+          <%= @current_batch.cost_per_proof |> Utils.wei_to_eth() %> ETH
+        </p>
+      <% end %>
       Submission Block Number:
       <.a
         target="_blank"
@@ -79,12 +81,18 @@
       <%= if @proof_hashes != :empty do %>
         <div class="h-32 overflow-y-auto text-foreground space-y-2">
           <p :for={proof <- @proof_hashes}><%= proof %></p>
-          <.button class="w-fit text-foreground inline-flex items-center gap-1.5" phx-click="hide_proofs">
+          <.button
+            class="w-fit text-foreground inline-flex items-center gap-1.5"
+            phx-click="hide_proofs"
+          >
             <.icon name="hero-eye-slash" class="size-3" /> Hide Proofs
           </.button>
         </div>
       <% else %>
-        <.button class="w-fit text-foreground inline-flex items-center gap-1.5" phx-click="show_proofs">
+        <.button
+          class="w-fit text-foreground inline-flex items-center gap-1.5"
+          phx-click="show_proofs"
+        >
           <.icon name="hero-eye" class="size-3" /> Show Proofs
         </.button>
       <% end %>

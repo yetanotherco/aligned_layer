@@ -96,6 +96,24 @@ defmodule ExplorerWeb.Utils do
   defp pad_leading_zero(value) do
     Integer.to_string(value) |> String.pad_leading(2, "0")
   end
+
+  @wei_per_eth 1_000_000_000_000_000_000
+
+  def wei_to_eth(wei, decimal_places \\ 18)
+
+  def wei_to_eth(wei, decimal_places) when is_integer(wei) do
+    wei
+    |> Decimal.new()
+    |> Decimal.div(Decimal.new(@wei_per_eth))
+    |> Decimal.round(decimal_places)
+    |> Decimal.to_string(:normal)
+  end
+
+  def wei_to_eth(wei, decimal_places) when is_binary(wei) do
+    wei
+    |> String.to_integer()
+    |> wei_to_eth(decimal_places)
+  end
 end
 
 defmodule Utils do
@@ -125,14 +143,14 @@ defmodule Utils do
 
   def calculate_proof_hashes({:ok, batch_json}) do
     IO.inspect("Calculating proof hashes")
+
     batch_json
-      |> Enum.map(
-        fn proof ->
-          :crypto.hash(:sha3_256, proof["proof"])
-            # TODO removed this because i want to store as bytea, not a string.
-            # |> Base.encode16(case: :lower)
-            # |> (&("0x" <> &1)).()
-        end)
+    |> Enum.map(fn proof ->
+      :crypto.hash(:sha3_256, proof["proof"])
+      # TODO removed this because i want to store as bytea, not a string.
+      # |> Base.encode16(case: :lower)
+      # |> (&("0x" <> &1)).()
+    end)
   end
 
   def calculate_proof_hashes({:error, reason}) do
@@ -165,16 +183,17 @@ defmodule Utils do
           IO.inspect("Fetching from S3")
 
           batch.data_pointer
-            |> Utils.fetch_batch_data_pointer()
-            |> Utils.calculate_proof_hashes()
+          |> Utils.fetch_batch_data_pointer()
+          |> Utils.calculate_proof_hashes()
 
         proof_hashes ->
-          IO.inspect("Fetching from DB") #already processed and stored the S3 data
+          # already processed and stored the S3 data
+          IO.inspect("Fetching from DB")
           proof_hashes
       end
 
     batch
-      |> Map.put(:proof_hashes, proof_hashes)
-      |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
+    |> Map.put(:proof_hashes, proof_hashes)
+    |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
   end
 end
