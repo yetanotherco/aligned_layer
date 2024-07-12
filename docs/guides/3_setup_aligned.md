@@ -65,35 +65,43 @@ And you can use this file as an example on how to fill it:
 
 After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
+The following will start anvil, a local Ethereum devnet, for you to deploy and interact with the contracts:
 ```bash
 make anvil_start_with_block_time
 ```
 
+The following will start the [Aggregator](../architecture/components/5_aggregator.md):
+This 
 ```bash
 make aggregator_start
 ```
 
+The following will start an [Operator](../architecture/components/4_operator.md), note it also registers it:
 ```bash
 make operator_register_and_start
 ```
 
-```bash
-make batcher_start
-```
-
-If you need to start again the operator, and it's already registered, use:
-
+If you need to start again the operator, and it's already registered, you can use:
 ```bash
 make operator_start
+```
+
+The following will start the [Batcher](../architecture/components/1_batcher.md)
+```bash
+make batcher_start
 ```
 
 If you want to start the explorer for the devnet, see how to run it using it's [documentation](#explorer) below.
 
 ### Send test proofs to batcher for testing
 
-All these proofs are for testing purposes
+Next, you can use some of the send proofs make targets. All these proofs are pre-generated and for testing purposes, feel free to generate your own tests to submit to Aligned.
 
-Send 8 proofs each second:
+#### Groth16
+
+WIP: checking the following make targets
+
+Send 5 Groth16 proofs each second:
 
 ```bash
 make batcher_send_burst_groth16
@@ -115,6 +123,30 @@ To send an individual test SP1 proof:
 
 ```bash
 make batcher_send_sp1_task
+```
+
+```bash
+make batcher_send_sp1_burst
+```
+
+```bash
+make batcher_send_risc0_burst
+```
+
+```bash
+make batcher_send_plonk_bn254_burst
+```
+
+```bash
+make batcher_send_plonk_bls12_381_burst
+```
+
+```bash
+make batcher_send_halo2_ipa_task_burst_5
+```
+
+```bash
+make batcher_send_halo2_kzg_task_burst_5
 ```
 
 ### Detailed Testnet Deployment
