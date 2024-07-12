@@ -12,8 +12,10 @@ import (
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 )
 
-const MAX_RETRIES = 5
-const RETRY_INTERVAL = 5
+const (
+	MaxRetries    = 100
+	RetryInterval = 1 * time.Second
+)
 
 // NOTE(marian): Leaving this commented code here as it may be useful in the short term.
 // type AvsSubscriberer interface {
@@ -49,13 +51,13 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 }
 
 func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) (event.Subscription, error) {
-	for i := 0; i < MAX_RETRIES; i++ {
+	for i := 0; i < MaxRetries; i++ {
 		sub, err := s.AvsContractBindings.ServiceManager.WatchNewBatch(
 			&bind.WatchOpts{}, newTaskCreatedChan, nil,
 		)
 		if err != nil {
 			s.logger.Info("Failed to subscribe to new AlignedLayer tasks", "err", err)
-			time.Sleep(RETRY_INTERVAL * time.Second)
+			time.Sleep(RetryInterval)
 			continue
 		}
 
@@ -63,7 +65,7 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		return sub, nil
 	}
 
-	return nil, fmt.Errorf("Failed to subscribe to new AlignedLayer tasks after %d retries", MAX_RETRIES)
+	return nil, fmt.Errorf("Failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
 }
 
 // func (s *AvsSubscriber) SubscribeToTaskResponses(taskResponseChan chan *cstaskmanager.ContractAlignedLayerTaskManagerTaskResponded) event.Subscription {
