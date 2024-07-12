@@ -217,7 +217,7 @@ batcher_send_sp1_burst:
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
-		--repetitions 3 \
+		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_infinite_sp1:
@@ -260,7 +260,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--repetitions 3
+		--repetitions 15
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -279,7 +279,7 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--repetitions 3
+		--repetitions 15
 
 
 batcher_send_groth16_bn254_task: batcher/target/release/aligned
@@ -298,7 +298,7 @@ batcher_send_groth16_burst: batcher/target/release/aligned
 		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
-		--repetitions 3 \
+		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
@@ -326,7 +326,7 @@ batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
 		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_ipa/params.bin \
-		--repetitions 5
+		--repetitions 15
 
 batcher_send_halo2_kzg_task: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
@@ -344,7 +344,7 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
 		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_kzg/params.bin \
-		--repetitions 5 \
+		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 __GENERATE_PROOFS__:
