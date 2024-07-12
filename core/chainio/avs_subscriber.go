@@ -1,6 +1,9 @@
 package chainio
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -8,6 +11,9 @@ import (
 
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 )
+
+const MAX_RETRIES = 5
+const RETRY_INTERVAL = 5
 
 // NOTE(marian): Leaving this commented code here as it may be useful in the short term.
 // type AvsSubscriberer interface {
@@ -42,15 +48,22 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 	}, nil
 }
 
-func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) event.Subscription {
-	sub, err := s.AvsContractBindings.ServiceManager.WatchNewBatch(
-		&bind.WatchOpts{}, newTaskCreatedChan, nil,
-	)
-	if err != nil {
-		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
+func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) (event.Subscription, error) {
+	for i := 0; i < MAX_RETRIES; i++ {
+		sub, err := s.AvsContractBindings.ServiceManager.WatchNewBatch(
+			&bind.WatchOpts{}, newTaskCreatedChan, nil,
+		)
+		if err != nil {
+			s.logger.Info("Failed to subscribe to new AlignedLayer tasks", "err", err)
+			time.Sleep(RETRY_INTERVAL * time.Second)
+			continue
+		}
+
+		s.logger.Info("Subscribed to new AlignedLayer tasks")
+		return sub, nil
 	}
-	s.logger.Infof("Subscribed to new AlignedLayer tasks")
-	return sub
+
+	return nil, fmt.Errorf("Failed to subscribe to new AlignedLayer tasks after %d retries", MAX_RETRIES)
 }
 
 // func (s *AvsSubscriber) SubscribeToTaskResponses(taskResponseChan chan *cstaskmanager.ContractAlignedLayerTaskManagerTaskResponded) event.Subscription {
