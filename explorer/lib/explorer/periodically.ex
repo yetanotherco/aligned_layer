@@ -93,7 +93,7 @@ defmodule Explorer.Periodically do
 
     Enum.map(
       array_of_changest_tuples,
-      fn [batch_changeset, proofs] ->
+      fn {batch_changeset, proofs} ->
         Batches.insert_or_update(batch_changeset, proofs)
       end)
   end
