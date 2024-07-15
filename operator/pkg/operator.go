@@ -6,11 +6,12 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
@@ -118,13 +119,15 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasks() event.Subscription {
-	sub := o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
-	return sub
+func (o *Operator) SubscribeToNewTasks() (event.Subscription, error) {
+	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
 }
 
 func (o *Operator) Start(ctx context.Context) error {
-	sub := o.SubscribeToNewTasks()
+	sub, err := o.SubscribeToNewTasks()
+	if err != nil {
+		log.Fatal("Could not subscribe to new tasks")
+	}
 
 	var metricsErrChan <-chan error
 	if o.Config.Operator.EnableMetrics {
@@ -143,7 +146,10 @@ func (o *Operator) Start(ctx context.Context) error {
 		case err := <-sub.Err():
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
-			sub = o.SubscribeToNewTasks()
+			sub, err = o.SubscribeToNewTasks()
+			if err != nil {
+				o.Logger.Fatal("Could not subscribe to new tasks")
+			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
