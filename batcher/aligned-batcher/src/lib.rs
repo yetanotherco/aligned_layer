@@ -1,17 +1,17 @@
 extern crate core;
 
-use std::borrow::Cow;
+use dotenv::dotenv;
+
+use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Duration;
 
-use crate::eth::BatchVerifiedEventStream;
-use aligned_sdk::types::{
-    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+use aligned_sdk::core::types::{
+    BatchInclusionData, ClientMessage, ResponseMessage, VerificationCommitmentBatch,
+    VerificationData, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{BatchVerifiedFilter, BatcherPaymentService};
+use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, U256};
@@ -21,16 +21,13 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
-use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::error::ProtocolError;
-use tokio_tungstenite::tungstenite::protocol::{frame::coding::CloseCode, CloseFrame};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
 use types::errors::BatcherError;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput, NonPayingConfig};
-use crate::eth::AlignedLayerServiceManager;
 
 mod config;
 mod eth;
@@ -42,12 +39,10 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
-const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
-
 pub struct Batcher {
     s3_client: S3Client,
+    s3_bucket_name: String,
     eth_ws_provider: Provider<Ws>,
-    service_manager: AlignedLayerServiceManager,
     payment_service: BatcherPaymentService,
     batch_queue: Mutex<BatchQueue>,
     max_block_interval: u64,
@@ -61,6 +56,10 @@ pub struct Batcher {
 
 impl Batcher {
     pub async fn new(config_file: String) -> Self {
+        dotenv().ok();
+        let s3_bucket_name =
+            env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
+
         let s3_client = s3::create_client().await;
 
         let config = ConfigFromYaml::new(config_file);
@@ -84,14 +83,6 @@ impl Batcher {
             .try_into()
             .unwrap();
 
-        let service_manager = eth::get_service_manager(
-            eth_rpc_provider.clone(),
-            config.ecdsa.clone(),
-            deployment_output.addresses.aligned_layer_service_manager,
-        )
-        .await
-        .expect("Failed to get Aligned service manager contract");
-
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
             config.ecdsa,
@@ -107,8 +98,8 @@ impl Batcher {
 
         Self {
             s3_client,
+            s3_bucket_name,
             eth_ws_provider,
-            service_manager,
             payment_service,
             batch_queue: Mutex::new(BatchQueue::new()),
             max_block_interval: config.batcher.block_interval,
@@ -166,19 +157,19 @@ impl Batcher {
         let (outgoing, incoming) = ws_stream.split();
         let outgoing = Arc::new(RwLock::new(outgoing));
 
-        // Send the protocol version to the client
-        let protocol_version_msg = Message::binary(
-            aligned_sdk::sdk::CURRENT_PROTOCOL_VERSION
-                .to_be_bytes()
-                .to_vec(),
+        let protocol_version_msg = ResponseMessage::ProtocolVersion(
+            aligned_sdk::communication::protocol::EXPECTED_PROTOCOL_VERSION,
         );
+
+        let serialized_protocol_version_msg = serde_json::to_vec(&protocol_version_msg)
+            .expect("Could not serialize protocol version message");
 
         outgoing
             .write()
             .await
-            .send(protocol_version_msg)
+            .send(Message::binary(serialized_protocol_version_msg))
             .await
-            .expect("Failed to send protocol version");
+            .expect("Could not send protocol version message");
 
         match incoming
             .try_filter(|msg| future::ready(msg.is_text()))
@@ -350,7 +341,6 @@ impl Batcher {
         &self,
         block_number: u64,
         finalized_batch: BatchQueue,
-        wait_for_verification: bool,
     ) -> Result<(), BatcherError> {
         let batch_verification_data: Vec<VerificationData> = finalized_batch
             .clone()
@@ -376,12 +366,6 @@ impl Batcher {
             .map(|(_, _, _, addr)| *addr)
             .collect();
 
-        let events = self.service_manager.event::<BatchVerifiedFilter>();
-        let mut stream = events
-            .stream()
-            .await
-            .map_err(|e| BatcherError::BatchVerifiedEventStreamError(e.to_string()))?;
-
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
             // update last uploaded batch block
@@ -395,24 +379,7 @@ impl Batcher {
         self.submit_batch(&batch_bytes, &batch_merkle_tree.root, submitter_addresses)
             .await;
 
-        if !wait_for_verification {
-            send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
-            return Ok(());
-        }
-
-        // This future is created to be passed to the timeout function, so that if it is not resolved
-        // within the timeout interval an error is raised. If the event is received, responses are sent to
-        // connected clients
-        let await_batch_verified_fut =
-            await_batch_verified_event(&mut stream, &batch_merkle_tree.root);
-        if timeout(Duration::from_secs(60), await_batch_verified_fut)
-            .await
-            .is_err()
-        {
-            send_timeout_close(finalized_batch).await?;
-        } else {
-            send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
-        }
+        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
 
         Ok(())
     }
@@ -421,8 +388,7 @@ impl Batcher {
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number, finalized_batch, false)
-                .await?;
+            self.finalize_batch(block_number, finalized_batch).await?;
         }
         Ok(())
     }
@@ -440,15 +406,20 @@ impl Batcher {
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
-        s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes.to_vec(), &file_name)
-            .await
-            .expect("Failed to upload object to S3");
+        s3::upload_object(
+            &s3_client,
+            &self.s3_bucket_name,
+            batch_bytes.to_vec(),
+            &file_name,
+        )
+        .await
+        .expect("Failed to upload object to S3");
 
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
         let payment_service = &self.payment_service;
-        let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
+        let batch_data_pointer = "https://".to_owned() + &self.s3_bucket_name + "/" + &file_name;
 
         let num_proofs_in_batch = submitter_addresses.len();
 
@@ -477,26 +448,6 @@ impl Batcher {
         }
     }
 }
-/// Await for the `BatchVerified` event emitted by the Aligned contract and then send responses.
-async fn await_batch_verified_event<'s>(
-    events_stream: &mut BatchVerifiedEventStream<'s>,
-    batch_merkle_root: &[u8; 32],
-) -> Result<(), BatcherError> {
-    while let Some(event_result) = events_stream.next().await {
-        if let Ok(event) = event_result {
-            if &event.batch_merkle_root == batch_merkle_root {
-                info!("Batch operator signatures verified on Ethereum. Sending response to clients...");
-                break;
-            }
-        } else {
-            error!("Error awaiting for batch signature verification event");
-            return Err(BatcherError::BatchVerifiedEventStreamError(
-                event_result.unwrap_err().to_string(),
-            ));
-        }
-    }
-    Ok(())
-}
 
 async fn send_batch_inclusion_data_responses(
     finalized_batch: BatchQueue,
@@ -505,7 +456,9 @@ async fn send_batch_inclusion_data_responses(
     stream::iter(finalized_batch.iter())
         .enumerate()
         .for_each(|(vd_batch_idx, (_, _, ws_sink, _))| async move {
-            let response = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+            let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+            let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+
             let serialized_response =
                 serde_json::to_vec(&response).expect("Could not serialize response");
 
@@ -524,31 +477,4 @@ async fn send_batch_inclusion_data_responses(
             info!("Response sent");
         })
         .await;
-}
-
-/// Send a close response to all clients that included data in the batch indicated that a
-/// timeout was exceeded awaiting for the batch verification events
-async fn send_timeout_close(finalized_batch: BatchQueue) -> Result<(), BatcherError> {
-    let timeout_msg = Message::Close(Some(CloseFrame {
-        code: CloseCode::Protocol,
-        reason: Cow::from("Timeout: BatchVerified event not received"),
-    }));
-
-    for (_, _, ws_sink, _) in finalized_batch.iter() {
-        let send_result = ws_sink.write().await.send(timeout_msg.clone()).await;
-        match send_result {
-            // When two or more proofs from the same client are included into a batch,
-            // there will be more than one `ws_sink` corresponding to that client. When one is
-            // closed, the other ones will raise this error. We can just ignore it.
-            Err(Error::Protocol(ProtocolError::SendAfterClosing)) => (),
-            Err(e) => {
-                error!("Error sending timeout response to clients: {}", e);
-                return Err(e.into());
-            }
-            Ok(_) => (),
-        }
-
-        info!("Timeout close response sent");
-    }
-    Ok(())
 }

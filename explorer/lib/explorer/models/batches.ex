@@ -128,6 +128,7 @@ defmodule Batches do
 
   def insert_or_update(batch_changeset, proofs) do
     merkle_root = batch_changeset.changes.merkle_root
+    stored_proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
     case Explorer.Repo.get(Batches, merkle_root) do
       nil ->
         multi = Ecto.Multi.new()
@@ -156,18 +157,25 @@ defmodule Batches do
               and  existing_batch.response_block_number != batch_changeset.changes.response_block_number)         # reorg may change response_block_number
             or (Map.has_key?(batch_changeset.changes, :response_transaction_hash)
               and existing_batch.response_transaction_hash != batch_changeset.changes.response_transaction_hash)  # reorg may change response_tx_hash
+            or stored_proofs == nil and proofs != %{}                 # no proofs registered in DB, but some received
           do
             "Batch values have changed, updating in DB" |> IO.puts()
             updated_changeset = Ecto.Changeset.change(existing_batch, batch_changeset.changes) # no changes in proofs table
-            case Explorer.Repo.update(updated_changeset) do
-              {:ok, _} ->
-                "Batch updated successfully" |> IO.puts()
-                {:ok, :empty}
 
-              {:error, changeset} ->
-                "Batch update failed #{changeset}" |> IO.puts()
+            multi =
+              Ecto.Multi.new()
+              |> Ecto.Multi.update(:update_batch, updated_changeset)
+              |> (fn m -> if stored_proofs == nil and proofs != %{}, do: Ecto.Multi.insert_all(m, :insert_proofs, Proofs, proofs), else: m end).()
+
+            case Explorer.Repo.transaction(multi) do
+              {:ok, _} ->
+                "Batch updated and new proofs inserted successfully" |> IO.puts()
+                {:ok, :empty}
+              {:error, _, changeset, _} ->
+                "Error: #{inspect(changeset.errors)}" |> IO.puts()
                 {:error, changeset}
             end
+
           end
         rescue
           error ->

@@ -21,7 +21,7 @@ defmodule Proofs do
 
   def cast_to_proofs(%BatchDB{} = batch) do
     case batch.proof_hashes do
-      nil -> %{} # not working with nil
+      nil -> %{}
       proof_hashes -> Enum.map(proof_hashes, fn proof_hash ->
         %{batch_merkle_root: batch.merkle_root, proof_hash: proof_hash, inserted_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second), updated_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)}
       end)

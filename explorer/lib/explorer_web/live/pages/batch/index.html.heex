@@ -79,21 +79,21 @@
       <% end %>
       Proofs in this batch:
       <%= if @proof_hashes != :empty do %>
-        <div class="h-32 overflow-y-auto text-foreground space-y-2">
-          <p :for={proof <- @proof_hashes}><%= proof %></p>
-          <.button
-            class="w-fit text-foreground inline-flex items-center gap-1.5"
-            phx-click="hide_proofs"
-          >
-            <.icon name="hero-eye-slash" class="size-3" /> Hide Proofs
-          </.button>
-        </div>
+        <%= if @proof_hashes == :nil do %>
+          <p class="normal-case">
+            Proofs couldn't be shown for this Batch
+          </p>
+        <% else %>
+          <div class="h-32 overflow-y-auto text-foreground space-y-2">
+            <p :for={proof <- @proof_hashes}><%= proof %></p>
+            <.button class="w-fit text-foreground" phx-click="hide_proofs">
+              <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
+            </.button>
+          </div>
+        <% end %>
       <% else %>
-        <.button
-          class="w-fit text-foreground inline-flex items-center gap-1.5"
-          phx-click="show_proofs"
-        >
-          <.icon name="hero-eye" class="size-3" /> Show Proofs
+        <.button class="w-fit text-foreground font-semibold" phx-click="show_proofs">
+          <.icon name="hero-eye" class="size-4" /> Show Proofs
         </.button>
       <% end %>
     </.card>
