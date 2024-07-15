@@ -1,7 +1,6 @@
-use ethers::core::k256::ecdsa::{SigningKey, VerifyingKey};
+use ethers::core::k256::ecdsa::SigningKey;
 use ethers::prelude::rand;
 use ethers::prelude::rand::Rng;
-use ethers::signers::Signer;
 use ethers::signers::Wallet;
 use ethers::types::Address;
 use ethers::types::Signature;

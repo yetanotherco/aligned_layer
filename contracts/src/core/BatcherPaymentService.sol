@@ -92,10 +92,7 @@ contract BatcherPaymentService is
             "Not enough gas to pay the aggregator"
         );
 
-//        checkMerkleRoot(leaves, batchMerkleRoot);
-//        verifySignatures(leaves, signatures, feePerProof);
-
-        checkMerkleRootAndVerifySignatures(leaves, batchMerkleRoot, signatures, signaturesQty, feePerProof);
+        checkMerkleRootAndVerifySignatures(leaves, batchMerkleRoot, signatures, feePerProof);
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
@@ -151,7 +148,6 @@ contract BatcherPaymentService is
         bytes32[] calldata leaves,
         bytes32 batchMerkleRoot,
         SignatureData[] calldata signatures,
-        uint256 signatureCount,
         uint256 feePerProof
     ) public {
         uint256 numNodesInLayer = leaves.length / 2;
@@ -165,10 +161,13 @@ contract BatcherPaymentService is
             layer[i] = keccak256(abi.encodePacked(leaves[2 * i], leaves[2 * i + 1]));
 
             bytes32 hash = leaves[i];
-            require(!submittedSignatures[hash], "Signature already submitted");
+
+            // TODO: need a way to check signatures are only submitted once
+
+//            require(!submittedSignatures[hash], "Signature already submitted");
+//            submittedSignatures[hash] = true;
 
             SignatureData calldata signature = signatures[i];
-            submittedSignatures[hash] = true;
 
             address signer = ecrecover(hash, signature.v, signature.r, signature.s);
             require(UserBalances[signer] >= feePerProof, "Signer has insufficient balance");
@@ -177,12 +176,14 @@ contract BatcherPaymentService is
         }
 
         // Verify the rest of the signatures
-        for (; i < signatureCount; i++) {
+        for (; i < signatures.length; i++) {
             bytes32 hash = leaves[i];
-            require(!submittedSignatures[hash], "Signature already submitted");
+
+            // TODO: need a way to check signatures are only submitted once
+//            require(!submittedSignatures[hash], "Signature already submitted");
+//            submittedSignatures[hash] = true;
 
             SignatureData calldata signature = signatures[i];
-            submittedSignatures[hash] = true;
 
             address signer = ecrecover(hash, signature.v, signature.r, signature.s);
             require(UserBalances[signer] >= feePerProof, "Signer has insufficient balance");
