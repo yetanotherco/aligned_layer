@@ -9,7 +9,7 @@ elif ! [[ "$1" =~ ^[0-9]+$ ]]; then
     exit 1
 else
     timer=$1
-    echo "Using timer value: 3 seconds"
+    echo "Using timer value: $timer seconds"
 fi
 
 
