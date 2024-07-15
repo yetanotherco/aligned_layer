@@ -209,4 +209,5 @@ pub enum ResponseMessage {
 pub enum Chain {
     Devnet,
     Holesky,
+    HoleskyStage,
 }
