@@ -1,16 +1,6 @@
 # Aligned Infrastructure Deployment Guide
 
-- [Aligned Infrastructure Deployment Guide](#aligned-infrastructure-deployment-guide)
-  - [Local Devnet Setup](#local-devnet-setup)
-  - [Deploying Aligned Contracts to Holesky or Testnet](#deploying-aligned-contracts-to-holesky-or-testnet)
-  - [Metrics](#metrics)
-  - [Explorer](#explorer)
-  - [Notes on project creation](#notes-on-project-creation)
-  - [Tests](#tests)
-
-## Local Devnet Setup
-
-### Dependencies
+## Dependencies
 
 Ensure you have the following installed:
 
@@ -64,7 +54,7 @@ And you can use this file as an example on how to fill it:
 
 After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
-#### Anvil
+## Anvil
 
 To start anvil, a local Ethereum devnet, for you to deploy and interact with the contracts:
 ```bash
@@ -74,7 +64,7 @@ make anvil_start_with_block_time
 <details>
 <summary>More information on deploying the smart contracts on anvil:</summary>
 
-#### Eigenlayer Contracts
+### Eigenlayer Contracts
 
 If EigenLayer contracts change, the anvil state needs to be updated with:
 
@@ -88,7 +78,7 @@ You will also need to redeploy the MockStrategy & MockERC20 contracts:
 make anvil_deploy_mock_strategy
 ```
 
-#### Aligned Contracts
+### Aligned Contracts
 
 When changing Aligned contracts, the anvil state needs to be updated with:
 
@@ -126,7 +116,10 @@ make build_binaries
 
 ---
 
-#### To start the [Aggregator](../architecture/components/5_aggregator.md):
+## Aggregator
+
+To start the [Aggregator](../architecture/components/5_aggregator.md):
+
 ```bash
 make aggregator_start
 ```
@@ -142,8 +135,11 @@ make aggregator_start CONFIG_FILE=<path_to_config_file>
 
 ---
 
-#### To start an [Operator](../architecture/components/4_operator.md)
+## Operator
+
+To start an [Operator](../architecture/components/4_operator.md)
 (note it also registers it):
+
 ```bash
 make operator_register_and_start
 ```
@@ -158,7 +154,7 @@ make operator_start
 
 Operator needs to register in both EigenLayer and Aligned. Then it can start verifying proofs.
 
-##### Register into EigenLayer
+### Register into EigenLayer
 
 To register an operator in EigenLayer Devnet with the default configuration, run:
 
@@ -172,7 +168,7 @@ To register an operator in EigenLayer with a custom configuration, run:
 make operator_register_with_eigen_layer CONFIG_FILE=<path_to_config_file>
 ```
 
-##### Register into Aligned
+### Register into Aligned
 
 To register an operator in Aligned with the default configuration, run:
 
@@ -186,7 +182,7 @@ To register an operator in Aligned with a custom configuration, run:
 make operator_register_with_aligned_layer CONFIG_FILE=<path_to_config_file>
 ```
 
-##### Full Registration in Anvil with one command
+### Full Registration in Anvil with one command
 
 To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with the default configuration, run:
 
@@ -200,7 +196,7 @@ To register an operator in EigenLayer and Aligned and deposit strategy tokens in
 make operator_full_registration CONFIG_FILE=<path_to_config_file>
 ```
 
-##### Deposit Strategy Tokens in Anvil local devnet
+### Deposit Strategy Tokens in Anvil local devnet
 
 There is an ERC20 token deployed in the Anvil chain to use as strategy token with EigenLayer.
 
@@ -218,7 +214,7 @@ make operator_mint_mock_tokens CONFIG_FILE=<path_to_config_file>
 make operator_deposit_into_mock_strategy CONFIG_FILE=<path_to_config_file>
 ```
 
-#### Deposit Strategy tokens in Holesky/Mainnet
+### Deposit Strategy tokens in Holesky/Mainnet
 
 EigenLayer strategies are available in [eigenlayer-strategies](https://holesky.eigenlayer.xyz/restake).
 
@@ -226,7 +222,7 @@ For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as
 
 To obtain HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
 
-#### Config
+### Config
 
 There is a default configuration for devnet purposes in `config-files/config.yaml`.
 Also, there are 3 different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
@@ -296,7 +292,9 @@ eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
 
 ---
 
-#### To start the [Batcher](../architecture/components/1_batcher.md):
+## Batcher
+
+To start the [Batcher](../architecture/components/1_batcher.md):
 
 ```bash
 make batcher_start
@@ -337,7 +335,7 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
-#### Run
+### Run
 
 ```bash
 make batcher_start
@@ -346,7 +344,7 @@ make batcher_start
 
 ---
 
-### Send test proofs to Batcher
+## Send test proofs
 
 Next, you can use some of the send proofs make targets. All these proofs are pre-generated and for testing purposes, feel free to generate your own tests to submit to Aligned.
 
