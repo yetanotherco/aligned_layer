@@ -74,9 +74,9 @@
       Proofs in this batch:
       <%= if @proof_hashes != :empty do %>
         <%= if @proof_hashes == :nil do %>
-          <.button class="w-fit text-foreground" phx-click="hide_proofs">
-            <.icon name="hero-eye-slash" class="size-4" /> Explorer couldn't fetch proofs for this batch
-          </.button>
+          <p>
+            There are no proofs available for this batch.
+          </p>
         <% else %>
           <div class="h-32 overflow-y-auto text-foreground space-y-2">
             <p :for={proof <- @proof_hashes}><%= proof %></p>
