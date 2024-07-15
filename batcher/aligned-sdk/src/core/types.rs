@@ -194,6 +194,12 @@ impl AlignedVerificationData {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ResponseMessage {
+    BatchInclusionData(BatchInclusionData),
+    ProtocolVersion(u16),
+}
+
 #[derive(Debug, Clone)]
 pub enum Chain {
     Devnet,
