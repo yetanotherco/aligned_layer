@@ -291,7 +291,7 @@ async fn main() -> Result<(), AlignedError> {
 
                 if unique_batch_merkle_roots.len() > 1 {
                     info!("Proofs submitted to aligned. See the batches in the explorer:");
-                } else {
+                } else if unique_batch_merkle_roots.len() == 1 {
                     info!("Proofs submitted to aligned. See the batch in the explorer:");
                 }
 
