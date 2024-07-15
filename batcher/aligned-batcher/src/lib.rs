@@ -2,7 +2,6 @@ extern crate core;
 
 use dotenv::dotenv;
 
-use std::borrow::Cow;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
