@@ -346,11 +346,6 @@ make batcher_start
 
 ---
 
-#### Explorer
-If you also want to start the explorer for the devnet, to clearly visualize your submitted and verified batches, see how to run it using it's [documentation](#explorer) below.
-
----
-
 ### Send test proofs to Batcher
 
 Next, you can use some of the send proofs make targets. All these proofs are pre-generated and for testing purposes, feel free to generate your own tests to submit to Aligned.
@@ -501,29 +496,9 @@ aligned \
 ```
 </details>
 
-## Metrics
-
-### Aggregator Metrics
-
-Aggregator metrics are exposed on the `/metrics` endpoint.
-
-If you are using the default config, you can access the metrics on `http://localhost:9091/metrics`.
-
-To run Prometheus and Grafana just run:
-
-```bash
-make run_metrics
-```
-
-Then you can access Grafana on `http://localhost:3000` with the default credentials `admin:admin`.
-
-If you want to install Prometheus and Grafana manually, you can follow the instructions below.
-
-To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
-
-To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
-
 ## Explorer
+
+If you also want to start the explorer for the devnet, to clearly visualize your submitted and verified batches, see how to run it using it's the following documentation:
 
 ### Minimum Requirements
 
@@ -646,6 +621,28 @@ make explorer_fetch_old_batches
 You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
 
 </details>
+
+## Metrics
+
+### Aggregator Metrics
+
+Aggregator metrics are exposed on the `/metrics` endpoint.
+
+If you are using the default config, you can access the metrics on `http://localhost:9091/metrics`.
+
+To run Prometheus and Grafana just run:
+
+```bash
+make run_metrics
+```
+
+Then you can access Grafana on `http://localhost:3000` with the default credentials `admin:admin`.
+
+If you want to install Prometheus and Grafana manually, you can follow the instructions below.
+
+To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
+
+To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
 
 
 ## Notes on project creation
