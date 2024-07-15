@@ -26,10 +26,8 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
                                                             .collect();
 
     let computed_batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> = MerkleTree::build(&batch_data_comm);
-    let computed_batch_merkle_root = hex::encode(computed_batch_merkle_tree.root);
-    let received_merkle_root = hex::encode(merkle_root);
 
-    return computed_batch_merkle_root == received_merkle_root;
+    return computed_batch_merkle_tree.root == *merkle_root;
 }
 
 #[cfg(test)]
