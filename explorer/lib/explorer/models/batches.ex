@@ -131,7 +131,7 @@ defmodule Batches do
           |> Ecto.Multi.insert_all(:insert_all, Proofs, proofs)
 
           case Explorer.Repo.transaction(multi) do
-            {:ok, %{insert_batch: _batch, insert_proofs: _proofs}} ->
+            {:ok, _} ->
               IO.puts("Batch inserted successfully")
               {:ok, :success}
 
