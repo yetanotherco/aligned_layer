@@ -27,8 +27,8 @@
 * [SDK](guides/2_SDK.md)
 * [Integrating Aligned into your Application](guides/3_integrating_aligned_into_your_application.md)
 * [Generating proofs for Aligned](guides/4_generating_proofs.md)
-* [Setup Aligned Infrastructure Locally](guides/6_setup_aligned.md)
-* [Contract Addresses](guides/7_contract_addresses.md)
+* [Setup Aligned Infrastructure Locally](guides/5_setup_aligned.md)
+* [Contract Addresses](guides/6_contract_addresses.md)
 
 ## Operators
 
