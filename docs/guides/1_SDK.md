@@ -11,8 +11,10 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer" }
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.2.1" }
 ```
+
+To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the version of the release that has the `latest` badge.
 
 ## API Reference
 
@@ -40,9 +42,13 @@ pub async fn submit(
 
 #### Errors
 
-- `MissingParameter` if the verification data vector is empty.
-- `SerdeError` if there is an error serializing the verification data.
-- `ConnectionError` if there is an error sending the message to the websocket.
+- `MissingRequiredParameter` if the verification data vector is empty.
+- `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+- `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+- `SerializationError` if there is an error deserializing the message sent from the batcher.
+- `WebSocketConnectionError` if there is an error connecting to the batcher.
+- `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `GenericError` if the error doesn't match any of the previous ones.
 
 ### submit_multiple
 
@@ -68,9 +74,91 @@ pub async fn submit_multiple(
 
 #### Errors
 
-- `MissingParameter` if the verification data vector is empty.
-- `SerdeError` if there is an error serializing the verification data.
-- `ConnectionError` if there is an error sending the message to the websocket.
+- `MissingRequiredParameter` if the verification data vector is empty.
+- `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+- `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+- `SerializationError` if there is an error deserializing the message sent from the batcher.
+- `WebSocketConnectionError` if there is an error connecting to the batcher.
+- `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `GenericError` if the error doesn't match any of the previous ones.
+
+### submit_and_wait
+
+Submits a proof to the batcher to be verified, waits for the verification on ethereum and returns an aligned verification data struct.
+
+```rust
+pub async fn submit_and_wait(
+    batcher_addr: &str,
+    eth_rpc_url: &str,
+    chain: Chain,
+    verification_data: &VerificationData,
+    wallet: Wallet<SigningKey>,
+) -> Result<Option<AlignedVerificationData>, errors::SubmitError>
+```
+
+#### Arguments
+
+- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `eth_rpc_url` - The URL of the Ethereum RPC node.
+- `chain` - The chain on which the verification will be done.
+- `verification_data` - The verification data for the proof.
+- `wallet` - The wallet used to sign the proof.
+
+#### Returns
+
+- `Result<Option<AlignedVerificationData>>, SubmitError>` - An aligned verification data or an error.
+
+#### Errors
+
+- `MissingRequiredParameter` if the verification data vector is empty.
+- `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+- `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+- `SerializationError` if there is an error deserializing the message sent from the batcher.
+- `WebSocketConnectionError` if there is an error connecting to the batcher.
+- `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
+- `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+- `GenericError` if the error doesn't match any of the previous ones.
+
+### submit_multiple_and_wait
+
+Submits multiple proofs to the batcher to be verified, waits for the verification on Ethereum and returns an aligned verification data array.
+
+```rust
+pub async fn submit_multiple_and_wait(
+    batcher_addr: &str,
+    eth_rpc_url: &str,
+    chain: Chain,
+    verification_data: &[VerificationData],
+    wallet: Wallet<SigningKey>,
+) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError>
+```
+
+#### Arguments
+
+- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `eth_rpc_url` - The URL of the Ethereum RPC node.
+- `chain` - The chain on which the verification will be done.
+- `verification_data` - A verification data array.
+- `wallet` - The wallet used to sign the proof.
+
+#### Returns
+
+- `Result<Option<Vec<AlignedVerificationData>>>, SubmitError>` - An aligned verification data array or an error.
+
+#### Errors
+
+- `MissingRequiredParameter` if the verification data vector is empty.
+- `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
+- `UnexpectedBatcherResponse` if the batcher doesn't respond with the expected message.
+- `SerializationError` if there is an error deserializing the message sent from the batcher.
+- `WebSocketConnectionError` if there is an error connecting to the batcher.
+- `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
+- `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+- `GenericError` if the error doesn't match any of the previous ones.
 
 ### verify_proof_onchain
 
@@ -96,9 +184,9 @@ pub async fn verify_proof_onchain(
 
 #### Errors
 
-- `EthError` if there is an error creating the rpc provider.
-- `ParsingError` if there is an error parsing the address of the contract.
-- `EthError` if there is an error verifying the proof on-chain.
+- `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `EthereumCallError` if there is an error in the Ethereum call.
+- `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 
 ### get_commitment
 
