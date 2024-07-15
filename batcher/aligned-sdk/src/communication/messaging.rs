@@ -114,7 +114,7 @@ async fn process_batch_inclusion_data(
         Ok(ResponseMessage::VerificationError()) => {
             error!("Invalid proof");
         },
-        Ok(ResponseMessage::ProofToLargeError()) => {
+        Ok(ResponseMessage::ProofTooLargeError()) => {
             error!("Proof is too large");
         },
         Ok(ResponseMessage::InsufficientBalanceError(address)) => {

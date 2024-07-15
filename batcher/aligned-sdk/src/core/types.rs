@@ -199,7 +199,7 @@ pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
     VerificationError(),
-    ProofToLargeError(),
+    ProofTooLargeError(),
     InsufficientBalanceError(Address),
     SignatureVerificationError(),
     Error(String),

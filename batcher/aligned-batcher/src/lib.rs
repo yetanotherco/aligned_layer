@@ -238,7 +238,7 @@ impl Batcher {
                 .await;
         } else {
             error!("Proof is too large");
-            send_error_message(ws_conn_sink.clone(), ResponseMessage::ProofToLargeError())
+            send_error_message(ws_conn_sink.clone(), ResponseMessage::ProofTooLargeError())
                 .await;
             return Ok(()); // Send error message to the client and return
         };
