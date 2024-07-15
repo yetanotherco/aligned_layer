@@ -1,6 +1,9 @@
 extern crate core;
 
+use dotenv::dotenv;
+
 use std::borrow::Cow;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -42,10 +45,9 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
-const S3_BUCKET_NAME: &str = "storage.alignedlayer.com";
-
 pub struct Batcher {
     s3_client: S3Client,
+    s3_bucket_name: String,
     eth_ws_provider: Provider<Ws>,
     service_manager: AlignedLayerServiceManager,
     payment_service: BatcherPaymentService,
@@ -61,6 +63,10 @@ pub struct Batcher {
 
 impl Batcher {
     pub async fn new(config_file: String) -> Self {
+        dotenv().ok();
+        let s3_bucket_name =
+            env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
+
         let s3_client = s3::create_client().await;
 
         let config = ConfigFromYaml::new(config_file);
@@ -107,6 +113,7 @@ impl Batcher {
 
         Self {
             s3_client,
+            s3_bucket_name,
             eth_ws_provider,
             service_manager,
             payment_service,
@@ -440,15 +447,20 @@ impl Batcher {
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
-        s3::upload_object(&s3_client, S3_BUCKET_NAME, batch_bytes.to_vec(), &file_name)
-            .await
-            .expect("Failed to upload object to S3");
+        s3::upload_object(
+            &s3_client,
+            &self.s3_bucket_name,
+            batch_bytes.to_vec(),
+            &file_name,
+        )
+        .await
+        .expect("Failed to upload object to S3");
 
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
         let payment_service = &self.payment_service;
-        let batch_data_pointer = "https://".to_owned() + S3_BUCKET_NAME + "/" + &file_name;
+        let batch_data_pointer = "https://".to_owned() + &self.s3_bucket_name + "/" + &file_name;
 
         let num_proofs_in_batch = submitter_addresses.len();
 
