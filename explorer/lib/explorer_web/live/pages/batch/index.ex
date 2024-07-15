@@ -67,7 +67,7 @@ defmodule ExplorerWeb.Batch.Index do
       proofs when is_list(proofs) ->
         Enum.map(proofs, fn proof -> "0x" <> Base.encode16(proof.proof_hash, case: :lower) end)
       _ ->
-        []
+        :nil
     end
   end
 
