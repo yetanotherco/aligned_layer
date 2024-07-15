@@ -251,7 +251,7 @@ async fn _verify_proof_onchain(
 ) -> Result<bool, errors::VerificationError> {
     let contract_address = match chain {
         Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        Chain::Holesky => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
+        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
     };
 
     // All the elements from the merkle proof have to be concatenated
