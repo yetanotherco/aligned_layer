@@ -3,7 +3,7 @@
 counter=1
 timer=3
 if [ -z "$1" ]; then
-    echo "Using default timer value: $timer seconds"
+    echo "Using default timer value: 3 seconds"
 elif ! [[ "$1" =~ ^[0-9]+$ ]]; then
     echo "Error: Argument must be a number."
     exit 1
