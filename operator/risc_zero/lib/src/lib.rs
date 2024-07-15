@@ -13,7 +13,6 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
         return false;
     }
 
-
     let receipt_bytes = unsafe { std::slice::from_raw_parts(receipt_bytes, receipt_len as usize) };
 
     let image_id = unsafe { std::slice::from_raw_parts(image_id, image_id_len as usize) };
