@@ -63,8 +63,12 @@ defmodule ExplorerWeb.Batch.Index do
   end
 
   defp get_proofs(merkle_root) do
-    Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
-    |> Enum.map(fn proof -> "0x" <> Base.encode16(proof.proof_hash, case: :lower) end)
+    case Proofs.get_proofs_from_batch(%{merkle_root: merkle_root}) do
+      proofs when is_list(proofs) ->
+        Enum.map(proofs, fn proof -> "0x" <> Base.encode16(proof.proof_hash, case: :lower) end)
+      _ ->
+        []
+    end
   end
 
   embed_templates "*"
