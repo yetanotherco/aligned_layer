@@ -18,7 +18,6 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
-use tokio_tungstenite::tungstenite::error::ProtocolError;
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
@@ -169,9 +168,6 @@ impl Batcher {
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
-            Err(Error::Protocol(ProtocolError::ResetWithoutClosingHandshake)) => {
-                info!("Client {} reset connection", &addr)
-            }
             Err(e) => error!("Unexpected error: {}", e),
             Ok(_) => info!("{} disconnected", &addr),
         }
@@ -182,7 +178,7 @@ impl Batcher {
         self: Arc<Self>,
         message: Message,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-    ) -> Result<(), tokio_tungstenite::tungstenite::Error> {
+    ) -> Result<(), Error> {
         // Deserialize verification data from message
         let client_msg: ClientMessage =
             serde_json::from_str(message.to_text().expect("Message is not text"))
@@ -209,34 +205,35 @@ impl Batcher {
 
             if user_balance == U256::from(0) {
                 error!("Insufficient funds for address {:?}", addr);
-                return Err(tokio_tungstenite::tungstenite::Error::Protocol(
-                    ProtocolError::HandshakeIncomplete,
-                ));
+                send_error_message(ws_conn_sink.clone(), ResponseMessage::InsufficientBalanceError(addr))
+                    .await;
+                return Ok(()); // Send error message to the client and return
             }
 
             addr
         } else {
             error!("Signature verification error");
-            return Err(tokio_tungstenite::tungstenite::Error::Protocol(
-                ProtocolError::HandshakeIncomplete,
-            ));
+            send_error_message(ws_conn_sink.clone(), ResponseMessage::SignatureVerificationError())
+                .await;
+            return Ok(()); // Send error message to the client and return
         };
 
         let verification_data = client_msg.verification_data;
         if verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled && !zk_utils::verify(&verification_data) {
-                return Err(tokio_tungstenite::tungstenite::Error::Protocol(
-                    ProtocolError::HandshakeIncomplete,
-                ));
+                error!("Invalid proof detected. Verification failed.");
+                send_error_message(ws_conn_sink.clone(), ResponseMessage::VerificationError())
+                    .await;
+                return Ok(()); // Send error message to the client and return
             }
             self.add_to_batch(verification_data, ws_conn_sink.clone(), submitter_addr)
                 .await;
         } else {
-            // FIXME(marian): Handle this error correctly
-            return Err(tokio_tungstenite::tungstenite::Error::Protocol(
-                ProtocolError::HandshakeIncomplete,
-            ));
+            error!("Proof is too large");
+            send_error_message(ws_conn_sink.clone(), ResponseMessage::ProofToLargeError())
+                .await;
+            return Ok(()); // Send error message to the client and return
         };
 
         info!("Verification data message handled");
@@ -465,4 +462,20 @@ async fn send_batch_inclusion_data_responses(
             info!("Response sent");
         })
         .await;
+}
+
+async fn send_error_message(
+    ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+    error_message: ResponseMessage,
+) {
+    let serialized_response =
+        serde_json::to_vec(&error_message).expect("Could not serialize response");
+
+    // Send error message
+    ws_conn_sink
+        .write()
+        .await
+        .send(Message::binary(serialized_response))
+        .await
+        .expect("Failed to send error message");
 }

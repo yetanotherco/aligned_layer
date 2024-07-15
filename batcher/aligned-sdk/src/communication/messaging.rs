@@ -1,5 +1,5 @@
 use futures_util::{future, stream::SplitStream, SinkExt, StreamExt, TryStreamExt};
-use log::debug;
+use log::{debug, error};
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 
@@ -108,6 +108,21 @@ async fn process_batch_inclusion_data(
                     .to_string(),
             ));
         }
+        Ok(ResponseMessage::Error(e)) => {
+            error!("Batcher responded with error: {}", e);
+        },
+        Ok(ResponseMessage::VerificationError()) => {
+            error!("Invalid proof");
+        },
+        Ok(ResponseMessage::ProofToLargeError()) => {
+            error!("Proof is too large");
+        },
+        Ok(ResponseMessage::InsufficientBalanceError(address)) => {
+            error!("Insufficient balance for address: {}", address);
+        },
+        Ok(ResponseMessage::SignatureVerificationError()) => {
+            error!("Failed to verify the signature");
+        },
         Err(e) => {
             return Err(SubmitError::SerializationError(e));
         }
