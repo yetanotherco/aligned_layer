@@ -7,7 +7,9 @@ package risc_zero
 #include "lib/risc_zero.h"
 */
 import "C"
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func VerifyRiscZeroReceipt(receiptBuffer []byte, receiptLen uint32, imageIdBuffer []byte, imageIdLen uint32, publicInput []byte, publicInputLen uint32) bool {
 	receiptPtr := (*C.uchar)(unsafe.Pointer(&receiptBuffer[0]))
