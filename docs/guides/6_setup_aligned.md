@@ -1,4 +1,3 @@
-
 # Aligned Infrastructure Deployment Guide
 
 - [Aligned Infrastructure Deployment Guide](#aligned-infrastructure-deployment-guide)
@@ -144,7 +143,7 @@ make aggregator_start CONFIG_FILE=<path_to_config_file>
 ---
 
 #### To start an [Operator](../architecture/components/4_operator.md)
-note it also registers it:
+(note it also registers it):
 ```bash
 make operator_register_and_start
 ```
@@ -594,7 +593,7 @@ Then you'll be requested to enter the file name of the dump you want to recover 
 
 This will update your database with the dumped database data.
 
-### Running Explorer
+### Running the Explorer
 
 To run the explorer for the local devnet, you'll need to have the devnet running (see [local devnet setup](#local-devnet-setup)) and the DB already setup.
 
