@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use ethers::prelude::*;
 
-use crate::errors::VerificationError;
+use crate::core::errors::VerificationError;
 
 abigen!(
     AlignedLayerServiceManagerContract,
@@ -18,7 +18,7 @@ pub async fn aligned_service_manager(
 ) -> Result<AlignedLayerServiceManager, VerificationError> {
     let client = Arc::new(provider);
     let contract_addr = H160::from_str(contract_address)
-        .map_err(|e| VerificationError::ParsingError(e.to_string()))?;
+        .map_err(|e| VerificationError::HexDecodingError(e.to_string()))?;
 
     Ok(AlignedLayerServiceManager::new(contract_addr, client))
 }
