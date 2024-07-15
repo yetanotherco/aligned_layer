@@ -158,9 +158,10 @@ defmodule Batches do
             "Batch values have changed, updating in DB" |> IO.puts()
             updated_changeset = Ecto.Changeset.change(existing_batch, batch_changeset.changes) # no changes in proofs table
 
-            multi = Ecto.Multi.new()
-            |> Ecto.Multi.update(:update_batch, updated_changeset)
-            |> Ecto.Multi.insert_all(:insert_proofs, Proofs, proofs)
+            multi =
+              Ecto.Multi.new()
+              |> Ecto.Multi.update(:update_batch, updated_changeset)
+              |> (fn m -> if stored_proofs == nil and proofs != %{}, do: Ecto.Multi.insert_all(m, :insert_proofs, Proofs, proofs), else: m end).()
 
             case Explorer.Repo.transaction(multi) do
               {:ok, _} ->
@@ -170,16 +171,6 @@ defmodule Batches do
                 "Error: #{inspect(changeset.errors)}" |> IO.puts()
                 {:error, changeset}
             end
-
-            # case Explorer.Repo.update(updated_changeset) do
-            #   {:ok, _} ->
-            #     "Batch updated successfully" |> IO.puts()
-            #     {:ok, :empty}
-
-            #   {:error, changeset} ->
-            #     "Batch update failed #{changeset}" |> IO.puts()
-            #     {:error, changeset}
-            # end
 
           end
         rescue
