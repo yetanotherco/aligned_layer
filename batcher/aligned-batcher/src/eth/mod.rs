@@ -123,9 +123,22 @@ pub async fn get_batcher_payment_service(
 }
 
 fn signature_data_from_signature(signature: &Signature) -> SignatureData {
+    // check if v is valid u8
+    if signature.v > 255 {
+        panic!("Invalid v value in signature");
+    }
+
+    println!("signature: {:?}", signature);
+
+    let mut r = [0u8; 32];
+    signature.r.to_big_endian(&mut r);
+
+    let mut s = [0u8; 32];
+    signature.s.to_big_endian(&mut s);
+
     SignatureData {
         v: signature.v as u8,
-        r: signature.r.into(),
-        s: signature.s.into(),
+        r,
+        s
     }
 }

@@ -6,10 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::eth::BatchVerifiedEventStream;
-use aligned_sdk::types::{
-    BatchInclusionData, ClientMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
-};
+use aligned_sdk::types::{BatchInclusionData, ClientMessage, SaltedVerificationData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment};
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
@@ -209,13 +206,16 @@ impl Batcher {
         if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
 
-            let mut addr = addr;
-            if let Some(non_paying_config) = &self.non_paying_config {
-                if addr == non_paying_config.address {
-                    info!("Non-paying address detected. Replacing with configured address");
-                    addr = non_paying_config.replacement;
-                }
-            }
+            println!("Address: {:?}", addr);
+
+            // TODO: need new way to do this for merkle tree
+            // let mut addr = addr;
+            // if let Some(non_paying_config) = &self.non_paying_config {
+            //     if addr == non_paying_config.address {
+            //         info!("Non-paying address detected. Replacing with configured address");
+            //         addr = non_paying_config.replacement;
+            //     }
+            // }
 
             let user_balance = self
                 .payment_service
@@ -230,8 +230,6 @@ impl Batcher {
                     ProtocolError::HandshakeIncomplete,
                 ));
             }
-
-            addr
         } else {
             error!("Signature verification error");
             return Err(tokio_tungstenite::tungstenite::Error::Protocol(
@@ -239,16 +237,20 @@ impl Batcher {
             ));
         };
 
-        let verification_data = client_msg.verification_data;
-        if verification_data.proof.len() <= self.max_proof_size {
+        let salted_verification_data = client_msg.verification_data;
+        if salted_verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-            if self.pre_verification_is_enabled && !zk_utils::verify(&verification_data) {
+            if self.pre_verification_is_enabled && !zk_utils::verify(&salted_verification_data.verification_data) {
                 return Err(tokio_tungstenite::tungstenite::Error::Protocol(
                     ProtocolError::HandshakeIncomplete,
                 ));
             }
-            self.add_to_batch(verification_data, ws_conn_sink.clone(), client_msg.signature)
-                .await;
+            self.add_to_batch(
+                salted_verification_data,
+                ws_conn_sink.clone(),
+                client_msg.signature,
+            )
+            .await;
         } else {
             // FIXME(marian): Handle this error correctly
             return Err(tokio_tungstenite::tungstenite::Error::Protocol(
@@ -264,7 +266,7 @@ impl Batcher {
     /// Adds verification data to the current batch queue.
     async fn add_to_batch(
         self: Arc<Self>,
-        verification_data: VerificationData,
+        verification_data: SaltedVerificationData,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
         proof_submitter_sig: Signature,
     ) {
@@ -314,7 +316,7 @@ impl Batcher {
             return None;
         }
 
-        let batch_verification_data: Vec<VerificationData> = batch_queue_lock
+        let batch_verification_data: Vec<SaltedVerificationData> = batch_queue_lock
             .iter()
             .map(|(vd, _, _, _)| vd.clone())
             .collect();
@@ -353,7 +355,7 @@ impl Batcher {
         finalized_batch: BatchQueue,
         wait_for_verification: bool,
     ) -> Result<(), BatcherError> {
-        let batch_verification_data: Vec<VerificationData> = finalized_batch
+        let batch_verification_data: Vec<SaltedVerificationData> = finalized_batch
             .clone()
             .into_iter()
             .map(|(data, _, _, _)| data)
@@ -393,8 +395,15 @@ impl Batcher {
             .map(VerificationCommitmentBatch::hash_data)
             .collect();
 
+        let signatures = finalized_batch
+            .iter()
+            .map(|(_, _, _, sig)| sig)
+            .cloned()
+            .collect();
+
         // Moving this outside the previous scope is a hotfix until we merge https://github.com/yetanotherco/aligned_layer/pull/365
-        self.submit_batch(&batch_bytes, &batch_merkle_tree.root, leaves, vec![]).await;
+        self.submit_batch(&batch_bytes, &batch_merkle_tree.root, leaves, signatures)
+            .await;
 
         if !wait_for_verification {
             send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
@@ -433,7 +442,7 @@ impl Batcher {
         &self,
         batch_bytes: &[u8],
         batch_merkle_root: &[u8; 32],
-        leaves: Vec<[u8;32]>,
+        leaves: Vec<[u8; 32]>,
         signatures: Vec<Signature>,
     ) {
         let s3_client = self.s3_client.clone();

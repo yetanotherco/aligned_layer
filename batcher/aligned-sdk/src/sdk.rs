@@ -1,9 +1,6 @@
 use crate::errors;
 use crate::eth;
-use crate::types::{
-    AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, VerificationCommitmentBatch,
-    VerificationData, VerificationDataCommitment,
-};
+use crate::types::{AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, SaltedVerificationData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::signers::Wallet;
 use sha3::{Digest, Keccak256};
@@ -89,19 +86,21 @@ async fn _submit_multiple(
     let ws_write_clone = ws_write.clone();
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
-    let mut sent_verification_data: Vec<VerificationData> = Vec::new();
+    let mut sent_verification_data: Vec<SaltedVerificationData> = Vec::new();
 
     {
         let mut ws_write = ws_write.lock().await;
 
         for verification_data in verification_data.iter() {
-            let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
+            let salted_verification_data: SaltedVerificationData = verification_data.into();
+
+            let msg = ClientMessage::new(salted_verification_data.clone(), wallet.clone()).await;
             let msg_str = serde_json::to_string(&msg).map_err(errors::SubmitError::SerdeError)?;
             ws_write
                 .send(Message::Text(msg_str.clone()))
                 .await
                 .map_err(errors::SubmitError::ConnectionError)?;
-            sent_verification_data.push(verification_data.clone());
+            sent_verification_data.push(salted_verification_data.clone());
             debug!("Message sent...");
         }
     }

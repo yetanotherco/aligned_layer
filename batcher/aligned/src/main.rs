@@ -511,8 +511,6 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         SubmitError::InvalidAddress(args.proof_generator_addr.clone(), e.to_string())
     })?;
 
-    let nonce = rand::random::<[u8; 32]>();
-
     Ok(VerificationData {
         proving_system,
         proof,
@@ -520,7 +518,6 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         verification_key,
         vm_program_code,
         proof_generator_addr,
-        nonce
     })
 }
 

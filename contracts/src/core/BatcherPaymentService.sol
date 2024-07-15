@@ -5,20 +5,24 @@ import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/Ownabl
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 
+// import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
 contract BatcherPaymentService is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable
 {
+    // using ECDSA for bytes32;
+
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
 
     struct SignatureData {
+        uint8 v;
         bytes32 r;
         bytes32 s;
-        uint8 v;
     }
 
     // STORAGE
@@ -88,8 +92,10 @@ contract BatcherPaymentService is
             "Not enough gas to pay the aggregator"
         );
 
-        checkMerkleRoot(leaves, batchMerkleRoot);
-        verifySignatures(leaves, signatures, feePerProof);
+//        checkMerkleRoot(leaves, batchMerkleRoot);
+//        verifySignatures(leaves, signatures, feePerProof);
+
+        checkMerkleRootAndVerifySignatures(leaves, batchMerkleRoot, signatures, signaturesQty, feePerProof);
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
@@ -141,63 +147,65 @@ contract BatcherPaymentService is
         _;
     }
 
-    function checkMerkleRoot(
+    function checkMerkleRootAndVerifySignatures(
         bytes32[] calldata leaves,
-        bytes32 batchMerkleRoot
-    ) public pure {
-        //there are half as many nodes in the layer above the leaves
+        bytes32 batchMerkleRoot,
+        SignatureData[] calldata signatures,
+        uint256 signatureCount,
+        uint256 feePerProof
+    ) public {
         uint256 numNodesInLayer = leaves.length / 2;
-        //create a layer to store the internal nodes
         bytes32[] memory layer = new bytes32[](numNodesInLayer);
-        //fill the layer with the pairwise hashes of the leaves
-        for (uint256 i = 0; i < numNodesInLayer; i++) {
-            layer[i] = keccak256(
-                abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
-            );
+
+        uint32 i = 0;
+
+        // Calculate the hash of the next layer of the Merkle tree
+        // and verify the signatures up to numNodesInLayer
+        for (i = 0; i < numNodesInLayer; i++) {
+            layer[i] = keccak256(abi.encodePacked(leaves[2 * i], leaves[2 * i + 1]));
+
+            bytes32 hash = leaves[i];
+            require(!submittedSignatures[hash], "Signature already submitted");
+
+            SignatureData calldata signature = signatures[i];
+            submittedSignatures[hash] = true;
+
+            address signer = ecrecover(hash, signature.v, signature.r, signature.s);
+            require(UserBalances[signer] >= feePerProof, "Signer has insufficient balance");
+
+            UserBalances[signer] -= feePerProof;
         }
-        //the next layer above has half as many nodes
+
+        // Verify the rest of the signatures
+        for (; i < signatureCount; i++) {
+            bytes32 hash = leaves[i];
+            require(!submittedSignatures[hash], "Signature already submitted");
+
+            SignatureData calldata signature = signatures[i];
+            submittedSignatures[hash] = true;
+
+            address signer = ecrecover(hash, signature.v, signature.r, signature.s);
+            require(UserBalances[signer] >= feePerProof, "Signer has insufficient balance");
+
+            UserBalances[signer] -= feePerProof;
+        }
+
+        // The next layer above has half as many nodes
         numNodesInLayer /= 2;
-        //while we haven't computed the root
+
+        // Continue calculating Merkle root for remaining layers
         while (numNodesInLayer != 0) {
-            //overwrite the first numNodesInLayer nodes in layer with the pairwise hashes of their children
-            for (uint256 i = 0; i < numNodesInLayer; i++) {
+            // Overwrite the first numNodesInLayer nodes in layer with the pairwise hashes of their children
+            for (i = 0; i < numNodesInLayer; i++) {
                 layer[i] = keccak256(
                     abi.encodePacked(layer[2 * i], layer[2 * i + 1])
                 );
             }
-            //the next layer above has half as many nodes
+
+            // The next layer above has half as many nodes
             numNodesInLayer /= 2;
         }
 
-        //the first node in the layer is the root
         require(layer[0] == batchMerkleRoot, "Invalid merkle root");
-    }
-
-    function verifySignatures(
-        bytes32[] calldata hashes, // merkle tree leaves
-        SignatureData[] calldata signatures,
-        uint256 feePerProof
-    ) private {
-        address signer;
-        for (uint256 i = 0; i < signatures.length; i++) {
-            require(
-                !submittedSignatures[hashes[i]],
-                "Signature already submitted" // Signatures have a SALT, so they can't be reused
-            );
-
-            submittedSignatures[hashes[i]] = true;
-
-            signer = ecrecover(
-                hashes[i],
-                signatures[i].v,
-                signatures[i].r,
-                signatures[i].s
-            );
-            require(
-                UserBalances[signer] >= feePerProof,
-                "Payer has insufficient balance"
-            );
-            UserBalances[signer] -= feePerProof;
-        }
     }
 }
