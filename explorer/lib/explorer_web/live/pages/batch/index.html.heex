@@ -74,8 +74,8 @@
       Proofs in this batch:
       <%= if @proof_hashes != :empty do %>
         <%= if @proof_hashes == :nil do %>
-          <p>
-            There are no proofs available for this batch.
+          <p class="normal-case">
+            Proofs couldn't be shown for this Batch
           </p>
         <% else %>
           <div class="h-32 overflow-y-auto text-foreground space-y-2">
