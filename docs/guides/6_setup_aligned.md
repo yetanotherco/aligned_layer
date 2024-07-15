@@ -65,25 +65,86 @@ And you can use this file as an example on how to fill it:
 
 After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
-The following will start anvil, a local Ethereum devnet, for you to deploy and interact with the contracts:
+#### Anvil
+
+To start anvil, a local Ethereum devnet, for you to deploy and interact with the contracts:
 ```bash
 make anvil_start_with_block_time
 ```
 
-The following will start the [Aggregator](../architecture/components/5_aggregator.md):
+<details>
+<summary>More information on deploying the smart contracts on anvil:</summary>
+
+#### Eigenlayer Contracts
+
+If EigenLayer contracts change, the anvil state needs to be updated with:
+
+```bash
+make anvil_deploy_eigen_contracts
+```
+
+You will also need to redeploy the MockStrategy & MockERC20 contracts:
+
+```bash
+make anvil_deploy_mock_strategy
+```
+
+#### Aligned Contracts
+
+When changing Aligned contracts, the anvil state needs to be updated with:
+
+```bash
+make anvil_deploy_aligned_contracts
+```
+
+To test the upgrade script for ServiceManager in the local devnet, run:
+
+```bash
+make anvil_upgrade_aligned_contracts
+```
+
+To test the upgrade script for RegistryCoordintator in the local devnet, run:
+
+```bash
+make anvil_upgrade_registry_coordinator
+```
+
+Note that when upgrading the contracts, you must also:
+
+1. re-generate the Go smart contract bindings:
+
+```bash
+make bindings
+```
+
+2. Rebuild Aggregator and Operator Go binaries:
+
+```bash
+make build_binaries
+```
+
+</details>
+
+---
+
+#### To start the [Aggregator](../architecture/components/5_aggregator.md):
 ```bash
 make aggregator_start
 ```
 
 <details>
 <summary>To start the aggregator with a custom configuration:</summary>
-<br>
+
 ```bash
 make aggregator_start CONFIG_FILE=<path_to_config_file>
 ```
+
 </details>
 
-The following will start an [Operator](../architecture/components/4_operator.md), note it also registers it:
+---
+
+#### To start an [Operator](../architecture/components/4_operator.md)
+note it also registers it:
 ```bash
 make operator_register_and_start
 ```
@@ -92,9 +153,10 @@ If you need to start again the operator, and it's already registered, you can us
 ```bash
 make operator_start
 ```
+
 <details>
 <summary>More information about Operator registration:</summary>
-<br>
+
 Operator needs to register in both EigenLayer and Aligned. Then it can start verifying proofs.
 
 ##### Register into EigenLayer
@@ -233,14 +295,15 @@ eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
 
 </details>
 
+---
 
-The following will start the [Batcher](../architecture/components/1_batcher.md)
+#### To start the [Batcher](../architecture/components/1_batcher.md):
+
 ```bash
 make batcher_start
 ```
 <details>
 <summary>More information about Batcher configuration:</summary>
-<br>
 
 To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/aligned-batcher/`).
 
@@ -282,15 +345,20 @@ make batcher_start
 ```
 </details>
 
-If you want to start the explorer for the devnet, see how to run it using it's [documentation](#explorer) below.
+---
 
-### Send test proofs to batcher for testing
+#### Explorer
+If you also want to start the explorer for the devnet, to clearly visualize your submitted and verified batches, see how to run it using it's [documentation](#explorer) below.
+
+---
+
+### Send test proofs to Batcher
 
 Next, you can use some of the send proofs make targets. All these proofs are pre-generated and for testing purposes, feel free to generate your own tests to submit to Aligned.
 
 <details>
 <summary>SP1</summary>
-<br>
+
 Send an individual proof:
 
 ```bash
@@ -312,7 +380,7 @@ batcher_send_infinite_sp1
 
 <details>
 <summary>Risc0</summary>
-<br>
+
 Send an individual proof:
 
 ```bash
@@ -328,7 +396,7 @@ make batcher_send_risc0_burst
 
 <details>
 <summary>Plonk</summary>
-<br>
+
 Send an individual bn254 proof:
 
 ```bash
@@ -357,7 +425,7 @@ batcher_send_plonk_bls12_381_burst
 
 <details>
 <summary>Groth16</summary>
-<br>
+
 Send an individual bn254 proof:
 
 ```bash
@@ -385,7 +453,7 @@ batcher_send_burst_groth16
 
 <details>
 <summary>Halo2</summary>
-<br>
+
 Send an individual IPA proof:
 
 ```bash
@@ -413,7 +481,7 @@ batcher_send_halo2_kzg_task_burst_5
 
 <details>
 <summary>Send a specific proof:</summary>
-<br>
+
 To install the batcher client to send a specific proof, run:
 
 ```bash
@@ -433,129 +501,6 @@ aligned \
 --aligned_verification_data_path [aligned_verification_data_path]
 ```
 </details>
-
-
-#wip
-
-## Deploying Aligned Contracts to Holesky or Testnet
-
-### Eigenlayer Contracts: Anvil
-
-If EigenLayer contracts change, the anvil state needs to be updated with:
-
-```bash
-make anvil_deploy_eigen_contracts
-```
-
-You will also need to redeploy the MockStrategy & MockERC20 contracts:
-
-```bash
-make anvil_deploy_mock_strategy
-```
-
-### Eigenlayer Contracts: Holesky/Mainnet
-
-These contracts are not deployed by Aligned. Current EigenLayer contracts:
-
-- [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json)
-- [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/Mainnet_current_deployment.config.json)
-
-### Aligned Contracts: Anvil
-
-When changing Aligned contracts, the anvil state needs to be updated with:
-
-```bash
-make anvil_deploy_aligned_contracts
-```
-
-To test the upgrade script for ServiceManager in the local devnet, run:
-
-```bash
-make anvil_upgrade_aligned_contracts
-```
-
-To test the upgrade script for RegistryCoordintator in the local devnet, run:
-
-```bash
-make anvil_upgrade_registry_coordinator
-```
-
-#### Aligned Contracts: Holesky/Mainnet
-
-To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same directory as the deployment script (`contracts/scripts/`).
-
-The necessary environment variables are:
-
-| Variable Name                   | Description                                                           |
-| ------------------------------- | --------------------------------------------------------------------- |
-| `RPC_URL`                       | The RPC URL of the network you want to deploy to.                     |
-| `PRIVATE_KEY`                   | The private key of the account you want to deploy the contracts with. |
-| `EXISTING_DEPLOYMENT_INFO_PATH` | The path to the file containing the deployment info about EigenLayer. |
-| `DEPLOY_CONFIG_PATH`            | The path to the deployment config file.                               |
-| `OUTPUT_PATH`                   | The path to the file where the deployment info will be saved.         |
-
-You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
-
-Then run the following command:
-
-```bash
-make deploy_aligned_contracts
-```
-
-You need to complete the `DEPLOY_CONFIG_PATH` file with the following information:
-
-```json
-{
-    "chainInfo": {
-      "chainId": "<chain_id>"
-    },
-    "permissions" : {
-      "owner": "<owner_address>",
-      "aggregator": "<aggregator_address>",
-      "upgrader": "<upgrader_address>",
-      "churner": "<churner_address>",
-      "ejector": "<ejector_address>",
-      "deployer": "<deployer_address>",
-      "initalPausedStatus": 0
-    },
-    "minimumStakes": [],  
-    "strategyWeights": [],
-    "operatorSetParams": [],
-    "uri": ""
-  }
-```
-
-You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
-
-To upgrade the Service Manager Contract in Testnet/Mainnet, run:
-
-```bash
-make upgrade_aligned_contracts
-```
-
-To upgrade the Registry Coordinator in Testnet/Mainnet, run:
-
-```bash
-make upgrade_registry_coordinator
-```
-
-Make sure to set environment variables in a `.env` file in the same directory as the upgrade script (`contracts/scripts/`).
-
-### Bindings
-
-Also make sure to re-generate the Go smart contract bindings:
-
-```bash
-make bindings
-```
-
-### Deployment
-
-To build go binaries run:
-
-```bash
-make build_binaries
-```
 
 ## Metrics
 
@@ -593,15 +538,11 @@ To setup the explorer, an installation of the DB is needed.
 
 First you'll need to install docker if you don't have it already. You can follow the instructions [here](https://docs.docker.com/get-docker/).
 
-The explorer uses a PostgreSQL database. To build and start the DB using docker, just run:
+The explorer uses a PostgreSQL database. To build and start the DB using docker, run:
 
 ```bash
 make build_db
 ```
-
-This will build the docker image to be used as our database.
-
-After this, both `make run_explorer` and `make run_devnet_explorer` (see [this](#running-for-local-devnet) for more details) will automatically start, setup and connect to the database, which will be available on `localhost:5432` and the data is persisted in a volume.
 
 <details>
 
@@ -629,8 +570,6 @@ make run_explorer # or make run_devnet_explorer
 
 </details>
 
-<br>
-
 In order to clear the DB, you can run:
 
 ```bash
@@ -655,23 +594,11 @@ Then you'll be requested to enter the file name of the dump you want to recover 
 
 This will update your database with the dumped database data.
 
-### Extra scripts
-
-If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure you have the ELIXIR_HOSTNAME .env variable configured. You can get the hostname of your elixir by running `elixir -e 'IO.puts(:inet.gethostname() |> elem(1))'`
-
-Then you can run:
-
-```bash
-make explorer_fetch_old_batches
-```
-
-You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
-
-### Running for local devnet
+### Running Explorer
 
 To run the explorer for the local devnet, you'll need to have the devnet running (see [local devnet setup](#local-devnet-setup)) and the DB already setup.
 
-To run the explorer, just run:
+To run the explorer, run:
 
 ```bash
 make run_devnet_explorer
@@ -698,15 +625,29 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 
 Then you can run the explorer with this env file config by entering the following command:
 
-```make run_explorer```
-
-### Send example data
-
-If you want to have some data to see on it, you can start our infinite task sender, which will constantly send new proofs to the batcher.
-
-```sh
-make batcher_send_burst_groth16
+```bash
+make run_explorer
 ```
+
+<details>
+<summary>Extra Explorer scripts</summary>
+
+If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure you have the ELIXIR_HOSTNAME .env variable configured. You can get the hostname of your elixir by running :
+
+```bash
+elixir -e 'IO.puts(:inet.gethostname() |> elem(1))'
+```
+
+Then you can run:
+
+```bash
+make explorer_fetch_old_batches
+```
+
+You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
+
+</details>
+
 
 ## Notes on project creation
 
@@ -734,11 +675,3 @@ The addresses of the relevant contracts after running the anvil script is dumped
 The state is backuped on ```contracts/scripts/anvil/state```.
 
 Eigenlayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described on the file.
-
-## Tests
-
-To run the go tests
-
-```bash
-make test
-```
