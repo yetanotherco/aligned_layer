@@ -12,11 +12,12 @@ use kimchi::{
     },
     linearization::expr_linearization,
     mina_curves::pasta::{Fp, Fq, Pallas, Vesta},
-    o1_utils::FieldHelpers,
     poly_commitment::{srs::SRS, PolyComm},
     verifier_index::VerifierIndex,
 };
 use serde::Deserialize;
+
+const BLOCKCHAIN_VK_JSON: &str = include_str!("mainnet_vk.json");
 
 #[derive(Deserialize)]
 struct BlockchainVerificationKey {
@@ -42,26 +43,12 @@ struct Index {
     max_poly_size: usize,
     public: usize,
     prev_challenges: usize,
-    evals: Evals,
     shifts: [JSONFq; 7],
 }
 
 #[derive(Deserialize)]
 struct Domain {
     log_size_of_group: usize,
-    group_gen: JSONFq,
-}
-
-#[derive(Deserialize)]
-struct Evals {
-    sigma_comm: [JSONPolyCommAlternative; 7],
-    coefficients_comm: [JSONPolyCommAlternative; 15],
-    generic_comm: JSONPolyCommAlternative,
-    psm_comm: JSONPolyCommAlternative,
-    complete_add_comm: JSONPolyCommAlternative,
-    mul_comm: JSONPolyCommAlternative,
-    emul_comm: JSONPolyCommAlternative,
-    endomul_scalar_comm: JSONPolyCommAlternative,
 }
 
 #[derive(Deserialize)]
@@ -71,15 +58,9 @@ struct JSONFq(String);
 
 #[derive(Deserialize)]
 struct JSONGroupAffine(JSONFp, JSONFp);
-#[derive(Deserialize)]
-struct JSONGroupAffineAlternative(String, JSONGroupAffine);
 
 #[derive(Deserialize)]
 struct JSONPolyComm(JSONGroupAffine);
-#[derive(Deserialize)]
-struct JSONPolyCommAlternative {
-    unshifted: [JSONGroupAffineAlternative; 1],
-}
 
 impl TryInto<Fp> for JSONFp {
     type Error = String;
@@ -119,9 +100,9 @@ impl TryInto<PolyComm<Pallas>> for JSONPolyComm {
     }
 }
 
-pub fn deserialize_blockchain_vk(json_str: &str) -> Result<VerifierIndex<Pallas>, String> {
+pub fn deserialize_blockchain_vk() -> Result<VerifierIndex<Pallas>, String> {
     let vk: BlockchainVerificationKey =
-        serde_json::from_str(json_str).map_err(|err| err.to_string())?;
+        serde_json::from_str(BLOCKCHAIN_VK_JSON).map_err(|err| err.to_string())?;
 
     let max_poly_size = vk.index.max_poly_size;
     let domain = Radix2EvaluationDomain::new(1 << vk.index.domain.log_size_of_group)
@@ -255,12 +236,16 @@ pub fn deserialize_blockchain_vk(json_str: &str) -> Result<VerifierIndex<Pallas>
     })
 }
 
+// The code below was taken from OpenMina
+// https://github.com/openmina/openmina/blob/main/ledger/src/proofs/verifier_index.rs#L151
 /// Returns the end of the circuit, which is used for introducing zero-knowledge in the permutation polynomial
 pub fn zk_w3(domain: Radix2EvaluationDomain<Fq>) -> Fq {
     const ZK_ROWS: u64 = 3;
     domain.group_gen.pow([domain.size - (ZK_ROWS)])
 }
 
+// The code below was taken from OpenMina
+// https://github.com/openmina/openmina/blob/main/ledger/src/proofs/verifier_index.rs#L151
 /// Computes the zero-knowledge polynomial for blinding the permutation polynomial: `(x-w^{n-k})(x-w^{n-k-1})...(x-w^n)`.
 /// Currently, we use k = 3 for 2 blinding factors,
 /// see <https://www.plonk.cafe/t/noob-questions-plonk-paper/73>
@@ -284,11 +269,8 @@ pub fn zk_polynomial(domain: Radix2EvaluationDomain<Fq>) -> DensePolynomial<Fq> 
 mod test {
     use super::deserialize_blockchain_vk;
 
-    const BLOCKCHAIN_VK_JSON: &str =
-        include_str!("../../../../batcher/aligned/test_files/mina/blockchain_vk.json");
-
     #[test]
     fn deserialize_blockchain_vk_does_not_fail() {
-        deserialize_blockchain_vk(BLOCKCHAIN_VK_JSON).unwrap();
+        deserialize_blockchain_vk().unwrap();
     }
 }
