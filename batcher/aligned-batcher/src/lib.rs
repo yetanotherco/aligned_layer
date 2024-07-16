@@ -1,5 +1,6 @@
 extern crate core;
 
+use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
 use dotenv::dotenv;
 use ethers::signers::Signer;
@@ -13,7 +14,7 @@ use aligned_sdk::core::types::{
     VerificationCommitmentBatch, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{signature_data_from_signature, BatcherPaymentService};
+use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Signature, U256};
@@ -507,7 +508,7 @@ impl Batcher {
         let signatures = signatures
             .iter()
             .enumerate()
-            .map(|(i, sig)| signature_data_from_signature(sig, nonces[i]))
+            .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
         match eth::create_new_task(
