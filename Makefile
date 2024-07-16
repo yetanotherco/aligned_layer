@@ -101,6 +101,10 @@ build_operator: deps
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
+update_operator:
+	@echo "Updating Operator..."
+	@make build_operator
+
 bindings:
 	cd contracts && ./generate-go-bindings.sh
 

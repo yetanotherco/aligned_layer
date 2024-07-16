@@ -78,9 +78,7 @@ make build_operator
 If you want to upgrade the operator, you need checkout the latest version of the repository and rebuild the operator.
 
 ```bash
-git fetch
-git checkout v0.2.1 # or <latest_version>
-make build_operator
+make update_operator
 ```
 
 This will recreate the binaries. You can then proceed to restart the operator.
