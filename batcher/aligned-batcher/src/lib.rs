@@ -6,7 +6,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::eth::BatchVerifiedEventStream;
-use aligned_sdk::types::{BatchInclusionData, ClientMessage, SaltedVerificationData, VerificationCommitmentBatch, VerificationDataCommitment};
+use aligned_sdk::types::{
+    BatchInclusionData, ClientMessage, NoncedVerificationData, VerificationCommitmentBatch,
+    VerificationDataCommitment,
+};
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{BatchVerifiedFilter, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
@@ -242,7 +245,9 @@ impl Batcher {
         let salted_verification_data = client_msg.verification_data;
         if salted_verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-            if self.pre_verification_is_enabled && !zk_utils::verify(&salted_verification_data.verification_data) {
+            if self.pre_verification_is_enabled
+                && !zk_utils::verify(&salted_verification_data.verification_data)
+            {
                 return Err(tokio_tungstenite::tungstenite::Error::Protocol(
                     ProtocolError::HandshakeIncomplete,
                 ));
@@ -268,7 +273,7 @@ impl Batcher {
     /// Adds verification data to the current batch queue.
     async fn add_to_batch(
         self: Arc<Self>,
-        verification_data: SaltedVerificationData,
+        verification_data: NoncedVerificationData,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
         proof_submitter_sig: Signature,
     ) {
@@ -318,7 +323,7 @@ impl Batcher {
             return None;
         }
 
-        let batch_verification_data: Vec<SaltedVerificationData> = batch_queue_lock
+        let batch_verification_data: Vec<NoncedVerificationData> = batch_queue_lock
             .iter()
             .map(|(vd, _, _, _)| vd.clone())
             .collect();
@@ -357,7 +362,7 @@ impl Batcher {
         finalized_batch: BatchQueue,
         wait_for_verification: bool,
     ) -> Result<(), BatcherError> {
-        let batch_verification_data: Vec<SaltedVerificationData> = finalized_batch
+        let batch_verification_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
             .map(|(data, _, _, _)| data)
@@ -403,9 +408,21 @@ impl Batcher {
             .cloned()
             .collect();
 
+        let nonces = finalized_batch
+            .iter()
+            .map(|(nonced_vd, _, _, _)| nonced_vd.nonce)
+            .collect();
+
+        println!("Nonces {:?}", nonces);
         // Moving this outside the previous scope is a hotfix until we merge https://github.com/yetanotherco/aligned_layer/pull/365
-        self.submit_batch(&batch_bytes, &batch_merkle_tree.root, leaves, signatures)
-            .await;
+        self.submit_batch(
+            &batch_bytes,
+            &batch_merkle_tree.root,
+            leaves,
+            signatures,
+            nonces,
+        )
+        .await;
 
         if !wait_for_verification {
             send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
@@ -446,6 +463,7 @@ impl Batcher {
         batch_merkle_root: &[u8; 32],
         leaves: Vec<[u8; 32]>,
         signatures: Vec<Signature>,
+        nonces: Vec<[u8; 32]>,
     ) {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
@@ -481,6 +499,7 @@ impl Batcher {
             batch_data_pointer,
             leaves,
             signatures,
+            nonces,
             AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
             gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )

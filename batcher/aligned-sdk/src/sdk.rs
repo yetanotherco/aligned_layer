@@ -1,8 +1,12 @@
 use crate::errors;
 use crate::eth;
-use crate::types::{AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, SaltedVerificationData, VerificationCommitmentBatch, VerificationData, VerificationDataCommitment};
+use crate::types::{
+    AlignedVerificationData, BatchInclusionData, Chain, ClientMessage, NoncedVerificationData,
+    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::signers::Wallet;
+use ethers::types::U256;
 use sha3::{Digest, Keccak256};
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
@@ -86,21 +90,29 @@ async fn _submit_multiple(
     let ws_write_clone = ws_write.clone();
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
-    let mut sent_verification_data: Vec<SaltedVerificationData> = Vec::new();
+    let mut sent_verification_data: Vec<NoncedVerificationData> = Vec::new();
+
+    let mut nonce = U256::zero();
+    let mut nonce_bytes = [0u8; 32];
 
     {
         let mut ws_write = ws_write.lock().await;
 
         for verification_data in verification_data.iter() {
-            let salted_verification_data: SaltedVerificationData = verification_data.into();
+            nonce.to_big_endian(&mut nonce_bytes);
+            let nonced_verification_data = NoncedVerificationData {
+                nonce: nonce_bytes,
+                verification_data: verification_data.clone(),
+            };
+            nonce = nonce.saturating_add(U256::one());
 
-            let msg = ClientMessage::new(salted_verification_data.clone(), wallet.clone()).await;
+            let msg = ClientMessage::new(nonced_verification_data.clone(), wallet.clone()).await;
             let msg_str = serde_json::to_string(&msg).map_err(errors::SubmitError::SerdeError)?;
             ws_write
                 .send(Message::Text(msg_str.clone()))
                 .await
                 .map_err(errors::SubmitError::ConnectionError)?;
-            sent_verification_data.push(salted_verification_data.clone());
+            sent_verification_data.push(nonced_verification_data.clone());
             debug!("Message sent...");
         }
     }
@@ -112,7 +124,7 @@ async fn _submit_multiple(
     let mut verification_data_commitments_rev: Vec<VerificationDataCommitment> =
         sent_verification_data
             .into_iter()
-            .map(|vd| vd.into())
+            .map(|vd| (&vd).into())
             .rev()
             .collect();
 

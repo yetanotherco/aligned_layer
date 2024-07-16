@@ -34,22 +34,9 @@ pub struct VerificationData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SaltedVerificationData {
+pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
-    pub salt: [u8; 32],
-}
-
-impl From<&VerificationData> for SaltedVerificationData {
-    fn from(verification_data: &VerificationData) -> Self {
-        let mut rng = rand::thread_rng();
-        let salt = rng.gen::<[u8; 32]>();
-
-        SaltedVerificationData {
-            verification_data: verification_data.clone(),
-            salt,
-        }
-    }
-
+    pub nonce: [u8; 32],
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -60,13 +47,11 @@ pub struct VerificationDataCommitment {
     // depending on the proving system.
     pub proving_system_aux_data_commitment: [u8; 32],
     pub proof_generator_addr: [u8; 20],
-    // random number to make the commitment unique
-    pub salt: [u8; 32],
 }
 
-impl From<SaltedVerificationData> for VerificationDataCommitment {
-    fn from(salted_verification_data: SaltedVerificationData) -> Self {
-        let verification_data = salted_verification_data.verification_data;
+impl From<&NoncedVerificationData> for VerificationDataCommitment {
+    fn from(nonced_verification_data: &NoncedVerificationData) -> Self {
+        let verification_data = nonced_verification_data.verification_data.clone();
 
         let mut hasher = Keccak256::new();
 
@@ -98,15 +83,18 @@ impl From<SaltedVerificationData> for VerificationDataCommitment {
         // serialize proof generator address to bytes
         let proof_generator_addr = verification_data.proof_generator_addr.into();
 
-        let salt = salted_verification_data.salt;
-
         VerificationDataCommitment {
             proof_commitment,
             pub_input_commitment,
             proving_system_aux_data_commitment,
             proof_generator_addr,
-            salt,
         }
+    }
+}
+
+impl From<NoncedVerificationData> for VerificationDataCommitment {
+    fn from(nonced_verification_data: NoncedVerificationData) -> Self {
+        VerificationDataCommitment::from(&nonced_verification_data)
     }
 }
 
@@ -123,7 +111,6 @@ impl IsMerkleTreeBackend for VerificationCommitmentBatch {
         hasher.update(leaf.pub_input_commitment);
         hasher.update(leaf.proving_system_aux_data_commitment);
         hasher.update(leaf.proof_generator_addr);
-        hasher.update(leaf.salt);
 
         hasher.finalize().into()
     }
@@ -164,15 +151,19 @@ impl BatchInclusionData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientMessage {
-    pub verification_data: SaltedVerificationData,
+    pub verification_data: NoncedVerificationData,
     pub signature: Signature,
 }
 
 impl ClientMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
-    pub async fn new(verification_data: SaltedVerificationData, wallet: Wallet<SigningKey>) -> Self {
-        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.clone().into());
+    pub async fn new(
+        verification_data: NoncedVerificationData,
+        wallet: Wallet<SigningKey>,
+    ) -> Self {
+        let hashed_leaf = ClientMessage::hash_with_nonce(&verification_data);
+
         let signature = wallet.sign_hash(hashed_leaf.into()).unwrap();
 
         ClientMessage {
@@ -184,31 +175,20 @@ impl ClientMessage {
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
-        let hashed_leaf =
-            VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
+        let hashed_leaf: [u8; 32] = ClientMessage::hash_with_nonce(&self.verification_data);
 
-        // let recovery_id = self.signature.recovery_id()
-        //     .map_err(SignatureError::RecoveryError)?;
-        //
-        // let verifying_key = VerifyingKey::recover_from_prehash(
-        //     hashed_leaf.as_ref(),
-        //     &self.signature,
-        //     recovery_id,
-        // )?;
-        //
-        // let public_key = K256PublicKey::from(&verifying_key);
-        // let public_key = public_key.to_encoded_point(/* compress = */ false);
-        // let public_key = public_key.as_bytes();
-        // debug_assert_eq!(public_key[0], 0x04);
-        // let hash = crate::utils::keccak256(&public_key[1..]);
-        // Ok(Address::from_slice(&hash[12..]))
-
-        // IMPORTANT: If the `.to_vec()` conversion is not made for `hashed_leaf`, the recovered
-        // address from the signature will not be the same as the one who signed. This is a bug in
-        // the ethers-rs library
         let recovered = self.signature.recover(hashed_leaf)?;
         self.signature.verify(hashed_leaf, recovered)?;
         Ok(recovered)
+    }
+
+    fn hash_with_nonce(verification_data: &NoncedVerificationData) -> [u8; 32] {
+        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.into());
+
+        let mut hasher = Keccak256::new();
+        hasher.update(hashed_leaf);
+        hasher.update(&verification_data.nonce);
+        hasher.finalize().into()
     }
 }
 

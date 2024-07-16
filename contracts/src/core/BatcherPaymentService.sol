@@ -23,6 +23,7 @@ contract BatcherPaymentService is
         uint8 v;
         bytes32 r;
         bytes32 s;
+        uint256 nonce;
     }
 
     // STORAGE
@@ -32,7 +33,7 @@ contract BatcherPaymentService is
     mapping(address => uint256) public UserBalances;
 
     // map to check signature is only submitted once
-    mapping(bytes32 => bool) public submittedSignatures;
+    mapping(address => uint256) public UserNonces;
 
     // storage gap for upgradeability
     uint256[25] private __GAP;
@@ -92,7 +93,12 @@ contract BatcherPaymentService is
             "Not enough gas to pay the aggregator"
         );
 
-        checkMerkleRootAndVerifySignatures(leaves, batchMerkleRoot, signatures, feePerProof);
+        checkMerkleRootAndVerifySignatures(
+            leaves,
+            batchMerkleRoot,
+            signatures,
+            feePerProof
+        );
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
@@ -158,37 +164,16 @@ contract BatcherPaymentService is
         // Calculate the hash of the next layer of the Merkle tree
         // and verify the signatures up to numNodesInLayer
         for (i = 0; i < numNodesInLayer; i++) {
-            layer[i] = keccak256(abi.encodePacked(leaves[2 * i], leaves[2 * i + 1]));
+            layer[i] = keccak256(
+                abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
+            );
 
-            bytes32 hash = leaves[i];
-
-            // TODO: need a way to check signatures are only submitted once
-
-//            require(!submittedSignatures[hash], "Signature already submitted");
-//            submittedSignatures[hash] = true;
-
-            SignatureData calldata signature = signatures[i];
-
-            address signer = ecrecover(hash, signature.v, signature.r, signature.s);
-            require(UserBalances[signer] >= feePerProof, "Signer has insufficient balance");
-
-            UserBalances[signer] -= feePerProof;
+            verifySignature(leaves[i], signatures[i], feePerProof);
         }
 
         // Verify the rest of the signatures
         for (; i < signatures.length; i++) {
-            bytes32 hash = leaves[i];
-
-            // TODO: need a way to check signatures are only submitted once
-//            require(!submittedSignatures[hash], "Signature already submitted");
-//            submittedSignatures[hash] = true;
-
-            SignatureData calldata signature = signatures[i];
-
-            address signer = ecrecover(hash, signature.v, signature.r, signature.s);
-            require(UserBalances[signer] >= feePerProof, "Signer has insufficient balance");
-
-            UserBalances[signer] -= feePerProof;
+            verifySignature(leaves[i], signatures[i], feePerProof);
         }
 
         // The next layer above has half as many nodes
@@ -208,5 +193,31 @@ contract BatcherPaymentService is
         }
 
         require(layer[0] == batchMerkleRoot, "Invalid merkle root");
+    }
+
+    function verifySignature(
+        bytes32 hash,
+        SignatureData calldata signatureData,
+        uint256 feePerProof
+    ) private {
+        bytes32 noncedHash = keccak256(
+            abi.encodePacked(hash, signatureData.nonce)
+        );
+
+        address signer = ecrecover(
+            noncedHash,
+            signatureData.v,
+            signatureData.r,
+            signatureData.s
+        );
+
+        require(UserNonces[signer] == signatureData.nonce, "Invalid Nonce");
+        UserNonces[signer]++;
+
+        require(
+            UserBalances[signer] >= feePerProof,
+            "Signer has insufficient balance"
+        );
+        UserBalances[signer] -= feePerProof;
     }
 }
