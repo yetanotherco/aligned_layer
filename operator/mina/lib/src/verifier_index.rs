@@ -1,10 +1,19 @@
-use std::array;
+use std::{array, sync::Arc};
 
-use ark_poly::{EvaluationDomain, Radix2EvaluationDomain};
+use ark_ff::Field;
+use ark_poly::{
+    univariate::DensePolynomial, EvaluationDomain, Radix2EvaluationDomain, UVPolynomial,
+};
 use kimchi::{
-    mina_curves::pasta::{Fp, Fq, Pallas},
+    circuits::{
+        constraints::FeatureFlags,
+        expr::Linearization,
+        lookup::lookups::{LookupFeatures, LookupPatterns},
+    },
+    linearization::expr_linearization,
+    mina_curves::pasta::{Fp, Fq, Pallas, Vesta},
     o1_utils::FieldHelpers,
-    poly_commitment::PolyComm,
+    poly_commitment::{srs::SRS, PolyComm},
     verifier_index::VerifierIndex,
 };
 use serde::Deserialize;
@@ -111,6 +120,8 @@ impl TryInto<PolyComm<Pallas>> for JSONPolyComm {
 pub fn deserialize_blockchain_vk(json_str: &str) -> Result<VerifierIndex<Pallas>, String> {
     let vk: BlockchainVerificationKey =
         serde_json::from_str(json_str).map_err(|err| err.to_string())?;
+
+    let max_poly_size = vk.index.max_poly_size;
     let domain = Radix2EvaluationDomain::new(1 << vk.index.domain.log_size_of_group)
         .ok_or("failed to create domain".to_owned())?;
 
@@ -129,7 +140,7 @@ pub fn deserialize_blockchain_vk(json_str: &str) -> Result<VerifierIndex<Pallas>
     let sigma_comm = {
         let mut new_sigma_comm = array::from_fn(empty_poly_comm);
         for (comm, new_comm) in sigma_comm.into_iter().zip(new_sigma_comm.iter_mut()) {
-            new_comm = &mut comm.try_into()?
+            *new_comm = comm.try_into()?
         }
         new_sigma_comm
     };
@@ -139,7 +150,7 @@ pub fn deserialize_blockchain_vk(json_str: &str) -> Result<VerifierIndex<Pallas>
             .into_iter()
             .zip(new_coefficients_comm.iter_mut())
         {
-            new_comm = &mut comm.try_into()?
+            *new_comm = comm.try_into()?
         }
         new_coefficients_comm
     };
@@ -154,14 +165,65 @@ pub fn deserialize_blockchain_vk(json_str: &str) -> Result<VerifierIndex<Pallas>
     let shift = {
         let mut new_shift = array::from_fn(|_| Fq::from(0));
         for (comm, new_comm) in shift.into_iter().zip(new_shift.iter_mut()) {
-            new_comm = &mut comm.try_into()?
+            *new_comm = comm.try_into()?
         }
         new_shift
     };
 
-    let verifier_index = VerifierIndex {
+    // The code below was taken from OpenMina
+    // https://github.com/openmina/openmina/blob/main/ledger/src/proofs/verifier_index.rs#L151
+
+    let (endo, _) = poly_commitment::srs::endos::<Vesta>();
+
+    let feature_flags = FeatureFlags {
+        range_check0: false,
+        range_check1: false,
+        foreign_field_add: false,
+        foreign_field_mul: false,
+        xor: false,
+        rot: false,
+        lookup_features: LookupFeatures {
+            patterns: LookupPatterns {
+                xor: false,
+                lookup: false,
+                range_check: false,
+                foreign_field_mul: false,
+            },
+            joint_lookup_used: false,
+            uses_runtime_tables: false,
+        },
+    };
+
+    let (mut linearization, powers_of_alpha) = expr_linearization(Some(&feature_flags), true);
+
+    let linearization = Linearization {
+        constant_term: linearization.constant_term,
+        index_terms: {
+            // Make the verifier index deterministic
+            linearization
+                .index_terms
+                .sort_by_key(|&(columns, _)| columns);
+            linearization.index_terms
+        },
+    };
+
+    // https://github.com/o1-labs/proof-systems/blob/2702b09063c7a48131173d78b6cf9408674fd67e/kimchi/src/verifier_index.rs#L310-L314
+    let srs = {
+        let mut srs = SRS::create(max_poly_size);
+        srs.add_lagrange_basis(domain);
+        Arc::new(srs)
+    };
+
+    // https://github.com/o1-labs/proof-systems/blob/2702b09063c7a48131173d78b6cf9408674fd67e/kimchi/src/verifier_index.rs#L319
+    let zkpm = zk_polynomial(domain);
+
+    // https://github.com/o1-labs/proof-systems/blob/2702b09063c7a48131173d78b6cf9408674fd67e/kimchi/src/verifier_index.rs#L324
+    let w = zk_w3(domain);
+
+    Ok(VerifierIndex {
         domain,
         max_poly_size: vk.index.max_poly_size,
+        srs: once_cell::sync::OnceCell::from(srs),
         public: vk.index.public,
         prev_challenges: vk.index.prev_challenges,
 
@@ -180,8 +242,40 @@ pub fn deserialize_blockchain_vk(json_str: &str) -> Result<VerifierIndex<Pallas>
         foreign_field_mul_comm: None,
         xor_comm: None,
         rot_comm: None,
-    };
-    todo!()
+
+        shift,
+        zkpm: once_cell::sync::OnceCell::from(zkpm),
+        w: once_cell::sync::OnceCell::from(w),
+        endo,
+        lookup_index: None,
+        linearization,
+        powers_of_alpha,
+    })
+}
+
+/// Returns the end of the circuit, which is used for introducing zero-knowledge in the permutation polynomial
+pub fn zk_w3(domain: Radix2EvaluationDomain<Fq>) -> Fq {
+    const ZK_ROWS: u64 = 3;
+    domain.group_gen.pow([domain.size - (ZK_ROWS)])
+}
+
+/// Computes the zero-knowledge polynomial for blinding the permutation polynomial: `(x-w^{n-k})(x-w^{n-k-1})...(x-w^n)`.
+/// Currently, we use k = 3 for 2 blinding factors,
+/// see <https://www.plonk.cafe/t/noob-questions-plonk-paper/73>
+pub fn zk_polynomial(domain: Radix2EvaluationDomain<Fq>) -> DensePolynomial<Fq> {
+    let w3 = zk_w3(domain);
+    let w2 = domain.group_gen * w3;
+    let w1 = domain.group_gen * w2;
+
+    // (x-w3)(x-w2)(x-w1) =
+    // x^3 - x^2(w1+w2+w3) + x(w1w2+w1w3+w2w3) - w1w2w3
+    let w1w2 = w1 * w2;
+    DensePolynomial::from_coefficients_slice(&[
+        -w1w2 * w3,                   // 1
+        w1w2 + (w1 * w3) + (w3 * w2), // x
+        -w1 - w2 - w3,                // x^2
+        Fq::from(1),                  // x^3
+    ])
 }
 
 #[cfg(test)]
