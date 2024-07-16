@@ -9,9 +9,9 @@ pub mod communication {
     pub mod protocol;
 }
 
-pub(crate) mod eth {
+pub mod eth {
     pub(crate) mod aligned_service_manager;
-    pub(crate) mod batcher_payment_service;
+    pub mod batcher_payment_service;
 }
 
 pub mod sdk;

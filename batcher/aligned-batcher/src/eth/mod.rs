@@ -2,20 +2,11 @@ use std::iter::repeat;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 
 use crate::config::ECDSAConfig;
-
-abigen!(
-    AlignedLayerServiceManagerContract,
-    "./src/eth/abi/AlignedLayerServiceManager.json",
-);
-
-abigen!(
-    BatcherPaymentServiceContract,
-    "./src/eth/abi/BatcherPaymentService.json",
-);
 
 #[derive(Debug, Clone, EthEvent)]
 pub struct BatchVerified {
