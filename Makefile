@@ -103,6 +103,7 @@ build_operator: deps
 
 update_operator:
 	@echo "Updating Operator..."
+	@./scripts/fetch_latest_release.sh
 	@make build_operator
 
 bindings:
