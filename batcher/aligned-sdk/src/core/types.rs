@@ -38,7 +38,7 @@ pub struct NoncedVerificationData {
 }
 
 impl NoncedVerificationData {
-    pub(crate) fn new(verification_data: VerificationData, nonce: [u8; 32]) -> Self {
+    pub fn new(verification_data: VerificationData, nonce: [u8; 32]) -> Self {
         Self {
             verification_data,
             nonce,

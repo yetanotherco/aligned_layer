@@ -1,6 +1,8 @@
 extern crate core;
 
+use config::NonPayingConfig;
 use dotenv::dotenv;
+use ethers::signers::Signer;
 
 use std::env;
 use std::net::SocketAddr;
@@ -51,8 +53,7 @@ pub struct Batcher {
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
-    // TODO: Fix this, we need to replace the signatures of non paying address with our own
-    // non_paying_config: Option<NonPayingConfig>,
+    non_paying_config: Option<NonPayingConfig>,
 }
 
 impl Batcher {
@@ -92,10 +93,13 @@ impl Batcher {
         .await
         .expect("Failed to get Batcher Payment Service contract");
 
-        if let Some(non_paying_config) = &config.batcher.non_paying {
-            warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address {}.",
-                non_paying_config.address, non_paying_config.replacement);
-        }
+        let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
+            warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
+                non_paying_config.address);
+            Some(NonPayingConfig::from_yaml_config(non_paying_config, &payment_service).await)
+        } else {
+            None
+        };
 
         Self {
             s3_client,
@@ -109,8 +113,7 @@ impl Batcher {
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
-            // TODO: Fix this, we need to replace the signatures of non paying address with our own
-            // non_paying_config: config.batcher.non_paying,
+            non_paying_config,
         }
     }
 
@@ -190,24 +193,59 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), Error> {
         // Deserialize verification data from message
-        let client_msg: ClientMessage =
+        let mut client_msg: ClientMessage =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
         info!("Verifying message signature...");
-        if let Ok(addr) = client_msg.verify_signature() {
+        client_msg = if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
 
-            println!("Address: {:?}", addr);
+            let mut addr = addr;
+            let mut client_msg = client_msg;
+            if let Some(non_paying_config) = &self.non_paying_config {
+                if addr == non_paying_config.address {
+                    info!("Non-paying address detected. Replacing with configured address");
+                    addr = non_paying_config.replacement.address();
 
-            // TODO: need new way to do this for merkle tree
-            // let mut addr = addr;
-            // if let Some(non_paying_config) = &self.non_paying_config {
-            //     if addr == non_paying_config.address {
-            //         info!("Non-paying address detected. Replacing with configured address");
-            //         addr = non_paying_config.replacement;
-            //     }
-            // }
+                    let mut nonce_bytes = [0u8; 32];
+
+                    let nonce = non_paying_config.nonce.clone();
+
+                    let err = {
+                        // Different lifetime for lock
+
+                        match nonce.lock() {
+                            Ok(mut nonce) => {
+                                nonce.to_big_endian(&mut nonce_bytes);
+                                *nonce += U256::one();
+                                None
+                            }
+                            Err(e) => {
+                                error!("Failed to lock nonce: {:?}", e);
+
+                                Some(ResponseMessage::Error(
+                                    "Failed to subsitute address.".to_string(),
+                                ))
+                            }
+                        }
+                    };
+
+                    if let Some(err) = err {
+                        send_error_message(ws_conn_sink.clone(), err).await;
+                        return Ok(());
+                    }
+
+                    let verifcation_data = NoncedVerificationData::new(
+                        client_msg.verification_data.verification_data.clone(),
+                        nonce_bytes,
+                    );
+
+                    client_msg =
+                        ClientMessage::new(verifcation_data, non_paying_config.replacement.clone())
+                            .await;
+                }
+            }
 
             let user_balance = self
                 .payment_service
@@ -225,6 +263,8 @@ impl Batcher {
                 .await;
                 return Ok(()); // Send error message to the client and return
             }
+
+            client_msg
         } else {
             error!("Signature verification error");
             send_error_message(
@@ -235,11 +275,11 @@ impl Batcher {
             return Ok(()); // Send error message to the client and return
         };
 
-        let salted_verification_data = client_msg.verification_data;
-        if salted_verification_data.verification_data.proof.len() <= self.max_proof_size {
+        let nonced_verification_data = client_msg.verification_data;
+        if nonced_verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled
-                && !zk_utils::verify(&salted_verification_data.verification_data)
+                && !zk_utils::verify(&nonced_verification_data.verification_data)
             {
                 error!("Invalid proof detected. Verification failed.");
                 send_error_message(ws_conn_sink.clone(), ResponseMessage::VerificationError())
@@ -247,7 +287,7 @@ impl Batcher {
                 return Ok(()); // Send error message to the client and return
             }
             self.add_to_batch(
-                salted_verification_data,
+                nonced_verification_data,
                 ws_conn_sink.clone(),
                 client_msg.signature,
             )
