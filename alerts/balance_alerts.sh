@@ -26,10 +26,8 @@ balance_alert=false
 while :
 do
   balance_wei=$(cast call --rpc-url $RPC_URL $PAYMENT_CONTRACT_ADDRESS "UserBalances(address)(uint256)" $WALLET_ADDRESS | cut -d' ' -f1)
-  printf "Wallet balance wei: %s\n" $balance_wei
 
   balance_eth=$(cast from-wei $balance_wei)
-  printf "Wallet balance eth: %s\n" $balance_eth
 
   if [ 1 -eq "$(echo "$balance_eth < $BALANCE_THRESHOLD" | bc)" ]; then
     message="⚠️ WARNING: Wallet $WALLET_ADDRESS balance ($balance_eth ETH) is below $BALANCE_THRESHOLD ETH"
