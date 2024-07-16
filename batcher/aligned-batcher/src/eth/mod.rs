@@ -34,17 +34,10 @@ pub async fn create_new_task(
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
     leaves: Vec<[u8; 32]>,
-    signatures: Vec<Signature>,
-    nonces: Vec<[u8; 32]>,
+    signatures: Vec<SignatureData>,
     gas_for_aggregator: U256,
     gas_per_proof: U256,
 ) -> Result<TransactionReceipt, anyhow::Error> {
-    let signatures = signatures
-        .iter()
-        .enumerate()
-        .map(|(i, signature)| signature_data_from_signature(signature, nonces[i]))
-        .collect::<Vec<SignatureData>>();
-
     // pad leaves to next power of 2
     let leaves_len = leaves.len();
     let last_leaf = leaves[leaves_len - 1];
@@ -91,7 +84,7 @@ pub async fn get_batcher_payment_service(
     Ok(service_manager)
 }
 
-fn signature_data_from_signature(signature: &Signature, nonce: [u8; 32]) -> SignatureData {
+pub fn signature_data_from_signature(signature: &Signature, nonce: [u8; 32]) -> SignatureData {
     let mut r = [0u8; 32];
     signature.r.to_big_endian(&mut r);
 

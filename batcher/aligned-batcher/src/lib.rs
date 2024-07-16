@@ -11,7 +11,7 @@ use aligned_sdk::core::types::{
     VerificationCommitmentBatch, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::BatcherPaymentService;
+use eth::{signature_data_from_signature, BatcherPaymentService};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Signature, U256};
@@ -466,13 +466,18 @@ impl Batcher {
             + ADDITIONAL_SUBMISSION_COST_PER_PROOF * num_proofs_in_batch as u128)
             / num_proofs_in_batch as u128;
 
+        let signatures = signatures
+            .iter()
+            .enumerate()
+            .map(|(i, sig)| signature_data_from_signature(sig, nonces[i]))
+            .collect();
+
         match eth::create_new_task(
             payment_service,
             *batch_merkle_root,
             batch_data_pointer,
             leaves,
             signatures,
-            nonces,
             AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
             gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )

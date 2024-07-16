@@ -8,7 +8,10 @@ use crate::{
         errors,
         types::{AlignedVerificationData, Chain, VerificationData, VerificationDataCommitment},
     },
-    eth,
+    eth::{
+        aligned_service_manager::aligned_service_manager,
+        batcher_payment_service::batcher_payment_service,
+    },
 };
 
 use ethers::{
@@ -54,9 +57,16 @@ pub async fn submit_multiple_and_wait(
     chain: Chain,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
+    batcher_payment_service_addr: &str,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
-    let aligned_verification_data =
-        submit_multiple(batcher_addr, verification_data, wallet).await?;
+    let aligned_verification_data = submit_multiple(
+        batcher_addr,
+        eth_rpc_url,
+        verification_data,
+        wallet,
+        batcher_payment_service_addr,
+    )
+    .await?;
 
     match &aligned_verification_data {
         Some(aligned_verification_data) => {
@@ -92,8 +102,10 @@ pub async fn submit_multiple_and_wait(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_addr: &str,
+    eth_rpc_url: &str,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
+    batcher_payment_service_addr: &str,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let (ws_stream, _) = connect_async(batcher_addr)
         .await
@@ -104,7 +116,15 @@ pub async fn submit_multiple(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit_multiple(ws_write, ws_read, verification_data, wallet).await
+    _submit_multiple(
+        ws_write,
+        ws_read,
+        verification_data,
+        wallet,
+        eth_rpc_url,
+        batcher_payment_service_addr,
+    )
+    .await
 }
 
 async fn _submit_multiple(
@@ -112,6 +132,8 @@ async fn _submit_multiple(
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
+    eth_rpc_url: &str,
+    batcher_payment_service_addr: &str,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // First message from the batcher is the protocol version
     check_protocol_version(&mut ws_read).await?;
@@ -122,9 +144,24 @@ async fn _submit_multiple(
         ));
     }
     let ws_write_clone = ws_write.clone();
+
+    let eth_rpc_provider =
+        Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
+            errors::VerificationError::EthereumProviderError(e.to_string())
+        })?;
+
+    let batcher_payment_service =
+        batcher_payment_service(eth_rpc_provider, batcher_payment_service_addr).await?;
+
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
-    let sent_verification_data = send_messages(ws_write, verification_data, wallet).await?;
+    let sent_verification_data = send_messages(
+        ws_write,
+        verification_data,
+        wallet,
+        &batcher_payment_service,
+    )
+    .await?;
 
     let num_responses = Arc::new(Mutex::new(0));
 
@@ -175,12 +212,19 @@ pub async fn submit_and_wait(
     chain: Chain,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
+    batcher_payment_service_addr: &str,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let aligned_verification_data =
-        submit_multiple_and_wait(batcher_addr, eth_rpc_url, chain, &verification_data, wallet)
-            .await?;
+    let aligned_verification_data = submit_multiple_and_wait(
+        batcher_addr,
+        eth_rpc_url,
+        chain,
+        &verification_data,
+        wallet,
+        batcher_payment_service_addr,
+    )
+    .await?;
 
     if let Some(mut aligned_verification_data) = aligned_verification_data {
         Ok(aligned_verification_data.pop())
@@ -206,13 +250,21 @@ pub async fn submit_and_wait(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_addr: &str,
+    eth_rpc_url: &str,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
+    batcher_payment_service_addr: &str,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let aligned_verification_data =
-        submit_multiple(batcher_addr, &verification_data, wallet).await?;
+    let aligned_verification_data = submit_multiple(
+        batcher_addr,
+        eth_rpc_url,
+        &verification_data,
+        wallet,
+        batcher_payment_service_addr,
+    )
+    .await?;
 
     if let Some(mut aligned_verification_data) = aligned_verification_data {
         Ok(aligned_verification_data.pop())
@@ -268,7 +320,7 @@ async fn _verify_proof_onchain(
         .verification_data_commitment
         .clone();
 
-    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
+    let service_manager = aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
     let call = service_manager.verify_batch_inclusion(
         verification_data_comm.proof_commitment,
@@ -345,6 +397,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
+            "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
         )
         .await
         .unwrap()
@@ -378,6 +431,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
+            "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
         )
         .await;
 
@@ -399,7 +453,7 @@ mod test {
         let verification_data = VerificationData {
             proving_system: ProvingSystemId::Groth16Bn254,
             proof,
-            pub_input: pub_input,
+            pub_input,
             verification_key: vk,
             vm_program_code: None,
             proof_generator_addr,
@@ -418,6 +472,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
+            "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
         )
         .await
         .unwrap()
@@ -468,6 +523,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
+            "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
         )
         .await
         .unwrap()

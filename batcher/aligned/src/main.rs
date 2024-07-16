@@ -63,6 +63,18 @@ pub struct SubmitArgs {
         default_value = "ws://localhost:8080"
     )]
     connect_addr: String,
+    #[arg(
+        name = "Batcher Eth Address",
+        long = "batcher_addr",
+        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+    )]
+    batcher_eth_address: String,
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
     #[arg(name = "Proving system", long = "proving_system")]
     proving_system_flag: ProvingSystemArg,
     #[arg(name = "Proof file path", long = "proof")]
@@ -269,14 +281,23 @@ async fn main() -> Result<(), AlignedError> {
                 LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet")
             };
 
+            let eth_rpc_url = submit_args.eth_rpc_url.clone();
+            let batcher_eth_address = submit_args.batcher_eth_address.clone();
+
             let verification_data = verification_data_from_args(submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let aligned_verification_data_vec =
-                submit_multiple(&connect_addr, &verification_data_arr, wallet).await?;
+            let aligned_verification_data_vec = submit_multiple(
+                &connect_addr,
+                &eth_rpc_url,
+                &verification_data_arr,
+                wallet,
+                &batcher_eth_address,
+            )
+            .await?;
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
                 let mut unique_batch_merkle_roots = HashSet::new();
