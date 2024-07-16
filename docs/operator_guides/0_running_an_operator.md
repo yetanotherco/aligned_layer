@@ -79,7 +79,7 @@ If you want to upgrade the operator, you need checkout the latest version of the
 
 ```bash
 git fetch
-git checkout <latest_version>
+git checkout v0.2.1 # or <latest_version>
 make build_operator
 ```
 
