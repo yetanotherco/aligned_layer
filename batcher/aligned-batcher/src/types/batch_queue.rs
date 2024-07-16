@@ -4,7 +4,7 @@ use std::sync::Arc;
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
-use aligned_sdk::types::{NoncedVerificationData, VerificationDataCommitment};
+use aligned_sdk::core::types::{NoncedVerificationData, VerificationDataCommitment};
 
 pub(crate) type BatchQueueEntry = (
     NoncedVerificationData,
