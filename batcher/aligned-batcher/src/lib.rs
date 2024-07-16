@@ -439,8 +439,6 @@ impl Batcher {
             .map(|(nonced_vd, _, _, _)| nonced_vd.nonce)
             .collect();
 
-        println!("Nonces {:?}", nonces);
-        // Moving this outside the previous scope is a hotfix until we merge https://github.com/yetanotherco/aligned_layer/pull/365
         self.submit_batch(
             &batch_bytes,
             &batch_merkle_tree.root,
