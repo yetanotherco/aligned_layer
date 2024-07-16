@@ -1,6 +1,4 @@
 use ethers::core::k256::ecdsa::SigningKey;
-use ethers::prelude::rand;
-use ethers::prelude::rand::Rng;
 use ethers::signers::Wallet;
 use ethers::types::Address;
 use ethers::types::Signature;
@@ -196,7 +194,7 @@ impl ClientMessage {
 
         let mut hasher = Keccak256::new();
         hasher.update(hashed_leaf);
-        hasher.update(&verification_data.nonce);
+        hasher.update(verification_data.nonce);
         hasher.finalize().into()
     }
 }

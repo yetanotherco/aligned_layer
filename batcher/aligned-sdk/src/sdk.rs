@@ -11,7 +11,6 @@ use crate::{
     eth,
 };
 
-use ethers::types::U256;
 use ethers::{
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Provider},

@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use aligned_sdk::core::types::{
     BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+    VerificationCommitmentBatch, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
