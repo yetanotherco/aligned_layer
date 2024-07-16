@@ -1,6 +1,6 @@
 use std::{array, sync::Arc};
 
-use ark_ff::Field;
+use ark_ff::{Field, PrimeField};
 use ark_poly::{
     univariate::DensePolynomial, EvaluationDomain, Radix2EvaluationDomain, UVPolynomial,
 };
@@ -85,7 +85,8 @@ impl TryInto<Fp> for JSONFp {
     type Error = String;
 
     fn try_into(self) -> Result<Fp, Self::Error> {
-        Fp::from_hex(&self.0).map_err(|err| err.to_string())
+        let bytes = hex::decode(self.0.trim_start_matches("0x")).map_err(|err| err.to_string())?;
+        Ok(Fp::from_be_bytes_mod_order(&bytes))
     }
 }
 
@@ -93,7 +94,8 @@ impl TryInto<Fq> for JSONFq {
     type Error = String;
 
     fn try_into(self) -> Result<Fq, Self::Error> {
-        Fq::from_hex(&self.0).map_err(|err| err.to_string())
+        let bytes = hex::decode(self.0.trim_start_matches("0x")).map_err(|err| err.to_string())?;
+        Ok(Fq::from_be_bytes_mod_order(&bytes))
     }
 }
 
