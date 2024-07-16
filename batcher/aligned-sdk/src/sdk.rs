@@ -38,6 +38,7 @@ use futures_util::{
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
+/// * `batcher_payment_service_addr` - The address of the batcher payment service.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -88,8 +89,10 @@ pub async fn submit_multiple_and_wait(
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
+/// * `batcher_payment_service_addr` - The address of the batcher payment service.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -193,6 +196,7 @@ async fn _submit_multiple(
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
+/// * `batcher_payment_service_addr` - The address of the batcher payment service.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -236,8 +240,10 @@ pub async fn submit_and_wait(
 /// Submits a proof to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
+/// * `batcher_payment_service_addr` - The address of the batcher payment service.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
