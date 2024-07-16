@@ -75,7 +75,7 @@ make build_operator
 
 ### Upgrading the Operator
 
-If you want to upgrade the operator, you need checkout the latest version of the repository and rebuild the operator.
+If you want to upgrade the operator, run:
 
 ```bash
 make update_operator

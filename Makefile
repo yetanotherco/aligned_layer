@@ -105,6 +105,7 @@ update_operator:
 	@echo "Updating Operator..."
 	@./scripts/fetch_latest_release.sh
 	@make build_operator
+	@./operator/build/aligned-operator --version
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh
