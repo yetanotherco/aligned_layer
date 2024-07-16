@@ -11,6 +11,8 @@ use mina_tree::proofs::verification::verify_block;
 use mina_tree::proofs::verifier_index::{get_verifier_index, VerifierKind};
 use mina_tree::verifier::get_srs;
 
+mod verifier_index;
+
 lazy_static! {
     static ref VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
         get_verifier_index(VerifierKind::Blockchain);
