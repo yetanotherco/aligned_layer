@@ -1,5 +1,8 @@
 # Register as an Aligned operator in testnet
 
+> **CURRENT VERSION:**
+> Aligned Operator [v0.3.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.3.0)
+
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
 
@@ -38,7 +41,7 @@ Minimum hardware requirements:
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.3.0
 cd aligned_layer
 ```
 
@@ -70,14 +73,19 @@ To build the operator binary, run:
 make build_operator
 ```
 
-To update the operator, run:
+### Upgrading the Operator
+
+If you want to upgrade the operator, run:
 
 ```bash
-git pull
-make build_operator
+make update_operator
 ```
 
 This will recreate the binaries. You can then proceed to restart the operator.
+
+You can find the latest version of the operator [here](https://github.com/yetanotherco/aligned_layer/releases).
+
+### Checking the Operator Version
 
 To see the operator version, run:
 

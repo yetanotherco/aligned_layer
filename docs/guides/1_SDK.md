@@ -11,7 +11,7 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.2.1" }
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.3.0" }
 ```
 
 To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the version of the release that has the `latest` badge.

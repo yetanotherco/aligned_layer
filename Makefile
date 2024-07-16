@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.2.1
+OPERATOR_VERSION=v0.3.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -100,6 +100,12 @@ build_operator: deps
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
+
+update_operator:
+	@echo "Updating Operator..."
+	@./scripts/fetch_latest_release.sh
+	@make build_operator
+	@./operator/build/aligned-operator --version
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh
