@@ -75,7 +75,7 @@ defmodule Explorer.Periodically do
               eth_usd:
                 case EthConverter.get_eth_price_usd() do
                   {:ok, eth_usd_price} -> eth_usd_price
-                  {:error, error} -> :empty
+                  {:error, _error} -> :empty
                 end
             })
 
