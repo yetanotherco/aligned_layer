@@ -163,12 +163,12 @@ contract BatcherPaymentService is
                 abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
             );
 
-            verifySignatureAndNonce(leaves[i], signatures[i], feePerProof);
+            verifySignatureAndDecreaseBalance(leaves[i], signatures[i], feePerProof);
         }
 
         // Verify the rest of the signatures
         for (; i < signatures.length; i++) {
-            verifySignatureAndNonce(leaves[i], signatures[i], feePerProof);
+            verifySignatureAndDecreaseBalance(leaves[i], signatures[i], feePerProof);
         }
 
         // The next layer above has half as many nodes
@@ -194,7 +194,7 @@ contract BatcherPaymentService is
         }
     }
 
-    function verifySignatureAndNonce(
+    function verifySignatureAndDecreaseBalance(
         bytes32 hash,
         SignatureData calldata signatureData,
         uint256 feePerProof
