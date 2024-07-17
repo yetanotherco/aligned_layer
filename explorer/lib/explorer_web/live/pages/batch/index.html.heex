@@ -14,7 +14,10 @@
       <%= if @current_batch.cost_per_proof != nil do %>
         Cost per Proof:
         <p>
-          <%= @current_batch.cost_per_proof |> Utils.wei_to_eth() %> ETH
+          <%= @current_batch.cost_per_proof |> EthConverter.wei_to_eth() %> ETH
+          <%= if @eth_usd_price != :empty do %>
+            (<%= @eth_usd_price %> USD)
+          <% end %>
         </p>
       <% end %>
       Submission Block Number:

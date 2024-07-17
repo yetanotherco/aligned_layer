@@ -96,24 +96,6 @@ defmodule ExplorerWeb.Utils do
   defp pad_leading_zero(value) do
     Integer.to_string(value) |> String.pad_leading(2, "0")
   end
-
-  @wei_per_eth 1_000_000_000_000_000_000
-
-  def wei_to_eth(wei, decimal_places \\ 18)
-
-  def wei_to_eth(wei, decimal_places) when is_integer(wei) do
-    wei
-    |> Decimal.new()
-    |> Decimal.div(Decimal.new(@wei_per_eth))
-    |> Decimal.round(decimal_places)
-    |> Decimal.to_string(:normal)
-  end
-
-  def wei_to_eth(wei, decimal_places) when is_binary(wei) do
-    wei
-    |> String.to_integer()
-    |> wei_to_eth(decimal_places)
-  end
 end
 
 defmodule Utils do
@@ -147,9 +129,6 @@ defmodule Utils do
     batch_json
     |> Enum.map(fn proof ->
       :crypto.hash(:sha3_256, proof["proof"])
-      # TODO removed this because i want to store as bytea, not a string.
-      # |> Base.encode16(case: :lower)
-      # |> (&("0x" <> &1)).()
     end)
   end
 
