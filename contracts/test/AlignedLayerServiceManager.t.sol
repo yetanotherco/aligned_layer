@@ -65,9 +65,9 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         );
 
         (
+            address batcherAddress,
             uint32 taskCreatedBlock,
-            bool responded,
-            address batcherAddress
+            bool responded
         ) = alignedLayerServiceManager.batchesState(batchMerkleRoot);
 
         assertEq(taskCreatedBlock, uint32(block.number));
