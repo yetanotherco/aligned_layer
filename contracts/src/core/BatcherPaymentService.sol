@@ -11,7 +11,6 @@ contract BatcherPaymentService is
     PausableUpgradeable,
     UUPSUpgradeable
 {
-
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
@@ -63,8 +62,8 @@ contract BatcherPaymentService is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        bytes32[] calldata leaves,              // padded to the next power of 2
-        SignatureData[] calldata signatures,    // actual length (proof sumbitters == proofs submitted)
+        bytes32[] calldata leaves, // padded to the next power of 2
+        SignatureData[] calldata signatures, // actual length (proof sumbitters == proofs submitted)
         uint256 gasForAggregator,
         uint256 gasPerProof
     ) external onlyBatcher whenNotPaused {
@@ -164,12 +163,12 @@ contract BatcherPaymentService is
                 abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
             );
 
-            verifySignature(leaves[i], signatures[i], feePerProof);
+            verifySignatureAndNonce(leaves[i], signatures[i], feePerProof);
         }
 
         // Verify the rest of the signatures
         for (; i < signatures.length; i++) {
-            verifySignature(leaves[i], signatures[i], feePerProof);
+            verifySignatureAndNonce(leaves[i], signatures[i], feePerProof);
         }
 
         // The next layer above has half as many nodes
@@ -191,7 +190,7 @@ contract BatcherPaymentService is
         require(layer[0] == batchMerkleRoot, "Invalid merkle root");
     }
 
-    function verifySignature(
+    function verifySignatureAndNonce(
         bytes32 hash,
         SignatureData calldata signatureData,
         uint256 feePerProof
