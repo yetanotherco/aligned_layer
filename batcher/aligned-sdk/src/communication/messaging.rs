@@ -38,7 +38,7 @@ pub async fn send_messages(
     let mut nonce = batcher_payment_service
         .user_nonces(address)
         .await
-        .map_err(|_| SubmitError::GenericError("Invalid Nonce".to_string()))?;
+        .map_err(|_| SubmitError::InvalidNonce)?;
 
     let mut nonce_bytes = [0u8; 32];
 
@@ -142,6 +142,9 @@ async fn process_batch_inclusion_data(
         }
         Ok(ResponseMessage::SignatureVerificationError()) => {
             error!("Failed to verify the signature");
+        }
+        Ok(ResponseMessage::InvalidNonceError) => {
+            error!("Invalid nonce")
         }
         Err(e) => {
             return Err(SubmitError::SerializationError(e));

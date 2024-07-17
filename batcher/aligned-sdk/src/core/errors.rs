@@ -51,6 +51,7 @@ pub enum SubmitError {
     UnexpectedBatcherResponse(String),
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
+    InvalidNonce,
     GenericError(String),
 }
 
@@ -134,6 +135,7 @@ impl fmt::Display for SubmitError {
                 write!(f, "Verification data commitments are empty")
             }
             SubmitError::EmptyVerificationDataList => write!(f, "Verification data list is empty"),
+            SubmitError::InvalidNonce => write!(f, "Invalid nonce"),
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
         }
     }
