@@ -65,7 +65,7 @@ defmodule Explorer.Periodically do
             |> Utils.extract_info_from_data_pointer
             |> Batches.generate_changesets
 
-        Batches.insert_or_update(batch_changeset, proofs) #handles it atomically
+        Batches.insert_or_update(batch_changeset, proofs)
           |> case do
             {:ok, _} ->
               IO.puts("Broadcasting update_views")
@@ -92,7 +92,7 @@ defmodule Explorer.Periodically do
         |> Enum.map(&Batches.generate_changesets/1)
 
     Enum.map(
-      array_of_changeset_tuples,
+      array_of_changest_tuples,
       fn {batch_changeset, proofs} ->
         Batches.insert_or_update(batch_changeset, proofs)
       end)

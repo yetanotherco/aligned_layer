@@ -198,10 +198,16 @@ impl AlignedVerificationData {
 pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
+    VerificationError(),
+    ProofTooLargeError(),
+    InsufficientBalanceError(Address),
+    SignatureVerificationError(),
+    Error(String),
 }
 
 #[derive(Debug, Clone)]
 pub enum Chain {
     Devnet,
     Holesky,
+    HoleskyStage,
 }

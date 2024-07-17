@@ -43,16 +43,4 @@ defmodule Proofs do
     end
   end
 
-  # for when we implement the proof search bar
-  # def get_proof(%{proof_hash: proof_hash}) do
-  #   query = from(p in Proofs,
-  #   where: p.proof_hash == ^proof_hash,
-  #   select: p)
-
-  #   case Explorer.Repo.all(query) do
-  #     nil -> nil
-  #     result -> [result, result |> Enum.count()]
-  #   end
-  # end
-
 end

@@ -183,6 +183,7 @@ pub struct GetUserBalanceArgs {
 enum ChainArg {
     Devnet,
     Holesky,
+    HoleskyStage,
 }
 
 impl From<ChainArg> for Chain {
@@ -190,6 +191,7 @@ impl From<ChainArg> for Chain {
         match chain_arg {
             ChainArg::Devnet => Chain::Devnet,
             ChainArg::Holesky => Chain::Holesky,
+            ChainArg::HoleskyStage => Chain::HoleskyStage,
         }
     }
 }
@@ -289,7 +291,7 @@ async fn main() -> Result<(), AlignedError> {
 
                 if unique_batch_merkle_roots.len() > 1 {
                     info!("Proofs submitted to aligned. See the batches in the explorer:");
-                } else {
+                } else if unique_batch_merkle_roots.len() == 1 {
                     info!("Proofs submitted to aligned. See the batch in the explorer:");
                 }
 
@@ -378,6 +380,7 @@ async fn main() -> Result<(), AlignedError> {
             match chain {
                 Chain::Devnet => wallet = wallet.with_chain_id(31337u64),
                 Chain::Holesky => wallet = wallet.with_chain_id(17000u64),
+                Chain::HoleskyStage => wallet = wallet.with_chain_id(17000u64),
             }
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());

@@ -178,7 +178,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 		"batch merkle root", newBatchLog.BatchMerkleRoot,
 	)
 
-	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer)
+	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
