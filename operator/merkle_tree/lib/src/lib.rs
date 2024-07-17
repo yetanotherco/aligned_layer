@@ -40,7 +40,7 @@ mod tests {
     #[test]
     fn test_verify_merkle_tree_batch_ffi() {
         let path =
-            "./test_files/5ba2f046e3c1072b96f55728a67d73b4e246a6c27960b0c52d7fafb77981bcb0.json";
+            "./test_files/a3cf9e0284d77d342087b1ed4ab2de0267417577452a3187c9b9592e4cc89188.json";
 
         let mut file = File::open(path).unwrap();
 
@@ -49,7 +49,7 @@ mod tests {
 
         let mut merkle_root = [0; 32];
         merkle_root.copy_from_slice(
-            &hex::decode("5ba2f046e3c1072b96f55728a67d73b4e246a6c27960b0c52d7fafb77981bcb0")
+            &hex::decode("a3cf9e0284d77d342087b1ed4ab2de0267417577452a3187c9b9592e4cc89188")
                 .unwrap(),
         );
 
