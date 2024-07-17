@@ -5,15 +5,12 @@ import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/Ownabl
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-// import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
 contract BatcherPaymentService is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable
 {
-    // using ECDSA for bytes32;
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
@@ -79,7 +76,7 @@ contract BatcherPaymentService is
 
         require(leavesQty > 0, "No leaves submitted");
         require(signaturesQty > 0, "No proof submitter signatures");
-        require(leavesQty >= signatures.length, "Not enough leaves");
+        require(leavesQty >= signaturesQty, "Not enough leaves");
         require(
             (leavesQty & (leavesQty - 1)) == 0,
             "Leaves length is not a power of 2"
