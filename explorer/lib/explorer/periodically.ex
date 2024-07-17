@@ -85,7 +85,7 @@ defmodule Explorer.Periodically do
     "verifying previous unverified batches..." |> IO.inspect()
     unverified_batches = Batches.get_unverified_batches()
 
-    array_of_changeset_tuples =
+    array_of_changest_tuples =
       unverified_batches
         |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
         |> Enum.reject(&is_nil/1)
