@@ -56,7 +56,7 @@ After having the env setup, run in different terminals the following commands to
 
 ## Anvil
 
-To start anvil, a local Ethereum devnet, for you to deploy and interact with the contracts:
+To start anvil, a local Ethereum devnet with all necessary contracts already deployed and ready to be interacted with, run:
 ```bash
 make anvil_start_with_block_time
 ```
