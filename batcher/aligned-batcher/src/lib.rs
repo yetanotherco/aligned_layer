@@ -5,6 +5,7 @@ use config::NonPayingConfig;
 use dotenv::dotenv;
 use ethers::signers::Signer;
 
+use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -17,7 +18,7 @@ use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
-use ethers::types::{Signature, U256};
+use ethers::types::{Address, Signature, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -55,6 +56,7 @@ pub struct Batcher {
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
+    user_nonces: Mutex<HashMap<Address, U256>>,
 }
 
 impl Batcher {
@@ -102,6 +104,8 @@ impl Batcher {
             None
         };
 
+        let user_nonces = Mutex::new(HashMap::new());
+
         Self {
             s3_client,
             s3_bucket_name,
@@ -115,6 +119,7 @@ impl Batcher {
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
+            user_nonces,
         }
     }
 
@@ -194,12 +199,12 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), Error> {
         // Deserialize verification data from message
-        let mut client_msg: ClientMessage =
+        let client_msg: ClientMessage =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
         info!("Verifying message signature...");
-        client_msg = if let Ok(addr) = client_msg.verify_signature() {
+        let (client_msg, addr) = if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
 
             let mut addr = addr;
@@ -265,7 +270,7 @@ impl Batcher {
                 return Ok(()); // Send error message to the client and return
             }
 
-            client_msg
+            (client_msg, addr)
         } else {
             error!("Signature verification error");
             send_error_message(
@@ -276,6 +281,7 @@ impl Batcher {
             return Ok(()); // Send error message to the client and return
         };
 
+        let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
         let nonced_verification_data = client_msg.verification_data;
         if nonced_verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
@@ -287,6 +293,13 @@ impl Batcher {
                     .await;
                 return Ok(()); // Send error message to the client and return
             }
+
+            // Doing nonce verification after proof verification to avoid unnecessary nonce increment
+            if !self.user_nonce_is_valid(addr, nonce).await {
+                send_error_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonceError).await;
+                return Ok(()); // Send error message to the client and return
+            }
+
             self.add_to_batch(
                 nonced_verification_data,
                 ws_conn_sink.clone(),
@@ -302,6 +315,37 @@ impl Batcher {
         info!("Verification data message handled");
 
         Ok(())
+    }
+
+    async fn user_nonce_is_valid(&self, addr: Address, nonce: U256) -> bool {
+        let mut user_nonces = self.user_nonces.lock().await;
+
+        let expected_user_nonce = match user_nonces.get(&addr) {
+            Some(nonce) => *nonce,
+            None => {
+                let user_nonce = match self.payment_service.user_nonces(addr).call().await {
+                    Ok(nonce) => nonce,
+                    Err(e) => {
+                        error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
+                        return false;
+                    }
+                };
+
+                user_nonces.insert(addr, user_nonce);
+                user_nonce
+            }
+        };
+
+        if nonce != expected_user_nonce {
+            error!(
+                "Invalid nonce. Expected: {:?}, got: {:?}",
+                expected_user_nonce, nonce
+            );
+            return false;
+        }
+
+        user_nonces.insert(addr, nonce + U256::one());
+        true
     }
 
     /// Adds verification data to the current batch queue.

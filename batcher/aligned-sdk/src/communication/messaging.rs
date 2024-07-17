@@ -143,6 +143,9 @@ async fn process_batch_inclusion_data(
         Ok(ResponseMessage::SignatureVerificationError()) => {
             error!("Failed to verify the signature");
         }
+        Ok(ResponseMessage::InvalidNonceError) => {
+            error!("Invalid nonce")
+        }
         Err(e) => {
             return Err(SubmitError::SerializationError(e));
         }

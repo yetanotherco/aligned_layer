@@ -233,6 +233,7 @@ pub enum ResponseMessage {
     ProofTooLargeError(),
     InsufficientBalanceError(Address),
     SignatureVerificationError(),
+    InvalidNonceError,
     Error(String),
 }
 
