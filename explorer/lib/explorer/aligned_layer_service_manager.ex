@@ -88,8 +88,8 @@ defmodule AlignedLayerServiceManager do
   def is_batch_responded(merkle_root) do
     case AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root))
          |> Ethers.call() do
-      {:ok, [_, true]} -> true
-      _ -> false
+      {:ok, [_, _, true]} -> true
+      other -> false
     end
   end
 
