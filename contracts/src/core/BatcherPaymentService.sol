@@ -63,8 +63,8 @@ contract BatcherPaymentService is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        bytes32[] calldata leaves, // padded to the next power of 2
-        SignatureData[] calldata signatures, // keep actual length
+        bytes32[] calldata leaves,              // padded to the next power of 2
+        SignatureData[] calldata signatures,    // actual length (proof sumbitters == proofs submitted)
         uint256 gasForAggregator,
         uint256 gasPerProof
     ) external onlyBatcher whenNotPaused {
@@ -84,7 +84,6 @@ contract BatcherPaymentService is
 
         require(feeForAggregator > 0, "No gas for aggregator");
         require(feePerProof > 0, "No gas per proof");
-
         require(
             feePerProof * signaturesQty > feeForAggregator,
             "Not enough gas to pay the aggregator"
