@@ -187,7 +187,11 @@ contract BatcherPaymentService is
             numNodesInLayer /= 2;
         }
 
-        require(layer[0] == batchMerkleRoot, "Invalid merkle root");
+        if (leaves.length == 1) {
+            require(leaves[0] == batchMerkleRoot, "Invalid merkle root");
+        } else {
+            require(layer[0] == batchMerkleRoot, "Invalid merkle root");
+        }
     }
 
     function verifySignatureAndNonce(
