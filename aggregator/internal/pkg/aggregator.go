@@ -3,9 +3,10 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
-	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"sync"
 	"time"
+
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
@@ -15,7 +16,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
-	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorpubkeys"
+	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorsinfo"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -113,9 +114,10 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	operatorPubkeysService := oppubkeysserv.NewOperatorPubkeysServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, logger)
+	// FIXME: Setting the fourth argument to `nil` because in examples in eigensdk-go module it was set like that. Check that this is OK.
+	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, logger)
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.AvsRegistryReader, operatorPubkeysService, logger)
-	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, logger)
+	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, eigentypes.TaskResponseHashFunction, logger)
 
 	// Metrics
 	reg := prometheus.NewRegistry()
@@ -215,7 +217,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
-
 	currentBlock, err := agg.AggregatorConfig.BaseConfig.EthRpcClient.BlockNumber(context.Background())
 	if err != nil {
 		agg.logger.Error("Error getting current block number", "err", err)
@@ -270,10 +271,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 }
 
-
-
-/// Sends response to contract and waits for transaction receipt
-/// Returns error if it fails to send tx or receipt is not found
+// / Sends response to contract and waits for transaction receipt
+// / Returns error if it fails to send tx or receipt is not found
 func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	agg.walletMutex.Lock()
 	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchMerkleRoot[:]))
@@ -298,7 +297,6 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 
 	return receipt, nil
 }
-
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task",
