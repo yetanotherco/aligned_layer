@@ -7,11 +7,11 @@ use aligned_sdk::core::errors::SubmitError;
 use aligned_sdk::core::types::Chain::Holesky;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
 use aligned_sdk::sdk::submit_and_wait;
+use env_logger::Env;
 use ethers::signers::LocalWallet;
 use ethers::types::Address;
 use ethers::utils::hex;
 use log::info;
-use env_logger::Env;
 
 #[tokio::main]
 async fn main() -> Result<(), SubmitError> {
@@ -21,12 +21,18 @@ async fn main() -> Result<(), SubmitError> {
         "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof",
     ))
     .unwrap_or_default();
+
     let pub_input = read_file(PathBuf::from(
         "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub",
     ));
+
     let image_id = read_file(PathBuf::from(
         "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin",
     ));
+
+    let pub_input_hex = hex::encode(pub_input.as_ref().unwrap());
+
+    info!("Pub input bytes as hex: {:?}", pub_input_hex);
 
     let proof_generator_addr =
         Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
@@ -57,7 +63,10 @@ async fn main() -> Result<(), SubmitError> {
 
     let batch_inclusion_data_directory_path = PathBuf::from("./batch_inclusion_data");
 
-    info!("Saving verification data to {:?}", batch_inclusion_data_directory_path);
+    info!(
+        "Saving verification data to {:?}",
+        batch_inclusion_data_directory_path
+    );
     if let Some(aligned_verification_data) = aligned_verification_data {
         save_response(
             batch_inclusion_data_directory_path,
@@ -78,11 +87,9 @@ fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), SubmitError> {
+    std::fs::create_dir_all(&batch_inclusion_data_directory_path)
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e))?;
 
-    std::fs::create_dir_all(&batch_inclusion_data_directory_path).map_err(|e| {
-        SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
-    })?;
-    
     let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
         + "_"
