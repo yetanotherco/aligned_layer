@@ -10,7 +10,9 @@ To submit proofs to Aligned and get them verified, first you need to generate th
 
 You can find examples on how to generate proofs in the [generating proofs guide](3_generating_proofs.md).
 
-Additionally, you can find an example of the Fibonacci program proof and the script that generates it in the Risc0 example directory.
+Additionally, you can find an example of the Fibonacci program proof and the script that generates it in the risc_zero directory.
+
+To generate the proof needed to try this example, run `make generate_risc_zero_fibonacci_proof`.
 
 ## Write your smart contract
 
@@ -32,7 +34,7 @@ The following is an example of how to validate the public input of the Risc0 pro
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-contract Fibonacci {
+contract FibonacciValidator {
     address public alignedServiceManager;
     bytes32 public fibonacciImageId;
 
@@ -157,6 +159,15 @@ function calculateCommitment(
 require(callWasSuccessful, "static_call failed");
 ```
 
+To deploy the contract, first you will need to setup the `.env` file in the contracts folder with the following variables:
+
+```
+RPC_URL= #You can use publicnode RPC: https://ethereum-holesky-rpc.publicnode.com
+PRIVATE_KEY=
+ALIGNED_SERVICE_MANAGER_ADDRESS= #0x58F280BeBE9B34c9939C3C39e0890C81f163B623 for Holesky
+```
+
+Then, run `make deploy_fibonacci_validator`.
 
 ## Submit and verify the proof to Aligned
 
@@ -195,7 +206,6 @@ async fn main() -> Result<(), SubmitError> {
         "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin",
     ));
 
-    // Set to a dummy address
     let proof_generator_addr =
         Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
 
@@ -222,7 +232,6 @@ async fn main() -> Result<(), SubmitError> {
     )
     .await?;
 
-    // Directory were the AlignedVerificationData will be stored.
     let batch_inclusion_data_directory_path = PathBuf::from("./batch_inclusion_data");
 
     if let Some(aligned_verification_data) = aligned_verification_data {
@@ -245,6 +254,11 @@ fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), SubmitError> {
+
+    std::fs::create_dir_all(&batch_inclusion_data_directory_path).map_err(|e| {
+        SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
+    })?;
+    
     let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
         + "_"
@@ -267,6 +281,8 @@ fn save_response(
 ```
 
 This example generates a proof, instantiates a wallet to submit the proof, and then submits the proof to Aligned for verification. It then waits for the proof to be verified in Aligned and stores the verification data.
+
+To submit the proof using the code provided above, run `make submit_fibonacci_proof`.
 
 #### Using the CLI
 
