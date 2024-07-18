@@ -115,7 +115,13 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	// Dummy hash function
+	// This is a dummy "hash function" made to fulfill the BLS aggregator service API requirements.
+	// When operators respond to a task, a call to `ProcessNewSignature` is made. In `v0.1.6` of the eigensdk,
+	// this function required an argument `TaskResponseDigest`, which has changed to just `TaskResponse` in v0.1.9.
+	// The digest we used in v0.1.6 was just the batch merkle root. To continue with the same idea, the hashing
+	// function is set as the following one, which does nothing more than output the input it receives, which in
+	// our case will be the batch merkle root. If wanted, we could define a real hash function here but there should
+	// not be any need to re-hash the batch merkle root.
 	hashFunction := func(taskResponse eigentypes.TaskResponse) (eigentypes.TaskResponseDigest, error) {
 		taskResponseDigest, ok := taskResponse.([32]byte)
 		if !ok {
@@ -124,7 +130,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return taskResponseDigest, nil
 	}
 
-	// FIXME: Setting the fourth argument (logFilterQueryBlockRange) to `nil` because in examples in eigensdk-go module it was set like that. Check that this is OK.
 	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, logger)
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
