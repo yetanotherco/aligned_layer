@@ -124,9 +124,9 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return taskResponseDigest, nil
 	}
 
-	// FIXME: Setting the fourth argument to `nil` because in examples in eigensdk-go module it was set like that. Check that this is OK.
+	// FIXME: Setting the fourth argument (logFilterQueryBlockRange) to `nil` because in examples in eigensdk-go module it was set like that. Check that this is OK.
 	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, logger)
-	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(&avsReader.ChainReader, operatorPubkeysService, logger)
+	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
 
 	// Metrics

@@ -12,7 +12,7 @@ import (
 )
 
 type AvsReader struct {
-	sdkavsregistry.ChainReader
+	ChainReader         *sdkavsregistry.ChainReader
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 }
@@ -33,7 +33,7 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		return nil, err
 	}
 
-	avsRegistryReader := clients.AvsRegistryChainReader
+	chainReader := clients.AvsRegistryChainReader
 
 	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.Logger)
 	if err != nil {
@@ -41,7 +41,7 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}
 
 	return &AvsReader{
-		ChainReader:         *avsRegistryReader,
+		ChainReader:         chainReader,
 		AvsContractBindings: avsServiceBindings,
 		logger:              baseConfig.Logger,
 	}, nil

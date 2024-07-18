@@ -15,7 +15,7 @@ import (
 )
 
 type AvsWriter struct {
-	avsregistry.ChainWriter
+	ChainWriter         *avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 	Signer              signer.Signer
@@ -53,10 +53,10 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		return nil, err
 	}
 
-	avsRegistryWriter := clients.AvsRegistryChainWriter
+	chainWriter := clients.AvsRegistryChainWriter
 
 	return &AvsWriter{
-		ChainWriter:         *avsRegistryWriter,
+		ChainWriter:         chainWriter,
 		AvsContractBindings: avsServiceBindings,
 		logger:              baseConfig.Logger,
 		Signer:              privateKeySigner,
@@ -106,20 +106,3 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerSt
 
 	return &txHash, nil
 }
-
-// func (w *AvsWriter) RaiseChallenge(
-// 	ctx context.Context,
-// 	task cstaskmanager.IAlignedLayerTaskManagerTask,
-// 	taskResponse cstaskmanager.IAlignedLayerTaskManagerTaskResponse,
-// 	taskResponseMetadata cstaskmanager.IAlignedLayerTaskManagerTaskResponseMetadata,
-// 	pubkeysOfNonSigningOperators []cstaskmanager.BN254G1Point,
-// ) (*types.Receipt, error) {
-// 	txOpts := w.Signer.GetTxOpts()
-// 	tx, err := w.AvsContractBindings.TaskManager.RaiseAndResolveChallenge(txOpts, task, taskResponse, taskResponseMetadata, pubkeysOfNonSigningOperators)
-// 	if err != nil {
-// 		w.logger.Errorf("Error assembling RaiseChallenge tx")
-// 		return nil, err
-// 	}
-// 	receipt := w.client.WaitForTransactionReceipt(ctx, tx.Hash())
-// 	return receipt, nil
-// }
