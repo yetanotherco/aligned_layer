@@ -12,7 +12,7 @@ import (
 )
 
 type AvsReader struct {
-	sdkavsregistry.AvsRegistryReader
+	sdkavsregistry.ChainReader
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 }
@@ -41,7 +41,7 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}
 
 	return &AvsReader{
-		AvsRegistryReader:   avsRegistryReader,
+		ChainReader:         *avsRegistryReader,
 		AvsContractBindings: avsServiceBindings,
 		logger:              baseConfig.Logger,
 	}, nil
@@ -57,5 +57,5 @@ func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mo
 }
 
 func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, error) {
-	return r.AvsRegistryReader.IsOperatorRegistered(&bind.CallOpts{}, address)
+	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }

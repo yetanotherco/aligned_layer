@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"time"
 
@@ -114,10 +115,19 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
+	// Dummy hash function
+	hashFunction := func(taskResponse eigentypes.TaskResponse) (eigentypes.TaskResponseDigest, error) {
+		taskResponseDigest, ok := taskResponse.([32]byte)
+		if !ok {
+			return eigentypes.TaskResponseDigest{}, fmt.Errorf("TaskResponse is not a 32-byte value")
+		}
+		return taskResponseDigest, nil
+	}
+
 	// FIXME: Setting the fourth argument to `nil` because in examples in eigensdk-go module it was set like that. Check that this is OK.
 	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, logger)
-	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.AvsRegistryReader, operatorPubkeysService, logger)
-	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, eigentypes.TaskResponseHashFunction, logger)
+	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(&avsReader.ChainReader, operatorPubkeysService, logger)
+	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
 
 	// Metrics
 	reg := prometheus.NewRegistry()

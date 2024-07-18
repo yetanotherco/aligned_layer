@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
@@ -14,7 +15,7 @@ import (
 )
 
 type AvsWriter struct {
-	avsregistry.AvsRegistryWriter
+	avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 	Signer              signer.Signer
@@ -55,7 +56,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	avsRegistryWriter := clients.AvsRegistryChainWriter
 
 	return &AvsWriter{
-		AvsRegistryWriter:   avsRegistryWriter,
+		ChainWriter:         *avsRegistryWriter,
 		AvsContractBindings: avsServiceBindings,
 		logger:              baseConfig.Logger,
 		Signer:              privateKeySigner,
