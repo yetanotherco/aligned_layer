@@ -129,9 +129,6 @@ defmodule Utils do
       |> Enum.map(
         fn proof ->
           :crypto.hash(:sha3_256, proof["proof"])
-            # TODO removed this because i want to store as bytea, not a string.
-            # |> Base.encode16(case: :lower)
-            # |> (&("0x" <> &1)).()
         end)
   end
 
