@@ -12,7 +12,7 @@ import (
 )
 
 type AvsReader struct {
-	ChainReader         *sdkavsregistry.ChainReader
+	*sdkavsregistry.ChainReader
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 }

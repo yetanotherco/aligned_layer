@@ -15,7 +15,7 @@ import (
 )
 
 type AvsWriter struct {
-	ChainWriter         *avsregistry.ChainWriter
+	*avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 	Signer              signer.Signer
