@@ -59,14 +59,6 @@ contract FibonacciValidator {
         return abi.decode(proofIsIncluded, (bool));
     }
 
-    function calculateCommitment(
-        uint32 fibN,
-        uint32 fibNPlusOne
-    ) public pure returns (bytes32) {
-        bytes memory encoded = abi.encodePacked(fibN, fibNPlusOne);
-        return keccak256(encoded);
-    }
-
     function bytesToTwoUint32(
         bytes memory data
     ) public pure returns (uint32, uint32) {
