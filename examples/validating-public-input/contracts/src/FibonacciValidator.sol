@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.12;
 
 contract FibonacciValidator {
     address public alignedServiceManager;
