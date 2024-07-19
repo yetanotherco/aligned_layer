@@ -1,7 +1,7 @@
 use blake2::{Blake2b512, Digest};
 use serde::Deserialize;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ConsensusState {
     pub block_height: u32,
     pub last_vrf_output: String,
@@ -31,8 +31,7 @@ impl ConsensusState {
 
         let consensus_state_query_value = mina_consensus_state_query
             .get("data")
-            .and_then(|d| d.get("bestChain"))
-            .and_then(|d| d.get(0))
+            .and_then(|d| d.get("block"))
             .and_then(|d| d.get("protocolState"))
             .and_then(|d| d.get("consensusState"))
             .ok_or("Could not parse consensus state: JSON structure is unexpected")?
@@ -50,7 +49,7 @@ impl ConsensusState {
             return other.clone();
         }
         // tiebreak logic
-        else if self.block_height == self.block_height {
+        else if self.block_height == other.block_height {
             // compare last VRF digests lexicographically
             if other.hash_last_vrf() > self.hash_last_vrf() {
                 return other.clone();
@@ -84,11 +83,22 @@ impl ConsensusState {
 mod tests {
     use super::ConsensusState;
 
-    const MINA_CONSENSUS_STATE_QUERY: &str =
-        include_str!("../../../../batcher/aligned/test_files/mina/mina_devnet_protocol_query.json");
+    const MINA_CONSENSUS_STATE_QUERY: &str = include_str!(
+        "../../../../batcher/aligned/test_files/mina/mina_mainnet_protocol_query.json"
+    );
 
     #[test]
-    fn parsing_consensus_state_works() {
-        ConsensusState::from_json(MINA_CONSENSUS_STATE_QUERY).unwrap();
+    fn check_consensus_rules() {
+        let consensus_state_query = ConsensusState::from_json(MINA_CONSENSUS_STATE_QUERY).unwrap();
+        let consensus_state: ConsensusState = consensus_state_query.into();
+        dbg!(consensus_state.block_height);
+        let fake_chain_state = ConsensusState {
+            block_height: 1,
+            last_vrf_output: String::new(),
+        };
+
+        let best_chain = consensus_state.select_longer_chain(&fake_chain_state);
+
+        assert_eq!(best_chain, consensus_state);
     }
 }
