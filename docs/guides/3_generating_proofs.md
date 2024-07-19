@@ -56,11 +56,11 @@ This guide assumes that:
  ```bash
  go get github.com/consensys/gnark@v0.10.0
  ```
- - gnark project to generate the proofs,  instructions[ here](https://docs.gnark.consensys.io/category/how-to)
+ - Gnark project to generate the proofs,  instructions[ here](https://docs.gnark.consensys.io/category/how-to)
 
 ### How to generate a proof 
 
-Open a terminal and navigate to the gnark project directory. Then, run the following command to generate the proof:
+Open a terminal and navigate to the Gnark project directory. Then, run the following command to generate the proof:
 
  ```bash
  go run circuit.go
@@ -75,7 +75,7 @@ After generating the proof, you will have to have three different files:
   - verification key file
   - public input file
 
- For a detailed guide on how to generate those files, refer to our [detailed guide](3_1_generate_gnark_proof.md). 
+ For a detailed guide on how to generate those files, refer to our [detailed guide](3.2_generate_gnark_proof.md). 
 
 Then, you can send the proof to the Aligned network by running the following command
 
@@ -130,7 +130,7 @@ pub fn convert(data: &[u32; 8]) -> [u8; 32] {
 }
 ```
 
-Note that METHOD_ID will be imported from guest but it will be under a different name.
+Note that METHOD_ID will be imported from guest, but it will be under a different name.
 
 Then run the following command to generate the proof:
 
