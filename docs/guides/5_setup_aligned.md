@@ -257,6 +257,9 @@ operator:
   delegation_approver_address: "0x0000000000000000000000000000000000000000"
   staker_opt_out_window_blocks: 0
   metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+  enable_metrics: <true|false>
+  metrics_ip_port_address: <ip:port>
+  max_batch_size: <max_batch_size_in_bytes>
 # Operators variables needed for register it in EigenLayer
 el_delegation_manager_address: <el_delegation_manager_address> # This is the address of the EigenLayer delegationManager
 private_key_store_path: <path_to_bls_private_key_store>
@@ -328,6 +331,10 @@ aligned_layer_deployment_config_file_path: <path_to_aligned_layer_deployment_con
 batcher:
   block_interval: <block_interval>
   batch_size_interval: <batch_size_interval>
+  max_proof_size: <max_proof_size_in_bytes>
+  max_batch_size: <max_batch_size_in_bytes>
+  eth_ws_reconnects: <eth_ws_reconnects_amount>
+  pre_verification_is_enabled: <true|false>
 
 ## ECDSA Configurations
 ecdsa:
