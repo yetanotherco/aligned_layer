@@ -373,7 +373,7 @@ make batcher_send_sp1_burst
 Send proofs indefinetly:
 
 ```bash
-batcher_send_infinite_sp1
+make batcher_send_infinite_sp1
 ```
 </details>
 
@@ -383,7 +383,7 @@ batcher_send_infinite_sp1
 Send an individual proof:
 
 ```bash
-batcher_send_risc0_task
+make batcher_send_risc0_task
 ```
 
 Send a burst of 15 proofs:
@@ -399,25 +399,25 @@ make batcher_send_risc0_burst
 Send an individual bn254 proof:
 
 ```bash
-batcher_send_plonk_bn254_task
+make batcher_send_plonk_bn254_task
 ```
 
 Send a burst of 15 bn254 proofs:
 
 ```bash
-batcher_send_plonk_bn254_burst
+make batcher_send_plonk_bn254_burst
 ```
 
 Send an individual bl12 proof:
 
 ```bash
-batcher_send_plonk_bls12_381_task
+make batcher_send_plonk_bls12_381_task
 ```
 
 Send a burst of 15 bl12 proofs:
 
 ```bash
-batcher_send_plonk_bls12_381_burst
+make batcher_send_plonk_bls12_381_burst
 ```
 </details>
 
@@ -428,25 +428,25 @@ batcher_send_plonk_bls12_381_burst
 Send an individual bn254 proof:
 
 ```bash
-batcher_send_groth16_bn254_task
+make batcher_send_groth16_bn254_task
 ```
 
 Send a burst of 15 bn254 proofs:
 
 ```bash
-batcher_send_groth16_burst
+make batcher_send_groth16_burst
 ```
 
 Send bn254 proofs indefinetly:
 
 ```bash
-batcher_send_infinite_groth16
+make batcher_send_infinite_groth16
 ```
 
 Send bn254 proof bursts indefinetly:
 
 ```bash
-batcher_send_burst_groth16
+make batcher_send_burst_groth16
 ```
 </details>
 
@@ -456,25 +456,25 @@ batcher_send_burst_groth16
 Send an individual IPA proof:
 
 ```bash
-batcher_send_halo2_ipa_task
+make batcher_send_halo2_ipa_task
 ```
 
 Send a burst of 5 IPA proofs:
 
 ```bash
-batcher_send_halo2_ipa_task_burst_5
+make batcher_send_halo2_ipa_task_burst_5
 ```
 
 Send an individual KZG proof:
 
 ```bash
-batcher_send_halo2_kzg_task
+make batcher_send_halo2_kzg_task
 ```
 
 Send a burst of 5 KZG proofs:
 
 ```bash
-batcher_send_halo2_kzg_task_burst_5
+make batcher_send_halo2_kzg_task_burst_5
 ```
 </details>
 
@@ -491,13 +491,14 @@ The SP1 and Risc0 proofs need the proof file and the vm program file. The curren
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
 
 ```bash
-aligned \
+aligned submit \
 --proving_system <SP1|GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254|Risc0> \
 --proof <proof_file> \
---public-input <public_input_file> \
 --vm_program <vm_program_file> \
+--pub_input <pub_input_file> \
 --proof_generator_addr [proof_generator_addr] \
---aligned_verification_data_path [aligned_verification_data_path]
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
+--keystore_path [path_to_ecdsa_keystore]
 ```
 </details>
 
