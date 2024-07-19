@@ -70,7 +70,7 @@ make anvil_start_with_block_time
 <details>
 <summary>More information on deploying the smart contracts on anvil:</summary>
 
-### Eigenlayer Contracts
+### EigenLayer Contracts
 
 If EigenLayer contracts change, the anvil state needs to be updated with:
 
