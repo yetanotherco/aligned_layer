@@ -32,7 +32,7 @@ contract BatcherPaymentService is
     mapping(address => uint256) public UserNonces;
 
     // storage gap for upgradeability
-    uint256[25] private __GAP;
+    uint256[24] private __GAP;
 
     // CONSTRUCTOR & INITIALIZER
     constructor() {
