@@ -58,8 +58,8 @@ impl Batcher {
     pub async fn new(config_file: String) -> Self {
         dotenv().ok();
 
-        let environment =
-            env::var("ENVIRONMENT").expect("ENVIRONMENT not found in environment");
+        // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/localstack.html
+        let endpoint_url = env::var("LOCALSTACK_ENDPOINT_URL").ok();
 
         let s3_bucket_name =
             env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
@@ -67,7 +67,7 @@ impl Batcher {
         let storage_endpoint =
             env::var("STORAGE_ENDPOINT").expect("STORAGE_ENDPOINT not found in environment");
 
-        let s3_client = s3::create_client(environment).await;
+        let s3_client = s3::create_client(endpoint_url).await;
 
         let config = ConfigFromYaml::new(config_file);
         let deployment_output =
