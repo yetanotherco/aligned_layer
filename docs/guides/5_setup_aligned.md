@@ -57,6 +57,7 @@ After having the env setup, run in different terminals the following commands to
 ## Anvil
 
 To start anvil, a local Ethereum devnet with all necessary contracts already deployed and ready to be interacted with, run:
+
 ```bash
 make anvil_start_with_block_time
 ```
@@ -145,6 +146,7 @@ make operator_register_and_start
 ```
 
 If you need to start again the operator, and it's already registered, you can use:
+
 ```bash
 make operator_start
 ```
@@ -302,6 +304,7 @@ To start the [Batcher](../architecture/components/1_batcher.md):
 ```bash
 make batcher_start
 ```
+
 <details>
 <summary>More information about Batcher configuration:</summary>
 
@@ -347,6 +350,7 @@ ecdsa:
 ```bash
 make batcher_start
 ```
+
 </details>
 
 ---
@@ -375,6 +379,7 @@ Send proofs indefinetly:
 ```bash
 make batcher_send_infinite_sp1
 ```
+
 </details>
 
 <details>
@@ -391,6 +396,7 @@ Send a burst of 15 proofs:
 ```bash
 make batcher_send_risc0_burst
 ```
+
 </details>
 
 <details>
@@ -419,8 +425,8 @@ Send a burst of 15 bl12 proofs:
 ```bash
 make batcher_send_plonk_bls12_381_burst
 ```
-</details>
 
+</details>
 
 <details>
 <summary>Groth16</summary>
@@ -448,6 +454,7 @@ Send bn254 proof bursts indefinetly:
 ```bash
 make batcher_send_burst_groth16
 ```
+
 </details>
 
 <details>
@@ -476,6 +483,7 @@ Send a burst of 5 KZG proofs:
 ```bash
 make batcher_send_halo2_kzg_task_burst_5
 ```
+
 </details>
 
 <details>
@@ -500,6 +508,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path [path_to_ecdsa_keystore]
 ```
+
 </details>
 
 ## Explorer
@@ -574,11 +583,30 @@ Then you'll be requested to enter the file name of the dump you want to recover 
 
 This will update your database with the dumped database data.
 
+<details>
+<summary>Extra Explorer script to fetch past batches</summary>
+
+If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure you have the ELIXIR_HOSTNAME .env variable configured. You can get the hostname of your elixir by running :
+
+```bash
+elixir -e 'IO.puts(:inet.gethostname() |> elem(1))'
+```
+
+Then you can run:
+
+```bash
+make explorer_fetch_old_batches
+```
+
+You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
+
+</details>
+
 ### Running the Explorer
 
-To run the explorer for the local devnet, you'll need to have the devnet running (see [local devnet setup](#local-devnet-setup)) and the DB already setup.
+To run the explorer for the local devnet, you'll need to have the devnet running and the DB already setup.
 
-To run the explorer, run:
+Use the following command to start the Explorer:
 
 ```bash
 make run_devnet_explorer
@@ -601,7 +629,8 @@ Create a `.env` file in the `/explorer` directory of the project. The `.env` fil
 | `DB_USER`             | The username of the postgres database.                                                             |
 | `DB_PASS`             | The password of the postgres database.                                                             |
 | `DB_HOST`             | The host URL where the postgres database will be running.                                          |
-| `ELIXIR_HOSTNAME`     | The hostname of your running elixir. Read [Extra Scripts](#extra-scripts) section for more details |
+| `ELIXIR_HOSTNAME`     | The hostname of your running elixir.                                                               |
+| `DEBUG_ERRORS`        | If you want to enable phoenix errors on your browser instead of a 500 page, set this to `true`.    |
 
 Then you can run the explorer with this env file config by entering the following command:
 
@@ -609,24 +638,7 @@ Then you can run the explorer with this env file config by entering the followin
 make run_explorer
 ```
 
-<details>
-<summary>Extra Explorer scripts</summary>
-
-If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure you have the ELIXIR_HOSTNAME .env variable configured. You can get the hostname of your elixir by running :
-
-```bash
-elixir -e 'IO.puts(:inet.gethostname() |> elem(1))'
-```
-
-Then you can run:
-
-```bash
-make explorer_fetch_old_batches
-```
-
-You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being recieved
-
-</details>
+This will start the explorer with the configuration set in the `.env` file on the 4000 port. Visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 ## Metrics
 
@@ -649,7 +661,6 @@ If you want to install Prometheus and Grafana manually, you can follow the instr
 To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
 
 To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
-
 
 ## Notes on project creation
 
