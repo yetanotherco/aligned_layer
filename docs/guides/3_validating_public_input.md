@@ -1,8 +1,8 @@
 # Validating public input
 
-You can validate that the public input of the proof sent to Aligned for verification is correct in a few simple steps.
+In some applications, it is crucial to ensure that a third party has performed a computation correctly and to make use of the result of that computation. To achieve this, the third party must first interact with Aligned and obtain the `AlignedVerificationData`, a receipt indicating that the proof of the computation was verified correctly. The application should then receive both the `AlignedVerificationData` and the result of the computation. After confirming that the proof was verified by Aligned, it must check that the posted result matches the one committed in the `AlignedVerificationData`.
 
-This guide demonstrates the submission of a Risc0 proof to Aligned using the Aligned SDK. The Risc0 program to be proven is a Fibonacci sequence calculator. Risc0 generates a public input corresponding to the last two Fibonacci numbers of the sequence taken modulo 7919, and we want to validate in a smart contract that the public input commitments correspond to those two numbers.
+This guide demonstrates how to validate a Risc0 proof using the Aligned SDK. The Risc0 program in this example is a Fibonacci sequence calculator. It generates a public input that corresponds to the last two Fibonacci numbers of the sequence, taken modulo 7919. Our goal is to validate, within a smart contract, that the public input commitments match these two numbers.
 
 In this case, the Fibonacci number to be calculated is **500** and the last two numbers of the sequence modulo 7919 are **1268** and **1926**.
 
