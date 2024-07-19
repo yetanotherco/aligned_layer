@@ -230,16 +230,16 @@ batcher_send_jolt_task:
 	@echo "Sending Jolt fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system Jolt \
-		--proof test_files/jolt/fibonacci-guest.proof \
-		--vm_program test_files/jolt/fibonacci-guest.elf \
+		--proof ../../scripts/test_files/jolt/fibonacci-guest.proof \
+		--vm_program ../../scripts/test_files/jolt/fibonacci-guest.elf \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_jolt_burst:
 	@echo "Sending Jolt fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- \
 		--proving_system Jolt \
-		--proof test_files/jolt/fibonacci-guest.proof \
-		--vm_program test_files/jolt/fibonacci-guest.elf \
+		--proof ../../scripts/test_files/jolt/fibonacci-guest.proof \
+		--vm_program ../../scripts/test_files/jolt/fibonacci-guest.elf \
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -401,8 +401,8 @@ send_sp1_proof:
 send_jolt_proof:
 	@go run task_sender/cmd/main.go send-task \
     		--proving-system jolt \
-    		--proof task_sender/test_examples/jolt/fibonacci/fibonacci-guest.proof \
-    		--public-input task_sender/test_examples/jolt/fibonacci/elf/fibonacci-guest.elf \
+    		--proof scripts/test_files/jolt/fibonacci/fibonacci-guest.proof \
+    		--public-input scripts/test_files/jolt/fibonacci/fibonacci-guest.elf \
     		--config config-files/config.yaml \
     		2>&1 | zap-pretty
 
