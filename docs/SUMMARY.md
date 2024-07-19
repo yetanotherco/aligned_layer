@@ -23,10 +23,10 @@
 ## Guides
 
 * [Submitting proofs](guides/0_submitting_proofs.md)
-* [SDK](guides/2_SDK.md)
-* [Integrating Aligned into your Application](guides/3_integrating_aligned_into_your_application.md)
-* [Generating proofs for Aligned](guides/4_generating_proofs.md)
-* [Generating & submitting proofs of Rust code with ZKRust](guides/1_using_zkrust.md)
+* [SDK](guides/1_SDK.md)
+* [Integrating Aligned into your Application](guides/2_integrating_aligned_into_your_application.md)
+* [Generating proofs for Aligned](guides/3_generating_proofs.md)
+* [Generating & submitting proofs of Rust code with ZKRust](guides/4_using_zkrust.md)
 * [Setup Aligned Infrastructure Locally](guides/5_setup_aligned.md)
 * [Contract Addresses](guides/6_contract_addresses.md)
 
