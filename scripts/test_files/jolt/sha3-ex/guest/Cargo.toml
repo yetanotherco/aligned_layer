@@ -12,5 +12,5 @@ guest = []
 
 [dependencies]
 sha3 = { version = "0.10.8", default-features = false }
-jolt = { package = "jolt-sdk", git = "https://github.com/PatStiles/Lasso.git", branch = "feat/integration_changes" }
+jolt = { package = "jolt-sdk", git = "https://github.com/a16z/jolt.git" }
 

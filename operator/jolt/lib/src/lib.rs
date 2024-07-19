@@ -26,12 +26,11 @@ pub extern "C" fn verify_jolt_proof_ffi(
 
     if let Ok(jolt_proof) = RV32IHyraxProof::deserialize_compressed(&*proof_bytes) {
         // Add public inputs...
-        //TODO: check if we need to load function and function args... These should be serialized in the VK
         let (bytecode, memory_init) = decode(&elf_bytes);
 
-        // Note: this VM sizes are based on the hardcoded values in the Jolt codebase: _____
+        // Note: this VM sizes are based on the hardcoded values in the Jolt codebase: 
         let preprocessing: JoltPreprocessing<Fr, HyraxScheme<G1Projective>> =
-            RV32IJoltVM::preprocess(bytecode, memory_init, 1 << 20, 1 << 20, 1 << 24);
+            RV32IJoltVM::preprocess(bytecode, memory_init, 1 << 20, 1 << 20, 1 << 20);
 
         return RV32IJoltVM::verify(preprocessing, jolt_proof.proof, jolt_proof.commitments).is_ok();
     }

@@ -11,4 +11,4 @@ path = "./src/lib.rs"
 guest = []
 
 [dependencies]
-jolt = { package = "jolt-sdk", git = "https://github.com/PatStiles/Lasso.git", branch = "feat/integration_changes" }
+jolt = { package = "jolt-sdk", git = "https://github.com/a16z/jolt.git" }

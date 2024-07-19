@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 ark-serialize = "0.4.2"
-jolt-sdk = { git = "https://github.com/PatStiles/Lasso.git", branch = "feat/integration_changes", features = ["host"] }
-jolt-core = { git = "https://github.com/PatStiles/Lasso.git", branch = "feat/integration_changes" }
-tracer = { git = "https://github.com/PatStiles/Lasso.git", branch = "feat/integration_changes" }
+jolt-sdk = { git = "https://github.com/a16z/jolt.git", features = ["host"] }
+jolt-core = { git = "https://github.com/a16z/jolt.git" }
+tracer = { git = "https://github.com/a16z/jolt.git" }
 ark-bn254 = "0.4.0"
 
 [lib]
