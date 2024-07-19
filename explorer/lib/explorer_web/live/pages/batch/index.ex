@@ -83,5 +83,24 @@ defmodule ExplorerWeb.Batch.Index do
     end
   end
 
+  @impl true
+  def handle_event("show_proofs", _value, socket) do
+    {:noreply, assign(socket, proof_hashes: get_proofs(socket.assigns.merkle_root))}
+  end
+
+  @impl true
+  def handle_event("hide_proofs", _value, socket) do
+    {:noreply, assign(socket, proof_hashes: :empty)}
+  end
+
+  defp get_proofs(merkle_root) do
+    case Proofs.get_proofs_from_batch(%{merkle_root: merkle_root}) do
+      proofs when is_list(proofs) ->
+        Enum.map(proofs, fn proof -> "0x" <> Base.encode16(proof.proof_hash, case: :lower) end)
+      _ ->
+        :nil
+    end
+  end
+
   embed_templates "*"
 end
