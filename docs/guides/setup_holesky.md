@@ -1,13 +1,13 @@
-## Deploying Aligned Contracts to Holesky
+# Deploying Aligned Contracts to Holesky
 
-### Eigenlayer Contracts: Holesky/Mainnet
+## Eigenlayer Contracts: Holesky/Mainnet
 
 These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
 - [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json)
 - [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/Mainnet_current_deployment.config.json)
 
-#### Aligned Contracts: Holesky/Mainnet
+### Aligned Contracts: Holesky/Mainnet
 
 To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same directory as the deployment script (`contracts/scripts/`).
 
