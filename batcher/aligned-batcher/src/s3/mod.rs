@@ -17,7 +17,7 @@ pub async fn create_client(endpoint_url: Option<String>) -> Client {
         .await;
 
     let mut s3_config_builder = aws_sdk_s3::config::Builder::from(&config);
-    if Some(endpoint_url) {
+    if Some(endpoint_url).is_some() {
         s3_config_builder = s3_config_builder.force_path_style(true);
     }
     Client::from_conf(s3_config_builder.build())
