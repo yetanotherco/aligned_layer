@@ -123,12 +123,18 @@ defmodule Utils do
     |> Enum.reverse()
   end
 
-  def extract_amount_of_proofs_from_json({:ok, batch_json}) do
-    batch_json |> Enum.count()
+  def calculate_proof_hashes({:ok, batch_json}) do
+    IO.inspect("Calculating proof hashes")
+    batch_json
+      |> Enum.map(
+        fn proof ->
+          :crypto.hash(:sha3_256, proof["proof"])
+        end)
   end
 
-  def extract_amount_of_proofs_from_json({:error, _}) do
-    300
+  def calculate_proof_hashes({:error, reason}) do
+    IO.inspect("Error calculating proof hashes: #{inspect(reason)}")
+    []
   end
 
   def fetch_batch_data_pointer(batch_data_pointer) do
@@ -147,23 +153,25 @@ defmodule Utils do
     end
   end
 
-  def extract_amount_of_proofs(%BatchDB{} = batch) do
-    IO.inspect("Extracting amount of proofs for batch: #{batch.merkle_root}")
+  def extract_info_from_data_pointer(%BatchDB{} = batch) do
+    IO.inspect("Extracting batch's proofs info: #{batch.merkle_root}")
     # only get from s3 if not already in DB
-    amount_of_proofs =
-      case Batches.get_amount_of_proofs(%{merkle_root: batch.merkle_root}) do
+    proof_hashes =
+      case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
         nil ->
           IO.inspect("Fetching from S3")
 
           batch.data_pointer
-          |> Utils.fetch_batch_data_pointer()
-          |> Utils.extract_amount_of_proofs_from_json()
+            |> Utils.fetch_batch_data_pointer()
+            |> Utils.calculate_proof_hashes()
 
-        proofs ->
-          IO.inspect("Fetching from DB")
-          proofs
+        proof_hashes ->
+          IO.inspect("Fetching from DB") #already processed and stored the S3 data
+          proof_hashes
       end
 
-    Map.put(batch, :amount_of_proofs, amount_of_proofs)
+    batch
+      |> Map.put(:proof_hashes, proof_hashes)
+      |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
   end
 end
