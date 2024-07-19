@@ -13,12 +13,12 @@
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
 * [Aggregation mode](architecture/2_aggregation_mode.md)
 * [Fast mode](architecture/1_fast_mode.md)
-  * [Batcher](./architecture/components/1_batcher.md)
-  * [Payment Service Contract](./architecture/components/2_payment_service_contract.md)
-  * [Service Manager Contract](./architecture/components/3_service_manager_contract.md)
-  * [Operator](./architecture/components/4_operator.md)
-  * [Aggregator](./architecture/components/5_aggregator.md)
-  * [Explorer](./architecture/components/6_explorer.md)
+    * [Batcher](./architecture/components/1_batcher.md)
+    * [Payment Service Contract](./architecture/components/2_payment_service_contract.md)
+    * [Service Manager Contract](./architecture/components/3_service_manager_contract.md)
+    * [Operator](./architecture/components/4_operator.md)
+    * [Aggregator](./architecture/components/5_aggregator.md)
+    * [Explorer](./architecture/components/6_explorer.md)
 
 ## Guides
 
@@ -39,8 +39,10 @@
 * [All the proof aggregation solutions will use RISC-V zkvms](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901/5JfikCrjdHsyqGCpqvbakrA8DZHIgj0d90i9tVOTink)
 * [Manifesto](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901/rOya8TwZvj_8kTpjDPVwTuNc1UcS0VLUr1t2nhCxYj8)
 
-## Contacts
+## Socials
 
 * [Telegram Group](https://t.me/aligned_layer)
 * [Twitter/X](https://twitter.com/alignedlayer)
 * [Discord](https://discord.gg/alignedlayer)
+* [Website](https://alignedlayer.com)
+* [Github](https://github.com/yetanotherco/aligned_layer)
