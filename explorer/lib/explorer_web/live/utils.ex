@@ -127,9 +127,10 @@ defmodule Utils do
     IO.inspect("Calculating proof hashes")
 
     batch_json
-    |> Enum.map(fn proof ->
-      :crypto.hash(:sha3_256, proof["proof"])
-    end)
+      |> Enum.map(
+        fn proof ->
+          :crypto.hash(:sha3_256, proof["proof"])
+        end)
   end
 
   def calculate_proof_hashes({:error, reason}) do
