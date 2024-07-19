@@ -9,12 +9,13 @@ These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
 ### Aligned Contracts: Holesky/Mainnet
 
-To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same directory as the deployment script (`contracts/scripts/`).
+To deploy the contracts to Testnet/Mainnet, you will need to set environment variables in a `.env` file in the same
+directory as the deployment script (`contracts/scripts/`).
 
 The necessary environment variables are:
 
 | Variable Name                   | Description                                                           |
-| ------------------------------- | --------------------------------------------------------------------- |
+|---------------------------------|-----------------------------------------------------------------------|
 | `RPC_URL`                       | The RPC URL of the network you want to deploy to.                     |
 | `PRIVATE_KEY`                   | The private key of the account you want to deploy the contracts with. |
 | `EXISTING_DEPLOYMENT_INFO_PATH` | The path to the file containing the deployment info about EigenLayer. |
@@ -33,23 +34,23 @@ You need to complete the `DEPLOY_CONFIG_PATH` file with the following informatio
 
 ```json
 {
-    "chainInfo": {
-      "chainId": "<chain_id>"
-    },
-    "permissions" : {
-      "owner": "<owner_address>",
-      "aggregator": "<aggregator_address>",
-      "upgrader": "<upgrader_address>",
-      "churner": "<churner_address>",
-      "ejector": "<ejector_address>",
-      "deployer": "<deployer_address>",
-      "initalPausedStatus": 0
-    },
-    "minimumStakes": [],  
-    "strategyWeights": [],
-    "operatorSetParams": [],
-    "uri": ""
-  }
+  "chainInfo": {
+    "chainId": "<chain_id>"
+  },
+  "permissions": {
+    "owner": "<owner_address>",
+    "aggregator": "<aggregator_address>",
+    "upgrader": "<upgrader_address>",
+    "churner": "<churner_address>",
+    "ejector": "<ejector_address>",
+    "deployer": "<deployer_address>",
+    "initalPausedStatus": 0
+  },
+  "minimumStakes": [],
+  "strategyWeights": [],
+  "operatorSetParams": [],
+  "uri": ""
+}
 ```
 
 You can find an example config file in `contracts/script/deploy/config/holesky/aligned.holesky.config.json`.
@@ -66,11 +67,12 @@ To upgrade the Registry Coordinator in Testnet/Mainnet, run:
 make upgrade_registry_coordinator
 ```
 
-Make sure to set environment variables in a `.env` file in the same directory as the upgrade script (`contracts/scripts/`).
+Make sure to set environment variables in a `.env` file in the same directory as the upgrade
+script (`contracts/scripts/`).
 
 ### Go smart contract Bindings
 
-Also you must re-generate the Go smart contract bindings:
+Also, you must re-generate the Go smart contract bindings:
 
 ```bash
 make bindings
