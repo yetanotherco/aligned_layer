@@ -214,7 +214,7 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
-  Renders a button.
+  Renders a button. To add an icon just search for the icon name in the https://heroicons.com/ and pass it as the icon attribute.
 
   ## Examples
 
@@ -224,6 +224,8 @@ defmodule ExplorerWeb.CoreComponents do
   attr :type, :string, default: nil
   attr :class, :string, default: nil
   attr :rest, :global, include: ~w(disabled form name value)
+  attr :icon, :string, default: nil
+  attr :icon_class, :string, default: nil
 
   slot :inner_block, required: true
 
@@ -234,11 +236,12 @@ defmodule ExplorerWeb.CoreComponents do
       class={[
         "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
         "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
-        "border border-foreground/20",
+        "border border-foreground/20 inline-flex items-center gap-1.5",
         @class
       ]}
       {@rest}
     >
+      <.icon :if={@icon != nil} name={"hero-#{@icon}"} class={"size-4 stroke-inherit #{@icon_class}"} />
       <%= render_slot(@inner_block) %>
     </button>
     """

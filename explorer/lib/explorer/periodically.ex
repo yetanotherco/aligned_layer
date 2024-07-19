@@ -60,10 +60,12 @@ defmodule Explorer.Periodically do
 
       {:ok, lock} ->
         "Processing batch: #{batch.merkle_root}" |> IO.inspect
-        batch
-          |> Utils.extract_amount_of_proofs
-          |> Batches.generate_changeset
-          |> Batches.insert_or_update
+        {batch_changeset, proofs} =
+          batch
+            |> Utils.extract_info_from_data_pointer
+            |> Batches.generate_changesets
+
+        Batches.insert_or_update(batch_changeset, proofs)
           |> case do
             {:ok, _} ->
               IO.puts("Broadcasting update_views")
@@ -72,7 +74,6 @@ defmodule Explorer.Periodically do
               IO.puts("Some error in DB operation, not broadcasting update_views")
               IO.inspect(error)
             nil -> nil #no changes in DB
-
           end
 
         "Done processing batch: #{batch.merkle_root}" |> IO.inspect
@@ -83,11 +84,18 @@ defmodule Explorer.Periodically do
   defp process_unverified_batches() do
     "verifying previous unverified batches..." |> IO.inspect()
     unverified_batches = Batches.get_unverified_batches()
-    unverified_batches
-      |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.map(&Batches.generate_changeset/1)
-      |> Enum.map(&Batches.insert_or_update/1)
+
+    array_of_changest_tuples =
+      unverified_batches
+        |> Enum.map(&AlignedLayerServiceManager.extract_batch_response/1)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.map(&Batches.generate_changesets/1)
+
+    Enum.map(
+      array_of_changest_tuples,
+      fn {batch_changeset, proofs} ->
+        Batches.insert_or_update(batch_changeset, proofs)
+      end)
   end
 
 end

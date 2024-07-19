@@ -52,11 +52,11 @@
   <div class="flex gap-x-2 items-center justify-center md:justify-start w-full">
     <%= if @current_page > 1 do %>
       <.link navigate={~p"/batches?page=#{@current_page - 1}"}>
-        <.button class="text-muted-foreground flex size-10 items-center group">
-          <.icon
-            name="hero-arrow-left-solid"
-            class="group-hover:-translate-x-1 transition-all duration-150 size-4"
-          />
+        <.button
+          icon="arrow-left-solid"
+          icon_class="group-hover:-translate-x-1 transition-all duration-150"
+          class="text-muted-foreground size-10 group"
+        >
           <span class="sr-only">Previous Page</span>
         </.button>
       </.link>
@@ -78,11 +78,11 @@
       />
     </form>
     <.link navigate={~p"/batches?page=#{@current_page + 1}"}>
-      <.button class="text-muted-foreground flex size-10 items-center group">
-        <.icon
-          name="hero-arrow-right-solid"
-          class="group-hover:translate-x-1 transition-all duration-150 size-4"
-        />
+      <.button
+        icon="arrow-right-solid"
+        icon_class="group-hover:translate-x-1 transition-all duration-150"
+        class="text-muted-foreground size-10 group"
+      >
         <span class="sr-only">Next Page</span>
       </.button>
     </.link>
