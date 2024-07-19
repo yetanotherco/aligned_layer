@@ -481,10 +481,10 @@ batcher_send_halo2_kzg_task_burst_5
 <details>
 <summary>Send a specific proof:</summary>
 
-To install the batcher client to send a specific proof, run:
+To install the Aligned client to send a specific proof, run:
 
 ```bash
-make install_batcher_client
+make install_aligned_compiling
 ```
 
 The SP1 and Risc0 proofs need the proof file and the vm program file. The current SP1 version used in Aligned is v1.0.8-testnet and the current Risc0 version used in Aligned is v1.0.1.
