@@ -319,7 +319,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr :inner_class, :string, default: nil
   attr :title, :string, default: nil
   attr :href, :string, default: nil
-  attr :rest, :global, include: ~w(href target)
+  attr :rest, :global, include: ~w(href target navigate)
 
   slot :inner_block, default: nil
 
