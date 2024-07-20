@@ -214,16 +214,6 @@ impl Batcher {
                     info!("Non-paying address detected. Replacing with configured address");
                     addr = non_paying_config.replacement.address();
 
-                    if self.pre_verification_is_enabled
-                        && !zk_utils::verify(&client_msg.verification_data.verification_data)
-                    {
-                        error!("Invalid proof detected. Verification failed.");
-                        send_error_message(ws_conn_sink.clone(), ResponseMessage::VerificationError())
-                            .await;
-                        return Ok(()); // Send error message to the client and return
-                    }
-                
-
                     let mut nonce_bytes = [0u8; 32];
 
                     let nonce = non_paying_config.nonce.clone();
@@ -295,14 +285,14 @@ impl Batcher {
         let nonced_verification_data = client_msg.verification_data;
         if nonced_verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-            // if self.pre_verification_is_enabled
-            //     && !zk_utils::verify(&nonced_verification_data.verification_data)
-            // {
-            //     error!("Invalid proof detected. Verification failed.");
-            //     send_error_message(ws_conn_sink.clone(), ResponseMessage::VerificationError())
-            //         .await;
-            //     return Ok(()); // Send error message to the client and return
-            // }
+            if self.pre_verification_is_enabled
+                && !zk_utils::verify(&nonced_verification_data.verification_data)
+            {
+                error!("Invalid proof detected. Verification failed.");
+                send_error_message(ws_conn_sink.clone(), ResponseMessage::VerificationError())
+                    .await;
+                return Ok(()); // Send error message to the client and return
+            }
 
             // Doing nonce verification after proof verification to avoid unnecessary nonce increment
             if !self.user_nonce_is_valid(addr, nonce).await {
