@@ -318,7 +318,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr :class, :string, default: nil
   attr :inner_class, :string, default: nil
   attr :title, :string, default: nil
-  attr :href, :string, required: true
+  attr :href, :string, default: nil
   attr :rest, :global, include: ~w(href target)
 
   slot :inner_block, default: nil
@@ -328,7 +328,7 @@ defmodule ExplorerWeb.CoreComponents do
     <.link
       target="_blank"
       href={@href}
-      class="group hover:scale-[102%] transition-all duration-150 ease-in-out active:scale-95"
+      class="group"
       {@rest}
     >
       <.card_background class={@class}>

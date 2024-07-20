@@ -6,18 +6,19 @@
     Aligned Explorer
   </label>
 </div>
-<div class="mt-8 text-foreground px-2 grid grid-cols-1 sm:grid-cols-3 justify-center gap-3 md:max-w-[50rem] mx-auto">
-  <.card_link
-    href={
-      # eigen url for mainnet is app.eigenlayer.xyz
-      "https://#{@network |> String.replace(~r/mainnet/, "app")}.eigenlayer.xyz/avs/#{@service_manager_address}"
-    }
-    title="Registered Operators"
-  >
+<div class="mt-8 text-foreground px-2 grid grid-cols-1 sm:grid-cols-2 justify-center gap-3 md:max-w-[50rem] mx-auto">
+  <.card_link navigate={~p"/operators"} title="Registered Operators">
     <%= if @operators_registered != :empty do %>
       <%= @operators_registered %>
     <% else %>
       0
+    <% end %>
+  </.card_link>
+  <.card_link navigate={~p"/assets"} title="Total ETH Restaked">
+    <%= if @operators_registered != :empty do %>
+      ?
+    <% else %>
+      ?
     <% end %>
   </.card_link>
   <.card_link
@@ -41,7 +42,7 @@
   </.card>
   <%= if @latest_batches != :empty and @latest_batches != [] do %>
     <.card
-      class="relative sm:col-span-3 w-full flex flex-col space-y-1"
+      class="relative sm:col-span-2 w-full flex flex-col space-y-1"
       inner_class="text-ellipsis overflow-hidden text-lg flex flex-col space-y-1"
       title="Recent Batches"
     >

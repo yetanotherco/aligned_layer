@@ -22,6 +22,8 @@ defmodule ExplorerWeb.Router do
       live "/", Home.Index
       live "/batches/:merkle_root", Batch.Index
       live "/batches", Batches.Index
+      live "/assets", Assets.Index
+      live "/operators", Operators.Index
     end
   end
 
