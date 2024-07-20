@@ -4,7 +4,7 @@ defmodule Restakings do
   import Ecto.Query
 
   schema "restakings" do
-    field :operator_id, :bigint
+    field :operator_id, :integer
     field :amount, :decimal
 
     timestamps()
