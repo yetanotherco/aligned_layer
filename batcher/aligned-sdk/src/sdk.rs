@@ -18,6 +18,7 @@ use ethers::{
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Provider},
     signers::Wallet,
+    types::{Address, U256},
 };
 use sha3::{Digest, Keccak256};
 use std::sync::Arc;
@@ -58,16 +59,10 @@ pub async fn submit_multiple_and_wait(
     chain: Chain,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
-    batcher_payment_service_addr: &str,
+    nonce: U256,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
-    let aligned_verification_data = submit_multiple(
-        batcher_addr,
-        eth_rpc_url,
-        verification_data,
-        wallet,
-        batcher_payment_service_addr,
-    )
-    .await?;
+    let aligned_verification_data =
+        submit_multiple(batcher_addr, verification_data, wallet, nonce).await?;
 
     match &aligned_verification_data {
         Some(aligned_verification_data) => {
@@ -105,10 +100,9 @@ pub async fn submit_multiple_and_wait(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_addr: &str,
-    eth_rpc_url: &str,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
-    batcher_payment_service_addr: &str,
+    nonce: U256,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let (ws_stream, _) = connect_async(batcher_addr)
         .await
@@ -119,15 +113,7 @@ pub async fn submit_multiple(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit_multiple(
-        ws_write,
-        ws_read,
-        verification_data,
-        wallet,
-        eth_rpc_url,
-        batcher_payment_service_addr,
-    )
-    .await
+    _submit_multiple(ws_write, ws_read, verification_data, wallet, nonce).await
 }
 
 async fn _submit_multiple(
@@ -135,8 +121,7 @@ async fn _submit_multiple(
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
-    eth_rpc_url: &str,
-    batcher_payment_service_addr: &str,
+    nonce: U256,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // First message from the batcher is the protocol version
     check_protocol_version(&mut ws_read).await?;
@@ -148,23 +133,9 @@ async fn _submit_multiple(
     }
     let ws_write_clone = ws_write.clone();
 
-    let eth_rpc_provider =
-        Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
-            errors::VerificationError::EthereumProviderError(e.to_string())
-        })?;
-
-    let batcher_payment_service =
-        batcher_payment_service(eth_rpc_provider, batcher_payment_service_addr).await?;
-
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
-    let sent_verification_data = send_messages(
-        ws_write,
-        verification_data,
-        wallet,
-        &batcher_payment_service,
-    )
-    .await?;
+    let sent_verification_data = send_messages(ws_write, verification_data, wallet, nonce).await?;
 
     let num_responses = Arc::new(Mutex::new(0));
 
@@ -216,7 +187,7 @@ pub async fn submit_and_wait(
     chain: Chain,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
-    batcher_payment_service_addr: &str,
+    nonce: U256,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
@@ -226,7 +197,7 @@ pub async fn submit_and_wait(
         chain,
         &verification_data,
         wallet,
-        batcher_payment_service_addr,
+        nonce,
     )
     .await?;
 
@@ -240,10 +211,9 @@ pub async fn submit_and_wait(
 /// Submits a proof to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
-/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `batcher_payment_service_addr` - The address of the batcher payment service.
+/// * `nonce` - The nonce to use.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -256,21 +226,14 @@ pub async fn submit_and_wait(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_addr: &str,
-    eth_rpc_url: &str,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
-    batcher_payment_service_addr: &str,
+    nonce: U256,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let aligned_verification_data = submit_multiple(
-        batcher_addr,
-        eth_rpc_url,
-        &verification_data,
-        wallet,
-        batcher_payment_service_addr,
-    )
-    .await?;
+    let aligned_verification_data =
+        submit_multiple(batcher_addr, &verification_data, wallet, nonce).await?;
 
     if let Some(mut aligned_verification_data) = aligned_verification_data {
         Ok(aligned_verification_data.pop())
@@ -358,6 +321,29 @@ pub fn get_commitment(content: &[u8]) -> [u8; 32] {
     hasher.finalize().into()
 }
 
+pub async fn get_next_nonce(
+    eth_rpc_url: &str,
+    address: Address,
+    batcher_contract_address: &str,
+) -> Result<U256, errors::NonceError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
+
+    match batcher_payment_service(eth_rpc_provider, batcher_contract_address).await {
+        Ok(contract) => {
+            let call = contract.user_nonces(address);
+
+            let result = call
+                .call()
+                .await
+                .map_err(|e| errors::NonceError::EthereumCallError(e.to_string()))?;
+
+            Ok(result)
+        }
+        Err(e) => Err(errors::NonceError::EthereumCallError(e.to_string())),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -403,7 +389,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
-            "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+            U256::zero(),
         )
         .await
         .unwrap()
@@ -437,7 +423,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
-            "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+            U256::zero(),
         )
         .await;
 
@@ -478,7 +464,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
-            "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+            U256::zero(),
         )
         .await
         .unwrap()
@@ -529,7 +515,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
-            "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+            U256::zero(),
         )
         .await
         .unwrap()

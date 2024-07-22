@@ -3,11 +3,7 @@ use log::{debug, error};
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 
-use ethers::{
-    core::k256::ecdsa::SigningKey,
-    signers::{Signer, Wallet},
-    types::U256,
-};
+use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet, types::U256};
 use futures_util::stream::SplitSink;
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
@@ -20,26 +16,19 @@ use crate::{
             VerificationData, VerificationDataCommitment,
         },
     },
-    eth::batcher_payment_service::BatcherPaymentService,
 };
 
 pub async fn send_messages(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
-    batcher_payment_service: &BatcherPaymentService,
+    nonce: U256,
 ) -> Result<Vec<NoncedVerificationData>, SubmitError> {
     let mut sent_verification_data = Vec::new();
 
     let mut ws_write = ws_write.lock().await;
 
-    let address = wallet.address();
-
-    let mut nonce = batcher_payment_service
-        .user_nonces(address)
-        .await
-        .map_err(|_| SubmitError::InvalidNonce)?;
-
+    let mut nonce = nonce.clone();
     let mut nonce_bytes = [0u8; 32];
 
     for verification_data in verification_data.iter() {
