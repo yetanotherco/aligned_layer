@@ -6,7 +6,7 @@ use kimchi::mina_curves::pasta::{Fp, PallasParameters};
 use kimchi::verifier_index::VerifierIndex;
 use lazy_static::lazy_static;
 use mina_p2p_messages::binprot::BinProtRead;
-use mina_p2p_messages::v2::{MinaBaseProofStableV2, StateHash};
+use mina_p2p_messages::v2::MinaBaseProofStableV2;
 use mina_tree::proofs::verification::verify_block;
 use mina_tree::verifier::get_srs;
 use verifier_index::deserialize_blockchain_vk;
@@ -35,10 +35,10 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
         } else {
             return false;
         };
-    let protocol_state_hash_base58 = if let Ok(protocol_state_hash_base58) =
+    let protocol_state_hash_dec = if let Ok(protocol_state_hash_dec) =
         std::str::from_utf8(&public_input_bytes[..public_input_len])
     {
-        protocol_state_hash_base58
+        protocol_state_hash_dec
     } else {
         return false;
     };
@@ -50,7 +50,7 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
             return false;
         };
     let protocol_state_hash =
-        if let Ok(protocol_state_hash) = parse_protocol_state_hash(protocol_state_hash_base58) {
+        if let Ok(protocol_state_hash) = parse_protocol_state_hash(protocol_state_hash_dec) {
             protocol_state_hash
         } else {
             return false;
@@ -73,18 +73,16 @@ pub fn parse_protocol_state_proof(
     protocol_state_proof_base64: &str,
 ) -> Result<MinaBaseProofStableV2, String> {
     let protocol_state_proof_binprot = BASE64_URL_SAFE
-        .decode(protocol_state_proof_base64.trim_end())
+        .decode(protocol_state_proof_base64.trim_matches(char::from(0)))
         .map_err(|err| err.to_string())?;
 
     MinaBaseProofStableV2::binprot_read(&mut protocol_state_proof_binprot.as_slice())
         .map_err(|err| err.to_string())
 }
 
-pub fn parse_protocol_state_hash(protocol_state_hash_base58: &str) -> Result<Fp, String> {
-    StateHash::from_str(protocol_state_hash_base58.trim_end())
-        .map_err(|err| err.to_string())?
-        .to_fp()
-        .map_err(|err| err.to_string())
+pub fn parse_protocol_state_hash(protocol_state_hash_dec: &str) -> Result<Fp, String> {
+    Fp::from_str(protocol_state_hash_dec.trim_matches(char::from(0)))
+        .map_err(|_| "error while deserializing protocol state hash".to_string())
 }
 
 #[cfg(test)]
