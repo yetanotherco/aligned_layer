@@ -25,4 +25,4 @@ Since Aligned’s operators only need to run the verification code on bare metal
 - Since the gas limit does not constrain us, we can verify proof systems that are too expensive for Ethereum, such as Kimchi or Binius.
 - Adding new proof systems is straightforward.
 
-Preliminary numbers show that Aligned can verify more than 1000 proofs per second, over two orders of magnitude than the EVM at nominal capacity. Using effective batching techniques, we can split the task creation and verification cost between thousands of proofs.
+Preliminary numbers show that Aligned can verify more than 1000 proofs per second, over two orders of magnitude faster than the EVM at nominal capacity. Using effective batching techniques, we can split the task creation and verification cost between thousands of proofs.
