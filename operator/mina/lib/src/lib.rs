@@ -8,14 +8,14 @@ use lazy_static::lazy_static;
 use mina_p2p_messages::binprot::BinProtRead;
 use mina_p2p_messages::v2::{MinaBaseProofStableV2, StateHash};
 use mina_tree::proofs::verification::verify_block;
+use mina_tree::proofs::verifier_index::{get_verifier_index, VerifierKind};
 use mina_tree::verifier::get_srs;
-use verifier_index::deserialize_blockchain_vk;
 
 mod verifier_index;
 
 lazy_static! {
     static ref VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
-        deserialize_blockchain_vk().unwrap();
+        get_verifier_index(VerifierKind::Blockchain);
 }
 
 // TODO(xqft): check proof size
