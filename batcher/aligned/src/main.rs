@@ -9,6 +9,7 @@ use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::{get_commitment, submit_multiple, verify_proof_onchain};
 use clap::Parser;
 use clap::Subcommand;
@@ -290,14 +291,16 @@ async fn main() -> Result<(), AlignedError> {
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let aligned_verification_data_vec = submit_multiple(
-                &connect_addr,
+            let nonce = get_nonce(
                 &eth_rpc_url,
-                &verification_data_arr,
-                wallet,
+                wallet.address(),
                 &batcher_eth_address,
+                repetitions,
             )
             .await?;
+
+            let aligned_verification_data_vec =
+                submit_multiple(&connect_addr, &verification_data_arr, wallet, nonce).await?;
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
                 let mut unique_batch_merkle_roots = HashSet::new();
@@ -580,6 +583,39 @@ fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<
         param_name.to_string(),
     ))?;
     read_file(file_name)
+}
+
+fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
+    std::fs::write(file_name, content)
+        .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
+}
+
+async fn get_nonce(
+    eth_rpc_url: &str,
+    address: Address,
+    batcher_contract_addr: &str,
+    proof_count: usize,
+) -> Result<U256, AlignedError> {
+    let nonce = get_next_nonce(eth_rpc_url, address, batcher_contract_addr).await?;
+
+    let nonce_file = format!("nonce_{:?}.bin", address);
+
+    let local_nonce = read_file(PathBuf::from(nonce_file.clone())).unwrap_or(vec![0u8; 32]);
+    let local_nonce = U256::from_big_endian(local_nonce.as_slice());
+
+    let nonce = if local_nonce > nonce {
+        local_nonce
+    } else {
+        nonce
+    };
+
+    let mut nonce_bytes = [0; 32];
+
+    (nonce + U256::from(proof_count)).to_big_endian(&mut nonce_bytes);
+
+    write_file(nonce_file.as_str(), &nonce_bytes)?;
+
+    Ok(nonce)
 }
 
 fn save_response(
