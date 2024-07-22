@@ -231,6 +231,7 @@ pub enum ResponseMessage {
     InsufficientBalanceError(Address),
     SignatureVerificationError(),
     InvalidNonceError,
+    CreateNewTaskError(String),
     Error(String),
 }
 

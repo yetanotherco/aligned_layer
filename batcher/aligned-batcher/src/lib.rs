@@ -444,14 +444,26 @@ impl Batcher {
             .map(|(nonced_vd, _, _, _)| nonced_vd.nonce)
             .collect();
 
-        self.submit_batch(
-            &batch_bytes,
-            &batch_merkle_tree.root,
-            leaves,
-            signatures,
-            nonces,
-        )
-        .await;
+        if let Err(e) = self
+            .submit_batch(
+                &batch_bytes,
+                &batch_merkle_tree.root,
+                leaves,
+                signatures,
+                nonces,
+            )
+            .await
+        {
+            for (_, _, ws_sink, _) in finalized_batch.iter() {
+                let merkle_root = hex::encode(batch_merkle_tree.root);
+                send_error_message(
+                    ws_sink.clone(),
+                    ResponseMessage::CreateNewTaskError(merkle_root),
+                )
+                .await
+            }
+            return Err(e);
+        };
 
         send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
 
@@ -475,7 +487,7 @@ impl Batcher {
         leaves: Vec<[u8; 32]>,
         signatures: Vec<Signature>,
         nonces: Vec<[u8; 32]>,
-    ) {
+    ) -> Result<(), BatcherError> {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: {}", batch_merkle_root_hex);
@@ -515,7 +527,7 @@ impl Batcher {
             .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
-        match eth::create_new_task(
+        if let Err(e) = eth::create_new_task(
             payment_service,
             *batch_merkle_root,
             batch_data_pointer,
@@ -526,17 +538,22 @@ impl Batcher {
         )
         .await
         {
-            Ok(_) => info!("Batch verification task created on Aligned contract"),
-            Err(e) => error!("Failed to create batch verification task: {}", e),
+            error!("Failed to create batch verification task: {}", e);
+            return Err(BatcherError::TaskCreationError(e.to_string()));
         }
+
+        info!("Batch verification task created on Aligned contract");
+        Ok(())
     }
 
+    /// Only relevant for testing and for users to easily use Aligned
     fn is_nonpaying(&self, addr: &Address) -> bool {
         self.non_paying_config
             .as_ref()
             .is_some_and(|non_paying_config| non_paying_config.address == *addr)
     }
 
+    /// Only relevant for testing and for users to easily use Aligned
     async fn handle_nonpaying_msg(
         self: Arc<Self>,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,

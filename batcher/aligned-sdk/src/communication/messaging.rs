@@ -146,6 +146,11 @@ async fn process_batch_inclusion_data(
         Ok(ResponseMessage::InvalidNonceError) => {
             error!("Invalid nonce")
         }
+        Ok(ResponseMessage::CreateNewTaskError(merkle_root)) => {
+            return Err(SubmitError::CreateNewTaskError(
+                "Could not create task with merkle root ".to_owned() + &merkle_root,
+            ));
+        }
         Err(e) => {
             return Err(SubmitError::SerializationError(e));
         }

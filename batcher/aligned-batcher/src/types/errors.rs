@@ -8,6 +8,7 @@ pub enum BatcherError {
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
     SignatureError(SignatureError),
+    TaskCreationError(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -36,6 +37,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::SignatureError(e) => {
                 write!(f, "Message signature verification error: {}", e)
+            }
+            BatcherError::TaskCreationError(e) => {
+                write!(f, "Task creation error: {}", e)
             }
         }
     }

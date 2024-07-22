@@ -52,6 +52,7 @@ pub enum SubmitError {
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
     InvalidNonce,
+    CreateNewTaskError(String),
     GenericError(String),
 }
 
@@ -136,6 +137,11 @@ impl fmt::Display for SubmitError {
             }
             SubmitError::EmptyVerificationDataList => write!(f, "Verification data list is empty"),
             SubmitError::InvalidNonce => write!(f, "Invalid nonce"),
+            SubmitError::CreateNewTaskError(merkle_root) => write!(
+                f,
+                "Could not create task with batch merkle root {}",
+                merkle_root
+            ),
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
         }
     }
