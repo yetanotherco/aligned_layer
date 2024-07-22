@@ -1,10 +1,16 @@
 use std::iter::repeat;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
+use log::debug;
+use tokio::time::sleep;
+
+const CREATE_NEW_TASK_MAX_RETRIES: usize = 100;
+const CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES: u64 = 100;
 
 use crate::config::ECDSAConfig;
 
@@ -45,12 +51,27 @@ pub async fn create_new_task(
         gas_for_aggregator,
         gas_per_proof,
     );
-    let pending_tx = call.send().await?;
 
-    match pending_tx.await? {
-        Some(receipt) => Ok(receipt),
-        None => Err(anyhow::anyhow!("Receipt not found")),
+    // If there was a pending transaction from a previously sent batch, the `call.send()` will
+    // fail because of the nonce not being updated. We should retry sending and not returning an error
+    // immediatly.
+    for _ in 0..CREATE_NEW_TASK_MAX_RETRIES {
+        if let Ok(pending_tx) = call.send().await {
+            match pending_tx.await? {
+                Some(receipt) => return Ok(receipt),
+                None => return Err(anyhow::anyhow!("Receipt not found")),
+            }
+        }
+        debug!("createNewTask transaction not sent, retrying in {CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES} milliseconds...");
+        sleep(Duration::from_millis(
+            CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES,
+        ))
+        .await;
     }
+
+    Err(anyhow::anyhow!(
+        "Maximum tries reached. Could not send createNewTask call"
+    ))
 }
 
 pub async fn get_batcher_payment_service(

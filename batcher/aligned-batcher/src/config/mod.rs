@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use ethers::{
     core::k256::ecdsa::SigningKey,
@@ -6,6 +6,7 @@ use ethers::{
     types::{Address, U256},
 };
 use serde::Deserialize;
+use tokio::sync::Mutex;
 
 use crate::eth::BatcherPaymentService;
 
