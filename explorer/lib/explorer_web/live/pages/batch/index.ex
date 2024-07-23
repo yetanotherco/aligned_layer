@@ -62,7 +62,7 @@ defmodule ExplorerWeb.Batch.Index do
         batch -> EthConverter.wei_to_eth(batch.cost_per_proof)
       end
 
-    new_batch = Batches.get_batch(%{merkle_root: socket.assigns.merkle_root})
+    new_batch = Batches.get_batch(%{merkle_root: merkle_root})
 
     case eth_usd_price do
       :empty ->
