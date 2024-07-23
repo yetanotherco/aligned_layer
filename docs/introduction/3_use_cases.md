@@ -5,7 +5,7 @@
 - New settlement layers (use Aligned + EigenDA) for Rollups and Intent based systems.
 - P2P protocols based on SNARKs such as payment systems and social networks.
 - Alternative L1s interoperable with Ethereum: similar to fast bridging.
-- Verifiable Machine Learning (ML): with general-purpose zkvms we can prove code written in Rust, solving part of the problem of using ML. However, most zkvms use STARK-based proof systems, which leads to high on-chain costs or expensive wrapping. With Aligned, you can directly verify your proof from the zkvm for much less than Ethereum.
+- Verifiable Machine Learning (ML): with general-purpose zkvms we can prove code written in Rust, solving part of the problem of using ML. However, most zkVMs use STARK-based proof systems, which leads to high on-chain costs or expensive wrapping. With Aligned, you can directly verify your proof from the zkVM for much less than Ethereum.
 - Cheap verification and interoperability for Identity Protocols. 
 - ZK Oracles.
 - New credential protocols such as zkTLS based systems. 
