@@ -2,6 +2,7 @@ mod consensus_state;
 
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
 use base64::prelude::*;
+use consensus_state::{select_longer_chain, LongerChainResult};
 use kimchi::mina_curves::pasta::{Fp, PallasParameters};
 use kimchi::o1_utils::FieldHelpers;
 use kimchi::verifier_index::VerifierIndex;
@@ -11,7 +12,6 @@ use mina_p2p_messages::hash::MinaHash;
 use mina_p2p_messages::v2::{MinaBaseProofStableV2, MinaStateProtocolStateValueStableV2};
 use mina_tree::proofs::verification::verify_block;
 use mina_tree::verifier::get_srs;
-use std::str::FromStr;
 use verifier_index::deserialize_blockchain_vk;
 
 mod verifier_index;
@@ -24,6 +24,9 @@ lazy_static! {
 // TODO(xqft): check proof size
 const MAX_PROOF_SIZE: usize = 16 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 3 * 1024;
+const PROTOCOL_STATE_HASH_SIZE: usize = 32;
+// TODO(gabrielbosio): check that this length is always the same for every block
+const PROTOCOL_STATE_SIZE: usize = 2060;
 
 #[no_mangle]
 pub extern "C" fn verify_protocol_state_proof_ffi(
@@ -40,18 +43,26 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
         }
     };
 
-    let (protocol_state_hash, protocol_state) =
-        match parse_protocol_state_pub(&public_input_bytes[..public_input_len]) {
-            Ok(protocol_state_pub) => protocol_state_pub,
-            Err(err) => {
-                eprintln!("Failed to parse protocol state public inputs: {}", err);
-                return false;
-            }
-        };
+    let (
+        tip_protocol_state_hash,
+        tip_protocol_state,
+        candidate_protocol_state_hash,
+        candidate_protocol_state,
+    ) = match parse_protocol_state_pub(&public_input_bytes[..public_input_len]) {
+        Ok(protocol_state_pub) => protocol_state_pub,
+        Err(err) => {
+            eprintln!("Failed to parse protocol state public inputs: {}", err);
+            return false;
+        }
+    };
 
     // TODO(xqft): this can be a batcher's pre-verification check (but don't remove it from here)
-    if MinaHash::hash(&protocol_state) != protocol_state_hash {
-        eprintln!("The protocol state doesn't match the hash provided as public input");
+    if MinaHash::hash(&tip_protocol_state) != tip_protocol_state_hash {
+        eprintln!("The tip's protocol state doesn't match the hash provided as public input");
+        return false;
+    }
+    if MinaHash::hash(&candidate_protocol_state) != candidate_protocol_state_hash {
+        eprintln!("The candidate's protocol state doesn't match the hash provided as public input");
         return false;
     }
 
@@ -60,14 +71,19 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
     let srs = get_srs::<Fp>();
     let srs = srs.lock().unwrap();
 
-    verify_block(
+    if !verify_block(
         &protocol_state_proof,
-        protocol_state_hash,
+        tip_protocol_state_hash,
         &VERIFIER_INDEX,
         &srs,
-    )
+    ) {
+        return false;
+    }
 
-    // TODO(xqft): consensus checks
+    // Consensus check: Short fork rule
+    let longer_chain = select_longer_chain(&tip_protocol_state, &candidate_protocol_state);
+
+    longer_chain == LongerChainResult::Candidate
 }
 
 pub fn parse_protocol_state_proof(
@@ -84,10 +100,43 @@ pub fn parse_protocol_state_proof(
 
 pub fn parse_protocol_state_pub(
     protocol_state_pub: &[u8],
-) -> Result<(Fp, MinaStateProtocolStateValueStableV2), String> {
+) -> Result<
+    (
+        Fp,
+        MinaStateProtocolStateValueStableV2,
+        Fp,
+        MinaStateProtocolStateValueStableV2,
+    ),
+    String,
+> {
+    let (tip_protocol_state_hash, tip_protocol_state) = parse_protocol_state_with_hash(
+        &protocol_state_pub[..(PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE)],
+    )?;
+
+    let (candidate_protocol_state_hash, candidate_protocol_state) = parse_protocol_state_with_hash(
+        &protocol_state_pub[(PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE)
+            ..((PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) * 2)],
+    )?;
+
+    Ok((
+        tip_protocol_state_hash,
+        tip_protocol_state,
+        candidate_protocol_state_hash,
+        candidate_protocol_state,
+    ))
+}
+
+fn parse_protocol_state_with_hash(
+    protocol_state_pub: &[u8],
+) -> Result<
+    (
+        ark_ff::Fp256<mina_curves::pasta::fields::FpParameters>,
+        MinaStateProtocolStateValueStableV2,
+    ),
+    String,
+> {
     let protocol_state_hash =
         Fp::from_bytes(&protocol_state_pub[..32]).map_err(|err| err.to_string())?;
-
     let protocol_state_base64 =
         std::str::from_utf8(&protocol_state_pub[32..]).map_err(|err| err.to_string())?;
     let protocol_state_binprot = BASE64_STANDARD
