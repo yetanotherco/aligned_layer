@@ -240,7 +240,7 @@ impl Batcher {
                     }
 
                     // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-                    if !self.user_nonce_is_valid(addr, nonce).await {
+                    if !self.check_nonce_and_increment(addr, nonce).await {
                         send_error_message(
                             ws_conn_sink.clone(),
                             ResponseMessage::InvalidNonceError,
@@ -277,7 +277,7 @@ impl Batcher {
         }
     }
 
-    async fn user_nonce_is_valid(&self, addr: Address, nonce: U256) -> bool {
+    async fn check_nonce_and_increment(&self, addr: Address, nonce: U256) -> bool {
         let mut user_nonces = self.user_nonces.lock().await;
 
         let expected_user_nonce = match user_nonces.get(&addr) {
@@ -609,7 +609,7 @@ impl Batcher {
             }
 
             // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-            if !self.user_nonce_is_valid(addr, nonce).await {
+            if !self.check_nonce_and_increment(addr, nonce).await {
                 send_error_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonceError).await;
                 return Ok(()); // Send error message to the client and return
             }
