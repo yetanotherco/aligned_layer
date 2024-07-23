@@ -4,13 +4,14 @@
 
 * [About Aligned](introduction/0_about_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
+* [Example - ZKquiz](introduction/2_zkquiz.md)
 * [Use cases](introduction/3_use_cases.md)
 * [FAQ](introduction/4_faq.md)
 
 ## Architecture
 
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
-* [Key Terms](introduction/2_key_terms.md)
+* [Key Terms](architecture/0b_key_terms.md)
 * [Fast mode](architecture/1_fast_mode.md)
   * [Batcher](./architecture/components/1_batcher.md)
   * [Payment Service Contract](./architecture/components/2_payment_service_contract.md)
