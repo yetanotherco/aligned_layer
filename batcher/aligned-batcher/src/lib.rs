@@ -45,7 +45,7 @@ mod zk_utils;
 
 const AGGREGATOR_COST: u128 = 400000;
 const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
-const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13000;
+const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 
@@ -287,7 +287,7 @@ impl Batcher {
     // If user has sufficient balance, increments the user's proof count in the batch
     async fn check_user_balance(&self, addr: &Address) -> bool {
         let mut user_proof_counts = self.user_proof_count_in_batch.lock().await;
-        let user_proofs_in_batch = user_proof_counts.get(addr).unwrap_or(&0).clone();
+        let user_proofs_in_batch = user_proof_counts.get(addr).unwrap_or(&0).clone() + 1;
 
         let user_balance = self.get_user_balance(addr).await;
 
@@ -296,7 +296,7 @@ impl Batcher {
             return false;
         }
 
-        user_proof_counts.insert(*addr, user_proofs_in_batch + 1);
+        user_proof_counts.insert(*addr, user_proofs_in_batch);
         true
     }
 
