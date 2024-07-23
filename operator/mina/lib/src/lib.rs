@@ -23,7 +23,7 @@ lazy_static! {
 
 // TODO(xqft): check proof size
 const MAX_PROOF_SIZE: usize = 16 * 1024;
-const MAX_PUB_INPUT_SIZE: usize = 3 * 1024;
+const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
 const PROTOCOL_STATE_HASH_SIZE: usize = 32;
 // TODO(gabrielbosio): check that this length is always the same for every block
 const PROTOCOL_STATE_SIZE: usize = 2060;
@@ -44,10 +44,10 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
     };
 
     let (
-        tip_protocol_state_hash,
-        tip_protocol_state,
         candidate_protocol_state_hash,
         candidate_protocol_state,
+        tip_protocol_state_hash,
+        tip_protocol_state,
     ) = match parse_protocol_state_pub(&public_input_bytes[..public_input_len]) {
         Ok(protocol_state_pub) => protocol_state_pub,
         Err(err) => {
@@ -73,7 +73,7 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
 
     if !verify_block(
         &protocol_state_proof,
-        tip_protocol_state_hash,
+        candidate_protocol_state_hash,
         &VERIFIER_INDEX,
         &srs,
     ) {
