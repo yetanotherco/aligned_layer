@@ -81,7 +81,7 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
     }
 
     // Consensus check: Short fork rule
-    let longer_chain = select_longer_chain(&tip_protocol_state, &candidate_protocol_state);
+    let longer_chain = select_longer_chain(&candidate_protocol_state, &tip_protocol_state);
 
     longer_chain == LongerChainResult::Candidate
 }

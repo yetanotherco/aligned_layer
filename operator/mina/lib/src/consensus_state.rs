@@ -9,23 +9,23 @@ pub enum LongerChainResult {
 }
 
 pub fn select_longer_chain(
-    tip: &MinaStateProtocolStateValueStableV2,
     candidate: &MinaStateProtocolStateValueStableV2,
+    tip: &MinaStateProtocolStateValueStableV2,
 ) -> LongerChainResult {
-    let tip_block_height = &tip.body.consensus_state.blockchain_length.as_u32();
     let candidate_block_height = &candidate.body.consensus_state.blockchain_length.as_u32();
+    let tip_block_height = &tip.body.consensus_state.blockchain_length.as_u32();
 
-    if tip_block_height < candidate_block_height {
+    if candidate_block_height > tip_block_height {
         return LongerChainResult::Candidate;
     }
     // tiebreak logic
-    else if tip_block_height == candidate_block_height {
+    else if candidate_block_height == tip_block_height {
         // compare last VRF digests lexicographically
-        if hash_last_vrf(tip) < hash_last_vrf(candidate) {
+        if hash_last_vrf(candidate) > hash_last_vrf(tip) {
             return LongerChainResult::Candidate;
-        } else if hash_last_vrf(tip) == hash_last_vrf(candidate) {
+        } else if hash_last_vrf(candidate) == hash_last_vrf(tip) {
             // compare consensus state hashes lexicographically
-            if hash_state(tip) < hash_state(candidate) {
+            if hash_state(candidate) > hash_state(tip) {
                 return LongerChainResult::Candidate;
             }
         }
