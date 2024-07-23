@@ -1,7 +1,7 @@
 # Use cases
 
 - Soft finality for Rollups and Appchains: Aligned provides fast verification of ZK proofs, which can be used to provide soft finality for rollups or other applications.
-- Fast bridging: building ZK bridges require checking a succinct proof to show that current state of a chain is correct and then users need to show that their account state is correct. Many ZK protocols use hash functions such as Poseidon or Rescue Prime, which do not have precompiles on Ethereum, making both the verification of the chain's state and account expensive. With Aligned, you can show your account state using another ZK proof, and all proofs can be verified cheaply and with low latency in Aligned.
+- Fast bridging: building ZK bridges requires checking a succinct proof to show that current state of a chain is correct and then users need to show that their account state is correct. Many ZK protocols use hash functions such as Poseidon or Rescue Prime, which do not have Precompiles on Ethereum, making both the verification of the chain's state and account expensive. With Aligned, you can show your account state using another ZK proof, and all proofs can be verified cheaply and with low latency in Aligned.
 - New settlement layers (use Aligned + EigenDA) for Rollups and Intent based systems.
 - P2P protocols based on SNARKs such as payment systems and social networks.
 - Alternative L1s interoperable with Ethereum: similar to fast bridging.
