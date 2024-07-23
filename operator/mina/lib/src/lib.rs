@@ -71,19 +71,20 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
     let srs = get_srs::<Fp>();
     let srs = srs.lock().unwrap();
 
-    if !verify_block(
+    // Consensus check: Short fork rule
+    let longer_chain = select_longer_chain(&candidate_protocol_state, &tip_protocol_state);
+    if longer_chain == LongerChainResult::Tip {
+        eprintln!("Consensus check failed");
+        return false;
+    }
+
+    // Pickles verification
+    verify_block(
         &protocol_state_proof,
         candidate_protocol_state_hash,
         &VERIFIER_INDEX,
         &srs,
-    ) {
-        return false;
-    }
-
-    // Consensus check: Short fork rule
-    let longer_chain = select_longer_chain(&candidate_protocol_state, &tip_protocol_state);
-
-    longer_chain == LongerChainResult::Candidate
+    )
 }
 
 pub fn parse_protocol_state_proof(
