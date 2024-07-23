@@ -16,7 +16,7 @@ In addition, ZK lets us build other verifiable applications where users do not h
 
 ## What limits the development of more complex applications on top of blockchains?
 
-The main limitations for building complex applications on top of blockchains has been that the computation can ran only a few msilliseconds on chain and even so this can be very expensive. You can't have millions of daily active users using Ethereum or any blockchain at the same time.
+The main limitation for building complex applications on top of blockchains has been that the computation can run only a few milliseconds on chain and even then this can be very expensive. You can't have millions of daily active users using Ethereum or any blockchain at the same time.
 
 ZK solves this but due to slow and complex-to-use proving, and expensive verification, progress has been limited. In the case of proving, before the development of general-purpose zero-knowledge virtual machines (zkvms), users had to express their computation as arithmetic circuits, making the developer experience something like coding in assembler, error-prone, and complex. Moreover, proof systems depended on trusted setups, adding additional trust guarantees, the need to carry out special ceremonies to initialize parameters, and delaying go-to-market times. Besides, having high verification costs (on the order of 10's to 100's of dollars per proof) meant that only those projects with a lot of capital could afford to build such applications.
 
