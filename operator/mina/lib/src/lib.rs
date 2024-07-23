@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
 use base64::prelude::*;
 use kimchi::mina_curves::pasta::{Fp, PallasParameters};
@@ -32,38 +30,17 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
     public_input_len: usize,
 ) -> bool {
     // TODO(xqft): add message errors
-
-    let protocol_state_proof_base64 =
-        if let Ok(protocol_state_proof_base64) = std::str::from_utf8(&proof_bytes[..proof_len]) {
-            protocol_state_proof_base64
-        } else {
-            return false;
-        };
-
-    let protocol_state_hash =
-        if let Ok(protocol_state_hash) = Fp::from_bytes(&public_input_bytes[..32]) {
-            protocol_state_hash
-        } else {
-            return false;
-        };
-
-    let protocol_state_base64 = if let Ok(protocol_state_base64) =
-        std::str::from_utf8(&public_input_bytes[32..public_input_len])
-    {
-        protocol_state_base64
-    } else {
-        return false;
-    };
-
     let protocol_state_proof =
-        if let Ok(protocol_state_proof) = parse_protocol_state_proof(protocol_state_proof_base64) {
+        if let Ok(protocol_state_proof) = parse_protocol_state_proof(&proof_bytes[..proof_len]) {
             protocol_state_proof
         } else {
             return false;
         };
 
-    let protocol_state = if let Ok(protocol_state) = parse_protocol_state(protocol_state_base64) {
-        protocol_state
+    let (protocol_state_hash, protocol_state) = if let Ok(protocol_state_pub) =
+        parse_protocol_state_pub(&public_input_bytes[..public_input_len])
+    {
+        protocol_state_pub
     } else {
         return false;
     };
@@ -88,25 +65,33 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
 }
 
 pub fn parse_protocol_state_proof(
-    protocol_state_proof_base64: &str,
+    protocol_state_proof_bytes: &[u8],
 ) -> Result<MinaBaseProofStableV2, String> {
+    let protocol_state_proof_base64 =
+        std::str::from_utf8(protocol_state_proof_bytes).map_err(|err| err.to_string())?;
     let protocol_state_proof_binprot = BASE64_URL_SAFE
         .decode(protocol_state_proof_base64.trim_matches(char::from(0)))
         .map_err(|err| err.to_string())?;
-
     MinaBaseProofStableV2::binprot_read(&mut protocol_state_proof_binprot.as_slice())
         .map_err(|err| err.to_string())
 }
 
-pub fn parse_protocol_state(
-    protocol_state_base64: &str,
-) -> Result<MinaStateProtocolStateValueStableV2, String> {
+pub fn parse_protocol_state_pub(
+    protocol_state_pub: &[u8],
+) -> Result<(Fp, MinaStateProtocolStateValueStableV2), String> {
+    let protocol_state_hash =
+        Fp::from_bytes(&protocol_state_pub[..32]).map_err(|err| err.to_string())?;
+
+    let protocol_state_base64 =
+        std::str::from_utf8(&protocol_state_pub[32..]).map_err(|err| err.to_string())?;
     let protocol_state_binprot = BASE64_STANDARD
         .decode(protocol_state_base64)
         .map_err(|err| err.to_string())?;
+    let protocol_state =
+        MinaStateProtocolStateValueStableV2::binprot_read(&mut protocol_state_binprot.as_slice())
+            .map_err(|err| err.to_string())?;
 
-    MinaStateProtocolStateValueStableV2::binprot_read(&mut protocol_state_binprot.as_slice())
-        .map_err(|err| err.to_string())
+    Ok((protocol_state_hash, protocol_state))
 }
 
 #[cfg(test)]
@@ -117,20 +102,19 @@ mod test {
         include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.proof");
     const PROTOCOL_STATE_PUB_BYTES: &[u8] =
         include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.pub");
-    const BAD_PROTOCOL_STATE_HASH_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/bad_protocol_state_hash.pub");
-
-    const PROTOCOL_STATE_PROOF_STR: &str =
-        include_str!("../../../../batcher/aligned/test_files/mina/protocol_state_proof.proof");
-    const PROTOCOL_STATE_HASH_STR: &str =
-        include_str!("../../../../batcher/aligned/test_files/mina/protocol_state_hash.pub");
+    const BAD_PROTOCOL_STATE_PUB_BYTES: &[u8] =
+        include_bytes!("../../../../batcher/aligned/test_files/mina/bad_protocol_state.pub");
+    // BAD_PROTOCOL_STATE_PUB_BYTES has an invalid hash.
 
     #[test]
     fn parse_protocol_state_proof_does_not_fail() {
-        parse_protocol_state_proof(PROTOCOL_STATE_PROOF_STR).unwrap();
+        parse_protocol_state_proof(PROTOCOL_STATE_PROOF_BYTES).unwrap();
     }
 
-    // TODO(xqft): parse_protocol_state_does_not_fail()
+    #[test]
+    fn parse_protocol_state_pub_does_not_fail() {
+        parse_protocol_state_pub(PROTOCOL_STATE_PUB_BYTES).unwrap();
+    }
 
     #[test]
     fn protocol_state_proof_verifies() {
@@ -154,16 +138,16 @@ mod test {
     }
 
     #[test]
-    fn bad_protocol_state_proof_fails() {
+    fn bad_protocol_state_proof_does_not_verify() {
         let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
         let proof_size = PROTOCOL_STATE_PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
         proof_buffer[..proof_size].clone_from_slice(PROTOCOL_STATE_PROOF_BYTES);
 
         let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = BAD_PROTOCOL_STATE_HASH_BYTES.len();
+        let pub_input_size = BAD_PROTOCOL_STATE_PUB_BYTES.len();
         assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(BAD_PROTOCOL_STATE_HASH_BYTES);
+        pub_input_buffer[..pub_input_size].clone_from_slice(BAD_PROTOCOL_STATE_PUB_BYTES);
 
         let result = verify_protocol_state_proof_ffi(
             &proof_buffer,
