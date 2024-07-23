@@ -2,6 +2,7 @@ defmodule EthConverter do
   use HTTPoison.Base
 
   @wei_per_eth 1_000_000_000_000_000_000
+  @cache_ttl :timer.minutes(5)
 
   def wei_to_eth(wei, decimal_places \\ 18)
 
@@ -31,17 +32,18 @@ defmodule EthConverter do
   end
 
   def multiply_eth_by_usd(eth, usd_price) do
-    eth_float = String.to_float(eth)
+    eth_float = to_float(eth)
     usd_float = to_float(usd_price)
 
     result = eth_float * usd_float
 
-    :erlang.float_to_binary(result, decimals: 2)
+    :erlang.float_to_binary(result, decimals: 5)
   end
 
   defp to_float(value) when is_binary(value), do: String.to_float(value)
   defp to_float(value) when is_float(value), do: value
   defp to_float(value) when is_integer(value), do: value / 1
+  defp to_float(_), do: 0.0
 
   def wei_to_eth_decimal(wei) when is_integer(wei) do
     wei_to_eth_decimal(Integer.to_string(wei))
@@ -54,9 +56,26 @@ defmodule EthConverter do
   @base_url "https://api.coingecko.com/api/v3"
 
   def get_eth_price_usd do
+    Cachex.get(:eth_price_cache, :eth_price)
+    |> case do
+      {:ok, nil} ->
+        fetch_and_cache_eth_price()
+
+      {:ok, price} ->
+        {:ok, price}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp fetch_and_cache_eth_price do
     case get("/simple/price?ids=ethereum&vs_currencies=usd") do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-        parse_response(body)
+        with {:ok, price} <- parse_response(body) do
+          Cachex.put(:eth_price_cache, :eth_price, price, ttl: @cache_ttl)
+          {:ok, price}
+        end
 
       {:ok, %HTTPoison.Response{status_code: status_code}} ->
         {:error, "Request failed with status code: #{status_code}"}

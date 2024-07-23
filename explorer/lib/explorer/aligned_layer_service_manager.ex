@@ -140,7 +140,7 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
       proof_hashes: nil,
-      cost_per_proof: get_cost_per_proof(), #TODO i HERE IS THE COST PER PROOF
+      cost_per_proof: get_cost_per_proof()
     }
   end
 

@@ -19,7 +19,7 @@ defmodule Explorer.MixProject do
   def application do
     [
       mod: {Explorer.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :cachex]
     ]
   end
 
@@ -59,6 +59,7 @@ defmodule Explorer.MixProject do
       {:ethereumex, "~> 0.10"},
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"},
+      {:cachex, "~> 3.6"},
       {:mutex, "~> 2.0"}
     ]
   end

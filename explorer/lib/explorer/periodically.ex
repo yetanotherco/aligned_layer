@@ -72,6 +72,7 @@ defmodule Explorer.Periodically do
         |> case do
           {:ok, _} ->
             PubSub.broadcast(Explorer.PubSub, "update_views", %{
+              merkle_root: batch.merkle_root,
               eth_usd:
                 case EthConverter.get_eth_price_usd() do
                   {:ok, eth_usd_price} -> eth_usd_price
@@ -94,7 +95,7 @@ defmodule Explorer.Periodically do
   end
 
   defp process_unverified_batches() do
-    "verifying previous unverified batches..." |> IO.inspect()
+    "Verifying previous unverified batches..." |> IO.inspect()
     unverified_batches = Batches.get_unverified_batches()
 
     array_of_changest_tuples =

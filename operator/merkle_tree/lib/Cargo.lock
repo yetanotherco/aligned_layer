@@ -50,7 +50,6 @@ dependencies = [
 [[package]]
 name = "aligned-sdk"
 version = "0.1.0"
-source = "git+https://github.com/yetanotherco/aligned_layer.git#0bdc780c1ce26027331d7514fee8152337370a34"
 dependencies = [
  "ethers",
  "futures-util",

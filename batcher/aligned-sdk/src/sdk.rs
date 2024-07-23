@@ -8,13 +8,17 @@ use crate::{
         errors,
         types::{AlignedVerificationData, Chain, VerificationData, VerificationDataCommitment},
     },
-    eth,
+    eth::{
+        aligned_service_manager::aligned_service_manager,
+        batcher_payment_service::batcher_payment_service,
+    },
 };
 
 use ethers::{
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Provider},
     signers::Wallet,
+    types::{Address, U256},
 };
 use sha3::{Digest, Keccak256};
 use std::sync::Arc;
@@ -35,6 +39,7 @@ use futures_util::{
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
+/// * `batcher_payment_service_addr` - The address of the batcher payment service.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -54,9 +59,10 @@ pub async fn submit_multiple_and_wait(
     chain: Chain,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let aligned_verification_data =
-        submit_multiple(batcher_addr, verification_data, wallet).await?;
+        submit_multiple(batcher_addr, verification_data, wallet, nonce).await?;
 
     match &aligned_verification_data {
         Some(aligned_verification_data) => {
@@ -78,8 +84,10 @@ pub async fn submit_multiple_and_wait(
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
+/// * `batcher_payment_service_addr` - The address of the batcher payment service.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -94,6 +102,7 @@ pub async fn submit_multiple(
     batcher_addr: &str,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     let (ws_stream, _) = connect_async(batcher_addr)
         .await
@@ -104,7 +113,7 @@ pub async fn submit_multiple(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit_multiple(ws_write, ws_read, verification_data, wallet).await
+    _submit_multiple(ws_write, ws_read, verification_data, wallet, nonce).await
 }
 
 async fn _submit_multiple(
@@ -112,6 +121,7 @@ async fn _submit_multiple(
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
     // First message from the batcher is the protocol version
     check_protocol_version(&mut ws_read).await?;
@@ -122,9 +132,10 @@ async fn _submit_multiple(
         ));
     }
     let ws_write_clone = ws_write.clone();
+
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
-    let sent_verification_data = send_messages(ws_write, verification_data, wallet).await?;
+    let sent_verification_data = send_messages(ws_write, verification_data, wallet, nonce).await?;
 
     let num_responses = Arc::new(Mutex::new(0));
 
@@ -156,6 +167,7 @@ async fn _submit_multiple(
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
+/// * `batcher_payment_service_addr` - The address of the batcher payment service.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -175,12 +187,19 @@ pub async fn submit_and_wait(
     chain: Chain,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let aligned_verification_data =
-        submit_multiple_and_wait(batcher_addr, eth_rpc_url, chain, &verification_data, wallet)
-            .await?;
+    let aligned_verification_data = submit_multiple_and_wait(
+        batcher_addr,
+        eth_rpc_url,
+        chain,
+        &verification_data,
+        wallet,
+        nonce,
+    )
+    .await?;
 
     if let Some(mut aligned_verification_data) = aligned_verification_data {
         Ok(aligned_verification_data.pop())
@@ -194,6 +213,7 @@ pub async fn submit_and_wait(
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
+/// * `nonce` - The nonce to use.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -208,11 +228,12 @@ pub async fn submit(
     batcher_addr: &str,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
     let aligned_verification_data =
-        submit_multiple(batcher_addr, &verification_data, wallet).await?;
+        submit_multiple(batcher_addr, &verification_data, wallet, nonce).await?;
 
     if let Some(mut aligned_verification_data) = aligned_verification_data {
         Ok(aligned_verification_data.pop())
@@ -268,7 +289,7 @@ async fn _verify_proof_onchain(
         .verification_data_commitment
         .clone();
 
-    let service_manager = eth::aligned_service_manager(eth_rpc_provider, contract_address).await?;
+    let service_manager = aligned_service_manager(eth_rpc_provider, contract_address).await?;
 
     let call = service_manager.verify_batch_inclusion(
         verification_data_comm.proof_commitment,
@@ -298,6 +319,29 @@ pub fn get_commitment(content: &[u8]) -> [u8; 32] {
     let mut hasher = Keccak256::new();
     hasher.update(content);
     hasher.finalize().into()
+}
+
+pub async fn get_next_nonce(
+    eth_rpc_url: &str,
+    address: Address,
+    batcher_contract_address: &str,
+) -> Result<U256, errors::NonceError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
+
+    match batcher_payment_service(eth_rpc_provider, batcher_contract_address).await {
+        Ok(contract) => {
+            let call = contract.user_nonces(address);
+
+            let result = call
+                .call()
+                .await
+                .map_err(|e| errors::NonceError::EthereumCallError(e.to_string()))?;
+
+            Ok(result)
+        }
+        Err(e) => Err(errors::NonceError::EthereumCallError(e.to_string())),
+    }
 }
 
 #[cfg(test)]
@@ -345,6 +389,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
+            U256::zero(),
         )
         .await
         .unwrap()
@@ -378,6 +423,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
+            U256::zero(),
         )
         .await;
 
@@ -399,7 +445,7 @@ mod test {
         let verification_data = VerificationData {
             proving_system: ProvingSystemId::Groth16Bn254,
             proof,
-            pub_input: pub_input,
+            pub_input,
             verification_key: vk,
             vm_program_code: None,
             proof_generator_addr,
@@ -418,6 +464,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
+            U256::zero(),
         )
         .await
         .unwrap()
@@ -468,6 +515,7 @@ mod test {
             Chain::Devnet,
             &verification_data,
             wallet,
+            U256::zero(),
         )
         .await
         .unwrap()
