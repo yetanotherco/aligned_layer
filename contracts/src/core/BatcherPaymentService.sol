@@ -11,6 +11,9 @@ contract BatcherPaymentService is
     PausableUpgradeable,
     UUPSUpgradeable
 {
+    // CONSTANTS
+    uint256 public constant UNLOCK_BLOCK_COUNT = 100;
+
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
@@ -27,6 +30,10 @@ contract BatcherPaymentService is
     address public BatcherWallet;
 
     mapping(address => uint256) public UserBalances;
+
+    // map to check if user has unlocked their funds
+    // 0 means funds are locked
+    mapping(address => uint256) public UserBalancesUnlockBlock;
 
     // map to check signature is only submitted once
     mapping(address => uint256) public UserNonces;
@@ -114,11 +121,27 @@ contract BatcherPaymentService is
         );
     }
 
+    function unlock() external whenNotPaused {
+        require(UserBalances[msg.sender] > 0, "User has no funds to unlock");
+        UserBalancesUnlockBlock[msg.sender] = block.number + UNLOCK_BLOCK_COUNT;
+    }
+
+    function lock() external whenNotPaused {
+        require(UserBalances[msg.sender] > 0, "User has no funds to lock");
+        UserBalancesUnlockBlock[msg.sender] = 0;
+    }
+
     function withdraw(uint256 amount) external whenNotPaused {
         require(
             UserBalances[msg.sender] >= amount,
             "Payer has insufficient balance"
         );
+        require(
+            UserBalancesUnlockBlock[msg.sender] != 0 &&
+                UserBalancesUnlockBlock[msg.sender] <= block.number,
+            "Funds are locked"
+        );
+
         UserBalances[msg.sender] -= amount;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
@@ -163,12 +186,20 @@ contract BatcherPaymentService is
                 abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
             );
 
-            verifySignatureAndDecreaseBalance(leaves[i], signatures[i], feePerProof);
+            verifySignatureAndDecreaseBalance(
+                leaves[i],
+                signatures[i],
+                feePerProof
+            );
         }
 
         // Verify the rest of the signatures
         for (; i < signatures.length; i++) {
-            verifySignatureAndDecreaseBalance(leaves[i], signatures[i], feePerProof);
+            verifySignatureAndDecreaseBalance(
+                leaves[i],
+                signatures[i],
+                feePerProof
+            );
         }
 
         // The next layer above has half as many nodes
