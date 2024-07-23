@@ -68,13 +68,11 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
         return false;
     };
 
-    println!("checking hash");
     // check that protocol state hash is correct
     // TODO(xqft): this can be a batcher's pre-verification check (but don't remove it from here)
     if MinaHash::hash(&protocol_state) != protocol_state_hash {
         return false;
     }
-    println!("hash checked");
 
     // TODO(xqft): srs should be a static, but can't make it so because it doesn't have all its
     // parameters initialized.
