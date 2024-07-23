@@ -29,25 +29,26 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
     public_input_bytes: &[u8; MAX_PUB_INPUT_SIZE],
     public_input_len: usize,
 ) -> bool {
-    // TODO(xqft): add message errors
-    let protocol_state_proof =
-        if let Ok(protocol_state_proof) = parse_protocol_state_proof(&proof_bytes[..proof_len]) {
-            protocol_state_proof
-        } else {
+    let protocol_state_proof = match parse_protocol_state_proof(&proof_bytes[..proof_len]) {
+        Ok(protocol_state_proof) => protocol_state_proof,
+        Err(err) => {
+            eprintln!("Failed to parse protocol state proof: {}", err);
             return false;
-        };
-
-    let (protocol_state_hash, protocol_state) = if let Ok(protocol_state_pub) =
-        parse_protocol_state_pub(&public_input_bytes[..public_input_len])
-    {
-        protocol_state_pub
-    } else {
-        return false;
+        }
     };
 
-    // check that protocol state hash is correct
+    let (protocol_state_hash, protocol_state) =
+        match parse_protocol_state_pub(&public_input_bytes[..public_input_len]) {
+            Ok(protocol_state_pub) => protocol_state_pub,
+            Err(err) => {
+                eprintln!("Failed to parse protocol state public inputs: {}", err);
+                return false;
+            }
+        };
+
     // TODO(xqft): this can be a batcher's pre-verification check (but don't remove it from here)
     if MinaHash::hash(&protocol_state) != protocol_state_hash {
+        eprintln!("The protocol state doesn't match the hash provided as public input");
         return false;
     }
 
@@ -70,7 +71,7 @@ pub fn parse_protocol_state_proof(
     let protocol_state_proof_base64 =
         std::str::from_utf8(protocol_state_proof_bytes).map_err(|err| err.to_string())?;
     let protocol_state_proof_binprot = BASE64_URL_SAFE
-        .decode(protocol_state_proof_base64.trim_matches(char::from(0)))
+        .decode(protocol_state_proof_base64)
         .map_err(|err| err.to_string())?;
     MinaBaseProofStableV2::binprot_read(&mut protocol_state_proof_binprot.as_slice())
         .map_err(|err| err.to_string())
