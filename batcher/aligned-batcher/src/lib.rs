@@ -43,6 +43,12 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
+const AGGREGATOR_COST: u128 = 400000;
+const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
+const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13000;
+const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
+const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
+
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
@@ -57,6 +63,7 @@ pub struct Batcher {
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     user_nonces: Mutex<HashMap<Address, U256>>,
+    user_proof_count_in_batch: Mutex<HashMap<Address, u64>>,
 }
 
 impl Batcher {
@@ -120,6 +127,7 @@ impl Batcher {
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
             user_nonces,
+            user_proof_count_in_batch: Mutex::new(HashMap::new()),
         }
     }
 
@@ -211,16 +219,14 @@ impl Batcher {
                     .handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await;
             } else {
-                let user_balance = self.get_user_balance(&addr).await;
-
-                if user_balance == U256::from(0) {
-                    error!("Insufficient funds for address {:?}", addr);
+                if !self.check_user_balance(&addr).await {
                     send_error_message(
                         ws_conn_sink.clone(),
                         ResponseMessage::InsufficientBalanceError(addr),
                     )
                     .await;
-                    return Ok(()); // Send error message to the client and return
+
+                    return Ok(());
                 }
 
                 let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
@@ -275,6 +281,23 @@ impl Batcher {
             .await;
             Ok(()) // Send error message to the client and return
         }
+    }
+
+    // Checks user has sufficient balance
+    // If user has sufficient balance, increments the user's proof count in the batch
+    async fn check_user_balance(&self, addr: &Address) -> bool {
+        let mut user_proof_counts = self.user_proof_count_in_batch.lock().await;
+        let user_proofs_in_batch = user_proof_counts.get(addr).unwrap_or(&0).clone();
+
+        let user_balance = self.get_user_balance(addr).await;
+
+        let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_BALANCE_PER_PROOF);
+        if user_balance < min_balance {
+            return false;
+        }
+
+        user_proof_counts.insert(*addr, user_proofs_in_batch + 1);
+        true
     }
 
     async fn check_nonce_and_increment(&self, addr: Address, nonce: U256) -> bool {
@@ -387,6 +410,9 @@ impl Batcher {
         // A copy of the batch is made to be returned and the current batch is cleared
         let finalized_batch = batch_queue_lock.clone();
         batch_queue_lock.clear();
+
+        // Clear the user proofs in batch as well
+        self.user_proof_count_in_batch.lock().await.clear();
 
         Some(finalized_batch)
     }
@@ -510,12 +536,6 @@ impl Batcher {
         let batch_data_pointer = "https://".to_owned() + &self.s3_bucket_name + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
-
-        // FIXME: This constants should be aggregated into one constants file
-        const AGGREGATOR_COST: u128 = 400000;
-        const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
-        const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 1325;
-        const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 
         let gas_per_proof = (CONSTANT_COST
             + ADDITIONAL_SUBMISSION_COST_PER_PROOF * num_proofs_in_batch as u128)
