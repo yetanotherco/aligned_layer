@@ -325,12 +325,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card_link(assigns) do
     ~H"""
-    <.link
-      target="_blank"
-      href={@href}
-      class="group"
-      {@rest}
-    >
+    <.link target="_blank" href={@href} class="group" {@rest}>
       <.card_background class={@class}>
         <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
           <%= @title %>
@@ -610,7 +605,7 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc ~S"""
-  Renders a table with generic styling.
+  Renders a table with custom styling.
 
   ## Examples
 
@@ -641,31 +636,34 @@ defmodule ExplorerWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] sm:w-full z-10">
-        <thead class="text-sm text-left leading-6 text-foreground">
-          <tr>
-            <th :for={col <- @col} class="p-0 pb-4 px-3 font-normal"><%= col[:label] %></th>
+    <.card_background class="overflow-x-auto">
+      <table class="table-auto border-collapse w-full">
+        <thead>
+          <tr class="text-muted-foreground font-normal truncate">
+            <th
+              :for={{col, i} <- Enum.with_index(@col)}
+              class={["pr-4", i == 0 && "text-left", i != 0 && "text-center"]}
+            >
+              <%= col[:label] %>
+            </th>
             <th :if={@action != []} class="p-0 pb-4">
               <span class="sr-only"><%= gettext("Actions") %></span>
             </th>
           </tr>
         </thead>
-        <tbody
-          id={@id}
-          phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="divide-y divide-muted border-t border-foreground text-sm leading-6 text-muted-foreground"
-        >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-foreground/10">
+        <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="gap-y-2 [&>td]:pt-3">
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
               class={["p-0", @row_click && "hover:cursor-pointer"]}
             >
-              <div class="block py-4 px-3">
-                <span class={[i == 0 && "text-muted-foreground"]}>
-                  <%= render_slot(col, @row_item.(row)) %>
-                </span>
+              <div class={[
+                "group block normal-case font-medium text-base min-w-28",
+                i == 0 && "text-left font-semibold",
+                i != 0 && "text-center"
+              ]}>
+                <%= render_slot(col, @row_item.(row)) %>
               </div>
             </td>
             <td :if={@action != []} class="w-14 p-0">
@@ -681,7 +679,7 @@ defmodule ExplorerWeb.CoreComponents do
           </tr>
         </tbody>
       </table>
-    </div>
+    </.card_background>
     """
   end
 

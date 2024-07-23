@@ -1,8 +1,8 @@
 defmodule ExplorerWeb.Utils do
-  def shorten_hash(hash) do
+  def shorten_hash(hash, decimals \\ 6) do
     case String.length(hash) do
-      n when n < 6 -> hash
-      _ -> "#{String.slice(hash, 0, 6)}...#{String.slice(hash, -4, 4)}"
+      n when n < decimals -> hash
+      _ -> "#{String.slice(hash, 0, decimals)}...#{String.slice(hash, -4, 4)}"
     end
   end
 
