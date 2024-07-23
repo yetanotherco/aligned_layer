@@ -63,6 +63,8 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
         &VERIFIER_INDEX,
         &srs,
     )
+
+    // TODO(xqft): consensus checks
 }
 
 pub fn parse_protocol_state_proof(
