@@ -9,6 +9,7 @@ defmodule Explorer.Application do
   def start(_type, _args) do
     children = [
       ExplorerWeb.Telemetry,
+      {Cachex, name: :eth_price_cache},
       {DNSCluster, query: Application.get_env(:explorer, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Explorer.PubSub},
       # Start the Ecto db repository
@@ -29,6 +30,7 @@ defmodule Explorer.Application do
       {Explorer.Periodically, []},
       {Mutex, name: BatchMutex, meta: "Used to prevent concurrent downloads"}
     ]
+
     periodic_opts = [strategy: :one_for_all, name: Explorer.Periodically.Supervisor]
     Supervisor.start_link(periodic_children, periodic_opts)
   end

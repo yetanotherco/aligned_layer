@@ -14,6 +14,12 @@ defmodule ExplorerWeb.Batch.Index do
         batch -> batch
       end
 
+    eth_price =
+      case current_batch do
+        :empty -> nil
+        batch -> EthConverter.wei_to_eth(batch.cost_per_proof)
+      end
+
     {
       :ok,
       assign(socket,
@@ -23,7 +29,14 @@ defmodule ExplorerWeb.Batch.Index do
         network: System.get_env("ENVIRONMENT"),
         site_url: System.get_env("PHX_HOST"),
         page_title: Utils.shorten_hash(merkle_root),
-        eth_usd_price: :empty
+        eth_usd_price:
+          case Cachex.get(:eth_price_cache, :eth_price) do
+            {:ok, eth_usd_price} ->
+              EthConverter.multiply_eth_by_usd(eth_price, eth_usd_price)
+
+            _ ->
+              :empty
+          end
       )
     }
   rescue
@@ -42,25 +55,39 @@ defmodule ExplorerWeb.Batch.Index do
   end
 
   @impl true
-  def handle_info(%{eth_usd: eth_usd_price} = _params, socket) do
-    eth_price = EthConverter.wei_to_eth(socket.assigns.current_batch.cost_per_proof)
+  def handle_info(%{merkle_root: merkle_root, eth_usd: eth_usd_price} = _params, socket) do
+    eth_price =
+      case socket.assigns.current_batch do
+        :empty -> nil
+        batch -> EthConverter.wei_to_eth(batch.cost_per_proof)
+      end
 
-    updated_socket =
-      socket
-      |> assign(current_batch: Batches.get_batch(%{merkle_root: socket.assigns.merkle_root}))
-      |> then(fn updated_socket ->
-        case eth_usd_price do
-          :empty ->
-            updated_socket
+    new_batch = Batches.get_batch(%{merkle_root: socket.assigns.merkle_root})
 
-          _ ->
-            assign(updated_socket,
-              eth_usd_price: EthConverter.multiply_eth_by_usd(eth_price, eth_usd_price)
-            )
-        end
-      end)
+    case eth_usd_price do
+      :empty ->
+        {
+          :noreply,
+          assign(
+            socket,
+            current_batch: new_batch
+          )
+        }
 
-    {:noreply, updated_socket}
+      _ ->
+        {
+          :noreply,
+          assign(
+            socket,
+            current_batch: new_batch,
+            eth_usd_price:
+              EthConverter.multiply_eth_by_usd(
+                eth_price,
+                eth_usd_price
+              )
+          )
+        }
+    end
   end
 
   @impl true
