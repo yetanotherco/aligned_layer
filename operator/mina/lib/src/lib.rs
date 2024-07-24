@@ -25,8 +25,6 @@ lazy_static! {
 const MAX_PROOF_SIZE: usize = 16 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
 const PROTOCOL_STATE_HASH_SIZE: usize = 32;
-// TODO(gabrielbosio): check that this length is always the same for every block
-const PROTOCOL_STATE_SIZE: usize = 2060;
 
 #[no_mangle]
 pub extern "C" fn verify_protocol_state_proof_ffi(
@@ -110,14 +108,13 @@ pub fn parse_protocol_state_pub(
     ),
     String,
 > {
-    let (tip_protocol_state_hash, tip_protocol_state) = parse_protocol_state_with_hash(
-        &protocol_state_pub[..(PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE)],
-    )?;
+    let (tip_protocol_state_hash, tip_protocol_state, candidate_offset) =
+        parse_protocol_state_with_hash(&protocol_state_pub)?;
 
-    let (candidate_protocol_state_hash, candidate_protocol_state) = parse_protocol_state_with_hash(
-        &protocol_state_pub[(PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE)
-            ..((PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) * 2)],
-    )?;
+    let (candidate_protocol_state_hash, candidate_protocol_state, protocol_state_pub_len) =
+        parse_protocol_state_with_hash(&protocol_state_pub[candidate_offset..])?;
+
+    debug_assert_eq!(protocol_state_pub_len, protocol_state_pub.len());
 
     Ok((
         tip_protocol_state_hash,
@@ -129,17 +126,21 @@ pub fn parse_protocol_state_pub(
 
 fn parse_protocol_state_with_hash(
     protocol_state_pub: &[u8],
-) -> Result<
-    (
-        ark_ff::Fp256<mina_curves::pasta::fields::FpParameters>,
-        MinaStateProtocolStateValueStableV2,
-    ),
-    String,
-> {
-    let protocol_state_hash =
-        Fp::from_bytes(&protocol_state_pub[..32]).map_err(|err| err.to_string())?;
-    let protocol_state_base64 =
-        std::str::from_utf8(&protocol_state_pub[32..]).map_err(|err| err.to_string())?;
+) -> Result<(Fp, MinaStateProtocolStateValueStableV2, usize), String> {
+    let protocol_state_hash = Fp::from_bytes(&protocol_state_pub[..PROTOCOL_STATE_HASH_SIZE])
+        .map_err(|err| err.to_string())?;
+
+    let mut protocol_state_size_bytes = [0u8; 4];
+    protocol_state_size_bytes.copy_from_slice(
+        &protocol_state_pub[PROTOCOL_STATE_HASH_SIZE..(PROTOCOL_STATE_HASH_SIZE + 4)],
+    );
+    let protocol_state_size = u32::from_be_bytes(protocol_state_size_bytes) as usize;
+
+    let protocol_state_base64 = std::str::from_utf8(
+        &protocol_state_pub
+            [(PROTOCOL_STATE_HASH_SIZE + 4)..(PROTOCOL_STATE_HASH_SIZE + 4 + protocol_state_size)],
+    )
+    .map_err(|err| err.to_string())?;
     let protocol_state_binprot = BASE64_STANDARD
         .decode(protocol_state_base64)
         .map_err(|err| err.to_string())?;
@@ -147,7 +148,11 @@ fn parse_protocol_state_with_hash(
         MinaStateProtocolStateValueStableV2::binprot_read(&mut protocol_state_binprot.as_slice())
             .map_err(|err| err.to_string())?;
 
-    Ok((protocol_state_hash, protocol_state))
+    Ok((
+        protocol_state_hash,
+        protocol_state,
+        PROTOCOL_STATE_HASH_SIZE + 4 + protocol_state_size,
+    ))
 }
 
 #[cfg(test)]
@@ -159,7 +164,7 @@ mod test {
     const PROTOCOL_STATE_PUB_BYTES: &[u8] =
         include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.pub");
     const BAD_PROTOCOL_STATE_PUB_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/bad_protocol_state.pub");
+        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state_bad_hash.pub");
     // BAD_PROTOCOL_STATE_PUB_BYTES has an invalid hash.
 
     #[test]
