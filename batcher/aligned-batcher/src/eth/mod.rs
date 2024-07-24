@@ -6,11 +6,11 @@ use std::time::Duration;
 use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
-use log::debug;
+use log::{debug, info, warn, error};
 use tokio::time::sleep;
 
-const CREATE_NEW_TASK_MAX_RETRIES: usize = 100;
-const CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES: u64 = 100;
+const CREATE_NEW_TASK_MAX_RETRIES: usize = 15;
+const CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES: u64 = 2000;
 
 use crate::config::ECDSAConfig;
 
@@ -55,14 +55,27 @@ pub async fn create_new_task(
     // If there was a pending transaction from a previously sent batch, the `call.send()` will
     // fail because of the nonce not being updated. We should retry sending and not returning an error
     // immediatly.
-    for _ in 0..CREATE_NEW_TASK_MAX_RETRIES {
-        if let Ok(pending_tx) = call.send().await {
-            match pending_tx.await? {
-                Some(receipt) => return Ok(receipt),
-                None => return Err(anyhow::anyhow!("Receipt not found")),
+    info!("Creating task for: {:x?}", batch_merkle_root);
+
+    for i in 0..CREATE_NEW_TASK_MAX_RETRIES {
+        match call.send().await {
+            Ok(pending_tx) => {
+                match pending_tx.await? {
+                    Some(receipt) => return Ok(receipt),
+                    None => return Err(anyhow::anyhow!("Receipt not found")),
+                }
             }
-        }
-        debug!("createNewTask transaction not sent, retrying in {CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES} milliseconds...");
+            Err(error) => {
+                if i != CREATE_NEW_TASK_MAX_RETRIES {
+                    warn!("Error when trying to create a task: {}\n Retrying ...", error);
+                } else {
+                    error!("Error when trying to create a task on last retry. Batch task {:x?} will be lost", batch_merkle_root)
+                    // This should return this error
+                    // return error;
+                }
+            }
+        };
+ 
         sleep(Duration::from_millis(
             CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES,
         ))
