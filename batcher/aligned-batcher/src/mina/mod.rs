@@ -3,7 +3,7 @@ use log::{debug, warn};
 
 const STATE_HASH_SIZE: usize = 32;
 // TODO(gabrielbosio): check that this length is always the same for every block
-const PROTOCOL_STATE_SIZE: usize = 2060;
+const PROTOCOL_STATE_SIZE: usize = 2056;
 
 pub fn verify_protocol_state_proof_integrity(proof: &[u8], public_input: &[u8]) -> bool {
     debug!("Checking Mina protocol state proof");

@@ -26,7 +26,7 @@ const MAX_PROOF_SIZE: usize = 16 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
 const PROTOCOL_STATE_HASH_SIZE: usize = 32;
 // TODO(gabrielbosio): check that this length is always the same for every block
-const PROTOCOL_STATE_SIZE: usize = 2060;
+const PROTOCOL_STATE_SIZE: usize = 2056;
 
 #[no_mangle]
 pub extern "C" fn verify_protocol_state_proof_ffi(

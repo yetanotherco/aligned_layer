@@ -39,7 +39,7 @@ fn hash_last_vrf(chain: &MinaStateProtocolStateValueStableV2) -> String {
     hasher.update(chain.body.consensus_state.last_vrf_output.as_slice());
     let digest = hasher.finalize().to_vec();
 
-    String::from_utf8(digest).unwrap()
+    hex::encode(&digest)
 }
 
 fn hash_state(chain: &MinaStateProtocolStateValueStableV2) -> String {
