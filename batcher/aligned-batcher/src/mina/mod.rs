@@ -6,6 +6,10 @@ const STATE_HASH_SIZE: usize = 32;
 const PROTOCOL_STATE_SIZE: usize = 2056;
 
 pub fn verify_protocol_state_proof_integrity(proof: &[u8], public_input: &[u8]) -> bool {
+    if public_input.len() != (STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) * 2 {
+        return false;
+    }
+
     debug!("Checking Mina protocol state proof");
     if let Err(err) = check_protocol_state_proof(proof) {
         warn!("Protocol state proof check failed: {}", err);
