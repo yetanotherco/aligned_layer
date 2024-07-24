@@ -24,6 +24,7 @@ mina-p2p-messages = { git = "https://github.com/lambdaclass/openmina/", branch =
 base64 = "0.22.1"
 bs58 = "0.5.1"
 lazy_static = "1.5.0"
+blake2 = "0.10.6"
 once_cell = "1.19.0"
 
 [patch.crates-io]

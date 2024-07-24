@@ -1,7 +1,15 @@
 use base64::prelude::*;
 use log::{debug, warn};
 
+const STATE_HASH_SIZE: usize = 32;
+// TODO(gabrielbosio): check that this length is always the same for every block
+const PROTOCOL_STATE_SIZE: usize = 2056;
+
 pub fn verify_protocol_state_proof_integrity(proof: &[u8], public_input: &[u8]) -> bool {
+    if public_input.len() != (STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) * 2 {
+        return false;
+    }
+
     debug!("Checking Mina protocol state proof");
     if let Err(err) = check_protocol_state_proof(proof) {
         warn!("Protocol state proof check failed: {}", err);
@@ -30,10 +38,21 @@ pub fn check_protocol_state_proof(protocol_state_proof_bytes: &[u8]) -> Result<(
 
 pub fn check_protocol_state_pub(protocol_state_pub: &[u8]) -> Result<(), String> {
     // TODO(xqft): check hash and binprot deserialization
-    let protocol_state_base64 =
-        std::str::from_utf8(&protocol_state_pub[32..]).map_err(|err| err.to_string())?;
+    let candidate_protocol_state_base64 = std::str::from_utf8(
+        &protocol_state_pub[STATE_HASH_SIZE..(STATE_HASH_SIZE + PROTOCOL_STATE_SIZE)],
+    )
+    .map_err(|err| err.to_string())?;
     BASE64_STANDARD
-        .decode(protocol_state_base64)
+        .decode(candidate_protocol_state_base64)
+        .map_err(|err| err.to_string())?;
+
+    let tip_protocol_state_base64 = std::str::from_utf8(
+        &protocol_state_pub[(STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) + STATE_HASH_SIZE
+            ..((STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) * 2)],
+    )
+    .map_err(|err| err.to_string())?;
+    BASE64_STANDARD
+        .decode(tip_protocol_state_base64)
         .map_err(|err| err.to_string())?;
 
     Ok(())
