@@ -450,12 +450,6 @@ Send an individual bn254 proof:
 make batcher_send_groth16_bn254_task
 ```
 
-Send a burst of 15 bn254 proofs:
-
-```bash
-make batcher_send_groth16_burst
-```
-
 Send bn254 proofs indefinitely:
 
 ```bash
