@@ -2,7 +2,7 @@
   "addresses": {
     "alignedLayerProxyAdmin": "0x3eb924d928c138898FC089328f840105969bD6a0",
     "alignedLayerServiceManager": "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
-    "alignedLayerServiceManagerImplementation": "0x4E8F4c3C8049B883F218A2d079A5FC32c0B97e5d",
+    "alignedLayerServiceManagerImplementation": "0x1d1D5F13dd25A57fc1Cb36382FeD5398B333d41A",
     "blsApkRegistry": "0xD0A725d82649f9e4155D7A60B638Fe33b3F25e3b",
     "blsApkRegistryImplementation": "0xB05BB98a966F58aDAB8dF58350b77fF2131A3b87",
     "indexRegistry": "0x4A7DE0a9fBBAa4fF0270d31852B363592F68B81F",
@@ -12,7 +12,9 @@
     "registryCoordinatorImplementation": "0x85977E7AbcF14F1a88E7BD75eB2653a51649c519",
     "serviceManagerRouter": "0x8dA1824Bd43089766247C5B809FCE4a825A6AB25",
     "stakeRegistry": "0x51462D5511563A0F97Bb3Ce5475E1c3905b83F4b",
-    "stakeRegistryImplementation": "0xd1555Be14931C061E06D3CE1D1Daadc1B3c6F8c7"
+    "stakeRegistryImplementation": "0xd1555Be14931C061E06D3CE1D1Daadc1B3c6F8c7",
+    "batcherPaymentService": "0x815aeCA64a974297942D2Bbf034ABEe22a38A003",
+    "batcherPaymentServiceImplementation": "0x2F9DFdfc99a845BC91309abc2d0fbCe4D31D14C2"
   },
   "chainInfo": {
     "chainId": 17000,

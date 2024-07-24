@@ -214,7 +214,7 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
-  Renders a button.
+  Renders a button. To add an icon just search for the icon name in the https://heroicons.com/ and pass it as the icon attribute.
 
   ## Examples
 
@@ -224,6 +224,8 @@ defmodule ExplorerWeb.CoreComponents do
   attr :type, :string, default: nil
   attr :class, :string, default: nil
   attr :rest, :global, include: ~w(disabled form name value)
+  attr :icon, :string, default: nil
+  attr :icon_class, :string, default: nil
 
   slot :inner_block, required: true
 
@@ -234,15 +236,29 @@ defmodule ExplorerWeb.CoreComponents do
       class={[
         "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
         "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
-        "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
-        "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
-        "border border-foreground/20",
+        "border border-foreground/20 inline-flex items-center gap-1.5",
         @class
       ]}
       {@rest}
     >
+      <.icon :if={@icon != nil} name={"hero-#{@icon}"} class={"size-4 stroke-inherit #{@icon_class}"} />
       <%= render_slot(@inner_block) %>
     </button>
+    """
+  end
+
+  @doc """
+  Root background component.
+  """
+  slot :inner_block, default: nil
+
+  def root_background(assigns) do
+    ~H"""
+    <div class="bg-[url(/images/home.webp)] bg-cover min-h-screen">
+      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-primary/80">
+        <%= render_slot(@inner_block) %>
+      </main>
+    </div>
     """
   end
 
@@ -297,6 +313,38 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+  Renders a card with a link and title that has a hyperlink icon and underline on hover.
+  """
+  attr :class, :string, default: nil
+  attr :inner_class, :string, default: nil
+  attr :title, :string, default: nil
+  attr :href, :string, required: true
+  attr :rest, :global, include: ~w(href target)
+
+  slot :inner_block, default: nil
+
+  def card_link(assigns) do
+    ~H"""
+    <.link
+      target="_blank"
+      href={@href}
+      class="group hover:scale-[102%] transition-all duration-150 ease-in-out active:scale-95"
+      {@rest}
+    >
+      <.card_background class={@class}>
+        <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
+          <%= @title %>
+          <.icon name="hero-arrow-top-right-on-square-solid mb-1" class="size-4" />
+        </h2>
+        <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
+          <%= render_slot(@inner_block) %>
+        </span>
+      </.card_background>
+    </.link>
+    """
+  end
+
+  @doc """
     Renders an arrow icon.
   """
   attr :class, :string, default: nil
@@ -321,12 +369,13 @@ defmodule ExplorerWeb.CoreComponents do
     ~H"""
     <.link
       class={[
-        "underline underline-offset-4 font-medium	after:content-['↗'] hover:after:content-['→'] transition-all duration-150",
+        "underline underline-offset-4 font-medium inline-flex items-center gap-x-1",
         @class
       ]}
       {@rest}
     >
       <%= render_slot(@inner_block) %>
+      <.icon name="hero-arrow-top-right-on-square-solid" class="size-4" />
     </.link>
     """
   end

@@ -1,17 +1,25 @@
-use std::{env::VarError, fmt};
+use std::fmt;
 
+use ethers::types::SignatureError;
 use tokio_tungstenite::tungstenite;
 
 pub enum BatcherError {
     ConnectionError(tungstenite::Error),
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
-    S3EnvVariableError(String, VarError),
+    SignatureError(SignatureError),
+    TaskCreationError(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
     fn from(e: tungstenite::Error) -> Self {
         BatcherError::ConnectionError(e)
+    }
+}
+
+impl From<SignatureError> for BatcherError {
+    fn from(e: SignatureError) -> Self {
+        BatcherError::SignatureError(e)
     }
 }
 
@@ -27,8 +35,11 @@ impl fmt::Debug for BatcherError {
             BatcherError::EthereumSubscriptionError(e) => {
                 write!(f, "Ethereum subscription was not successful: {}", e)
             }
-            BatcherError::S3EnvVariableError(v, e) => {
-                write!(f, "Error while fetching the {} env variable: {}", v, e)
+            BatcherError::SignatureError(e) => {
+                write!(f, "Message signature verification error: {}", e)
+            }
+            BatcherError::TaskCreationError(e) => {
+                write!(f, "Task creation error: {}", e)
             }
         }
     }

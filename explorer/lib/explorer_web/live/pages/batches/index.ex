@@ -1,25 +1,50 @@
 defmodule ExplorerWeb.Batches.Index do
+  alias Phoenix.PubSub
   require Logger
   use ExplorerWeb, :live_view
 
+  @page_size 15
+
+  @impl true
   def mount(params, _, socket) do
     current_page = get_current_page(params)
 
-    page_size = 12
+    batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
 
-    batches = Batches.get_latest_batches(%{amount: page_size * current_page})
+    PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok, assign(socket, current_page: current_page, batches: batches, page_title: "Batches")}
   end
 
-  def get_current_page(params) do
+  @impl true
+  def handle_info(_, socket) do
+    IO.puts("Received update for batches from PubSub")
+
+    current_page = socket.assigns.current_page
+
+    batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+
+    {:noreply, assign(socket, batches: batches)}
+  end
+
+  @impl true
+  def handle_event("change_page", %{"page" => page}, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/batches?page=#{page}")}
+  end
+
+  defp get_current_page(params) do
     case params |> Map.get("page") do
       nil ->
         1
 
       page ->
-        number = page |> Integer.parse() |> elem(0)
-        if number < 1, do: 1, else: number
+        case Integer.parse(page) do
+          {number, _} ->
+            if number < 1, do: 1, else: number
+
+          :error ->
+            1
+        end
     end
   end
 

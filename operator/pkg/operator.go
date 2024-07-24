@@ -120,13 +120,15 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasks() event.Subscription {
-	sub := o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
-	return sub
+func (o *Operator) SubscribeToNewTasks() (event.Subscription, error) {
+	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
 }
 
 func (o *Operator) Start(ctx context.Context) error {
-	sub := o.SubscribeToNewTasks()
+	sub, err := o.SubscribeToNewTasks()
+	if err != nil {
+		log.Fatal("Could not subscribe to new tasks")
+	}
 
 	var metricsErrChan <-chan error
 	if o.Config.Operator.EnableMetrics {
@@ -145,7 +147,10 @@ func (o *Operator) Start(ctx context.Context) error {
 		case err := <-sub.Err():
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub.Unsubscribe()
-			sub = o.SubscribeToNewTasks()
+			sub, err = o.SubscribeToNewTasks()
+			if err != nil {
+				o.Logger.Fatal("Could not subscribe to new tasks")
+			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
@@ -174,7 +179,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 		"batch merkle root", newBatchLog.BatchMerkleRoot,
 	)
 
-	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer)
+	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
@@ -344,8 +349,10 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 	case common.Risc0:
 		proofLen := (uint32)(len(verificationData.Proof))
 		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
+		pubInputLen := (uint32)(len(verificationData.PubInput))
 
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen, verificationData.VmProgramCode, imageIdLen)
+		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen,
+			verificationData.VmProgramCode, imageIdLen, verificationData.PubInput, pubInputLen)
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult

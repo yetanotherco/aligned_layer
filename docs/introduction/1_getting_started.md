@@ -3,7 +3,7 @@
 In this tutorial you will learn how to send your first SP1 proofs to get verified in Aligned in under 3 minutes.
 
 ## Quickstart
-We will download a proviously generated SP1 proof, send it to Aligned for verification, and retrieve the results from Ethereum Holesky testnet.
+We will download a previously generated SP1 proof, send it to Aligned for verification, and retrieve the results from Ethereum Holesky testnet.
 
 1. Download and install Aligned to send proofs in the testnet:
 
@@ -26,7 +26,7 @@ rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
---vm_program ~/.aligned/test_files/sp1_fibonacci-elf \
+--vm_program ~/.aligned/test_files/sp1_fibonacci.elf \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --conn wss://batcher.alignedlayer.com
 ```
@@ -34,11 +34,11 @@ aligned submit \
 5. You should get a response like this:
 
 ```bash
-[2024-06-17T22:06:03Z INFO  aligned] Proof submitted to aligned. See the batch in the explorer:
-    https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13
-[2024-06-17T22:06:03Z INFO  aligned] Batch inclusion data written into /Users/maurofab/aligned_verification_data/8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13_225.json
-[2024-06-17T22:06:03Z INFO  aligned] All messages responded. Closing connection...
-https://explorer.alignedlayer.com/batches/0x8ea98526e48f72d4b49ad39902fb320020d3cf02e6506c444300eb3619db4c13```
+[2024-07-01T19:17:54Z WARN  aligned] Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet
+[2024-07-01T19:17:54Z INFO  aligned] Submitting proofs to the Aligned batcher...
+[2024-07-01T19:19:18Z INFO  aligned] Batch inclusion data written into ./aligned_verification_data/e367d76e_0.json
+[2024-07-01T19:19:18Z INFO  aligned] Proofs submitted to aligned. See the batch in the explorer:
+[2024-07-01T19:19:18Z INFO  aligned] https://explorer.alignedlayer.com/batches/0xe367d76e832edec893d3a9027b3c231b2e3994c47acfac2e67197c13c9be0c4c
 ```
 
 Use the link in the response to check the status of your transaction in the Aligned explorer.
@@ -72,4 +72,4 @@ Aligned works in:
 
 If you don't meet these requirements, you can compile the binaries yourself following the [README](https://github.com/yetanotherco/aligned_layer)
 
-To try Aligned with other proving systems, check the [this]() guide
+To try Aligned with other proving systems, check [this](https://docs.alignedlayer.com/guides/0_submitting_proofs) guide

@@ -1,62 +1,98 @@
-<div class="flex flex-col space-y-3 px-5 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
+<div class="flex flex-col space-y-3 px-1 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
   <%= if @current_batch != :empty do %>
     <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
       Batch Details
     </.card_preheding>
     <.card
-      class="px-6 py-5 min-h-fit flex flex-col rounded-3xl"
-      inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground"
+      class="px-4 py-5 min-h-fit flex flex-col"
+      inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground [&>*]:break-all [&>*]:font-normal"
     >
       Merkle Root Hash:
-      <p class="break-all font-normal"><%= @merkle_root %></p>
+      <p><%= @merkle_root %></p>
       Amount of Proofs in this Batch:
-      <p class="break-all font-normal"><%= @current_batch.amount_of_proofs %></p>
+      <p><%= @current_batch.amount_of_proofs %></p>
       Submission Block Number:
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://holesky.etherscan.io/block/#{@current_batch.submission_block_number}"}
-        class="break-all font-normal"
+        href={
+          "https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
+        }
+        class="hover:text-foreground/80"
       >
-        <%= @current_batch.submission_block_number %>
+        <%= @current_batch.submission_block_number |> Utils.format_number() %>
       </.a>
       Submission Transaction Hash:
       <.a
         target="_blank"
         rel="noopener"
-        href={"https://holesky.etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
-        class="break-all font-normal"
+        href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
+        class="hover:text-foreground/80"
       >
         <%= @current_batch.submission_transaction_hash %>
       </.a>
       Submission Timestamp:
-      <p class="break-all font-normal"><%= @current_batch.submission_timestamp |> Utils.parse_timestamp %></p>
+      <p>
+        <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
+      </p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
         Response Block Number:
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://holesky.etherscan.io/block/#{@current_batch.response_block_number}"}
-          class="break-all font-normal"
+          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
+          class="hover:text-foreground/80"
         >
-          <%= @current_batch.response_block_number %>
+          <%= @current_batch.response_block_number |> Utils.format_number() %>
         </.a>
         Response Transaction Hash:
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://holesky.etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
-          class="break-all font-normal"
+          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
+          class="hover:text-foreground/80"
         >
           <%= @current_batch.response_transaction_hash %>
         </.a>
         Response Timestamp:
-        <p class="break-all font-normal"><%= @current_batch.response_timestamp |> Utils.parse_timestamp %></p>
+        <p>
+          <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
+        </p>
+        Share:
+        <%!-- 
+          %20 represents a space
+          %23 represents the hash symbol (#)
+          %0A represents a line feed (LF) or Unix-style newline
+         --%>
+        <.live_component
+          id={"tweet_#{@merkle_root}"}
+          module={TweetComponent}
+          text={"Just%20submitted%20a%20proof%20via%20@alignedlayer%0AI%20am%20now%20%23aligned%20✅%0A#{@site_url}/batches/#{@merkle_root}"}
+        />
+      <% end %>
+      Proofs in this batch:
+      <%= if @proof_hashes != :empty do %>
+        <%= if @proof_hashes == :nil do %>
+          <p class="normal-case">
+            Proofs couldn't be shown for this Batch
+          </p>
+        <% else %>
+          <div class="h-32 overflow-y-auto text-foreground space-y-2">
+            <p :for={proof <- @proof_hashes}><%= proof %></p>
+            <.button class="w-fit text-foreground" phx-click="hide_proofs">
+              <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
+            </.button>
+          </div>
+        <% end %>
+      <% else %>
+        <.button class="w-fit text-foreground font-semibold" phx-click="show_proofs">
+          <.icon name="hero-eye" class="size-4" /> Show Proofs
+        </.button>
       <% end %>
     </.card>
   <% else %>
-    <div class="flex flex-col space-y-6 justify-center grow relative text-center">
+    <div class="flex flex-col space-y-6 justify-center grow relative text-center md:pt-14">
       <h1 class="text-5xl font-semibold">Oops!</h1>
       <h2 class="text-xl font-medium">
         The batch you are looking for <br /> doesn't exist.
@@ -64,7 +100,7 @@
       <img
         class="z-0 w-64 rounded-xl mx-auto"
         alt="block not found"
-        src={~p"/images/not-found.jpeg"}
+        src={~p"/images/not-found.webp"}
       />
       <.link navigate={~p"/"}>
         <.button>

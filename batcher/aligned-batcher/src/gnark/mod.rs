@@ -1,4 +1,4 @@
-use aligned_batcher_lib::types::ProvingSystemId;
+use aligned_sdk::core::types::ProvingSystemId;
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
