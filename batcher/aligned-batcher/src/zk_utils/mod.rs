@@ -1,5 +1,6 @@
 use crate::gnark::verify_gnark;
 use crate::halo2::ipa::verify_halo2_ipa;
+use crate::jolt::verify_jolt_proof;
 use crate::halo2::kzg::verify_halo2_kzg;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
@@ -13,6 +14,13 @@ pub(crate) fn verify(verification_data: &VerificationData) -> bool {
                 return verify_sp1_proof(verification_data.proof.as_slice(), elf.as_slice());
             }
             warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
+            false
+        }
+        ProvingSystemId::Jolt => {
+            if let Some(elf) = &verification_data.vm_program_code {
+                return verify_jolt_proof(verification_data.proof.as_slice(), elf.as_slice());
+            }
+            warn!("Trying to verify Jolt proof but ELF was not provided. Returning false");
             false
         }
         ProvingSystemId::Halo2KZG => {

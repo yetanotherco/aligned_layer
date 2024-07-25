@@ -8,7 +8,6 @@ use lambdaworks_crypto::merkle_tree::{
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 pub enum ProvingSystemId {
     GnarkPlonkBls12_381,
@@ -16,6 +15,7 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
+    Jolt,
     Halo2KZG,
     Halo2IPA,
     Risc0,
