@@ -1,15 +1,11 @@
+use std::array;
+
 use base64::prelude::*;
 use log::{debug, warn};
 
 const STATE_HASH_SIZE: usize = 32;
-// TODO(gabrielbosio): check that this length is always the same for every block
-const PROTOCOL_STATE_SIZE: usize = 2056;
 
 pub fn verify_protocol_state_proof_integrity(proof: &[u8], public_input: &[u8]) -> bool {
-    if public_input.len() != (STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) * 2 {
-        return false;
-    }
-
     debug!("Checking Mina protocol state proof");
     if let Err(err) = check_protocol_state_proof(proof) {
         warn!("Protocol state proof check failed: {}", err);
@@ -38,24 +34,35 @@ pub fn check_protocol_state_proof(protocol_state_proof_bytes: &[u8]) -> Result<(
 
 pub fn check_protocol_state_pub(protocol_state_pub: &[u8]) -> Result<(), String> {
     // TODO(xqft): check hash and binprot deserialization
-    let candidate_protocol_state_base64 = std::str::from_utf8(
-        &protocol_state_pub[STATE_HASH_SIZE..(STATE_HASH_SIZE + PROTOCOL_STATE_SIZE)],
-    )
-    .map_err(|err| err.to_string())?;
-    BASE64_STANDARD
-        .decode(candidate_protocol_state_base64)
-        .map_err(|err| err.to_string())?;
+    let candidate_protocol_state_len =
+        check_protocol_state_and_hash(protocol_state_pub, STATE_HASH_SIZE)?;
 
-    let tip_protocol_state_base64 = std::str::from_utf8(
-        &protocol_state_pub[(STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) + STATE_HASH_SIZE
-            ..((STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) * 2)],
-    )
-    .map_err(|err| err.to_string())?;
-    BASE64_STANDARD
-        .decode(tip_protocol_state_base64)
-        .map_err(|err| err.to_string())?;
+    let _tip_protocol_state_len = check_protocol_state_and_hash(
+        protocol_state_pub,
+        STATE_HASH_SIZE + 4 + candidate_protocol_state_len + STATE_HASH_SIZE,
+    )?;
 
     Ok(())
+}
+
+fn check_protocol_state_and_hash(protocol_state_pub: &[u8], start: usize) -> Result<usize, String> {
+    let protocol_state_len_vec: Vec<_> = protocol_state_pub.iter().skip(start).take(4).collect();
+    let protocol_state_len_bytes: [u8; 4] = array::from_fn(|i| protocol_state_len_vec[i].clone());
+    let protocol_state_len = u32::from_be_bytes(protocol_state_len_bytes) as usize;
+
+    let protocol_state_bytes: Vec<_> = protocol_state_pub
+        .iter()
+        .skip(start + 4)
+        .take(protocol_state_len)
+        .map(|byte| byte.clone())
+        .collect();
+    let protocol_state_base64 =
+        std::str::from_utf8(protocol_state_bytes.as_slice()).map_err(|err| err.to_string())?;
+    BASE64_STANDARD
+        .decode(protocol_state_base64)
+        .map_err(|err| err.to_string())?;
+
+    Ok(protocol_state_len)
 }
 
 #[cfg(test)]
