@@ -854,7 +854,8 @@ defmodule ExplorerWeb.CoreComponents do
       id={random_id("tt")}
       class={[
         "tooltip",
-        "px-2 py-1 text-sm text-foreground bg-card border border-muted-foreground/30 rounded-md",
+        "animate-in fade-in slide-in-from-bottom duration-50",
+        "px-2 py-1 text-sm text-foreground bg-card border border-muted-foreground/30 rounded-full shadow-sm drop-shadow-sm",
         @class
       ]}
       role="tooltip"
