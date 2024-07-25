@@ -655,7 +655,7 @@ defmodule ExplorerWeb.CoreComponents do
           </tr>
         </thead>
         <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="gap-y-2 [&>td]:pt-3">
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="gap-y-2 [&>td]:pt-3 animate-out fade-out-0 duration-200">
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
