@@ -4,21 +4,17 @@ use std::io;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use aligned_sdk::sdk::{submit, verify_proof_onchain};
-use aligned_sdk::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
+use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
+use aligned_sdk::sdk::submit_and_wait;
 use clap::Parser;
 use dialoguer::Confirm;
-use ethers::core::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::{Address, Bytes, H160, U256};
 use sp1_sdk::{ProverClient, SP1Stdin};
 
-abigen!(
-    VerifierContract,
-    "VerifierContract.json",
-);
+abigen!(VerifierContract, "VerifierContract.json",);
 
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
 const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
@@ -112,24 +108,36 @@ async fn main() {
                 pub_input: None,
             };
 
-            match submit_proof_and_wait_for_verification(
-                verification_data,
+            match submit_and_wait(
+                BATCHER_URL,
+                &rpc_url,
+                Chain::Holesky,
+                &verification_data,
                 wallet.clone(),
-                rpc_url.clone(),
-            ).await {
-                Ok(aligned_verification_data) => {
-                    println!("Proof verified in Aligned, claiming prize...");
+            )
+            .await
+            {
+                Ok(maybe_aligned_verification_data) => match maybe_aligned_verification_data {
+                    Some(aligned_verification_data) => {
+                        println!(
+                            "Proof submitted and verified successfully on batch {}, claiming prize...",
+                            hex::encode(aligned_verification_data.batch_merkle_root)
+                        );
 
-                    if let Err(e) = verify_batch_inclusion(
-                        aligned_verification_data.clone(),
-                        signer.clone(),
-                        args.verifier_contract_address,
-                    )
+                        if let Err(e) = verify_batch_inclusion(
+                            aligned_verification_data.clone(),
+                            signer.clone(),
+                            args.verifier_contract_address,
+                        )
                         .await
-                    {
-                        println!("Failed to claim prize: {:?}", e);
+                        {
+                            println!("Failed to claim prize: {:?}", e);
+                        }
                     }
-                }
+                    None => {
+                        println!("Proof submission failed. No verification data");
+                    }
+                },
                 Err(e) => {
                     println!("Proof verification failed: {:?}", e);
                 }
@@ -175,46 +183,6 @@ fn read_answer() -> char {
         }
 
         return c;
-    }
-}
-
-async fn submit_proof_and_wait_for_verification(
-    verification_data: VerificationData,
-    wallet: Wallet<SigningKey>,
-    rpc_url: String,
-) -> anyhow::Result<AlignedVerificationData> {
-    let res = submit(BATCHER_URL, &verification_data, wallet.clone())
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to submit proof for verification: {:?}", e))?;
-
-    match res {
-        Some(aligned_verification_data) => {
-            println!(
-                "Proof submitted successfully on batch {}, waiting for verification...",
-                hex::encode(aligned_verification_data.batch_merkle_root)
-            );
-
-            for _ in 0..10 {
-                if verify_proof_onchain(
-                    aligned_verification_data.clone(),
-                    Chain::Holesky,
-                    rpc_url.as_str(),
-                )
-                    .await
-                    .is_ok_and(|r| r)
-                {
-                    return Ok(aligned_verification_data);
-                }
-
-                println!("Proof not verified yet. Waiting 10 seconds before checking again...");
-                tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-            }
-
-            anyhow::bail!("Proof verification failed");
-        }
-        None => {
-            anyhow::bail!("Proof submission failed, no verification data");
-        }
     }
 }
 
