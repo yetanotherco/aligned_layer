@@ -60,6 +60,7 @@ pub enum SubmitError {
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
     InvalidNonce,
+    BatchReset,
     InvalidSignature,
     InvalidProof,
     ProofTooLarge,
@@ -159,6 +160,7 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidProof => write!(f, "Invalid proof"),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
+            SubmitError::BatchReset => write!(f, "Batch reset"),
         }
     }
 }

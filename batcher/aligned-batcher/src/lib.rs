@@ -485,12 +485,29 @@ impl Batcher {
                 )
                 .await
             }
+
+            self.reset_state().await;
+
             return Err(e);
         };
 
         send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
 
         Ok(())
+    }
+
+    async fn reset_state(&self) {
+        let mut batch_queue = self.batch_queue.lock().await;
+        let mut user_nonces = self.user_nonces.lock().await;
+        let mut user_proof_count_in_batch = self.user_proof_count_in_batch.lock().await;
+
+        for (_, _, ws_sink, _) in batch_queue.iter() {
+            send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
+        }
+
+        batch_queue.clear();
+        user_nonces.clear();
+        user_proof_count_in_batch.clear();
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and

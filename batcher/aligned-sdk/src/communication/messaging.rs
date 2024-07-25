@@ -75,7 +75,7 @@ pub async fn send_messages(
             }
             ValidityResponseMessage::InvalidNonce => {
                 info!("Invalid Nonce!");
-                // TODO: handle (invalidate local cache)
+                return Err(SubmitError::InvalidNonce);
             }
             ValidityResponseMessage::InvalidSignature => {
                 error!("Invalid Signature!");
@@ -166,6 +166,9 @@ async fn process_batch_inclusion_data(
                 "Batcher responded with protocol version instead of batch inclusion data"
                     .to_string(),
             ));
+        }
+        Ok(ResponseMessage::BatchReset) => {
+            return Err(SubmitError::BatchReset);
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);

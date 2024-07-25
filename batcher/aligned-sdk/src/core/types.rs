@@ -237,6 +237,7 @@ pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
     CreateNewTaskError(String),
+    BatchReset,
     Error(String),
 }
 
