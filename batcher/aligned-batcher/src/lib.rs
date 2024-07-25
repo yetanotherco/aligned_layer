@@ -5,6 +5,7 @@ use config::NonPayingConfig;
 use dotenv::dotenv;
 use ethers::signers::Signer;
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -106,7 +107,7 @@ impl Batcher {
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
                 non_paying_config.address);
-            Some(NonPayingConfig::from_yaml_config(non_paying_config, &payment_service).await)
+            Some(NonPayingConfig::from_yaml_config(non_paying_config).await)
         } else {
             None
         };
@@ -580,23 +581,7 @@ impl Batcher {
         client_msg: ClientMessage,
     ) -> Result<(), Error> {
         let non_paying_config = self.non_paying_config.as_ref().unwrap();
-
-        // The nonpaying nonce is locked through the entire message processing so that
-        // another incoming connections using the nonpaying address don't desync its nonce
-        let mut nonpaying_nonce = non_paying_config.nonce.lock().await;
         let addr = non_paying_config.replacement.address();
-
-        let mut nonce_bytes = [0u8; 32];
-        nonpaying_nonce.to_big_endian(&mut nonce_bytes);
-        *nonpaying_nonce += U256::one();
-
-        let verifcation_data = NoncedVerificationData::new(
-            client_msg.verification_data.verification_data.clone(),
-            nonce_bytes,
-        );
-
-        let client_msg =
-            ClientMessage::new(verifcation_data, non_paying_config.replacement.clone());
 
         let user_balance = self
             .payment_service
@@ -615,12 +600,10 @@ impl Batcher {
             return Ok(()); // Send error message to the client and return
         }
 
-        let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
-        let nonced_verification_data = client_msg.verification_data;
-        if nonced_verification_data.verification_data.proof.len() <= self.max_proof_size {
+        if client_msg.verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled
-                && !zk_utils::verify(&nonced_verification_data.verification_data)
+                && !zk_utils::verify(&client_msg.verification_data.verification_data)
             {
                 error!("Invalid proof detected. Verification failed.");
                 send_error_message(ws_conn_sink.clone(), ResponseMessage::VerificationError())
@@ -628,11 +611,40 @@ impl Batcher {
                 return Ok(()); // Send error message to the client and return
             }
 
-            // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-            if !self.check_nonce_and_increment(addr, nonce).await {
-                send_error_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonceError).await;
-                return Ok(()); // Send error message to the client and return
-            }
+            let nonced_verification_data = {
+                let mut user_nonces = self.user_nonces.lock().await;
+
+                // FIXME: init with != 0
+                let nonpaying_nonce = match user_nonces.entry(addr) {
+                    Entry::Occupied(o) => o.into_mut(),
+                    Entry::Vacant(vacant) => {
+                        let nonce = self
+                            .payment_service
+                            .user_nonces(addr)
+                            .call()
+                            .await
+                            .expect("Failed to get nonce");
+
+                        vacant.insert(nonce)
+                    }
+                };
+
+                debug!("non paying nonce: {:?}", nonpaying_nonce);
+
+                let mut nonce_bytes = [0u8; 32];
+                nonpaying_nonce.to_big_endian(&mut nonce_bytes);
+                *nonpaying_nonce += U256::one();
+
+                NoncedVerificationData::new(
+                    client_msg.verification_data.verification_data.clone(),
+                    nonce_bytes,
+                )
+            };
+
+            let client_msg = ClientMessage::new(
+                nonced_verification_data.clone(),
+                non_paying_config.replacement.clone(),
+            );
 
             self.clone()
                 .add_to_batch(

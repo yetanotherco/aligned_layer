@@ -6,7 +6,7 @@ use std::time::Duration;
 use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
-use log::debug;
+use log::info;
 use tokio::time::sleep;
 
 const CREATE_NEW_TASK_MAX_RETRIES: usize = 100;
@@ -56,13 +56,16 @@ pub async fn create_new_task(
     // fail because of the nonce not being updated. We should retry sending and not returning an error
     // immediatly.
     for _ in 0..CREATE_NEW_TASK_MAX_RETRIES {
-        if let Ok(pending_tx) = call.send().await {
-            match pending_tx.await? {
+        match call.send().await {
+            Ok(pending_tx) => match pending_tx.await? {
                 Some(receipt) => return Ok(receipt),
                 None => return Err(anyhow::anyhow!("Receipt not found")),
+            },
+            Err(err) => {
+                info!("createNewTask transaction failed: {:?}", err);
             }
         }
-        debug!("createNewTask transaction not sent, retrying in {CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES} milliseconds...");
+
         sleep(Duration::from_millis(
             CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES,
         ))
