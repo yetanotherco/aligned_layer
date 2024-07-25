@@ -547,7 +547,7 @@ impl Batcher {
             .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
-        if let Err(e) = eth::create_new_task(
+        eth::create_new_task(
             payment_service,
             *batch_merkle_root,
             batch_data_pointer,
@@ -556,11 +556,7 @@ impl Batcher {
             AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
             gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )
-        .await
-        {
-            error!("Failed to create batch verification task: {}", e);
-            return Err(BatcherError::TaskCreationError(e.to_string()));
-        }
+        .await?;
 
         info!("Batch verification task created on Aligned contract");
         Ok(())
