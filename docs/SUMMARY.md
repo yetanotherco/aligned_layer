@@ -27,8 +27,8 @@
 * [Integrating Aligned into your Application](guides/2_integrating_aligned_into_your_application.md)
 * [Validating public input](guides/3_validating_public_input.md)
 * [SDK](guides/1_SDK.md)
-* [Generating proofs for Aligned](guides/3_generating_proofs.md)
-* [Contract Addresses](guides/4_contract_addresses.md)
+* [Generating proofs for Aligned](guides/4_generating_proofs.md)
+* [Contract Addresses](guides/5_contract_addresses.md)
 * [Generating & submitting proofs of Rust code with ZKRust](guides/0_5_using_zkrust.md)
 
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
