@@ -60,6 +60,10 @@ pub enum SubmitError {
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
     InvalidNonce,
+    InvalidSignature,
+    InvalidProof,
+    ProofTooLarge,
+    InsufficientBalance,
     CreateNewTaskError(String),
     GenericError(String),
 }
@@ -151,6 +155,10 @@ impl fmt::Display for SubmitError {
                 merkle_root
             ),
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
+            SubmitError::InvalidSignature => write!(f, "Invalid Signature"),
+            SubmitError::InvalidProof => write!(f, "Invalid proof"),
+            SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
+            SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
         }
     }
 }

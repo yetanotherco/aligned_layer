@@ -4,6 +4,7 @@ use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
 use dotenv::dotenv;
 use ethers::signers::Signer;
+use serde::Serialize;
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -13,7 +14,7 @@ use std::sync::Arc;
 
 use aligned_sdk::core::types::{
     BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    VerificationCommitmentBatch, VerificationDataCommitment,
+    ValidityResponseMessage, VerificationCommitmentBatch, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
@@ -221,9 +222,9 @@ impl Batcher {
                     .await;
             } else {
                 if !self.check_user_balance(&addr).await {
-                    send_error_message(
+                    send_message(
                         ws_conn_sink.clone(),
-                        ResponseMessage::InsufficientBalanceError(addr),
+                        ValidityResponseMessage::InsufficientBalance(addr),
                     )
                     .await;
 
@@ -238,21 +239,15 @@ impl Batcher {
                         && !zk_utils::verify(&nonced_verification_data.verification_data)
                     {
                         error!("Invalid proof detected. Verification failed.");
-                        send_error_message(
-                            ws_conn_sink.clone(),
-                            ResponseMessage::VerificationError(),
-                        )
-                        .await;
+                        send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof)
+                            .await;
                         return Ok(()); // Send error message to the client and return
                     }
 
                     // Doing nonce verification after proof verification to avoid unnecessary nonce increment
                     if !self.check_nonce_and_increment(addr, nonce).await {
-                        send_error_message(
-                            ws_conn_sink.clone(),
-                            ResponseMessage::InvalidNonceError,
-                        )
-                        .await;
+                        send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce)
+                            .await;
                         return Ok(()); // Send error message to the client and return
                     }
 
@@ -264,20 +259,21 @@ impl Batcher {
                     .await;
                 } else {
                     error!("Proof is too large");
-                    send_error_message(ws_conn_sink.clone(), ResponseMessage::ProofTooLargeError())
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge)
                         .await;
                     return Ok(()); // Send error message to the client and return
                 };
 
                 info!("Verification data message handled");
 
+                send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
                 return Ok(());
             }
         } else {
             error!("Signature verification error");
-            send_error_message(
+            send_message(
                 ws_conn_sink.clone(),
-                ResponseMessage::SignatureVerificationError(),
+                ValidityResponseMessage::InvalidSignature,
             )
             .await;
             Ok(()) // Send error message to the client and return
@@ -483,7 +479,7 @@ impl Batcher {
         {
             for (_, _, ws_sink, _) in finalized_batch.iter() {
                 let merkle_root = hex::encode(batch_merkle_tree.root);
-                send_error_message(
+                send_message(
                     ws_sink.clone(),
                     ResponseMessage::CreateNewTaskError(merkle_root),
                 )
@@ -592,9 +588,9 @@ impl Batcher {
 
         if user_balance == U256::from(0) {
             error!("Insufficient funds for address {:?}", addr);
-            send_error_message(
+            send_message(
                 ws_conn_sink.clone(),
-                ResponseMessage::InsufficientBalanceError(addr),
+                ValidityResponseMessage::InsufficientBalance(addr),
             )
             .await;
             return Ok(()); // Send error message to the client and return
@@ -606,8 +602,7 @@ impl Batcher {
                 && !zk_utils::verify(&client_msg.verification_data.verification_data)
             {
                 error!("Invalid proof detected. Verification failed.");
-                send_error_message(ws_conn_sink.clone(), ResponseMessage::VerificationError())
-                    .await;
+                send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
                 return Ok(()); // Send error message to the client and return
             }
 
@@ -655,12 +650,13 @@ impl Batcher {
                 .await;
         } else {
             error!("Proof is too large");
-            send_error_message(ws_conn_sink.clone(), ResponseMessage::ProofTooLargeError()).await;
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
             return Ok(()); // Send error message to the client and return
         };
 
         info!("Verification data message handled");
 
+        send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
         Ok(())
     }
 
@@ -703,12 +699,11 @@ async fn send_batch_inclusion_data_responses(
         .await;
 }
 
-async fn send_error_message(
+async fn send_message<T: Serialize>(
     ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-    error_message: ResponseMessage,
+    message: T,
 ) {
-    let serialized_response =
-        serde_json::to_vec(&error_message).expect("Could not serialize response");
+    let serialized_response = serde_json::to_vec(&message).expect("Could not serialize response");
 
     // Send error message
     ws_conn_sink
@@ -716,5 +711,5 @@ async fn send_error_message(
         .await
         .send(Message::binary(serialized_response))
         .await
-        .expect("Failed to send error message");
+        .expect("Failed to send message");
 }

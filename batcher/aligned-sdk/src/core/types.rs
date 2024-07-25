@@ -223,14 +223,19 @@ impl AlignedVerificationData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ValidityResponseMessage {
+    Valid,
+    InvalidNonce,
+    InvalidSignature,
+    InvalidProof,
+    ProofTooLarge,
+    InsufficientBalance(Address),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
-    VerificationError(),
-    ProofTooLargeError(),
-    InsufficientBalanceError(Address),
-    SignatureVerificationError(),
-    InvalidNonceError,
     CreateNewTaskError(String),
     Error(String),
 }

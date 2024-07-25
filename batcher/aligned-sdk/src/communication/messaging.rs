@@ -1,10 +1,11 @@
-use futures_util::{future, stream::SplitStream, SinkExt, StreamExt, TryStreamExt};
-use log::{debug, error};
+use futures_util::{stream::SplitStream, SinkExt, StreamExt};
+use log::{debug, error, info};
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 
 use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet, types::U256};
-use futures_util::stream::SplitSink;
+use futures_util::future::Ready;
+use futures_util::stream::{SplitSink, TryFilter};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 use crate::{
@@ -13,12 +14,19 @@ use crate::{
         errors::SubmitError,
         types::{
             AlignedVerificationData, ClientMessage, NoncedVerificationData, ResponseMessage,
-            VerificationData, VerificationDataCommitment,
+            ValidityResponseMessage, VerificationData, VerificationDataCommitment,
         },
     },
 };
 
+pub type ResponseStream = TryFilter<
+    SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    Ready<bool>,
+    fn(&Message) -> Ready<bool>,
+>;
+
 pub async fn send_messages(
+    response_stream: Arc<Mutex<ResponseStream>>,
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
@@ -30,6 +38,8 @@ pub async fn send_messages(
 
     let mut nonce = nonce.clone();
     let mut nonce_bytes = [0u8; 32];
+
+    let mut response_stream = response_stream.lock().await;
 
     for verification_data in verification_data.iter() {
         nonce.to_big_endian(&mut nonce_bytes);
@@ -43,23 +53,63 @@ pub async fn send_messages(
             .send(Message::Text(msg_str.clone()))
             .await
             .map_err(SubmitError::WebSocketConnectionError)?;
-        sent_verification_data.push(verification_data.clone());
+
         debug!("Message sent...");
+
+        let msg = match response_stream.next().await {
+            Some(Ok(msg)) => msg,
+            _ => {
+                return Err(SubmitError::GenericError(
+                    "Connection was closed without close message before receiving all messages"
+                        .to_string(),
+                ));
+            }
+        };
+
+        let response_msg = serde_json::from_slice::<ValidityResponseMessage>(&msg.into_data())
+            .map_err(SubmitError::SerializationError)?;
+
+        match response_msg {
+            ValidityResponseMessage::Valid => {
+                debug!("Message was valid");
+            }
+            ValidityResponseMessage::InvalidNonce => {
+                info!("Invalid Nonce!");
+                // TODO: handle (invalidate local cache)
+            }
+            ValidityResponseMessage::InvalidSignature => {
+                error!("Invalid Signature!");
+                return Err(SubmitError::InvalidSignature);
+            }
+            ValidityResponseMessage::ProofTooLarge => {
+                error!("Proof too large!");
+                return Err(SubmitError::ProofTooLarge);
+            }
+            ValidityResponseMessage::InvalidProof => {
+                error!("Invalid Proof!");
+                return Err(SubmitError::InvalidProof);
+            }
+            ValidityResponseMessage::InsufficientBalance(addr) => {
+                error!("Insufficient balance for address: {}", addr);
+                return Err(SubmitError::InsufficientBalance);
+            }
+        };
+
+        sent_verification_data.push(verification_data.clone());
     }
 
     Ok(sent_verification_data)
 }
 
 pub async fn receive(
-    ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    response_stream: Arc<Mutex<ResponseStream>>,
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
 ) -> Result<Option<Vec<AlignedVerificationData>>, SubmitError> {
     // Responses are filtered to only admit binary or close messages.
-    let mut response_stream =
-        ws_read.try_filter(|msg| future::ready(msg.is_binary() || msg.is_close()));
+    let mut response_stream = response_stream.lock().await;
 
     let mut aligned_verification_data: Vec<AlignedVerificationData> = Vec::new();
 
@@ -119,21 +169,6 @@ async fn process_batch_inclusion_data(
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
-        }
-        Ok(ResponseMessage::VerificationError()) => {
-            error!("Invalid proof");
-        }
-        Ok(ResponseMessage::ProofTooLargeError()) => {
-            error!("Proof is too large");
-        }
-        Ok(ResponseMessage::InsufficientBalanceError(address)) => {
-            error!("Insufficient balance for address: {}", address);
-        }
-        Ok(ResponseMessage::SignatureVerificationError()) => {
-            error!("Failed to verify the signature");
-        }
-        Ok(ResponseMessage::InvalidNonceError) => {
-            error!("Invalid nonce")
         }
         Ok(ResponseMessage::CreateNewTaskError(merkle_root)) => {
             return Err(SubmitError::CreateNewTaskError(
