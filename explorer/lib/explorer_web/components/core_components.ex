@@ -835,4 +835,37 @@ defmodule ExplorerWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  Tooltip component.
+
+  ## Example
+      <.tooltip>
+        <p>Hover over me</p>
+      </.tooltip>
+
+  """
+  attr :class, :string, default: nil
+  slot :inner_block, required: true
+
+  def tooltip(assigns) do
+    ~H"""
+    <span
+      id={random_id("tt")}
+      class={[
+        "tooltip",
+        "px-2 py-1 text-sm text-foreground bg-card border border-muted-foreground/30 rounded-md",
+        @class
+      ]}
+      role="tooltip"
+      phx-hook="TooltipHook"
+    >
+      <%= render_slot(@inner_block) %>
+    </span>
+    """
+  end
+
+  def random_id(prefix) do
+    prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
+  end
 end

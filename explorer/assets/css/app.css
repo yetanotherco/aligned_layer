@@ -48,3 +48,15 @@
 		--ring: 165.75 41.24% 38.04%;
 	}
 }
+
+@layer components {
+	.tooltip {
+		display: none;
+	}
+
+	.tooltip[data-show] {
+		position: absolute;
+		display: block;
+		z-index: 9999;
+	}
+}

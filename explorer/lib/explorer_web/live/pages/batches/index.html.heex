@@ -5,11 +5,13 @@
       <:col :let={batch} label="Merkle Root">
         <.link navigate={~p"/batches/#{batch.merkle_root}"}>
           <span
-            title={batch.merkle_root}
             class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80"
           >
             <%= Utils.shorten_hash(batch.merkle_root, 6) %>
             <.right_arrow />
+            <.tooltip>
+              <%= batch.merkle_root %>
+            </.tooltip>
           </span>
         </.link>
       </:col>
