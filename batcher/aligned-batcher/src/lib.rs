@@ -497,6 +497,8 @@ impl Batcher {
     }
 
     async fn reset_state(&self) {
+        warn!("Resetting state... Flushing queue and nonces");
+
         let mut batch_queue = self.batch_queue.lock().await;
         let mut user_nonces = self.user_nonces.lock().await;
         let mut user_proof_count_in_batch = self.user_proof_count_in_batch.lock().await;

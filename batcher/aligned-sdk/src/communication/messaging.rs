@@ -168,13 +168,13 @@ async fn process_batch_inclusion_data(
             ));
         }
         Ok(ResponseMessage::BatchReset) => {
-            return Err(SubmitError::BatchReset);
+            return Err(SubmitError::ProofQueueFlushed);
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
         }
         Ok(ResponseMessage::CreateNewTaskError(merkle_root)) => {
-            return Err(SubmitError::CreateNewTaskError(
+            return Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned() + &merkle_root,
             ));
         }

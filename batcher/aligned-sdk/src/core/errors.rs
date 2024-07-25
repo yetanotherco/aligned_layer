@@ -60,12 +60,12 @@ pub enum SubmitError {
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
     InvalidNonce,
-    BatchReset,
+    ProofQueueFlushed,
     InvalidSignature,
     InvalidProof,
     ProofTooLarge,
     InsufficientBalance,
-    CreateNewTaskError(String),
+    BatchSubmissionFailed(String),
     GenericError(String),
 }
 
@@ -150,7 +150,7 @@ impl fmt::Display for SubmitError {
             }
             SubmitError::EmptyVerificationDataList => write!(f, "Verification data list is empty"),
             SubmitError::InvalidNonce => write!(f, "Invalid nonce"),
-            SubmitError::CreateNewTaskError(merkle_root) => write!(
+            SubmitError::BatchSubmissionFailed(merkle_root) => write!(
                 f,
                 "Could not create task with batch merkle root {}",
                 merkle_root
@@ -160,7 +160,7 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidProof => write!(f, "Invalid proof"),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
-            SubmitError::BatchReset => write!(f, "Batch reset"),
+            SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }
     }
 }
