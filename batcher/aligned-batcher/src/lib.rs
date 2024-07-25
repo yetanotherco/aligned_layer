@@ -626,7 +626,6 @@ impl Batcher {
             let nonced_verification_data = {
                 let mut user_nonces = self.user_nonces.lock().await;
 
-                // FIXME: init with != 0
                 let nonpaying_nonce = match user_nonces.entry(addr) {
                     Entry::Occupied(o) => o.into_mut(),
                     Entry::Vacant(vacant) => {
