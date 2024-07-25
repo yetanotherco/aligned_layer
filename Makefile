@@ -401,6 +401,14 @@ batcher_send_mina_task_bad_hash:
 		--public_input test_files/mina/protocol_state_bad_hash.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+batcher_send_mina_task_bad_consensus:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof test_files/mina/protocol_state.proof \
+		--public_input test_files/mina/protocol_state_bad_consensus.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 batcher_send_mina_burst:
 	@echo "Sending Mina state task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
