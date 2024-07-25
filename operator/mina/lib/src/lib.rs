@@ -1,5 +1,7 @@
 mod consensus_state;
 
+use std::array;
+
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
 use base64::prelude::*;
 use consensus_state::{select_longer_chain, LongerChainResult};
@@ -24,9 +26,7 @@ lazy_static! {
 // TODO(xqft): check proof size
 const MAX_PROOF_SIZE: usize = 16 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
-const PROTOCOL_STATE_HASH_SIZE: usize = 32;
-// TODO(gabrielbosio): check that this length is always the same for every block
-const PROTOCOL_STATE_SIZE: usize = 2056;
+const STATE_HASH_SIZE: usize = 32;
 
 #[no_mangle]
 pub extern "C" fn verify_protocol_state_proof_ffi(
@@ -110,14 +110,11 @@ pub fn parse_protocol_state_pub(
     ),
     String,
 > {
-    let (tip_protocol_state_hash, tip_protocol_state) = parse_protocol_state_with_hash(
-        &protocol_state_pub[..(PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE)],
-    )?;
+    let (tip_protocol_state_hash, tip_protocol_state, candidate_start) =
+        parse_protocol_state_with_hash(&protocol_state_pub, 0)?;
 
-    let (candidate_protocol_state_hash, candidate_protocol_state) = parse_protocol_state_with_hash(
-        &protocol_state_pub[(PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE)
-            ..((PROTOCOL_STATE_HASH_SIZE + PROTOCOL_STATE_SIZE) * 2)],
-    )?;
+    let (candidate_protocol_state_hash, candidate_protocol_state, _) =
+        parse_protocol_state_with_hash(&protocol_state_pub, candidate_start)?;
 
     Ok((
         tip_protocol_state_hash,
@@ -129,17 +126,40 @@ pub fn parse_protocol_state_pub(
 
 fn parse_protocol_state_with_hash(
     protocol_state_pub: &[u8],
+    start: usize,
 ) -> Result<
     (
         ark_ff::Fp256<mina_curves::pasta::fields::FpParameters>,
         MinaStateProtocolStateValueStableV2,
+        usize,
     ),
     String,
 > {
+    let protocol_state_hash_bytes: Vec<_> = protocol_state_pub
+        .iter()
+        .skip(start)
+        .take(STATE_HASH_SIZE)
+        .map(|byte| byte.clone())
+        .collect();
     let protocol_state_hash =
-        Fp::from_bytes(&protocol_state_pub[..32]).map_err(|err| err.to_string())?;
+        Fp::from_bytes(&protocol_state_hash_bytes).map_err(|err| err.to_string())?;
+
+    let protocol_state_len_vec: Vec<_> = protocol_state_pub
+        .iter()
+        .skip(start + STATE_HASH_SIZE)
+        .take(8)
+        .collect();
+    let protocol_state_len_bytes: [u8; 4] = array::from_fn(|i| protocol_state_len_vec[i].clone());
+    let protocol_state_len = u32::from_be_bytes(protocol_state_len_bytes) as usize;
+
+    let protocol_state_bytes: Vec<_> = protocol_state_pub
+        .iter()
+        .skip(start + STATE_HASH_SIZE + 4)
+        .take(protocol_state_len)
+        .map(|byte| byte.clone())
+        .collect();
     let protocol_state_base64 =
-        std::str::from_utf8(&protocol_state_pub[32..]).map_err(|err| err.to_string())?;
+        std::str::from_utf8(&protocol_state_bytes).map_err(|err| err.to_string())?;
     let protocol_state_binprot = BASE64_STANDARD
         .decode(protocol_state_base64)
         .map_err(|err| err.to_string())?;
@@ -147,7 +167,11 @@ fn parse_protocol_state_with_hash(
         MinaStateProtocolStateValueStableV2::binprot_read(&mut protocol_state_binprot.as_slice())
             .map_err(|err| err.to_string())?;
 
-    Ok((protocol_state_hash, protocol_state))
+    Ok((
+        protocol_state_hash,
+        protocol_state,
+        start + STATE_HASH_SIZE + 4 + protocol_state_len,
+    ))
 }
 
 #[cfg(test)]
