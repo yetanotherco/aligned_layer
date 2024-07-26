@@ -486,7 +486,7 @@ impl Batcher {
                 .await
             }
 
-            self.reset_state().await;
+            self.flush_queue_and_clear_nonce_cache().await;
 
             return Err(e);
         };
@@ -496,7 +496,7 @@ impl Batcher {
         Ok(())
     }
 
-    async fn reset_state(&self) {
+    async fn flush_queue_and_clear_nonce_cache(&self) {
         warn!("Resetting state... Flushing queue and nonces");
 
         let mut batch_queue = self.batch_queue.lock().await;
