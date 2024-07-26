@@ -9,9 +9,9 @@ pub enum BatcherError {
     EthereumSubscriptionError(String),
     SignatureError(SignatureError),
     TaskCreationError(String),
-    ReceiptNotFoundError(),
-    TransactionSendError(),
-    MaxRetriesReachedError(),
+    ReceiptNotFoundError,
+    TransactionSendError,
+    MaxRetriesReachedError,
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -44,13 +44,13 @@ impl fmt::Debug for BatcherError {
             BatcherError::TaskCreationError(e) => {
                 write!(f, "Task creation error: {}", e)
             }
-            BatcherError::ReceiptNotFoundError() => {
+            BatcherError::ReceiptNotFoundError => {
                 write!(f, "Receipt not found")
             }
-            BatcherError::TransactionSendError() => {
+            BatcherError::TransactionSendError => {
                 write!(f, "Error sending tx")
             }
-            BatcherError::MaxRetriesReachedError() => {
+            BatcherError::MaxRetriesReachedError => {
                 write!(
                     f,
                     "Maximum tries reached. Could not send createNewTask call"

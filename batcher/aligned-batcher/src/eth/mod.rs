@@ -56,8 +56,8 @@ pub async fn create_new_task(
         match call.send().await {
             Ok(pending_tx) => match pending_tx.await {
                 Ok(Some(receipt)) => return Ok(receipt),
-                Ok(None) => return Err(BatcherError::ReceiptNotFoundError()),
-                Err(_) => return Err(BatcherError::TransactionSendError()),
+                Ok(None) => return Err(BatcherError::ReceiptNotFoundError),
+                Err(_) => return Err(BatcherError::TransactionSendError),
             },
             Err(error) => {
                 if i != CREATE_NEW_TASK_MAX_RETRIES - 1 {
@@ -78,7 +78,7 @@ pub async fn create_new_task(
         .await;
     }
 
-    Err(BatcherError::MaxRetriesReachedError())
+    Err(BatcherError::MaxRetriesReachedError)
 }
 
 pub async fn get_batcher_payment_service(
