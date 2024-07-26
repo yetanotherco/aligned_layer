@@ -257,7 +257,16 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 				"taskIndex", blsAggServiceResp.TaskIndex,
 				"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
-			return
+			// To accomodate for the possibility of block re-orgs we wait 30 secs then 
+			// confirm the response was sent to the TaskManager
+			time.Sleep(30 * time.Second)
+
+			// Confirm Task included in block by checking TxReceipt
+			// If not we resend the Aggregated Response
+			_, err = utils.WaitForTransactionReceipt(agg.avsWriter.Client, context.Background(), txReceipt.TxHash)
+			if err == nil {
+				return
+			}
 		}
 
 		// Sleep for a bit before retrying
