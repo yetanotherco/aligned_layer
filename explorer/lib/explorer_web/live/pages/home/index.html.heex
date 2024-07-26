@@ -56,11 +56,11 @@
         <.link class="flex justify-between group" navigate={~p"/batches/#{batch}"}>
           <span class="group-hover:text-foreground/80">
             <%= Utils.shorten_hash(batch) %>
-            <.tooltip>
-              <%= batch %>
-            </.tooltip>
           </span>
           <.right_arrow />
+          <.tooltip>
+            <%= batch %>
+          </.tooltip>
         </.link>
       <% end %>
     </.card>

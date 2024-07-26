@@ -102,6 +102,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
+  attr :delay, :boolean, default: false, doc: "optional 3s delay for the flash message"
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
 
@@ -118,7 +119,8 @@ defmodule ExplorerWeb.CoreComponents do
         "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
         "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
         @kind == :info && "bg-emerald-50 text-emerald-800 ring-emerald-500 fill-cyan-900",
-        @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900"
+        @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900",
+        @delay && "delay-[3s]"
       ]}
       {@rest}
     >
@@ -156,6 +158,7 @@ defmodule ExplorerWeb.CoreComponents do
         title={gettext("We can't find the internet")}
         phx-disconnected={show(".phx-client-error #client-error")}
         phx-connected={hide("#client-error")}
+        delay
         hidden
       >
         <%= gettext("Attempting to reconnect") %>
@@ -652,7 +655,7 @@ defmodule ExplorerWeb.CoreComponents do
           </tr>
         </thead>
         <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="gap-y-2 [&>td]:pt-3">
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700">
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
@@ -854,7 +857,8 @@ defmodule ExplorerWeb.CoreComponents do
       id={random_id("tt")}
       class={[
         "tooltip",
-        "px-2 py-1 text-sm text-foreground bg-card border border-muted-foreground/30 rounded-md",
+        "animate-in fade-in slide-in-from-bottom duration-50",
+        "px-2 py-1 text-sm text-foreground bg-card border border-muted-foreground/30 rounded-full shadow-sm drop-shadow-sm",
         @class
       ]}
       role="tooltip"
