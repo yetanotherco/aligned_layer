@@ -24,6 +24,10 @@ fi
 echo "Generating proof $x != 0"
 go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 
+# Set default values for RPC and BATCHER_ADDR if they are not set
+RPC=${RPC:-http://localhost:8545}
+BATCHER_ADDR=${BATCHER_ADDR:-ws://localhost:8080}
+
 cmd=(
     ./batcher/target/release/aligned
     submit
@@ -33,6 +37,8 @@ cmd=(
     --public_input "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.pub"
     --vk "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.vk"
     --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+    --rpc "$RPC"
+    --batcher_addr "$BATCHER_ADDR"
 )
 
 # If PRIVATE_KEY is set then add private key argument
