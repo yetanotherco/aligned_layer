@@ -11,7 +11,7 @@ defmodule ExplorerWeb.Batches.Index do
 
     batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
 
-    PubSub.subscribe(Explorer.PubSub, "update_views")
+    if connected?(socket), do: PubSub.subscribe(Explorer.PubSub, "update_views")
 
     {:ok, assign(socket, current_page: current_page, batches: batches, page_title: "Batches")}
   end

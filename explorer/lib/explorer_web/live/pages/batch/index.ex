@@ -6,7 +6,7 @@ defmodule ExplorerWeb.Batch.Index do
   def mount(params, _, socket) do
     merkle_root = params["merkle_root"]
 
-    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
+    if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     current_batch =
       case Batches.get_batch(%{merkle_root: merkle_root}) do
