@@ -64,4 +64,52 @@ defmodule AVSDirectory do
     AVSDirectory.get_operator_status_updated_events()
     |> (fn {status, data} when status == :ok -> count_operators_registered(data) end).()
   end
+
+  def get_operator_status_updated_events(%{fromBlock: fromBlock}) do
+    AVSDirectory.EventFilters.operator_avs_registration_status_updated(
+      nil,
+      AlignedLayerServiceManager.get_aligned_layer_service_manager_address()
+    )
+    |> Ethers.get_logs(fromBlock: fromBlock)
+  end
+
+  def process_operator_data(%{fromBlock: fromBlock}) do
+    IO.inspect("inside")
+    AVSDirectory.get_operator_status_updated_events()
+      |> case do
+        {:ok, events} ->
+          Enum.map(events, &extract_operator_event_info/1)
+
+        {:error, reason} ->
+          IO.inspect("Error fetching operator events")
+          IO.inspect(reason)
+          []
+        _ ->
+          IO.inspect("Unexpected response fetching operator events")
+          []
+      end
+  end
+
+  def extract_operator_event_info(event) do
+    IO.inspect(event)
+    case event.topics |> hd do
+      "OperatorAVSRegistrationStatusUpdated(address,address,uint8)" ->
+        case event.data |> hd do
+          1 ->
+            IO.inspect("Operator registered")
+            IO.inspect(Enum.at(event.topics, 1))
+            #TODO where to get operator name?
+            Operators.register_operator(%Operators{name: "test", address: Enum.at(event.topics, 1)})
+          0 ->
+            IO.inspect("Operator unregistered")
+            Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
+
+          other ->
+            IO.inspect("Unexpected event data", event.data)
+        end
+      _ ->
+        IO.inspect("Unexpected event")
+        nil
+    end
+  end
 end

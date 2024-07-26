@@ -3,7 +3,7 @@ defmodule ExplorerWeb.Operators.Index do
 
   @impl true
   def mount(_, _, socket) do
-    {:ok, assign(socket, page_title: "Operators")}
+    {:ok, assign(socket, page_title: "Operators", operators: Operators.get_operators())}
   end
 
   embed_templates "*"

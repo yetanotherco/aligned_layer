@@ -29,9 +29,11 @@ defmodule Explorer.Periodically do
     # Gets previous unverified batches and checks if they were verified
     run_every_n_iterations = 8
     new_count = rem(count + 1, run_every_n_iterations)
-    # if new_count == 0 do
-    Task.start(&process_unverified_batches/0)
-    # end
+    if new_count == 0 do
+      Task.start(&process_unverified_batches/0)
+      # Task.start(fn -> process_operators(read_from_block) end)
+    end
+    Task.start(fn -> process_operators(read_from_block) end)
 
     {:noreply, new_count}
   end
@@ -110,5 +112,14 @@ defmodule Explorer.Periodically do
         Batches.insert_or_update(batch_changeset, proofs)
       end
     )
+  end
+
+  defp process_operators(fromBlock) do
+    "Processing operators..." |> IO.inspect()
+
+    # TODO this should run once from first block in redeploy:
+    AVSDirectory.process_operator_data(%{fromBlock: 0})
+    # AVSDirectory.get_operators_data(%{fromBlock: fromBlock})
+
   end
 end
