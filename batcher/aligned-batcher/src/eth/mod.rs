@@ -6,13 +6,13 @@ use std::time::Duration;
 use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
-use log::debug;
+use log::{error, info, warn};
 use tokio::time::sleep;
 
-const CREATE_NEW_TASK_MAX_RETRIES: usize = 100;
-const CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES: u64 = 100;
+const CREATE_NEW_TASK_MAX_RETRIES: usize = 15;
+const CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES: u64 = 2000;
 
-use crate::config::ECDSAConfig;
+use crate::{config::ECDSAConfig, types::errors::BatcherError};
 
 #[derive(Debug, Clone, EthEvent)]
 pub struct BatchVerified {
@@ -34,19 +34,14 @@ pub async fn create_new_task(
     signatures: Vec<SignatureData>,
     gas_for_aggregator: U256,
     gas_per_proof: U256,
-) -> Result<TransactionReceipt, anyhow::Error> {
+) -> Result<TransactionReceipt, BatcherError> {
     // pad leaves to next power of 2
-    let leaves_len = leaves.len();
-    let last_leaf = leaves[leaves_len - 1];
-    let leaves = leaves
-        .into_iter()
-        .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
-        .collect::<Vec<[u8; 32]>>();
+    let padded_leaves = pad_leaves(leaves);
 
     let call = payment_service.create_new_task(
         batch_merkle_root,
         batch_data_pointer,
-        leaves,
+        padded_leaves,
         signatures,
         gas_for_aggregator,
         gas_per_proof,
@@ -55,23 +50,35 @@ pub async fn create_new_task(
     // If there was a pending transaction from a previously sent batch, the `call.send()` will
     // fail because of the nonce not being updated. We should retry sending and not returning an error
     // immediatly.
-    for _ in 0..CREATE_NEW_TASK_MAX_RETRIES {
-        if let Ok(pending_tx) = call.send().await {
-            match pending_tx.await? {
-                Some(receipt) => return Ok(receipt),
-                None => return Err(anyhow::anyhow!("Receipt not found")),
+    info!("Creating task for: {:x?}", batch_merkle_root);
+
+    for i in 0..CREATE_NEW_TASK_MAX_RETRIES {
+        match call.send().await {
+            Ok(pending_tx) => match pending_tx.await {
+                Ok(Some(receipt)) => return Ok(receipt),
+                Ok(None) => return Err(BatcherError::ReceiptNotFoundError),
+                Err(_) => return Err(BatcherError::TransactionSendError),
+            },
+            Err(error) => {
+                if i != CREATE_NEW_TASK_MAX_RETRIES - 1 {
+                    warn!(
+                        "Error when trying to create a task: {}\n Retrying ...",
+                        error
+                    );
+                } else {
+                    error!("Error when trying to create a task on last retry. Batch task {:x?} will be lost", batch_merkle_root);
+                    return Err(BatcherError::TaskCreationError(error.to_string()));
+                }
             }
-        }
-        debug!("createNewTask transaction not sent, retrying in {CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES} milliseconds...");
+        };
+
         sleep(Duration::from_millis(
             CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES,
         ))
         .await;
     }
 
-    Err(anyhow::anyhow!(
-        "Maximum tries reached. Could not send createNewTask call"
-    ))
+    Err(BatcherError::MaxRetriesReachedError)
 }
 
 pub async fn get_batcher_payment_service(
@@ -94,4 +101,13 @@ pub async fn get_batcher_payment_service(
         BatcherPaymentService::new(H160::from_str(contract_address.as_str())?, signer);
 
     Ok(service_manager)
+}
+
+fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
+    let leaves_len = leaves.len();
+    let last_leaf = leaves[leaves_len - 1];
+    leaves
+        .into_iter()
+        .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
+        .collect()
 }
