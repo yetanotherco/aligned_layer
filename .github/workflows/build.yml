@@ -32,3 +32,33 @@ jobs:
         run: go build operator/cmd/main.go
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            batcher/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
+      - name: Check formatting of Rust projects
+        run: |
+          cd batcher
+          cargo fmt --all -- --check
+      - name: Run Clippy
+        run: |
+          cd batcher
+          cargo clippy --all -- -D warnings
+      - name: Build Rust projects
+        run: |
+          cd batcher
+          cargo build --all
+  
+      
