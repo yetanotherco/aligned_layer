@@ -7,6 +7,7 @@
 * [Example - ZKquiz](introduction/2_zkquiz.md)
 * [Use cases](introduction/3_use_cases.md)
 * [FAQ](introduction/4_faq.md)
+* [Generating & submitting proofs of Rust code with ZKRust](introduction/5_using_zkrust.md)
 
 ## Architecture
 
@@ -28,7 +29,6 @@
 * [SDK](guides/1_SDK.md)
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)
 * [Contract Addresses](guides/4_contract_addresses.md)
-* [Generating & submitting proofs of Rust code with ZKRust](guides/0_5_using_zkrust.md)
 
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 
