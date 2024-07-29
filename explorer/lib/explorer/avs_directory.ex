@@ -60,16 +60,15 @@ defmodule AVSDirectory do
   #   end
   # end
 
-  def get_operator_status_updated_events(%{fromBlock: fromBlock}) do
+  def get_operator_registration_status_updated_events(%{fromBlock: fromBlock}) do
     AVSDirectory.EventFilters.operator_avs_registration_status_updated(
-      nil,
-      AlignedLayerServiceManager.get_aligned_layer_service_manager_address()
-    )
-    |> Ethers.get_logs(fromBlock: fromBlock)
+      nil, # any operator
+      AlignedLayerServiceManager.get_aligned_layer_service_manager_address() # our AVS
+    ) |> Ethers.get_logs(fromBlock: fromBlock)
   end
 
   def process_operator_data(%{fromBlock: fromBlock}) do
-    AVSDirectory.get_operator_status_updated_events(%{fromBlock: fromBlock})
+    AVSDirectory.get_operator_registration_status_updated_events(%{fromBlock: fromBlock})
       |> case do
         {:ok, events} ->
           Enum.map(events, &extract_operator_event_info/1)
@@ -85,34 +84,51 @@ defmodule AVSDirectory do
   end
 
   def extract_operator_event_info(event) do
-    IO.inspect(event)
-    case event.topics |> hd do
-      "OperatorAVSRegistrationStatusUpdated(address,address,uint8)" ->
-        case event.data |> hd do
-          1 ->
-            IO.inspect("Operator registered")
-            #TODO where to get operator name? from URI
-            AVSDirectory.handle_operator_registration(event)
+    case Mutex.lock(OperatorMutex, {event.topics |> Enum.at(1)}) do
+      {:error, :busy} ->
+        "Operator already being processed: #{event.topics |> Enum.at(1)}" |> IO.inspect()
+        :empty
 
-          0 ->
-            IO.inspect("Operator unregistered")
-            Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
+      {:ok, lock} ->
+        case event.topics |> hd do
+          "OperatorAVSRegistrationStatusUpdated(address,address,uint8)" ->
+            case event.data |> hd do
+              1 ->
+                IO.inspect("Operator registered")
+                AVSDirectory.handle_operator_registration(event)
 
-          other ->
-            IO.inspect("Unexpected event data", event.data)
+              0 ->
+                IO.inspect("Operator unregistered")
+                AVSDirectory.handle_operator_unregistration(event)
+
+              other ->
+                IO.inspect("Unexpected event data", event.data)
+            end
+          _ ->
+            IO.inspect("Unexpected event")
+            :empty
         end
-      _ ->
-        IO.inspect("Unexpected event")
-        nil
+        Mutex.release(OperatorMutex, lock)
     end
   end
 
   def handle_operator_registration(event) do
-    # operator_name = AVSDirectory.get_operator_name(Enum.at(event.topics, 1))
-    # URI = read latest 'OperatorMetadataURIUpdated(msg.sender, metadataURI)' event from DelegationManager.sol
-    # operator_name get from inside URI resource
-    operator_uri = DelegationManager.get_operator_uri(Enum.at(event.topics, 1)) #is not being called for each operator, only for our operator?
-    operator_name = "wip" # TODO parse previous URI to get relevant info
-    Operators.register_operator(%Operators{name: operator_name, address: Enum.at(event.topics, 1), URI: operator_uri})
+    IO.inspect("Handling operator registration")
+    operator_url = DelegationManager.get_operator_url(Enum.at(event.topics, 1))
+    operator_metadata = case Utils.fetch_eigen_operator_metadata(operator_url) do
+      {:ok, operator_metadata} ->
+        operator_metadata
+
+      {:error, reason} ->
+        IO.inspect("Error fetching operator metadata")
+        %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
+    end
+    Operators.register_operator(%Operators{name: operator_metadata.name, address: Enum.at(event.topics, 1), url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter})
+    # TODO read its first stake
+  end
+
+  def handle_operator_unregistration(event) do
+    IO.inspect("Handling operator unregistration")
+    # Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
   end
 end

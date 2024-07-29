@@ -124,8 +124,6 @@ defmodule Utils do
   end
 
   def calculate_proof_hashes({:ok, batch_json}) do
-    IO.inspect("Calculating proof hashes")
-
     batch_json
       |> Enum.map(
         fn s3_object ->
@@ -178,5 +176,22 @@ defmodule Utils do
     batch
     |> Map.put(:proof_hashes, proof_hashes)
     |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
+  end
+
+  def fetch_eigen_operator_metadata(url) do
+    case Finch.build(:get, url) |> Finch.request(Explorer.Finch) do
+      {:ok, %Finch.Response{status: 200, body: body}} ->
+        case Jason.decode(body) do
+          {:ok, json} -> {:ok, EigenOperatorMetadataStruct.map_to_struct(json)}
+          {:error, reason} ->
+            {:error, {reason}}
+        end
+
+      {:ok, %Finch.Response{status: status_code}} ->
+        {:error, {:http_error, status_code}}
+
+      {:error, reason} ->
+        {:error, {:http_error, reason}}
+    end
   end
 end

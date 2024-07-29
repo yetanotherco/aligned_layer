@@ -37,14 +37,14 @@ defmodule DelegationManager do
     @delegation_manager_address
   end
 
-  def get_operator_uri(operator_address) do
+  def get_operator_url(operator_address) do
     DelegationManager.EventFilters.operator_metadata_uri_updated(operator_address)
       |> Ethers.get_logs(fromBlock: 0)
       |> case do
         {ok, data} -> List.last(data).data |> hd()
 
         {error, reason} ->
-          IO.inspect("Error getting operator uri")
+          IO.inspect("Error getting operator url")
           IO.inspect(reason)
 
         other ->

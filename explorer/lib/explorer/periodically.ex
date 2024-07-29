@@ -12,6 +12,9 @@ defmodule Explorer.Periodically do
   end
 
   def send_work() do
+    # TODO think a better place to put this
+    Task.start(fn -> process_operators(0) end)
+
     # once per block
     seconds = 12
     # send every n seconds
@@ -116,10 +119,6 @@ defmodule Explorer.Periodically do
 
   defp process_operators(fromBlock) do
     "Processing operators..." |> IO.inspect()
-
-    # TODO this should run once from first block in redeploy:
-    AVSDirectory.process_operator_data(%{fromBlock: 0})
-    # AVSDirectory.get_operators_data(%{fromBlock: fromBlock})
-
+    AVSDirectory.process_operator_data(%{fromBlock: fromBlock})
   end
 end

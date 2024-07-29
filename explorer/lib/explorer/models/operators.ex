@@ -6,7 +6,11 @@ defmodule Operators do
   schema "operators" do
     field :name, :string
     field :address, :binary
-    field :URI, :string
+    field :url, :string
+    field :website, :string
+    field :description, :string
+    field :logo_link, :string
+    field :twitter, :string
 
     timestamps()
   end
@@ -14,8 +18,8 @@ defmodule Operators do
   @doc false
   def changeset(operator, attrs) do
     operator
-    |> cast(attrs, [:name, :address])
-    |> validate_required([:name, :address, :URI])
+    |> cast(attrs, [:name, :address, :url, :website, :description, :logo_link, :twitter])
+    |> validate_required([:address, :url])
   end
 
   def get_operators() do
@@ -28,7 +32,7 @@ defmodule Operators do
     Explorer.Repo.one(query)
   end
 
-  def register_operator(%Operators{name: _name, address: _address, URI: _URI} = operator) do
+  def register_operator(%Operators{name: _name, address: _address, url: _url} = operator) do
     Explorer.Repo.insert(operator)
   end
 
