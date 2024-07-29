@@ -662,7 +662,7 @@ impl Batcher {
 
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
         self.payment_service
-            .user_balances_unlock_block(*addr)
+            .user_unlock_block(*addr)
             .call()
             .await
             .unwrap_or_default()

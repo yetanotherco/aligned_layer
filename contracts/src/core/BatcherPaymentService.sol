@@ -25,18 +25,18 @@ contract BatcherPaymentService is
         uint256 nonce;
     }
 
+    struct UserInfo {
+        uint256 balance;
+        uint256 unlockBlock;
+        uint256 nonce;
+    }
+
     // STORAGE
     address public AlignedLayerServiceManager;
     address public BatcherWallet;
 
-    mapping(address => uint256) public UserBalances;
-
-    // map to check if user has unlocked their funds
-    // 0 means funds are locked
-    mapping(address => uint256) public UserBalancesUnlockBlock;
-
-    // map to check signature is only submitted once
-    mapping(address => uint256) public UserNonces;
+    // map to user data
+    mapping(address => UserInfo) public UserData;
 
     // storage gap for upgradeability
     uint256[24] private __GAP;
@@ -61,7 +61,7 @@ contract BatcherPaymentService is
 
     // PAYABLE FUNCTIONS
     receive() external payable {
-        UserBalances[msg.sender] += msg.value;
+        UserData[msg.sender].balance += msg.value;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
@@ -122,27 +122,29 @@ contract BatcherPaymentService is
     }
 
     function unlock() external whenNotPaused {
-        require(UserBalances[msg.sender] > 0, "User has no funds to unlock");
-        UserBalancesUnlockBlock[msg.sender] = block.number + UNLOCK_BLOCK_COUNT;
+        require(
+            UserData[msg.sender].balance > 0,
+            "User has no funds to unlock"
+        );
+
+        UserData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
     }
 
     function lock() external whenNotPaused {
-        require(UserBalances[msg.sender] > 0, "User has no funds to lock");
-        UserBalancesUnlockBlock[msg.sender] = 0;
+        require(UserData[msg.sender].balance > 0, "User has no funds to lock");
+        UserData[msg.sender].unlockBlock = 0;
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
+        UserInfo storage user_data = UserData[msg.sender];
+        require(user_data.balance >= amount, "Payer has insufficient balance");
+
         require(
-            UserBalances[msg.sender] >= amount,
-            "Payer has insufficient balance"
-        );
-        require(
-            UserBalancesUnlockBlock[msg.sender] != 0 &&
-                UserBalancesUnlockBlock[msg.sender] <= block.number,
+            user_data.unlockBlock != 0 && user_data.unlockBlock <= block.number,
             "Funds are locked"
         );
 
-        UserBalances[msg.sender] -= amount;
+        user_data.balance -= amount;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }
@@ -241,13 +243,28 @@ contract BatcherPaymentService is
             signatureData.s
         );
 
-        require(UserNonces[signer] == signatureData.nonce, "Invalid Nonce");
-        UserNonces[signer]++;
+        UserInfo storage user_data = UserData[signer];
+
+        require(user_data.nonce == signatureData.nonce, "Invalid Nonce");
+        user_data.nonce++;
 
         require(
-            UserBalances[signer] >= feePerProof,
+            user_data.balance >= feePerProof,
             "Signer has insufficient balance"
         );
-        UserBalances[signer] -= feePerProof;
+
+        user_data.balance -= feePerProof;
+    }
+
+    function user_balances(address account) public view returns (uint256) {
+        return UserData[account].balance;
+    }
+
+    function user_nonces(address account) public view returns (uint256) {
+        return UserData[account].nonce;
+    }
+
+    function user_unlock_block(address account) public view returns (uint256) {
+        return UserData[account].unlockBlock;
     }
 }
