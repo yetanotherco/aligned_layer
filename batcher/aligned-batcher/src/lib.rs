@@ -19,7 +19,7 @@ use aligned_sdk::core::types::{
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
-use ethers::providers::Ws;
+use ethers::providers::{Http, RetryClient, Ws};
 use ethers::types::{Address, Signature, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
@@ -55,7 +55,7 @@ pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
     eth_ws_provider: Provider<Ws>,
-    payment_service: BatcherPaymentService,
+    payment_service: BatcherPaymentService<RetryClient<Http>>,
     batch_queue: Mutex<BatchQueue>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -563,7 +563,7 @@ impl Batcher {
             .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
-        eth::create_new_task(
+        match eth::create_new_task(
             payment_service,
             *batch_merkle_root,
             batch_data_pointer,
@@ -572,10 +572,21 @@ impl Batcher {
             AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
             gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
         )
-        .await?;
+        .await
+        {
+            Ok(_) => {
+                info!("Batch verification task created on Aligned contract");
+                Ok(())
+            }
+            Err(e) => {
+                error!(
+                    "Failed to send batch to contract, batch will be lost: {:?}",
+                    e
+                );
 
-        info!("Batch verification task created on Aligned contract");
-        Ok(())
+                Err(e)
+            }
+        }
     }
 
     /// Only relevant for testing and for users to easily use Aligned

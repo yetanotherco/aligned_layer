@@ -1,16 +1,11 @@
 use std::iter::repeat;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::Duration;
 
 use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
-use log::{error, info, warn};
-use tokio::time::sleep;
-
-const CREATE_NEW_TASK_MAX_RETRIES: usize = 15;
-const CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES: u64 = 2000;
+use log::info;
 
 use crate::{config::ECDSAConfig, types::errors::BatcherError};
 
@@ -19,15 +14,25 @@ pub struct BatchVerified {
     pub batch_merkle_root: [u8; 32],
 }
 
-pub type BatcherPaymentService =
-    BatcherPaymentServiceContract<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>;
+pub type BatcherPaymentService<T> =
+    BatcherPaymentServiceContract<SignerMiddleware<Provider<T>, Wallet<SigningKey>>>;
 
-pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
-    Provider::<Http>::try_from(eth_rpc_url).map_err(|err| anyhow::anyhow!(err))
+pub fn get_provider(eth_rpc_url: String) -> Result<Provider<RetryClient<Http>>, anyhow::Error> {
+    let provider = Http::from_str(eth_rpc_url.as_str())
+        .map_err(|e| anyhow::Error::msg(format!("Failed to create provider: {}", e)))?;
+
+    let client = RetryClient::new(
+        provider,
+        Box::<ethers::providers::HttpRateLimitRetryPolicy>::default(),
+        15,
+        1000,
+    );
+
+    Ok(Provider::<RetryClient<Http>>::new(client))
 }
 
-pub async fn create_new_task(
-    payment_service: &BatcherPaymentService,
+pub async fn create_new_task<T: JsonRpcClient>(
+    payment_service: &BatcherPaymentService<T>,
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
     leaves: Vec<[u8; 32]>,
@@ -47,45 +52,25 @@ pub async fn create_new_task(
         gas_per_proof,
     );
 
-    // If there was a pending transaction from a previously sent batch, the `call.send()` will
-    // fail because of the nonce not being updated. We should retry sending and not returning an error
-    // immediatly.
     info!("Creating task for: {:x?}", batch_merkle_root);
 
-    for i in 0..CREATE_NEW_TASK_MAX_RETRIES {
-        match call.send().await {
-            Ok(pending_tx) => match pending_tx.await {
-                Ok(Some(receipt)) => return Ok(receipt),
-                Ok(None) => return Err(BatcherError::ReceiptNotFoundError),
-                Err(_) => return Err(BatcherError::TransactionSendError),
-            },
-            Err(error) => {
-                if i != CREATE_NEW_TASK_MAX_RETRIES - 1 {
-                    warn!(
-                        "Error when trying to create a task: {}\n Retrying ...",
-                        error
-                    );
-                } else {
-                    error!("Error when trying to create a task on last retry. Batch task {:x?} will be lost", batch_merkle_root);
-                    return Err(BatcherError::TaskCreationError(error.to_string()));
-                }
-            }
-        };
+    let res = match call.send().await {
+        Ok(pending_tx) => match pending_tx.await {
+            Ok(Some(receipt)) => Ok(receipt),
+            Ok(None) => Err(BatcherError::ReceiptNotFoundError),
+            Err(_) => Err(BatcherError::TransactionSendError),
+        },
+        Err(error) => Err(BatcherError::TaskCreationError(error.to_string())),
+    };
 
-        sleep(Duration::from_millis(
-            CREATE_NEW_TASK_MILLISECS_BETWEEN_RETRIES,
-        ))
-        .await;
-    }
-
-    Err(BatcherError::MaxRetriesReachedError)
+    res
 }
 
 pub async fn get_batcher_payment_service(
-    provider: Provider<Http>,
+    provider: Provider<RetryClient<Http>>,
     ecdsa_config: ECDSAConfig,
     contract_address: String,
-) -> Result<BatcherPaymentService, anyhow::Error> {
+) -> Result<BatcherPaymentService<RetryClient<Http>>, anyhow::Error> {
     let chain_id = provider.get_chainid().await?;
 
     // get private key from keystore

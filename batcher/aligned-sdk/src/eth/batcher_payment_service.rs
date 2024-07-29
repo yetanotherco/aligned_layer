@@ -10,12 +10,12 @@ abigen!(
     "abi/BatcherPaymentService.json"
 );
 
-pub type BatcherPaymentService = BatcherPaymentServiceContract<Provider<Http>>;
+pub type BatcherPaymentService<T> = BatcherPaymentServiceContract<Provider<T>>;
 
-pub async fn batcher_payment_service(
-    provider: Provider<Http>,
+pub async fn batcher_payment_service<T: JsonRpcClient>(
+    provider: Provider<T>,
     contract_address: &str,
-) -> Result<BatcherPaymentService, VerificationError> {
+) -> Result<BatcherPaymentService<T>, VerificationError> {
     let client = Arc::new(provider);
     let contract_addr = H160::from_str(contract_address)
         .map_err(|e| VerificationError::HexDecodingError(e.to_string()))?;
