@@ -61,16 +61,17 @@ pub async fn create_new_task<T: JsonRpcClient>(
 
     info!("Creating task for: {:x?}", batch_merkle_root);
 
-    let res = match call.send().await {
-        Ok(pending_tx) => match pending_tx.await {
-            Ok(Some(receipt)) => Ok(receipt),
-            Ok(None) => Err(BatcherError::ReceiptNotFoundError),
-            Err(_) => Err(BatcherError::TransactionSendError),
-        },
-        Err(error) => Err(BatcherError::TaskCreationError(error.to_string())),
-    };
+    let pending_tx = call
+        .send()
+        .await
+        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
 
-    res
+    let receipt = pending_tx
+        .await
+        .map_err(|_| BatcherError::TransactionSendError)?
+        .ok_or(BatcherError::ReceiptNotFoundError)?;
+
+    Ok(receipt)
 }
 
 pub async fn get_batcher_payment_service(
