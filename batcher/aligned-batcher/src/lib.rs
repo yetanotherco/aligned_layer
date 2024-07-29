@@ -296,17 +296,12 @@ impl Batcher {
             return false;
         }
         let mut batch_state = self.batch_state.lock().await;
-        let mut batch_state = self.batch_state.lock().await;
+
         let user_proofs_in_batch = batch_state
             .user_proof_count_in_batch
             .get(addr)
             .unwrap_or(&0)
             + 1;
-        let user_proofs_in_batch = batch_state
-                   .user_proof_count_in_batch
-                   .get(addr)
-                   .unwrap_or(&0)
-                   + 1;
         let user_balance = self.get_user_balance(addr).await;
 
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_BALANCE_PER_PROOF);
