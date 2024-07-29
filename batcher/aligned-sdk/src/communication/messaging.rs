@@ -30,13 +30,12 @@ pub async fn send_messages(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
-    nonce: U256,
+    mut nonce: U256,
 ) -> Result<Vec<NoncedVerificationData>, SubmitError> {
     let mut sent_verification_data = Vec::new();
 
     let mut ws_write = ws_write.lock().await;
 
-    let mut nonce = nonce.clone();
     let mut nonce_bytes = [0u8; 32];
 
     let mut response_stream = response_stream.lock().await;

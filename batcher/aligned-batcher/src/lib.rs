@@ -217,9 +217,8 @@ impl Batcher {
         if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
             if self.is_nonpaying(&addr) {
-                return self
-                    .handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
-                    .await;
+                self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
+                    .await
             } else {
                 if !self.check_user_balance(&addr).await {
                     send_message(
@@ -267,7 +266,7 @@ impl Batcher {
                 info!("Verification data message handled");
 
                 send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
-                return Ok(());
+                Ok(())
             }
         } else {
             error!("Signature verification error");
@@ -288,7 +287,7 @@ impl Batcher {
         }
 
         let mut user_proof_counts = self.user_proof_count_in_batch.lock().await;
-        let user_proofs_in_batch = user_proof_counts.get(addr).unwrap_or(&0).clone() + 1;
+        let user_proofs_in_batch = *user_proof_counts.get(addr).unwrap_or(&0) + 1;
 
         let user_balance = self.get_user_balance(addr).await;
 
