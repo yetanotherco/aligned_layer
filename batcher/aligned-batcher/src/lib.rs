@@ -314,7 +314,7 @@ impl Batcher {
             return false;
         }
 
-        batch_state.update_user_proof_count(&addr, user_proofs_in_batch);
+        batch_state.update_user_proof_count(addr, user_proofs_in_batch);
         true
     }
 
