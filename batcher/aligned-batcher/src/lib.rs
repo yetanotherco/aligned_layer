@@ -577,7 +577,7 @@ impl Batcher {
         let payment_service = self.payment_service.write().await;
 
         match eth::create_new_task(
-            &*payment_service,
+            &payment_service,
             *batch_merkle_root,
             batch_data_pointer,
             leaves,
