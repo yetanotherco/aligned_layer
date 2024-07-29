@@ -292,13 +292,21 @@ impl Batcher {
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
     async fn check_user_balance(&self, addr: &Address) -> bool {
+        if self.user_balance_is_unlocked(addr).await {
+            return false;
+        }
+        let mut batch_state = self.batch_state.lock().await;
         let mut batch_state = self.batch_state.lock().await;
         let user_proofs_in_batch = batch_state
             .user_proof_count_in_batch
             .get(addr)
             .unwrap_or(&0)
             + 1;
-
+        let user_proofs_in_batch = batch_state
+                   .user_proof_count_in_batch
+                   .get(addr)
+                   .unwrap_or(&0)
+                   + 1;
         let user_balance = self.get_user_balance(addr).await;
 
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_BALANCE_PER_PROOF);
@@ -699,6 +707,15 @@ impl Batcher {
             .call()
             .await
             .unwrap_or_default()
+    }
+
+    async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
+        self.payment_service
+            .user_unlock_block(*addr)
+            .call()
+            .await
+            .unwrap_or_default()
+            != U256::zero()
     }
 }
 
