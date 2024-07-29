@@ -19,7 +19,7 @@ use aligned_sdk::core::types::{
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
-use ethers::providers::{Http, RetryClient, Ws};
+use ethers::providers::Ws;
 use ethers::types::{Address, Signature, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
@@ -55,7 +55,7 @@ pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
     eth_ws_provider: Provider<Ws>,
-    payment_service: RwLock<BatcherPaymentService<RetryClient<Http>>>,
+    payment_service: RwLock<BatcherPaymentService>,
     batch_queue: Mutex<BatchQueue>,
     max_block_interval: u64,
     min_batch_len: usize,

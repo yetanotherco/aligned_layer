@@ -15,8 +15,8 @@ pub struct BatchVerified {
     pub batch_merkle_root: [u8; 32],
 }
 
-pub type BatcherPaymentService<T> = BatcherPaymentServiceContract<
-    SignerMiddleware<GasEscalatorMiddleware<Provider<T>>, Wallet<SigningKey>>,
+pub type BatcherPaymentService = BatcherPaymentServiceContract<
+    SignerMiddleware<GasEscalatorMiddleware<Provider<RetryClient<Http>>>, Wallet<SigningKey>>,
 >;
 
 const MAX_RETRIES: u32 = 15;
@@ -38,8 +38,8 @@ pub fn get_provider(eth_rpc_url: String) -> Result<Provider<RetryClient<Http>>, 
     Ok(Provider::<RetryClient<Http>>::new(client))
 }
 
-pub async fn create_new_task<T: JsonRpcClient>(
-    payment_service: &BatcherPaymentService<T>,
+pub async fn create_new_task(
+    payment_service: &BatcherPaymentService,
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
     leaves: Vec<[u8; 32]>,
@@ -78,7 +78,7 @@ pub async fn get_batcher_payment_service(
     provider: Provider<RetryClient<Http>>,
     ecdsa_config: ECDSAConfig,
     contract_address: String,
-) -> Result<BatcherPaymentService<RetryClient<Http>>, anyhow::Error> {
+) -> Result<BatcherPaymentService, anyhow::Error> {
     let chain_id = provider.get_chainid().await?;
 
     let escalator = GeometricGasPrice::new(GAS_MULTIPLIER, GAS_ESCALATOR_INTERVAL, None::<u64>);
