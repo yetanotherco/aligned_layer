@@ -19,6 +19,11 @@ pub type BatcherPaymentService<T> = BatcherPaymentServiceContract<
     SignerMiddleware<GasEscalatorMiddleware<Provider<T>>, Wallet<SigningKey>>,
 >;
 
+const MAX_RETRIES: u32 = 15;
+const INITIAL_BACKOFF: u64 = 1000;
+const GAS_MULTIPLIER: f64 = 1.125;
+const GAS_ESCALATOR_INTERVAL: u64 = 12; // seconds
+
 pub fn get_provider(eth_rpc_url: String) -> Result<Provider<RetryClient<Http>>, anyhow::Error> {
     let provider = Http::from_str(eth_rpc_url.as_str())
         .map_err(|e| anyhow::Error::msg(format!("Failed to create provider: {}", e)))?;
@@ -26,8 +31,8 @@ pub fn get_provider(eth_rpc_url: String) -> Result<Provider<RetryClient<Http>>, 
     let client = RetryClient::new(
         provider,
         Box::<ethers::providers::HttpRateLimitRetryPolicy>::default(),
-        15,
-        1000,
+        MAX_RETRIES,
+        INITIAL_BACKOFF,
     );
 
     Ok(Provider::<RetryClient<Http>>::new(client))
@@ -75,7 +80,7 @@ pub async fn get_batcher_payment_service(
 ) -> Result<BatcherPaymentService<RetryClient<Http>>, anyhow::Error> {
     let chain_id = provider.get_chainid().await?;
 
-    let escalator = GeometricGasPrice::new(1.125, 20u64, None::<u64>);
+    let escalator = GeometricGasPrice::new(GAS_MULTIPLIER, GAS_ESCALATOR_INTERVAL, None::<u64>);
 
     let provider = GasEscalatorMiddleware::new(provider, escalator, Frequency::PerBlock);
 
