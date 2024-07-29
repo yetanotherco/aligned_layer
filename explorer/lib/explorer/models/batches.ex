@@ -44,12 +44,16 @@ defmodule Batches do
       response_block_number: batch_db.response_block_number,
       response_transaction_hash: batch_db.response_transaction_hash,
       response_timestamp: batch_db.response_timestamp,
-      data_pointer: batch_db.data_pointer
+      data_pointer: batch_db.data_pointer,
     }
   end
 
-  def generate_changeset(%BatchDB{} = batch_db) do
-    Batches.changeset(%Batches{}, Map.from_struct(Batches.cast_to_batches(batch_db)))
+  # returns changeset for both Batches and Proofs table
+  def generate_changesets(%BatchDB{} = batch_db) do
+    batches_changeset = Batches.changeset(%Batches{}, Map.from_struct(Batches.cast_to_batches(batch_db)))
+    proofs = Proofs.cast_to_proofs(batch_db)
+
+    {batches_changeset, proofs}
   end
 
   def get_batch(%{merkle_root: merkle_root}) do
@@ -118,54 +122,56 @@ defmodule Batches do
     end
   end
 
-  def get_amount_of_proofs(%{merkle_root: merkle_root}) do
-    query = from(b in Batches,
-      where: b.merkle_root == ^merkle_root,
-      select: b.amount_of_proofs)
-
-    case Explorer.Repo.one(query) do
-      nil -> nil
-      result -> result
-    end
-  end
-
-  def insert_or_update(changeset) do
-    merkle_root = changeset.changes.merkle_root
+  def insert_or_update(batch_changeset, proofs) do
+    merkle_root = batch_changeset.changes.merkle_root
+    stored_proofs = Proofs.get_proofs_from_batch(%{merkle_root: merkle_root})
     case Explorer.Repo.get(Batches, merkle_root) do
       nil ->
-        "New Batch, inserting to DB:" |> IO.puts()
-        case Explorer.Repo.insert(changeset) do
-          {:ok, _} ->
-            "Batch inserted successfully" |> IO.puts()
-            {:ok, :empty}
+        multi = Ecto.Multi.new()
+          |> Ecto.Multi.insert(:insert_batch, batch_changeset)
+          |> Ecto.Multi.insert_all(:insert_all, Proofs, proofs)
 
-          {:error, changeset} ->
-            "Batch insert failed #{changeset}" |> IO.puts()
-            {:error, changeset}
-        end
+          case Explorer.Repo.transaction(multi) do
+            {:ok, _} ->
+              IO.puts("Batch inserted successfully")
+              {:ok, :success}
+
+            {:error, _failed_operation, failed_changeset, _reason} ->
+              IO.puts("Batch insert failed:")
+              IO.inspect(failed_changeset)
+              {:error, failed_changeset}
+          end
+
       existing_batch ->
         try do
-          if existing_batch.is_verified != changeset.changes.is_verified
-            or existing_batch.amount_of_proofs != changeset.changes.amount_of_proofs  # rewrites if it was writen with DB's default
-            or existing_batch.data_pointer != changeset.changes.data_pointer          # rewrites if it was writen with DB's default
-            or existing_batch.submission_block_number != changeset.changes.submission_block_number          # reorg may change submission_block_number
-            or existing_batch.submission_transaction_hash != changeset.changes.submission_transaction_hash  # reorg may change submission_tx_hash
-            or (Map.has_key?(changeset.changes, :block_number)
-              and  existing_batch.response_block_number != changeset.changes.response_block_number)         # reorg may change response_block_number
-            or (Map.has_key?(changeset.changes, :response_transaction_hash)
-              and existing_batch.response_transaction_hash != changeset.changes.response_transaction_hash)  # reorg may change response_tx_hash
+          if existing_batch.is_verified != batch_changeset.changes.is_verified
+            or existing_batch.amount_of_proofs != batch_changeset.changes.amount_of_proofs  # rewrites if it was writen with DB's default
+            or existing_batch.data_pointer != batch_changeset.changes.data_pointer          # rewrites if it was writen with DB's default
+            or existing_batch.submission_block_number != batch_changeset.changes.submission_block_number          # reorg may change submission_block_number
+            or existing_batch.submission_transaction_hash != batch_changeset.changes.submission_transaction_hash  # reorg may change submission_tx_hash
+            or (Map.has_key?(batch_changeset.changes, :block_number)
+              and  existing_batch.response_block_number != batch_changeset.changes.response_block_number)         # reorg may change response_block_number
+            or (Map.has_key?(batch_changeset.changes, :response_transaction_hash)
+              and existing_batch.response_transaction_hash != batch_changeset.changes.response_transaction_hash)  # reorg may change response_tx_hash
+            or stored_proofs == nil and proofs != %{}                 # no proofs registered in DB, but some received
           do
             "Batch values have changed, updating in DB" |> IO.puts()
-            updated_changeset = Ecto.Changeset.change(existing_batch, changeset.changes)
-            case Explorer.Repo.update(updated_changeset) do
-              {:ok, _} ->
-                "Batch updated successfully" |> IO.puts()
-                {:ok, :empty}
+            updated_changeset = Ecto.Changeset.change(existing_batch, batch_changeset.changes) # no changes in proofs table
 
-              {:error, changeset} ->
-                "Batch update failed #{changeset}" |> IO.puts()
+            multi =
+              Ecto.Multi.new()
+              |> Ecto.Multi.update(:update_batch, updated_changeset)
+              |> (fn m -> if stored_proofs == nil and proofs != %{}, do: Ecto.Multi.insert_all(m, :insert_proofs, Proofs, proofs), else: m end).()
+
+            case Explorer.Repo.transaction(multi) do
+              {:ok, _} ->
+                "Batch updated and new proofs inserted successfully" |> IO.puts()
+                {:ok, :empty}
+              {:error, _, changeset, _} ->
+                "Error: #{inspect(changeset.errors)}" |> IO.puts()
                 {:error, changeset}
             end
+
           end
         rescue
           error ->

@@ -35,16 +35,16 @@ defmodule SearchComponent do
       <input
         phx-hook="SearchFocus"
         id={"input_#{assigns.id}"}
-        class="pr-10 shadow-md flex h-10 w-full file:border-0 text-foreground file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground/20 bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-foreground/10 focus:outline-none focus:ring-1 disabled:pointer-events-none disabled:opacity-50 hover:text-foreground"
+        class="pr-10 shadow-md flex h-10 w-full file:border-0 text-foreground file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed flex-1 rounded-md border border-foreground/20 bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus:outline-none focus:ring-1 disabled:pointer-events-none disabled:opacity-50 hover:text-foreground"
         type="search"
         placeholder="Search by merkle root hash..."
         name="batch[merkle_root]"
       />
       <.button
         type="submit"
-        class="absolute right-5 sm:right-1 -top-0.5 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-transparent border-none text-muted-foreground hover:text-foreground size-10 rounded-full shadow-none hover:bg-transparent"
+        class="absolute right-5 sm:right-1 top-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-transparent border-none size-10 shadow-none hover:bg-transparent text-muted-foreground"
       >
-        <.icon name="hero-magnifying-glass-solid" class="size-4" />
+        <.icon name="hero-magnifying-glass-solid" class="size-5 hover:text-foreground" />
         <span class="sr-only">Search</span>
       </.button>
     </form>

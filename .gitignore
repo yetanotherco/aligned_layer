@@ -11,3 +11,5 @@ batcher/aligned/batch_inclusion_responses/*
 **/aligned_verification_data
 **/broadcast
 volume
+
+nonce_*.bin

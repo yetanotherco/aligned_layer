@@ -1,5 +1,4 @@
 use ethers::core::k256::ecdsa::SigningKey;
-use ethers::signers::Signer;
 use ethers::signers::Wallet;
 use ethers::types::Address;
 use ethers::types::Signature;
@@ -32,6 +31,21 @@ pub struct VerificationData {
     pub proof_generator_addr: Address,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NoncedVerificationData {
+    pub verification_data: VerificationData,
+    pub nonce: [u8; 32],
+}
+
+impl NoncedVerificationData {
+    pub fn new(verification_data: VerificationData, nonce: [u8; 32]) -> Self {
+        Self {
+            verification_data,
+            nonce,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
@@ -42,8 +56,10 @@ pub struct VerificationDataCommitment {
     pub proof_generator_addr: [u8; 20],
 }
 
-impl From<VerificationData> for VerificationDataCommitment {
-    fn from(verification_data: VerificationData) -> Self {
+impl From<&NoncedVerificationData> for VerificationDataCommitment {
+    fn from(nonced_verification_data: &NoncedVerificationData) -> Self {
+        let verification_data = nonced_verification_data.verification_data.clone();
+
         let mut hasher = Keccak256::new();
 
         // compute proof commitment
@@ -80,6 +96,12 @@ impl From<VerificationData> for VerificationDataCommitment {
             proving_system_aux_data_commitment,
             proof_generator_addr,
         }
+    }
+}
+
+impl From<NoncedVerificationData> for VerificationDataCommitment {
+    fn from(nonced_verification_data: NoncedVerificationData) -> Self {
+        VerificationDataCommitment::from(&nonced_verification_data)
     }
 }
 
@@ -136,16 +158,17 @@ impl BatchInclusionData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientMessage {
-    pub verification_data: VerificationData,
+    pub verification_data: NoncedVerificationData,
     pub signature: Signature,
 }
 
 impl ClientMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
-    pub async fn new(verification_data: VerificationData, wallet: Wallet<SigningKey>) -> Self {
-        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.clone().into());
-        let signature = wallet.sign_message(hashed_leaf).await.unwrap();
+    pub fn new(verification_data: NoncedVerificationData, wallet: Wallet<SigningKey>) -> Self {
+        let hashed_leaf = ClientMessage::hash_with_nonce(&verification_data);
+
+        let signature = wallet.sign_hash(hashed_leaf.into()).unwrap();
 
         ClientMessage {
             verification_data,
@@ -156,15 +179,20 @@ impl ClientMessage {
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
-        let hashed_leaf =
-            VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
+        let hashed_leaf: [u8; 32] = ClientMessage::hash_with_nonce(&self.verification_data);
 
-        // IMPORTANT: If the `.to_vec()` conversion is not made for `hashed_leaf`, the recovered
-        // address from the signature will not be the same as the one who signed. This is a bug in
-        // the ethers-rs library
-        let recovered = self.signature.recover(hashed_leaf.to_vec())?;
-        self.signature.verify(hashed_leaf.to_vec(), recovered)?;
+        let recovered = self.signature.recover(hashed_leaf)?;
+        self.signature.verify(hashed_leaf, recovered)?;
         Ok(recovered)
+    }
+
+    fn hash_with_nonce(verification_data: &NoncedVerificationData) -> [u8; 32] {
+        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.into());
+
+        let mut hasher = Keccak256::new();
+        hasher.update(hashed_leaf);
+        hasher.update(verification_data.nonce);
+        hasher.finalize().into()
     }
 }
 
@@ -195,13 +223,21 @@ impl AlignedVerificationData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ValidityResponseMessage {
+    Valid,
+    InvalidNonce,
+    InvalidSignature,
+    InvalidProof,
+    ProofTooLarge,
+    InsufficientBalance(Address),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
-    VerificationError(),
-    ProofTooLargeError(),
-    InsufficientBalanceError(Address),
-    SignatureVerificationError(),
+    CreateNewTaskError(String),
+    BatchReset,
     Error(String),
 }
 

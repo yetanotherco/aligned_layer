@@ -9,6 +9,7 @@ use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 pub enum AlignedError {
     SubmitError(SubmitError),
     VerificationError(VerificationError),
+    NonceError(NonceError),
 }
 
 impl From<SubmitError> for AlignedError {
@@ -23,11 +24,18 @@ impl From<VerificationError> for AlignedError {
     }
 }
 
+impl From<NonceError> for AlignedError {
+    fn from(e: NonceError) -> Self {
+        AlignedError::NonceError(e)
+    }
+}
+
 impl fmt::Display for AlignedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             AlignedError::SubmitError(e) => write!(f, "Submit error: {}", e),
             AlignedError::VerificationError(e) => write!(f, "Verification error: {}", e),
+            AlignedError::NonceError(e) => write!(f, "Nonce error: {}", e),
         }
     }
 }
@@ -51,6 +59,13 @@ pub enum SubmitError {
     UnexpectedBatcherResponse(String),
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
+    InvalidNonce,
+    ProofQueueFlushed,
+    InvalidSignature,
+    InvalidProof,
+    ProofTooLarge,
+    InsufficientBalance,
+    BatchSubmissionFailed(String),
     GenericError(String),
 }
 
@@ -134,7 +149,18 @@ impl fmt::Display for SubmitError {
                 write!(f, "Verification data commitments are empty")
             }
             SubmitError::EmptyVerificationDataList => write!(f, "Verification data list is empty"),
+            SubmitError::InvalidNonce => write!(f, "Invalid nonce"),
+            SubmitError::BatchSubmissionFailed(merkle_root) => write!(
+                f,
+                "Could not create task with batch merkle root {}",
+                merkle_root
+            ),
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
+            SubmitError::InvalidSignature => write!(f, "Invalid Signature"),
+            SubmitError::InvalidProof => write!(f, "Invalid proof"),
+            SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
+            SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
+            SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }
     }
 }
@@ -154,6 +180,23 @@ impl fmt::Display for VerificationError {
                 write!(f, "Ethereum provider error: {}", e)
             }
             VerificationError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum NonceError {
+    EthereumProviderError(String),
+    EthereumCallError(String),
+}
+
+impl fmt::Display for NonceError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            NonceError::EthereumProviderError(e) => {
+                write!(f, "Ethereum provider error: {}", e)
+            }
+            NonceError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
         }
     }
 }
