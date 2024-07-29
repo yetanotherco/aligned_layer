@@ -55,7 +55,7 @@ pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
     eth_ws_provider: Provider<Ws>,
-    payment_service: BatcherPaymentService<RetryClient<Http>>,
+    payment_service: RwLock<BatcherPaymentService<RetryClient<Http>>>,
     batch_queue: Mutex<BatchQueue>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -104,6 +104,8 @@ impl Batcher {
         )
         .await
         .expect("Failed to get Batcher Payment Service contract");
+
+        let payment_service = RwLock::new(payment_service);
 
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
@@ -303,7 +305,14 @@ impl Batcher {
         let expected_user_nonce = match user_nonces.get(&addr) {
             Some(nonce) => *nonce,
             None => {
-                let user_nonce = match self.payment_service.user_nonces(addr).call().await {
+                let user_nonce = match self
+                    .payment_service
+                    .read()
+                    .await
+                    .user_nonces(addr)
+                    .call()
+                    .await
+                {
                     Ok(nonce) => nonce,
                     Err(e) => {
                         error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
@@ -548,7 +557,6 @@ impl Batcher {
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        let payment_service = &self.payment_service;
         let batch_data_pointer = "https://".to_owned() + &self.s3_bucket_name + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
@@ -563,8 +571,10 @@ impl Batcher {
             .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
+        let payment_service = self.payment_service.write().await;
+
         match eth::create_new_task(
-            payment_service,
+            &*payment_service,
             *batch_merkle_root,
             batch_data_pointer,
             leaves,
@@ -607,6 +617,8 @@ impl Batcher {
 
         let user_balance = self
             .payment_service
+            .read()
+            .await
             .user_balances(addr)
             .call()
             .await
@@ -640,6 +652,8 @@ impl Batcher {
                     Entry::Vacant(vacant) => {
                         let nonce = self
                             .payment_service
+                            .read()
+                            .await
                             .user_nonces(addr)
                             .call()
                             .await
@@ -687,6 +701,8 @@ impl Batcher {
 
     async fn get_user_balance(&self, addr: &Address) -> U256 {
         self.payment_service
+            .read()
+            .await
             .user_balances(*addr)
             .call()
             .await
