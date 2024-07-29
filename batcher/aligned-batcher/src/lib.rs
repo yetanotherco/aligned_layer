@@ -9,6 +9,7 @@ use serde::Serialize;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::env;
+use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -20,7 +21,7 @@ use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
-use ethers::types::{Address, Signature, U256};
+use ethers::types::{Address, Signature, TransactionReceipt, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -574,18 +575,16 @@ impl Batcher {
             .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
-        let payment_service = self.payment_service.write().await;
-
-        match eth::create_new_task(
-            &payment_service,
-            *batch_merkle_root,
-            batch_data_pointer,
-            leaves,
-            signatures,
-            AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
-            gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
-        )
-        .await
+        match self
+            .create_new_task(
+                *batch_merkle_root,
+                batch_data_pointer,
+                leaves,
+                signatures,
+                AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
+                gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
+            )
+            .await
         {
             Ok(_) => {
                 info!("Batch verification task created on Aligned contract");
@@ -600,6 +599,53 @@ impl Batcher {
                 Err(e)
             }
         }
+    }
+
+    async fn create_new_task(
+        &self,
+        batch_merkle_root: [u8; 32],
+        batch_data_pointer: String,
+        leaves: Vec<[u8; 32]>,
+        signatures: Vec<SignatureData>,
+        gas_for_aggregator: U256,
+        gas_per_proof: U256,
+    ) -> Result<TransactionReceipt, BatcherError> {
+        // pad leaves to next power of 2
+        let padded_leaves = Self::pad_leaves(leaves);
+
+        let payment_service = self.payment_service.write().await;
+
+        let call = payment_service.create_new_task(
+            batch_merkle_root,
+            batch_data_pointer,
+            padded_leaves,
+            signatures,
+            gas_for_aggregator,
+            gas_per_proof,
+        );
+
+        info!("Creating task for: {}", hex::encode(batch_merkle_root));
+
+        let pending_tx = call
+            .send()
+            .await
+            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+
+        let receipt = pending_tx
+            .await
+            .map_err(|_| BatcherError::TransactionSendError)?
+            .ok_or(BatcherError::ReceiptNotFoundError)?;
+
+        Ok(receipt)
+    }
+
+    fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
+        let leaves_len = leaves.len();
+        let last_leaf = leaves[leaves_len - 1];
+        leaves
+            .into_iter()
+            .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
+            .collect()
     }
 
     /// Only relevant for testing and for users to easily use Aligned
