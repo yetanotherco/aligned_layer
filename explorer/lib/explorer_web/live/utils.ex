@@ -131,7 +131,7 @@ defmodule Utils do
         fn s3_object ->
           # TODO this is current prod version
           :crypto.hash(:sha3_256, s3_object["proof"])
-          # TODO this is future prod version
+          # TODO this is current stage version
           # :crypto.hash(:sha3_256, s3_object["verification_data"]["proof"])
         end)
   end

@@ -37,33 +37,28 @@ defmodule AVSDirectory do
     @avs_directory_address
   end
 
-  def get_operator_status_updated_events() do
-    AVSDirectory.EventFilters.operator_avs_registration_status_updated(
-      nil,
-      AlignedLayerServiceManager.get_aligned_layer_service_manager_address()
-    )
-    |> Ethers.get_logs(fromBlock: @first_block)
-  end
+  # def get_operator_status_updated_events() do
+  #   AVSDirectory.EventFilters.operator_avs_registration_status_updated(
+  #     nil,
+  #     AlignedLayerServiceManager.get_aligned_layer_service_manager_address()
+  #   )
+  #   |> Ethers.get_logs(fromBlock: @first_block)
+  # end
 
   # tail-call recursion
-  defp count_operators_registered(list), do: sum_operators_registered(list, 0)
-  defp sum_operators_registered([], val), do: val
+  # defp count_operators_registered(list), do: sum_operators_registered(list, 0)
+  # defp sum_operators_registered([], val), do: val
 
-  defp sum_operators_registered([head | tail], val),
-    do: sum_operators_registered(tail, evaluate_operator(head, val))
+  # defp sum_operators_registered([head | tail], val),
+  #   do: sum_operators_registered(tail, evaluate_operator(head, val))
 
-  defp evaluate_operator(event, val) do
-    # registered or unregistered
-    case event.data |> hd() == 1 do
-      true -> val + 1
-      false -> val - 1
-    end
-  end
-
-  def get_operators_registered() do
-    AVSDirectory.get_operator_status_updated_events()
-    |> (fn {status, data} when status == :ok -> count_operators_registered(data) end).()
-  end
+  # defp evaluate_operator(event, val) do
+  #   # registered or unregistered
+  #   case event.data |> hd() == 1 do
+  #     true -> val + 1
+  #     false -> val - 1
+  #   end
+  # end
 
   def get_operator_status_updated_events(%{fromBlock: fromBlock}) do
     AVSDirectory.EventFilters.operator_avs_registration_status_updated(
@@ -74,8 +69,7 @@ defmodule AVSDirectory do
   end
 
   def process_operator_data(%{fromBlock: fromBlock}) do
-    IO.inspect("inside")
-    AVSDirectory.get_operator_status_updated_events()
+    AVSDirectory.get_operator_status_updated_events(%{fromBlock: fromBlock})
       |> case do
         {:ok, events} ->
           Enum.map(events, &extract_operator_event_info/1)
@@ -97,9 +91,9 @@ defmodule AVSDirectory do
         case event.data |> hd do
           1 ->
             IO.inspect("Operator registered")
-            IO.inspect(Enum.at(event.topics, 1))
-            #TODO where to get operator name?
-            Operators.register_operator(%Operators{name: "test", address: Enum.at(event.topics, 1)})
+            #TODO where to get operator name? from URI
+            AVSDirectory.handle_operator_registration(event)
+
           0 ->
             IO.inspect("Operator unregistered")
             Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
@@ -111,5 +105,14 @@ defmodule AVSDirectory do
         IO.inspect("Unexpected event")
         nil
     end
+  end
+
+  def handle_operator_registration(event) do
+    # operator_name = AVSDirectory.get_operator_name(Enum.at(event.topics, 1))
+    # URI = read latest 'OperatorMetadataURIUpdated(msg.sender, metadataURI)' event from DelegationManager.sol
+    # operator_name get from inside URI resource
+    operator_uri = DelegationManager.get_operator_uri(Enum.at(event.topics, 1)) #is not being called for each operator, only for our operator?
+    operator_name = "wip" # TODO parse previous URI to get relevant info
+    Operators.register_operator(%Operators{name: operator_name, address: Enum.at(event.topics, 1), URI: operator_uri})
   end
 end

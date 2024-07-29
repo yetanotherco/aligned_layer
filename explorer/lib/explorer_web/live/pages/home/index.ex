@@ -6,7 +6,7 @@ defmodule ExplorerWeb.Home.Index do
   def handle_info(_, socket) do
     verified_batches = Batches.get_amount_of_verified_batches()
 
-    operators_registered = AVSDirectory.get_operators_registered()
+    operators_registered = Operators.get_amount_of_operators()
 
     latest_batches =
       Batches.get_latest_batches(%{amount: 5})
@@ -29,7 +29,7 @@ defmodule ExplorerWeb.Home.Index do
   def mount(_, _, socket) do
     verified_batches = Batches.get_amount_of_verified_batches()
 
-    operators_registered = AVSDirectory.get_operators_registered()
+    operators_registered = Operators.get_amount_of_operators()
 
     latest_batches =
       Batches.get_latest_batches(%{amount: 5})

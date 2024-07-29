@@ -6,6 +6,7 @@ defmodule Operators do
   schema "operators" do
     field :name, :string
     field :address, :binary
+    field :URI, :string
 
     timestamps()
   end
@@ -14,20 +15,20 @@ defmodule Operators do
   def changeset(operator, attrs) do
     operator
     |> cast(attrs, [:name, :address])
-    |> validate_required([:name, :address])
+    |> validate_required([:name, :address, :URI])
   end
 
   def get_operators() do
     query = from(o in Operators, select: o)
     Explorer.Repo.all(query)
   end
-  
+
   def get_amount_of_operators do
     query = from(o in Operators, select: count(o.id))
     Explorer.Repo.one(query)
   end
 
-  def register_operator(%Operators{name: _name, address: _address} = operator) do
+  def register_operator(%Operators{name: _name, address: _address, URI: _URI} = operator) do
     Explorer.Repo.insert(operator)
   end
 

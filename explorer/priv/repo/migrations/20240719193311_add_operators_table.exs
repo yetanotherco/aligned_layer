@@ -6,6 +6,7 @@ defmodule Explorer.Repo.Migrations.AddOperatorsTable do
       add :id, :bigserial, primary_key: true
       add :name, :string, null: false
       add :address, :binary, null: false
+      add :URI, :string, null: false
 
       timestamps()
     end
