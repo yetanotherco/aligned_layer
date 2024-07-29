@@ -3,7 +3,7 @@ use log::{debug, error};
 use std::sync::Arc;
 use tokio::{net::TcpStream, sync::Mutex};
 
-use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet};
+use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet, types::U256};
 use futures_util::stream::SplitSink;
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
@@ -12,8 +12,8 @@ use crate::{
     core::{
         errors::SubmitError,
         types::{
-            AlignedVerificationData, ClientMessage, ResponseMessage, VerificationData,
-            VerificationDataCommitment,
+            AlignedVerificationData, ClientMessage, NoncedVerificationData, ResponseMessage,
+            VerificationData, VerificationDataCommitment,
         },
     },
 };
@@ -22,13 +22,22 @@ pub async fn send_messages(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
-) -> Result<Vec<VerificationData>, SubmitError> {
+    nonce: U256,
+) -> Result<Vec<NoncedVerificationData>, SubmitError> {
     let mut sent_verification_data = Vec::new();
 
     let mut ws_write = ws_write.lock().await;
 
+    let mut nonce = nonce.clone();
+    let mut nonce_bytes = [0u8; 32];
+
     for verification_data in verification_data.iter() {
-        let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
+        nonce.to_big_endian(&mut nonce_bytes);
+
+        let verification_data = NoncedVerificationData::new(verification_data.clone(), nonce_bytes);
+        nonce += U256::one();
+
+        let msg = ClientMessage::new(verification_data.clone(), wallet.clone());
         let msg_str = serde_json::to_string(&msg).map_err(SubmitError::SerializationError)?;
         ws_write
             .send(Message::Text(msg_str.clone()))
@@ -110,19 +119,27 @@ async fn process_batch_inclusion_data(
         }
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
-        },
+        }
         Ok(ResponseMessage::VerificationError()) => {
             error!("Invalid proof");
-        },
+        }
         Ok(ResponseMessage::ProofTooLargeError()) => {
             error!("Proof is too large");
-        },
+        }
         Ok(ResponseMessage::InsufficientBalanceError(address)) => {
             error!("Insufficient balance for address: {}", address);
-        },
+        }
         Ok(ResponseMessage::SignatureVerificationError()) => {
             error!("Failed to verify the signature");
-        },
+        }
+        Ok(ResponseMessage::InvalidNonceError) => {
+            error!("Invalid nonce")
+        }
+        Ok(ResponseMessage::CreateNewTaskError(merkle_root)) => {
+            return Err(SubmitError::CreateNewTaskError(
+                "Could not create task with merkle root ".to_owned() + &merkle_root,
+            ));
+        }
         Err(e) => {
             return Err(SubmitError::SerializationError(e));
         }
