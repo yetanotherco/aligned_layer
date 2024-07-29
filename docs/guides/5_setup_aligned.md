@@ -106,7 +106,7 @@ make anvil_upgrade_registry_coordinator
 
 Note that when upgrading the contracts, you must also:
 
-1. re-generate the Go smart contract bindings:
+1. Re-generate the Go smart contract bindings:
 
     ```bash
     make bindings
@@ -324,7 +324,7 @@ batcher (`batcher/aligned-batcher/`).
 The necessary environment variables are:
 
 | Variable Name         | Description                                                                                                                    |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
 | AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
 | AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
@@ -637,7 +637,7 @@ Create a `.env` file in the `/explorer` directory of the project.
 The `.env` file needs to contain the following variables:
 
 | Variable              | Description                                                                                     |
-|-----------------------|-------------------------------------------------------------------------------------------------|
+| --------------------- | ----------------------------------------------------------------------------------------------- |
 | `RPC_URL`             | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT`         | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
 | `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information                            |
