@@ -5,6 +5,7 @@ use std::sync::Arc;
 use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
+use gas_escalator::{Frequency, GeometricGasPrice};
 use log::info;
 
 use crate::{config::ECDSAConfig, types::errors::BatcherError};
@@ -14,8 +15,9 @@ pub struct BatchVerified {
     pub batch_merkle_root: [u8; 32],
 }
 
-pub type BatcherPaymentService<T> =
-    BatcherPaymentServiceContract<SignerMiddleware<Provider<T>, Wallet<SigningKey>>>;
+pub type BatcherPaymentService<T> = BatcherPaymentServiceContract<
+    SignerMiddleware<GasEscalatorMiddleware<Provider<T>>, Wallet<SigningKey>>,
+>;
 
 pub fn get_provider(eth_rpc_url: String) -> Result<Provider<RetryClient<Http>>, anyhow::Error> {
     let provider = Http::from_str(eth_rpc_url.as_str())
@@ -72,6 +74,10 @@ pub async fn get_batcher_payment_service(
     contract_address: String,
 ) -> Result<BatcherPaymentService<RetryClient<Http>>, anyhow::Error> {
     let chain_id = provider.get_chainid().await?;
+
+    let escalator = GeometricGasPrice::new(1.125, 20u64, None::<u64>);
+
+    let provider = GasEscalatorMiddleware::new(provider, escalator, Frequency::PerBlock);
 
     // get private key from keystore
     let wallet = Wallet::decrypt_keystore(
