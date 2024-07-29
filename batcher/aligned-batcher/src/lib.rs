@@ -714,6 +714,8 @@ impl Batcher {
 
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
         self.payment_service
+            .read()
+            .await
             .user_unlock_block(*addr)
             .call()
             .await
