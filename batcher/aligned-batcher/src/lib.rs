@@ -65,6 +65,14 @@ impl BatchState {
             user_proof_count_in_batch: HashMap::new(),
         }
     }
+
+    fn increment_user_proof_count(&mut self, addr: &Address) -> u64 {
+        self.user_proof_count_in_batch.get(addr).unwrap_or(&0) + 1
+    }
+
+    fn update_user_proof_count(&mut self, addr: &Address, count: u64) {
+        self.user_proof_count_in_batch.insert(*addr, count);
+    }
 }
 
 pub struct Batcher {
@@ -297,11 +305,8 @@ impl Batcher {
         }
         let mut batch_state = self.batch_state.lock().await;
 
-        let user_proofs_in_batch = batch_state
-            .user_proof_count_in_batch
-            .get(addr)
-            .unwrap_or(&0)
-            + 1;
+        let user_proofs_in_batch = batch_state.increment_user_proof_count(addr);
+
         let user_balance = self.get_user_balance(addr).await;
 
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_BALANCE_PER_PROOF);
@@ -309,9 +314,7 @@ impl Batcher {
             return false;
         }
 
-        batch_state
-            .user_proof_count_in_batch
-            .insert(*addr, user_proofs_in_batch);
+        batch_state.update_user_proof_count(&addr, user_proofs_in_batch);
         true
     }
 
