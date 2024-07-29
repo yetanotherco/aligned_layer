@@ -324,10 +324,9 @@ async fn main() -> Result<(), AlignedError> {
                     unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
                 }
 
-                if unique_batch_merkle_roots.len() > 1 {
-                    info!("Proofs submitted to aligned. See the batches in the explorer:");
-                } else if unique_batch_merkle_roots.len() == 1 {
-                    info!("Proofs submitted to aligned. See the batch in the explorer:");
+                match unique_batch_merkle_roots.len() {
+                    1 => info!("Proofs submitted to aligned. See the batch in the explorer:"),
+                    _ => info!("Proofs submitted to aligned. See the batches in the explorer:"),
                 }
 
                 for batch_merkle_root in unique_batch_merkle_roots {
