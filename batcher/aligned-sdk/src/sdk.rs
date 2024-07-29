@@ -1,7 +1,7 @@
 use crate::{
     communication::{
         batch::await_batch_verification,
-        messaging::{receive, send_messages},
+        messaging::{receive, send_messages, ResponseStream},
         protocol::check_protocol_version,
     },
     core::{
@@ -29,7 +29,7 @@ use log::debug;
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    StreamExt,
+    StreamExt, TryStreamExt,
 };
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
@@ -133,9 +133,21 @@ async fn _submit_multiple(
     }
     let ws_write_clone = ws_write.clone();
 
+    let response_stream: ResponseStream =
+        ws_read.try_filter(|msg| futures_util::future::ready(msg.is_binary() || msg.is_close()));
+
+    let response_stream = Arc::new(Mutex::new(response_stream));
+
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
-    let sent_verification_data = send_messages(ws_write, verification_data, wallet, nonce).await?;
+    let sent_verification_data = send_messages(
+        response_stream.clone(),
+        ws_write,
+        verification_data,
+        wallet,
+        nonce,
+    )
+    .await?;
 
     let num_responses = Arc::new(Mutex::new(0));
 
@@ -149,7 +161,7 @@ async fn _submit_multiple(
             .collect();
 
     let aligned_verification_data = receive(
-        ws_read,
+        response_stream,
         ws_write_clone,
         verification_data.len(),
         num_responses,

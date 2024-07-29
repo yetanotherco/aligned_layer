@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fs::File;
+use std::io;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::PathBuf;
@@ -300,7 +301,17 @@ async fn main() -> Result<(), AlignedError> {
             .await?;
 
             let aligned_verification_data_vec =
-                submit_multiple(&connect_addr, &verification_data_arr, wallet, nonce).await?;
+                match submit_multiple(&connect_addr, &verification_data_arr, wallet.clone(), nonce)
+                    .await
+                {
+                    Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
+                    Err(e) => {
+                        let nonce_file = format!("nonce_{:?}.bin", wallet.address());
+
+                        handle_submit_err(e, nonce_file.as_str()).await;
+                        return Ok(());
+                    }
+                };
 
             if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
                 let mut unique_batch_merkle_roots = HashSet::new();
@@ -574,6 +585,26 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
     })
 }
 
+async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
+    match err {
+        SubmitError::InvalidNonce => {
+            error!("Invalid nonce. try again");
+        }
+        SubmitError::ProofQueueFlushed => {
+            error!("Batch was reset. try resubmitting the proof");
+        }
+        SubmitError::InvalidProof => error!("Submitted proof is invalid"),
+        SubmitError::InsufficientBalance => {
+            error!("Insufficient balance to pay for the transaction")
+        }
+        _ => {}
+    }
+
+    delete_file(nonce_file).unwrap_or_else(|e| {
+        error!("Error while deleting nonce file: {}", e);
+    });
+}
+
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
     std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
 }
@@ -588,6 +619,10 @@ fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<
 fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
     std::fs::write(file_name, content)
         .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
+}
+
+fn delete_file(file_name: &str) -> Result<(), io::Error> {
+    std::fs::remove_file(file_name)
 }
 
 async fn get_nonce(
