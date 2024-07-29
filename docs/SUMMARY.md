@@ -4,14 +4,15 @@
 
 * [About Aligned](introduction/0_about_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
-* [Key Terms](introduction/2_key_terms.md)
+* [Example - ZKquiz](introduction/2_zkquiz.md)
 * [Use cases](introduction/3_use_cases.md)
 * [FAQ](introduction/4_faq.md)
+* [Generating & submitting proofs of Rust code with ZKRust](introduction/5_using_zkrust.md)
 
 ## Architecture
 
 * [Supported Verifiers](architecture/0_supported_verifiers.md)
-* [Aggregation mode](architecture/2_aggregation_mode.md)
+* [Key Terms](architecture/0b_key_terms.md)
 * [Fast mode](architecture/1_fast_mode.md)
   * [Batcher](./architecture/components/1_batcher.md)
   * [Payment Service Contract](./architecture/components/2_payment_service_contract.md)
@@ -19,15 +20,15 @@
   * [Operator](./architecture/components/4_operator.md)
   * [Aggregator](./architecture/components/5_aggregator.md)
   * [Explorer](./architecture/components/6_explorer.md)
+* [Aggregation mode](architecture/2_aggregation_mode.md)
 
 ## Guides
 
 * [Submitting proofs](guides/0_submitting_proofs.md)
-* [SDK](guides/1_SDK.md)
 * [Integrating Aligned into your Application](guides/2_integrating_aligned_into_your_application.md)
+* [SDK](guides/1_SDK.md)
 * [Generating proofs for Aligned](guides/3_generating_proofs.md)
 * [Contract Addresses](guides/4_contract_addresses.md)
-* [Generating & submitting proofs of Rust code with ZKRust](guides/0_5_using_zkrust.md)
 
 <!-- * [Setup Aligned](developer_guides/2_setup_aligned.md) -->
 

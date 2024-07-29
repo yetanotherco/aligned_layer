@@ -73,7 +73,7 @@ dependencies = [
 [[package]]
 name = "aligned-sdk"
 version = "0.1.0"
-source = "git+https://github.com/yetanotherco/aligned_layer#3106a3ce7988732c2f5e53cb7d9e232ff518ef7d"
+source = "git+https://github.com/yetanotherco/aligned_layer?tag=v0.3.0#a885386e83156c4bb5fe036a07a04fe0150768ac"
 dependencies = [
  "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "futures-util",
