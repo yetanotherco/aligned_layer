@@ -590,7 +590,7 @@ async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
         SubmitError::InvalidNonce => {
             error!("Invalid nonce. try again");
         }
-        SubmitError::BatchReset => {
+        SubmitError::ProofQueueFlushed => {
             error!("Batch was reset. try resubmitting the proof");
         }
         SubmitError::InvalidProof => error!("Submitted proof is invalid"),
