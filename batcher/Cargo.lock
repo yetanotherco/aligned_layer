@@ -98,7 +98,6 @@ dependencies = [
  "anyhow",
  "aws-config",
  "aws-sdk-s3",
- "axum",
  "bincode",
  "bytes",
  "clap",
