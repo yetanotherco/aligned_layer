@@ -1,0 +1,35 @@
+<div class="flex flex-col space-y-3 px-1 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
+  <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
+    Operator Details
+  </.card_preheding>
+  <.card
+    class="px-4 py-5 min-h-fit flex flex-col"
+    inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground [&>*]:break-all [&>*]:font-normal"
+  >
+    <div class="flex flex-col md:flex-row gap-x-6 ">
+      <img
+        alt={@operator.name}
+        class="rounded-full size-24 object-scale-down"
+        src={@operator.logo_link}
+      />
+      <div class="[&>a]:text-foreground [&>a]:text-sm leading-7">
+        <h1 class="text-2xl font-bold font-foreground">
+          <%= @operator.name %>
+        </h1>
+        <p>
+          <%= @operator.description %>
+        </p>
+        <.a href={@operator.website} target="_blank" rel="noopener">
+          Website
+        </.a>
+        <.a href={@operator.twitter} target="_blank" rel="noopener">
+          X/Twitter
+        </.a>
+      </div>
+    </div>
+    Address:
+    <p>
+      <%= @operator.address %>
+    </p>
+  </.card>
+</div>

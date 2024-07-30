@@ -24,6 +24,7 @@ defmodule ExplorerWeb.Router do
       live "/batches", Batches.Index
       live "/assets", Assets.Index
       live "/operators", Operators.Index
+      live "/operators/:address", Operator.Index
     end
   end
 

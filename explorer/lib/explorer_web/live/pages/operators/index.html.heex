@@ -2,13 +2,17 @@
   <.card_preheding>Operators</.card_preheding>
   <.table id="operators" rows={@operators}>
     <:col :let={operator} label="Name">
-      <div class="flex gap-x-2">
-        <img src={operator.logo_link} alt={operator.name} class="rounded-full size-5 object-scale-down" />
+      <.link navigate={~p"/operators/#{operator.address}"} class="flex gap-x-2">
+        <img
+          src={operator.logo_link}
+          alt={operator.name}
+          class="rounded-full size-5 object-scale-down"
+        />
         <%= operator.name %>
         <.tooltip>
           <%= operator.address %>
         </.tooltip>
-      </div>
+      </.link>
     </:col>
     <:col :let={_operator} label="Restake Concentration">
       TODO

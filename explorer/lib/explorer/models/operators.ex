@@ -22,6 +22,12 @@ defmodule Operators do
     |> validate_required([:address, :url])
   end
 
+  def get_operator_by_address(address) do
+    query = from(o in Operators, where: o.address == ^address, select: o)
+    Explorer.Repo.one(query)
+  end
+
+  # TODO: add pagination
   def get_operators() do
     query = from(o in Operators, select: o)
     Explorer.Repo.all(query)
