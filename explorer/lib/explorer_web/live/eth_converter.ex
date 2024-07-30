@@ -6,6 +6,10 @@ defmodule EthConverter do
 
   def wei_to_eth(wei, decimal_places \\ 18)
 
+  def wei_to_eth(wei, _decimal_places) when is_nil(wei) do
+    :nil
+  end
+
   def wei_to_eth(wei, decimal_places) when is_integer(wei) do
     wei
     |> Decimal.new()
