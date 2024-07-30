@@ -52,12 +52,43 @@ const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 
+struct BatchState {
+    batch_queue: BatchQueue,
+    user_nonces: HashMap<Address, U256>,
+    user_proof_count_in_batch: HashMap<Address, u64>,
+}
+
+impl BatchState {
+    fn new() -> Self {
+        Self {
+            batch_queue: BatchQueue::new(),
+            user_nonces: HashMap::new(),
+            user_proof_count_in_batch: HashMap::new(),
+        }
+    }
+
+    fn get_user_proof_count(&self, addr: &Address) -> u64 {
+        *self.user_proof_count_in_batch.get(addr).unwrap_or(&0)
+    }
+
+    /*
+       Increments the user proof count in the batch, if the user is already in the hashmap.
+       If the user is not in the hashmap, it adds the user to the hashmap with a count of 1 to represent the first proof.
+    */
+    fn increment_user_proof_count(&mut self, addr: &Address) {
+        self.user_proof_count_in_batch
+            .entry(*addr)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
+    }
+}
+
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
     eth_ws_provider: Provider<Ws>,
     payment_service: BatcherPaymentService,
-    batch_queue: Mutex<BatchQueue>,
+    batch_state: Mutex<BatchState>,
     max_block_interval: u64,
     min_batch_len: usize,
     max_proof_size: usize,
@@ -65,8 +96,6 @@ pub struct Batcher {
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
-    user_nonces: Mutex<HashMap<Address, U256>>,
-    user_proof_count_in_batch: Mutex<HashMap<Address, u64>>,
 }
 
 impl Batcher {
@@ -114,14 +143,12 @@ impl Batcher {
             None
         };
 
-        let user_nonces = Mutex::new(HashMap::new());
-
         Self {
             s3_client,
             s3_bucket_name,
             eth_ws_provider,
             payment_service,
-            batch_queue: Mutex::new(BatchQueue::new()),
+            batch_state: Mutex::new(BatchState::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
@@ -129,8 +156,6 @@ impl Batcher {
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
-            user_nonces,
-            user_proof_count_in_batch: Mutex::new(HashMap::new()),
         }
     }
 
@@ -221,7 +246,10 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
-                if !self.check_user_balance(&addr).await {
+                if !self
+                    .check_user_balance_and_increment_proof_count(&addr)
+                    .await
+                {
                     send_message(
                         ws_conn_sink.clone(),
                         ValidityResponseMessage::InsufficientBalance(addr),
@@ -280,13 +308,13 @@ impl Batcher {
 
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance(&self, addr: &Address) -> bool {
+    async fn check_user_balance_and_increment_proof_count(&self, addr: &Address) -> bool {
         if self.user_balance_is_unlocked(addr).await {
             return false;
         }
+        let mut batch_state = self.batch_state.lock().await;
 
-        let mut user_proof_counts = self.user_proof_count_in_batch.lock().await;
-        let user_proofs_in_batch = *user_proof_counts.get(addr).unwrap_or(&0) + 1;
+        let user_proofs_in_batch = batch_state.get_user_proof_count(addr) + 1;
 
         let user_balance = self.get_user_balance(addr).await;
 
@@ -295,14 +323,14 @@ impl Batcher {
             return false;
         }
 
-        user_proof_counts.insert(*addr, user_proofs_in_batch);
+        batch_state.increment_user_proof_count(addr);
         true
     }
 
     async fn check_nonce_and_increment(&self, addr: Address, nonce: U256) -> bool {
-        let mut user_nonces = self.user_nonces.lock().await;
+        let mut batch_state = self.batch_state.lock().await;
 
-        let expected_user_nonce = match user_nonces.get(&addr) {
+        let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
             Some(nonce) => *nonce,
             None => {
                 let user_nonce = match self.payment_service.user_nonces(addr).call().await {
@@ -313,7 +341,7 @@ impl Batcher {
                     }
                 };
 
-                user_nonces.insert(addr, user_nonce);
+                batch_state.user_nonces.insert(addr, user_nonce);
                 user_nonce
             }
         };
@@ -326,7 +354,7 @@ impl Batcher {
             return false;
         }
 
-        user_nonces.insert(addr, nonce + U256::one());
+        batch_state.user_nonces.insert(addr, nonce + U256::one());
         true
     }
 
@@ -337,17 +365,20 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
         proof_submitter_sig: Signature,
     ) {
-        let mut batch_queue_lock = self.batch_queue.lock().await;
+        let mut batch_state = self.batch_state.lock().await;
         info!("Calculating verification data commitments...");
         let verification_data_comm = verification_data.clone().into();
         info!("Adding verification data to batch...");
-        batch_queue_lock.push((
+        batch_state.batch_queue.push((
             verification_data,
             verification_data_comm,
             ws_conn_sink,
             proof_submitter_sig,
         ));
-        info!("Current batch queue length: {}", batch_queue_lock.len());
+        info!(
+            "Current batch queue length: {}",
+            batch_state.batch_queue.len()
+        );
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
@@ -361,8 +392,8 @@ impl Batcher {
     /// and all the elements up to that index are copied and cleared from the batch queue. The copy is then passed to the
     /// `finalize_batch` function.
     async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
-        let mut batch_queue_lock = self.batch_queue.lock().await;
-        let current_batch_len = batch_queue_lock.len();
+        let mut batch_state = self.batch_state.lock().await;
+        let current_batch_len = batch_state.batch_queue.len();
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
@@ -383,7 +414,8 @@ impl Batcher {
             return None;
         }
 
-        let batch_verification_data: Vec<NoncedVerificationData> = batch_queue_lock
+        let batch_verification_data: Vec<NoncedVerificationData> = batch_state
+            .batch_queue
             .iter()
             .map(|(vd, _, _, _)| vd.clone())
             .collect();
@@ -395,23 +427,26 @@ impl Batcher {
             info!("Batch max size exceded. Splitting current batch...");
             let mut acc_batch_size = 0;
             let mut finalized_batch_idx = 0;
-            for (idx, (verification_data, _, _, _)) in batch_queue_lock.iter().enumerate() {
+            for (idx, (verification_data, _, _, _)) in batch_state.batch_queue.iter().enumerate() {
                 acc_batch_size += serde_json::to_vec(verification_data).unwrap().len();
                 if acc_batch_size > self.max_batch_size {
                     finalized_batch_idx = idx;
                     break;
                 }
             }
-            let finalized_batch = batch_queue_lock.drain(..finalized_batch_idx).collect();
+            let finalized_batch = batch_state
+                .batch_queue
+                .drain(..finalized_batch_idx)
+                .collect();
             return Some(finalized_batch);
         }
 
         // A copy of the batch is made to be returned and the current batch is cleared
-        let finalized_batch = batch_queue_lock.clone();
-        batch_queue_lock.clear();
+        let finalized_batch = batch_state.batch_queue.clone();
+        batch_state.batch_queue.clear();
 
         // Clear the user proofs in batch as well
-        self.user_proof_count_in_batch.lock().await.clear();
+        batch_state.user_proof_count_in_batch.clear();
 
         Some(finalized_batch)
     }
@@ -500,18 +535,15 @@ impl Batcher {
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
         warn!("Resetting state... Flushing queue and nonces");
+        let mut batch_state = self.batch_state.lock().await;
 
-        let mut batch_queue = self.batch_queue.lock().await;
-        let mut user_nonces = self.user_nonces.lock().await;
-        let mut user_proof_count_in_batch = self.user_proof_count_in_batch.lock().await;
-
-        for (_, _, ws_sink, _) in batch_queue.iter() {
+        for (_, _, ws_sink, _) in batch_state.batch_queue.iter() {
             send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
         }
 
-        batch_queue.clear();
-        user_nonces.clear();
-        user_proof_count_in_batch.clear();
+        batch_state.batch_queue.clear();
+        batch_state.user_nonces.clear();
+        batch_state.user_proof_count_in_batch.clear();
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
@@ -679,9 +711,9 @@ impl Batcher {
             }
 
             let nonced_verification_data = {
-                let mut user_nonces = self.user_nonces.lock().await;
+                let mut batch_state = self.batch_state.lock().await;
 
-                let nonpaying_nonce = match user_nonces.entry(addr) {
+                let nonpaying_nonce = match batch_state.user_nonces.entry(addr) {
                     Entry::Occupied(o) => o.into_mut(),
                     Entry::Vacant(vacant) => {
                         let nonce = self
