@@ -1,8 +1,14 @@
 <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
   <.card_preheding>Operators</.card_preheding>
-  <.table id="operators" rows={[1, 2, 3, 4, 5, 6, 7, 8, 9]}>
-    <:col :let={_operator} label="Name">
-      TODO
+  <.table id="operators" rows={@operators}>
+    <:col :let={operator} label="Name">
+      <div class="flex gap-x-2">
+        <img src={operator.logo_link} alt={operator.name} class="rounded-full size-5 object-scale-down" />
+        <%= operator.name %>
+        <.tooltip>
+          <%= operator.address %>
+        </.tooltip>
+      </div>
     </:col>
     <:col :let={_operator} label="Restake Concentration">
       TODO
