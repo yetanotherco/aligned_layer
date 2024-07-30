@@ -245,7 +245,10 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
-                if !self.check_user_balance_and_increment(&addr).await {
+                if !self
+                    .check_user_balance_and_increment_proof_count(&addr)
+                    .await
+                {
                     send_message(
                         ws_conn_sink.clone(),
                         ValidityResponseMessage::InsufficientBalance(addr),
@@ -306,7 +309,7 @@ impl Batcher {
 
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance_and_increment(&self, addr: &Address) -> bool {
+    async fn check_user_balance_and_increment_proof_count(&self, addr: &Address) -> bool {
         if self.user_balance_is_unlocked(addr).await {
             return false;
         }
