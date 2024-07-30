@@ -29,9 +29,9 @@ defmodule Explorer.Periodically do
     # Gets previous unverified batches and checks if they were verified
     run_every_n_iterations = 8
     new_count = rem(count + 1, run_every_n_iterations)
-    # if new_count == 0 do
-    Task.start(&process_unverified_batches/0)
-    # end
+    if new_count == 0 do
+      Task.start(&process_unverified_batches/0)
+    end
 
     {:noreply, new_count}
   end
