@@ -70,8 +70,15 @@ impl BatchState {
         *self.user_proof_count_in_batch.get(addr).unwrap_or(&0)
     }
 
-    fn update_user_proof_count(&mut self, addr: &Address, count: u64) {
-        self.user_proof_count_in_batch.insert(*addr, count);
+    /*
+       Increments the user proof count in the batch, if the user is already in the hashmap.
+       If the user is not in the hashmap, it adds the user to the hashmap with a count of 1 to represent the first proof.
+    */
+    fn increment_user_proof_count(&mut self, addr: &Address) {
+        self.user_proof_count_in_batch
+            .entry(*addr)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
     }
 }
 
@@ -238,7 +245,7 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
-                if !self.check_user_balance(&addr).await {
+                if !self.check_user_balance_and_increment(&addr).await {
                     send_message(
                         ws_conn_sink.clone(),
                         ValidityResponseMessage::InsufficientBalance(addr),
@@ -299,7 +306,7 @@ impl Batcher {
 
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance(&self, addr: &Address) -> bool {
+    async fn check_user_balance_and_increment(&self, addr: &Address) -> bool {
         if self.user_balance_is_unlocked(addr).await {
             return false;
         }
@@ -314,7 +321,7 @@ impl Batcher {
             return false;
         }
 
-        batch_state.update_user_proof_count(addr, user_proofs_in_batch);
+        batch_state.increment_user_proof_count(addr);
         true
     }
 
