@@ -57,7 +57,6 @@ pub struct Batcher {
     s3_bucket_name: String,
     eth_ws_provider: Provider<Ws>,
     payment_service: BatcherPaymentService,
-    submiting_batch_lock: Mutex<()>,
     batch_queue: Mutex<BatchQueue>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -107,8 +106,6 @@ impl Batcher {
         .await
         .expect("Failed to get Batcher Payment Service contract");
 
-        let submiting_batch_lock = Mutex::new(());
-
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
                 non_paying_config.address);
@@ -124,7 +121,6 @@ impl Batcher {
             s3_bucket_name,
             eth_ws_provider,
             payment_service,
-            submiting_batch_lock,
             batch_queue: Mutex::new(BatchQueue::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
@@ -603,8 +599,6 @@ impl Batcher {
         gas_for_aggregator: U256,
         gas_per_proof: U256,
     ) -> Result<TransactionReceipt, BatcherError> {
-        let _ = self.submiting_batch_lock.lock().await;
-
         // pad leaves to next power of 2
         let padded_leaves = Self::pad_leaves(leaves);
 
