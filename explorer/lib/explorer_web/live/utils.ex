@@ -125,6 +125,7 @@ defmodule Utils do
 
   def calculate_proof_hashes({:ok, batch_json}) do
     IO.inspect("Calculating proof hashes")
+
     batch_json
       |> Enum.map(
         fn s3_object ->
@@ -162,16 +163,17 @@ defmodule Utils do
           IO.inspect("Fetching from S3")
 
           batch.data_pointer
-            |> Utils.fetch_batch_data_pointer()
-            |> Utils.calculate_proof_hashes()
+          |> Utils.fetch_batch_data_pointer()
+          |> Utils.calculate_proof_hashes()
 
         proof_hashes ->
-          IO.inspect("Fetching from DB") #already processed and stored the S3 data
+          # already processed and stored the S3 data
+          IO.inspect("Fetching from DB")
           proof_hashes
       end
 
     batch
-      |> Map.put(:proof_hashes, proof_hashes)
-      |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
+    |> Map.put(:proof_hashes, proof_hashes)
+    |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
   end
 end
