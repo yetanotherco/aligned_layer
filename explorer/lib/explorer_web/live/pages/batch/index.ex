@@ -55,14 +55,14 @@ defmodule ExplorerWeb.Batch.Index do
   end
 
   @impl true
-  def handle_info(%{merkle_root: merkle_root, eth_usd: eth_usd_price} = _params, socket) do
+  def handle_info(%{eth_usd: eth_usd_price} = _params, socket) do
     eth_price =
       case socket.assigns.current_batch do
         :empty -> nil
         batch -> EthConverter.wei_to_eth(batch.cost_per_proof)
       end
 
-    new_batch = Batches.get_batch(%{merkle_root: merkle_root})
+    new_batch = Batches.get_batch(%{merkle_root: socket.assigns.merkle_root})
 
     case eth_usd_price do
       :empty ->

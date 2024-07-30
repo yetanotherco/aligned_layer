@@ -15,7 +15,7 @@
         Cost per Proof:
         <p>
           <%= @current_batch.cost_per_proof |> EthConverter.wei_to_eth() %> ETH
-          <%= if @eth_usd_price != :empty do %>
+          <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
             (<%= @eth_usd_price %> USD)
           <% end %>
         </p>
