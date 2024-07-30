@@ -22,12 +22,12 @@ defmodule AVSDirectory do
                          |> Map.get("addresses")
                          |> Map.get("avsDirectory")
 
-  @first_block (case @environment do
-                  "devnet" -> 0
-                  "holesky" -> 1_600_000
-                  "mainnet" -> 20_020_000
-                  _ -> raise("Invalid environment")
-                end)
+  # @first_block (case @environment do
+  #                 "devnet" -> 0
+  #                 "holesky" -> 1_600_000
+  #                 "mainnet" -> 20_020_000
+  #                 _ -> raise("Invalid environment")
+  #               end)
 
   use Ethers.Contract,
     abi_file: "lib/abi/AVSDirectory.json",
@@ -101,7 +101,7 @@ defmodule AVSDirectory do
                 IO.inspect("Operator unregistered")
                 AVSDirectory.handle_operator_unregistration(event)
 
-              other ->
+              _other ->
                 IO.inspect("Unexpected event data", event.data)
             end
           _ ->
@@ -120,15 +120,16 @@ defmodule AVSDirectory do
         operator_metadata
 
       {:error, reason} ->
-        IO.inspect("Error fetching operator metadata")
+        IO.inspect("Error fetching operator metadata:")
+        IO.inspect(reason)
         %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
     end
     Operators.register_operator(%Operators{name: operator_metadata.name, address: Enum.at(event.topics, 1), url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter})
     # TODO read its first stake
   end
 
-  def handle_operator_unregistration(event) do
-    IO.inspect("Handling operator unregistration")
+  def handle_operator_unregistration(_event) do
+    IO.inspect("TODO: Handle operator unregistration")
     # Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
   end
 end

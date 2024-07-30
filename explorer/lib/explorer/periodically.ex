@@ -116,7 +116,7 @@ defmodule Explorer.Periodically do
     )
   end
 
-  defp process_operators(fromBlock) do
+  def process_operators(fromBlock) do
     "Processing operators..." |> IO.inspect()
     AVSDirectory.process_operator_data(%{fromBlock: fromBlock})
   end

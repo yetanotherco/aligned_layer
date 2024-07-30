@@ -22,12 +22,12 @@ defmodule DelegationManager do
                          |> Map.get("addresses")
                          |> Map.get("delegationManager")
 
-  @first_block (case @environment do
-                  "devnet" -> 0
-                  "holesky" -> 1_600_000
-                  "mainnet" -> 20_020_000
-                  _ -> raise("Invalid environment")
-                end)
+  # @first_block (case @environment do
+  #                 "devnet" -> 0
+  #                 "holesky" -> 1_600_000
+  #                 "mainnet" -> 20_020_000
+  #                 _ -> raise("Invalid environment")
+  #               end)
 
   use Ethers.Contract,
     abi_file: "lib/abi/DelegationManager.json",
@@ -41,9 +41,9 @@ defmodule DelegationManager do
     DelegationManager.EventFilters.operator_metadata_uri_updated(operator_address)
       |> Ethers.get_logs(fromBlock: 0)
       |> case do
-        {ok, data} -> List.last(data).data |> hd()
+        {:ok, data} -> List.last(data).data |> hd()
 
-        {error, reason} ->
+        {:error, reason} ->
           IO.inspect("Error getting operator url")
           IO.inspect(reason)
 

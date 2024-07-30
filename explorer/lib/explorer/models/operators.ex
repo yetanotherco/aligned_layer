@@ -20,6 +20,7 @@ defmodule Operators do
     operator
     |> cast(attrs, [:name, :address, :url, :website, :description, :logo_link, :twitter])
     |> validate_required([:address, :url])
+    |> unique_constraint(:address)
   end
 
   def get_operators() do
@@ -32,7 +33,7 @@ defmodule Operators do
     Explorer.Repo.one(query)
   end
 
-  def register_operator(%Operators{name: _name, address: _address, url: _url} = operator) do
+  def register_operator(%Operators{} = operator) do
     Explorer.Repo.insert(operator)
   end
 

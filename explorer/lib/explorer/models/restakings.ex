@@ -1,7 +1,7 @@
 defmodule Restakings do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
+  # import Ecto.Query
 
   schema "restakings" do
     field :operator_id, :integer
