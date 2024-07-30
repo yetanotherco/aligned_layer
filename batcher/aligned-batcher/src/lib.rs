@@ -66,8 +66,8 @@ impl BatchState {
         }
     }
 
-    fn increment_user_proof_count(&mut self, addr: &Address) -> u64 {
-        self.user_proof_count_in_batch.get(addr).unwrap_or(&0) + 1
+    fn get_user_proof_count(&self, addr: &Address) -> u64 {
+        *self.user_proof_count_in_batch.get(addr).unwrap_or(&0)
     }
 
     fn update_user_proof_count(&mut self, addr: &Address, count: u64) {
@@ -305,7 +305,7 @@ impl Batcher {
         }
         let mut batch_state = self.batch_state.lock().await;
 
-        let user_proofs_in_batch = batch_state.increment_user_proof_count(addr);
+        let user_proofs_in_batch = batch_state.get_user_proof_count(addr) + 1;
 
         let user_balance = self.get_user_balance(addr).await;
 
