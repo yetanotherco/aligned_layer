@@ -11,6 +11,9 @@ contract BatcherPaymentService is
     PausableUpgradeable,
     UUPSUpgradeable
 {
+    // CONSTANTS
+    uint256 public constant UNLOCK_BLOCK_COUNT = 100;
+
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
@@ -22,14 +25,18 @@ contract BatcherPaymentService is
         uint256 nonce;
     }
 
+    struct UserInfo {
+        uint256 balance;
+        uint256 unlockBlock;
+        uint256 nonce;
+    }
+
     // STORAGE
     address public AlignedLayerServiceManager;
     address public BatcherWallet;
 
-    mapping(address => uint256) public UserBalances;
-
-    // map to check signature is only submitted once
-    mapping(address => uint256) public UserNonces;
+    // map to user data
+    mapping(address => UserInfo) public UserData;
 
     // storage gap for upgradeability
     uint256[24] private __GAP;
@@ -54,7 +61,7 @@ contract BatcherPaymentService is
 
     // PAYABLE FUNCTIONS
     receive() external payable {
-        UserBalances[msg.sender] += msg.value;
+        UserData[msg.sender].balance += msg.value;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
@@ -114,12 +121,30 @@ contract BatcherPaymentService is
         );
     }
 
-    function withdraw(uint256 amount) external whenNotPaused {
+    function unlock() external whenNotPaused {
         require(
-            UserBalances[msg.sender] >= amount,
-            "Payer has insufficient balance"
+            UserData[msg.sender].balance > 0,
+            "User has no funds to unlock"
         );
-        UserBalances[msg.sender] -= amount;
+
+        UserData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
+    }
+
+    function lock() external whenNotPaused {
+        require(UserData[msg.sender].balance > 0, "User has no funds to lock");
+        UserData[msg.sender].unlockBlock = 0;
+    }
+
+    function withdraw(uint256 amount) external whenNotPaused {
+        UserInfo storage user_data = UserData[msg.sender];
+        require(user_data.balance >= amount, "Payer has insufficient balance");
+
+        require(
+            user_data.unlockBlock != 0 && user_data.unlockBlock <= block.number,
+            "Funds are locked"
+        );
+
+        user_data.balance -= amount;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }
@@ -163,12 +188,20 @@ contract BatcherPaymentService is
                 abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
             );
 
-            verifySignatureAndDecreaseBalance(leaves[i], signatures[i], feePerProof);
+            verifySignatureAndDecreaseBalance(
+                leaves[i],
+                signatures[i],
+                feePerProof
+            );
         }
 
         // Verify the rest of the signatures
         for (; i < signatures.length; i++) {
-            verifySignatureAndDecreaseBalance(leaves[i], signatures[i], feePerProof);
+            verifySignatureAndDecreaseBalance(
+                leaves[i],
+                signatures[i],
+                feePerProof
+            );
         }
 
         // The next layer above has half as many nodes
@@ -210,13 +243,28 @@ contract BatcherPaymentService is
             signatureData.s
         );
 
-        require(UserNonces[signer] == signatureData.nonce, "Invalid Nonce");
-        UserNonces[signer]++;
+        UserInfo storage user_data = UserData[signer];
+
+        require(user_data.nonce == signatureData.nonce, "Invalid Nonce");
+        user_data.nonce++;
 
         require(
-            UserBalances[signer] >= feePerProof,
+            user_data.balance >= feePerProof,
             "Signer has insufficient balance"
         );
-        UserBalances[signer] -= feePerProof;
+
+        user_data.balance -= feePerProof;
+    }
+
+    function user_balances(address account) public view returns (uint256) {
+        return UserData[account].balance;
+    }
+
+    function user_nonces(address account) public view returns (uint256) {
+        return UserData[account].nonce;
+    }
+
+    function user_unlock_block(address account) public view returns (uint256) {
+        return UserData[account].unlockBlock;
     }
 }

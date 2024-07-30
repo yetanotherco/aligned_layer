@@ -226,9 +226,8 @@ impl Batcher {
         if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
             if self.is_nonpaying(&addr) {
-                return self
-                    .handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
-                    .await;
+                self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
+                    .await
             } else {
                 if !self.check_user_balance(&addr).await {
                     send_message(
@@ -276,7 +275,7 @@ impl Batcher {
                 info!("Verification data message handled");
 
                 send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
-                return Ok(());
+                Ok(())
             }
         } else {
             error!("Signature verification error");
@@ -292,8 +291,12 @@ impl Batcher {
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
     async fn check_user_balance(&self, addr: &Address) -> bool {
+        if self.user_balance_is_unlocked(addr).await {
+            return false;
+        }
+
         let mut user_proof_counts = self.user_proof_count_in_batch.lock().await;
-        let user_proofs_in_batch = user_proof_counts.get(addr).unwrap_or(&0).clone() + 1;
+        let user_proofs_in_batch = *user_proof_counts.get(addr).unwrap_or(&0) + 1;
 
         let user_balance = self.get_user_balance(addr).await;
 
@@ -689,6 +692,15 @@ impl Batcher {
             .call()
             .await
             .unwrap_or_default()
+    }
+
+    async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
+        self.payment_service
+            .user_unlock_block(*addr)
+            .call()
+            .await
+            .unwrap_or_default()
+            != U256::zero()
     }
 }
 
