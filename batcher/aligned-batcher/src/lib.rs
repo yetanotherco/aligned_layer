@@ -9,6 +9,7 @@ use serde::Serialize;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::env;
+use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -20,7 +21,7 @@ use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
-use ethers::types::{Address, Signature, U256};
+use ethers::types::{Address, Signature, TransactionReceipt, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -260,36 +261,34 @@ impl Batcher {
 
                 let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
                 let nonced_verification_data = client_msg.verification_data;
-                if nonced_verification_data.verification_data.proof.len() <= self.max_proof_size {
-                    // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-                    if self.pre_verification_is_enabled
-                        && !zk_utils::verify(&nonced_verification_data.verification_data)
-                    {
-                        error!("Invalid proof detected. Verification failed.");
-                        send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof)
-                            .await;
-                        return Ok(()); // Send error message to the client and return
-                    }
-
-                    // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-                    if !self.check_nonce_and_increment(addr, nonce).await {
-                        send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce)
-                            .await;
-                        return Ok(()); // Send error message to the client and return
-                    }
-
-                    self.add_to_batch(
-                        nonced_verification_data,
-                        ws_conn_sink.clone(),
-                        client_msg.signature,
-                    )
-                    .await;
-                } else {
-                    error!("Proof is too large");
+                if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
+                    error!("Proof size exceeds the maximum allowed size.");
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge)
                         .await;
+                    return Ok(());
+                }
+
+                // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
+                if self.pre_verification_is_enabled
+                    && !zk_utils::verify(&nonced_verification_data.verification_data)
+                {
+                    error!("Invalid proof detected. Verification failed.");
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
                     return Ok(()); // Send error message to the client and return
-                };
+                }
+
+                // Doing nonce verification after proof verification to avoid unnecessary nonce increment
+                if !self.check_nonce_and_increment(addr, nonce).await {
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                    return Ok(()); // Send error message to the client and return
+                }
+
+                self.add_to_batch(
+                    nonced_verification_data,
+                    ws_conn_sink.clone(),
+                    client_msg.signature,
+                )
+                .await;
 
                 info!("Verification data message handled");
 
@@ -583,7 +582,6 @@ impl Batcher {
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        let payment_service = &self.payment_service;
         let batch_data_pointer = "https://".to_owned() + &self.s3_bucket_name + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
@@ -598,19 +596,75 @@ impl Batcher {
             .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
-        eth::create_new_task(
-            payment_service,
-            *batch_merkle_root,
-            batch_data_pointer,
-            leaves,
-            signatures,
-            AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
-            gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
-        )
-        .await?;
+        match self
+            .create_new_task(
+                *batch_merkle_root,
+                batch_data_pointer,
+                leaves,
+                signatures,
+                AGGREGATOR_COST.into(),
+                gas_per_proof.into(),
+            )
+            .await
+        {
+            Ok(_) => {
+                info!("Batch verification task created on Aligned contract");
+                Ok(())
+            }
+            Err(e) => {
+                error!(
+                    "Failed to send batch to contract, batch will be lost: {:?}",
+                    e
+                );
 
-        info!("Batch verification task created on Aligned contract");
-        Ok(())
+                Err(e)
+            }
+        }
+    }
+
+    async fn create_new_task(
+        &self,
+        batch_merkle_root: [u8; 32],
+        batch_data_pointer: String,
+        leaves: Vec<[u8; 32]>,
+        signatures: Vec<SignatureData>,
+        gas_for_aggregator: U256,
+        gas_per_proof: U256,
+    ) -> Result<TransactionReceipt, BatcherError> {
+        // pad leaves to next power of 2
+        let padded_leaves = Self::pad_leaves(leaves);
+
+        let call = self.payment_service.create_new_task(
+            batch_merkle_root,
+            batch_data_pointer,
+            padded_leaves,
+            signatures,
+            gas_for_aggregator,
+            gas_per_proof,
+        );
+
+        info!("Creating task for: {}", hex::encode(batch_merkle_root));
+
+        let pending_tx = call
+            .send()
+            .await
+            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+
+        let receipt = pending_tx
+            .await
+            .map_err(|_| BatcherError::TransactionSendError)?
+            .ok_or(BatcherError::ReceiptNotFoundError)?;
+
+        Ok(receipt)
+    }
+
+    fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
+        let leaves_len = leaves.len();
+        let last_leaf = leaves[leaves_len - 1];
+        leaves
+            .into_iter()
+            .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
+            .collect()
     }
 
     /// Only relevant for testing and for users to easily use Aligned
