@@ -28,7 +28,7 @@ fi
 
 mkdir -p "$ALIGNED_BIN_DIR"
 if curl -sSf -L "$RELEASE_URL$FILE" -o "$ALIGNED_BIN_PATH"; then
-    echo "Aligned download successful, installing..."
+    echo "Aligned download successful, installing $CURRENT_TAG release..."
 else
     echo "Error: Failed to download $RELEASE_URL$FILE"
     exit 1
@@ -69,6 +69,6 @@ if [[ ":$PATH:" != *":${ALIGNED_BIN_DIR}:"* ]]; then
     fi
 fi
 
-echo "Aligned installed successfully in $ALIGNED_BIN_PATH."
+echo "Aligned $CURRENT_TAG installed successfully in $ALIGNED_BIN_PATH."
 echo "Detected your preferred shell is $PREF_SHELL and added aligned to PATH."
 echo "Run 'source $PROFILE' or start a new terminal session to use aligned."
