@@ -9,7 +9,7 @@ defmodule AVSDirectory do
   {status, config_json_string} = File.read(file_path)
 
   case status do
-    :ok -> Logger.debug("File read successfully")
+    :ok -> Logger.debug("Eigenlayer deployment file read successfully")
     :error -> raise("Config file not read successfully, did you run make create-env? If you did,\n make sure Eigenlayer config file is correctly stored")
   end
 
