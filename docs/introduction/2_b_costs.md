@@ -35,8 +35,11 @@ The cost in USD will be obtained by multiplying this cost $C$ by the gas cost at
 It is important to note that this cost is independent of the proof system used and of the proof size.
 
 The estimates for these costs (in gas) are:
+
 $C_{task} = 100,000 + 1,325 N$
+
 $C_{verification} = 400,000$
+
 $C_{read} = 20,000$
 
 These numbers can be improved with changes on the contracts and other strategies. We are working on optimizations to reduce reading and verification costs. The following table summarizes the cost in terms of the number of proofs verified in a batch, $N$:
