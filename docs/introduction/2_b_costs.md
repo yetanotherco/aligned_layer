@@ -24,4 +24,31 @@ The cost in USD will be obtained by multiplying this cost $C$ by the gas cost at
 
 It is important to note that this cost is independent of the proof system used and of the proof size.
 
+The estimates for these costs (in gas) are:
+$C_{task} = 100,000 + 1,325 N$
+$C_{verification} = 400,000$
+$C_{read} = 20,000$
+
+These numbers can be improved with changes on the contracts and other strategies. The following table summarizes the cost in terms of the number of proofs verified in a batch, $N$:
+
+| $N$      | Gas cost | 
+| -------- | -------- | 
+| 1        | 521,325  | 
+| 2        | 271,325  |
+| 4        | 146,325  |
+| 8        |  83,825  |
+| 16       |  52,575  |
+| 32       |  36,950  |
+| 128      |  25,231  |
+
 ## Savings
+
+Batching 8 proofs already produces significant savings compared to on-chain proof verification. It is important to note that we can batch proofs from any proof system, and without needing to do any further expensive steps, such as proof recursion. The table below summarizes the savings for Groth16 (in all other cases, the savings are higher. For STARKs, it can be 99%!):
+
+| $N$      | Savings (%) | 
+| -------- | --------    | 
+| 4        |  41         |
+| 8        |  66         |
+| 16       |  79         |
+| 32       |  85         |
+| 128      |  90         |
