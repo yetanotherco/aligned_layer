@@ -23,7 +23,7 @@ pub extern "C" fn verify_sp1_proof_ffi(
 
     if let Ok(proof) = bincode::deserialize(proof_bytes) {
         let (_pk, vk) = PROVER_CLIENT.setup(elf_bytes);
-        return PROVER_CLIENT.verify_compressed(&proof, &vk).is_ok();
+        return PROVER_CLIENT.verify(&proof, &vk).is_ok();
     }
 
     false
