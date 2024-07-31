@@ -24,6 +24,10 @@ defmodule Operators do
     |> unique_constraint(:address)
   end
 
+  def generate_changeset(%Operators{} = operator) do
+    Operators.changeset(%Operators{}, Map.from_struct(operator))
+  end
+
   def get_operator_by_address(address) do
     query = from(o in Operators, where: o.address == ^address, select: o)
     Explorer.Repo.one(query)
@@ -44,18 +48,24 @@ defmodule Operators do
     Explorer.Repo.one(query)
   end
 
-  # def register_operator(%Operators{} = operator) do
-  #   Explorer.Repo.insert(operator)
-  # end
+  def register_or_update_operator(%Operators{} = operator) do
+    changeset = Operators.generate_changeset(operator)
+    case Explorer.Repo.get_by(Operators, address: operator.address) do
+      nil ->
+        dbg("Inserting new operator")
+        Explorer.Repo.insert(changeset)
 
-  def register_operator(%Operators{} = operator) do
-    Operators.changeset(operator, %{}) |> Explorer.Repo.insert()
+      existing_operator ->
+        dbg("Updating operator")
+        Ecto.Changeset.change(existing_operator, changeset.changes)
+        |> Explorer.Repo.update()
+    end
   end
 
   def unregister_operator(%Operators{address: address}) do
     query = from(o in Operators, where: o.address == ^address)
-    #TODO delete? or update status? also update their stake?
-    Explorer.Repo.delete(query)
+    Explorer.Repo.update_all(query, set: [is_active: false])
+    # TODO also update their stake?
   end
 
 end

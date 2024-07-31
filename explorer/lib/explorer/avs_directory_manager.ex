@@ -126,15 +126,14 @@ defmodule AVSDirectory do
           _ ->
             dbg("Error fetching operator metadata:", reason)
         end
-        %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil} #TODO handle is_active for this case, should be false?
+        %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
     end
-    Operators.register_operator(%Operators{name: operator_metadata.name, address: Enum.at(event.topics, 1), url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter, is_active: true})
+    Operators.register_or_update_operator(%Operators{name: operator_metadata.name, address: Enum.at(event.topics, 1), url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter, is_active: true})
     # TODO read its first stake
   end
 
-  def handle_operator_unregistration(_event) do
-    IO.inspect("TODO: Handle operator unregistration")
-    # change flag is_active to false
-    # Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
+  def handle_operator_unregistration(event) do
+    IO.inspect("WIP: Handling operator unregistration")
+    Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
   end
 end
