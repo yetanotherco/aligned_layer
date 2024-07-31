@@ -120,8 +120,12 @@ defmodule AVSDirectory do
         operator_metadata
 
       {:error, reason} ->
-        IO.inspect("Error fetching operator metadata:")
-        IO.inspect(reason)
+        case reason do
+          %Jason.DecodeError{} ->
+            dbg("Error decoding operator metadata: operator link does not contain a JSON")
+          _ ->
+            dbg("Error fetching operator metadata:", reason)
+        end
         %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
     end
     Operators.register_operator(%Operators{name: operator_metadata.name, address: Enum.at(event.topics, 1), url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter})
@@ -130,6 +134,7 @@ defmodule AVSDirectory do
 
   def handle_operator_unregistration(_event) do
     IO.inspect("TODO: Handle operator unregistration")
+    # change flag is_active to false
     # Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
   end
 end

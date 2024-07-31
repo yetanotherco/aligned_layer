@@ -184,7 +184,7 @@ defmodule Utils do
         case Jason.decode(body) do
           {:ok, json} -> {:ok, EigenOperatorMetadataStruct.map_to_struct(json)}
           {:error, reason} ->
-            {:error, {reason}}
+            {:error, reason}
         end
 
       {:ok, %Finch.Response{status: status_code}} ->

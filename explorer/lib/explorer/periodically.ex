@@ -12,8 +12,6 @@ defmodule Explorer.Periodically do
   end
 
   def send_work() do
-    # TODO think a better place to put this
-    Task.start(fn -> process_operators(0) end)
 
     # once per block
     seconds = 12
