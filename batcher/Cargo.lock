@@ -110,7 +110,6 @@ dependencies = [
  "halo2curves",
  "hex",
  "lambdaworks-crypto",
- "lazy_static",
  "log",
  "risc0-zkvm",
  "serde",

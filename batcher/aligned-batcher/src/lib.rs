@@ -220,7 +220,20 @@ impl Batcher {
 
         match incoming
             .try_filter(|msg| future::ready(msg.is_text()))
-            .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
+            .try_for_each(|msg| async {
+                let ws_conn_sink = outgoing.clone();
+                let batcher = self.clone();
+
+                tokio::spawn(async move {
+                    if let Err(e) = batcher.handle_message(msg, ws_conn_sink).await {
+                        error!("Error when handling message: {:?}", e);
+                    }
+                })
+                .await
+                .unwrap();
+
+                Ok(())
+            })
             .await
         {
             Err(e) => error!("Unexpected error: {}", e),
@@ -238,6 +251,11 @@ impl Batcher {
         let client_msg: ClientMessage =
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
+
+        info!(
+            "Received message with nonce: {}",
+            U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
+        );
 
         info!("Verifying message signature...");
         if let Ok(addr) = client_msg.verify_signature() {
@@ -270,7 +288,7 @@ impl Batcher {
 
                 // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
                 if self.pre_verification_is_enabled
-                    && !zk_utils::verify(&nonced_verification_data.verification_data)
+                    && !zk_utils::verify(&nonced_verification_data.verification_data).await
                 {
                     error!("Invalid proof detected. Verification failed.");
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
@@ -703,7 +721,7 @@ impl Batcher {
         if client_msg.verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled
-                && !zk_utils::verify(&client_msg.verification_data.verification_data)
+                && !zk_utils::verify(&client_msg.verification_data.verification_data).await
             {
                 error!("Invalid proof detected. Verification failed.");
                 send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
