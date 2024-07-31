@@ -11,7 +11,6 @@
   - [How to use the testnet](#how-to-use-the-testnet)
   - [Operator Guide](#operator-guide)
   - [Aligned Infrastructure Guide](#aligned-infrastructure-guide)
-  - [FAQ](https://docs.alignedlayer.com/guides/4_faq)
 
 ## The Project
 
@@ -166,4 +165,4 @@ If you want to run an operator, check our [Operator Guide](./docs/operator_guide
 
 ## Aligned Infrastructure Guide
 
-If you are developing in Aligned, or want to run your own devnet, check our [setup Aligned guide](docs/guides/3_setup_aligned.md)
+If you are developing in Aligned, or want to run your own devnet, check our [setup Aligned guide](docs/guides/5_setup_aligned.md)
