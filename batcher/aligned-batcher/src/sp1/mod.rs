@@ -6,7 +6,7 @@ static SP1_PROVER_CLIENT: OnceLock<ProverClient> = OnceLock::new();
 
 pub fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
     debug!("Verifying SP1 proof");
-    let prover_client = SP1_PROVER_CLIENT.get_or_init(|| ProverClient::new());
+    let prover_client = SP1_PROVER_CLIENT.get_or_init(ProverClient::new);
 
     let (_pk, vk) = prover_client.setup(elf);
     if let Ok(proof) = bincode::deserialize(proof) {
