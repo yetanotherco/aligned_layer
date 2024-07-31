@@ -12,7 +12,8 @@ defmodule Explorer.Periodically do
   end
 
   def send_work() do
-
+    # on restart the server
+    AlignedLayerServiceManager.update_restakeable_stratergies()
     # once per block
     seconds = 12
     # send every n seconds
