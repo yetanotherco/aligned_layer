@@ -5,6 +5,7 @@
 * [About Aligned](introduction/0_about_aligned.md)
 * [Getting started](introduction/1_getting_started.md)
 * [Example - ZKquiz](introduction/2_zkquiz.md)
+* [Costs](introduction/2_b_costs.md)
 * [Use cases](introduction/3_use_cases.md)
 * [FAQ](introduction/4_faq.md)
 * [Generating & submitting proofs of Rust code with ZKRust](introduction/5_using_zkrust.md)
