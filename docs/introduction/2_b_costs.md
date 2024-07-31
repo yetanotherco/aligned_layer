@@ -54,6 +54,8 @@ These numbers can be improved with changes on the contracts and other strategies
 | 32       |  36,950  |
 | 128      |  25,231  |
 
+![Figure 1: Architecture fast mode](../images/costs.png)
+
 ## Savings
 
 Batching 8 proofs already produces significant savings compared to on-chain proof verification. It is important to note that we can batch proofs from any proof system, and without needing to do any further expensive steps, such as proof recursion. The table below summarizes the savings for Groth16 (in all other cases, the savings are higher. For STARKs, it can be 99%!):
