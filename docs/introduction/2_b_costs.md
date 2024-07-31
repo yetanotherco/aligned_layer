@@ -12,6 +12,14 @@ The verification of zero-knowledge proofs in Ethereum depends on the proof syste
 
 Note that these costs can vary depending on variants in the proof system (such as supporting lookup arguments or customized gates), the implementation of the smart contract in Ethereum, as well as the factors mentioned above. The annualized costs depend on the number of proofs the application needs to verify in one year. These costs just refer to the verification and do not take into account other costs the project incurs in Ethereum.
 
+The following table summarizes the cost (is USD per year) as a function of the number of proofs sent in one day (24 proofs per day means that we send one proof every hour):
+
+| Proofs per day | 12          | 24          | 48            | 96         | 
+| --------       | --------    | --------    | --------      | --------   | 
+| Groth16        |   82,125    |  164,250    |  328,500      | 757,000    |
+| Plonk/KZG      |   131,400   |  262,800    |  525,600      | 1,051,200  |
+| STARKs         |   328,500   |  657,000    | 1,314,000     | 2,628,000  |
+
 ## Costs in Aligned
 
 The costs depend on task creation, aggregated signature or proof verification, and reading the results. The cost C per proof by batching N proofs is roughly:
