@@ -360,7 +360,7 @@ pub fn get_commitment(content: &[u8]) -> [u8; 32] {
 /// Returns the next nonce for a given address.
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `address` - The address for which the nonce will be calculated.
+/// * `address` - The address for which the nonce will be retrieved.
 /// * `batcher_contract_address` - The address of the batcher payment service contract.
 /// # Returns
 /// * The next nonce.
