@@ -1,4 +1,4 @@
-use ethers::types::Address;
+use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet, types::Address};
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -7,10 +7,32 @@ pub struct ECDSAConfig {
     pub private_key_store_password: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct NonPayingConfig {
     pub address: Address,
-    pub replacement: Address,
+    pub replacement: Wallet<SigningKey>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NonPayingConfigFromYaml {
+    pub address: Address,
+    pub replacement_private_key: String,
+}
+
+impl NonPayingConfig {
+    pub async fn from_yaml_config(config: NonPayingConfigFromYaml) -> Self {
+        let replacement = Wallet::from_bytes(
+            hex::decode(config.replacement_private_key)
+                .expect("Failed to decode replacement private key")
+                .as_slice(),
+        )
+        .expect("Failed to create replacement wallet");
+
+        NonPayingConfig {
+            address: config.address,
+            replacement,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -21,7 +43,7 @@ pub struct BatcherConfigFromYaml {
     pub max_batch_size: usize,
     pub eth_ws_reconnects: usize,
     pub pre_verification_is_enabled: bool,
-    pub non_paying: Option<NonPayingConfig>,
+    pub non_paying: Option<NonPayingConfigFromYaml>,
 }
 
 #[derive(Debug, Deserialize)]

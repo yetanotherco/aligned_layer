@@ -187,7 +187,7 @@ user_fund_payment_service:
 ./batcher/aligned-batcher/.env:
 	@echo "To start the Batcher ./batcher/aligned-batcher/.env needs to be manually set"; false;
 
-batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service 
+batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
@@ -209,13 +209,19 @@ build_batcher_client:
 batcher/target/release/aligned:
 	@cd batcher/aligned && cargo b --release
 
+
+RPC_URL=http://localhost:8545
+BATCHER_CONTRACT_ADDRESS=0x7969c5eD335650692Bc04293B07F5BF2e7A673C0
+
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
@@ -224,7 +230,9 @@ batcher_send_sp1_burst:
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
 		--repetitions 15 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
@@ -237,7 +245,9 @@ batcher_send_risc0_task:
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -247,7 +257,9 @@ batcher_send_risc0_burst:
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
         --repetitions 15 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -256,7 +268,9 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -266,7 +280,8 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--repetitions 15
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -275,7 +290,9 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
 		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -285,7 +302,9 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--repetitions 15
+		--repetitions 15 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 
 batcher_send_groth16_bn254_task: batcher/target/release/aligned
@@ -295,17 +314,9 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
-
-batcher_send_groth16_burst: batcher/target/release/aligned
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Groth16Bn254 \
-		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
-		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
-		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
-		--repetitions 15 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
@@ -324,6 +335,8 @@ batcher_send_halo2_ipa_task: batcher/target/release/aligned
 		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
 		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_ipa/params.bin \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
@@ -332,7 +345,9 @@ batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
 		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_ipa/params.bin \
-		--repetitions 5
+		--repetitions 5 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_halo2_kzg_task: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
@@ -341,7 +356,9 @@ batcher_send_halo2_kzg_task: batcher/target/release/aligned
 		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
 		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_kzg/params.bin \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
@@ -351,7 +368,9 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_kzg/params.bin \
 		--repetitions 5 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc $(RPC_URL) \
+		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
 __GENERATE_PROOFS__:
  # TODO add a default proving system
