@@ -20,6 +20,8 @@ The following table summarizes the cost (is USD per year) as a function of the n
 | Plonk/KZG      |   131,400   |  262,800    |  525,600      | 1,051,200  |
 | STARKs         |   328,500   |  657,000    | 1,314,000     | 2,628,000  |
 
+These costs are high for many ZK projects in Ethereum.
+
 ## Costs in Aligned
 
 The costs depend on task creation, aggregated signature or proof verification, and reading the results. The cost C per proof by batching N proofs is roughly:
@@ -37,7 +39,7 @@ $C_{task} = 100,000 + 1,325 N$
 $C_{verification} = 400,000$
 $C_{read} = 20,000$
 
-These numbers can be improved with changes on the contracts and other strategies. The following table summarizes the cost in terms of the number of proofs verified in a batch, $N$:
+These numbers can be improved with changes on the contracts and other strategies. We are working on optimizations to reduce reading and verification costs. The following table summarizes the cost in terms of the number of proofs verified in a batch, $N$:
 
 | $N$      | Gas cost | 
 | -------- | -------- | 
