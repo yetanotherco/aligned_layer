@@ -126,9 +126,9 @@ defmodule AVSDirectory do
           _ ->
             dbg("Error fetching operator metadata:", reason)
         end
-        %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
+        %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil} #TODO handle is_active for this case, should be false?
     end
-    Operators.register_operator(%Operators{name: operator_metadata.name, address: Enum.at(event.topics, 1), url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter})
+    Operators.register_operator(%Operators{name: operator_metadata.name, address: Enum.at(event.topics, 1), url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter, is_active: true})
     # TODO read its first stake
   end
 

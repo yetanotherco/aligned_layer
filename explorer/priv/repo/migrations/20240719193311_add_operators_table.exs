@@ -11,6 +11,7 @@ defmodule Explorer.Repo.Migrations.AddOperatorsTable do
       add :description, :text
       add :logo_link, :string
       add :twitter, :string
+      add :is_active, :boolean, default: false
 
       timestamps()
     end

@@ -17,6 +17,9 @@ defmodule EigenOperatorMetadataStruct do
     }
   end
 
-  def map_to_struct(_), do: {:error, :invalid_format}
+  def map_to_struct(other) do
+    dbg(other)
+    {:error, :invalid_format}
+  end
 
 end

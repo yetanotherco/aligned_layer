@@ -11,6 +11,7 @@ defmodule Operators do
     field :description, :string
     field :logo_link, :string
     field :twitter, :string
+    field :is_active, :boolean
 
     timestamps()
   end
@@ -18,8 +19,8 @@ defmodule Operators do
   @doc false
   def changeset(operator, attrs) do
     operator
-    |> cast(attrs, [:name, :address, :url, :website, :description, :logo_link, :twitter])
-    |> validate_required([:address, :url])
+    |> cast(attrs, [:name, :address, :url, :website, :description, :logo_link, :twitter, :is_active])
+    |> validate_required([:address, :url, :is_active])
     |> unique_constraint(:address)
   end
 
@@ -35,12 +36,20 @@ defmodule Operators do
   end
 
   def get_amount_of_operators do
-    query = from(o in Operators, select: count(o.id))
+    query = from(
+      o in Operators,
+      where: o.is_active == true,
+      select: count(o.id)
+    )
     Explorer.Repo.one(query)
   end
 
+  # def register_operator(%Operators{} = operator) do
+  #   Explorer.Repo.insert(operator)
+  # end
+
   def register_operator(%Operators{} = operator) do
-    Explorer.Repo.insert(operator)
+    Operators.changeset(operator, %{}) |> Explorer.Repo.insert()
   end
 
   def unregister_operator(%Operators{address: address}) do
