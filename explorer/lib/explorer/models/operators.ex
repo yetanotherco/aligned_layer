@@ -65,7 +65,6 @@ defmodule Operators do
   def unregister_operator(%Operators{address: address}) do
     query = from(o in Operators, where: o.address == ^address)
     Explorer.Repo.update_all(query, set: [is_active: false])
-    # TODO also update their stake?
   end
 
 end
