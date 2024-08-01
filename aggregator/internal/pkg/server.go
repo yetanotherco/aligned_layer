@@ -85,7 +85,10 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 
 	if _, ok := batchResponses[signedTaskResponse.OperatorId]; ok {
 		*reply = 0
-		agg.logger.Warn("Operator already responded, ignoring", "operatorId", signedTaskResponse.OperatorId, "taskIndex", taskIndex, "batchMerkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]))
+		agg.logger.Warn("Operator already responded, ignoring",
+			"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]),
+			"taskIndex", taskIndex, "batchMerkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]))
+
 		agg.taskMutex.Unlock()
 		return nil
 	}
