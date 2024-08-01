@@ -15,7 +15,8 @@ use std::sync::Arc;
 
 use aligned_sdk::core::types::{
     BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    ValidityResponseMessage, VerificationCommitmentBatch, VerificationDataCommitment,
+    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
@@ -464,10 +465,15 @@ impl Batcher {
         block_number: u64,
         finalized_batch: BatchQueue,
     ) -> Result<(), BatcherError> {
-        let batch_verification_data: Vec<NoncedVerificationData> = finalized_batch
+        let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
             .map(|(data, _, _, _)| data)
+            .collect();
+
+        let batch_verification_data: Vec<VerificationData> = nonced_batch_verifcation_data
+            .iter()
+            .map(|vd| vd.verification_data.clone())
             .collect();
 
         let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())

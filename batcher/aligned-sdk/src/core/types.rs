@@ -58,8 +58,12 @@ pub struct VerificationDataCommitment {
 
 impl From<&NoncedVerificationData> for VerificationDataCommitment {
     fn from(nonced_verification_data: &NoncedVerificationData) -> Self {
-        let verification_data = nonced_verification_data.verification_data.clone();
+        nonced_verification_data.verification_data.clone().into()
+    }
+}
 
+impl From<VerificationData> for VerificationDataCommitment {
+    fn from(verification_data: VerificationData) -> Self {
         let mut hasher = Keccak256::new();
 
         // compute proof commitment
