@@ -129,7 +129,7 @@ defmodule Utils do
     batch_json
       |> Enum.map(
         fn s3_object ->
-          :crypto.hash(:sha3_256, s3_object["verification_data"]["proof"])
+          :crypto.hash(:sha3_256, s3_object["proof"])
         end)
   end
 
