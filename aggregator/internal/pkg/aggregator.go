@@ -3,9 +3,10 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
-	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"sync"
 	"time"
+
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
@@ -55,6 +56,12 @@ type Aggregator struct {
 
 	// Stores the taskCreatedBlock for each batch bt batch index
 	batchCreatedBlockByIdx map[uint32]uint64
+
+	// Stores if an operator already submitted a response for a batch
+	// This is to avoid double submissions
+	// struct{} is used as a placeholder because it is the smallest type
+	// go does not have a set type
+	operatorRespondedBatch map[uint32]map[eigentypes.Bytes32]struct{}
 
 	// This task index is to communicate with the local BLS
 	// Service.
@@ -133,6 +140,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		batchesRootByIdx:       batchesRootByIdx,
 		batchesIdxByRoot:       batchesIdxByRoot,
 		batchCreatedBlockByIdx: batchCreatedBlockByIdx,
+		operatorRespondedBatch: make(map[uint32]map[eigentypes.Bytes32]struct{}),
 		nextBatchIndex:         nextBatchIndex,
 		taskMutex:              &sync.Mutex{},
 		walletMutex:            &sync.Mutex{},
@@ -183,6 +191,14 @@ const MaxSentTxRetries = 5
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
 		agg.logger.Warn("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err)
+		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
+		agg.taskMutex.Lock()
+
+		// Remove task from the list of tasks
+		delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
+
+		agg.logger.Info("- Unlocking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
+		agg.taskMutex.Unlock()
 		return
 	}
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
@@ -209,12 +225,15 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
 	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
+
+	// Delete the task from the map
+	delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
+
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
-
 
 	currentBlock, err := agg.AggregatorConfig.BaseConfig.EthRpcClient.BlockNumber(context.Background())
 	if err != nil {
@@ -270,10 +289,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 }
 
-
-
-/// Sends response to contract and waits for transaction receipt
-/// Returns error if it fails to send tx or receipt is not found
+// / Sends response to contract and waits for transaction receipt
+// / Returns error if it fails to send tx or receipt is not found
 func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	agg.walletMutex.Lock()
 	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchMerkleRoot[:]))
@@ -298,7 +315,6 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 
 	return receipt, nil
 }
-
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task",
