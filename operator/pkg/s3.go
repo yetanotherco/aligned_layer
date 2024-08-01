@@ -57,11 +57,5 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 		return nil, err
 	}
 
-	// get only the verification data
-	var batchData []VerificationData
-	for _, data := range batch {
-		batchData = append(batchData, data)
-	}
-
-	return batchData, nil
+	return batch, nil
 }
