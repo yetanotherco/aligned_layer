@@ -1,5 +1,5 @@
 use aligned_sdk::core::types::{
-    NoncedVerificationData, VerificationCommitmentBatch, VerificationDataCommitment,
+    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 
@@ -15,7 +15,7 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
 
     let batch_bytes = unsafe { std::slice::from_raw_parts(batch_ptr, batch_len) };
 
-    let batch = match serde_json::from_slice::<Vec<NoncedVerificationData>>(batch_bytes) {
+    let batch = match serde_json::from_slice::<Vec<VerificationData>>(batch_bytes) {
         Ok(batch) => batch,
         Err(_e) => {
             return false;
@@ -23,7 +23,7 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     };
 
     let batch_data_comm: Vec<VerificationDataCommitment> =
-        batch.into_iter().map(|v| v.clone().into()).collect();
+        batch.into_iter().map(|v| v.into()).collect();
 
     let computed_batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
         MerkleTree::build(&batch_data_comm);
