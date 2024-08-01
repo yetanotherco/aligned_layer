@@ -6,7 +6,14 @@ use crate::sp1::verify_sp1_proof;
 use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
 use log::{debug, warn};
 
-pub(crate) fn verify(verification_data: &VerificationData) -> bool {
+pub(crate) async fn verify(verification_data: &VerificationData) -> bool {
+    let verification_data = verification_data.clone();
+    tokio::task::spawn_blocking(move || verify_internal(&verification_data))
+        .await
+        .unwrap_or(false)
+}
+
+fn verify_internal(verification_data: &VerificationData) -> bool {
     match verification_data.proving_system {
         ProvingSystemId::SP1 => {
             if let Some(elf) = &verification_data.vm_program_code {
