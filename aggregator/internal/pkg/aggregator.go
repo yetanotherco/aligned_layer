@@ -182,7 +182,8 @@ const MaxSentTxRetries = 5
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
-		agg.logger.Warn("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err)
+		batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 		return
 	}
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
