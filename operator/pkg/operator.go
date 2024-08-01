@@ -38,19 +38,22 @@ import (
 )
 
 type Operator struct {
-	Config             config.OperatorConfig
-	Address            ethcommon.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
-	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
-	Logger             logging.Logger
-	aggRpcClient       AggregatorRpcClient
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+	Config              config.OperatorConfig
+	Address             ethcommon.Address
+	Socket              string
+	Timeout             time.Duration
+	PrivKey             *ecdsa.PrivateKey
+	KeyPair             *bls.KeyPair
+	OperatorId          eigentypes.OperatorId
+	avsSubscriber       chainio.AvsSubscriber
+	NewTaskCreatedChan  chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	Logger              logging.Logger
+	aggRpcClient        AggregatorRpcClient
+	metricsReg          *prometheus.Registry
+	metrics             *metrics.Metrics
+	processedTasks      map[[32]byte]bool
+	processedTasksMutex *sync.Mutex
+	lastProcessedTask   *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -103,15 +106,18 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:             configuration,
-		Logger:             logger,
-		avsSubscriber:      *avsSubscriber,
-		Address:            address,
-		NewTaskCreatedChan: newTaskCreatedChan,
-		aggRpcClient:       *rpcClient,
-		OperatorId:         operatorId,
-		metricsReg:         reg,
-		metrics:            operatorMetrics,
+		Config:              configuration,
+		Logger:              logger,
+		avsSubscriber:       *avsSubscriber,
+		Address:             address,
+		NewTaskCreatedChan:  newTaskCreatedChan,
+		aggRpcClient:        *rpcClient,
+		OperatorId:          operatorId,
+		metricsReg:          reg,
+		metrics:             operatorMetrics,
+		processedTasks:      make(map[[32]byte]bool),
+		processedTasksMutex: &sync.Mutex{},
+		lastProcessedTask:   nil,
 		// Timeout
 		// Socket
 	}
@@ -135,6 +141,9 @@ func (o *Operator) Start(ctx context.Context) error {
 	} else {
 		metricsErrChan = make(chan error, 1)
 	}
+
+	pollLatestTaskTimer := time.NewTicker(5 * time.Second)
+	defer pollLatestTaskTimer.Stop()
 
 	for {
 		select {
@@ -166,6 +175,8 @@ func (o *Operator) Start(ctx context.Context) error {
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
 			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+		case <-pollLatestTaskTimer.C:
+			o.checkAndProcessLatestTask()
 		}
 	}
 }
@@ -208,6 +219,71 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	}
 
 	return nil
+}
+
+func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
+	o.processedTasksMutex.Lock()
+	defer o.processedTasksMutex.Unlock()
+
+	if o.processedTasks == nil {
+		o.processedTasks = make(map[[32]byte]bool)
+	}
+
+	if o.processedTasks[newBatchLog.BatchMerkleRoot] {
+		o.Logger.Infof("Batch %x already processed, skipping", newBatchLog.BatchMerkleRoot)
+		return nil
+	}
+
+	err := o.ProcessNewBatchLog(newBatchLog)
+	if err != nil {
+		return fmt.Errorf("batch %v did not verify: %w", newBatchLog.BatchMerkleRoot, err)
+	}
+
+	responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
+
+	signedTaskResponse := types.SignedTaskResponse{
+		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+		BlsSignature:    *responseSignature,
+		OperatorId:      o.OperatorId,
+	}
+
+	o.Logger.Infof("Signed hash: %+v", *responseSignature)
+
+	go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+
+	o.processedTasks[newBatchLog.BatchMerkleRoot] = true
+	o.lastProcessedTask = newBatchLog
+	return nil
+
+}
+
+func (o *Operator) checkAndProcessLatestTask() {
+	latestTask, err := o.getLatestTaskFromBlockchain()
+	if err != nil {
+		o.Logger.Errorf("Failed to get latest task from blockchain: %v", err)
+		return
+	}
+
+	o.processedTasksMutex.Lock()
+	if o.lastProcessedTask != nil && bytes.Equal(latestTask.BatchMerkleRoot[:], o.lastProcessedTask.BatchMerkleRoot[:]) {
+		o.processedTasksMutex.Unlock()
+		return
+	}
+	o.processedTasksMutex.Unlock()
+
+	err = o.processNewBatch(latestTask)
+	if err != nil {
+		return
+	}
+}
+
+func (o *Operator) getLatestTaskFromBlockchain() (*servicemanager.ContractAlignedLayerServiceManagerNewBatch, error) {
+	//query := ethereum.FilterQuery{
+	//	Addresses: []ethcommon.Address{o.Config.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr},
+	//}
+	//o.Config.BaseConfig.EthRpcClient.FilterLogs()
+	// TODO: Implement this
+	return nil, nil
 }
 
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
