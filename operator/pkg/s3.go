@@ -50,18 +50,12 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 	}
 	o.Logger.Infof("Batch merkle tree verified")
 
-	var batch []NoncedVerificationData
+	var batch []VerificationData
 
 	err = json.Unmarshal(batchBytes, &batch)
 	if err != nil {
 		return nil, err
 	}
 
-	// get only the verification data
-	var batchData []VerificationData
-	for _, data := range batch {
-		batchData = append(batchData, data.VerificationData)
-	}
-
-	return batchData, nil
+	return batch, nil
 }
