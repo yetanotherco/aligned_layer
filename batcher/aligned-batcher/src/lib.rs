@@ -220,20 +220,7 @@ impl Batcher {
 
         match incoming
             .try_filter(|msg| future::ready(msg.is_text()))
-            .try_for_each(|msg| async {
-                let ws_conn_sink = outgoing.clone();
-                let batcher = self.clone();
-
-                tokio::spawn(async move {
-                    if let Err(e) = batcher.handle_message(msg, ws_conn_sink).await {
-                        error!("Error when handling message: {:?}", e);
-                    }
-                })
-                .await
-                .unwrap();
-
-                Ok(())
-            })
+            .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
             Err(e) => error!("Unexpected error: {}", e),
