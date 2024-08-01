@@ -15,7 +15,8 @@ use std::sync::Arc;
 
 use aligned_sdk::core::types::{
     BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    ValidityResponseMessage, VerificationCommitmentBatch, VerificationDataCommitment,
+    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
@@ -248,6 +249,11 @@ impl Batcher {
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
+        info!(
+            "Received message with nonce: {}",
+            U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
+        );
+
         info!("Verifying message signature...");
         if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
@@ -279,7 +285,7 @@ impl Batcher {
 
                 // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
                 if self.pre_verification_is_enabled
-                    && !zk_utils::verify(&nonced_verification_data.verification_data)
+                    && !zk_utils::verify(&nonced_verification_data.verification_data).await
                 {
                     error!("Invalid proof detected. Verification failed.");
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
@@ -468,10 +474,15 @@ impl Batcher {
         block_number: u64,
         finalized_batch: BatchQueue,
     ) -> Result<(), BatcherError> {
-        let batch_verification_data: Vec<NoncedVerificationData> = finalized_batch
+        let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
             .map(|(data, _, _, _)| data)
+            .collect();
+
+        let batch_verification_data: Vec<VerificationData> = nonced_batch_verifcation_data
+            .iter()
+            .map(|vd| vd.verification_data.clone())
             .collect();
 
         let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
@@ -712,7 +723,7 @@ impl Batcher {
         if client_msg.verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled
-                && !zk_utils::verify(&client_msg.verification_data.verification_data)
+                && !zk_utils::verify(&client_msg.verification_data.verification_data).await
             {
                 error!("Invalid proof detected. Verification failed.");
                 send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
