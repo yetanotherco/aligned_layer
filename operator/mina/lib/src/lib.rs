@@ -1,6 +1,6 @@
 mod consensus_state;
 
-use std::array::{self, TryFromSliceError};
+use std::array::TryFromSliceError;
 
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
 use base64::prelude::*;
@@ -95,7 +95,7 @@ pub fn parse_state(
 ) -> Result<MinaStateProtocolStateValueStableV2, String> {
     let state_len: usize = pub_inputs
         .get(*offset..*offset + 4)
-        .ok_or("Failed to slice  state len".to_string())
+        .ok_or("Failed to slice state len".to_string())
         .and_then(|slice| {
             slice
                 .try_into()
@@ -106,7 +106,7 @@ pub fn parse_state(
 
     let state = pub_inputs
         .get(*offset + 4..*offset + 4 + state_len)
-        .ok_or("Failed to slice  state".to_string())
+        .ok_or("Failed to slice state".to_string())
         .and_then(|bytes| std::str::from_utf8(bytes).map_err(|err| err.to_string()))
         .and_then(|base64| {
             BASE64_STANDARD
