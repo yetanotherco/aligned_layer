@@ -40,7 +40,10 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
-const blockInterval uint64 = 50000
+const (
+	blockInterval           uint64 = 50000
+	pollLatestBatchInterval        = 5 * time.Second
+)
 
 type Operator struct {
 	Config                config.OperatorConfig
@@ -56,7 +59,7 @@ type Operator struct {
 	aggRpcClient          AggregatorRpcClient
 	metricsReg            *prometheus.Registry
 	metrics               *metrics.Metrics
-	processedBatches      map[[32]byte]bool
+	processedBatches      map[[32]byte]struct{}
 	processedBatchesMutex *sync.Mutex
 	latestProcessedBatch  *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	//Socket  string
@@ -111,16 +114,17 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:                configuration,
-		Logger:                logger,
-		avsSubscriber:         *avsSubscriber,
-		Address:               address,
-		NewTaskCreatedChan:    newTaskCreatedChan,
-		aggRpcClient:          *rpcClient,
-		OperatorId:            operatorId,
-		metricsReg:            reg,
-		metrics:               operatorMetrics,
-		processedBatches:      make(map[[32]byte]bool),
+		Config:             configuration,
+		Logger:             logger,
+		avsSubscriber:      *avsSubscriber,
+		Address:            address,
+		NewTaskCreatedChan: newTaskCreatedChan,
+		aggRpcClient:       *rpcClient,
+		OperatorId:         operatorId,
+		metricsReg:         reg,
+		metrics:            operatorMetrics,
+		// The cheapest way to make a set in Go is to use a map with empty structs as values
+		processedBatches:      make(map[[32]byte]struct{}),
 		processedBatchesMutex: &sync.Mutex{},
 		latestProcessedBatch:  nil,
 		// Timeout
@@ -147,7 +151,7 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	pollLatestBatchTicker := time.NewTicker(5 * time.Second)
+	pollLatestBatchTicker := time.NewTicker(pollLatestBatchInterval)
 	defer pollLatestBatchTicker.Stop()
 
 	for {
@@ -165,6 +169,7 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
+			o.processedBatchesMutex.Lock()
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
 				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
@@ -177,6 +182,11 @@ func (o *Operator) Start(ctx context.Context) error {
 				BlsSignature:    *responseSignature,
 				OperatorId:      o.OperatorId,
 			}
+
+			o.processedBatches[newBatchLog.BatchMerkleRoot] = struct{}{}
+			o.latestProcessedBatch = newBatchLog
+
+			o.processedBatchesMutex.Unlock()
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
 			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
@@ -231,13 +241,6 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 }
 
 func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
-	o.processedBatchesMutex.Lock()
-	defer o.processedBatchesMutex.Unlock()
-
-	if o.processedBatches[newBatchLog.BatchMerkleRoot] {
-		o.Logger.Infof("Batch %x already processed, skipping", newBatchLog.BatchMerkleRoot)
-		return nil
-	}
 
 	err := o.ProcessNewBatchLog(newBatchLog)
 	if err != nil {
@@ -256,8 +259,6 @@ func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLa
 
 	go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 
-	o.processedBatches[newBatchLog.BatchMerkleRoot] = true
-	o.latestProcessedBatch = newBatchLog
 	return nil
 
 }
@@ -265,21 +266,26 @@ func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLa
 func (o *Operator) checkForMissedBatches() error {
 	latestBatch, err := o.getLatestTaskFromBlockchain()
 	if err != nil {
-		return fmt.Errorf("failed to get latest task from blockchain: %w", err)
+		// This is not necessarily an error, it just means that there are no new batches
+		return nil
 	}
-
-	o.Logger.Infof("Latest Batch Merkle Root: %v", latestBatch.BatchMerkleRoot)
 
 	o.processedBatchesMutex.Lock()
 	defer o.processedBatchesMutex.Unlock()
+
 	if o.latestProcessedBatch != nil && latestBatch.BatchMerkleRoot == o.latestProcessedBatch.BatchMerkleRoot {
-		o.processedBatchesMutex.Unlock()
-		return fmt.Errorf("latest task already processed")
+		// Latest batch has already been processed
+		return nil
 	}
 
-	if !o.processedBatches[latestBatch.BatchMerkleRoot] {
+	if _, processed := o.processedBatches[latestBatch.BatchMerkleRoot]; !processed {
 		o.Logger.Infof("Found missed batch %x, processing...", latestBatch.BatchMerkleRoot)
-		return o.processNewBatch(latestBatch)
+		err := o.processNewBatch(latestBatch)
+		if err != nil {
+			return err
+		}
+		o.processedBatches[latestBatch.BatchMerkleRoot] = struct{}{}
+		o.latestProcessedBatch = latestBatch
 	}
 
 	return nil
@@ -303,10 +309,22 @@ func (o *Operator) getLatestTaskFromBlockchain() (*servicemanager.ContractAligne
 		fromBlock = latestBlock - blockInterval
 	}
 
+	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ABI: %w", err)
+	}
+
+	// We just care about the createNewTask event
+	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatch"]
+	if newBatchEvent.ID == (ethcommon.Hash{}) {
+		return nil, fmt.Errorf("createNewTask event not found in ABI")
+	}
+
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(int64(fromBlock)),
 		ToBlock:   big.NewInt(int64(latestBlock)),
 		Addresses: []ethcommon.Address{o.Config.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr},
+		Topics:    [][]ethcommon.Hash{{newBatchEvent.ID, {}}},
 	}
 
 	logs, err := o.Config.BaseConfig.EthRpcClient.FilterLogs(context.Background(), query)
@@ -320,18 +338,14 @@ func (o *Operator) getLatestTaskFromBlockchain() (*servicemanager.ContractAligne
 
 	lastLog := logs[len(logs)-1]
 
-	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ABI: %w", err)
-	}
-
-	o.Logger.Infof("Last Log: %v", lastLog)
-
 	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatch", lastLog.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unpack log data: %w", err)
 	}
+
+	// The second topic is the batch merkle root, as it is an indexed variable in the contract
+	latestTask.BatchMerkleRoot = lastLog.Topics[1]
 
 	return &latestTask, nil
 
