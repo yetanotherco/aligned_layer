@@ -206,9 +206,10 @@ const MaxSentTxRetries = 5
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
-		agg.logger.Warn("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err)
-		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 		agg.taskMutex.Lock()
+		batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+        agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 
 		// Remove task from the list of tasks
 		delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
