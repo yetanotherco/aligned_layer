@@ -169,11 +169,20 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
+
+			if _, processed := o.processedBatches[newBatchLog.BatchMerkleRoot]; processed {
+				o.Logger.Infof("Batch %x has already been processed", newBatchLog.BatchMerkleRoot)
+				continue
+			}
+
 			o.processedBatchesMutex.Lock()
+			o.processedBatches[newBatchLog.BatchMerkleRoot] = struct{}{}
+			o.latestProcessedBatch = newBatchLog
+			o.processedBatchesMutex.Unlock()
+
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
 				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
-				o.processedBatchesMutex.Unlock()
 				continue
 			}
 			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
@@ -183,11 +192,6 @@ func (o *Operator) Start(ctx context.Context) error {
 				BlsSignature:    *responseSignature,
 				OperatorId:      o.OperatorId,
 			}
-
-			o.processedBatches[newBatchLog.BatchMerkleRoot] = struct{}{}
-			o.latestProcessedBatch = newBatchLog
-
-			o.processedBatchesMutex.Unlock()
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
 			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
