@@ -1,5 +1,5 @@
 <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
-  <.card_preheding>Latest Batches</.card_preheding>
+  <.card_preheding>Batches</.card_preheding>
   <%= if @batches != :empty and @batches != [] do %>
     <.table id="batches" rows={@batches}>
       <:col :let={batch} label="Merkle Root">
