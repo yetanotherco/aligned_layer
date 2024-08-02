@@ -7,7 +7,6 @@ defmodule ERC20 do
   end
 
   def name(address) do
-    "address: #{address}" |> dbg
     ERC20.name() |> Ethers.call(to: address)
   end
 end

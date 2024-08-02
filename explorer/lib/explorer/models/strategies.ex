@@ -19,9 +19,10 @@ defmodule Strategies do
   @doc false
   def changeset(strategy, attrs) do
     strategy
-    |> cast(attrs, [:name, :symbol, :address, :total_staked])
-    |> validate_required([:name, :symbol, :address, :total_staked])
-    |> unique_constraint(:address)
+    |> cast(attrs, [:strategy_address, :token_address, :name, :symbol, :total_staked])
+    |> validate_required([:strategy_address, :token_address, :name, :symbol])
+    |> unique_constraint(:strategy_address)
+    |> unique_constraint(:token_address)
   end
 
   def generate_changeset(%Strategies{} = strategy) do
@@ -30,17 +31,10 @@ defmodule Strategies do
 
   def update(restakeable_strategies) do
     restakeable_strategies
-      |> Enum.map(&remove_redundant/1)
+      |> Enum.reject(&Strategies.get_by_strategy_address/1)
       |> Enum.map(&extract_info/1)
+      |> Enum.reject(&is_nil/1)
       |> Enum.map(&add_strategy/1)
-  end
-
-  def remove_redundant(strategy_address) do
-    case Strategies.get_by_strategy_address(strategy_address) do
-      :nil ->
-        strategy_address
-      _ -> :nil
-    end
   end
 
   def get_by_strategy_address(strategy_address) do
@@ -51,43 +45,65 @@ defmodule Strategies do
   end
 
   def extract_info(strategy_address) do
-    current_strategy = %Strategies{strategy_address: strategy_address}
-
-    current_strategy = case Strategies.underlying_token() |> Ethers.call(to: current_strategy.strategy_address) do
-      {:ok, token_address} ->
-        %{current_strategy | token_address: token_address}
-      error ->
-        dbg("Error fetching token address")
-        dbg(error)
-    end
-
-    current_strategy |> dbg
-    current_strategy = case ERC20.name(current_strategy.token_address) do
-      {:ok, name} ->
-        %{current_strategy | name: name}
-      error ->
-        dbg("Error fetching token name")
-        dbg(error)
-    end
-
-    current_strategy = case ERC20.symbol(current_strategy.token_address) do
-      {:ok, symbol} ->
-        %{current_strategy | symbol: symbol}
-
-      error ->
-        dbg("Error fetching token symbol")
-        dbg(error)
-    end
-
-    dbg(current_strategy)
-
-    # WIP handle errors
-
+    %Strategies{strategy_address: strategy_address}
+    |> fetch_token_address()
+    |> fetch_token_name()
+    |> fetch_token_symbol()
+    |> tap(&dbg/1)
     # Total stake is set when inserting rows to `Restakings` table
   end
 
-  def add_strategy(new_strategy) do
+  defp fetch_token_address(%Strategies{strategy_address: strategy_address} = strategy) do
+    case Strategies.underlying_token() |> Ethers.call(to: strategy_address) do
+      {:ok, "0x"} ->
+        dbg("Strategy has invalid underlying token: #{strategy_address}, token_address: '0x'")
+        {:error, :invalid_token_address}
+      {:ok, token_address} -> %{strategy | token_address: token_address}
+
+      {:error, %{"code" => -32015}} ->
+        dbg("Strategy has no underlying token: #{strategy_address}") # thus, its not a strategy contract
+        {:error, :not_strategy}
+
+        other_error ->
+        dbg("Error fetching token address for #{strategy_address}")
+        dbg(other_error)
+        other_error
+    end
+  end
+
+  defp fetch_token_name(%Strategies{token_address: token_address} = strategy) do
+    case ERC20.name(token_address) do
+      {:ok, name} -> %{strategy | name: name}
+      error ->
+        dbg("Error fetching token name")
+        dbg(error)
+        error
+    end
+  end
+  defp fetch_token_name({:error, error}) do
+    {:error, error}
+  end
+
+  defp fetch_token_symbol(%Strategies{token_address: token_address} = strategy) do
+    case ERC20.symbol(token_address) do
+      {:ok, symbol} -> %{strategy | symbol: symbol}
+      error ->
+        dbg("Error fetching token symbol")
+        dbg(error)
+        error
+    end
+  end
+  defp fetch_token_symbol({:error, error}) do
+    {:error, error}
+  end
+
+  def add_strategy(%Strategies{} = new_strategy) do
+    dbg("adding strategy")
+    dbg(new_strategy)
     Strategies.generate_changeset(new_strategy) |> Explorer.Repo.insert()
+  end
+  def add_strategy({:error, error}) do
+    :nil
   end
 
 end
