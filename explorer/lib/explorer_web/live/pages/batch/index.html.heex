@@ -64,9 +64,8 @@
       <p>
         <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
       </p>
-      <.divider />
       <%= if @current_batch.is_verified do %>
-        Response Block Number:
+        <.divider /> Response Block Number:
         <.a
           target="_blank"
           rel="noopener"
