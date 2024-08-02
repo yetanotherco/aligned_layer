@@ -12,15 +12,12 @@ and it guarantees that it can only spend these funds to send users' proofs to Al
 Users must first deposit into this contract, via a normal transfer to its address,
 where the Batcher Payment System will update the User's balance.
 
-Then, users can send proofs to the Batcher,
-the Batcher will preemptively check if the user has funds for this,
-and once the whole batch is assembled,
-the Batcher will call its smart contract with the data it has received from the users.
+Users send proofs to the Batcher, which checks for sufficient funds.
+Once a batch is complete, the Batcher calls its smart contract with the collected user data
 
-The smart contract will then discount the corresponding funds from each of the senders' balances,
-and create a new Batch in [Aligned Service Manager](./3_service_manager_contract.md),
-sending with it the corresponding tokens for the
-batch verification to be paid to the [Aggregator](./5_aggregator.md).
+The smart contract deducts funds from senders' balances and creates a new Batch in
+the [Aligned Service Manager](./3_service_manager_contract.md),
+including tokens for batch verification payment to the [Aggregator](./5_aggregator.md).
 
 Users can then withdraw extra funds deposited to the Batcher Payments smart contract,
 or leave them to fund future proofs.
