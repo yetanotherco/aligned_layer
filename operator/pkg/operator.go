@@ -41,7 +41,7 @@ import (
 )
 
 const (
-	blockInterval           uint64 = 50000
+	blockInterval           uint64 = 1000
 	pollLatestBatchInterval        = 5 * time.Second
 )
 
