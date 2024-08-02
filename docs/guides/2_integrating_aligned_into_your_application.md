@@ -40,9 +40,9 @@ contract YourContract {
         //... Your contract constructor ...
         alignedServiceManager = _alignedServiceManager;
     }
-    
+
     // Your contract code ...
-    
+
     function yourContractMethod(
         //... Your function variables, ...
         bytes32 proofCommitment,
@@ -54,9 +54,9 @@ contract YourContract {
         uint256 verificationDataBatchIndex
     ) {
         // ... Your function code
-        
+
         require(elfCommitment == provingSystemAuxDataCommitment, "ELF does not match");
-        
+
         (bool callWasSuccessful, bytes memory proofIsIncluded) = alignedServiceManager.staticcall(
             abi.encodeWithSignature(
                 "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
@@ -71,10 +71,10 @@ contract YourContract {
         );
 
         require(callWasSuccessful, "static_call failed");
-        
+
         bool proofIsIncludedBool = abi.decode(proofIsIncluded, (bool));
         require(proofIsIncludedBool, "proof not included in batch");
-        
+
         // Your function code ...
     }
 }
@@ -121,11 +121,13 @@ To submit a proof using the SDK, you can use the `submit` function, and then you
 The following code is an example of how to submit a proof using the SDK:
 
 ```rust
-use aligned_sdk::sdk::submit;
+use aligned_sdk::sdk::{submit, get_next_nonce};
 use aligned_sdk::types::{ProvingSystemId, VerificationData};
 use ethers::prelude::*;
 
+const RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
+const BATCHER_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
 
 async fn submit_proof_to_aligned(
@@ -141,7 +143,11 @@ async fn submit_proof_to_aligned(
         pub_input: None,
     };
 
-    submit(BATCHER_URL, &verification_data, wallet).await
+    let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_CONTRACT_ADDRESS)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to get next nonce: {:?}", e))?;
+
+    submit(BATCHER_URL, &verification_data, wallet, nonce).await
         .map_err(|e| anyhow::anyhow!("Failed to submit proof: {:?}", e))
 }
 
