@@ -1,7 +1,7 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.3.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.3.0)
+> Aligned Operator [v0.4.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.4.0)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
@@ -12,7 +12,7 @@ The following is the list of the verifiers currently supported by Aligned:
 
 - :white_check_mark: gnark - Groth16 (with BN254)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
-- :white_check_mark: SP1 [(v1.0.8-testnet)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.8-testnet)
+- :white_check_mark: SP1 [(v1.0.1)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.1)
 - :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
 
 The following proof systems are going to be added soon:
@@ -41,7 +41,7 @@ Minimum hardware requirements:
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.3.0
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.4.0
 cd aligned_layer
 ```
 
