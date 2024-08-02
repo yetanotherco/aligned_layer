@@ -590,9 +590,7 @@ impl Batcher {
             let mut batch_posting = self.posting_batch.lock().await;
             *batch_posting = false;
 
-            if let Err(e) = res {
-                return Err(e);
-            }
+            res?;
         }
         Ok(())
     }
