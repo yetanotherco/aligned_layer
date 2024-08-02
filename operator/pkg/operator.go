@@ -43,22 +43,22 @@ import (
 const blockInterval uint64 = 50000
 
 type Operator struct {
-	Config              config.OperatorConfig
-	Address             ethcommon.Address
-	Socket              string
-	Timeout             time.Duration
-	PrivKey             *ecdsa.PrivateKey
-	KeyPair             *bls.KeyPair
-	OperatorId          eigentypes.OperatorId
-	avsSubscriber       chainio.AvsSubscriber
-	NewTaskCreatedChan  chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
-	Logger              logging.Logger
-	aggRpcClient        AggregatorRpcClient
-	metricsReg          *prometheus.Registry
-	metrics             *metrics.Metrics
-	processedTasks      map[[32]byte]bool
-	processedTasksMutex *sync.Mutex
-	lastProcessedTask   *servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	Config                config.OperatorConfig
+	Address               ethcommon.Address
+	Socket                string
+	Timeout               time.Duration
+	PrivKey               *ecdsa.PrivateKey
+	KeyPair               *bls.KeyPair
+	OperatorId            eigentypes.OperatorId
+	avsSubscriber         chainio.AvsSubscriber
+	NewTaskCreatedChan    chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	Logger                logging.Logger
+	aggRpcClient          AggregatorRpcClient
+	metricsReg            *prometheus.Registry
+	metrics               *metrics.Metrics
+	processedBatches      map[[32]byte]bool
+	processedBatchesMutex *sync.Mutex
+	latestProcessedBatch  *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -111,18 +111,18 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:              configuration,
-		Logger:              logger,
-		avsSubscriber:       *avsSubscriber,
-		Address:             address,
-		NewTaskCreatedChan:  newTaskCreatedChan,
-		aggRpcClient:        *rpcClient,
-		OperatorId:          operatorId,
-		metricsReg:          reg,
-		metrics:             operatorMetrics,
-		processedTasks:      make(map[[32]byte]bool),
-		processedTasksMutex: &sync.Mutex{},
-		lastProcessedTask:   nil,
+		Config:                configuration,
+		Logger:                logger,
+		avsSubscriber:         *avsSubscriber,
+		Address:               address,
+		NewTaskCreatedChan:    newTaskCreatedChan,
+		aggRpcClient:          *rpcClient,
+		OperatorId:            operatorId,
+		metricsReg:            reg,
+		metrics:               operatorMetrics,
+		processedBatches:      make(map[[32]byte]bool),
+		processedBatchesMutex: &sync.Mutex{},
+		latestProcessedBatch:  nil,
 		// Timeout
 		// Socket
 	}
@@ -147,8 +147,8 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	pollLatestTaskTimer := time.NewTicker(5 * time.Second)
-	defer pollLatestTaskTimer.Stop()
+	pollLatestBatchTicker := time.NewTicker(5 * time.Second)
+	defer pollLatestBatchTicker.Stop()
 
 	for {
 		select {
@@ -180,8 +180,8 @@ func (o *Operator) Start(ctx context.Context) error {
 
 			o.Logger.Infof("Signed hash: %+v", *responseSignature)
 			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
-		case <-pollLatestTaskTimer.C:
-			err := o.checkAndProcessLatestTask()
+		case <-pollLatestBatchTicker.C:
+			err := o.checkForMissedBatches()
 			if err != nil {
 				o.Logger.Infof("Could not process latest task: %v", err)
 				continue
@@ -231,14 +231,10 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 }
 
 func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
-	o.processedTasksMutex.Lock()
-	defer o.processedTasksMutex.Unlock()
+	o.processedBatchesMutex.Lock()
+	defer o.processedBatchesMutex.Unlock()
 
-	if o.processedTasks == nil {
-		o.processedTasks = make(map[[32]byte]bool)
-	}
-
-	if o.processedTasks[newBatchLog.BatchMerkleRoot] {
+	if o.processedBatches[newBatchLog.BatchMerkleRoot] {
 		o.Logger.Infof("Batch %x already processed, skipping", newBatchLog.BatchMerkleRoot)
 		return nil
 	}
@@ -260,33 +256,38 @@ func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLa
 
 	go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 
-	o.processedTasks[newBatchLog.BatchMerkleRoot] = true
-	o.lastProcessedTask = newBatchLog
+	o.processedBatches[newBatchLog.BatchMerkleRoot] = true
+	o.latestProcessedBatch = newBatchLog
 	return nil
 
 }
 
-func (o *Operator) checkAndProcessLatestTask() error {
-	latestTask, err := o.getLatestTaskFromBlockchain()
+func (o *Operator) checkForMissedBatches() error {
+	latestBatch, err := o.getLatestTaskFromBlockchain()
 	if err != nil {
 		return fmt.Errorf("failed to get latest task from blockchain: %w", err)
 	}
 
-	o.processedTasksMutex.Lock()
+	o.Logger.Infof("Latest Batch Merkle Root: %v", latestBatch.BatchMerkleRoot)
 
-	if o.lastProcessedTask != nil && bytes.Equal(latestTask.BatchMerkleRoot[:], o.lastProcessedTask.BatchMerkleRoot[:]) {
+	o.processedBatchesMutex.Lock()
+	defer o.processedBatchesMutex.Unlock()
+	if o.latestProcessedBatch != nil && latestBatch.BatchMerkleRoot == o.latestProcessedBatch.BatchMerkleRoot {
+		o.processedBatchesMutex.Unlock()
 		return fmt.Errorf("latest task already processed")
 	}
-	o.processedTasksMutex.Unlock()
 
-	err = o.processNewBatch(latestTask)
-	if err != nil {
-		return fmt.Errorf("failed to process latest task: %w", err)
+	if !o.processedBatches[latestBatch.BatchMerkleRoot] {
+		o.Logger.Infof("Found missed batch %x, processing...", latestBatch.BatchMerkleRoot)
+		return o.processNewBatch(latestBatch)
 	}
 
 	return nil
 }
 
+// getLatestTaskFromBlockchain queries the blockchain for the latest task using the FilterLogs method.
+// The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
+// to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
 func (o *Operator) getLatestTaskFromBlockchain() (*servicemanager.ContractAlignedLayerServiceManagerNewBatch, error) {
 	latestBlock, err := o.Config.BaseConfig.EthRpcClient.BlockNumber(context.Background())
 
@@ -310,8 +311,7 @@ func (o *Operator) getLatestTaskFromBlockchain() (*servicemanager.ContractAligne
 
 	logs, err := o.Config.BaseConfig.EthRpcClient.FilterLogs(context.Background(), query)
 	if err != nil {
-		log.Printf("Failed to get logs: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to get logs: %w", err)
 	}
 
 	if len(logs) == 0 {
