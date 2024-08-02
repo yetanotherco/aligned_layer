@@ -17,7 +17,7 @@
         <p>
           <%= @current_batch.cost_per_proof |> EthConverter.wei_to_eth() %> ETH
           <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
-            (<%= @eth_usd_price %> USD)
+            <span class="inline-flex md:inline-block">(<%= @eth_usd_price %> USD)</span>
           <% end %>
         </p>
       <% end %>
