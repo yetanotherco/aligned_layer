@@ -98,6 +98,7 @@ pub struct Batcher {
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
+    posting_batch: Mutex<bool>,
 }
 
 impl Batcher {
@@ -166,6 +167,7 @@ impl Batcher {
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
+            posting_batch: Mutex::new(false),
         }
     }
 
@@ -456,6 +458,18 @@ impl Batcher {
             return Some(finalized_batch);
         }
 
+        // Check if a batch is currently being posted
+        let mut batch_posting = self.posting_batch.lock().await;
+        if *batch_posting {
+            info!(
+                "Batch is currently being posted. Waiting for the current batch to be finalized..."
+            );
+            return None;
+        }
+
+        // Set the batch posting flag to true
+        *batch_posting = true;
+
         // A copy of the batch is made to be returned and the current batch is cleared
         let finalized_batch = batch_state.batch_queue.clone();
         batch_state.batch_queue.clear();
@@ -570,7 +584,15 @@ impl Batcher {
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number, finalized_batch).await?;
+            let res = self.finalize_batch(block_number, finalized_batch).await;
+
+            // Doing this here to avoid having to do it on every return path
+            let mut batch_posting = self.posting_batch.lock().await;
+            *batch_posting = false;
+
+            if let Err(e) = res {
+                return Err(e);
+            }
         }
         Ok(())
     }
