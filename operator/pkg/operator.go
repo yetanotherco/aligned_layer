@@ -6,13 +6,14 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"log"
 	"math/big"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
@@ -41,8 +42,9 @@ import (
 )
 
 const (
-	blockInterval           uint64 = 1000
-	pollLatestBatchInterval        = 5 * time.Second
+	blockInterval                 uint64 = 1000
+	pollLatestBatchInterval              = 5 * time.Second
+	clearProcessedBatchesInterval        = 10 * time.Minute
 )
 
 type Operator struct {
@@ -154,6 +156,9 @@ func (o *Operator) Start(ctx context.Context) error {
 	pollLatestBatchTicker := time.NewTicker(pollLatestBatchInterval)
 	defer pollLatestBatchTicker.Stop()
 
+	clearProcessedBatchesTicker := time.NewTicker(clearProcessedBatchesInterval)
+	defer clearProcessedBatchesTicker.Stop()
+
 	for {
 		select {
 		case <-context.Background().Done():
@@ -201,6 +206,11 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Infof("Could not process latest task: %v", err)
 				continue
 			}
+		case <-clearProcessedBatchesTicker.C:
+			o.processedBatchesMutex.Lock()
+			o.Logger.Info("Clearing processed batches...")
+			clear(o.processedBatches)
+			o.processedBatchesMutex.Unlock()
 		}
 	}
 }
