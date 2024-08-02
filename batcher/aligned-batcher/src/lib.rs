@@ -584,13 +584,14 @@ impl Batcher {
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            let res = self.finalize_batch(block_number, finalized_batch).await;
+            let batch_finalization_result =
+                self.finalize_batch(block_number, finalized_batch).await;
 
-            // Doing this here to avoid having to do it on every return path
+            // Resetting this here to avoid doing it on every return path of `finalize_batch` function
             let mut batch_posting = self.posting_batch.lock().await;
             *batch_posting = false;
 
-            res?;
+            batch_finalization_result?;
         }
         Ok(())
     }
