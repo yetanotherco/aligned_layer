@@ -3,12 +3,12 @@ package metrics
 import (
 	"context"
 	"errors"
+	"net/http"
+
 	"github.com/Layr-Labs/eigensdk-go/logging"
-	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 type Metrics struct {
@@ -49,7 +49,7 @@ func (m *Metrics) Start(ctx context.Context, reg prometheus.Gatherer) <-chan err
 		))
 		err := http.ListenAndServe(m.ipPortAddress, nil)
 		if err != nil {
-			errC <- types.WrapError(errors.New("prometheus server failed"), err)
+			errC <- errors.New("prometheus server failed")
 		} else {
 			errC <- nil
 		}
