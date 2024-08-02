@@ -36,16 +36,16 @@ defmodule NavComponent do
       </div>
       <.live_component module={SearchComponent} id="nav_search" />
       <div class="items-center gap-4 font-semibold leading-6 text-foreground/80 flex [&>a]:hidden lg:[&>a]:inline-block [&>a]:drop-shadow-md">
-        <a class="hover:text-foreground" target="_blank" href="https://x.com/alignedlayer">
-          @alignedlayer
-        </a>
-        <a
+        <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
+          Docs
+        </.link>
+        <.link
           class="hover:text-foreground"
           target="_blank"
           href="https://github.com/yetanotherco/aligned_layer"
         >
           GitHub
-        </a>
+        </.link>
         <DarkMode.button />
       </div>
     </nav>
