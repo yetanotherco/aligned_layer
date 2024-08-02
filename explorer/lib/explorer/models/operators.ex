@@ -3,9 +3,10 @@ defmodule Operators do
   import Ecto.Changeset
   import Ecto.Query
 
+  @primary_key {:address, :binary, autogenerate: false}
   schema "operators" do
+    field :id, :binary
     field :name, :string
-    field :address, :binary
     field :url, :string
     field :website, :string
     field :description, :string
@@ -19,9 +20,10 @@ defmodule Operators do
   @doc false
   def changeset(operator, attrs) do
     operator
-    |> cast(attrs, [:name, :address, :url, :website, :description, :logo_link, :twitter, :is_active])
-    |> validate_required([:address, :url, :is_active])
+    |> cast(attrs, [:address, :id, :name, :url, :website, :description, :logo_link, :twitter, :is_active])
+    |> validate_required([:address, :id, :url, :is_active])
     |> unique_constraint(:address)
+    |> unique_constraint(:id)
   end
 
   def generate_changeset(%Operators{} = operator) do
@@ -43,13 +45,19 @@ defmodule Operators do
     query = from(
       o in Operators,
       where: o.is_active == true,
-      select: count(o.id)
+      select: count(o.address)
     )
     Explorer.Repo.one(query)
   end
 
   def register_or_update_operator(%Operators{} = operator) do
-    changeset = Operators.generate_changeset(operator)
+    changeset = case Operators.generate_changeset(operator) do
+      %Ecto.Changeset{valid?: false} = changeset ->
+        dbg("Invalid changeset: #{inspect(changeset)}")
+        :nil
+      changeset ->
+        changeset
+    end
     case Explorer.Repo.get_by(Operators, address: operator.address) do
       nil ->
         dbg("Inserting new operator")

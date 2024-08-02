@@ -4,7 +4,7 @@ defmodule Explorer.Repo.Migrations.AddRestakingsTable do
   def change do
     create table("restakings", primary_key: false) do
       add :id, :bigserial, primary_key: true
-      add :operator_id, references(:operators, column: :id, type: :bigserial), null: false
+      add :operator_address, references(:operators, column: :address, type: :binary), null: false
       add :amount, :decimal, precision: 22, scale: 0, null: false
 
       timestamps()

@@ -3,9 +3,9 @@ defmodule Explorer.Repo.Migrations.AddOperatorsTable do
 
   def change do
     create table("operators", primary_key: false) do
-      add :id, :bigserial, primary_key: true
+      add :address, :binary, primary_key: true
+      add :id, :binary
       add :name, :string
-      add :address, :binary, null: false
       add :url, :string, null: false
       add :website, :string
       add :description, :text

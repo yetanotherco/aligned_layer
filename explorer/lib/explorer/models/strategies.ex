@@ -102,7 +102,7 @@ defmodule Strategies do
     dbg(new_strategy)
     Strategies.generate_changeset(new_strategy) |> Explorer.Repo.insert()
   end
-  def add_strategy({:error, error}) do
+  def add_strategy({:error, _error}) do
     :nil
   end
 

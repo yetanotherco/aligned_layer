@@ -5,7 +5,8 @@ defmodule Scripts.FetchOldOperators do
 
   def run(fromBlock) do
     "running fetch_old_operators" |> IO.inspect()
-    AVSDirectory.process_operator_data(%{fromBlock: fromBlock})
+    AVSDirectoryManager.process_operator_data(%{fromBlock: fromBlock})
+    "done running fetch_old_operators" |> IO.inspect()
   end
 
 end
