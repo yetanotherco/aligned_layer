@@ -1,7 +1,9 @@
 # Aligned SDK
 
 The Aligned SDK aims to help developers interact with Aligned in a simple way.
-Some of its functionalities include submitting and verifying proofs through the Aligned Batcher, as well as checking the inclusion of the verified proofs on-chain. This guide provides an overview of the SDK, its installation, usage, and API details.
+Some of its functionalities include submitting and verifying proofs through the Aligned Batcher, as well as checking the
+inclusion of the verified proofs on-chain.
+This guide provides an overview of the SDK, its installation, usage, and API details.
 
 You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
@@ -14,11 +16,12 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.4.0" }
 ```
 
-To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the version of the release that has the `latest` badge.
+To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the
+version of the release that has the `latest` badge.
 
 ## API Reference
 
-### submit
+### `submit`
 
 Submits a proof to the batcher to be verified and returns an aligned verification data struct.
 
@@ -54,11 +57,11 @@ pub async fn submit(
 - `InvalidNonce` if the nonce is invalid.
 - `InvalidProof` if the proof is invalid.
 - `ProofTooLarge` if the proof is too large.
-- `InsufficientBalance` if the sender balance is insufficient or unlocked
+- `InsufficientBalance` if the sender balance is not enough or unlocked
 - `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### submit_multiple
+### `submit_multiple`
 
 Submits multiple proofs to the batcher to be verified and returns an aligned verification data array.
 
@@ -94,13 +97,14 @@ pub async fn submit_multiple(
 - `InvalidNonce` if the nonce is invalid.
 - `InvalidProof` if the proof is invalid.
 - `ProofTooLarge` if the proof is too large.
-- `InsufficientBalance` if the sender balance is insufficient or unlocked
+- `InsufficientBalance` if the sender balance is not enough or unlocked
 - `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### submit_and_wait
+### `submit_and_wait`
 
-Submits a proof to the batcher to be verified, waits for the verification on ethereum and returns an aligned verification data struct.
+Submits a proof to the batcher to be verified, waits for the verification on ethereum and returns an aligned
+verification data struct.
 
 ```rust
 pub async fn submit_and_wait(
@@ -141,13 +145,14 @@ pub async fn submit_and_wait(
 - `InvalidNonce` if the nonce is invalid.
 - `InvalidProof` if the proof is invalid.
 - `ProofTooLarge` if the proof is too large.
-- `InsufficientBalance` if the sender balance is insufficient or unlocked
+- `InsufficientBalance` if the sender balance is not enough or unlocked
 - `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### submit_multiple_and_wait
+### `submit_multiple_and_wait`
 
-Submits multiple proofs to the batcher to be verified, waits for the verification on Ethereum and returns an aligned verification data array.
+Submits multiple proofs to the batcher to be verified, waits for the verification on Ethereum and returns an aligned
+verification data array.
 
 ```rust
 pub async fn submit_multiple_and_wait(
@@ -188,11 +193,11 @@ pub async fn submit_multiple_and_wait(
 - `InvalidNonce` if the nonce is invalid.
 - `InvalidProof` if the proof is invalid.
 - `ProofTooLarge` if the proof is too large.
-- `InsufficientBalance` if the sender balance is insufficient or unlocked
+- `InsufficientBalance` if the sender balance is not enough or unlocked
 - `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### verify_proof_onchain
+### `verify_proof_onchain`
 
 Checks if the proof has been verified with Aligned and is included in the batch on-chain.
 
@@ -212,7 +217,8 @@ pub async fn verify_proof_onchain(
 
 #### Returns
 
-- `Result<bool, VerificationError>` - A boolean indicating whether the proof was verified on-chain and is included in the batch or an error.
+- `Result<bool, VerificationError>` - A boolean indicating whether the proof was verified on-chain and is included in
+  the batch or an error.
 
 #### Errors
 
@@ -220,7 +226,7 @@ pub async fn verify_proof_onchain(
 - `EthereumCallError` if there is an error in the Ethereum call.
 - `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 
-### get_commitment
+### `get_commitment`
 
 Generates a keccak256 hash commitment of the verification key.
 
@@ -238,9 +244,10 @@ pub fn get_commitment(
 
 - `[u8; 32]` - A 32-byte array representing the keccak256 hash of the verification key.
 
-### get_next_nonce
+### `get_next_nonce`
 
 Returns the nonce to use for a given address.
+
 ```rust
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
