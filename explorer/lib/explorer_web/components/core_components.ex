@@ -845,7 +845,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   def divider(assigns) do
     ~H"""
-    <hr class={["border-t rounded-full border-muted-foreground/20", @class]} />
+    <hr class={["border-t rounded-full border-muted-foreground/40", @class]} />
     """
   end
 end
