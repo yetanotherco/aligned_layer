@@ -1,20 +1,43 @@
 # Payment Service
 
-The Payment Service handles User's payments to fund the verification of their proofs. 
+The Payment Service handles User's payments to fund the verification of their proofs.
 
-To be able to use the batcher, a user must fund its transactions. For this, there is a simple Batcher Payment System.
+To be able to use the batcher, a user must fund its transactions.
+For this, there is a simple Batcher Payment System.
 
-The Batcher has an associated Batcher Payments smart contract, which is in charge of receiving user's payments, and it guarantees that it can only spend these funds to send users' proofs to Aligned.
+The Batcher has an associated Batcher Payments smart contract,
+which is in charge of receiving user's payments,
+and it guarantees that it can only spend these funds to send users' proofs to Aligned.
 
-Users must first deposit into this contract, via a normal transfer to its address, where the Batcher Payment System will update the User's balance.
+Users must first deposit into this contract, via a normal transfer to its address,
+where the Batcher Payment System will update the User's balance.
 
-Then, users can send proofs to the Batcher, the Batcher will preemptively check if the user has funds for this, and once the whole batch is assembled, the Batcher will call its smart contract with the data it has received from the users.
+Users send proofs to the Batcher, which checks for sufficient funds.
+Once a batch is complete, the Batcher calls its smart contract with the collected user data
 
-The smart contract will then discount the corresponding amount of funds from each of the senders' balances, and create a new Batch in [Aligned Service Manager](./3_service_manager_contract.md), sending with it the corresponding amount of tokens for the batch verification to be paid to the [Aggregator](./5_aggregator.md).
+The smart contract deducts funds from senders' balances and creates a new Batch in
+the [Aligned Service Manager](./3_service_manager_contract.md),
+including tokens for batch verification payment to the [Aggregator](./5_aggregator.md).
 
-Users can then withdraw extra funds deposited to the Batcher Payments smart contract, or leave them to fund future proofs.
+Users can then withdraw extra funds deposited to the Batcher Payments smart contract,
+or leave them to fund future proofs.
 
 This way, the Batcher can only use User funds to pay for the verification of the User's proofs.
+
+The Batcher Payment Service guarantees that the Batcher
+will not be able to spend the user funds for anything other than submitting the user's proofs to Aligned.
+
+The way it does is:
+
+- When the batcher calls the smart contract to create a new batch,
+  it gets the batch merkle tree leaves, with each leaf, signed by the user.
+- The contract then rebuilds the merkle tree to check the
+  batch merkle root and verifies the user signatures.
+- Each signature also contains a nonce that can only be used once per user,
+  to avoid the batcher being able to reuse the same signature.
+- Only if the merkle root and the signatures are valid, the contract will
+  discount the corresponding funds from the user's balance and
+  create a new batch in the [Aligned Service Manager](./3_service_manager_contract.md).
 
 ## Details of the contract
 
@@ -26,8 +49,9 @@ This way, the Batcher can only use User funds to pay for the verification of the
     receive() external payable
 ```
 
-This function will be called every time a User transfers funds to the smart contract. It will not only receive the funds, but it will also register internally how much the User deposited, to keep track of each User's funds separately. 
-
+This function will be called every time a User transfers funds to the smart contract.
+It will not only receive the funds, but it will also register internally how much the User deposited,
+to keep track of each User's funds separately.
 
 #### Create New Task
 
@@ -35,13 +59,37 @@ This function will be called every time a User transfers funds to the smart cont
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        address[] calldata proofSubmitters,
+        bytes32[] calldata leaves, // padded to the next power of 2
+        SignatureData[] calldata signatures, // actual length (proof sumbitters == proofs submitted)
         uint256 gasForAggregator,
         uint256 gasPerProof
     ) external onlyBatcher
 ```
 
-This function will be executed only by the Batcher, when it has a batch to post to Aligned. It contains all the information needed to post the batch in [Aligned Service Manager](./3_service_manager_contract.md) (`batchMerkleRoot` and `batchDataPointer`), plus an array containing which are the `proofSubmitters`, so as to discount `gasPerProof` from these, and also the `gasForAggregator`, declaring how much will need to go pay for the response of the batch.
+This function will be executed only by the Batcher when it has a batch to post to Aligned.
+It contains all the information needed to post the batch
+in [Aligned Service Manager](./3_service_manager_contract.md) (`batchMerkleRoot`
+and `batchDataPointer`), plus an array containing which are the `proofSubmitters`, to discount `gasPerProof` from
+these, and also the `gasForAggregator`, declaring how much will need to go pay for the response of the batch.
+
+#### Unlock
+
+```solidity
+    function unlock() external
+```
+
+Any user can call this function to unlock its funds for withdrawal after 100 blocks.
+
+Note that if the user funds are unlocked, the batcher will reject any new proofs from this user until the funds are
+locked again.
+
+#### Lock
+
+```solidity
+    function lock() external
+```
+
+Any user can call this function to lock its funds again after unlocking.
 
 #### Withdraw
 
@@ -49,4 +97,5 @@ This function will be executed only by the Batcher, when it has a batch to post 
     function withdraw(uint256 amount) external
 ```
 
-This function can be called by any User, to freely withdraw any amount of their available balance from the contract.
+Any User can call this function to withdraw any amount of their available balance from the contract,
+only when their funds are unlocked.
