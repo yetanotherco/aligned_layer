@@ -89,6 +89,11 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+build_aggregator: deps
+	@echo "Building Aggregator..."
+	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
+	@echo "Aggregator built into /aggregator/build/aligned-aggregator"
+
 operator_start:
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
