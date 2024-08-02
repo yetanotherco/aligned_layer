@@ -437,6 +437,18 @@ impl Batcher {
             .map(|(vd, _, _, _)| vd.clone())
             .collect();
 
+        // Check if a batch is currently being posted
+        let mut batch_posting = self.posting_batch.lock().await;
+        if *batch_posting {
+            info!(
+                "Batch is currently being posted. Waiting for the current batch to be finalized..."
+            );
+            return None;
+        }
+
+        // Set the batch posting flag to true
+        *batch_posting = true;
+
         let current_batch_size = serde_json::to_vec(&batch_verification_data).unwrap().len();
 
         // check if the current batch needs to be splitted into smaller batches
@@ -457,18 +469,6 @@ impl Batcher {
                 .collect();
             return Some(finalized_batch);
         }
-
-        // Check if a batch is currently being posted
-        let mut batch_posting = self.posting_batch.lock().await;
-        if *batch_posting {
-            info!(
-                "Batch is currently being posted. Waiting for the current batch to be finalized..."
-            );
-            return None;
-        }
-
-        // Set the batch posting flag to true
-        *batch_posting = true;
 
         // A copy of the batch is made to be returned and the current batch is cleared
         let finalized_batch = batch_state.batch_queue.clone();
