@@ -1,12 +1,15 @@
 defmodule DelegationManager do
   require Logger
 
-  @environment System.get_env("ENVIRONMENT")
+  @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")
 
-  file_path =
-    "../contracts/script/output/#{@environment}/eigenlayer_deployment_output.json"
+  config_file_path =
+    case @aligned_config_file do
+      nil -> raise("ALIGNED_CONFIG_FILE not set in .env")
+      file -> file
+    end
 
-  {status, config_json_string} = File.read(file_path)
+  {status, config_json_string} = File.read(config_file_path)
 
   case status do
     :ok ->
