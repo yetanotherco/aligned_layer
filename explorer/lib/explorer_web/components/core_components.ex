@@ -837,4 +837,15 @@ defmodule ExplorerWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  Divider component.
+  """
+  attr :class, :string, default: nil
+
+  def divider(assigns) do
+    ~H"""
+    <hr class={["border-t rounded-full border-muted-foreground/20", @class]} />
+    """
+  end
 end
