@@ -1,4 +1,4 @@
-defmodule AVSDirectory do
+defmodule AVSDirectoryManager do
   require Logger
 
   @environment System.get_env("ENVIRONMENT")
@@ -37,38 +37,8 @@ defmodule AVSDirectory do
     @avs_directory_address
   end
 
-  # def get_operator_status_updated_events() do
-  #   AVSDirectory.EventFilters.operator_avs_registration_status_updated(
-  #     nil,
-  #     AlignedLayerServiceManager.get_aligned_layer_service_manager_address()
-  #   )
-  #   |> Ethers.get_logs(fromBlock: @first_block)
-  # end
-
-  # tail-call recursion
-  # defp count_operators_registered(list), do: sum_operators_registered(list, 0)
-  # defp sum_operators_registered([], val), do: val
-
-  # defp sum_operators_registered([head | tail], val),
-  #   do: sum_operators_registered(tail, evaluate_operator(head, val))
-
-  # defp evaluate_operator(event, val) do
-  #   # registered or unregistered
-  #   case event.data |> hd() == 1 do
-  #     true -> val + 1
-  #     false -> val - 1
-  #   end
-  # end
-
-  def get_operator_registration_status_updated_events(%{fromBlock: fromBlock}) do
-    AVSDirectory.EventFilters.operator_avs_registration_status_updated(
-      nil, # any operator
-      AlignedLayerServiceManager.get_aligned_layer_service_manager_address() # our AVS
-    ) |> Ethers.get_logs(fromBlock: fromBlock)
-  end
-
   def process_operator_data(%{fromBlock: fromBlock}) do
-    AVSDirectory.get_operator_registration_status_updated_events(%{fromBlock: fromBlock})
+    AVSDirectoryManager.get_operator_registration_status_updated_events(%{fromBlock: fromBlock})
       |> case do
         {:ok, events} ->
           Enum.map(events, &extract_operator_event_info/1)
@@ -83,23 +53,32 @@ defmodule AVSDirectory do
       end
   end
 
+
+  def get_operator_registration_status_updated_events(%{fromBlock: fromBlock}) do
+    AVSDirectoryManager.EventFilters.operator_avs_registration_status_updated(
+      nil, # any operator
+      AlignedLayerServiceManager.get_aligned_layer_service_manager_address() # our AVS
+    ) |> Ethers.get_logs(fromBlock: fromBlock)
+  end
+
   def extract_operator_event_info(event) do
     case Mutex.lock(OperatorMutex, {event.topics |> Enum.at(1)}) do
       {:error, :busy} ->
         "Operator already being processed: #{event.topics |> Enum.at(1)}" |> IO.inspect()
         :empty
 
+      # TODO also extract operator ID from this event
       {:ok, lock} ->
         case event.topics |> hd do
           "OperatorAVSRegistrationStatusUpdated(address,address,uint8)" ->
             case event.data |> hd do
               1 ->
                 IO.inspect("Operator registered")
-                AVSDirectory.handle_operator_registration(event)
+                AVSDirectoryManager.handle_operator_registration(event)
 
               0 ->
                 IO.inspect("Operator unregistered")
-                AVSDirectory.handle_operator_unregistration(event)
+                AVSDirectoryManager.handle_operator_unregistration(event)
 
               _other ->
                 IO.inspect("Unexpected event data", event.data)
@@ -113,8 +92,10 @@ defmodule AVSDirectory do
   end
 
   def handle_operator_registration(event) do
-    IO.inspect("Handling operator registration")
-    operator_url = DelegationManager.get_operator_url(Enum.at(event.topics, 1))
+    operator_address = Enum.at(event.topics, 1)
+    # TODO also extract operator ID from this event
+    operator_id = RegistryCoordinatorManager.get_operator_id_from_chain(operator_address)
+    operator_url = DelegationManager.get_operator_url(operator_address)
     operator_metadata = case Utils.fetch_eigen_operator_metadata(operator_url) do
       {:ok, operator_metadata} ->
         operator_metadata
@@ -128,12 +109,11 @@ defmodule AVSDirectory do
         end
         %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
     end
-    Operators.register_or_update_operator(%Operators{name: operator_metadata.name, address: Enum.at(event.topics, 1), url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter, is_active: true})
+    Operators.register_or_update_operator(%Operators{id: operator_id, name: operator_metadata.name, address: operator_address, url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter, is_active: true})
     # TODO read its first stake
   end
 
   def handle_operator_unregistration(event) do
-    IO.inspect("WIP: Handling operator unregistration")
     Operators.unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
   end
 end
