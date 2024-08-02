@@ -175,7 +175,7 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 operator_start_docker:
 	@echo "Starting Operator..."
-	@docker-compose -f operator/docker/compose.yaml up
+	@docker compose -f operator/docker/compose.yaml up
 
 __BATCHER__:
 
@@ -399,12 +399,12 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 __METRICS__:
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
-	@docker-compose -f metrics-docker-compose.yaml up
+	@docker compose -f metrics-docker-compose.yaml up
 
 __STORAGE__:
 run_storage: ## Run storage using storage-docker-compose.yaml
 	@echo "Running storage..."
-	@docker-compose -f storage-docker-compose.yaml up
+	@docker compose -f storage-docker-compose.yaml up
 
 __DEPLOYMENT__:
 deploy_aligned_contracts: ## Deploy Aligned Contracts
