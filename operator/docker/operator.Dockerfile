@@ -24,9 +24,10 @@ WORKDIR /usr/src/app
 # Copy the Makefile and the operator (for the FFI)
 COPY Makefile /usr/src/app
 COPY operator /usr/src/app/operator
+COPY batcher/aligned-sdk /usr/src/app/batcher/aligned-sdk
 
 # Build the FFI
-RUN make build_all_ffi_linux
+RUN RUSTUP_PERMIT_COPY_RENAME=1 make build_all_ffi_linux
 
 # Copy dependencies
 COPY go.mod go.sum ./
@@ -35,9 +36,6 @@ COPY contracts/script/output /usr/src/app/contracts/script/output
 COPY contracts/bindings /usr/src/app/contracts/bindings
 COPY core /usr/src/app/core
 COPY common /usr/src/app/common
-
-# Download dependencies
-RUN go mod download && go mod tidy && go mod verify
 
 # Build the operator
 RUN go build -v -o /usr/local/bin/operator /usr/src/app/operator/cmd/main.go
