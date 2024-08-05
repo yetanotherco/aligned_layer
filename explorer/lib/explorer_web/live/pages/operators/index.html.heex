@@ -20,8 +20,8 @@
     <:col :let={_operator} label="Total ETH Restaked">
       TODO
     </:col>
-        <:col :let={operator} label="Active">
-        <%= operator.is_active %>
+    <:col :let={operator} label="Status">
+      <.dynamic_badge status={operator.is_active} truthy_text="Active" falsy_text="Inactive" />
     </:col>
   </.table>
 </div>

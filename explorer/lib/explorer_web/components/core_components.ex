@@ -383,8 +383,8 @@ defmodule ExplorerWeb.CoreComponents do
   """
   attr :class, :string, default: nil
   attr :status, :boolean, default: true
-  attr :pending_text, :string, default: "Pending"
-  attr :verified_text, :string, default: "Verified"
+  attr :falsy_text, :string, default: "Pending"
+  attr :truthy_text, :string, default: "Verified"
   slot :inner_block, default: nil
 
   def dynamic_badge(assigns) do
@@ -398,8 +398,8 @@ defmodule ExplorerWeb.CoreComponents do
       @class
     ]}>
       <%= case @status do
-        true -> @verified_text
-        false -> @pending_text
+        true -> @truthy_text
+        false -> @falsy_text
       end %>
       <%= render_slot(@inner_block) %>
     </span>
@@ -874,7 +874,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   ## Example
       <.divider />
-  
+
   """
   attr :class, :string, default: nil
 
