@@ -872,4 +872,15 @@ defmodule ExplorerWeb.CoreComponents do
   def random_id(prefix) do
     prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
   end
+  
+  @doc """
+  Divider component.
+  """
+  attr :class, :string, default: nil
+
+  def divider(assigns) do
+    ~H"""
+    <hr class={["border-t rounded-full border-muted-foreground/40 my-1.5", @class]} />
+    """
+  end
 end
