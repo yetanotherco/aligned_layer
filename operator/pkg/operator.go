@@ -309,10 +309,10 @@ func (o *Operator) getLatestTaskFromBlockchain() (*servicemanager.ContractAligne
 		return nil, fmt.Errorf("failed to parse ABI: %w", err)
 	}
 
-	// We just care about the createNewTask event
+	// We just care about the NewBatch event
 	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatch"]
 	if newBatchEvent.ID == (ethcommon.Hash{}) {
-		return nil, fmt.Errorf("createNewTask event not found in ABI")
+		return nil, fmt.Errorf("NewBatch event not found in ABI")
 	}
 
 	query := ethereum.FilterQuery{
