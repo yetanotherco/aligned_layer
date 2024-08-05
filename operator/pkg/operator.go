@@ -185,26 +185,15 @@ func (o *Operator) Start(ctx context.Context) error {
 			o.latestProcessedBatch = newBatchLog
 			o.processedBatchesMutex.Unlock()
 
-			err := o.ProcessNewBatchLog(newBatchLog)
+			err := o.processNewBatch(newBatchLog)
 			if err != nil {
 				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
-				continue
-			}
-			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
-
-			signedTaskResponse := types.SignedTaskResponse{
-				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-				BlsSignature:    *responseSignature,
-				OperatorId:      o.OperatorId,
 			}
 
-			o.Logger.Infof("Signed hash: %+v", *responseSignature)
-			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		case <-pollLatestBatchTicker.C:
 			err := o.checkForMissedBatches()
 			if err != nil {
 				o.Logger.Infof("Could not process latest task: %v", err)
-				continue
 			}
 		case <-clearProcessedBatchesTicker.C:
 			o.processedBatchesMutex.Lock()
