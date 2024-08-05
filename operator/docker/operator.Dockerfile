@@ -1,15 +1,15 @@
 FROM golang:1.22.4
 
-# Install Rust
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     openssl \
     libssl-dev
+
+# Install Rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /usr/src/app
 
