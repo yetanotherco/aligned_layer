@@ -40,8 +40,9 @@ aligned submit \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr <proof_generator_addr>
-```
+--proof_generator_addr <proof_generator_addr\
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003``
 
 Where `proof_path` is the path to the proof file and vm program path is the path to the elf file.
 
@@ -88,7 +89,9 @@ aligned submit \
 --public_input <public_input_path>
 --vk <verification_key_path> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr <proof_generator_addr>
+--proof_generator_addr <proof_generator_addr> \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 Where proof path is the path to the proof file, `public_input_path` is the path to the public input file,
@@ -113,12 +116,12 @@ First, open the risc0 host file and add the following code to export image id & 
 ```rust
 fn main() {
     // your code here
-  
+
     // <METHOD_ID> is the method id of the function you want to prove
     // <method_id_file_path> is the path where the method id will be saved
     std::fs::write("<method_id_file_path>", convert(&<METHOD_ID>))
             .expect("Failed to write method_id file");
-  
+
     // <pub_input_file_path> is the path where the public input will be saved
     std::fs::write("<pub_input_file_path>", receipt.journal.bytes)
             .expect("Failed to write pub_input file");
@@ -160,7 +163,9 @@ aligned submit \
   --vm_program <method_id_file_path> \
   --public_input <pub_input_file_path> \
   --conn wss://batcher.alignedlayer.com \
-  --proof_generator_addr <proof_generator_addr>
+  --proof_generator_addr <proof_generator_addr> \
+  --rpc https://ethereum-holesky-rpc.publicnode.com \
+  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
