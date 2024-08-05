@@ -63,7 +63,6 @@ type Operator struct {
 	metrics               *metrics.Metrics
 	processedBatches      map[[32]byte]struct{}
 	processedBatchesMutex *sync.Mutex
-	latestProcessedBatch  *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	//Socket  string
 	//Timeout time.Duration
 }
