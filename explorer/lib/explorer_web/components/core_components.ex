@@ -393,7 +393,7 @@ defmodule ExplorerWeb.CoreComponents do
       "px-3 py-1 rounded-full",
       case @status do
         true -> "text-black bg-primary group-hover:bg-primary/80"
-        false -> "text-white bg-secondary group-hover:bg-secondary/80"
+        false -> "text-black bg-destructive-foreground group-hover:bg-destructive-foreground/80"
       end,
       @class
     ]}>
@@ -858,7 +858,7 @@ defmodule ExplorerWeb.CoreComponents do
       class={[
         "tooltip",
         "animate-in fade-in slide-in-from-bottom duration-50",
-        "px-2 py-1 text-sm text-foreground bg-card border border-muted-foreground/30 rounded-full shadow-sm drop-shadow-sm",
+        "px-2 py-1 text-sm text-foreground bg-popover border border-muted-foreground/30 rounded-full shadow-sm drop-shadow-sm",
         @class
       ]}
       role="tooltip"
