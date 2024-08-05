@@ -42,9 +42,8 @@ import (
 )
 
 const (
-	blockInterval                 uint64 = 1000
-	pollLatestBatchInterval              = 5 * time.Second
-	clearProcessedBatchesInterval        = 10 * time.Minute
+	blockInterval           uint64 = 1000
+	pollLatestBatchInterval        = 5 * time.Second
 )
 
 type Operator struct {
@@ -156,9 +155,6 @@ func (o *Operator) Start(ctx context.Context) error {
 	pollLatestBatchTicker := time.NewTicker(pollLatestBatchInterval)
 	defer pollLatestBatchTicker.Stop()
 
-	clearProcessedBatchesTicker := time.NewTicker(clearProcessedBatchesInterval)
-	defer clearProcessedBatchesTicker.Stop()
-
 	for {
 		select {
 		case <-context.Background().Done():
@@ -195,11 +191,6 @@ func (o *Operator) Start(ctx context.Context) error {
 			if err != nil {
 				o.Logger.Infof("Could not process latest task: %v", err)
 			}
-		case <-clearProcessedBatchesTicker.C:
-			o.processedBatchesMutex.Lock()
-			o.Logger.Info("Clearing processed batches...")
-			clear(o.processedBatches)
-			o.processedBatchesMutex.Unlock()
 		}
 	}
 }
