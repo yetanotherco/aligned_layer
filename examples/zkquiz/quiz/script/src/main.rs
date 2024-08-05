@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::submit_and_wait;
+use aligned_sdk::sdk::{submit_and_wait, get_next_nonce};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -106,12 +106,16 @@ async fn main() {
                 pub_input: None,
             };
 
+            let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS).await
+                .expect("Failed to get next nonce");
+
             match submit_and_wait(
                 BATCHER_URL,
                 &rpc_url,
                 Chain::Holesky,
                 &verification_data,
                 wallet.clone(),
+                nonce
             )
             .await
             {
