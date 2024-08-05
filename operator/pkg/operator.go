@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"math/big"
@@ -127,7 +128,6 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		// The cheapest way to make a set in Go is to use a map with empty structs as values
 		processedBatches:      make(map[[32]byte]struct{}),
 		processedBatchesMutex: &sync.Mutex{},
-		latestProcessedBatch:  nil,
 		// Timeout
 		// Socket
 	}
@@ -170,26 +170,18 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
-
-			if _, processed := o.processedBatches[newBatchLog.BatchMerkleRoot]; processed {
-				o.Logger.Infof("Batch %x has already been processed", newBatchLog.BatchMerkleRoot)
-				continue
-			}
-
-			o.processedBatchesMutex.Lock()
-			o.processedBatches[newBatchLog.BatchMerkleRoot] = struct{}{}
-			o.latestProcessedBatch = newBatchLog
-			o.processedBatchesMutex.Unlock()
-
-			err := o.processNewBatch(newBatchLog)
-			if err != nil {
-				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
+			if err := o.processNewBatch(newBatchLog); err != nil {
+				o.Logger.Info("Failed to process new batch", "err", err)
 			}
 
 		case <-pollLatestBatchTicker.C:
-			err := o.checkForMissedBatches()
+			latestBatch, err := o.getLatestTaskFromBlockchain()
 			if err != nil {
-				o.Logger.Infof("Could not process latest task: %v", err)
+				o.Logger.Debug("Failed to get latest task from blockchain", "err", err)
+				continue
+			}
+			if err := o.processNewBatch(latestBatch); err != nil {
+				o.Logger.Info("Failed to process latest batch from blockchain", "err", err)
 			}
 		}
 	}
@@ -200,7 +192,7 @@ func (o *Operator) Start(ctx context.Context) error {
 func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
-		"batch merkle root", newBatchLog.BatchMerkleRoot,
+		"batch merkle root", hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
 	)
 
 	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
@@ -236,11 +228,23 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 }
 
 func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
+	o.processedBatchesMutex.Lock()
+	if _, processed := o.processedBatches[newBatchLog.BatchMerkleRoot]; processed {
+		o.processedBatchesMutex.Unlock()
+		o.Logger.Debug("Batch has already been processed", "batchMerkleRoot", hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]))
+		return nil
+	}
+
+	o.processedBatchesMutex.Unlock()
 
 	err := o.ProcessNewBatchLog(newBatchLog)
 	if err != nil {
-		return fmt.Errorf("batch %v did not verify: %w", newBatchLog.BatchMerkleRoot, err)
+		return fmt.Errorf("batch %v did not verify: %w", hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]), err)
 	}
+
+	o.processedBatchesMutex.Lock()
+	o.processedBatches[newBatchLog.BatchMerkleRoot] = struct{}{}
+	o.processedBatchesMutex.Unlock()
 
 	responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
 
@@ -256,34 +260,6 @@ func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLa
 
 	return nil
 
-}
-
-func (o *Operator) checkForMissedBatches() error {
-	latestBatch, err := o.getLatestTaskFromBlockchain()
-	if err != nil {
-		// This is not necessarily an error, it just means that there are no new batches
-		return nil
-	}
-
-	o.processedBatchesMutex.Lock()
-	defer o.processedBatchesMutex.Unlock()
-
-	if o.latestProcessedBatch != nil && latestBatch.BatchMerkleRoot == o.latestProcessedBatch.BatchMerkleRoot {
-		// Latest batch has already been processed
-		return nil
-	}
-
-	if _, processed := o.processedBatches[latestBatch.BatchMerkleRoot]; !processed {
-		o.Logger.Infof("Found missed batch %x, processing...", latestBatch.BatchMerkleRoot)
-		err := o.processNewBatch(latestBatch)
-		if err != nil {
-			return err
-		}
-		o.processedBatches[latestBatch.BatchMerkleRoot] = struct{}{}
-		o.latestProcessedBatch = latestBatch
-	}
-
-	return nil
 }
 
 // getLatestTaskFromBlockchain queries the blockchain for the latest task using the FilterLogs method.
