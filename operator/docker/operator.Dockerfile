@@ -1,45 +1,41 @@
 FROM golang:1.22.4
 
-# Update default packages
-RUN apt-get update
+# Install Rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Get Ubuntu packages
-RUN apt-get install -y \
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     openssl \
     libssl-dev
 
-# Update new packages
-RUN apt-get update
-
-# Get Rust
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-
-# Add cargo to path
-ENV PATH="/root/.cargo/bin:${PATH}"
-
 WORKDIR /usr/src/app
+
+# Copy dependencies
+COPY go.mod go.sum ./
 
 # Copy the Makefile and the operator (for the FFI)
 COPY Makefile /usr/src/app
 COPY operator /usr/src/app/operator
 
+# Copy the aligned-sdk
+COPY batcher/aligned-sdk /usr/src/app/batcher/aligned-sdk
+
 # Build the FFI
 RUN make build_all_ffi_linux
 
-# Copy dependencies
-COPY go.mod go.sum ./
 COPY metrics /usr/src/app/metrics
 COPY contracts/script/output /usr/src/app/contracts/script/output
 COPY contracts/bindings /usr/src/app/contracts/bindings
 COPY core /usr/src/app/core
 COPY common /usr/src/app/common
 
-# Download dependencies
-RUN go mod download && go mod tidy && go mod verify
+# Define the OPERATOR_VERSION variable
+ARG OPERATOR_VERSION=v0.4.0
 
 # Build the operator
-RUN go build -v -o /usr/local/bin/operator /usr/src/app/operator/cmd/main.go
+RUN go build -ldflags "-X main.Version=${OPERATOR_VERSION}" -v -o /usr/local/bin/operator /usr/src/app/operator/cmd/main.go
 
 ENTRYPOINT [ "/usr/local/bin/operator", "start", "--config", "/usr/src/config/operator.yaml"]

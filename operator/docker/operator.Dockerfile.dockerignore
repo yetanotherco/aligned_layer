@@ -6,6 +6,7 @@ prometheus
 explorer
 docs
 batcher
+!batcher/aligned-sdk
 aggregator
 task_sender
 .github

@@ -175,6 +175,7 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 operator_start_docker:
 	@echo "Starting Operator..."
+	@docker compose -f operator/docker/compose.yaml build --build-arg OPERATOR_VERSION=$(OPERATOR_VERSION)
 	@docker compose -f operator/docker/compose.yaml up
 
 __BATCHER__:

@@ -7,7 +7,6 @@ services:
     build:
       context: ../../
       dockerfile: operator/docker/operator.Dockerfile
-
     volumes:
       - "${ECDSA_KEY_FILE_HOST}:/usr/src/config/operator.ecdsa.key.json:readonly"
       - "${BLS_KEY_FILE_HOST}:/usr/src/config/operator.bls.key.json:readonly"
@@ -15,4 +14,3 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
