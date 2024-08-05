@@ -516,7 +516,9 @@ aligned submit \
 --pub_input <pub_input_file> \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path [path_to_ecdsa_keystore]
+--keystore_path [path_to_ecdsa_keystore] \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 </details>
