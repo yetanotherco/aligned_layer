@@ -16,7 +16,7 @@
         <h1 class="text-2xl font-bold text-foreground">
           <%= @operator.name %>
         </h1>
-        <p>
+        <p class="break-words">
           <%= @operator.description %>
         </p>
         <.a href={@operator.website} target="_blank" rel="noopener">
@@ -24,6 +24,15 @@
         </.a>
         <.a href={@operator.twitter} target="_blank" rel="noopener">
           X/Twitter
+        </.a>
+        <.a
+          href={
+          "#{Utils.get_eigenlayer_explorer_url()}/operator/#{@operator.address}"
+          }
+          target="_blank"
+          rel="noopener"
+        >
+          EigenLayer Profile
         </.a>
       </div>
     </div>

@@ -97,6 +97,22 @@ defmodule ExplorerWeb.Utils do
   defp pad_leading_zero(value) do
     Integer.to_string(value) |> String.pad_leading(2, "0")
   end
+
+  @doc """
+  Get the EigenLayer Explorer URL based on the environment.
+  - `holesky` -> https://holesky.eigenlayer.xyz
+  - `mainnet` -> https://app.eigenlayer.xyz
+  - `default` -> http://localhost:4000
+  """
+  def get_eigenlayer_explorer_url() do
+    prefix = System.get_env("ENVIRONMENT")
+
+    case prefix do
+      "holesky" -> "https://holesky.eigenlayer.xyz"
+      "mainnet" -> "https://app.eigenlayer.xyz"
+      _ -> "http://localhost:4000"
+    end
+  end
 end
 
 # Backend utils
