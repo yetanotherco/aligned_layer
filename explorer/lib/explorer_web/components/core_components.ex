@@ -854,7 +854,7 @@ defmodule ExplorerWeb.CoreComponents do
   def tooltip(assigns) do
     ~H"""
     <span
-      id={random_id("tt")}
+      id={Utils.random_id("tt")}
       class={[
         "tooltip",
         "animate-in fade-in slide-in-from-bottom duration-50",
@@ -869,12 +869,12 @@ defmodule ExplorerWeb.CoreComponents do
     """
   end
 
-  def random_id(prefix) do
-    prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
-  end
-  
   @doc """
   Divider component.
+
+  ## Example
+      <.divider />
+  
   """
   attr :class, :string, default: nil
 

@@ -1,3 +1,4 @@
+# Frontend Utils
 defmodule ExplorerWeb.Utils do
   def shorten_hash(hash, decimals \\ 6) do
     case String.length(hash) do
@@ -98,6 +99,7 @@ defmodule ExplorerWeb.Utils do
   end
 end
 
+# Backend utils
 defmodule Utils do
   require Logger
 
@@ -125,13 +127,12 @@ defmodule Utils do
 
   def calculate_proof_hashes({:ok, batch_json}) do
     batch_json
-      |> Enum.map(
-        fn s3_object ->
-          # TODO this is current prod version
-          :crypto.hash(:sha3_256, s3_object["proof"])
-          # TODO this is current stage version
-          # :crypto.hash(:sha3_256, s3_object["verification_data"]["proof"])
-        end)
+    |> Enum.map(fn s3_object ->
+      # TODO this is current prod version
+      :crypto.hash(:sha3_256, s3_object["proof"])
+      # TODO this is current stage version
+      # :crypto.hash(:sha3_256, s3_object["verification_data"]["proof"])
+    end)
   end
 
   def calculate_proof_hashes({:error, reason}) do
@@ -182,7 +183,9 @@ defmodule Utils do
     case Finch.build(:get, url) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         case Jason.decode(body) do
-          {:ok, json} -> {:ok, EigenOperatorMetadataStruct.map_to_struct(json)}
+          {:ok, json} ->
+            {:ok, EigenOperatorMetadataStruct.map_to_struct(json)}
+
           {:error, reason} ->
             {:error, reason}
         end
@@ -193,5 +196,9 @@ defmodule Utils do
       {:error, reason} ->
         {:error, {:http_error, reason}}
     end
+  end
+
+  def random_id(prefix) do
+    prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
   end
 end
