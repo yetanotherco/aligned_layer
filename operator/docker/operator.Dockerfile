@@ -32,8 +32,8 @@ COPY contracts/bindings /usr/src/app/contracts/bindings
 COPY core /usr/src/app/core
 COPY common /usr/src/app/common
 
-# Define the OPERATOR_VERSION variable
-ARG OPERATOR_VERSION=v0.4.0
+# Define operator version argument
+ARG OPERATOR_VERSION
 
 # Build the operator
 RUN go build -ldflags "-X main.Version=${OPERATOR_VERSION}" -v -o /usr/local/bin/operator /usr/src/app/operator/cmd/main.go
