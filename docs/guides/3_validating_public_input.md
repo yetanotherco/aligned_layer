@@ -185,9 +185,9 @@ function bytesToTwoUint32(
 To deploy the contract, first you will need to set up the `.env` file in the contracts folder with the following variables:
 
 ```
-RPC_URL= #You can use publicnode RPC: https://ethereum-holesky-rpc.publicnode.com
-PRIVATE_KEY=
-ALIGNED_SERVICE_MANAGER_ADDRESS= #0x58F280BeBE9B34c9939C3C39e0890C81f163B623 for Holesky
+RPC_URL=<rpc_url> #You can use publicnode RPC: https://ethereum-holesky-rpc.publicnode.com
+PRIVATE_KEY=<private_key>
+ALIGNED_SERVICE_MANAGER_ADDRESS=<service_manager_address> #0x58F280BeBE9B34c9939C3C39e0890C81f163B623 for Holesky
 ```
 
 Then, run `make deploy_fibonacci_validator`.
