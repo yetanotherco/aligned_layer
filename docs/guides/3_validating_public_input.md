@@ -23,14 +23,14 @@ To check if a proof was verified in Aligned, you need to make a call to the `Ali
 The following is an example of how to validate the public input of the Risc0 proof in your smart contract.
 
 ```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.12;
 
 contract FibonacciValidator {
     address public alignedServiceManager;
-    bytes32 public fibonacciImageId;
+    bytes32 public fibonacciProgramId;
 
-    bytes32 public fibonacciImageIdCommitment =
+    bytes32 public fibonacciProgramIdCommitment =
         0xbfa561e384be753bd6fd75b15db31eb511cd114ec76d619a87c2342af0ee1ed7;
 
     event FibonacciNumbers(uint32 fibN, uint32 fibNPlusOne);
@@ -42,20 +42,20 @@ contract FibonacciValidator {
     function verifyBatchInclusion(
         bytes32 proofCommitment,
         bytes32 pubInputCommitment,
-        bytes32 provingSystemAuxDataCommitment,
+        bytes32 programIdCommitment,
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex,
-        bytes memory journalBytes
+        bytes memory pubInputBytes
     ) public returns (bool) {
         require(
-            fibonacciImageIdCommitment == provingSystemAuxDataCommitment,
-            "Image ID doesn't match"
+            fibonacciProgramIdCommitment == programIdCommitment,
+            "Program ID doesn't match"
         );
 
         require(
-            pubInputCommitment == keccak256(abi.encodePacked(journalBytes)),
+            pubInputCommitment == keccak256(abi.encodePacked(pubInputBytes)),
             "Fibonacci numbers don't match with public input"
         );
 
@@ -67,7 +67,7 @@ contract FibonacciValidator {
                     "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
                     proofCommitment,
                     pubInputCommitment,
-                    provingSystemAuxDataCommitment,
+                    programIdCommitment,
                     proofGeneratorAddr,
                     batchMerkleRoot,
                     merkleProof,
@@ -77,7 +77,7 @@ contract FibonacciValidator {
 
         require(callWasSuccessful, "static_call failed");
 
-        (uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(journalBytes);
+        (uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(pubInputBytes);
 
         emit FibonacciNumbers(fibN, fibNPlusOne);
 
@@ -106,23 +106,22 @@ contract FibonacciValidator {
 
 ### Explanation
 
-1. **Verification Key Check:** The contract first checks if the verification key commitment matches the Fibonacci Image ID commitment.
+1. **Program Identifier Validation:** The contract first validates if the provided program identifier matches the expected one.
 
 ```solidity
 require(
-            fibonacciImageIdCommitment == provingSystemAuxDataCommitment,
-            "Image ID doesn't match"
-        );
+            fibonacciProgramIdCommitment == programIdCommitment,
+            "Program ID doesn't match"
+);
 ```
 
-2. **Public Input Commitment Validation:** The contract validates that the public input commitment matches the keccak256 hash of the journalBytes.
+2. **Public Input Validation:** The contract then checks that the commitment of the public inputs matches the keccak 256 hash of the actual public inputs.
 
 ```solidity
 require(
-    pubInputCommitment == keccak256(abi.encodePacked(journalBytes)),
-    "Fibonacci numbers don't match with public input"
+            pubInputCommitment == keccak256(abi.encodePacked(pubInputBytes)),
+            "Fibonacci numbers don't match with public input"
 );
-
 ```
 
 3. **Static Call to AlignedServiceManager**: The contract makes a static call to the `AlignedServiceManager` contract to check if the proof was verified in Aligned. It then extracts the last two Fibonacci numbers from the journalBytes and emits an event.
@@ -136,12 +135,12 @@ require(
         "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
         proofCommitment,
         pubInputCommitment,
-        provingSystemAuxDataCommitment,
+        programIdCommitment,
         proofGeneratorAddr,
         batchMerkleRoot,
         merkleProof,
         verificationDataBatchIndex
-    )
+        )
 );
 
 require(callWasSuccessful, "static_call failed");
