@@ -6,36 +6,39 @@ use std::str::FromStr;
 use aligned_sdk::core::errors::SubmitError;
 use aligned_sdk::core::types::Chain::Holesky;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::submit_and_wait;
+use aligned_sdk::sdk::{get_next_nonce, submit_and_wait};
 use env_logger::Env;
-use ethers::signers::LocalWallet;
+use ethers::signers::{LocalWallet, Signer};
 use ethers::types::Address;
 use ethers::utils::hex;
 use log::info;
+
+const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
+const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
+const RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
+const PROOF_FILE_PATH: &str = "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof";
+const PUB_INPUT_FILE_PATH: &str = "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub";
+const IMAGE_ID_FILE_PATH: &str =
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin";
+const PROOF_GENERATOR_ADDRESS: &str = "0x66f9664f97F2b50F62D13eA064982f936dE76657";
+// Set to the 9th address of anvil that doesn't pay for the proof submission
+const WALLET_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
 
 #[tokio::main]
 async fn main() -> Result<(), SubmitError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let proof = read_file(PathBuf::from(
-        "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof",
-    ))
-    .unwrap_or_default();
+    let proof = read_file(PathBuf::from(PROOF_FILE_PATH)).unwrap_or_default();
 
-    let pub_input = read_file(PathBuf::from(
-        "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub",
-    ));
+    let pub_input = read_file(PathBuf::from(PUB_INPUT_FILE_PATH));
 
-    let image_id = read_file(PathBuf::from(
-        "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin",
-    ));
+    let image_id = read_file(PathBuf::from(IMAGE_ID_FILE_PATH));
 
     let pub_input_hex = hex::encode(pub_input.as_ref().unwrap());
 
     info!("Pub input bytes as hex: {:?}", pub_input_hex);
 
-    let proof_generator_addr =
-        Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
+    let proof_generator_addr = Address::from_str(PROOF_GENERATOR_ADDRESS).unwrap();
 
     let verification_data = VerificationData {
         proving_system: ProvingSystemId::Risc0,
@@ -46,18 +49,20 @@ async fn main() -> Result<(), SubmitError> {
         proof_generator_addr,
     };
 
-    // Set to the 9th address of anvil that doesn't pay for the proof submission
-    let wallet =
-        LocalWallet::from_str("2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6")
-            .expect("Failed to create wallet");
+    let wallet = LocalWallet::from_str(WALLET_PRIVATE_KEY).expect("Failed to create wallet");
+
+    let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
+        .await
+        .expect("Failed to get next nonce");
 
     info!("Submitting Fibonacci proof to Aligned and waiting for verification...");
     let aligned_verification_data = submit_and_wait(
-        "wss://batcher.alignedlayer.com",
-        "https://ethereum-holesky-rpc.publicnode.com",
+        BATCHER_URL,
+        RPC_URL,
         Holesky,
         &verification_data,
         wallet,
+        nonce,
     )
     .await?;
 
