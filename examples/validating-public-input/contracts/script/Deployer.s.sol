@@ -4,7 +4,7 @@ pragma solidity ^0.8.12;
 import {Script, console} from "forge-std/Script.sol";
 import {FibonacciValidator} from "../src/FibonacciValidator.sol";
 
-contract CounterScript is Script {
+contract FibonacciDeployer is Script {
     function setUp() public {}
 
     function run(address _targetContract) external returns (address) {
