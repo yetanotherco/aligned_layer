@@ -7,8 +7,6 @@ services:
     build:
       context: ../../
       dockerfile: operator/docker/operator.Dockerfile
-      args:
-        OPERATOR_VERSION: ${OPERATOR_VERSION}
     volumes:
       - "${ECDSA_KEY_FILE_HOST}:/usr/src/config/operator.ecdsa.key.json:readonly"
       - "${BLS_KEY_FILE_HOST}:/usr/src/config/operator.bls.key.json:readonly"
