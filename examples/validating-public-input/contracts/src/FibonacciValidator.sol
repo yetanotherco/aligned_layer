@@ -34,10 +34,6 @@ contract FibonacciValidator {
             "Fibonacci numbers don't match with public input"
         );
 
-        (uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(journalBytes);
-
-        emit FibonacciNumbers(fibN, fibNPlusOne);
-
         (
             bool callWasSuccessful,
             bytes memory proofIsIncluded
@@ -55,6 +51,10 @@ contract FibonacciValidator {
             );
 
         require(callWasSuccessful, "static_call failed");
+
+        (uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(journalBytes);
+
+        emit FibonacciNumbers(fibN, fibNPlusOne);
 
         return abi.decode(proofIsIncluded, (bool));
     }

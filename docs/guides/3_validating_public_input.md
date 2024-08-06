@@ -69,10 +69,6 @@ contract FibonacciValidator {
             "Fibonacci numbers don't match with public input"
         );
 
-        (uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(journalBytes);
-
-        emit FibonacciNumbers(fibN, fibNPlusOne);
-
         (
             bool callWasSuccessful,
             bytes memory proofIsIncluded
@@ -90,6 +86,10 @@ contract FibonacciValidator {
             );
 
         require(callWasSuccessful, "static_call failed");
+
+        (uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(journalBytes);
+
+        emit FibonacciNumbers(fibN, fibNPlusOne);
 
         return abi.decode(proofIsIncluded, (bool));
     }
@@ -125,7 +125,7 @@ require(
         );
 ```
 
-2. **Public Input Commitment Validation:** The contract validates that the public input commitment matches the keccak256 hash of the journalBytes. It then extracts the last two Fibonacci numbers from the journalBytes and emits an event.
+2. **Public Input Commitment Validation:** The contract validates that the public input commitment matches the keccak256 hash of the journalBytes.
 
 ```solidity
 require(
@@ -133,12 +133,9 @@ require(
     "Fibonacci numbers don't match with public input"
 );
 
-(uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(journalBytes);
-
-emit FibonacciNumbers(fibN, fibNPlusOne);
 ```
 
-3. **Static Call to AlignedServiceManager**: The contract makes a static call to the `AlignedServiceManager` contract to check if the proof was verified in Aligned.
+3. **Static Call to AlignedServiceManager**: The contract makes a static call to the `AlignedServiceManager` contract to check if the proof was verified in Aligned. It then extracts the last two Fibonacci numbers from the journalBytes and emits an event.
 
 ```solidity
 (
@@ -158,6 +155,10 @@ emit FibonacciNumbers(fibN, fibNPlusOne);
 );
 
 require(callWasSuccessful, "static_call failed");
+
+(uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(journalBytes);
+
+emit FibonacciNumbers(fibN, fibNPlusOne);
 ```
 
 4. **Bytes to two `uint32` conversion:** A helper function to convert a byte array into two `uint32` numbers, used for extracting the last two Fibonacci numbers from the `journalBytes`.
