@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -37,7 +38,7 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 	avsContractBindings, err := NewAvsServiceBindings(
 		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
 		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
-		baseConfig.EthWsClient, baseConfig.Logger)
+		baseConfig.EthWsClient, baseConfig.EthWsClientFallback, baseConfig.Logger)
 
 	if err != nil {
 		baseConfig.Logger.Errorf("Failed to create contract bindings", "err", err)
@@ -51,17 +52,80 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 }
 
 func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) (event.Subscription, error) {
+	// Create a new channel to receive new tasks
+	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+
+	// Subscribe to new tasks
+	sub, err := subscribeToNewTasks(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
+	if err != nil {
+		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
+		return nil, err
+	}
+
+	subFallback, err := subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
+	if err != nil {
+		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
+		return nil, err
+	}
+
+	// Forward the new tasks to the provided channel
+	go func() {
+		newBatchMutex := &sync.Mutex{}
+		batchesSet := make(map[[32]byte]struct{})
+		for {
+			select {
+			case newBatch := <-internalChannel:
+				newBatchMutex.Lock()
+				if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
+					batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
+					newTaskCreatedChan <- newBatch
+
+					// Remove the batch from the set after 1 minute
+					go func() {
+						time.Sleep(time.Minute)
+						newBatchMutex.Lock()
+						delete(batchesSet, newBatch.BatchMerkleRoot)
+						newBatchMutex.Unlock()
+					}()
+				}
+
+				newBatchMutex.Unlock()
+			}
+		}
+	}()
+
+	errChan := make(chan error)
+	go func() {
+		for {
+			select {
+			case subErr := <-sub.Err():
+				errChan <- subErr
+			case subErr := <-subFallback.Err():
+				errChan <- subErr
+			}
+		}
+	}()
+
+	// Return both subscriptions
+	return event.JoinSubscriptions(sub, subFallback), nil
+}
+
+func subscribeToNewTasks(
+	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
+	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch,
+	logger sdklogging.Logger,
+) (event.Subscription, error) {
 	for i := 0; i < MaxRetries; i++ {
-		sub, err := s.AvsContractBindings.ServiceManager.WatchNewBatch(
+		sub, err := serviceManager.WatchNewBatch(
 			&bind.WatchOpts{}, newTaskCreatedChan, nil,
 		)
 		if err != nil {
-			s.logger.Warn("Failed to subscribe to new AlignedLayer tasks", "err", err)
+			logger.Warn("Failed to subscribe to new AlignedLayer tasks", "err", err)
 			time.Sleep(RetryInterval)
 			continue
 		}
 
-		s.logger.Info("Subscribed to new AlignedLayer tasks")
+		logger.Info("Subscribed to new AlignedLayer tasks")
 		return sub, nil
 	}
 
