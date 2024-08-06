@@ -73,24 +73,22 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		newBatchMutex := &sync.Mutex{}
 		batchesSet := make(map[[32]byte]struct{})
 		for {
-			select {
-			case newBatch := <-internalChannel:
-				newBatchMutex.Lock()
-				if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
-					batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
-					newTaskCreatedChan <- newBatch
+			newBatch := <-internalChannel
+			newBatchMutex.Lock()
+			if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
+				batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
+				newTaskCreatedChan <- newBatch
 
-					// Remove the batch from the set after 1 minute
-					go func() {
-						time.Sleep(time.Minute)
-						newBatchMutex.Lock()
-						delete(batchesSet, newBatch.BatchMerkleRoot)
-						newBatchMutex.Unlock()
-					}()
-				}
-
-				newBatchMutex.Unlock()
+				// Remove the batch from the set after 1 minute
+				go func() {
+					time.Sleep(time.Minute)
+					newBatchMutex.Lock()
+					delete(batchesSet, newBatch.BatchMerkleRoot)
+					newBatchMutex.Unlock()
+				}()
 			}
+
+			newBatchMutex.Unlock()
 		}
 	}()
 
