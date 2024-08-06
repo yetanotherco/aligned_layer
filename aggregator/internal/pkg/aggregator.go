@@ -208,7 +208,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	if blsAggServiceResp.Err != nil {
 		agg.taskMutex.Lock()
 		batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
-        agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 
 		// Remove task from the list of tasks
@@ -252,35 +252,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
-	currentBlock, err := agg.AggregatorConfig.BaseConfig.EthRpcClient.BlockNumber(context.Background())
+	agg.logger.Info("Maybe waiting one block to send aggregated response onchain",
+		"taskIndex", blsAggServiceResp.TaskIndex,
+		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
+		"taskCreatedBlock", taskCreatedBlock)
+
+	err := agg.avsSubscriber.WaitForOneBlock(taskCreatedBlock)
 	if err != nil {
-		agg.logger.Error("Error getting current block number", "err", err)
-		return
-	}
-
-	if currentBlock <= taskCreatedBlock {
-		agg.logger.Info("Waiting for new block to send aggregated response onchain",
-			"taskIndex", blsAggServiceResp.TaskIndex,
-			"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
-			"taskCreatedBlock", taskCreatedBlock,
-			"currentBlock", currentBlock)
-
-		// Subscribe to new head
-		c := make(chan *gethtypes.Header)
-		sub, err := agg.AggregatorConfig.BaseConfig.EthWsClient.SubscribeNewHead(context.Background(), c)
-		if err != nil {
-			agg.logger.Error("Error subscribing to new head", "err", err)
-			return
-		}
-
-		// Read channel for the new block
-		head := <-c
-		sub.Unsubscribe()
-
-		agg.logger.Info("New block",
-			"taskIndex", blsAggServiceResp.TaskIndex,
-			"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
-			"blockNumber", head.Number.Uint64())
+		agg.logger.Error("Error waiting for one block, sending anyway", "err", err)
 	}
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,

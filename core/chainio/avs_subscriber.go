@@ -1,11 +1,13 @@
 package chainio
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -128,6 +130,35 @@ func subscribeToNewTasks(
 	}
 
 	return nil, fmt.Errorf("Failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
+}
+
+func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
+	currentBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
+	if err != nil {
+		// try with the fallback client
+		currentBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
+		if err != nil {
+			return err
+		}
+	}
+
+	if currentBlock <= startBlock { // should really be == but just in case
+		// Subscribe to new head
+		c := make(chan *types.Header)
+		sub, err := s.AvsContractBindings.ethClient.SubscribeNewHead(context.Background(), c)
+		if err != nil {
+			sub, err = s.AvsContractBindings.ethClientFallback.SubscribeNewHead(context.Background(), c)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Read channel for the new block
+		<-c
+		sub.Unsubscribe()
+	}
+
+	return nil
 }
 
 // func (s *AvsSubscriber) SubscribeToTaskResponses(taskResponseChan chan *cstaskmanager.ContractAlignedLayerTaskManagerTaskResponded) event.Subscription {
