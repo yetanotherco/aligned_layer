@@ -20,16 +20,6 @@ To generate the proof needed to try this example, run `make generate_risc_zero_f
 
 To check if a proof was verified in Aligned, you need to make a call to the `AlignedServiceManager` contract inside your smart contract.
 
-Also, you will need a way to check that the proven program is the correct one.
-
-The Aligned CLI provides a way for you to get the verification key commitment without actually generating and submitting a proof.
-
-You can do this by running the following command:
-
-```bash
-aligned get-commitment --input <path_to_input_file>
-```
-
 The following is an example of how to validate the public input of the Risc0 proof in your smart contract.
 
 ```solidity
