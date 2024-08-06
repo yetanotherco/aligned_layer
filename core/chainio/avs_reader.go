@@ -50,9 +50,11 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mock.ContractERC20Mock, error) {
 	erc20Mock, err := contractERC20Mock.NewContractERC20Mock(tokenAddr, r.AvsContractBindings.ethClient)
 	if err != nil {
-		r.logger.Error("Failed to fetch ERC20Mock contract", "err", err)
-		// TODO: retry with fallback client
-		return nil, err
+		// Retry with fallback client
+		erc20Mock, err = contractERC20Mock.NewContractERC20Mock(tokenAddr, r.AvsContractBindings.ethClientFallback)
+		if err != nil {
+			r.logger.Error("Failed to fetch ERC20Mock contract", "err", err)
+		}
 	}
 	return erc20Mock, nil
 }
