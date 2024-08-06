@@ -257,8 +257,8 @@ defmodule ExplorerWeb.CoreComponents do
 
   def root_background(assigns) do
     ~H"""
-    <div class="bg-[url(/images/home.webp)] bg-cover min-h-screen">
-      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-primary/80">
+    <div class="min-h-screen">
+      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-accent/80">
         <%= render_slot(@inner_block) %>
       </main>
     </div>
@@ -392,8 +392,8 @@ defmodule ExplorerWeb.CoreComponents do
     <span class={[
       "px-3 py-1 rounded-full",
       case @status do
-        true -> "text-black bg-primary group-hover:bg-primary/80"
-        false -> "text-black bg-destructive-foreground group-hover:bg-destructive-foreground/80"
+        true -> "text-accent-foreground bg-accent group-hover:bg-primary/80"
+        false -> "text-background bg-foreground group-hover:bg-secondary/80"
       end,
       @class
     ]}>
