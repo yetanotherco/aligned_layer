@@ -51,7 +51,7 @@ fn main() {
 
     println!("Verification result: {}", verification_result);
 
-    let serialized = bincode::serialize(&receipt).unwrap();
+    let serialized = bincode::serialize(&receipt.inner).unwrap();
 
     std::fs::write(PROOF_FILE_PATH, serialized).expect("Failed to write proof file");
 
