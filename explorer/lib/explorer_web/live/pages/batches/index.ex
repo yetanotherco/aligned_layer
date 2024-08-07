@@ -13,18 +13,22 @@ defmodule ExplorerWeb.Batches.Index do
 
     if connected?(socket), do: PubSub.subscribe(Explorer.PubSub, "update_views")
 
-    {:ok, assign(socket, current_page: current_page, batches: batches, page_title: "Batches")}
+    {:ok,
+     assign(socket,
+       current_page: current_page,
+       batches: batches,
+       last_page: Batches.get_last_page(@page_size),
+       page_title: "Batches"
+     )}
   end
 
   @impl true
   def handle_info(_, socket) do
-    IO.puts("Received update for batches from PubSub")
-
     current_page = socket.assigns.current_page
 
     batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
 
-    {:noreply, assign(socket, batches: batches)}
+    {:noreply, assign(socket, batches: batches, last_page: Batches.get_last_page(@page_size))}
   end
 
   @impl true
