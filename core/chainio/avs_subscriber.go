@@ -97,6 +97,7 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 				newBatchMutex.Unlock()
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
+				sub.Unsubscribe()
 				go func() { // Retry connection in separate goroutine
 					sub, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
 					if err != nil {
@@ -105,6 +106,7 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 				}()
 			case err := <-subFallback.Err():
 				s.logger.Warn("Error in fallback new task subscription", "err", err)
+				subFallback.Unsubscribe()
 				go func() { // Retry connection in separate goroutine
 					subFallback, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
 					if err != nil {
