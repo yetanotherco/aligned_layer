@@ -15,9 +15,18 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
         return false;
     }
 
-    if receipt_len == 0 || image_id_len == 0 || public_input_len == 0 {
+    if receipt_len == 0 || image_id_len == 0 {
         error!("Input buffer length zero size");
         return false;
+    }
+
+    let mut public_input: *const u8 = public_input;
+    let mut public_input_len: u32 = public_input_len;
+    if public_input.is_null() || public_input_len == 0 {
+        // set public input to pointer to empty slice
+        let empty_slice: &[u8] = &[];
+        public_input = empty_slice.as_ptr();
+        public_input_len = 0;
     }
 
     let inner_receipt_bytes =
