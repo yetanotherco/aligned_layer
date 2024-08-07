@@ -78,43 +78,44 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		newBatchMutex := &sync.Mutex{}
 		batchesSet := make(map[[32]byte]struct{})
 		for {
-			select {
-			case newBatch := <-internalChannel:
-				newBatchMutex.Lock()
-				if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
-					batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
-					newTaskCreatedChan <- newBatch
+			newBatch := <-internalChannel
+			newBatchMutex.Lock()
+			if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
+				batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
+				newTaskCreatedChan <- newBatch
 
-					// Remove the batch from the set after 1 minute
-					go func() {
-						time.Sleep(time.Minute)
-						newBatchMutex.Lock()
-						delete(batchesSet, newBatch.BatchMerkleRoot)
-						newBatchMutex.Unlock()
-					}()
-				}
-
-				newBatchMutex.Unlock()
-			case err := <-sub.Err():
-				s.logger.Warn("Error in new task subscription", "err", err)
-				sub.Unsubscribe()
-				go func() { // Retry connection in separate goroutine
-					sub, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
-					if err != nil {
-						errorChannel <- err
-					}
-				}()
-			case err := <-subFallback.Err():
-				s.logger.Warn("Error in fallback new task subscription", "err", err)
-				subFallback.Unsubscribe()
-				go func() { // Retry connection in separate goroutine
-					subFallback, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
-					if err != nil {
-						errorChannel <- err
-					}
+				// Remove the batch from the set after 1 minute
+				go func() {
+					time.Sleep(time.Minute)
+					newBatchMutex.Lock()
+					delete(batchesSet, newBatch.BatchMerkleRoot)
+					newBatchMutex.Unlock()
 				}()
 			}
 
+			newBatchMutex.Unlock()
+		}
+	}()
+
+	// Handle errors and resubscribe
+	go func() {
+		for {
+			select {
+			case err := <-sub.Err():
+				s.logger.Warn("Error in new task subscription", "err", err)
+				sub.Unsubscribe()
+				sub, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
+				if err != nil {
+					errorChannel <- err
+				}
+			case err := <-subFallback.Err():
+				s.logger.Warn("Error in fallback new task subscription", "err", err)
+				subFallback.Unsubscribe()
+				subFallback, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
+				if err != nil {
+					errorChannel <- err
+				}
+			}
 		}
 	}()
 
