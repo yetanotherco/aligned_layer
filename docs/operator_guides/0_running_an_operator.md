@@ -47,8 +47,6 @@ cd aligned_layer
 
 ## Step 2 - Building the Operator
 
-We recommend building from source whenever possible. If using the docker image, these steps can be skipped.
-
 Ensure you have the following installed:
 
 - [Go](https://go.dev/doc/install)
@@ -137,7 +135,7 @@ Finally, to end the staking process, you need to deposit into the WETH strategy,
 as shown in the EigenLayer guide.
 
 <details>
-  <summary>An alternative using the CLI (only when running without docker)</summary>
+  <summary>An alternative using the CLI</summary>
 
   Run the following command to deposit one WETH
 
