@@ -664,7 +664,3 @@ explorer_fetch_old_operators_strategies_restakes:
 	@cd explorer && \
 	./scripts/fetch_old_operators_strategies_restakes.sh 1728056
 # ./scripts/fetch_old_operators.sh 0 or 1728056
-
-explorer_fetch_restakeable_strategies:
-	@cd explorer && \
-	./scripts/fetch_restakeable_strategies.sh
