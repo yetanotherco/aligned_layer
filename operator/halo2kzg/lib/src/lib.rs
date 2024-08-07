@@ -15,50 +15,57 @@ use halo2_proofs::{
     SerdeFormat,
 };
 use halo2curves::bn256::{Bn256, Fr, G1Affine};
-use std::io::{BufReader, ErrorKind, Read};
-
-// MaxProofSize 4KB
-pub const MAX_PROOF_SIZE: usize = 4 * 1024;
-
-// MaxConstraintSystemSize 2KB
-pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
-
-// MaxVerificationKeySize 1KB
-pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
-
-// MaxKzgParamsSize 4KB
-pub const MAX_KZG_PARAMS_SIZE: usize = 4 * 1024;
-
-// MaxPublicInputSize 4KB
-pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
+use std::{slice, io::{BufReader, ErrorKind, Read}};
+use log::error;
 
 #[no_mangle]
 pub extern "C" fn verify_halo2_kzg_proof_ffi(
-    proof_buf: &[u8; MAX_PROOF_SIZE],
+    proof_buf: *const u8,
     proof_len: u32,
-    cs_buf: &[u8; MAX_CONSTRAINT_SYSTEM_SIZE],
+    cs_buf: *const u8,
     cs_len: u32,
-    verifier_key_buf: &[u8; MAX_VERIFIER_KEY_SIZE],
+    vk_buf: *const u8,
     vk_len: u32,
-    kzg_params_buf: &[u8; MAX_KZG_PARAMS_SIZE],
-    kzg_params_len: u32,
-    public_input_buf: &[u8; MAX_PUBLIC_INPUT_SIZE],
+    params_buf: *const u8,
+    params_len: u32,
+    public_input_buf: *const u8,
     public_input_len: u32,
 ) -> bool {
-    if let Ok(cs) = bincode::deserialize(&cs_buf[..(cs_len as usize)]) {
+
+    if proof_buf.is_null() || cs_buf.is_null() || vk_buf.is_null() || params_buf.is_null() || public_input_buf.is_null() {
+        error!("Input buffer length null");
+        return false;
+    }
+
+    if !(proof_len > 0) || !(cs_len > 0) || !(vk_len > 0) || !(params_len > 0) || !(public_input_len > 0) {
+        error!("Input buffer length zero size");
+        return false;
+    }
+
+    let proof_bytes = unsafe { slice::from_raw_parts(proof_buf, proof_len as usize) };
+
+    let cs_bytes = unsafe { slice::from_raw_parts(cs_buf, cs_len as usize) };
+    
+    let vk_bytes = unsafe { slice::from_raw_parts(vk_buf, vk_len as usize) };
+
+    let params_bytes = unsafe { slice::from_raw_parts(params_buf, params_len as usize) };
+
+    let public_input_bytes = unsafe { slice::from_raw_parts(public_input_buf, public_input_len as usize) };
+
+    if let Ok(cs) = bincode::deserialize(&cs_bytes) {
         if let Ok(vk) = VerifyingKey::<G1Affine>::read(
-            &mut BufReader::new(&verifier_key_buf[..(vk_len as usize)]),
+            &mut BufReader::new(vk_bytes),
             SerdeFormat::RawBytes,
             cs,
         ) {
-            if let Ok(vk_params) = Params::read::<_>(&mut BufReader::new(
-                &kzg_params_buf[..(kzg_params_len as usize)],
+            if let Ok(params) = Params::read::<_>(&mut BufReader::new(
+                params_bytes,
             )) {
-                if let Ok(res) = read_fr(&public_input_buf[..(public_input_len as usize)]) {
-                    let strategy = SingleStrategy::new(&vk_params);
+                if let Ok(res) = read_fr(public_input_bytes) {
+                    let strategy = SingleStrategy::new(&params);
                     let instances = res;
                     let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(
-                        &proof_buf[..(proof_len as usize)],
+                        proof_bytes,
                     );
                     return verify_proof::<
                         KZGCommitmentScheme<Bn256>,
@@ -67,7 +74,7 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
                         Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
                         SingleStrategy<Bn256>,
                     >(
-                        &vk_params,
+                        &params,
                         &vk,
                         strategy,
                         &[vec![instances]],
@@ -227,6 +234,21 @@ mod tests {
         fs::File,
         io::{BufWriter, Read, Write},
     };
+
+    // MaxProofSize 4KB
+    pub const MAX_PROOF_SIZE: usize = 4 * 1024;
+
+    // MaxConstraintSystemSize 2KB
+    pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
+
+    // MaxVerificationKeySize 1KB
+    pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
+
+    // MaxKzgParamsSize 4KB
+    pub const MAX_KZG_PARAMS_SIZE: usize = 4 * 1024;
+
+    // MaxPublicInputSize 4KB
+    pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
 
     const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_kzg/proof.bin");
 
@@ -405,55 +427,50 @@ mod tests {
     fn verify_halo2_plonk_proof() {
         //TODO: add verifying halo2 proof with lookups
         // Select Proof Bytes
-        let mut proof_buffer = [0u8; MAX_PROOF_SIZE];
         let proof_len = PROOF.len();
-        proof_buffer[..proof_len].clone_from_slice(PROOF);
+        let proof_buffer = PROOF.as_ptr();
 
         // Select Constraint System Bytes
-        let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
         let cs_len_buf: [u8; 4] = PARAMS[..4]
             .try_into()
             .map_err(|_| "Failed to convert slice to [u8; 4]")
             .unwrap();
         let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
         let cs_offset = 12;
-        cs_buffer[..cs_len].clone_from_slice(&PARAMS[cs_offset..(cs_offset + cs_len)]);
+        let cs_buffer = PARAMS[cs_offset..(cs_offset + cs_len)].as_ptr();
 
         // Select Verifier Key Bytes
-        let mut vk_buffer = [0u8; MAX_VERIFIER_KEY_SIZE];
         let vk_len_buf: [u8; 4] = PARAMS[4..8]
             .try_into()
             .map_err(|_| "Failed to convert slice to [u8; 4]")
             .unwrap();
         let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
         let vk_offset = cs_offset + cs_len;
-        vk_buffer[..vk_len].clone_from_slice(&PARAMS[vk_offset..(vk_offset + vk_len)]);
+        let vk_buffer = PARAMS[vk_offset..(vk_offset + vk_len)].as_ptr();
 
         // Select KZG Params Bytes
-        let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
         let kzg_len_buf: [u8; 4] = PARAMS[8..12]
             .try_into()
             .map_err(|_| "Failed to convert slice to [u8; 4]")
             .unwrap();
         let kzg_params_len = u32::from_le_bytes(kzg_len_buf) as usize;
         let kzg_offset = vk_offset + vk_len;
-        kzg_params_buffer[..kzg_params_len].clone_from_slice(&PARAMS[kzg_offset..]);
+        let kzg_params_buffer = PARAMS[kzg_offset..].as_ptr();
 
         // Select Public Input Bytes
-        let mut public_input_buffer = [0u8; MAX_PUBLIC_INPUT_SIZE];
         let public_input_len = PUB_INPUT.len();
-        public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
+        let public_input_buffer = PUB_INPUT.as_ptr();
 
         let result = verify_halo2_kzg_proof_ffi(
-            &proof_buffer,
+            proof_buffer,
             proof_len as u32,
-            &cs_buffer,
+            cs_buffer,
             cs_len as u32,
-            &vk_buffer,
+            vk_buffer,
             vk_len as u32,
-            &kzg_params_buffer,
+            kzg_params_buffer,
             kzg_params_len as u32,
-            &public_input_buffer,
+            public_input_buffer,
             public_input_len as u32,
         );
         assert!(result)
@@ -462,55 +479,50 @@ mod tests {
     #[test]
     fn verify_halo2_plonk_proof_aborts_with_bad_proof() {
         // Select Proof Bytes
-        let mut proof_buffer = [42u8; MAX_PROOF_SIZE];
         let proof_len = PROOF.len();
-        proof_buffer[..proof_len].clone_from_slice(PROOF);
+        let proof_buffer = PROOF.as_ptr();
 
         // Select Constraint System Bytes
-        let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
         let cs_len_buf: [u8; 4] = PARAMS[..4]
             .try_into()
             .map_err(|_| "Failed to convert slice to array")
             .unwrap();
         let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
         let cs_offset = 12;
-        cs_buffer[..cs_len].clone_from_slice(&PARAMS[cs_offset..(cs_offset + cs_len)]);
+        let cs_buffer = PARAMS[cs_offset..(cs_offset + cs_len)].as_ptr();
 
         // Select Verifier Key Bytes
-        let mut vk_buffer = [0u8; MAX_VERIFIER_KEY_SIZE];
         let vk_len_buf: [u8; 4] = PARAMS[4..8]
             .try_into()
             .map_err(|_| "Failed to convert slice to array")
             .unwrap();
         let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
         let vk_offset = cs_offset + cs_len;
-        vk_buffer[..vk_len].clone_from_slice(&PARAMS[vk_offset..(vk_offset + vk_len)]);
+        let vk_buffer = PARAMS[vk_offset..(vk_offset + vk_len)].as_ptr();
 
         // Select KZG Params Bytes
-        let mut kzg_params_buffer = [0u8; MAX_KZG_PARAMS_SIZE];
         let kzg_len_buf: [u8; 4] = PARAMS[8..12]
             .try_into()
             .map_err(|_| "Failed to convert slice to array")
             .unwrap();
         let kzg_params_len = u32::from_le_bytes(kzg_len_buf) as usize;
         let kzg_offset = vk_offset + vk_len;
-        kzg_params_buffer[..kzg_params_len].clone_from_slice(&PARAMS[kzg_offset..]);
+        let kzg_params_buffer = PARAMS[kzg_offset..].as_ptr();
 
         // Select Public Input Bytes
-        let mut public_input_buffer = [0u8; MAX_PUBLIC_INPUT_SIZE];
         let public_input_len = PUB_INPUT.len();
-        public_input_buffer[..public_input_len].clone_from_slice(PUB_INPUT);
+        let public_input_buffer = PUB_INPUT.as_ptr();
 
         let result = verify_halo2_kzg_proof_ffi(
-            &proof_buffer,
+            proof_buffer,
             (proof_len - 1) as u32,
-            &cs_buffer,
+            cs_buffer,
             cs_len as u32,
-            &vk_buffer,
+            vk_buffer,
             vk_len as u32,
-            &kzg_params_buffer,
+            kzg_params_buffer,
             kzg_params_len as u32,
-            &public_input_buffer,
+            public_input_buffer,
             public_input_len as u32,
         );
         assert!(!result)

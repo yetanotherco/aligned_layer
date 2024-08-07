@@ -1087,6 +1087,7 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "lazy_static",
+ "log",
  "risc0-zkvm",
 ]
 

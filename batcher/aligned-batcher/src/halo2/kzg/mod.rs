@@ -11,6 +11,7 @@ use halo2_proofs::{
 };
 use halo2curves::bn256::{Bn256, Fr, G1Affine};
 use std::io::{BufReader, ErrorKind, Read};
+use log::error;
 
 //TODO(pat): refactor halo2 verification to a common create to eliminate deduplicated code.
 
@@ -24,6 +25,18 @@ pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
 pub const MAX_KZG_PARAMS_SIZE: usize = 4 * 1024;
 
 pub fn verify_halo2_kzg(proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
+
+    if verification_key.len() < 12 {
+        error!("verification input buffers less than 12 bytes");
+        return false
+    } else if !(proof.len() > 0) {
+        error!("proof input buffers zero size");
+        return false
+    } else if !(public_input.len() > 0) {
+        error!("public input input buffers zero size");
+        return false
+    }
+
     let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
     let cs_len_buf: [u8; 4] = verification_key[..4]
         .try_into()
