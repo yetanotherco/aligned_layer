@@ -27,4 +27,4 @@ echo "Running fetch_old_operators.sh from block: $FROM"
 
 mix compile --force #force recompile to get the latest .env values
 
-iex --sname fetch_old_operators --remsh explorer@$ELIXIR_HOSTNAME -S mix run -e "Scripts.FetchOldOperators.run($FROM)"
+iex --sname fetch_old_operators --remsh explorer@$ELIXIR_HOSTNAME -S mix run -e "Scripts.FetchOldOperatorsStrategiesRestakes.run($FROM)"

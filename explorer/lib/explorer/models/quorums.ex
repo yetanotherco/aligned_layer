@@ -72,7 +72,7 @@ defmodule QuorumStrategies do
 
   schema "quorum_strategies" do
     belongs_to :quorum, Quorum
-    belongs_to :strategy, Strategy
+    belongs_to :strategy, Strategies
     timestamps()
   end
 

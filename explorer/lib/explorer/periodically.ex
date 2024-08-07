@@ -31,7 +31,7 @@ defmodule Explorer.Periodically do
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
       Task.start(fn -> process_operators(read_from_block) end)
-      Task.start(fn -> process_quorum_strategy_changes(read_from_block) end)
+      Task.start(fn -> process_quorum_strategy_changes() end)
       Task.start(fn -> process_restaking_changes(read_from_block) end)
     end
     # process_operators(0)
