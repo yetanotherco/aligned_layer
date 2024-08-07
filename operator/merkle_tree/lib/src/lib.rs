@@ -2,6 +2,7 @@ use aligned_sdk::core::types::{
     VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+use log::error;
 
 #[no_mangle]
 pub extern "C" fn verify_merkle_tree_batch_ffi(
@@ -9,7 +10,13 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     batch_len: usize,
     merkle_root: &[u8; 32],
 ) -> bool {
-    if batch_ptr.is_null() || batch_len == 0 {
+    if batch_ptr.is_null()  {
+        error!("Batch buffer length null");
+        return false;
+    }
+
+    if batch_len == 0  {
+        error!("Batch buffer length 0");
         return false;
     }
 
