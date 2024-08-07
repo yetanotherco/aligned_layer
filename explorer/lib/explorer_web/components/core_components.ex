@@ -257,8 +257,8 @@ defmodule ExplorerWeb.CoreComponents do
 
   def root_background(assigns) do
     ~H"""
-    <div class="bg-[url(/images/home.webp)] bg-cover min-h-screen">
-      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-primary/80">
+    <div class="min-h-screen">
+      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-accent/80">
         <%= render_slot(@inner_block) %>
       </main>
     </div>
@@ -383,8 +383,8 @@ defmodule ExplorerWeb.CoreComponents do
   """
   attr :class, :string, default: nil
   attr :status, :boolean, default: true
-  attr :pending_text, :string, default: "Pending"
-  attr :verified_text, :string, default: "Verified"
+  attr :falsy_text, :string, default: "Pending"
+  attr :truthy_text, :string, default: "Verified"
   slot :inner_block, default: nil
 
   def dynamic_badge(assigns) do
@@ -392,14 +392,14 @@ defmodule ExplorerWeb.CoreComponents do
     <span class={[
       "px-3 py-1 rounded-full",
       case @status do
-        true -> "text-black bg-primary group-hover:bg-primary/80"
-        false -> "text-white bg-secondary group-hover:bg-secondary/80"
+        true -> "text-accent-foreground bg-accent group-hover:bg-primary/80"
+        false -> "text-background bg-foreground group-hover:bg-secondary/80"
       end,
       @class
     ]}>
       <%= case @status do
-        true -> @verified_text
-        false -> @pending_text
+        true -> @truthy_text
+        false -> @falsy_text
       end %>
       <%= render_slot(@inner_block) %>
     </span>
@@ -854,11 +854,11 @@ defmodule ExplorerWeb.CoreComponents do
   def tooltip(assigns) do
     ~H"""
     <span
-      id={random_id("tt")}
+      id={Utils.random_id("tt")}
       class={[
         "tooltip",
         "animate-in fade-in slide-in-from-bottom duration-50",
-        "px-2 py-1 text-sm text-foreground bg-card border border-muted-foreground/30 rounded-full shadow-sm drop-shadow-sm",
+        "px-2 py-1 text-sm text-foreground bg-popover border border-muted-foreground/30 rounded-full shadow-sm drop-shadow-sm",
         @class
       ]}
       role="tooltip"
@@ -869,7 +869,18 @@ defmodule ExplorerWeb.CoreComponents do
     """
   end
 
-  def random_id(prefix) do
-    prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
+  @doc """
+  Divider component.
+
+  ## Example
+      <.divider />
+
+  """
+  attr :class, :string, default: nil
+
+  def divider(assigns) do
+    ~H"""
+    <hr class={["border-t rounded-full border-muted-foreground/40 my-1.5", @class]} />
+    """
   end
 end
