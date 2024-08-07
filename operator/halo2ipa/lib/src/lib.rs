@@ -237,9 +237,6 @@ mod tests {
         io::{BufWriter, Read, Write},
     };
 
-    // MaxProofSize 4KB
-    pub const MAX_PROOF_SIZE: usize = 4 * 1024;
-
     // MaxConstraintSystemSize 2KB
     pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
 
@@ -248,9 +245,6 @@ mod tests {
 
     // MaxKzgParamsSize 4KB
     pub const MAX_IPA_PARAMS_SIZE: usize = 4 * 1024;
-
-    // MaxPublicInputSize 4KB
-    pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
 
     const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_ipa/proof.bin");
 
