@@ -10,12 +10,12 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     batch_len: usize,
     merkle_root: &[u8; 32],
 ) -> bool {
-    if batch_ptr.is_null()  {
+    if batch_ptr.is_null() {
         error!("Batch buffer length null");
         return false;
     }
 
-    if batch_len == 0  {
+    if batch_len == 0 {
         error!("Batch buffer length 0");
         return false;
     }
@@ -35,6 +35,10 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
             batch
         }
     };
+
+    if batch.is_empty() {
+        return false;
+    }
 
     let batch_data_comm: Vec<VerificationDataCommitment> =
         batch.into_iter().map(|v| v.into()).collect();
