@@ -91,7 +91,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerSt
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
-		return nil, err
+		// Retry with fallback
+		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Send the transaction
@@ -99,7 +103,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerSt
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
 	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
-		return nil, err
+		// Retry with fallback
+		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	txHash := tx.Hash()
