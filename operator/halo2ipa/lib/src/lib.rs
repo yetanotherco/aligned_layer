@@ -13,8 +13,11 @@ use halo2_proofs::{
     SerdeFormat,
 };
 use halo2curves::bn256::{Fr, G1Affine};
-use std::{slice, io::{BufReader, ErrorKind, Read}};
 use log::error;
+use std::{
+    io::{BufReader, ErrorKind, Read},
+    slice,
+};
 
 #[no_mangle]
 pub extern "C" fn verify_halo2_ipa_proof_ffi(
@@ -29,12 +32,22 @@ pub extern "C" fn verify_halo2_ipa_proof_ffi(
     public_input_buf: *const u8,
     public_input_len: u32,
 ) -> bool {
-    if proof_buf.is_null() || cs_buf.is_null() || vk_buf.is_null() || params_buf.is_null() || public_input_buf.is_null() {
+    if proof_buf.is_null()
+        || cs_buf.is_null()
+        || vk_buf.is_null()
+        || params_buf.is_null()
+        || public_input_buf.is_null()
+    {
         error!("Input buffer length null");
         return false;
     }
 
-    if !(proof_len > 0) || !(cs_len > 0) || !(vk_len > 0) || !(params_len > 0) || !(public_input_len > 0) {
+    if !(proof_len > 0)
+        || !(cs_len > 0)
+        || !(vk_len > 0)
+        || !(params_len > 0)
+        || !(public_input_len > 0)
+    {
         error!("Input buffer length zero size");
         return false;
     }
@@ -42,31 +55,27 @@ pub extern "C" fn verify_halo2_ipa_proof_ffi(
     let proof_bytes = unsafe { slice::from_raw_parts(proof_buf, proof_len as usize) };
 
     let cs_bytes = unsafe { slice::from_raw_parts(cs_buf, cs_len as usize) };
-    
+
     let vk_bytes = unsafe { slice::from_raw_parts(vk_buf, vk_len as usize) };
 
     let params_bytes = unsafe { slice::from_raw_parts(params_buf, params_len as usize) };
 
-    let public_input_bytes = unsafe { slice::from_raw_parts(public_input_buf, public_input_len as usize) };
+    let public_input_bytes =
+        unsafe { slice::from_raw_parts(public_input_buf, public_input_len as usize) };
 
     //TODO
     // - Use const *u8
     // - Validate input array length is size of cs_len
     if let Ok(cs) = bincode::deserialize(cs_bytes) {
-        if let Ok(vk) = VerifyingKey::<G1Affine>::read(
-            &mut BufReader::new(vk_bytes),
-            SerdeFormat::RawBytes,
-            cs,
-        ) {
-            if let Ok(params) = Params::read::<_>(&mut BufReader::new(
-                params_bytes
-            )) {
+        if let Ok(vk) =
+            VerifyingKey::<G1Affine>::read(&mut BufReader::new(vk_bytes), SerdeFormat::RawBytes, cs)
+        {
+            if let Ok(params) = Params::read::<_>(&mut BufReader::new(params_bytes)) {
                 if let Ok(res) = read_fr(public_input_bytes) {
-                    let strategy = SingleStrategy::new(params);
+                    let strategy = SingleStrategy::new(&params);
                     let instances = res;
-                    let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(
-                        proof_bytes
-                    );
+                    let mut transcript =
+                        Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(proof_bytes);
                     return verify_proof::<
                         IPACommitmentScheme<G1Affine>,
                         VerifierIPA<G1Affine>,
@@ -248,7 +257,6 @@ mod tests {
     // MaxPublicInputSize 4KB
     pub const MAX_PUBLIC_INPUT_SIZE: usize = 4 * 1024;
 
-
     const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_ipa/proof.bin");
 
     const PUB_INPUT: &[u8] =
@@ -296,7 +304,13 @@ mod tests {
             Challenge255<G1Affine>,
             Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
             SingleStrategy<G1Affine>,
-        >(&params, &vk, strategy, &[instances.clone()], &mut transcript)
+        >(
+            &params,
+            &vk,
+            strategy,
+            &[instances.clone()],
+            &mut transcript,
+        )
         .expect("verifier shoud not fail");
 
         //write proof
@@ -445,7 +459,7 @@ mod tests {
 
         let result = verify_halo2_ipa_proof_ffi(
             proof_bytes,
-            proof_len u32,
+            proof_len as u32,
             cs_bytes,
             cs_len as u32,
             vk_bytes,
