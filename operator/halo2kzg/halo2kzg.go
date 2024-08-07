@@ -33,7 +33,7 @@ func VerifyHalo2KzgProof(
 	kzgParamBuffer [MaxKzgParamsSize]byte, kzgParamLen_u32 uint32,
 	publicInputBuffer [MaxPublicInputSize]byte, publicInputLen_u32 uint32,
 ) bool {
-	if len(proofBuffer) < 0 || len(csBuffer) < 0 || len(vkBuffer) < 0 || len(kzgParamBuffer) < 0 || len(publicInputBuffer) < 0 {
+	if len(proofBuffer) == 0 || len(csBuffer) == 0 || len(vkBuffer) == 0 || len(kzgParamBuffer) == 0 || len(publicInputBuffer) == 0 {
 		return false
 	}
 
