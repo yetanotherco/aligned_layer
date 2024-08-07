@@ -14,7 +14,7 @@
 
 ## The Project
 
-Aligned is a decentralized network of nodes that verifies Zero-Knowledge and Validity proofs, and post the results in Ethereum. 
+Aligned is a decentralized network of nodes that verifies Zero-Knowledge and Validity proofs, and post the results in Ethereum.
 
 These proofs can be generated and used for a tenth of the price, and with extremely low latency, allowing novel types of applications that weren't possible before in Ethereum.
 
@@ -46,7 +46,9 @@ aligned submit \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci.elf \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
---conn wss://batcher.alignedlayer.com
+--conn wss://batcher.alignedlayer.com \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 5. You should get a response like this:
@@ -59,7 +61,7 @@ aligned submit \
 [2024-07-01T19:19:18Z INFO  aligned] https://explorer.alignedlayer.com/batches/0xe367d76e832edec893d3a9027b3c231b2e3994c47acfac2e67197c13c9be0c4c
 ```
 
-You can use the link to the explorer to check the status of your transaction. 
+You can use the link to the explorer to check the status of your transaction.
 
 6. After three Ethereum blocks, you can check if it has been verified with:
 
@@ -136,10 +138,10 @@ python3 -m pip install -r examples/verify/requirements.txt
 ```bash
 python3 examples/verify/encode_verification_data.py --aligned-verification-data ~/.aligned/aligned_verification_data/*.json
 ```
- 
+
 If your verification data is in another path, just change the `--aligned-verification-data` parameter.
 
-#### Using a caller contract 
+#### Using a caller contract
 
 To verify a proof in your own contract, use a static call to the Aligned contract. You can use the following [Caller Contract](examples/verify/src/VerifyBatchInclusionCaller.sol) as an example. The code will look like this:
 

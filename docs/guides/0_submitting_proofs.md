@@ -116,7 +116,9 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_to_ecdsa_keystore>
+--keystore_path <path_to_ecdsa_keystore> \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 **Example**
@@ -128,7 +130,9 @@ aligned submit \
 --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
 --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
 --conn wss://batcher.alignedlayer.com \
---keystore_path ~/.aligned_keystore/keystore0
+--keystore_path ~/.aligned_keystore/keystore0 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ### Risc0 proof
@@ -147,7 +151,9 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_to_ecdsa_keystore>
+--keystore_path <path_to_ecdsa_keystore> \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 **Example**
@@ -161,7 +167,9 @@ aligned submit \
 --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
 --conn wss://batcher.alignedlayer.com \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
---keystore_path ~/.aligned_keystore/keystore0
+--keystore_path ~/.aligned_keystore/keystore0 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
@@ -178,7 +186,9 @@ aligned submit \
 --conn wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
---keystore_path <path_to_ecdsa_keystore>
+--keystore_path <path_to_ecdsa_keystore> \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 **Examples**:
@@ -191,7 +201,9 @@ aligned submit \
 --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 --conn wss://batcher.alignedlayer.com \
---keystore_path ~/.aligned_keystore/keystore0
+--keystore_path ~/.aligned_keystore/keystore0 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ```bash
@@ -202,7 +214,9 @@ aligned submit \
 --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
 --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
 --conn wss://batcher.alignedlayer.com \
---keystore_path ~/.aligned_keystore/keystore0
+--keystore_path ~/.aligned_keystore/keystore0 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ```bash
@@ -213,5 +227,7 @@ aligned submit \
 --public_input ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 --vk ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
 --conn wss://batcher.alignedlayer.com \
---keystore_path ~/.aligned_keystore/keystore0
+--keystore_path ~/.aligned_keystore/keystore0 \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```

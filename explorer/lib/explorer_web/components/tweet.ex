@@ -7,7 +7,7 @@ defmodule TweetComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div class={@class}>
       <a
         href={"https://twitter.com/intent/tweet?text=#{@text}"}
         target="_blank"
@@ -20,8 +20,7 @@ defmodule TweetComponent do
       >
         <button class={[
           "bg-black text-neutral-50 hover:bg-neutral-700 px-3 pb-0.5",
-          "font-bold text-sm leading-[18px] tracking-wider rounded-full",
-          @class
+          "font-bold text-sm leading-[18px] tracking-wider rounded-full"
         ]}>
           <span class="text-xl font-normal">𝕏</span> <span class="tracking-tight">Post</span>
         </button>
