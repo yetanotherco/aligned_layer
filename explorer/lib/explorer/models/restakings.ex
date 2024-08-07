@@ -69,4 +69,13 @@ defmodule Restakings do
     Explorer.Repo.one(query)
   end
 
+  def get_aggregated_restakings() do
+    query = from(
+      r in Restakings,
+      select: %{total_stake: sum(r.stake)}
+    )
+
+    Explorer.Repo.all(query)
+  end
+
 end
