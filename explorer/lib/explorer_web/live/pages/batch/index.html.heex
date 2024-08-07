@@ -14,7 +14,7 @@
           module={CopyToClipboardButtonComponent}
           text_to_copy={@merkle_root}
           id={"copy_batch_hash_#{@merkle_root}"}
-          class="ml-2"
+          class="md:ml-2"
         />
       </p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />

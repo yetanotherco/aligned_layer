@@ -11,7 +11,8 @@ defmodule CopyToClipboardButtonComponent do
 
   @impl true
   def handle_event("copied", _params, socket) do
-    {:noreply, put_flash!(socket, :info, "Copied to clipboard!")}
+    text = socket.assigns.text_to_copy
+    {:noreply, put_flash!(socket, :info, "Copied #{text} to clipboard!")}
   end
 
   @impl true
