@@ -561,7 +561,7 @@ impl Batcher {
             .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
-        if let Err(e) = eth::create_new_task(
+        match eth::create_new_task(
             payment_service,
             *batch_merkle_root,
             batch_data_pointer,
@@ -572,8 +572,15 @@ impl Batcher {
         )
         .await
         {
-            error!("Failed to create batch verification task: {}", e);
-            return Err(BatcherError::TaskCreationError(e.to_string()));
+            Ok(receipt) => {
+                if let Some(gas_used) = receipt.gas_used {
+                    info!("Gas used to create new task: {}", gas_used);
+                }
+            }
+            Err(e) => {
+                error!("Failed to create batch verification task: {}", e);
+                return Err(BatcherError::TaskCreationError(e.to_string()));
+            }
         }
 
         info!("Batch verification task created on Aligned contract");
