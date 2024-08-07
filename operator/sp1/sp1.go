@@ -10,6 +10,10 @@ import "C"
 import "unsafe"
 
 func VerifySp1Proof(proofBuffer []byte, proofLen uint32, elfBuffer []byte, elfLen uint32) bool {
+	if len(proofBuffer) == 0 || len(elfBuffer) == 0 {
+		return false
+	}
+
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
 
