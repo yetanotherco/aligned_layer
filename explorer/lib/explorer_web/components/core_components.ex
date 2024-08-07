@@ -334,7 +334,7 @@ defmodule ExplorerWeb.CoreComponents do
       <.card_background class={@class}>
         <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
           <%= @title %>
-          <.icon name="hero-arrow-top-right-on-square-solid mb-1" class="size-4" />
+          <.icon name="hero-arrow-top-right-on-square-solid" class="size-4" />
         </h2>
         <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
           <%= render_slot(@inner_block) %>
