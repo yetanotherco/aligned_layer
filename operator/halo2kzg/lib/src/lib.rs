@@ -44,7 +44,7 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
         return false;
     }
 
-    if proof_len <= 0 || cs_len <= 0 || vk_len <= 0 || params_len <= 0 || public_input_len <= 0 {
+    if proof_len == 0 || cs_len == 0 || vk_len == 0 || params_len == 0 || public_input_len == 0 {
         error!("Input buffer length zero size");
         return false;
     }
