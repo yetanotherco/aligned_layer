@@ -24,7 +24,7 @@ func NewAvsServiceBindings(serviceManagerAddr, blsOperatorStateRetrieverAddr get
 		return nil, err
 	}
 
-	contractServiceManagerFallback, err := csservicemanager.NewContractAlignedLayerServiceManager(blsOperatorStateRetrieverAddr, ethClientFallback)
+	contractServiceManagerFallback, err := csservicemanager.NewContractAlignedLayerServiceManager(serviceManagerAddr, ethClientFallback)
 	if err != nil {
 		logger.Error("Failed to fetch AlignedLayerServiceManager contract", "err", err)
 		return nil, err
