@@ -12,8 +12,8 @@
     <% end %>
   </.card_link>
   <.card_link navigate={~p"/assets"} title="Total ETH Restaked">
-    <%= if @restaked_amount != :nil and @restaked_amount != :nil do %>
-      <%= @restaked_amount %>
+    <%= if @restaked_amount_eth != :nil and @restaked_amount_eth != :nil do %>
+      <%= @restaked_amount_eth %>
     <% else %>
       0
     <% end %>

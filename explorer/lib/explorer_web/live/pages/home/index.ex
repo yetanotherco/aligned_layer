@@ -15,7 +15,7 @@ defmodule ExplorerWeb.Home.Index do
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
-    restaked_amount =
+    restaked_amount_eth =
       Restakings.get_aggregated_restakings()
       |> Map.get(:total_stake)
       |> Decimal.to_integer()
@@ -28,7 +28,7 @@ defmodule ExplorerWeb.Home.Index do
        operators_registered: operators_registered,
        latest_batches: latest_batches,
        verified_proofs: verified_proofs,
-       restaked_amount: restaked_amount
+       restaked_amount_eth: restaked_amount_eth
      )}
   end
 
@@ -45,7 +45,7 @@ defmodule ExplorerWeb.Home.Index do
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
-    restaked_amount =
+    restaked_amount_eth =
       Restakings.get_aggregated_restakings()
       |> Map.get(:total_stake)
       |> Decimal.to_integer()
@@ -61,7 +61,7 @@ defmodule ExplorerWeb.Home.Index do
        verified_proofs: verified_proofs,
        service_manager_address:
          AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
-       restaked_amount: restaked_amount,
+       restaked_amount_eth: restaked_amount_eth,
        page_title: "Welcome"
      )}
   rescue
