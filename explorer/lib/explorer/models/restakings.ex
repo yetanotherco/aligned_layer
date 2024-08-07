@@ -75,7 +75,7 @@ defmodule Restakings do
       select: %{total_stake: sum(r.stake)}
     )
 
-    Explorer.Repo.all(query)
+    Explorer.Repo.one(query)
   end
 
   def get_restakes_by_operator(operator_id) do
