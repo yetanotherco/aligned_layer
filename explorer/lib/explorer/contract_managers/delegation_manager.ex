@@ -13,7 +13,7 @@ defmodule DelegationManager do
 
   case status do
     :ok ->
-      Logger.debug("Eigenlayer deployment file read successfully")
+      Logger.debug("Aligned deployment file read successfully")
 
     :error ->
       raise(

@@ -53,7 +53,6 @@ defmodule AVSDirectoryManager do
       end
   end
 
-
   def get_operator_registration_status_updated_events(%{fromBlock: fromBlock}) do
     AVSDirectoryManager.EventFilters.operator_avs_registration_status_updated(
       nil, # any operator

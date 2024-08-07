@@ -13,7 +13,7 @@ defmodule RegistryCoordinatorManager do
 
   case status do
     :ok ->
-      Logger.debug("Eigenlayer deployment file read successfully")
+      Logger.debug("Aligned deployment file read successfully")
 
     :error ->
       raise(
@@ -33,25 +33,6 @@ defmodule RegistryCoordinatorManager do
     @registry_coordinator_address
   end
 
-  # relevant:
-  # /// Emits when an operator is registered
-  # event OperatorRegistered(address indexed operator, bytes32 indexed operatorId);
-
-  # /// Emits when an operator is deregistered
-  # event OperatorDeregistered(address indexed operator, bytes32 indexed operatorId);
-
-  # /// @notice Returns the operator struct for the given `operator`
-  # function getOperator(address operator) external view returns (OperatorInfo memory);
-
-  # /// @notice Returns the operatorId for the given `operator`
-  # function getOperatorId(address operator) external view returns (bytes32);
-
-  # /// @notice Returns the operator address for the given `operatorId`
-  # function getOperatorFromId(bytes32 operatorId) external view returns (address operator);
-
-  # /// @notice Returns the status for the given `operator`
-  # function getOperatorStatus(address operator) external view returns (IRegistryCoordinator.OperatorStatus);
-
   def get_operator_id_from_chain(operator_address) do
     case RegistryCoordinatorManager.get_operator_id(Utils.string_to_bytes32(operator_address))
       |> Ethers.call() do
@@ -63,3 +44,16 @@ defmodule RegistryCoordinatorManager do
   end
 
 end
+
+# relevant:
+# /// Emits when an operator is registered
+# event OperatorRegistered(address indexed operator, bytes32 indexed operatorId);
+
+# /// Emits when an operator is deregistered
+# event OperatorDeregistered(address indexed operator, bytes32 indexed operatorId);
+
+# /// @notice Returns the operator struct for the given `operator`
+# function getOperator(address operator) external view returns (OperatorInfo memory);
+
+# /// @notice Returns the operatorId for the given `operator`
+# function getOperatorId(address operator) external view returns (bytes32);
