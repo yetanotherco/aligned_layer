@@ -94,18 +94,6 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		}
 	}()
 
-	errChan := make(chan error)
-	go func() {
-		for {
-			select {
-			case subErr := <-sub.Err():
-				errChan <- subErr
-			case subErr := <-subFallback.Err():
-				errChan <- subErr
-			}
-		}
-	}()
-
 	// Return both subscriptions
 	return event.JoinSubscriptions(sub, subFallback), nil
 }
