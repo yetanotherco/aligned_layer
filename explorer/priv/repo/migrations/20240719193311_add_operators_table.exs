@@ -15,5 +15,8 @@ defmodule Explorer.Repo.Migrations.AddOperatorsTable do
 
       timestamps()
     end
+
+    create unique_index("operators", [:id], name: :operator_id_index)
+
   end
 end

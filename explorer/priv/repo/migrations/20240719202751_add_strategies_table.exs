@@ -8,7 +8,7 @@ defmodule Explorer.Repo.Migrations.AddTokensTable do
       add :token_address, :binary, null: false
       add :name, :string, null: false
       add :symbol, :string, null: false
-      add :total_staked, :decimal, precision: 22, scale: 0
+      add :total_staked, :decimal, precision: 30, scale: 0
 
       timestamps()
     end
