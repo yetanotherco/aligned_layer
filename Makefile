@@ -666,8 +666,8 @@ explorer_fetch_old_batches:
 
 explorer_fetch_old_operators:
 	@cd explorer && \
-	./scripts/fetch_old_operators.sh 0
-# ./scripts/fetch_old_operators.sh 1728056
+	./scripts/fetch_old_operators.sh 1728056
+# ./scripts/fetch_old_operators.sh 0 or 1728056
 
 explorer_fetch_restakeable_strategies:
 	@cd explorer && \
