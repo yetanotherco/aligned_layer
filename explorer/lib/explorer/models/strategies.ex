@@ -59,4 +59,10 @@ defmodule Strategies do
     :nil
   end
 
+  def get_all_strategies() do
+    query = from(s in Strategies,
+      select: s)
+    Explorer.Repo.all(query)
+  end
+
 end
