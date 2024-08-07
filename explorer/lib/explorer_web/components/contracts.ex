@@ -1,6 +1,8 @@
 defmodule ContractsComponent do
   use ExplorerWeb, :live_component
 
+  attr :class, :string, default: nil
+
   @impl true
   def mount(socket) do
     {:ok,
@@ -16,7 +18,7 @@ defmodule ContractsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="relative sm:col-span-3 truncate">
+    <div class={["relative truncate", @class]}>
       <.card
         inner_class="text-base leading-9 flex flex-wrap sm:flex-row overflow-x-auto gap-x-2"
         title="Contract Addresses"
