@@ -228,7 +228,7 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def update_restakeable_stratergies() do
+  def update_restakeable_strategies() do
     case AlignedLayerServiceManager.get_restakeable_strategies() |> Ethers.call() do
       {:ok, restakeable_strategies} ->
         Strategies.update(restakeable_strategies)
