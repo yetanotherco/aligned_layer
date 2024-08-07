@@ -3,9 +3,10 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
-	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"sync"
 	"time"
+
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
@@ -215,7 +216,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
-
 	currentBlock, err := agg.AggregatorConfig.BaseConfig.EthRpcClient.BlockNumber(context.Background())
 	if err != nil {
 		agg.logger.Error("Error getting current block number", "err", err)
@@ -251,8 +251,10 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err = agg.sendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
+		receipt, err := agg.sendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
 		if err == nil {
+			agg.logger.Info("Gas cost used to send aggregated response", "gasUsed", receipt.GasUsed)
+
 			agg.logger.Info("Aggregator successfully responded to task",
 				"taskIndex", blsAggServiceResp.TaskIndex,
 				"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
@@ -270,10 +272,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 }
 
-
-
-/// Sends response to contract and waits for transaction receipt
-/// Returns error if it fails to send tx or receipt is not found
+// / Sends response to contract and waits for transaction receipt
+// / Returns error if it fails to send tx or receipt is not found
 func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	agg.walletMutex.Lock()
 	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchMerkleRoot[:]))
@@ -298,7 +298,6 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 
 	return receipt, nil
 }
-
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task",
