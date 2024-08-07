@@ -79,6 +79,7 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		batchesSet := make(map[[32]byte]struct{})
 		for {
 			newBatch := <-internalChannel
+			s.logger.Info("Received new task", "batchMerkleRoot", newBatch.BatchMerkleRoot)
 			newBatchMutex.Lock()
 			if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
 				batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
