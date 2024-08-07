@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -55,16 +56,17 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 
 func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) (chan error, error) {
 	// Create a new channel to receive new tasks
-	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+	mainChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+	fallbackChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
 
 	// Subscribe to new tasks
-	sub, err := subscribeToNewTasks(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
+	sub, err := subscribeToNewTasks(s.AvsContractBindings.ServiceManager, mainChannel, s.logger)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
 		return nil, err
 	}
 
-	subFallback, err := subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
+	subFallback, err := subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, fallbackChannel, s.logger)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
 		return nil, err
@@ -78,23 +80,14 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		newBatchMutex := &sync.Mutex{}
 		batchesSet := make(map[[32]byte]struct{})
 		for {
-			newBatch := <-internalChannel
-			s.logger.Info("Received new task", "batchMerkleRoot", newBatch.BatchMerkleRoot)
-			newBatchMutex.Lock()
-			if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
-				batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
-				newTaskCreatedChan <- newBatch
-
-				// Remove the batch from the set after 1 minute
-				go func() {
-					time.Sleep(time.Minute)
-					newBatchMutex.Lock()
-					delete(batchesSet, newBatch.BatchMerkleRoot)
-					newBatchMutex.Unlock()
-				}()
+			select {
+			case newBatch := <-mainChannel:
+				handleNewTaskCreated(
+					newBatch, newTaskCreatedChan, s.logger, batchesSet, newBatchMutex)
+			case newBatch := <-fallbackChannel:
+				handleNewTaskCreated(
+					newBatch, newTaskCreatedChan, s.logger, batchesSet, newBatchMutex)
 			}
-
-			newBatchMutex.Unlock()
 		}
 	}()
 
@@ -105,14 +98,14 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
 				sub.Unsubscribe()
-				sub, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
+				sub, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManager, mainChannel, s.logger)
 				if err != nil {
 					errorChannel <- err
 				}
 			case err := <-subFallback.Err():
 				s.logger.Warn("Error in fallback new task subscription", "err", err)
 				subFallback.Unsubscribe()
-				subFallback, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
+				subFallback, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, fallbackChannel, s.logger)
 				if err != nil {
 					errorChannel <- err
 				}
@@ -121,6 +114,32 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 	}()
 
 	return errorChannel, nil
+}
+
+func handleNewTaskCreated(
+	batch *servicemanager.ContractAlignedLayerServiceManagerNewBatch,
+	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch,
+	logger sdklogging.Logger,
+	batchesSet map[[32]byte]struct{},
+	batchesMutex *sync.Mutex,
+) {
+	logger.Info("Received new task", "batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]))
+	batchesMutex.Lock()
+
+	if _, ok := batchesSet[batch.BatchMerkleRoot]; !ok {
+		batchesSet[batch.BatchMerkleRoot] = struct{}{}
+		newTaskCreatedChan <- batch
+
+		// Remove the batch from the set after 1 minute
+		go func() {
+			time.Sleep(time.Minute)
+			batchesMutex.Lock()
+			delete(batchesSet, batch.BatchMerkleRoot)
+			batchesMutex.Unlock()
+		}()
+	}
+
+	batchesMutex.Unlock()
 }
 
 func subscribeToNewTasks(
