@@ -53,7 +53,7 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 	}, nil
 }
 
-func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) (event.Subscription, error) {
+func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) (chan error, error) {
 	// Create a new channel to receive new tasks
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
 
@@ -70,32 +70,49 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		return nil, err
 	}
 
+	// create a new channel to foward errors
+	errorChannel := make(chan error)
+
 	// Forward the new tasks to the provided channel
 	go func() {
 		newBatchMutex := &sync.Mutex{}
 		batchesSet := make(map[[32]byte]struct{})
 		for {
-			newBatch := <-internalChannel
-			newBatchMutex.Lock()
-			if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
-				batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
-				newTaskCreatedChan <- newBatch
+			select {
+			case newBatch := <-internalChannel:
+				newBatchMutex.Lock()
+				if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {
+					batchesSet[newBatch.BatchMerkleRoot] = struct{}{}
+					newTaskCreatedChan <- newBatch
 
-				// Remove the batch from the set after 1 minute
-				go func() {
-					time.Sleep(time.Minute)
-					newBatchMutex.Lock()
-					delete(batchesSet, newBatch.BatchMerkleRoot)
-					newBatchMutex.Unlock()
-				}()
+					// Remove the batch from the set after 1 minute
+					go func() {
+						time.Sleep(time.Minute)
+						newBatchMutex.Lock()
+						delete(batchesSet, newBatch.BatchMerkleRoot)
+						newBatchMutex.Unlock()
+					}()
+				}
+
+				newBatchMutex.Unlock()
+			case err := <-sub.Err():
+				s.logger.Warn("Error in new task subscription", "err", err)
+				sub, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
+				if err != nil {
+					errorChannel <- err
+				}
+			case err := <-subFallback.Err():
+				s.logger.Warn("Error in fallback new task subscription", "err", err)
+				subFallback, err = subscribeToNewTasks(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
+				if err != nil {
+					errorChannel <- err
+				}
 			}
 
-			newBatchMutex.Unlock()
 		}
 	}()
 
-	// Return both subscriptions
-	return event.JoinSubscriptions(sub, subFallback), nil
+	return errorChannel, nil
 }
 
 func subscribeToNewTasks(

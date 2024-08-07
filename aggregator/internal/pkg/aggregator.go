@@ -19,7 +19,6 @@ import (
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
 	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorsinfo"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
-	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -40,7 +39,7 @@ type Aggregator struct {
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
-	taskSubscriber        event.Subscription
+	taskSubscriber        chan error
 	blsAggregationService blsagg.BlsAggregationService
 
 	// BLS Signature Service returns an Index
