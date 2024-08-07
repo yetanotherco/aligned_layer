@@ -116,6 +116,10 @@ defmodule Utils do
     end
   end
 
+  def hex_string_to_int(hex_string) do
+    hex_string |> String.replace_prefix("0x", "") |> String.to_integer(16)
+  end
+
   def get_last_n_items(events, n) when is_list(events) and is_integer(n) and n >= 0 do
     events
     |> Enum.reverse()
