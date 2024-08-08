@@ -323,6 +323,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr :title, :string, default: nil
   attr :href, :string, default: nil
   attr :rest, :global, include: ~w(href target navigate)
+  attr :icon, :string, default: "hero-arrow-top-right-on-square-solid"
 
   slot :inner_block, default: nil
 
@@ -332,7 +333,7 @@ defmodule ExplorerWeb.CoreComponents do
       <.card_background class={@class}>
         <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
           <%= @title %>
-          <.icon name="hero-arrow-top-right-on-square-solid" class="size-4" />
+          <.icon name={@icon} class="size-4 mb-1" />
         </h2>
         <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
           <%= render_slot(@inner_block) %>

@@ -3,15 +3,18 @@
   <.table id="operators" rows={@operators}>
     <:col :let={operator} label="Name">
       <.link navigate={~p"/operators/#{operator.address}"} class="flex gap-x-2">
-        <img
-          src={operator.logo_link}
-          alt={operator.name}
-          class="rounded-full size-5 object-scale-down"
-        />
-        <%= operator.name %>
-        <.tooltip>
-          <%= operator.address %>
-        </.tooltip>
+        <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
+          <img
+            src={operator.logo_link}
+            alt={operator.name}
+            class="rounded-full size-5 object-scale-down"
+          />
+          <%= operator.name %>
+          <.right_arrow />
+          <.tooltip>
+            <%= operator.address %>
+          </.tooltip>
+        </span>
       </.link>
     </:col>
     <:col :let={_operator} label="Restake Concentration">

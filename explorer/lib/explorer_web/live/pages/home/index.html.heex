@@ -4,14 +4,14 @@
   </h1>
 </div>
 <div class="mt-8 text-foreground px-2 grid grid-cols-1 sm:grid-cols-2 justify-center gap-3 md:max-w-[50rem] mx-auto">
-  <.card_link navigate={~p"/operators"} title="Registered Operators">
+  <.card_link icon="hero-arrow-right-solid" navigate={~p"/operators"} title="Registered Operators">
     <%= if @operators_registered != :empty do %>
       <%= @operators_registered %>
     <% else %>
       0
     <% end %>
   </.card_link>
-  <.card_link navigate={~p"/assets"} title="Total ETH Restaked">
+  <.card_link icon="hero-arrow-right-solid" navigate={~p"/assets"} title="Total ETH Restaked">
     <%= if @restaked_amount_eth != :nil and @restaked_amount_eth != :nil do %>
       <%= @restaked_amount_eth %>
     <% else %>
