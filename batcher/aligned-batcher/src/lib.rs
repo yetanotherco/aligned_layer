@@ -4,21 +4,25 @@ use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
 use dotenv::dotenv;
 use ethers::signers::Signer;
+use serde::Serialize;
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::env;
+use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{
     BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    VerificationCommitmentBatch, VerificationDataCommitment,
+    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
-use ethers::types::{Address, Signature, U256};
+use ethers::types::{Address, Signature, TransactionReceipt, U256};
 use futures_util::stream::{self, SplitSink};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -50,12 +54,44 @@ const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 
+struct BatchState {
+    batch_queue: BatchQueue,
+    user_nonces: HashMap<Address, U256>,
+    user_proof_count_in_batch: HashMap<Address, u64>,
+}
+
+impl BatchState {
+    fn new() -> Self {
+        Self {
+            batch_queue: BatchQueue::new(),
+            user_nonces: HashMap::new(),
+            user_proof_count_in_batch: HashMap::new(),
+        }
+    }
+
+    fn get_user_proof_count(&self, addr: &Address) -> u64 {
+        *self.user_proof_count_in_batch.get(addr).unwrap_or(&0)
+    }
+
+    /*
+       Increments the user proof count in the batch, if the user is already in the hashmap.
+       If the user is not in the hashmap, it adds the user to the hashmap with a count of 1 to represent the first proof.
+    */
+    fn increment_user_proof_count(&mut self, addr: &Address) {
+        self.user_proof_count_in_batch
+            .entry(*addr)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
+    }
+}
+
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
+    storage_endpoint: String,
     eth_ws_provider: Provider<Ws>,
     payment_service: BatcherPaymentService,
-    batch_queue: Mutex<BatchQueue>,
+    batch_state: Mutex<BatchState>,
     max_block_interval: u64,
     min_batch_len: usize,
     max_proof_size: usize,
@@ -63,17 +99,23 @@ pub struct Batcher {
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
-    user_nonces: Mutex<HashMap<Address, U256>>,
-    user_proof_count_in_batch: Mutex<HashMap<Address, u64>>,
+    posting_batch: Mutex<bool>,
 }
 
 impl Batcher {
     pub async fn new(config_file: String) -> Self {
         dotenv().ok();
+
+        // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/localstack.html
+        let endpoint_url = env::var("LOCALSTACK_ENDPOINT_URL").ok();
+
         let s3_bucket_name =
             env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
 
-        let s3_client = s3::create_client().await;
+        let storage_endpoint =
+            env::var("STORAGE_ENDPOINT").expect("STORAGE_ENDPOINT not found in environment");
+
+        let s3_client = s3::create_client(endpoint_url).await;
 
         let config = ConfigFromYaml::new(config_file);
         let deployment_output =
@@ -107,19 +149,18 @@ impl Batcher {
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
                 non_paying_config.address);
-            Some(NonPayingConfig::from_yaml_config(non_paying_config, &payment_service).await)
+            Some(NonPayingConfig::from_yaml_config(non_paying_config).await)
         } else {
             None
         };
 
-        let user_nonces = Mutex::new(HashMap::new());
-
         Self {
             s3_client,
             s3_bucket_name,
+            storage_endpoint,
             eth_ws_provider,
             payment_service,
-            batch_queue: Mutex::new(BatchQueue::new()),
+            batch_state: Mutex::new(BatchState::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
@@ -127,8 +168,7 @@ impl Batcher {
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
-            user_nonces,
-            user_proof_count_in_batch: Mutex::new(HashMap::new()),
+            posting_batch: Mutex::new(false),
         }
     }
 
@@ -212,18 +252,25 @@ impl Batcher {
             serde_json::from_str(message.to_text().expect("Message is not text"))
                 .expect("Failed to deserialize task");
 
+        info!(
+            "Received message with nonce: {}",
+            U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
+        );
+
         info!("Verifying message signature...");
         if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
             if self.is_nonpaying(&addr) {
-                return self
-                    .handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
-                    .await;
+                self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
+                    .await
             } else {
-                if !self.check_user_balance(&addr).await {
-                    send_error_message(
+                if !self
+                    .check_user_balance_and_increment_proof_count(&addr)
+                    .await
+                {
+                    send_message(
                         ws_conn_sink.clone(),
-                        ResponseMessage::InsufficientBalanceError(addr),
+                        ValidityResponseMessage::InsufficientBalance(addr),
                     )
                     .await;
 
@@ -232,52 +279,45 @@ impl Batcher {
 
                 let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
                 let nonced_verification_data = client_msg.verification_data;
-                if nonced_verification_data.verification_data.proof.len() <= self.max_proof_size {
-                    // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-                    if self.pre_verification_is_enabled
-                        && !zk_utils::verify(&nonced_verification_data.verification_data)
-                    {
-                        error!("Invalid proof detected. Verification failed.");
-                        send_error_message(
-                            ws_conn_sink.clone(),
-                            ResponseMessage::VerificationError(),
-                        )
+                if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
+                    error!("Proof size exceeds the maximum allowed size.");
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge)
                         .await;
-                        return Ok(()); // Send error message to the client and return
-                    }
+                    return Ok(());
+                }
 
-                    // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-                    if !self.check_nonce_and_increment(addr, nonce).await {
-                        send_error_message(
-                            ws_conn_sink.clone(),
-                            ResponseMessage::InvalidNonceError,
-                        )
-                        .await;
-                        return Ok(()); // Send error message to the client and return
-                    }
-
-                    self.add_to_batch(
-                        nonced_verification_data,
-                        ws_conn_sink.clone(),
-                        client_msg.signature,
-                    )
-                    .await;
-                } else {
-                    error!("Proof is too large");
-                    send_error_message(ws_conn_sink.clone(), ResponseMessage::ProofTooLargeError())
-                        .await;
+                // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
+                if self.pre_verification_is_enabled
+                    && !zk_utils::verify(&nonced_verification_data.verification_data).await
+                {
+                    error!("Invalid proof detected. Verification failed.");
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
                     return Ok(()); // Send error message to the client and return
-                };
+                }
+
+                // Doing nonce verification after proof verification to avoid unnecessary nonce increment
+                if !self.check_nonce_and_increment(addr, nonce).await {
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                    return Ok(()); // Send error message to the client and return
+                }
+
+                self.add_to_batch(
+                    nonced_verification_data,
+                    ws_conn_sink.clone(),
+                    client_msg.signature,
+                )
+                .await;
 
                 info!("Verification data message handled");
 
-                return Ok(());
+                send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
+                Ok(())
             }
         } else {
             error!("Signature verification error");
-            send_error_message(
+            send_message(
                 ws_conn_sink.clone(),
-                ResponseMessage::SignatureVerificationError(),
+                ValidityResponseMessage::InvalidSignature,
             )
             .await;
             Ok(()) // Send error message to the client and return
@@ -286,9 +326,13 @@ impl Batcher {
 
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance(&self, addr: &Address) -> bool {
-        let mut user_proof_counts = self.user_proof_count_in_batch.lock().await;
-        let user_proofs_in_batch = user_proof_counts.get(addr).unwrap_or(&0).clone() + 1;
+    async fn check_user_balance_and_increment_proof_count(&self, addr: &Address) -> bool {
+        if self.user_balance_is_unlocked(addr).await {
+            return false;
+        }
+        let mut batch_state = self.batch_state.lock().await;
+
+        let user_proofs_in_batch = batch_state.get_user_proof_count(addr) + 1;
 
         let user_balance = self.get_user_balance(addr).await;
 
@@ -297,14 +341,14 @@ impl Batcher {
             return false;
         }
 
-        user_proof_counts.insert(*addr, user_proofs_in_batch);
+        batch_state.increment_user_proof_count(addr);
         true
     }
 
     async fn check_nonce_and_increment(&self, addr: Address, nonce: U256) -> bool {
-        let mut user_nonces = self.user_nonces.lock().await;
+        let mut batch_state = self.batch_state.lock().await;
 
-        let expected_user_nonce = match user_nonces.get(&addr) {
+        let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
             Some(nonce) => *nonce,
             None => {
                 let user_nonce = match self.payment_service.user_nonces(addr).call().await {
@@ -315,7 +359,7 @@ impl Batcher {
                     }
                 };
 
-                user_nonces.insert(addr, user_nonce);
+                batch_state.user_nonces.insert(addr, user_nonce);
                 user_nonce
             }
         };
@@ -328,7 +372,7 @@ impl Batcher {
             return false;
         }
 
-        user_nonces.insert(addr, nonce + U256::one());
+        batch_state.user_nonces.insert(addr, nonce + U256::one());
         true
     }
 
@@ -339,17 +383,20 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
         proof_submitter_sig: Signature,
     ) {
-        let mut batch_queue_lock = self.batch_queue.lock().await;
+        let mut batch_state = self.batch_state.lock().await;
         info!("Calculating verification data commitments...");
         let verification_data_comm = verification_data.clone().into();
         info!("Adding verification data to batch...");
-        batch_queue_lock.push((
+        batch_state.batch_queue.push((
             verification_data,
             verification_data_comm,
             ws_conn_sink,
             proof_submitter_sig,
         ));
-        info!("Current batch queue length: {}", batch_queue_lock.len());
+        info!(
+            "Current batch queue length: {}",
+            batch_state.batch_queue.len()
+        );
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
@@ -363,8 +410,8 @@ impl Batcher {
     /// and all the elements up to that index are copied and cleared from the batch queue. The copy is then passed to the
     /// `finalize_batch` function.
     async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
-        let mut batch_queue_lock = self.batch_queue.lock().await;
-        let current_batch_len = batch_queue_lock.len();
+        let mut batch_state = self.batch_state.lock().await;
+        let current_batch_len = batch_state.batch_queue.len();
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
@@ -385,10 +432,23 @@ impl Batcher {
             return None;
         }
 
-        let batch_verification_data: Vec<NoncedVerificationData> = batch_queue_lock
+        let batch_verification_data: Vec<NoncedVerificationData> = batch_state
+            .batch_queue
             .iter()
             .map(|(vd, _, _, _)| vd.clone())
             .collect();
+
+        // Check if a batch is currently being posted
+        let mut batch_posting = self.posting_batch.lock().await;
+        if *batch_posting {
+            info!(
+                "Batch is currently being posted. Waiting for the current batch to be finalized..."
+            );
+            return None;
+        }
+
+        // Set the batch posting flag to true
+        *batch_posting = true;
 
         let current_batch_size = serde_json::to_vec(&batch_verification_data).unwrap().len();
 
@@ -397,23 +457,26 @@ impl Batcher {
             info!("Batch max size exceded. Splitting current batch...");
             let mut acc_batch_size = 0;
             let mut finalized_batch_idx = 0;
-            for (idx, (verification_data, _, _, _)) in batch_queue_lock.iter().enumerate() {
+            for (idx, (verification_data, _, _, _)) in batch_state.batch_queue.iter().enumerate() {
                 acc_batch_size += serde_json::to_vec(verification_data).unwrap().len();
                 if acc_batch_size > self.max_batch_size {
                     finalized_batch_idx = idx;
                     break;
                 }
             }
-            let finalized_batch = batch_queue_lock.drain(..finalized_batch_idx).collect();
+            let finalized_batch = batch_state
+                .batch_queue
+                .drain(..finalized_batch_idx)
+                .collect();
             return Some(finalized_batch);
         }
 
         // A copy of the batch is made to be returned and the current batch is cleared
-        let finalized_batch = batch_queue_lock.clone();
-        batch_queue_lock.clear();
+        let finalized_batch = batch_state.batch_queue.clone();
+        batch_state.batch_queue.clear();
 
         // Clear the user proofs in batch as well
-        self.user_proof_count_in_batch.lock().await.clear();
+        batch_state.user_proof_count_in_batch.clear();
 
         Some(finalized_batch)
     }
@@ -426,10 +489,15 @@ impl Batcher {
         block_number: u64,
         finalized_batch: BatchQueue,
     ) -> Result<(), BatcherError> {
-        let batch_verification_data: Vec<NoncedVerificationData> = finalized_batch
+        let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
             .map(|(data, _, _, _)| data)
+            .collect();
+
+        let batch_verification_data: Vec<VerificationData> = nonced_batch_verifcation_data
+            .iter()
+            .map(|vd| vd.verification_data.clone())
             .collect();
 
         let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
@@ -483,12 +551,15 @@ impl Batcher {
         {
             for (_, _, ws_sink, _) in finalized_batch.iter() {
                 let merkle_root = hex::encode(batch_merkle_tree.root);
-                send_error_message(
+                send_message(
                     ws_sink.clone(),
                     ResponseMessage::CreateNewTaskError(merkle_root),
                 )
                 .await
             }
+
+            self.flush_queue_and_clear_nonce_cache().await;
+
             return Err(e);
         };
 
@@ -497,11 +568,31 @@ impl Batcher {
         Ok(())
     }
 
+    async fn flush_queue_and_clear_nonce_cache(&self) {
+        warn!("Resetting state... Flushing queue and nonces");
+        let mut batch_state = self.batch_state.lock().await;
+
+        for (_, _, ws_sink, _) in batch_state.batch_queue.iter() {
+            send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
+        }
+
+        batch_state.batch_queue.clear();
+        batch_state.user_nonces.clear();
+        batch_state.user_proof_count_in_batch.clear();
+    }
+
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
         while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            self.finalize_batch(block_number, finalized_batch).await?;
+            let batch_finalization_result =
+                self.finalize_batch(block_number, finalized_batch).await;
+
+            // Resetting this here to avoid doing it on every return path of `finalize_batch` function
+            let mut batch_posting = self.posting_batch.lock().await;
+            *batch_posting = false;
+
+            batch_finalization_result?;
         }
         Ok(())
     }
@@ -515,8 +606,6 @@ impl Batcher {
         signatures: Vec<Signature>,
         nonces: Vec<[u8; 32]>,
     ) -> Result<(), BatcherError> {
-        let s3_bucket_name_is_domain = std::env::var("AWS_BUCKET_NAME_IS_DOMAIN").is_ok();
-
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: {}", batch_merkle_root_hex);
@@ -535,19 +624,7 @@ impl Batcher {
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        let payment_service = &self.payment_service;
-        let batch_data_pointer = if s3_bucket_name_is_domain {
-            "https://".to_owned() + &self.s3_bucket_name + "/" + &file_name
-        } else {
-            let s3_region: String =
-                std::env::var("AWS_REGION").expect("AWS_REGION not found in environment");
-            "https://".to_owned()
-                + &self.s3_bucket_name
-                + ".s3."
-                + &s3_region
-                + ".amazonaws.com/"
-                + &file_name
-        };
+        let batch_data_pointer: String = "".to_owned() + &self.storage_endpoint + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
 
@@ -561,23 +638,75 @@ impl Batcher {
             .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
             .collect();
 
-        if let Err(e) = eth::create_new_task(
-            payment_service,
-            *batch_merkle_root,
-            batch_data_pointer,
-            leaves,
-            signatures,
-            AGGREGATOR_COST.into(), // FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
-            gas_per_proof.into(), //FIXME(uri): This value should be read from aligned_layer/contracts/script/deploy/config/devnet/batcher-payment-service.devnet.config.json
-        )
-        .await
+        match self
+            .create_new_task(
+                *batch_merkle_root,
+                batch_data_pointer,
+                leaves,
+                signatures,
+                AGGREGATOR_COST.into(),
+                gas_per_proof.into(),
+            )
+            .await
         {
-            error!("Failed to create batch verification task: {}", e);
-            return Err(BatcherError::TaskCreationError(e.to_string()));
-        }
+            Ok(_) => {
+                info!("Batch verification task created on Aligned contract");
+                Ok(())
+            }
+            Err(e) => {
+                error!(
+                    "Failed to send batch to contract, batch will be lost: {:?}",
+                    e
+                );
 
-        info!("Batch verification task created on Aligned contract");
-        Ok(())
+                Err(e)
+            }
+        }
+    }
+
+    async fn create_new_task(
+        &self,
+        batch_merkle_root: [u8; 32],
+        batch_data_pointer: String,
+        leaves: Vec<[u8; 32]>,
+        signatures: Vec<SignatureData>,
+        gas_for_aggregator: U256,
+        gas_per_proof: U256,
+    ) -> Result<TransactionReceipt, BatcherError> {
+        // pad leaves to next power of 2
+        let padded_leaves = Self::pad_leaves(leaves);
+
+        let call = self.payment_service.create_new_task(
+            batch_merkle_root,
+            batch_data_pointer,
+            padded_leaves,
+            signatures,
+            gas_for_aggregator,
+            gas_per_proof,
+        );
+
+        info!("Creating task for: {}", hex::encode(batch_merkle_root));
+
+        let pending_tx = call
+            .send()
+            .await
+            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+
+        let receipt = pending_tx
+            .await
+            .map_err(|_| BatcherError::TransactionSendError)?
+            .ok_or(BatcherError::ReceiptNotFoundError)?;
+
+        Ok(receipt)
+    }
+
+    fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
+        let leaves_len = leaves.len();
+        let last_leaf = leaves[leaves_len - 1];
+        leaves
+            .into_iter()
+            .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
+            .collect()
     }
 
     /// Only relevant for testing and for users to easily use Aligned
@@ -594,23 +723,7 @@ impl Batcher {
         client_msg: ClientMessage,
     ) -> Result<(), Error> {
         let non_paying_config = self.non_paying_config.as_ref().unwrap();
-
-        // The nonpaying nonce is locked through the entire message processing so that
-        // another incoming connections using the nonpaying address don't desync its nonce
-        let mut nonpaying_nonce = non_paying_config.nonce.lock().await;
         let addr = non_paying_config.replacement.address();
-
-        let mut nonce_bytes = [0u8; 32];
-        nonpaying_nonce.to_big_endian(&mut nonce_bytes);
-        *nonpaying_nonce += U256::one();
-
-        let verifcation_data = NoncedVerificationData::new(
-            client_msg.verification_data.verification_data.clone(),
-            nonce_bytes,
-        );
-
-        let client_msg =
-            ClientMessage::new(verifcation_data, non_paying_config.replacement.clone());
 
         let user_balance = self
             .payment_service
@@ -621,32 +734,57 @@ impl Batcher {
 
         if user_balance == U256::from(0) {
             error!("Insufficient funds for address {:?}", addr);
-            send_error_message(
+            send_message(
                 ws_conn_sink.clone(),
-                ResponseMessage::InsufficientBalanceError(addr),
+                ValidityResponseMessage::InsufficientBalance(addr),
             )
             .await;
             return Ok(()); // Send error message to the client and return
         }
 
-        let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
-        let nonced_verification_data = client_msg.verification_data;
-        if nonced_verification_data.verification_data.proof.len() <= self.max_proof_size {
+        if client_msg.verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled
-                && !zk_utils::verify(&nonced_verification_data.verification_data)
+                && !zk_utils::verify(&client_msg.verification_data.verification_data).await
             {
                 error!("Invalid proof detected. Verification failed.");
-                send_error_message(ws_conn_sink.clone(), ResponseMessage::VerificationError())
-                    .await;
+                send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
                 return Ok(()); // Send error message to the client and return
             }
 
-            // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-            if !self.check_nonce_and_increment(addr, nonce).await {
-                send_error_message(ws_conn_sink.clone(), ResponseMessage::InvalidNonceError).await;
-                return Ok(()); // Send error message to the client and return
-            }
+            let nonced_verification_data = {
+                let mut batch_state = self.batch_state.lock().await;
+
+                let nonpaying_nonce = match batch_state.user_nonces.entry(addr) {
+                    Entry::Occupied(o) => o.into_mut(),
+                    Entry::Vacant(vacant) => {
+                        let nonce = self
+                            .payment_service
+                            .user_nonces(addr)
+                            .call()
+                            .await
+                            .expect("Failed to get nonce");
+
+                        vacant.insert(nonce)
+                    }
+                };
+
+                debug!("non paying nonce: {:?}", nonpaying_nonce);
+
+                let mut nonce_bytes = [0u8; 32];
+                nonpaying_nonce.to_big_endian(&mut nonce_bytes);
+                *nonpaying_nonce += U256::one();
+
+                NoncedVerificationData::new(
+                    client_msg.verification_data.verification_data.clone(),
+                    nonce_bytes,
+                )
+            };
+
+            let client_msg = ClientMessage::new(
+                nonced_verification_data.clone(),
+                non_paying_config.replacement.clone(),
+            );
 
             self.clone()
                 .add_to_batch(
@@ -657,12 +795,13 @@ impl Batcher {
                 .await;
         } else {
             error!("Proof is too large");
-            send_error_message(ws_conn_sink.clone(), ResponseMessage::ProofTooLargeError()).await;
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
             return Ok(()); // Send error message to the client and return
         };
 
         info!("Verification data message handled");
 
+        send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
         Ok(())
     }
 
@@ -672,6 +811,15 @@ impl Batcher {
             .call()
             .await
             .unwrap_or_default()
+    }
+
+    async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
+        self.payment_service
+            .user_unlock_block(*addr)
+            .call()
+            .await
+            .unwrap_or_default()
+            != U256::zero()
     }
 }
 
@@ -705,12 +853,11 @@ async fn send_batch_inclusion_data_responses(
         .await;
 }
 
-async fn send_error_message(
+async fn send_message<T: Serialize>(
     ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-    error_message: ResponseMessage,
+    message: T,
 ) {
-    let serialized_response =
-        serde_json::to_vec(&error_message).expect("Could not serialize response");
+    let serialized_response = serde_json::to_vec(&message).expect("Could not serialize response");
 
     // Send error message
     ws_conn_sink
@@ -718,5 +865,5 @@ async fn send_error_message(
         .await
         .send(Message::binary(serialized_response))
         .await
-        .expect("Failed to send error message");
+        .expect("Failed to send message");
 }

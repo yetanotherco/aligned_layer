@@ -59,8 +59,12 @@ pub struct VerificationDataCommitment {
 
 impl From<&NoncedVerificationData> for VerificationDataCommitment {
     fn from(nonced_verification_data: &NoncedVerificationData) -> Self {
-        let verification_data = nonced_verification_data.verification_data.clone();
+        nonced_verification_data.verification_data.clone().into()
+    }
+}
 
+impl From<VerificationData> for VerificationDataCommitment {
+    fn from(verification_data: VerificationData) -> Self {
         let mut hasher = Keccak256::new();
 
         // compute proof commitment
@@ -224,15 +228,21 @@ impl AlignedVerificationData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ValidityResponseMessage {
+    Valid,
+    InvalidNonce,
+    InvalidSignature,
+    InvalidProof,
+    ProofTooLarge,
+    InsufficientBalance(Address),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
-    VerificationError(),
-    ProofTooLargeError(),
-    InsufficientBalanceError(Address),
-    SignatureVerificationError(),
-    InvalidNonceError,
     CreateNewTaskError(String),
+    BatchReset,
     Error(String),
 }
 

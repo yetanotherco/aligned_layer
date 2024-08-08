@@ -1,14 +1,5 @@
-use std::sync::Arc;
-
-use ethers::{
-    core::k256::ecdsa::SigningKey,
-    signers::{Signer, Wallet},
-    types::{Address, U256},
-};
+use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet, types::Address};
 use serde::Deserialize;
-use tokio::sync::Mutex;
-
-use crate::eth::BatcherPaymentService;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct ECDSAConfig {
@@ -20,7 +11,6 @@ pub struct ECDSAConfig {
 pub struct NonPayingConfig {
     pub address: Address,
     pub replacement: Wallet<SigningKey>,
-    pub nonce: Arc<Mutex<U256>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,10 +20,7 @@ pub struct NonPayingConfigFromYaml {
 }
 
 impl NonPayingConfig {
-    pub async fn from_yaml_config(
-        config: NonPayingConfigFromYaml,
-        batcher_payments_contract: &BatcherPaymentService,
-    ) -> Self {
+    pub async fn from_yaml_config(config: NonPayingConfigFromYaml) -> Self {
         let replacement = Wallet::from_bytes(
             hex::decode(config.replacement_private_key)
                 .expect("Failed to decode replacement private key")
@@ -41,17 +28,9 @@ impl NonPayingConfig {
         )
         .expect("Failed to create replacement wallet");
 
-        let nonce = batcher_payments_contract
-            .user_nonces(replacement.address())
-            .await
-            .expect("Failed to get nonce");
-
-        let nonce = Arc::new(Mutex::new(nonce));
-
         NonPayingConfig {
             address: config.address,
             replacement,
-            nonce,
         }
     }
 }

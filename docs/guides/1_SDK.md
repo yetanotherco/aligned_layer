@@ -1,7 +1,9 @@
 # Aligned SDK
 
 The Aligned SDK aims to help developers interact with Aligned in a simple way.
-Some of its functionalities include submitting and verifying proofs through the Aligned Batcher, as well as checking the inclusion of the verified proofs on-chain. This guide provides an overview of the SDK, its installation, usage, and API details.
+Some of its functionalities include submitting and verifying proofs through the Aligned Batcher, as well as checking the
+inclusion of the verified proofs on-chain.
+This guide provides an overview of the SDK, its installation, usage, and API details.
 
 You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
 
@@ -11,14 +13,15 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.3.0" }
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.4.0" }
 ```
 
-To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the version of the release that has the `latest` badge.
+To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the
+version of the release that has the `latest` badge.
 
 ## API Reference
 
-### submit
+### `submit`
 
 Submits a proof to the batcher to be verified and returns an aligned verification data struct.
 
@@ -27,6 +30,7 @@ pub async fn submit(
     batcher_addr: &str,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError>
 ```
 
@@ -35,6 +39,7 @@ pub async fn submit(
 - `batcher_addr` - The address of the batcher to which the proof will be submitted.
 - `verification_data` - The verification data for the proof.
 - `wallet` - The wallet used to sign the proof.
+- `nonce` - The nonce to use.
 
 #### Returns
 
@@ -48,9 +53,15 @@ pub async fn submit(
 - `SerializationError` if there is an error deserializing the message sent from the batcher.
 - `WebSocketConnectionError` if there is an error connecting to the batcher.
 - `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `InvalidSignature` if the signature is invalid.
+- `InvalidNonce` if the nonce is invalid.
+- `InvalidProof` if the proof is invalid.
+- `ProofTooLarge` if the proof is too large.
+- `InsufficientBalance` if the sender balance is not enough or unlocked
+- `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### submit_multiple
+### `submit_multiple`
 
 Submits multiple proofs to the batcher to be verified and returns an aligned verification data array.
 
@@ -59,6 +70,7 @@ pub async fn submit_multiple(
     batcher_addr: &str,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError>
 ```
 
@@ -67,6 +79,7 @@ pub async fn submit_multiple(
 - `batcher_addr` - The address of the batcher to which the proof will be submitted.
 - `verification_data` - A verification data array.
 - `wallet` - The wallet used to sign the proof.
+- `nonce` - The nonce to use.
 
 #### Returns
 
@@ -80,11 +93,18 @@ pub async fn submit_multiple(
 - `SerializationError` if there is an error deserializing the message sent from the batcher.
 - `WebSocketConnectionError` if there is an error connecting to the batcher.
 - `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+- `InvalidSignature` if the signature is invalid.
+- `InvalidNonce` if the nonce is invalid.
+- `InvalidProof` if the proof is invalid.
+- `ProofTooLarge` if the proof is too large.
+- `InsufficientBalance` if the sender balance is not enough or unlocked
+- `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### submit_and_wait
+### `submit_and_wait`
 
-Submits a proof to the batcher to be verified, waits for the verification on ethereum and returns an aligned verification data struct.
+Submits a proof to the batcher to be verified, waits for the verification on ethereum and returns an aligned
+verification data struct.
 
 ```rust
 pub async fn submit_and_wait(
@@ -93,6 +113,7 @@ pub async fn submit_and_wait(
     chain: Chain,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError>
 ```
 
@@ -103,6 +124,7 @@ pub async fn submit_and_wait(
 - `chain` - The chain on which the verification will be done.
 - `verification_data` - The verification data for the proof.
 - `wallet` - The wallet used to sign the proof.
+- `nonce` - The nonce to use.
 
 #### Returns
 
@@ -119,11 +141,18 @@ pub async fn submit_and_wait(
 - `EthereumProviderError` if there is an error in the connection with the RPC provider.
 - `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 - `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+- `InvalidSignature` if the signature is invalid.
+- `InvalidNonce` if the nonce is invalid.
+- `InvalidProof` if the proof is invalid.
+- `ProofTooLarge` if the proof is too large.
+- `InsufficientBalance` if the sender balance is not enough or unlocked
+- `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### submit_multiple_and_wait
+### `submit_multiple_and_wait`
 
-Submits multiple proofs to the batcher to be verified, waits for the verification on Ethereum and returns an aligned verification data array.
+Submits multiple proofs to the batcher to be verified, waits for the verification on Ethereum and returns an aligned
+verification data array.
 
 ```rust
 pub async fn submit_multiple_and_wait(
@@ -132,6 +161,7 @@ pub async fn submit_multiple_and_wait(
     chain: Chain,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
+    nonce: U256,
 ) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError>
 ```
 
@@ -142,6 +172,7 @@ pub async fn submit_multiple_and_wait(
 - `chain` - The chain on which the verification will be done.
 - `verification_data` - A verification data array.
 - `wallet` - The wallet used to sign the proof.
+- `nonce` - The nonce to use.
 
 #### Returns
 
@@ -158,9 +189,15 @@ pub async fn submit_multiple_and_wait(
 - `EthereumProviderError` if there is an error in the connection with the RPC provider.
 - `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 - `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+- `InvalidSignature` if the signature is invalid.
+- `InvalidNonce` if the nonce is invalid.
+- `InvalidProof` if the proof is invalid.
+- `ProofTooLarge` if the proof is too large.
+- `InsufficientBalance` if the sender balance is not enough or unlocked
+- `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### verify_proof_onchain
+### `verify_proof_onchain`
 
 Checks if the proof has been verified with Aligned and is included in the batch on-chain.
 
@@ -180,7 +217,8 @@ pub async fn verify_proof_onchain(
 
 #### Returns
 
-- `Result<bool, VerificationError>` - A boolean indicating whether the proof was verified on-chain and is included in the batch or an error.
+- `Result<bool, VerificationError>` - A boolean indicating whether the proof was verified on-chain and is included in
+  the batch or an error.
 
 #### Errors
 
@@ -188,7 +226,7 @@ pub async fn verify_proof_onchain(
 - `EthereumCallError` if there is an error in the Ethereum call.
 - `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 
-### get_commitment
+### `get_commitment`
 
 Generates a keccak256 hash commitment of the verification key.
 
@@ -205,3 +243,30 @@ pub fn get_commitment(
 #### Returns
 
 - `[u8; 32]` - A 32-byte array representing the keccak256 hash of the verification key.
+
+### `get_next_nonce`
+
+Returns the nonce to use for a given address.
+
+```rust
+pub async fn get_next_nonce(
+    eth_rpc_url: &str,
+    address: Address,
+    batcher_contract_address: &str,
+) -> Result<U256, errors::NonceError>
+```
+
+#### Arguments
+
+- `eth_rpc_url` - The URL of the Ethereum RPC node.
+- `address` - The address for which the nonce will be retrieved.
+- `batcher_contract_address` - The address of the batcher payment service contract.
+
+#### Returns
+
+- `Result<U256, NonceError>` - The nonce to use or an error.
+
+#### Errors
+
+- `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `EthereumCallError` if there is an error in the Ethereum call.
