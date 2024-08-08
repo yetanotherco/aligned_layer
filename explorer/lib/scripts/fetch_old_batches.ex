@@ -27,7 +27,7 @@ defmodule Scripts.FetchOldBatches do
     "Making old batches request" |> IO.inspect()
     "from #{fromBlock} to #{toBlock}" |> IO.inspect()
     try do
-      Explorer.Periodically.process_blocks_from_to(fromBlock, toBlock)
+      Explorer.Periodically.process_batches(fromBlock, toBlock)
     rescue
       error -> IO.puts("An error occurred during batch processing*:\n#{inspect(error)}")
     end

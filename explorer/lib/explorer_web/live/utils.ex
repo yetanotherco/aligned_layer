@@ -1,8 +1,9 @@
+# Frontend Utils
 defmodule ExplorerWeb.Utils do
-  def shorten_hash(hash) do
+  def shorten_hash(hash, decimals \\ 6) do
     case String.length(hash) do
-      n when n < 6 -> hash
-      _ -> "#{String.slice(hash, 0, 6)}...#{String.slice(hash, -4, 4)}"
+      n when n < decimals -> hash
+      _ -> "#{String.slice(hash, 0, decimals)}...#{String.slice(hash, -4, 4)}"
     end
   end
 
@@ -96,8 +97,25 @@ defmodule ExplorerWeb.Utils do
   defp pad_leading_zero(value) do
     Integer.to_string(value) |> String.pad_leading(2, "0")
   end
+
+  @doc """
+  Get the EigenLayer Explorer URL based on the environment.
+  - `holesky` -> https://holesky.eigenlayer.xyz
+  - `mainnet` -> https://app.eigenlayer.xyz
+  - `default` -> http://localhost:4000
+  """
+  def get_eigenlayer_explorer_url() do
+    prefix = System.get_env("ENVIRONMENT")
+
+    case prefix do
+      "holesky" -> "https://holesky.eigenlayer.xyz"
+      "mainnet" -> "https://app.eigenlayer.xyz"
+      _ -> "http://localhost:4000"
+    end
+  end
 end
 
+# Backend utils
 defmodule Utils do
   require Logger
 
@@ -116,6 +134,10 @@ defmodule Utils do
     end
   end
 
+  def hex_string_to_int(hex_string) do
+    hex_string |> String.replace_prefix("0x", "") |> String.to_integer(16)
+  end
+
   def get_last_n_items(events, n) when is_list(events) and is_integer(n) and n >= 0 do
     events
     |> Enum.reverse()
@@ -124,13 +146,13 @@ defmodule Utils do
   end
 
   def calculate_proof_hashes({:ok, batch_json}) do
-    IO.inspect("Calculating proof hashes")
-
     batch_json
-      |> Enum.map(
-        fn s3_object ->
-          :crypto.hash(:sha3_256, s3_object["proof"])
-        end)
+    |> Enum.map(fn s3_object ->
+      # TODO this is current prod version
+      :crypto.hash(:sha3_256, s3_object["proof"])
+      # TODO this is current stage version
+      # :crypto.hash(:sha3_256, s3_object["verification_data"]["proof"])
+    end)
   end
 
   def calculate_proof_hashes({:error, reason}) do
@@ -175,5 +197,28 @@ defmodule Utils do
     batch
     |> Map.put(:proof_hashes, proof_hashes)
     |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
+  end
+
+  def fetch_eigen_operator_metadata(url) do
+    case Finch.build(:get, url) |> Finch.request(Explorer.Finch) do
+      {:ok, %Finch.Response{status: 200, body: body}} ->
+        case Jason.decode(body) do
+          {:ok, json} ->
+            {:ok, EigenOperatorMetadataStruct.map_to_struct(json)}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:ok, %Finch.Response{status: status_code}} ->
+        {:error, {:http_error, status_code}}
+
+      {:error, reason} ->
+        {:error, {:http_error, reason}}
+    end
+  end
+
+  def random_id(prefix) do
+    prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
   end
 end

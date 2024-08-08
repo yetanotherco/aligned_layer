@@ -617,14 +617,9 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 
 
 __EXPLORER__:
-run_devnet_explorer: run_db ecto_setup_db
-	@cd explorer/ && \
-		mix setup && \
-		cp .env.dev .env && \
-		./start.sh
-
 run_explorer: run_db ecto_setup_db
 	@cd explorer/ && \
+		npm install --prefix assets && \
 		mix setup && \
 		./start.sh
 
@@ -664,3 +659,8 @@ recover_db: run_db
 explorer_fetch_old_batches:
 	@cd explorer && \
 	./scripts/fetch_old_batches.sh 1728056 1729806
+
+explorer_fetch_old_operators_strategies_restakes:
+	@cd explorer && \
+	./scripts/fetch_old_operators_strategies_restakes.sh 1728056
+# ./scripts/fetch_old_operators.sh 0 or 1728056

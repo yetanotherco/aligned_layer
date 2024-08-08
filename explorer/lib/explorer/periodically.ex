@@ -24,19 +24,25 @@ defmodule Explorer.Periodically do
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)
 
-    Task.start(fn -> process_blocks_from_to(read_from_block, latest_block_number) end)
+    Task.start(fn -> process_batches(read_from_block, latest_block_number) end)
 
-    # Gets previous unverified batches and checks if they were verified
     run_every_n_iterations = 8
     new_count = rem(count + 1, run_every_n_iterations)
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
+      Task.start(fn -> process_operators(read_from_block) end)
+      Task.start(fn -> process_quorum_strategy_changes() end)
+      Task.start(fn -> process_restaking_changes(read_from_block) end)
     end
+    # process_operators(0)
+    # process_quorum_strategy_changes()
+    # process_restaking_changes(0)
+
 
     {:noreply, new_count}
   end
 
-  def process_blocks_from_to(fromBlock, toBlock) do
+  def process_batches(fromBlock, toBlock) do
     "Processing from block #{fromBlock} to block #{toBlock}..." |> IO.inspect()
 
     try do
@@ -109,5 +115,21 @@ defmodule Explorer.Periodically do
         Batches.insert_or_update(batch_changeset, proofs)
       end
     )
+  end
+
+  def process_operators(fromBlock) do
+    "Processing operators..." |> IO.inspect()
+    AVSDirectoryManager.process_operator_data(%{fromBlock: fromBlock})
+  end
+
+  def process_quorum_strategy_changes() do
+    "Processing strategy changes..." |> IO.inspect()
+    AlignedLayerServiceManager.update_restakeable_strategies()
+    Quorums.process_quorum_changes()
+  end
+
+  def process_restaking_changes(read_from_block) do
+    "Processing restaking changes..." |> IO.inspect()
+    Restakings.process_restaking_changes(%{fromBlock: read_from_block})
   end
 end

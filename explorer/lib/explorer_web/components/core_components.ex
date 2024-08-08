@@ -102,6 +102,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
+  attr :delay, :boolean, default: false, doc: "optional 3s delay for the flash message"
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
 
@@ -118,7 +119,8 @@ defmodule ExplorerWeb.CoreComponents do
         "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
         "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
         @kind == :info && "bg-emerald-50 text-emerald-800 ring-emerald-500 fill-cyan-900",
-        @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900"
+        @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900",
+        @delay && "delay-&lsqb;3s&rsqb;"
       ]}
       {@rest}
     >
@@ -156,6 +158,7 @@ defmodule ExplorerWeb.CoreComponents do
         title={gettext("We can't find the internet")}
         phx-disconnected={show(".phx-client-error #client-error")}
         phx-connected={hide("#client-error")}
+        delay
         hidden
       >
         <%= gettext("Attempting to reconnect") %>
@@ -255,7 +258,7 @@ defmodule ExplorerWeb.CoreComponents do
   def root_background(assigns) do
     ~H"""
     <div class="min-h-screen">
-      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-accent/80">
+      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-accent/80 selection:text-accent-foreground/80">
         <%= render_slot(@inner_block) %>
       </main>
     </div>
@@ -318,23 +321,19 @@ defmodule ExplorerWeb.CoreComponents do
   attr :class, :string, default: nil
   attr :inner_class, :string, default: nil
   attr :title, :string, default: nil
-  attr :href, :string, required: true
-  attr :rest, :global, include: ~w(href target)
+  attr :href, :string, default: nil
+  attr :rest, :global, include: ~w(href target navigate)
+  attr :icon, :string, default: "hero-arrow-top-right-on-square-solid"
 
   slot :inner_block, default: nil
 
   def card_link(assigns) do
     ~H"""
-    <.link
-      target="_blank"
-      href={@href}
-      class="group hover:scale-[102%] transition-all duration-150 ease-in-out active:scale-95"
-      {@rest}
-    >
+    <.link target="_blank" href={@href} class="group" {@rest}>
       <.card_background class={@class}>
         <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
           <%= @title %>
-          <.icon name="hero-arrow-top-right-on-square-solid" class="size-4" />
+          <.icon name={@icon} class="size-4 mb-1" />
         </h2>
         <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
           <%= render_slot(@inner_block) %>
@@ -385,8 +384,8 @@ defmodule ExplorerWeb.CoreComponents do
   """
   attr :class, :string, default: nil
   attr :status, :boolean, default: true
-  attr :pending_text, :string, default: "Pending"
-  attr :verified_text, :string, default: "Verified"
+  attr :falsy_text, :string, default: "Pending"
+  attr :truthy_text, :string, default: "Verified"
   slot :inner_block, default: nil
 
   def dynamic_badge(assigns) do
@@ -400,8 +399,8 @@ defmodule ExplorerWeb.CoreComponents do
       @class
     ]}>
       <%= case @status do
-        true -> @verified_text
-        false -> @pending_text
+        true -> @truthy_text
+        false -> @falsy_text
       end %>
       <%= render_slot(@inner_block) %>
     </span>
@@ -610,7 +609,7 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc ~S"""
-  Renders a table with generic styling.
+  Renders a table with custom styling.
 
   ## Examples
 
@@ -641,31 +640,34 @@ defmodule ExplorerWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] sm:w-full z-10">
-        <thead class="text-sm text-left leading-6 text-foreground">
-          <tr>
-            <th :for={col <- @col} class="p-0 pb-4 px-3 font-normal"><%= col[:label] %></th>
+    <.card_background class="overflow-x-auto">
+      <table class="table-auto border-collapse w-full">
+        <thead>
+          <tr class="text-muted-foreground font-normal truncate">
+            <th
+              :for={{col, i} <- Enum.with_index(@col)}
+              class={["pr-4", i == 0 && "text-left", i != 0 && "text-center"]}
+            >
+              <%= col[:label] %>
+            </th>
             <th :if={@action != []} class="p-0 pb-4">
               <span class="sr-only"><%= gettext("Actions") %></span>
             </th>
           </tr>
         </thead>
-        <tbody
-          id={@id}
-          phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="divide-y divide-muted border-t border-foreground text-sm leading-6 text-muted-foreground"
-        >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-foreground/10">
+        <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate">
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
               class={["p-0", @row_click && "hover:cursor-pointer"]}
             >
-              <div class="block py-4 px-3">
-                <span class={[i == 0 && "text-muted-foreground"]}>
-                  <%= render_slot(col, @row_item.(row)) %>
-                </span>
+              <div class={[
+                "group block normal-case font-medium text-base min-w-28",
+                i == 0 && "text-left font-semibold",
+                i != 0 && "text-center"
+              ]}>
+                <%= render_slot(col, @row_item.(row)) %>
               </div>
             </td>
             <td :if={@action != []} class="w-14 p-0">
@@ -681,7 +683,7 @@ defmodule ExplorerWeb.CoreComponents do
           </tr>
         </tbody>
       </table>
-    </div>
+    </.card_background>
     """
   end
 
@@ -839,7 +841,41 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+  Tooltip component.
+
+  ## Example
+      <.tooltip>
+        <p>Hover over me</p>
+      </.tooltip>
+
+  """
+  attr :class, :string, default: nil
+  slot :inner_block, required: true
+
+  def tooltip(assigns) do
+    ~H"""
+    <span
+      id={Utils.random_id("tt")}
+      class={[
+        "tooltip",
+        "animate-in fade-in slide-in-from-bottom duration-50",
+        "px-2 py-1 text-sm text-foreground bg-popover border border-muted-foreground/30 rounded-full shadow-sm drop-shadow-sm",
+        @class
+      ]}
+      role="tooltip"
+      phx-hook="TooltipHook"
+    >
+      <%= render_slot(@inner_block) %>
+    </span>
+    """
+  end
+
+  @doc """
   Divider component.
+
+  ## Example
+      <.divider />
+
   """
   attr :class, :string, default: nil
 
