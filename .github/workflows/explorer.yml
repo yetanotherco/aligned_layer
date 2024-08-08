@@ -27,7 +27,7 @@ jobs:
 
       - name: Display Branch Name
         env:
-          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF: ${{ github.ref_name }}
         run: |
           echo "Current Branch: ${GITHUB_REF}"
 
