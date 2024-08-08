@@ -29,9 +29,6 @@ defmodule NavComponent do
           >
             Operators
           </.link>
-          <.link class="text-foreground/80 hover:text-foreground font-semibold" navigate={~p"/assets"}>
-            Assets
-          </.link>
         </div>
       </div>
       <.live_component module={SearchComponent} id="nav_search" />
