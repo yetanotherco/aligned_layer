@@ -38,15 +38,12 @@ jobs:
           USERNAME: ${{ vars.USERNAME }}
           APP_DIR: ${{ vars.EXPLORER_DIRECTORY }}
           SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+          REF: ${{ github.ref_name }}
         run: |
           ssh -o "StrictHostKeyChecking=no" ${USERNAME}@${HOST_NAME} "
             cd ${APP_DIR} &&
-            echo 'Pulling latest changes' > test.txt
+            git fetch &&
+            git checkout ${REF} &&
+            git pull &&
+            sudo systemctl restart ${SERVICE_NAME}
           "
-#        run: TODO uncomment this after testing connection
-#          ssh -o StrictHostKeyChecking=no ${USER_NAME}@${HOST_NAME} "
-#          cd ${APP_DIR} &&
-#          git fetch &&
-#          git checkout ${{ github.ref }} &&
-#          git pull &&
-#          sudo systemctl restart ${SERVICE_NAME} "
