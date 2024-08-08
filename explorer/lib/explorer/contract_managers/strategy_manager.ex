@@ -6,9 +6,9 @@ defmodule StrategyManager do
 
   def fetch_token_address(%Strategies{strategy_address: strategy_address} = strategy) do
     case StrategyManager.underlying_token() |> Ethers.call(to: strategy_address) do
-      {:ok, "0x"} ->
-        dbg("Strategy has invalid underlying token: #{strategy_address}, token_address: '0x'")
-        {:error, :invalid_token_address}
+      {:ok, "0x"} -> # Strategy is native ETH
+        %{strategy | token_address: "0x"} #storing "0x" as its token address, and handling its cases in ERC20Manager
+
       {:ok, token_address} -> %{strategy | token_address: token_address}
 
       {:error, %{"code" => -32015}} ->
@@ -16,9 +16,9 @@ defmodule StrategyManager do
         {:error, :not_strategy}
 
         other_error ->
-        dbg("Error fetching token address for #{strategy_address}")
-        dbg(other_error)
-        other_error
+          dbg("Error fetching token address for #{strategy_address}")
+          dbg(other_error)
+          other_error
     end
   end
 
