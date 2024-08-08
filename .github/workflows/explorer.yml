@@ -21,6 +21,7 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
+          version: 1.70.0
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -38,9 +39,10 @@ jobs:
           APP_DIR: ${{ vars.EXPLORER_DIRECTORY }}
           SERVICE_NAME: ${{ vars.SERVICE_NAME }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${USER_NAME}@${HOST_NAME} "
+          ssh -o "StrictHostKeyChecking=no" ${USER_NAME}@${HOST_NAME} "
             cd ${APP_DIR} &&
-            echo 'Pulling latest changes' > test.txt "
+            echo 'Pulling latest changes' > test.txt
+          "
 #        run: TODO uncomment this after testing connection
 #          ssh -o StrictHostKeyChecking=no ${USER_NAME}@${HOST_NAME} "
 #          cd ${APP_DIR} &&
