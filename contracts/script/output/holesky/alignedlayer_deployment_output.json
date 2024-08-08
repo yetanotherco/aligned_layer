@@ -14,7 +14,7 @@
     "stakeRegistry": "0x51462D5511563A0F97Bb3Ce5475E1c3905b83F4b",
     "stakeRegistryImplementation": "0xd1555Be14931C061E06D3CE1D1Daadc1B3c6F8c7",
     "batcherPaymentService": "0x815aeCA64a974297942D2Bbf034ABEe22a38A003",
-    "batcherPaymentServiceImplementation": "0x2F9DFdfc99a845BC91309abc2d0fbCe4D31D14C2"
+    "batcherPaymentServiceImplementation": "0xa1E835Edc8c3c2284293eE96F1498BD3f88934ab"
   },
   "chainInfo": {
     "chainId": 17000,

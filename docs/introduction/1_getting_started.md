@@ -19,7 +19,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
 ```
 
-4. Send the proof to be verified in Aligned with 
+4. Send the proof to be verified in Aligned with
 
 ```bash
 rm -rf ~/.aligned/aligned_verification_data/ &&
@@ -28,7 +28,9 @@ aligned submit \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci.elf \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
---conn wss://batcher.alignedlayer.com
+--conn wss://batcher.alignedlayer.com \
+--rpc https://ethereum-holesky-rpc.publicnode.com \
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 5. You should get a response like this:

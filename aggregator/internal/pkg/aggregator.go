@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
-	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorpubkeys"
+	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorsinfo"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/event"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -56,6 +57,12 @@ type Aggregator struct {
 
 	// Stores the taskCreatedBlock for each batch bt batch index
 	batchCreatedBlockByIdx map[uint32]uint64
+
+	// Stores if an operator already submitted a response for a batch
+	// This is to avoid double submissions
+	// struct{} is used as a placeholder because it is the smallest type
+	// go does not have a set type
+	operatorRespondedBatch map[uint32]map[eigentypes.Bytes32]struct{}
 
 	// This task index is to communicate with the local BLS
 	// Service.
@@ -114,9 +121,24 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	operatorPubkeysService := oppubkeysserv.NewOperatorPubkeysServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, logger)
-	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.AvsRegistryReader, operatorPubkeysService, logger)
-	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, logger)
+	// This is a dummy "hash function" made to fulfill the BLS aggregator service API requirements.
+	// When operators respond to a task, a call to `ProcessNewSignature` is made. In `v0.1.6` of the eigensdk,
+	// this function required an argument `TaskResponseDigest`, which has changed to just `TaskResponse` in v0.1.9.
+	// The digest we used in v0.1.6 was just the batch merkle root. To continue with the same idea, the hashing
+	// function is set as the following one, which does nothing more than output the input it receives, which in
+	// our case will be the batch merkle root. If wanted, we could define a real hash function here but there should
+	// not be any need to re-hash the batch merkle root.
+	hashFunction := func(taskResponse eigentypes.TaskResponse) (eigentypes.TaskResponseDigest, error) {
+		taskResponseDigest, ok := taskResponse.([32]byte)
+		if !ok {
+			return eigentypes.TaskResponseDigest{}, fmt.Errorf("TaskResponse is not a 32-byte value")
+		}
+		return taskResponseDigest, nil
+	}
+
+	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, logger)
+	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
+	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
 
 	// Metrics
 	reg := prometheus.NewRegistry()
@@ -134,6 +156,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		batchesRootByIdx:       batchesRootByIdx,
 		batchesIdxByRoot:       batchesIdxByRoot,
 		batchCreatedBlockByIdx: batchCreatedBlockByIdx,
+		operatorRespondedBatch: make(map[uint32]map[eigentypes.Bytes32]struct{}),
 		nextBatchIndex:         nextBatchIndex,
 		taskMutex:              &sync.Mutex{},
 		walletMutex:            &sync.Mutex{},
@@ -183,7 +206,16 @@ const MaxSentTxRetries = 5
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
-		agg.logger.Warn("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err)
+		agg.taskMutex.Lock()
+		batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
+
+		// Remove task from the list of tasks
+		delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
+
+		agg.logger.Info("- Unlocking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
+		agg.taskMutex.Unlock()
 		return
 	}
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
@@ -210,6 +242,10 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
 	batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
 	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
+
+	// Delete the task from the map
+	delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
+
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
 	agg.taskMutex.Unlock()
 

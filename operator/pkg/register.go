@@ -2,11 +2,12 @@ package operator
 
 import (
 	"context"
+	"math/big"
+	"time"
+
 	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"math/big"
-	"time"
 )
 
 // RegisterOperator operator registers the operator with the given public key for the given quorum IDs.

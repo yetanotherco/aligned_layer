@@ -1,7 +1,7 @@
 use crate::{
     communication::{
         batch::await_batch_verification,
-        messaging::{receive, send_messages},
+        messaging::{receive, send_messages, ResponseStream},
         protocol::check_protocol_version,
     },
     core::{
@@ -29,7 +29,7 @@ use log::debug;
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    StreamExt,
+    StreamExt, TryStreamExt,
 };
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
@@ -39,7 +39,7 @@ use futures_util::{
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `batcher_payment_service_addr` - The address of the batcher payment service.
+/// * `nonce` - The nonce to use.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -52,6 +52,12 @@ use futures_util::{
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 /// * `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+/// * `InvalidSignature` if the signature is invalid.
+/// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidProof` if the proof is invalid.
+/// * `ProofTooLarge` if the proof is too large.
+/// * `InsufficientBalance` if the sender balance is insufficient or unlocked
+/// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple_and_wait(
     batcher_addr: &str,
@@ -87,7 +93,7 @@ pub async fn submit_multiple_and_wait(
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `batcher_payment_service_addr` - The address of the batcher payment service.
+/// * `nonce` - The nonce to use.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -97,6 +103,12 @@ pub async fn submit_multiple_and_wait(
 /// * `SerializationError` if there is an error deserializing the message sent from the batcher.
 /// * `WebSocketConnectionError` if there is an error connecting to the batcher.
 /// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+/// * `InvalidSignature` if the signature is invalid.
+/// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidProof` if the proof is invalid.
+/// * `ProofTooLarge` if the proof is too large.
+/// * `InsufficientBalance` if the sender balance is insufficient or unlocked.
+/// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_addr: &str,
@@ -133,9 +145,21 @@ async fn _submit_multiple(
     }
     let ws_write_clone = ws_write.clone();
 
+    let response_stream: ResponseStream =
+        ws_read.try_filter(|msg| futures_util::future::ready(msg.is_binary() || msg.is_close()));
+
+    let response_stream = Arc::new(Mutex::new(response_stream));
+
     // The sent verification data will be stored here so that we can calculate
     // their commitments later.
-    let sent_verification_data = send_messages(ws_write, verification_data, wallet, nonce).await?;
+    let sent_verification_data = send_messages(
+        response_stream.clone(),
+        ws_write,
+        verification_data,
+        wallet,
+        nonce,
+    )
+    .await?;
 
     let num_responses = Arc::new(Mutex::new(0));
 
@@ -149,7 +173,7 @@ async fn _submit_multiple(
             .collect();
 
     let aligned_verification_data = receive(
-        ws_read,
+        response_stream,
         ws_write_clone,
         verification_data.len(),
         num_responses,
@@ -167,7 +191,7 @@ async fn _submit_multiple(
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `batcher_payment_service_addr` - The address of the batcher payment service.
+/// * `nonce` - The nonce to use
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -180,6 +204,12 @@ async fn _submit_multiple(
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 /// * `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
+/// * `InvalidSignature` if the signature is invalid.
+/// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidProof` if the proof is invalid.
+/// * `ProofTooLarge` if the proof is too large.
+/// * `InsufficientBalance` if the sender balance is insufficient or unlocked
+/// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_and_wait(
     batcher_addr: &str,
@@ -223,6 +253,12 @@ pub async fn submit_and_wait(
 /// * `SerializationError` if there is an error deserializing the message sent from the batcher.
 /// * `WebSocketConnectionError` if there is an error connecting to the batcher.
 /// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
+/// * `InvalidSignature` if the signature is invalid.
+/// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidProof` if the proof is invalid.
+/// * `ProofTooLarge` if the proof is too large.
+/// * `InsufficientBalance` if the sender balance is insufficient or unlocked
+/// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_addr: &str,
@@ -321,6 +357,16 @@ pub fn get_commitment(content: &[u8]) -> [u8; 32] {
     hasher.finalize().into()
 }
 
+/// Returns the next nonce for a given address.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `address` - The address for which the nonce will be retrieved.
+/// * `batcher_contract_address` - The address of the batcher payment service contract.
+/// # Returns
+/// * The next nonce.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumCallError` if there is an error in the Ethereum call.
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
     address: Address,

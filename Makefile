@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.3.0
+OPERATOR_VERSION=v0.4.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -173,10 +173,6 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
-operator_start_docker:
-	@echo "Starting Operator..."
-	@docker-compose -f operator/docker/compose.yaml up
-
 __BATCHER__:
 
 BURST_SIZE=5
@@ -190,6 +186,11 @@ user_fund_payment_service:
 batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
+
+batcher_start_local: ./batcher/aligned-batcher/.env user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
 
 install_batcher:
 	@cargo +nightly-2024-04-17 install --path batcher/aligned-batcher
@@ -233,7 +234,6 @@ batcher_send_sp1_burst:
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc $(RPC_URL) \
 		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
-
 
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
@@ -315,18 +315,6 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc $(RPC_URL) \
-		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
-
-batcher_send_groth16_burst: batcher/target/release/aligned
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Groth16Bn254 \
-		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
-		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
-		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
-		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc $(RPC_URL) \
 		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
@@ -440,7 +428,12 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 __METRICS__:
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
-	@docker-compose -f metrics-docker-compose.yaml up
+	@docker compose -f metrics-docker-compose.yaml up
+
+__STORAGE__:
+run_storage: ## Run storage using storage-docker-compose.yaml
+	@echo "Running storage..."
+	@docker compose -f storage-docker-compose.yaml up
 
 __DEPLOYMENT__:
 deploy_aligned_contracts: ## Deploy Aligned Contracts
