@@ -36,7 +36,7 @@ async fn main() -> Result<(), SubmitError> {
 
     let pub_input_hex = hex::encode(pub_input.as_ref().unwrap());
 
-    info!("Pub input bytes as hex: {:?}", pub_input_hex);
+    info!("Pub input bytes as hex: 0x{}", pub_input_hex);
 
     let proof_generator_addr = Address::from_str(PROOF_GENERATOR_ADDRESS).unwrap();
 
