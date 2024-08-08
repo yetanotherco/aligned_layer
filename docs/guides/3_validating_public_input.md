@@ -45,7 +45,7 @@ contract FibonacciValidator {
     bytes32 public fibonacciProgramId;
 
     bytes32 public fibonacciProgramIdCommitment =
-        0xbfa561e384be753bd6fd75b15db31eb511cd114ec76d619a87c2342af0ee1ed7;
+        0x069ed9f3972550a2901523723f4beb5e240749dcafa30e1623d0778e17d69d70;
 
     event FibonacciNumbers(uint32 fibN, uint32 fibNPlusOne);
 
@@ -195,6 +195,12 @@ ALIGNED_SERVICE_MANAGER_ADDRESS=<service_manager_address> #0x58F280BeBE9B34c9939
 ```
 
 Then, run `make deploy_fibonacci_validator`.
+
+To call the function in the contract with [cast](https://book.getfoundry.sh/cast/) run:
+
+```
+cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com <CONTRACT_ADDRESS> "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,bytes)" <proofCommitment> <pubInputCommitment> <programIdCommitment> <proofGeneratorAddr> <batchMerkleRoot> <merkleProof> <verificationDataBatchIndex> <pubInputBytes> --private-key <PRIVATE_KEY>
+```
 
 ## Submit and verify the proof to Aligned
 
