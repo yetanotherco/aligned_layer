@@ -28,7 +28,7 @@ jobs:
       - name: Display Branch Name
         env:
           GITHUB_REF: ${{ github.ref }}
-        run:
+        run: |
           echo "Current Branch: ${GITHUB_REF}"
 
       - name: Deploy to server
@@ -37,7 +37,7 @@ jobs:
           USERNAME: ${{ vars.USERNAME }}
           APP_DIR: ${{ vars.EXPLORER_DIRECTORY }}
           SERVICE_NAME: ${{ vars.SERVICE_NAME }}
-        run:
+        run: |
           ssh -o StrictHostKeyChecking=no ${USER_NAME}@${HOST_NAME} "
             cd ${APP_DIR} &&
             echo 'Pulling latest changes' > test.txt "
