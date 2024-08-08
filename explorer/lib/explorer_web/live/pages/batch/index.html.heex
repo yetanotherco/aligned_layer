@@ -8,7 +8,15 @@
       inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground [&>*]:break-all [&>*]:font-normal"
     >
       Batch Hash:
-      <p><%= @merkle_root %></p>
+      <p class="inline-flex flex-col md:flex-row md:items-center">
+        <%= @merkle_root %>
+        <.live_component
+          module={CopyToClipboardButtonComponent}
+          text_to_copy={@merkle_root}
+          id={"copy_batch_hash_#{@merkle_root}"}
+          class="md:ml-2"
+        />
+      </p>
       Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       Amount of Proofs in this Batch:
       <p><%= @current_batch.amount_of_proofs %></p>
