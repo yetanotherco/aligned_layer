@@ -1,6 +1,6 @@
 generate_risc_zero_fibonacci_proof:
 	@cd risc_zero/fibonacci_proof_generator && \
-		cargo run --release && \
+		cargo run && \
 		echo "Fibonacci proof, pub input and image ID generated in risc_zero folder"
 
 submit_fibonacci_proof:
