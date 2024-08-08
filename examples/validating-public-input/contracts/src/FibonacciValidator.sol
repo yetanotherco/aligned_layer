@@ -6,7 +6,7 @@ contract FibonacciValidator {
     bytes32 public fibonacciProgramId;
 
     bytes32 public fibonacciProgramIdCommitment =
-        0xbfa561e384be753bd6fd75b15db31eb511cd114ec76d619a87c2342af0ee1ed7;
+        0xf000637ed63d26fc664f16666aebf05440ddb7071931240dc49d9bbcfbac304a;
 
     event FibonacciNumbers(uint32 fibN, uint32 fibNPlusOne);
 

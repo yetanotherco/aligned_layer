@@ -10,11 +10,25 @@ This guide assumes you are in the `examples/validating-public-input` directory.
 
 ## Generate your ZK Proof
 
+> [!IMPORTANT]  
+> To generate the proof ensure you have [docker](https://www.docker.com/get-started/) installed.
+> This is necessary because the program and identifier may differ based on your operating system.
+
 To submit proofs to Aligned and get them verified, first you need to generate those proofs. Every proving system has its own way of generating proofs.
 
 You can find examples on how to generate proofs in the [generating proofs guide](4_generating_proofs.md).
 
 To generate the proof needed to try this example, run `make generate_risc_zero_fibonacci_proof`.
+
+Once finished, you will see the program id, the two last fibonacci numbers of the sequence and the result of the verification like so:
+
+```
+Program ID: 0xf000637ed63d26fc664f16666aebf05440ddb7071931240dc49d9bbcfbac304a
+a: 1268
+b: 1926
+Verification result: true
+Fibonacci proof, pub input and image ID generated in risc_zero folder
+```
 
 ## Write your smart contract
 
