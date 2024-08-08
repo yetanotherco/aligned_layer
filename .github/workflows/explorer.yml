@@ -39,7 +39,7 @@ jobs:
           APP_DIR: ${{ vars.EXPLORER_DIRECTORY }}
           SERVICE_NAME: ${{ vars.SERVICE_NAME }}
         run: |
-          ssh -o "StrictHostKeyChecking=no" ${USER_NAME}@${HOST_NAME} "
+          ssh -o "StrictHostKeyChecking=no" ${USERNAME}@${HOST_NAME} "
             cd ${APP_DIR} &&
             echo 'Pulling latest changes' > test.txt
           "
