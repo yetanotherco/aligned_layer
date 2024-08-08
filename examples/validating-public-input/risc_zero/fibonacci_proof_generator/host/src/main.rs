@@ -8,12 +8,14 @@ const PUB_INPUT_FILE_PATH: &str = "risc_zero_fibonacci.pub";
 const FIBONACCI_ID_FILE_PATH: &str = "risc_zero_fibonacci_id.bin";
 
 fn main() {
-    let hex_string: String = FIBONACCI_ID
-        .iter()
-        .map(|&num| format!("{:08x}", num))
-        .collect::<String>(); 
+    let program_id_le: Vec<u8> = FIBONACCI_ID
+        .clone()
+        .into_iter()
+        .map(|n| n.to_le_bytes())
+        .flatten()
+        .collect();
 
-    println!("Program ID: 0x{}", hex_string);
+    println!("Program ID: 0x{}", hex::encode(program_id_le));
 
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`
     tracing_subscriber::fmt()

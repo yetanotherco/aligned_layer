@@ -1004,6 +1004,7 @@ name = "host"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "hex",
  "methods",
  "risc0-zkvm",
  "serde",
