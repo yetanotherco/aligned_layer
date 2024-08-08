@@ -98,6 +98,6 @@ Depending on the application, it may be needed or not.
 
 Aligned has the following entities:
 
-![Figure 5: Entities](../images/entities.png)
+![Figure 4: Entities](../images/entities.png)
 
 All entities are described in the next sections.

@@ -92,6 +92,6 @@ General Prover/Verifier: Every several days, takes the proofs from the DA layer 
 
 To aggregate all the proofs, in the first step, all proofs are transformed into proofs of execution of the virtual machine, achieving proof uniformity (see Figure 2). We can then shrink proof size by recursively proving the verification of proofs, as shown in the tree diagram (see Figure 3).
 
-![Figure 4: Prover](../images/prover.png)
+![Figure 3: Prover](../images/prover.png)
 
-![Figure 5: Recursion tree](../images/recursion.png)
+![Figure 4: Recursion tree](../images/recursion.png)
