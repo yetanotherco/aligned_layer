@@ -53,6 +53,7 @@ The flow for sending a proof and having the results on Ethereum is as follows:
 9. Ethereum verifies the aggregated signatures and changes the state of the batch from pending to verified.
 
 ### Batch structure
+
 The task batch consists of a Merkle tree containing the relevant information for proof verification in the lower level leaves. The root of the Merkle tree is posted to Ethereum together with a pointer to where the data is stored. Each leaf contains the following information:
 - A commitment to the public input of the proof.
 - A commitment to the proof and information about the proof system.
@@ -64,12 +65,14 @@ A diagram for the batch is shown on the figure below:
 ![Figure 3: Structure of a batch](../images/batch.png)
 
 ### Reading the results from Ethereum
+
 Once the results from a batch have been checked on Ethereum, the Aligned contract is updated with the results. The user’s contract can query the Aligned contract to check whether the proof has been included in a successful batch.
 
 Additionally, the contract needs to be set to receive only proofs of specific programs. For example, in an L2, this may be a specific program that represents the state transition of the blockchain.
 In the contract, the code would look like this:
 
 ![Figure 4: Reading results](../images/read.png)
+
 Optionally, a committed address can also be used, an example being if one wants to give an NFT or tokens to a user that submitted a proof. Depending on the application it may be needed or not.
 
 ## Entities
