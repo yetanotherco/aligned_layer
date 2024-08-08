@@ -76,7 +76,14 @@ Once the results from a batch have been checked on Ethereum, the Aligned contrac
 Additionally, the contract needs to be set to receive only proofs of specific programs. For example, in an L2, this may be a specific program that represents the state transition of the blockchain.
 In the contract, the code would look like this:
 
-![Figure 3: Reading results](../images/read.png)
+```Plain Text
+is_verified = VerifyWithAlignedVerificationData(
+   AlignedVerificationData
+)
+require(is_verified)
+require(ProofVerificationData.ProgramComm ==...)
+```
+
 Optionally, a committed address can also be used, an example being if one wants to give an NFT or tokens to a user that submitted a proof. Depending on the application it may be needed or not.
 
 ## Aggregation mode 

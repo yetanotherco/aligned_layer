@@ -1,6 +1,9 @@
 ## Fast mode in a nutshell
 
-The fast mode works using a subset of Ethereum’s validators via restaking. Validators (also called Operators) receive proofs, verify them using the verification code written in Rust or another higher-level language, and sign messages with BLS signatures. If a two-thirds majority agrees, the results are posted to Ethereum.
+The fast mode works using a subset of Ethereum’s validators via restaking.
+Validators (also called Operators) receive proofs, verify them using the verification code written in Rust or another
+higher-level language, and sign messages with BLS signatures.
+If a two-thirds majority agrees, the results are posted to Ethereum.
 
 ## Simplified Architecture
 
@@ -9,9 +12,11 @@ The proof submission can be simplified as follows:
 ![Figure 1: Simplified Architecture.png](../images/simplified_architecture.png)
 
 1. The users submit proofs to the batcher through the CLI or SDK.
-2. The batcher accumulates proofs, and then sends the batch to the Data Service and posts the merkle root and data to Ethereum.
+2. The batcher accumulates proofs, and then sends the batch to the Data Service and posts the merkle root and data to
+   Ethereum.
 3. The operators download the proofs from the Data Service, verify them, and sign the results.
-4. The BLS signature aggregator accumulates the signed responses until reaching the quorum, then sends the aggregated signature to Ethereum.
+4. The BLS signature aggregator accumulates the signed responses until reaching the quorum, then sends the aggregated
+   signature to Ethereum.
 5. The users can read the results from Ethereum.
 
 ## Architecture
@@ -54,7 +59,11 @@ The flow for sending a proof and having the results on Ethereum is as follows:
 
 ### Batch structure
 
-The task batch consists of a Merkle tree containing the relevant information for proof verification in the lower level leaves. The root of the Merkle tree is posted to Ethereum together with a pointer to where the data is stored. Each leaf contains the following information:
+The task batch consists of a Merkle tree containing the relevant information for proof verification in the lower level
+leaves.
+The root of the Merkle tree is posted to Ethereum together with a pointer to where the data is stored.
+Each leaf contains the following information:
+
 - A commitment to the public input of the proof.
 - A commitment to the proof and information about the proof system.
 - A commitment to the program or a commitment to the verification key (depending on the proof system used).
@@ -66,14 +75,24 @@ A diagram for the batch is shown on the figure below:
 
 ### Reading the results from Ethereum
 
-Once the results from a batch have been checked on Ethereum, the Aligned contract is updated with the results. The user’s contract can query the Aligned contract to check whether the proof has been included in a successful batch.
+Once the results from a batch have been checked on Ethereum, the Aligned contract is updated with the results.
+The user’s contract can query the Aligned contract to check whether the proof has been included in a successful batch.
 
-Additionally, the contract needs to be set to receive only proofs of specific programs. For example, in an L2, this may be a specific program that represents the state transition of the blockchain.
-In the contract, the code would look like this:
+Additionally, the contract needs to be set to receive only proofs of specific programs.
+For example, in an L2, this may be a specific program that represents the state transition of the blockchain.
+In the contract, the pseudocode would look like this:
 
-![Figure 4: Reading results](../images/read.png)
+```Plain Text
+is_verified = VerifyWithAlignedVerificationData(
+   AlignedVerificationData
+)
+require(is_verified)
+require(ProofVerificationData.ProgramComm ==...)
+```
 
-Optionally, a committed address can also be used, an example being if one wants to give an NFT or tokens to a user that submitted a proof. Depending on the application it may be needed or not.
+Optionally, a committed address can also be used,
+an example being if one wants to give an NFT or tokens to a user that submitted a proof.
+Depending on the application, it may be needed or not.
 
 ## Entities
 
