@@ -3,9 +3,7 @@ defmodule ExplorerWeb.Batch.Index do
   use ExplorerWeb, :live_view
 
   @impl true
-  def mount(params, _, socket) do
-    merkle_root = params["merkle_root"]
-
+  def mount(%{"merkle_root" => merkle_root}, _, socket) do
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     current_batch =
@@ -109,6 +107,4 @@ defmodule ExplorerWeb.Batch.Index do
         nil
     end
   end
-
-  embed_templates "*"
 end

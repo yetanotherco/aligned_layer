@@ -2,6 +2,12 @@ defmodule ExplorerWeb.Operators.Index do
   use ExplorerWeb, :live_view
 
   @impl true
+  def handle_info(_, socket) do
+    operators = Operators.get_operators()
+    {:noreply, assign(socket, operators: operators)}
+  end
+
+  @impl true
   def mount(_, _, socket) do
     {:ok, assign(socket, page_title: "Operators")}
   end

@@ -12,10 +12,10 @@
     <% end %>
   </.card_link>
   <.card_link navigate={~p"/assets"} title="Total ETH Restaked">
-    <%= if @operators_registered != :empty do %>
-      ?
+    <%= if @restaked_amount_eth != :nil and @restaked_amount_eth != :nil do %>
+      <%= @restaked_amount_eth %>
     <% else %>
-      ?
+      0
     <% end %>
   </.card_link>
   <.card title="verified batches">
