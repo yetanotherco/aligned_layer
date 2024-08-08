@@ -11,8 +11,8 @@ This guide assumes you are in the `examples/validating-public-input` directory.
 ## Generate your ZK Proof
 
 > [!IMPORTANT]  
-> To generate the proof ensure you have [docker](https://www.docker.com/get-started/) installed.
-> This is necessary because the program and identifier may differ based on your operating system.
+> To generate the proof ensure you have [docker](https://www.docker.com/get-started/) installed and the docker daemon running.
+> This is necessary to ensure deterministic builds of the binary we want to generate a proof of. If not used, builds may differ depending on the system you are running on. To know more about this, check [this link](https://dev.risczero.com/terminology#deterministic-builds) from RiscZero docs.
 
 To submit proofs to Aligned and get them verified, first you need to generate those proofs. Every proving system has its own way of generating proofs.
 
