@@ -87,6 +87,12 @@ defmodule Batches do
     Explorer.Repo.all(query)
   end
 
+  def get_last_page(page_size) do
+    total_batches = Explorer.Repo.aggregate(Batches, :count, :merkle_root)
+    last_page = div(total_batches, page_size)
+    if rem(total_batches, page_size) > 0, do: last_page + 1, else: last_page
+  end
+
   def get_amount_of_verified_batches() do
     query = from(b in Batches,
       where: b.is_verified == true,
