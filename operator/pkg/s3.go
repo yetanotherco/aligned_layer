@@ -1,10 +1,11 @@
 package operator
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/fxamacker/cbor/v2"
 
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
@@ -52,7 +53,7 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 
 	var batch []VerificationData
 
-	err = json.Unmarshal(batchBytes, &batch)
+	err = cbor.Unmarshal(batchBytes, &batch)
 	if err != nil {
 		return nil, err
 	}

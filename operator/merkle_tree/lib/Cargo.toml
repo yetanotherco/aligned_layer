@@ -11,6 +11,7 @@ lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
 hex = "0.4.3"
 sha3 = "0.10.8"
 aligned-sdk = { path = "../../../batcher/aligned-sdk" }
+ciborium = "=0.2.2"
 
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
