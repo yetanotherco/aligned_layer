@@ -373,6 +373,39 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--rpc $(RPC_URL) \
 		--batcher_addr $(BATCHER_CONTRACT_ADDRESS)
 
+batcher_send_mina_task:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof test_files/mina/protocol_state.proof \
+		--public_input test_files/mina/protocol_state.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_task_bad_hash:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof test_files/mina/protocol_state.proof \
+		--public_input test_files/mina/protocol_state_bad_hash.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_task_bad_consensus:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof test_files/mina/protocol_state.proof \
+		--public_input test_files/mina/protocol_state_bad_consensus.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof test_files/mina/protocol_state.proof \
+		--public_input test_files/mina/protocol_state.pub \
+		--repetitions 15 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
@@ -590,6 +623,26 @@ generate_halo2_ipa_proof:
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
 
+__MINA_FFI__: ##
+build_mina_macos:
+	@cd operator/mina/lib && cargo build --release
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.dylib operator/mina/lib/libmina_state_verifier.dylib
+
+build_mina_linux:
+	@cd operator/mina/lib && cargo build --release
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.so operator/mina/lib/libmina_state_verifier.so
+
+test_mina_rust_ffi:
+	@echo "Testing Mina Rust FFI source code..."
+	@cd operator/mina/lib && cargo t --release
+
+test_mina_go_bindings_macos: build_mina_macos
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
+
+test_mina_go_bindings_linux: build_mina_linux
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
 
 __BUILD_ALL_FFI__:
 
