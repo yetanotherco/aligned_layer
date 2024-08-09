@@ -50,6 +50,8 @@ defmodule Proofs do
 
     query = from(p in Proofs,
       where: p.proof_hash == ^proof_hash_binary,
+      order_by: [desc: p.id],
+      limit: 1,
       select: p)
 
     case Explorer.Repo.one(query) do
