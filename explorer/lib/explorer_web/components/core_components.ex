@@ -127,7 +127,7 @@ defmodule ExplorerWeb.CoreComponents do
         <.icon :if={@kind == :error} name="hero-exclamation-circle-mini" class="h-4 w-4" />
         <%= @title %>
       </p>
-      <p class="mt-2 text-sm leading-5"><%= msg %></p>
+      <p class="mt-2 text-sm leading-5 break-all"><%= msg %></p>
       <button type="button" class="group absolute top-1 right-1 p-2" aria-label={gettext("close")}>
         <.icon name="hero-x-mark-solid" class="h-5 w-5 opacity-40 group-hover:opacity-70" />
       </button>
@@ -284,7 +284,10 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card_preheding(assigns) do
     ~H"""
-    <h1 class={["text-4xl sm:text-5xl font-bold font-foreground text-center md:text-left", @class]}>
+    <h1 class={[
+      "text-4xl sm:text-5xl font-bold font-foreground text-left py-2",
+      @class
+    ]}>
       <%= render_slot(@inner_block) %>
     </h1>
     """
@@ -369,7 +372,7 @@ defmodule ExplorerWeb.CoreComponents do
     ~H"""
     <.link
       class={[
-        "underline underline-offset-4 font-medium inline-flex items-center gap-x-1",
+        "underline underline-offset-4 font-medium flex items-center gap-1",
         @class
       ]}
       {@rest}
