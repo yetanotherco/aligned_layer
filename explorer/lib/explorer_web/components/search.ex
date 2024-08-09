@@ -2,26 +2,33 @@ defmodule SearchComponent do
   use ExplorerWeb, :live_component
 
   @impl true
-  def handle_event("search_batch", %{"batch" => batch_params}, socket) do
-    batch_merkle_root = Map.get(batch_params, "merkle_root")
-    is_batch_merkle_root_valid = String.match?(batch_merkle_root, ~r/^0x[a-fA-F0-9]+$/)
+  def handle_event("search_batch", %{"batch" => %{"merkle_root" => input_hash}}, socket) do
+    input_hash
+    |> (fn hash ->
+          if String.match?(hash, ~r/^0x[a-fA-F0-9]+$/), do: {:ok, hash}, else: :invalid_hash
+        end).()
+    |> (fn
+          {:ok, hash} ->
+            case Proofs.get_batch_from_proof(%{proof_hash: hash}) do
+              nil -> {:not_found, hash}
+              batch_hash -> {:ok, batch_hash}
+            end
 
-    if not is_batch_merkle_root_valid do
-      {:noreply,
-       socket
-       |> assign(batch_merkle_root: batch_merkle_root)
-       |> put_flash!(
-         :error,
-         "Please enter a valid proof batch hash, these should be hex values (0x69...)."
-       )}
-    else
-      batch_merkle_root_from_proof = Proofs.get_batch_from_proof(%{proof_hash: batch_merkle_root})
+          :invalid_hash ->
+            :invalid_hash
+        end).()
+    |> case do
+      {:ok, target_hash} ->
+        {:noreply, push_navigate(socket, to: ~p"/batches/#{target_hash}")}
 
-      if batch_merkle_root_from_proof != nil do
-        {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root_from_proof}")}
-      else
-        {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root}")}
-      end
+      {:not_found, hash} ->
+        {:noreply, push_navigate(socket, to: ~p"/batches/#{hash}")}
+
+      :invalid_hash ->
+        {:noreply,
+         socket
+         |> assign(batch_merkle_root: input_hash)
+         |> put_flash!(:error, "Please enter a valid proof batch hash (0x69...).")}
     end
   end
 
