@@ -1,0 +1,48 @@
+name: "Deploy Explorer"
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: environment
+        description: Select the environment
+
+jobs:
+  Deploy:
+    name: Deploy Explorer to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Display Branch Name
+        run:
+          echo "Current Branch: ${{ github.ref }}"
+
+      - name: Deploy to server
+        env:
+          HOST_NAME: ${{ vars.EXPLORER_HOST }}
+          USERNAME: ${{ vars.USERNAME }}
+          APP_DIR: ${{ vars.EXPLORER_DIRECTORY }}
+          SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+        run:
+          ssh -o StrictHostKeyChecking=no ${USER_NAME}@${HOST_NAME} "
+            cd ${APP_DIR} &&
+            echo 'Pulling latest changes' > test.txt "
+#        run: TODO uncomment this after testing connection
+#          ssh -o StrictHostKeyChecking=no ${USER_NAME}@${HOST_NAME} "
+#          cd ${APP_DIR} &&
+#          git fetch &&
+#          git checkout ${{ github.ref }} &&
+#          git pull &&
+#          sudo systemctl restart ${SERVICE_NAME} "

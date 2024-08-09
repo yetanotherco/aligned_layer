@@ -28,7 +28,6 @@ import (
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/event"
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -119,7 +118,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasks() (event.Subscription, error) {
+func (o *Operator) SubscribeToNewTasks() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
 }
 
@@ -143,9 +142,8 @@ func (o *Operator) Start(ctx context.Context) error {
 			return nil
 		case err := <-metricsErrChan:
 			o.Logger.Fatal("Metrics server failed", "err", err)
-		case err := <-sub.Err():
+		case err := <-sub:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
-			sub.Unsubscribe()
 			sub, err = o.SubscribeToNewTasks()
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks")
