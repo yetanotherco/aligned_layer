@@ -3,6 +3,7 @@ extern crate core;
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
 use dotenv::dotenv;
+use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use serde::Serialize;
 
@@ -19,7 +20,7 @@ use aligned_sdk::core::types::{
     VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::BatcherPaymentService;
+use eth::{BatcherPaymentService, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
@@ -90,6 +91,7 @@ pub struct Batcher {
     storage_endpoint: String,
     eth_ws_provider: Provider<Ws>,
     payment_service: BatcherPaymentService,
+    payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -128,6 +130,9 @@ impl Batcher {
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
+        let eth_rpc_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
+            .expect("Failed to get fallback provider");
+
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
         let last_uploaded_batch_block = eth_rpc_provider
@@ -139,11 +144,19 @@ impl Batcher {
 
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
+            config.ecdsa.clone(),
+            deployment_output.addresses.batcher_payment_service.clone(),
+        )
+        .await
+        .expect("Failed to get Batcher Payment Service contract");
+
+        let payment_service_fallback = eth::get_batcher_payment_service(
+            eth_rpc_provider_fallback,
             config.ecdsa,
             deployment_output.addresses.batcher_payment_service,
         )
         .await
-        .expect("Failed to get Batcher Payment Service contract");
+        .expect("Failed to get fallback Batcher Payment Service contract");
 
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
@@ -159,6 +172,7 @@ impl Batcher {
             storage_endpoint,
             eth_ws_provider,
             payment_service,
+            payment_service_fallback,
             batch_state: Mutex::new(BatchState::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
@@ -350,7 +364,7 @@ impl Batcher {
         let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
             Some(nonce) => *nonce,
             None => {
-                let user_nonce = match self.payment_service.user_nonces(addr).call().await {
+                let user_nonce = match self.get_user_nonce(addr).await {
                     Ok(nonce) => nonce,
                     Err(e) => {
                         error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
@@ -373,6 +387,16 @@ impl Batcher {
 
         batch_state.user_nonces.insert(addr, nonce + U256::one());
         true
+    }
+
+    async fn get_user_nonce(
+        &self,
+        addr: Address,
+    ) -> Result<U256, ContractError<SignerMiddlewareT>> {
+        match self.payment_service.user_nonces(addr).call().await {
+            Ok(nonce) => Ok(nonce),
+            Err(_) => self.payment_service_fallback.user_nonces(addr).call().await,
+        }
     }
 
     /// Adds verification data to the current batch queue.
@@ -675,7 +699,45 @@ impl Batcher {
         // pad leaves to next power of 2
         let padded_leaves = Self::pad_leaves(leaves);
 
-        let call = self.payment_service.create_new_task(
+        match self
+            .try_create_new_task(
+                batch_merkle_root,
+                batch_data_pointer.clone(),
+                padded_leaves.clone(),
+                signatures.clone(),
+                gas_for_aggregator,
+                gas_per_proof,
+                &self.payment_service,
+            )
+            .await
+        {
+            Ok(receipt) => Ok(receipt),
+            Err(_) => {
+                self.try_create_new_task(
+                    batch_merkle_root,
+                    batch_data_pointer,
+                    padded_leaves,
+                    signatures,
+                    gas_for_aggregator,
+                    gas_per_proof,
+                    &self.payment_service_fallback,
+                )
+                .await
+            }
+        }
+    }
+
+    async fn try_create_new_task(
+        &self,
+        batch_merkle_root: [u8; 32],
+        batch_data_pointer: String,
+        padded_leaves: Vec<[u8; 32]>,
+        signatures: Vec<SignatureData>,
+        gas_for_aggregator: U256,
+        gas_per_proof: U256,
+        payment_service: &BatcherPaymentService,
+    ) -> Result<TransactionReceipt, BatcherError> {
+        let call = payment_service.create_new_task(
             batch_merkle_root,
             batch_data_pointer,
             padded_leaves,
@@ -805,20 +867,29 @@ impl Batcher {
     }
 
     async fn get_user_balance(&self, addr: &Address) -> U256 {
-        self.payment_service
-            .user_balances(*addr)
-            .call()
-            .await
-            .unwrap_or_default()
+        match self.payment_service.user_balances(*addr).call().await {
+            Ok(val) => val,
+            Err(_) => self
+                .payment_service
+                .user_balances(*addr)
+                .call()
+                .await
+                .unwrap_or_default(),
+        }
     }
 
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
-        self.payment_service
-            .user_unlock_block(*addr)
-            .call()
-            .await
-            .unwrap_or_default()
-            != U256::zero()
+        let unlock_block = match self.payment_service.user_unlock_block(*addr).call().await {
+            Ok(val) => val,
+            Err(_) => self
+                .payment_service
+                .user_unlock_block(*addr)
+                .call()
+                .await
+                .unwrap_or_default(),
+        };
+
+        unlock_block != U256::zero()
     }
 }
 

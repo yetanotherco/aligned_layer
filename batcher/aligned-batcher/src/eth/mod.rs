@@ -13,9 +13,10 @@ pub struct BatchVerified {
     pub batch_merkle_root: [u8; 32],
 }
 
-pub type BatcherPaymentService = BatcherPaymentServiceContract<
-    SignerMiddleware<GasEscalatorMiddleware<Provider<RetryClient<Http>>>, Wallet<SigningKey>>,
->;
+pub type SignerMiddlewareT =
+    SignerMiddleware<GasEscalatorMiddleware<Provider<RetryClient<Http>>>, Wallet<SigningKey>>;
+
+pub type BatcherPaymentService = BatcherPaymentServiceContract<SignerMiddlewareT>;
 
 const MAX_RETRIES: u32 = 15; // Max retries for the retry client. Will only retry on network errors
 const INITIAL_BACKOFF: u64 = 1000; // Initial backoff for the retry client in milliseconds, will increase every retry
