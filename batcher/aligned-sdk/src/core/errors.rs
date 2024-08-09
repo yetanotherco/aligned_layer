@@ -5,6 +5,8 @@ use std::io;
 use std::path::PathBuf;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
+use crate::communication::serialization::SerializationError;
+
 #[derive(Debug)]
 pub enum AlignedError {
     SubmitError(SubmitError),
@@ -45,7 +47,7 @@ pub enum SubmitError {
     WebSocketConnectionError(tokio_tungstenite::tungstenite::Error),
     WebSocketClosedUnexpectedlyError(CloseFrame<'static>),
     IoError(PathBuf, io::Error),
-    SerializationError(serde_json::Error),
+    SerializationError(SerializationError),
     EthereumProviderError(String),
     HexDecodingError(String),
     WalletSignerError(String),
@@ -75,8 +77,8 @@ impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
     }
 }
 
-impl From<serde_json::Error> for SubmitError {
-    fn from(e: serde_json::Error) -> Self {
+impl From<SerializationError> for SubmitError {
+    fn from(e: SerializationError) -> Self {
         SubmitError::SerializationError(e)
     }
 }
