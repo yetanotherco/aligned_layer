@@ -127,7 +127,7 @@ defmodule ExplorerWeb.CoreComponents do
         <.icon :if={@kind == :error} name="hero-exclamation-circle-mini" class="h-4 w-4" />
         <%= @title %>
       </p>
-      <p class="mt-2 text-sm leading-5"><%= msg %></p>
+      <p class="mt-2 text-sm leading-5 break-all"><%= msg %></p>
       <button type="button" class="group absolute top-1 right-1 p-2" aria-label={gettext("close")}>
         <.icon name="hero-x-mark-solid" class="h-5 w-5 opacity-40 group-hover:opacity-70" />
       </button>
@@ -254,8 +254,8 @@ defmodule ExplorerWeb.CoreComponents do
 
   def root_background(assigns) do
     ~H"""
-    <div class="bg-[url(/images/home.webp)] bg-cover min-h-screen">
-      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-primary/80">
+    <div class="min-h-screen">
+      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-accent/80">
         <%= render_slot(@inner_block) %>
       </main>
     </div>
@@ -334,7 +334,7 @@ defmodule ExplorerWeb.CoreComponents do
       <.card_background class={@class}>
         <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
           <%= @title %>
-          <.icon name="hero-arrow-top-right-on-square-solid mb-1" class="size-4" />
+          <.icon name="hero-arrow-top-right-on-square-solid" class="size-4" />
         </h2>
         <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
           <%= render_slot(@inner_block) %>
@@ -394,8 +394,8 @@ defmodule ExplorerWeb.CoreComponents do
     <span class={[
       "px-3 py-1 rounded-full",
       case @status do
-        true -> "text-black bg-primary group-hover:bg-primary/80"
-        false -> "text-white bg-secondary group-hover:bg-secondary/80"
+        true -> "text-accent-foreground bg-accent group-hover:bg-primary/80"
+        false -> "text-background bg-foreground group-hover:bg-secondary/80"
       end,
       @class
     ]}>
@@ -836,5 +836,16 @@ defmodule ExplorerWeb.CoreComponents do
   """
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
+  end
+
+  @doc """
+  Divider component.
+  """
+  attr :class, :string, default: nil
+
+  def divider(assigns) do
+    ~H"""
+    <hr class={["border-t rounded-full border-muted-foreground/40 my-1.5", @class]} />
+    """
   end
 end

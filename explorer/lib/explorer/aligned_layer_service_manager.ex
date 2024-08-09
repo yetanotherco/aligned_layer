@@ -48,6 +48,11 @@ defmodule AlignedLayerServiceManager do
                                          |> Map.get("addresses")
                                          |> Map.get("alignedLayerServiceManager")
 
+  @batcher_payment_service_address Jason.decode!(config_json_string)
+                                         |> Map.get("addresses")
+                                         |> Map.get("batcherPaymentService")
+
+
   @gas_per_proof Jason.decode!(payment_service_json_string)
                  |> Map.get("amounts")
                  |> Map.get("gasPerProof")
@@ -65,6 +70,10 @@ defmodule AlignedLayerServiceManager do
 
   def get_aligned_layer_service_manager_address() do
     @aligned_layer_service_manager_address
+  end
+
+  def get_batcher_payment_service_address() do
+    @batcher_payment_service_address
   end
 
   def get_latest_block_number() do

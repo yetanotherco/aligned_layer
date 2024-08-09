@@ -4,11 +4,20 @@
       Batch Details
     </.card_preheding>
     <.card
-      class="px-4 py-5 min-h-fit flex flex-col"
+      class="relative px-4 py-5 min-h-fit flex flex-col"
       inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground [&>*]:break-all [&>*]:font-normal"
     >
-      Merkle Root Hash:
-      <p><%= @merkle_root %></p>
+      Batch Hash:
+      <p class="inline-flex flex-col md:flex-row md:items-center">
+        <%= @merkle_root %>
+        <.live_component
+          module={CopyToClipboardButtonComponent}
+          text_to_copy={@merkle_root}
+          id={"copy_batch_hash_#{@merkle_root}"}
+          class="md:ml-2"
+        />
+      </p>
+      Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       Amount of Proofs in this Batch:
       <p><%= @current_batch.amount_of_proofs %></p>
       <%= if @current_batch.cost_per_proof != nil do %>
@@ -16,11 +25,30 @@
         <p>
           <%= @current_batch.cost_per_proof |> EthConverter.wei_to_eth() %> ETH
           <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
-            (<%= @eth_usd_price %> USD)
+            <span class="inline-flex md:inline-block">(<%= @eth_usd_price %> USD)</span>
           <% end %>
         </p>
       <% end %>
-      Submission Block Number:
+      Proofs in this batch:
+      <%= if @proof_hashes != :empty do %>
+        <%= if @proof_hashes == :nil do %>
+          <p class="normal-case">
+            Proofs couldn't be shown for this Batch
+          </p>
+        <% else %>
+          <div class="h-36 overflow-y-auto text-foreground space-y-2">
+            <p :for={proof <- @proof_hashes}><%= proof %></p>
+          </div>
+          <.button class="w-fit text-foreground" phx-click="hide_proofs">
+            <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
+          </.button>
+        <% end %>
+      <% else %>
+        <.button class="w-fit text-foreground font-semibold" phx-click="show_proofs">
+          <.icon name="hero-eye" class="size-4" /> Show Proofs
+        </.button>
+      <% end %>
+      <.divider /> Submission Block Number:
       <.a
         target="_blank"
         rel="noopener"
@@ -44,9 +72,8 @@
       <p>
         <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
       </p>
-      Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       <%= if @current_batch.is_verified do %>
-        Response Block Number:
+        <.divider /> Response Block Number:
         <.a
           target="_blank"
           rel="noopener"
@@ -68,36 +95,17 @@
         <p>
           <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
         </p>
-        Share:
         <%!-- 
           %20 represents a space
           %23 represents the hash symbol (#)
           %0A represents a line feed (LF) or Unix-style newline
          --%>
         <.live_component
+          class="absolute top-4 md:-top-12 right-5"
           id={"tweet_#{@merkle_root}"}
           module={TweetComponent}
           text={"Just%20submitted%20a%20proof%20via%20@alignedlayer%0AI%20am%20now%20%23aligned%20✅%0A#{@site_url}/batches/#{@merkle_root}"}
         />
-      <% end %>
-      Proofs in this batch:
-      <%= if @proof_hashes != :empty do %>
-        <%= if @proof_hashes == :nil do %>
-          <p class="normal-case">
-            Proofs couldn't be shown for this Batch
-          </p>
-        <% else %>
-          <div class="h-32 overflow-y-auto text-foreground space-y-2">
-            <p :for={proof <- @proof_hashes}><%= proof %></p>
-            <.button class="w-fit text-foreground" phx-click="hide_proofs">
-              <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
-            </.button>
-          </div>
-        <% end %>
-      <% else %>
-        <.button class="w-fit text-foreground font-semibold" phx-click="show_proofs">
-          <.icon name="hero-eye" class="size-4" /> Show Proofs
-        </.button>
       <% end %>
     </.card>
   <% else %>
