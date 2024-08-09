@@ -285,7 +285,7 @@ defmodule ExplorerWeb.CoreComponents do
   def card_preheding(assigns) do
     ~H"""
     <h1 class={[
-      "text-4xl sm:text-5xl font-bold font-foreground text-center md:text-left py-2",
+      "text-4xl sm:text-5xl font-bold font-foreground text-left py-2",
       @class
     ]}>
       <%= render_slot(@inner_block) %>

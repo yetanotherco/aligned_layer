@@ -7,6 +7,12 @@
       class="relative px-4 py-5 min-h-fit flex flex-col"
       inner_class="font-semibold inline-flex flex-col text-base gap-y-4 text-muted-foreground [&>div>p]:text-foreground [&>div>a]:text-foreground [&>div>*]:break-all [&>div>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
     >
+      <.live_component
+        class="absolute -top-14 right-5"
+        id={"tweet_#{@merkle_root}"}
+        module={TweetComponent}
+        text={"Just%20submitted%20a%20proof%20via%20@alignedlayer%0AI%20am%20now%20%23aligned%20✅%0A#{@site_url}/batches/#{@merkle_root}"}
+      />
       <div>
         <h3>
           Batch Hash:
