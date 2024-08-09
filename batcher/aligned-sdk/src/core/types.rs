@@ -7,9 +7,14 @@ use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use sha3::{Digest, Keccak256};
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
+// Using the `Serialize_repr` and `Deserialize_repr` attributes from the `serde_repr` crate
+// to serialize and deserialize the enum as a number.
+// Golang does not support string enums, so we need to use numbers.
+#[derive(Debug, Serialize_repr, Deserialize_repr, Default, Clone, PartialEq, Eq)]
+#[repr(u8)]
 pub enum ProvingSystemId {
     GnarkPlonkBls12_381,
     GnarkPlonkBn254,

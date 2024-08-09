@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/fxamacker/cbor/v2"
+	"github.com/ugorji/go/codec"
 
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
@@ -53,7 +53,9 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 
 	var batch []VerificationData
 
-	err = cbor.Unmarshal(batchBytes, &batch)
+	decoder := codec.NewDecoderBytes(batchBytes, new(codec.CborHandle))
+
+	err = decoder.Decode(&batch)
 	if err != nil {
 		return nil, err
 	}

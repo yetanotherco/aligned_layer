@@ -16,3 +16,4 @@ sha3 = { version = "0.10.8"}
 url = "2.5.0"
 hex = "0.4.3"
 ciborium = "=0.2.2"
+serde_repr = "0.1.19"
