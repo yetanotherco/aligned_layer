@@ -284,7 +284,10 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card_preheding(assigns) do
     ~H"""
-    <h1 class={["text-4xl sm:text-5xl font-bold font-foreground text-center md:text-left", @class]}>
+    <h1 class={[
+      "text-4xl sm:text-5xl font-bold font-foreground text-left py-2",
+      @class
+    ]}>
       <%= render_slot(@inner_block) %>
     </h1>
     """
@@ -369,7 +372,7 @@ defmodule ExplorerWeb.CoreComponents do
     ~H"""
     <.link
       class={[
-        "underline underline-offset-4 font-medium inline-flex items-center gap-x-1",
+        "underline underline-offset-4 font-medium flex items-center gap-1",
         @class
       ]}
       {@rest}
