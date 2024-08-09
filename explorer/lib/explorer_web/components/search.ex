@@ -15,7 +15,13 @@ defmodule SearchComponent do
          "Please enter a valid proof batch hash, these should be hex values (0x69...)."
        )}
     else
-      {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root}")}
+      batch_merkle_root_from_proof = Proofs.get_batch_from_proof(%{proof_hash: batch_merkle_root})
+
+      if batch_merkle_root_from_proof != nil do
+        {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root_from_proof}")}
+      else
+        {:noreply, push_navigate(socket, to: ~p"/batches/#{batch_merkle_root}")}
+      end
     end
   end
 

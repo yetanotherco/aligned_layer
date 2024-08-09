@@ -43,4 +43,21 @@ defmodule Proofs do
     end
   end
 
+  def get_batch_from_proof(%{proof_hash: proof_hash_hex}) do
+    proof_hash_hex = String.replace_prefix(proof_hash_hex, "0x", "")
+
+    {:ok, proof_hash_binary} = Base.decode16(proof_hash_hex, case: :mixed)
+
+    query = from(p in Proofs,
+      where: p.proof_hash == ^proof_hash_binary,
+      select: p)
+
+    case Explorer.Repo.one(query) do
+      nil ->
+        nil
+      result ->
+        result.batch_merkle_root
+    end
+  end
+
 end
