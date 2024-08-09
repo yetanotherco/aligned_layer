@@ -25,7 +25,6 @@ defmodule TweetComponent do
           <span class="text-xl font-normal">𝕏</span> <span class="tracking-tight">Post</span>
         </button>
       </a>
-      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8" />
     </div>
     """
   end
