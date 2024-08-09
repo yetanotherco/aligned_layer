@@ -4,8 +4,14 @@ on:
   merge_group:
   push:
     branches: [main]
+    paths:
+        - 'batcher/**'
+        - '.github/workflows/build-rust.yml'
   pull_request:
     branches: ["*"]
+    paths:
+        - 'batcher/**'
+        - '.github/workflows/build-rust.yml'
 
 jobs:
   build:

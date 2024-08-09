@@ -4,7 +4,19 @@ on:
     branches:
       - master
       - main
+    paths:
+      - 'operator/**'
+      - 'aggregator/**'
+      - 'common/**'
+      - 'core/**'
+      - '.github/workflows/golangci-lint.yml'
   pull_request:
+    paths:
+      - 'operator/**'
+      - 'aggregator/**'
+      - 'common/**'
+      - 'core/**'
+      - '.github/workflows/golangci-lint.yml'
 
 permissions:
   contents: read

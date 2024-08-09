@@ -4,8 +4,20 @@ on:
   merge_group:
   push:
     branches: [main]
+    paths:
+      - 'operator/**'
+      - 'aggregator/**'
+      - 'common/**'
+      - 'core/**'
+      - '.github/workflows/build-go.yml'
   pull_request:
     branches: ["*"]
+    paths:
+      - 'operator/**'
+      - 'aggregator/**'
+      - 'common/**'
+      - 'core/**'
+      - '.github/workflows/build-go.yml'
 env:
   FFI_FOR_RELEASE: false
 jobs:

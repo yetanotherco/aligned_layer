@@ -3,8 +3,16 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'contracts/**'
+      - 'foundry.toml'
+      - '.github/workflows/build-contracts.yml'
   pull_request:
     branches: ["*"]
+    paths:
+      - 'contracts/**'
+      - 'foundry.toml'
+      - '.github/workflows/build-contracts.yml'
 
 jobs:
   build:
