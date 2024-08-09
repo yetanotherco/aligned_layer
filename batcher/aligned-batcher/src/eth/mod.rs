@@ -1,12 +1,13 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use aligned_sdk::eth::batcher_payment_service::BatcherPaymentServiceContract;
+use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use gas_escalator::{Frequency, GeometricGasPrice};
+use log::info;
 
-use crate::config::ECDSAConfig;
+use crate::{config::ECDSAConfig, types::errors::BatcherError};
 
 #[derive(Debug, Clone, EthEvent)]
 pub struct BatchVerified {
@@ -61,4 +62,37 @@ pub async fn get_batcher_payment_service(
         BatcherPaymentService::new(H160::from_str(contract_address.as_str())?, signer);
 
     Ok(service_manager)
+}
+
+pub async fn try_create_new_task(
+    batch_merkle_root: [u8; 32],
+    batch_data_pointer: String,
+    padded_leaves: Vec<[u8; 32]>,
+    signatures: Vec<SignatureData>,
+    gas_for_aggregator: U256,
+    gas_per_proof: U256,
+    payment_service: &BatcherPaymentService,
+) -> Result<TransactionReceipt, BatcherError> {
+    let call = payment_service.create_new_task(
+        batch_merkle_root,
+        batch_data_pointer,
+        padded_leaves,
+        signatures,
+        gas_for_aggregator,
+        gas_per_proof,
+    );
+
+    info!("Creating task for: {}", hex::encode(batch_merkle_root));
+
+    let pending_tx = call
+        .send()
+        .await
+        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+
+    let receipt = pending_tx
+        .await
+        .map_err(|_| BatcherError::TransactionSendError)?
+        .ok_or(BatcherError::ReceiptNotFoundError)?;
+
+    Ok(receipt)
 }

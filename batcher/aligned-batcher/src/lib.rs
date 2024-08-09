@@ -20,7 +20,7 @@ use aligned_sdk::core::types::{
     VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{BatcherPaymentService, SignerMiddlewareT};
+use eth::{try_create_new_task, BatcherPaymentService, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
@@ -728,21 +728,20 @@ impl Batcher {
         // pad leaves to next power of 2
         let padded_leaves = Self::pad_leaves(leaves);
 
-        match self
-            .try_create_new_task(
-                batch_merkle_root,
-                batch_data_pointer.clone(),
-                padded_leaves.clone(),
-                signatures.clone(),
-                gas_for_aggregator,
-                gas_per_proof,
-                &self.payment_service,
-            )
-            .await
+        match try_create_new_task(
+            batch_merkle_root,
+            batch_data_pointer.clone(),
+            padded_leaves.clone(),
+            signatures.clone(),
+            gas_for_aggregator,
+            gas_per_proof,
+            &self.payment_service,
+        )
+        .await
         {
             Ok(receipt) => Ok(receipt),
             Err(_) => {
-                self.try_create_new_task(
+                try_create_new_task(
                     batch_merkle_root,
                     batch_data_pointer,
                     padded_leaves,
@@ -754,40 +753,6 @@ impl Batcher {
                 .await
             }
         }
-    }
-
-    async fn try_create_new_task(
-        &self,
-        batch_merkle_root: [u8; 32],
-        batch_data_pointer: String,
-        padded_leaves: Vec<[u8; 32]>,
-        signatures: Vec<SignatureData>,
-        gas_for_aggregator: U256,
-        gas_per_proof: U256,
-        payment_service: &BatcherPaymentService,
-    ) -> Result<TransactionReceipt, BatcherError> {
-        let call = payment_service.create_new_task(
-            batch_merkle_root,
-            batch_data_pointer,
-            padded_leaves,
-            signatures,
-            gas_for_aggregator,
-            gas_per_proof,
-        );
-
-        info!("Creating task for: {}", hex::encode(batch_merkle_root));
-
-        let pending_tx = call
-            .send()
-            .await
-            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
-
-        let receipt = pending_tx
-            .await
-            .map_err(|_| BatcherError::TransactionSendError)?
-            .ok_or(BatcherError::ReceiptNotFoundError)?;
-
-        Ok(receipt)
     }
 
     fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
