@@ -90,6 +90,7 @@ pub struct Batcher {
     s3_bucket_name: String,
     storage_endpoint: String,
     eth_ws_provider: Provider<Ws>,
+    eth_ws_provider_fallback: Provider<Ws>,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
@@ -126,6 +127,13 @@ impl Batcher {
             Provider::connect_with_reconnects(&config.eth_ws_url, config.batcher.eth_ws_reconnects)
                 .await
                 .expect("Failed to get ethereum websocket provider");
+
+        let eth_ws_provider_fallback = Provider::connect_with_reconnects(
+            &config.eth_ws_url_fallback,
+            config.batcher.eth_ws_reconnects,
+        )
+        .await
+        .expect("Failed to get fallback ethereum websocket provider");
 
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
@@ -171,6 +179,7 @@ impl Batcher {
             s3_bucket_name,
             storage_endpoint,
             eth_ws_provider,
+            eth_ws_provider_fallback,
             payment_service,
             payment_service_fallback,
             batch_state: Mutex::new(BatchState::new()),
@@ -205,10 +214,30 @@ impl Batcher {
             .await
             .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
 
-        while let Some(block) = stream.next().await {
+        let mut stream_fallback = self
+            .eth_ws_provider_fallback
+            .subscribe_blocks()
+            .await
+            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+
+        let last_seen_block = Mutex::<u64>::new(0);
+
+        while let Some(block) = tokio::select! {
+            block = stream.next() => block,
+            block = stream_fallback.next() => block,
+        } {
             let batcher = self.clone();
-            let block_number = block.number.unwrap();
-            let block_number = u64::try_from(block_number).unwrap();
+            let block_number = block.number.unwrap_or_default();
+            let block_number = u64::try_from(block_number).unwrap_or_default();
+
+            {
+                let mut last_seen_block = last_seen_block.lock().await;
+                if block_number <= *last_seen_block {
+                    continue;
+                }
+                *last_seen_block = block_number;
+            }
+
             info!("Received new block: {}", block_number);
             tokio::spawn(async move {
                 if let Err(e) = batcher.handle_new_block(block_number).await {

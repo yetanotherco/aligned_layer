@@ -51,6 +51,7 @@ pub struct ConfigFromYaml {
     pub eth_rpc_url: String,
     pub eth_rpc_url_fallback: String,
     pub eth_ws_url: String,
+    pub eth_ws_url_fallback: String,
     pub ecdsa: ECDSAConfig,
     pub aligned_layer_deployment_config_file_path: String,
     pub batcher: BatcherConfigFromYaml,
