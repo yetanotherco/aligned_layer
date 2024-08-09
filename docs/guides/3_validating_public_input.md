@@ -120,7 +120,7 @@ contract FibonacciValidator {
 
 ### Explanation
 
-1. **Program Identifier Validation:** The contract first validates if the provided program identifier matches the expected one.
+1. **Program Identifier Validation:** The contract first validates if the provided commitment of the program identifier matches the expected one.
 
 ```solidity
 require(
@@ -138,7 +138,7 @@ require(
 );
 ```
 
-3. **Static Call to AlignedServiceManager**: The contract makes a static call to the `AlignedServiceManager` contract to check if the proof was verified in Aligned. It then extracts the last two Fibonacci numbers from the journalBytes and emits an event.
+3. **Static Call to AlignedServiceManager**: The contract makes a static call to the `AlignedServiceManager` contract to check if the proof was verified in Aligned. It then extracts the last two Fibonacci numbers from the pubInputBytes and emits an event.
 
 ```solidity
 (
@@ -159,12 +159,12 @@ require(
 
 require(callWasSuccessful, "static_call failed");
 
-(uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(journalBytes);
+(uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(pubInputBytes);
 
 emit FibonacciNumbers(fibN, fibNPlusOne);
 ```
 
-4. **Bytes to two `uint32` conversion:** A helper function to convert a byte array into two `uint32` numbers, used for extracting the last two Fibonacci numbers from the `journalBytes`.
+4. **Bytes to two `uint32` conversion:** A helper function to convert a byte array into two `uint32` numbers, used for extracting the last two Fibonacci numbers from the `pubInputBytes`.
 
 ```solidity
 function bytesToTwoUint32(
