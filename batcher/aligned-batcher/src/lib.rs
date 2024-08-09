@@ -864,7 +864,7 @@ impl Batcher {
         match self.payment_service.user_balances(*addr).call().await {
             Ok(val) => val,
             Err(_) => self
-                .payment_service
+                .payment_service_fallback
                 .user_balances(*addr)
                 .call()
                 .await
@@ -876,7 +876,7 @@ impl Batcher {
         let unlock_block = match self.payment_service.user_unlock_block(*addr).call().await {
             Ok(val) => val,
             Err(_) => self
-                .payment_service
+                .payment_service_fallback
                 .user_unlock_block(*addr)
                 .call()
                 .await
