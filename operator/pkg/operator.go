@@ -5,10 +5,16 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
@@ -31,25 +37,31 @@ import (
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/types"
-
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/types"
+)
+
+const (
+	blockInterval           uint64 = 1000
+	pollLatestBatchInterval        = 5 * time.Second
 )
 
 type Operator struct {
-	Config             config.OperatorConfig
-	Address            ethcommon.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
-	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
-	Logger             logging.Logger
-	aggRpcClient       AggregatorRpcClient
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+	Config                config.OperatorConfig
+	Address               ethcommon.Address
+	Socket                string
+	Timeout               time.Duration
+	PrivKey               *ecdsa.PrivateKey
+	KeyPair               *bls.KeyPair
+	OperatorId            eigentypes.OperatorId
+	avsSubscriber         chainio.AvsSubscriber
+	NewTaskCreatedChan    chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	Logger                logging.Logger
+	aggRpcClient          AggregatorRpcClient
+	metricsReg            *prometheus.Registry
+	metrics               *metrics.Metrics
+	processedBatches      map[[32]byte]struct{}
+	processedBatchesMutex *sync.Mutex
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -111,6 +123,9 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		OperatorId:         operatorId,
 		metricsReg:         reg,
 		metrics:            operatorMetrics,
+		// The cheapest way to make a set in Go is to use a map with empty structs as values
+		processedBatches:      make(map[[32]byte]struct{}),
+		processedBatchesMutex: &sync.Mutex{},
 		// Timeout
 		// Socket
 	}
@@ -135,6 +150,9 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
+	pollLatestBatchTicker := time.NewTicker(pollLatestBatchInterval)
+	defer pollLatestBatchTicker.Stop()
+
 	for {
 		select {
 		case <-context.Background().Done():
@@ -149,21 +167,19 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
-			err := o.ProcessNewBatchLog(newBatchLog)
+			if err := o.processNewBatch(newBatchLog); err != nil {
+				o.Logger.Info("Failed to process new batch", "err", err)
+			}
+
+		case <-pollLatestBatchTicker.C:
+			latestBatch, err := o.getLatestTaskFromBlockchain()
 			if err != nil {
-				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
+				o.Logger.Debug("Failed to get latest task from blockchain", "err", err)
 				continue
 			}
-			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
-
-			signedTaskResponse := types.SignedTaskResponse{
-				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-				BlsSignature:    *responseSignature,
-				OperatorId:      o.OperatorId,
+			if err := o.processNewBatch(latestBatch); err != nil {
+				o.Logger.Info("Failed to process latest batch from blockchain", "err", err)
 			}
-
-			o.Logger.Infof("Signed hash: %+v", *responseSignature)
-			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
 	}
 }
@@ -173,7 +189,7 @@ func (o *Operator) Start(ctx context.Context) error {
 func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
-		"batch merkle root", newBatchLog.BatchMerkleRoot,
+		"batch merkle root", hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
 	)
 
 	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
@@ -206,6 +222,101 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	}
 
 	return nil
+}
+
+func (o *Operator) processNewBatch(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
+	o.processedBatchesMutex.Lock()
+	if _, processed := o.processedBatches[newBatchLog.BatchMerkleRoot]; processed {
+		o.processedBatchesMutex.Unlock()
+		o.Logger.Debug("Batch has already been processed", "batchMerkleRoot", hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]))
+		return nil
+	}
+
+	o.processedBatchesMutex.Unlock()
+
+	err := o.ProcessNewBatchLog(newBatchLog)
+	if err != nil {
+		return fmt.Errorf("batch %v did not verify: %w", hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]), err)
+	}
+
+	o.processedBatchesMutex.Lock()
+	o.processedBatches[newBatchLog.BatchMerkleRoot] = struct{}{}
+	o.processedBatchesMutex.Unlock()
+
+	responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
+
+	signedTaskResponse := types.SignedTaskResponse{
+		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+		BlsSignature:    *responseSignature,
+		OperatorId:      o.OperatorId,
+	}
+
+	o.Logger.Infof("Signed hash: %+v", *responseSignature)
+
+	go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+
+	return nil
+
+}
+
+// getLatestTaskFromBlockchain queries the blockchain for the latest task using the FilterLogs method.
+// The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
+// to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
+func (o *Operator) getLatestTaskFromBlockchain() (*servicemanager.ContractAlignedLayerServiceManagerNewBatch, error) {
+	latestBlock, err := o.Config.BaseConfig.EthRpcClient.BlockNumber(context.Background())
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest block number: %w", err)
+	}
+
+	var fromBlock uint64
+
+	if latestBlock < blockInterval {
+		fromBlock = 0
+	} else {
+		fromBlock = latestBlock - blockInterval
+	}
+
+	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ABI: %w", err)
+	}
+
+	// We just care about the NewBatch event
+	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatch"]
+	if newBatchEvent.ID == (ethcommon.Hash{}) {
+		return nil, fmt.Errorf("NewBatch event not found in ABI")
+	}
+
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(int64(fromBlock)),
+		ToBlock:   big.NewInt(int64(latestBlock)),
+		Addresses: []ethcommon.Address{o.Config.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr},
+		Topics:    [][]ethcommon.Hash{{newBatchEvent.ID, {}}},
+	}
+
+	logs, err := o.Config.BaseConfig.EthRpcClient.FilterLogs(context.Background(), query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get logs: %w", err)
+	}
+
+	if len(logs) == 0 {
+		return nil, fmt.Errorf("no logs found")
+	}
+
+	lastLog := logs[len(logs)-1]
+
+	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatch", lastLog.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unpack log data: %w", err)
+	}
+
+	// The second topic is the batch merkle root, as it is an indexed variable in the contract
+	latestTask.BatchMerkleRoot = lastLog.Topics[1]
+
+	return &latestTask, nil
+
 }
 
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
