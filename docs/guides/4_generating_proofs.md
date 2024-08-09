@@ -111,11 +111,16 @@ This guide assumes that:
 
 ### How to generate a proof
 
-First, open the risc0 host file and add the following code to export image id & public input needed by Aligned.
+First, open the risc0 host file and add the following code to export proof, image id & public input needed by Aligned.
 
 ```rust
 fn main() {
     // your code here
+
+    // <proof_file_path> is the path where the proof will be saved
+    // Note that we serialize receipt.inner to avoid serializing the public inputs along with the proof
+    let serialized = bincode::serialize(&receipt.inner).expect("Failed to serialize the receipt");
+    std::fs::write("<proof_file_path", serialized).expect("Failed to write proof file");
 
     // <METHOD_ID> is the method id of the function you want to prove
     // <method_id_file_path> is the path where the method id will be saved
