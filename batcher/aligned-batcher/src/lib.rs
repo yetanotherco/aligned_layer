@@ -780,12 +780,7 @@ impl Batcher {
         let non_paying_config = self.non_paying_config.as_ref().unwrap();
         let addr = non_paying_config.replacement.address();
 
-        let user_balance = self
-            .payment_service
-            .user_balances(addr)
-            .call()
-            .await
-            .unwrap_or_default();
+        let user_balance = self.get_user_balance(&addr).await;
 
         if user_balance == U256::from(0) {
             error!("Insufficient funds for address {:?}", addr);
