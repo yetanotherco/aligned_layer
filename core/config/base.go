@@ -3,13 +3,14 @@ package config
 import (
 	"context"
 	"errors"
+	"log"
+	"math/big"
+	"os"
+
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/urfave/cli/v2"
-	"log"
-	"math/big"
-	"os"
 )
 
 var (
@@ -27,7 +28,9 @@ type BaseConfig struct {
 	EthRpcUrl                    string
 	EthWsUrl                     string
 	EthRpcClient                 eth.Client
+	EthRpcClientFallback         eth.Client
 	EthWsClient                  eth.Client
+	EthWsClientFallback          eth.Client
 	EigenMetricsIpPortAddress    string
 	ChainId                      *big.Int
 }
@@ -37,7 +40,9 @@ type BaseConfigFromYaml struct {
 	EigenLayerDeploymentConfigFilePath   string              `yaml:"eigen_layer_deployment_config_file_path"`
 	Environment                          sdklogging.LogLevel `yaml:"environment"`
 	EthRpcUrl                            string              `yaml:"eth_rpc_url"`
+	EthRpcUrlFallback                    string              `yaml:"eth_rpc_url_fallback"`
 	EthWsUrl                             string              `yaml:"eth_ws_url"`
+	EthWsUrlFallback                     string              `yaml:"eth_ws_url_fallback"`
 	EigenMetricsIpPortAddress            string              `yaml:"eigen_metrics_ip_port_address"`
 }
 
@@ -87,23 +92,32 @@ func NewBaseConfig(configFilePath string) *BaseConfig {
 		log.Fatal("Error initializing logger: ", err)
 	}
 
-	if baseConfigFromYaml.EthWsUrl == "" {
-		log.Fatal("Eth ws url is empty")
+	if baseConfigFromYaml.EthWsUrl == "" || baseConfigFromYaml.EthWsUrlFallback == "" {
+		log.Fatal("Eth ws url or fallback is empty")
 	}
 
 	ethWsClient, err := eth.NewClient(baseConfigFromYaml.EthWsUrl)
-
 	if err != nil {
 		log.Fatal("Error initializing eth ws client: ", err)
 	}
 
-	if baseConfigFromYaml.EthRpcUrl == "" {
+	ethWsClientFallback, err := eth.NewClient(baseConfigFromYaml.EthWsUrlFallback)
+	if err != nil {
+		log.Fatal("Error initializing eth ws client fallback: ", err)
+	}
+
+	if baseConfigFromYaml.EthRpcUrl == "" || baseConfigFromYaml.EthRpcUrlFallback == "" {
 		log.Fatal("Eth rpc url is empty")
 	}
 
 	ethRpcClient, err := eth.NewClient(baseConfigFromYaml.EthRpcUrl)
 	if err != nil {
 		log.Fatal("Error initializing eth rpc client: ", err)
+	}
+
+	ethRpcClientFallback, err := eth.NewClient(baseConfigFromYaml.EthRpcUrlFallback)
+	if err != nil {
+		log.Fatal("Error initializing eth rpc client fallback: ", err)
 	}
 
 	chainId, err := ethRpcClient.ChainID(context.Background())
@@ -123,7 +137,9 @@ func NewBaseConfig(configFilePath string) *BaseConfig {
 		EthRpcUrl:                    baseConfigFromYaml.EthRpcUrl,
 		EthWsUrl:                     baseConfigFromYaml.EthWsUrl,
 		EthRpcClient:                 ethRpcClient,
+		EthRpcClientFallback:         ethRpcClientFallback,
 		EthWsClient:                  ethWsClient,
+		EthWsClientFallback:          ethWsClientFallback,
 		EigenMetricsIpPortAddress:    baseConfigFromYaml.EigenMetricsIpPortAddress,
 		ChainId:                      chainId,
 	}
