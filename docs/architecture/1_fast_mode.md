@@ -12,7 +12,7 @@ The proof submission can be simplified as follows:
 ![Figure 1: Simplified Architecture.png](../images/simplified_architecture.png)
 
 1. The users submit proofs to the batcher through the CLI or SDK.
-2. The batcher accumulates proofs, and then sends the batch to the Data Service and posts the merkle root and data to
+2. The batcher accumulates proofs, and then sends the batch to some Data Service and posts the merkle root and data to
    Ethereum.
 3. The operators download the proofs from the Data Service, verify them, and sign the results.
 4. The BLS signature aggregator accumulates the signed responses until reaching the quorum, then sends the aggregated
