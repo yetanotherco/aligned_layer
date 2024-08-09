@@ -1,3 +1,4 @@
+use log::error;
 use risc0_zkvm::Receipt;
 
 #[no_mangle]
@@ -10,14 +11,30 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
     public_input_len: u32,
 ) -> bool {
     if receipt_bytes.is_null() || image_id.is_null() {
+        error!("Input buffer length null");
         return false;
+    }
+
+    if receipt_len == 0 || image_id_len == 0 {
+        error!("Input buffer length zero size");
+        return false;
+    }
+
+    let mut public_input: *const u8 = public_input;
+    let mut public_input_len: u32 = public_input_len;
+    if public_input.is_null() || public_input_len == 0 {
+        // set public input to pointer to empty slice
+        let empty_slice: &[u8] = &[];
+        public_input = empty_slice.as_ptr();
+        public_input_len = 0;
     }
 
     let receipt_bytes = unsafe { std::slice::from_raw_parts(receipt_bytes, receipt_len as usize) };
 
     let image_id = unsafe { std::slice::from_raw_parts(image_id, image_id_len as usize) };
 
-    let public_input = unsafe { std::slice::from_raw_parts(public_input, public_input_len as usize) };
+    let public_input =
+        unsafe { std::slice::from_raw_parts(public_input, public_input_len as usize) };
 
     let mut image_id_array = [0u8; 32];
     image_id_array.copy_from_slice(image_id);
@@ -27,6 +44,7 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
             return false;
         }
 
+        //TODO(pat): Can't we just input this as slice
         return receipt.verify(image_id_array).is_ok();
     }
     false

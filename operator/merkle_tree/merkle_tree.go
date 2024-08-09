@@ -9,8 +9,11 @@ package merkle_tree
 import "C"
 import "unsafe"
 
-
 func VerifyMerkleTreeBatch(batchBuffer []byte, batchLen uint, merkleRootBuffer [32]byte) bool {
+	if len(batchBuffer) == 0 {
+		return false
+	}
+
 	batchPtr := (*C.uchar)(unsafe.Pointer(&batchBuffer[0]))
 	merkleRootPtr := (*C.uchar)(unsafe.Pointer(&merkleRootBuffer[0]))
 	return (bool)(C.verify_merkle_tree_batch_ffi(batchPtr, (C.uint)(batchLen), merkleRootPtr))
