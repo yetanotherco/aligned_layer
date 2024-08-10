@@ -5,8 +5,10 @@ defmodule Restakings do
 
   schema "restakings" do
     field :operator_id, :binary
+    field :operator_address, :binary
     field :stake, :decimal
     field :quorum_number, :integer
+    field :strategy_address, :binary
 
     timestamps()
   end
@@ -14,8 +16,8 @@ defmodule Restakings do
   @doc false
   def changeset(restaking, attrs) do
     restaking
-    |> cast(attrs, [:operator_id, :stake, :quorum_number])
-    |> validate_required([:operator_id, :stake, :quorum_number])
+    |> cast(attrs, [:operator_id, :operator_address, :stake, :quorum_number, :strategy_address])
+    |> validate_required([:operator_id, :stake, :quorum_number, :strategy_address])
   end
 
   def generate_changeset(%Restakings{} = restaking) do
@@ -24,31 +26,25 @@ defmodule Restakings do
 
   def process_restaking_changes(%{fromBlock: from_block}) do
     Operators.get_operators()
-      |> Enum.map(fn operator -> StakeRegistryManager.get_latest_stake_update(%{fromBlock: from_block, operator_id: operator.id}) end)
-      |> Enum.map(&parse_stake_update_event/1)
+      |> Enum.map(fn operator -> StakeRegistryManager.has_operator_changed_staking(%{fromBlock: from_block, operator_id: operator.id, operator_address: operator.address}) end)
+      |> Enum.reject(fn {_operator_id, _operator_address, has_changed_stake} -> not has_changed_stake end)
+      |> Enum.map(fn {operator_id, operator_address, _has_changed_stake} -> DelegationManager.get_operator_all_strategies_shares(%Operators{id: operator_id, address: operator_address}) end)
       |> Enum.map(&insert_or_update_restakings/1)
   end
 
-  def parse_stake_update_event(%Ethers.Event{} = event) do
-    %Restakings{
-      operator_id: Enum.at(event.topics, 1),
-      quorum_number: Enum.at(event.data, 0),
-      stake: Enum.at(event.data, 1)
-    }
-  end
-
   def insert_or_update_restakings(%Restakings{} = restaking) do
-    dbg restaking
     changeset = restaking |> generate_changeset()
+
+    # Temporal solution to handle new quorums, until Eigenlayer implements emition of QuorumCreated event
     Quorums.handle_quorum(%Quorums{id: restaking.quorum_number})
 
-    case Restakings.get_by_quorum_and_operator_id(restaking.quorum_number, restaking.operator_id) do
+    case Restakings.get_by_operator_and_strategy(%Restakings{operator_address: restaking.operator_address, strategy_address: restaking.strategy_address}) do
       nil ->
-        "inserting restaking" |> dbg
+        "nil, inserting restaking" |> dbg
         Explorer.Repo.insert(changeset)
 
       [] ->
-        "inserting restaking" |> dbg
+        "[], inserting restaking" |> dbg
         Explorer.Repo.insert(changeset)
 
       existing_restaking ->
@@ -58,15 +54,13 @@ defmodule Restakings do
     end
   end
 
-  def get_by_quorum_and_operator_id(quorum_number, operator_id) do
+   def get_by_operator_and_strategy(%Restakings{operator_address: operator_address, strategy_address: strategy_address}) do
     query = from(
       r in Restakings,
-      where: r.quorum_number == ^quorum_number
-           and r.operator_id == ^operator_id,
+      where: r.operator_address == ^operator_address and r.strategy_address == ^strategy_address,
       select: r
     )
-
-    Explorer.Repo.one(query)
+    Explorer.Repo.all(query)
   end
 
   def get_aggregated_restakings() do
@@ -74,7 +68,6 @@ defmodule Restakings do
       r in Restakings,
       select: %{total_stake: sum(r.stake)}
     )
-
     Explorer.Repo.one(query)
   end
 
@@ -84,7 +77,6 @@ defmodule Restakings do
       where: r.operator_id == ^operator_id,
       select: r
     )
-
     Explorer.Repo.all(query)
   end
 
@@ -94,7 +86,6 @@ defmodule Restakings do
       where: r.operator_id == ^operator_id,
       select: %{total_stake: sum(r.stake)}
     )
-
     Explorer.Repo.one(query)
   end
 

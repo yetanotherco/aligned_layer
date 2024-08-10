@@ -33,21 +33,21 @@ defmodule StakeRegistryManager do
     @stake_registry_manager
   end
 
-  def get_latest_stake_update(%{fromBlock: fromBlock, operator_id: operator_id}) do
-      StakeRegistryManager.EventFilters.operator_stake_update(operator_id)
-        |> Ethers.get_logs(fromBlock: fromBlock)
-        |> case do
-          {:ok, data} ->
-            List.last(data) # most recent entry
+  def has_operator_changed_staking(%{fromBlock: fromBlock, operator_id: operator_id, operator_address: operator_address}) do
+    StakeRegistryManager.EventFilters.operator_stake_update(operator_id)
+      |> Ethers.get_logs(fromBlock: fromBlock)
+      |> case do
+        {:ok, data} ->
+          {operator_id, operator_address, Enum.count(data) > 1}
 
-          {:error, reason} ->
-            dbg("Error getting latest operator stake update")
-            dbg(reason)
+        {:error, reason} ->
+          dbg("Error getting latest operator stake update")
+          dbg(reason)
 
-          other ->
-            dbg("Unexpected response:")
-            dbg(other)
-        end
+        other ->
+          dbg("Unexpected response:")
+          dbg(other)
+      end
   end
 
   def get_strategies_of_quorum(quorum_number) do
@@ -74,47 +74,18 @@ defmodule StakeRegistryManager do
     strategies |> Enum.reverse()
   end
 
+  def get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: nil}) do # AT THE MOMENT, ONLY USING QUORUM 0
+    get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: 0})
+  end
+  def get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: quorum_number}) do
+    case StakeRegistryManager.weight_of_operator_for_quorum(quorum_number, operator_address) |> Ethers.call() do
+      {:ok, stake_of_operator} ->
+        stake_of_operator
+      {:error, error} ->
+        dbg("Error fetching stake of operator: #{error}")
+        raise("Error fetching stake of operator: #{error}")
+    end
+  end
+
 end
 
-  # relevant structs:
-  # /// @ struct used to store the stakes of an individual operator or the sum of all operators' stakes, for storage
-  # struct StakeUpdate {
-  #     // the block number at which the stake amounts were updated and stored
-  #     uint32 updateBlockNumber;
-  #     // the block number at which the *next update* occurred.
-  #     /// @notice This entry has the value **0** until another update takes place.
-  #     uint32 nextUpdateBlockNumber;
-  #     // stake weight for the quorum
-  #     uint96 stake;
-  # }
-
-  # relevant events:
-
-  # /// @ emitted whenever the stake of `operator` is updated
-  # event OperatorStakeUpdate(
-  #     bytes32 indexed operatorId,
-  #     uint8 quorumNumber,
-  #     uint96 stake
-  # );
-
-  # relevant views:
-#   /**
-#   * @ This function computes the total weight of the @param operator in the quorum @param quorumNumber.
-#   */
-#  function weightOfOperatorForQuorum(uint8 quorumNumber, address operator) external view returns (uint96);
-
-# /**
-# * @ Returns the most recent stake weight for the `operatorId` for a certain quorum
-# * @dev Function returns an StakeUpdate struct with **every entry equal to 0** in the event that the operator has no stake history
-# */
-# function getLatestStakeUpdate(bytes32 operatorId, uint8 quorumNumber) external view returns (StakeUpdate memory);
-
-# /**
-# * @ Returns the stake weight from the latest entry in `_totalStakeHistory` for quorum `quorumNumber`.
-# */
-# function getCurrentTotalStake(uint8 quorumNumber) external view returns (uint96);
-
-# /**
-# * @ Returns the most recent stake weight for the `operatorId` for quorum `quorumNumber`
-# */
-# function getCurrentStake(bytes32 operatorId, uint8 quorumNumber) external view returns (uint96);

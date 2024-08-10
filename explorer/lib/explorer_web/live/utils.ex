@@ -138,6 +138,11 @@ defmodule Utils do
     hex_string |> String.replace_prefix("0x", "") |> String.to_integer(16)
   end
 
+  def binary_to_hex_string(binary) do
+    hex_string = binary |> Base.encode16(case: :lower)
+    "0x" <> hex_string
+  end
+
   def get_last_n_items(events, n) when is_list(events) and is_integer(n) and n >= 0 do
     events
     |> Enum.reverse()
@@ -148,10 +153,7 @@ defmodule Utils do
   def calculate_proof_hashes({:ok, batch_json}) do
     batch_json
     |> Enum.map(fn s3_object ->
-      # TODO this is current prod version
       :crypto.hash(:sha3_256, s3_object["proof"])
-      # TODO this is current stage version
-      # :crypto.hash(:sha3_256, s3_object["verification_data"]["proof"])
     end)
   end
 

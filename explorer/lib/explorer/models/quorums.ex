@@ -8,16 +8,6 @@ defmodule Quorums do
     timestamps()
   end
 
-
-  @doc false
-  # def changeset(x, attrs) do
-  #   x
-  #     |> cast(attrs, [])
-  # end
-
-  # def generate_changeset(%Quorums{} = quorum) do
-  # end
-
   def process_quorum_changes() do
     our_quorums = get_all_quorums()
 
@@ -41,10 +31,9 @@ defmodule Quorums do
   end
 
   def insert_quorum_if_not_present(%Quorums{} = quorum) do
-    dbg "inserting quorum?"
     case get_quorum_by_id(quorum.id) do
       nil ->
-        dbg "inserted quorum"
+        dbg "inserting quorum"
         Explorer.Repo.insert(quorum)
       _ ->
         nil
@@ -89,8 +78,6 @@ defmodule QuorumStrategies do
 
 
   def get_quorum_strategy_associations(%Quorums{} = quorum) do
-    dbg "get_quorum_strategy_associations"
-    dbg quorum
     query = from(qs in "quorum_strategies",
       where: qs.quorum_id == ^quorum.id,
       select: qs.strategy_id)
@@ -98,16 +85,10 @@ defmodule QuorumStrategies do
   end
 
   def insert_quorum_strategy(%Quorums{} = quorum, %Strategies{} = strategy) do
-    dbg "pre inserting quorum-strategy"
-
     existing_strategies = QuorumStrategies.get_quorum_strategy_associations(quorum)
-    dbg "existing_strategies: #{inspect(existing_strategies)}"
-    dbg "strategy: #{inspect(strategy)}"
 
     unless strategy.id in existing_strategies do
-      dbg "inserting quorum-strategy"
       QuorumStrategies.generate_changeset(quorum.id, strategy.id) |> Explorer.Repo.insert() |> dbg
-      dbg "done"
     end
   end
   def insert_quorum_strategy(_any, nil) do

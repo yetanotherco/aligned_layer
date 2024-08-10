@@ -13,6 +13,7 @@ defmodule Operators do
     field :logo_link, :string
     field :twitter, :string
     field :is_active, :boolean
+    field :total_stake, :decimal
 
     timestamps()
   end
@@ -20,8 +21,8 @@ defmodule Operators do
   @doc false
   def changeset(operator, attrs) do
     operator
-    |> cast(attrs, [:address, :id, :name, :url, :website, :description, :logo_link, :twitter, :is_active])
-    |> validate_required([:address, :id, :url, :is_active])
+    |> cast(attrs, [:address, :id, :name, :url, :website, :description, :logo_link, :twitter, :is_active, :total_stake])
+    |> validate_required([:address, :id, :url, :is_active, :total_stake])
     |> unique_constraint(:address)
     |> unique_constraint(:id)
   end
@@ -32,6 +33,11 @@ defmodule Operators do
 
   def get_operator_by_address(address) do
     query = from(o in Operators, where: o.address == ^address, select: o)
+    Explorer.Repo.one(query)
+  end
+
+  def get_operator_by_id(id) do
+    query = from(o in Operators, where: o.id == ^id, select: o)
     Explorer.Repo.one(query)
   end
 
@@ -70,9 +76,40 @@ defmodule Operators do
     end
   end
 
+  def handle_operator_registration(event) do
+    operator_address = Enum.at(event.topics, 1)
+    operator_id = RegistryCoordinatorManager.get_operator_id_from_chain(operator_address)
+    operator_url = DelegationManager.get_operator_url(operator_address)
+    dbg operator_url
+    operator_metadata = case Utils.fetch_eigen_operator_metadata(operator_url) do
+      {:ok, operator_metadata} ->
+        operator_metadata
+
+      {:error, reason} ->
+        case reason do
+          %Jason.DecodeError{} ->
+            dbg("Error decoding operator metadata: operator link does not contain a JSON")
+          _ ->
+            dbg("Error fetching operator metadata:", reason)
+        end
+        %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
+    end
+    total_stake = StakeRegistryManager.get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address})
+    register_or_update_operator(%Operators{id: operator_id, name: operator_metadata.name, address: operator_address, url: operator_url, website: operator_metadata.website, description: operator_metadata.description, logo_link: operator_metadata.logo, twitter: operator_metadata.twitter, is_active: true, total_stake: total_stake})
+  end
+
+  def handle_operator_unregistration(event) do
+    unregister_operator(%Operators{address: Enum.at(event.topics, 1)})
+  end
+
   def unregister_operator(%Operators{address: address}) do
     query = from(o in Operators, where: o.address == ^address)
     Explorer.Repo.update_all(query, set: [is_active: false])
+  end
+
+  def get_total_stake(%Operators{} = operator) do
+    query = from(o in Operators, where: o.address == ^operator.address, select: o.total_stake)
+    Explorer.Repo.one(query)
   end
 
 end

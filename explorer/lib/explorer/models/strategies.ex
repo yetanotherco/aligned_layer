@@ -45,10 +45,10 @@ defmodule Strategies do
 
   def extract_info(strategy_address) do
     %Strategies{strategy_address: strategy_address}
-    |> StrategyManager.fetch_token_address()
-    |> StrategyManager.fetch_token_name()
-    |> StrategyManager.fetch_token_symbol()
-    # Total stake is set when inserting rows to `Restakings` table
+    |> Strategy.fetch_token_address()
+    |> Strategy.fetch_token_name()
+    |> Strategy.fetch_token_symbol()
+    # Total stake is set when inserting rows to `Restakings` table (?)
   end
 
   def add_strategy(%Strategies{} = new_strategy) do
@@ -62,6 +62,13 @@ defmodule Strategies do
   def get_all_strategies() do
     query = from(s in Strategies,
       select: s)
+    Explorer.Repo.all(query)
+  end
+
+  def get_all_strategies_addresses() do
+    query = from(s in Strategies,
+      order_by: [asc: s.id],
+      select: s.strategy_address)
     Explorer.Repo.all(query)
   end
 

@@ -30,8 +30,8 @@ defmodule Explorer.Periodically do
     new_count = rem(count + 1, run_every_n_iterations)
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
-      Task.start(fn -> process_operators(read_from_block) end)
       Task.start(fn -> process_quorum_strategy_changes() end)
+      Task.start(fn -> process_operators(read_from_block) end)
       Task.start(fn -> process_restaking_changes(read_from_block) end)
     end
     # process_operators(0)
@@ -117,15 +117,15 @@ defmodule Explorer.Periodically do
     )
   end
 
-  def process_operators(fromBlock) do
-    "Processing operators..." |> IO.inspect()
-    AVSDirectoryManager.process_operator_data(%{fromBlock: fromBlock})
-  end
-
   def process_quorum_strategy_changes() do
     "Processing strategy changes..." |> IO.inspect()
     AlignedLayerServiceManager.update_restakeable_strategies()
     Quorums.process_quorum_changes()
+  end
+
+  def process_operators(fromBlock) do
+    "Processing operators..." |> IO.inspect()
+    AVSDirectoryManager.process_and_store_operator_data(%{fromBlock: fromBlock})
   end
 
   def process_restaking_changes(read_from_block) do
