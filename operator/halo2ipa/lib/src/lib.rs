@@ -23,18 +23,15 @@ use std::{
 pub extern "C" fn verify_halo2_ipa_proof_ffi(
     proof_buf: *const u8,
     proof_len: u32,
-    cs_buf: *const u8,
-    cs_len: u32,
-    vk_buf: *const u8,
-    vk_len: u32,
     params_buf: *const u8,
     params_len: u32,
     public_input_buf: *const u8,
     public_input_len: u32,
 ) -> bool {
+    //TODO
+    // - Abstract deserialization logic to external function.
+
     if proof_buf.is_null()
-        || cs_buf.is_null()
-        || vk_buf.is_null()
         || params_buf.is_null()
         || public_input_buf.is_null()
     {
@@ -42,54 +39,94 @@ pub extern "C" fn verify_halo2_ipa_proof_ffi(
         return false;
     }
 
-    if proof_len == 0 || cs_len == 0 || vk_len == 0 || params_len == 0 || public_input_len == 0 {
+    // NOTE: Params contains the cs, vk, and params with there respective sizes serialized in front as u32 values [ 12 bytes | cs_bytes | vk_bytes | vk_params_bytes ].
+    if proof_len == 0 || params_len <= 12 || public_input_len == 0 {
         error!("Input buffer length zero size");
         return false;
     }
 
     let proof_bytes = unsafe { slice::from_raw_parts(proof_buf, proof_len as usize) };
 
-    let cs_bytes = unsafe { slice::from_raw_parts(cs_buf, cs_len as usize) };
-
-    let vk_bytes = unsafe { slice::from_raw_parts(vk_buf, vk_len as usize) };
-
     let params_bytes = unsafe { slice::from_raw_parts(params_buf, params_len as usize) };
 
     let public_input_bytes =
         unsafe { slice::from_raw_parts(public_input_buf, public_input_len as usize) };
 
-    //TODO
-    // - Use const *u8
-    // - Validate input array length is size of cs_len
-    if let Ok(cs) = bincode::deserialize(cs_bytes) {
-        if let Ok(vk) =
-            VerifyingKey::<G1Affine>::read(&mut BufReader::new(vk_bytes), SerdeFormat::RawBytes, cs)
-        {
-            if let Ok(params) = Params::read::<_>(&mut BufReader::new(params_bytes)) {
-                if let Ok(res) = read_fr(public_input_bytes) {
-                    let strategy = SingleStrategy::new(&params);
-                    let instances = res;
-                    let mut transcript =
-                        Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(proof_bytes);
-                    return verify_proof::<
-                        IPACommitmentScheme<G1Affine>,
-                        VerifierIPA<G1Affine>,
-                        Challenge255<G1Affine>,
-                        Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
-                        SingleStrategy<G1Affine>,
-                    >(
-                        &params, &vk, strategy, &[vec![instances]], &mut transcript
-                    )
-                    .is_ok();
+    // Deserialize bytes
+    if let Ok((cs_bytes, vk_bytes, vk_params_bytes)) = deserialize_verification_params(&params_bytes) {
+        if let Ok(cs) = bincode::deserialize(cs_bytes) {
+            if let Ok(vk) =
+                VerifyingKey::<G1Affine>::read(&mut BufReader::new(vk_bytes), SerdeFormat::RawBytes, cs)
+            {
+                if let Ok(params) = Params::read::<_>(&mut BufReader::new(vk_params_bytes)) {
+                    if let Ok(res) = read_fr(public_input_bytes) {
+                        let strategy = SingleStrategy::new(&params);
+                        let instances = res;
+                        let mut transcript =
+                            Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(proof_bytes);
+                        return verify_proof::<
+                            IPACommitmentScheme<G1Affine>,
+                            VerifierIPA<G1Affine>,
+                            Challenge255<G1Affine>,
+                            Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
+                            SingleStrategy<G1Affine>,
+                        >(
+                            &params, &vk, strategy, &[vec![instances]], &mut transcript
+                        )
+                        .is_ok();
+                    }
+                    error!("Failed to deserialize public inputs");
                 }
+                error!("Failed to deserialize verification parameters");
             }
+            error!("Failed to deserialize verification key");
         }
+        error!("Failed to deserialize verifiation parameter buffers from parameters buffer ");
     }
     false
 }
 
+fn deserialize_verification_params(buf: &[u8]) -> Result<(&[u8], &[u8], &[u8]), ErrorKind> {
+    // Deserialize
+    let cs_len_buf: [u8; 4] = buf[..4]
+        .try_into()
+        .map_err(|_| "Failed to convert slice to [u8; 4]")
+        .unwrap();
+    let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
+    let vk_len_buf: [u8; 4] = buf[4..8]
+        .try_into()
+        .map_err(|_| "Failed to convert slice to [u8; 4]")
+        .unwrap();
+    let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
+    let params_len_buf: [u8; 4] = buf[8..12]
+        .try_into()
+        .map_err(|_| "Failed to convert slice to [u8; 4]")
+        .unwrap();
+    let params_len = u32::from_le_bytes(params_len_buf) as usize;
+
+    //Verify declared lengths are less than total length.
+    if (12 + cs_len + vk_len + params_len) > buf.len() {
+        error!("Serialized parameter lengths greater than parameter bytes length");
+        return Err(ErrorKind::Other)
+    }
+
+    // Select Constraint System Bytes
+    let cs_offset = 12;
+    let cs_buffer = &buf[cs_offset..(cs_offset + cs_len)];
+
+    // Select Verifier Key Bytes
+    let vk_offset = cs_offset + cs_len;
+    let vk_buffer = &buf[vk_offset..(vk_offset + vk_len)];
+
+    // Select ipa Params Bytes
+    let params_offset = vk_offset + vk_len;
+    let params_buffer = &buf[params_offset..(params_offset + params_len)];
+
+    Ok((cs_buffer, vk_buffer, params_buffer))
+}
+
 fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
-    //TODO: make this capacity the size of the file / 32
+    // TODO: can this error out?
     let mut instances = Vec::with_capacity(buf.len() / 32);
     // Buffer to store each 32-byte slice
     let mut buffer = [0; 32];
@@ -100,12 +137,13 @@ fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
             Ok(_) => {
                 instances.push(Fr::from_bytes(&buffer).unwrap());
             }
+            //TODO: is this a bad practice? Can we make it better?
             Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
                 // If end of file reached, break the loop
                 break;
             }
             Err(e) => {
-                eprintln!("Error Deserializing Public Inputs: {}", e);
+                error!("Error Deserializing Public Inputs: {}", e);
                 return Err(ErrorKind::Other);
             }
         }
@@ -237,15 +275,6 @@ mod tests {
         io::{BufWriter, Read, Write},
     };
 
-    // MaxConstraintSystemSize 2KB
-    pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
-
-    // MaxVerificationKeySize 1KB
-    pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
-
-    // MaxKzgParamsSize 4KB
-    pub const MAX_IPA_PARAMS_SIZE: usize = 4 * 1024;
-
     const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/halo2_ipa/proof.bin");
 
     const PUB_INPUT: &[u8] =
@@ -354,45 +383,17 @@ mod tests {
         let mut params_buf = Vec::new();
         f.read_to_end(&mut params_buf).unwrap();
 
-        // Select Constraint System Bytes
-        let mut cs_buffer = [0u8; MAX_CONSTRAINT_SYSTEM_SIZE];
-        let cs_len_buf: [u8; 4] = params_buf[..4]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to [u8; 4]")
-            .unwrap();
-        let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
-        let cs_offset = 12;
-        cs_buffer[..cs_len].clone_from_slice(&params_buf[cs_offset..(cs_offset + cs_len)]);
+        let (cs_bytes, vk_bytes, vk_params_bytes) = deserialize_verification_params(&params_buf).unwrap();
 
-        // Select Verifier Key Bytes
-        let mut vk_buffer = [0u8; MAX_VERIFIER_KEY_SIZE];
-        let vk_len_buf: [u8; 4] = params_buf[4..8]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to [u8; 4]")
-            .unwrap();
-        let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
-        let vk_offset = cs_offset + cs_len;
-        vk_buffer[..vk_len].clone_from_slice(&params_buf[vk_offset..(vk_offset + vk_len)]);
-
-        // Select ipa Params Bytes
-        let mut ipa_params_buffer = [0u8; MAX_IPA_PARAMS_SIZE];
-        let ipa_len_buf: [u8; 4] = params_buf[8..12]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to [u8; 4]")
-            .unwrap();
-        let ipa_params_len = u32::from_le_bytes(ipa_len_buf) as usize;
-        let ipa_offset = vk_offset + vk_len;
-        ipa_params_buffer[..ipa_params_len].clone_from_slice(&params_buf[ipa_offset..]);
-
-        let cs = bincode::deserialize(&cs_buffer[..cs_len]).unwrap();
+        let cs = bincode::deserialize(cs_bytes).unwrap();
         let vk = VerifyingKey::<G1Affine>::read(
-            &mut BufReader::new(&vk_buffer[..vk_len]),
+            &mut BufReader::new(vk_bytes),
             SerdeFormat::RawBytes,
             cs,
         )
         .unwrap();
         let params =
-            Params::read::<_>(&mut BufReader::new(&ipa_params_buffer[..ipa_params_len])).unwrap();
+            Params::read::<_>(&mut BufReader::new(vk_params_bytes)).unwrap();
 
         let strategy = SingleStrategy::new(&params);
         let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
@@ -411,50 +412,20 @@ mod tests {
 
     #[test]
     fn verify_halo2_plonk_proof() {
-        // Select Proof Bytes
         let proof_len = PROOF.len();
         let proof_bytes = PROOF.as_ptr();
 
-        // Select Constraint System Bytes
-        let cs_len_buf: [u8; 4] = PARAMS[..4]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to [u8; 4]")
-            .unwrap();
-        let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
-        let cs_offset = 12;
-        let cs_bytes = PARAMS[cs_offset..(cs_offset + cs_len)].as_ptr();
+        let params_len = PARAMS.len();
+        let params_bytes = PARAMS.as_ptr();
 
-        // Select Verifier Key Bytes
-        let vk_len_buf: [u8; 4] = PARAMS[4..8]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to [u8; 4]")
-            .unwrap();
-        let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
-        let vk_offset = cs_offset + cs_len;
-        let vk_bytes = PARAMS[vk_offset..(vk_offset + vk_len)].as_ptr();
-
-        // Select ipa Params Bytes
-        let ipa_len_buf: [u8; 4] = PARAMS[8..12]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to [u8; 4]")
-            .unwrap();
-        let ipa_params_len = u32::from_le_bytes(ipa_len_buf) as usize;
-        let ipa_offset = vk_offset + vk_len;
-        let ipa_params_bytes = PARAMS[ipa_offset..].as_ptr();
-
-        // Select Public Input Bytes
         let public_input_len = PUB_INPUT.len();
         let public_input_bytes = PUB_INPUT.as_ptr();
 
         let result = verify_halo2_ipa_proof_ffi(
             proof_bytes,
             proof_len as u32,
-            cs_bytes,
-            cs_len as u32,
-            vk_bytes,
-            vk_len as u32,
-            ipa_params_bytes,
-            ipa_params_len as u32,
+            params_bytes,
+            params_len as u32,
             public_input_bytes,
             public_input_len as u32,
         );
@@ -467,46 +438,17 @@ mod tests {
         let proof_len = PROOF.len();
         let proof_bytes = PROOF.as_ptr();
 
-        // Select Constraint System Bytes
-        let cs_len_buf: [u8; 4] = PARAMS[..4]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to array")
-            .unwrap();
-        let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
-        let cs_offset = 12;
-        let cs_bytes = PARAMS[cs_offset..(cs_offset + cs_len)].as_ptr();
+        let params_len = PARAMS.len();
+        let params_bytes = PARAMS.as_ptr();
 
-        // Select Verifier Key Bytes
-        let vk_len_buf: [u8; 4] = PARAMS[4..8]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to array")
-            .unwrap();
-        let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
-        let vk_offset = cs_offset + cs_len;
-        let vk_bytes = PARAMS[vk_offset..(vk_offset + vk_len)].as_ptr();
-
-        // Select ipa Params Bytes
-        let ipa_len_buf: [u8; 4] = PARAMS[8..12]
-            .try_into()
-            .map_err(|_| "Failed to convert slice to array")
-            .unwrap();
-        let ipa_params_len = u32::from_le_bytes(ipa_len_buf) as usize;
-        let ipa_offset = vk_offset + vk_len;
-        let ipa_params_bytes = PARAMS[ipa_offset..].as_ptr();
-
-        // Select Public Input Bytes
         let public_input_len = PUB_INPUT.len();
         let public_input_bytes = PUB_INPUT.as_ptr();
 
         let result = verify_halo2_ipa_proof_ffi(
             proof_bytes,
             (proof_len - 1) as u32,
-            cs_bytes,
-            cs_len as u32,
-            vk_bytes,
-            vk_len as u32,
-            ipa_params_bytes,
-            ipa_params_len as u32,
+            params_bytes,
+            params_len as u32,
             public_input_bytes,
             public_input_len as u32,
         );

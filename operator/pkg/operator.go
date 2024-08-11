@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -244,110 +243,26 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2IPA:
-		// Extract Proof Bytes
-		proofBytes := make([]byte, halo2ipa.MaxProofSize)
-		copy(proofBytes, verificationData.Proof)
 		proofLen := (uint32)(len(verificationData.Proof))
-
-		// Extract Verification Key Bytes
-		paramsBytes := verificationData.VerificationKey
-
-		// Deserialize csLen
-		csLenBuffer := make([]byte, 4)
-		copy(csLenBuffer, paramsBytes[:4])
-		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
-
-		// Deserialize vkLen
-		vkLenBuffer := make([]byte, 4)
-		copy(vkLenBuffer, paramsBytes[4:8])
-		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
-
-		// Deserialize ipaParamLen
-		IpaParamsLenBuffer := make([]byte, 4)
-		copy(IpaParamsLenBuffer, paramsBytes[8:12])
-		IpaParamsLen := (uint32)(binary.LittleEndian.Uint32(IpaParamsLenBuffer))
-
-		// Extract Constraint System Bytes
-		csBytes := make([]byte, halo2ipa.MaxConstraintSystemSize)
-		csOffset := uint32(12)
-		copy(csBytes, paramsBytes[csOffset:(csOffset+csLen)])
-
-		// Extract Verification Key Bytes
-		vkBytes := make([]byte, halo2ipa.MaxVerifierKeySize)
-		vkOffset := csOffset + csLen
-		copy(vkBytes, paramsBytes[vkOffset:(vkOffset+vkLen)])
-
-		// Extract ipa Parameter Bytes
-		IpaParamsBytes := make([]byte, (halo2ipa.MaxIpaParamsSize))
-		IpaParamsOffset := vkOffset + vkLen
-		copy(IpaParamsBytes, paramsBytes[IpaParamsOffset:])
-
-		// Extract Public Input Bytes
-		publicInput := verificationData.PubInput
-		publicInputBytes := make([]byte, halo2ipa.MaxPublicInputSize)
-		copy(publicInputBytes, publicInput)
-		publicInputLen := (uint32)(len(publicInput))
+		paramsLen := (uint32)(len(verificationData.VerificationKey))
+		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2ipa.VerifyHalo2IpaProof(
-			([halo2ipa.MaxProofSize]byte)(proofBytes), proofLen,
-			([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), csLen,
-			([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), vkLen,
-			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen,
-			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen)
+			verificationData.Proof, proofLen,
+			verificationData.VerificationKey, paramsLen,
+			verificationData.PubInput, publicInputLen)
 
 		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2KZG:
-		// Extract Proof Bytes
-		proofBytes := make([]byte, halo2kzg.MaxProofSize)
-		copy(proofBytes, verificationData.Proof)
 		proofLen := (uint32)(len(verificationData.Proof))
-
-		// Extract Verification Key Bytes
-		paramsBytes := verificationData.VerificationKey
-
-		// Deserialize csLen
-		csLenBuffer := make([]byte, 4)
-		copy(csLenBuffer, paramsBytes[:4])
-		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
-
-		// Deserialize vkLen
-		vkLenBuffer := make([]byte, 4)
-		copy(vkLenBuffer, paramsBytes[4:8])
-		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
-
-		// Deserialize kzgParamLen
-		kzgParamsLenBuffer := make([]byte, 4)
-		copy(kzgParamsLenBuffer, paramsBytes[8:12])
-		kzgParamsLen := (uint32)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
-
-		// Extract Constraint System Bytes
-		csBytes := make([]byte, halo2kzg.MaxConstraintSystemSize)
-		csOffset := uint32(12)
-		copy(csBytes, paramsBytes[csOffset:(csOffset+csLen)])
-
-		// Extract Verification Key Bytes
-		vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
-		vkOffset := csOffset + csLen
-		copy(vkBytes, paramsBytes[vkOffset:(vkOffset+vkLen)])
-
-		// Extract Kzg Parameter Bytes
-		kzgParamsBytes := make([]byte, (halo2kzg.MaxKzgParamsSize))
-		kzgParamsOffset := vkOffset + vkLen
-		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:])
-
-		// Extract Public Input Bytes
-		publicInput := verificationData.PubInput
-		publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
-		copy(publicInputBytes, publicInput)
-		publicInputLen := (uint32)(len(publicInput))
+		paramsLen := (uint32)(len(verificationData.VerificationKey))
+		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
-			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen,
-			([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), csLen,
-			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen,
-			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen,
-			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen)
+			verificationData.Proof, proofLen,
+			verificationData.VerificationKey, paramsLen,
+			verificationData.PubInput, publicInputLen)
 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		results <- verificationResult
