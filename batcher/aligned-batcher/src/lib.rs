@@ -47,8 +47,6 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
-// Test
-
 const AGGREGATOR_COST: u128 = 400000;
 const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
 const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
