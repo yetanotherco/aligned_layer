@@ -257,11 +257,9 @@ defmodule ExplorerWeb.CoreComponents do
 
   def root_background(assigns) do
     ~H"""
-    <div class="min-h-screen">
-      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-accent/80 selection:text-accent-foreground/80">
+      <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-accent/80 selection:text-accent-foreground/80 min-h-screen">
         <%= render_slot(@inner_block) %>
       </main>
-    </div>
     """
   end
 
