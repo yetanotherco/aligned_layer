@@ -24,7 +24,7 @@ use eth::BatcherPaymentService;
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
-use futures_util::stream::{self, SplitSink};
+use futures_util::stream::SplitSink;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -449,7 +449,13 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
 
-        let current_batch_size = cbor_serialize(&batch_verification_data).unwrap().len();
+        let current_batch_size = match cbor_serialize(&batch_verification_data) {
+            Ok(serialized) => serialized.len(),
+            Err(e) => {
+                error!("Failed to serialize verification data: {:?}", e);
+                return None;
+            }
+        };
 
         // check if the current batch needs to be splitted into smaller batches
         if current_batch_size > self.max_batch_size {
@@ -457,7 +463,13 @@ impl Batcher {
             let mut acc_batch_size = 0;
             let mut finalized_batch_idx = 0;
             for (idx, (verification_data, _, _, _)) in batch_state.batch_queue.iter().enumerate() {
-                acc_batch_size += cbor_serialize(verification_data).unwrap().len();
+                acc_batch_size += match cbor_serialize(verification_data) {
+                    Ok(serialized) => serialized.len(),
+                    Err(e) => {
+                        error!("Failed to serialize verification data: {:?}", e);
+                        return None;
+                    }
+                };
                 if acc_batch_size > self.max_batch_size {
                     finalized_batch_idx = idx;
                     break;
@@ -562,9 +574,7 @@ impl Batcher {
             return Err(e);
         };
 
-        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
-
-        Ok(())
+        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
@@ -825,44 +835,43 @@ impl Batcher {
 async fn send_batch_inclusion_data_responses(
     finalized_batch: BatchQueue,
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
-) {
-    stream::iter(finalized_batch.iter())
-        .enumerate()
-        .for_each(|(vd_batch_idx, (_, _, ws_sink, _))| async move {
-            let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
-            let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+) -> Result<(), BatcherError> {
+    for (vd_batch_idx, (_, _, ws_sink, _)) in finalized_batch.iter().enumerate() {
+        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+        let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
 
-            let serialized_response =
-                cbor_serialize(&response).expect("Could not serialize response");
+        let serialized_response = cbor_serialize(&response)
+            .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
 
-            let sending_result = ws_sink
-                .write()
-                .await
-                .send(Message::binary(serialized_response))
-                .await;
+        let sending_result = ws_sink
+            .write()
+            .await
+            .send(Message::binary(serialized_response))
+            .await;
 
-            match sending_result {
-                Err(Error::AlreadyClosed) => (),
-                Err(e) => error!("Error while sending batch inclusion data response: {}", e),
-                Ok(_) => (),
-            }
+        match sending_result {
+            Err(Error::AlreadyClosed) => (),
+            Err(e) => error!("Error while sending batch inclusion data response: {}", e),
+            Ok(_) => (),
+        }
 
-            info!("Response sent");
-        })
-        .await;
+        info!("Response sent");
+    }
+
+    Ok(())
 }
 
 async fn send_message<T: Serialize>(
     ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     message: T,
 ) {
-    let serialized_response = cbor_serialize(&message).expect("Could not serialize response");
-
-    // Send error message
-    ws_conn_sink
-        .write()
-        .await
-        .send(Message::binary(serialized_response))
-        .await
-        .expect("Failed to send message");
+    match cbor_serialize(&message) {
+        Ok(serialized_response) => ws_conn_sink
+            .write()
+            .await
+            .send(Message::binary(serialized_response))
+            .await
+            .expect("Failed to send message"),
+        Err(e) => error!("Error while serializing message: {}", e),
+    }
 }
