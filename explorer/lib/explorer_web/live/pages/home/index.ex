@@ -15,11 +15,16 @@ defmodule ExplorerWeb.Home.Index do
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
-    restaked_amount_eth =
+    restaked_amount_eth = nil
+
+    restaked_amount_wei =
       Restakings.get_aggregated_restakings()
       |> Map.get(:total_stake)
-      |> Decimal.to_integer()
-      |> EthConverter.wei_to_eth(2)
+
+    if restaked_amount_wei != nil do
+      restaked_amount_eth =
+        Decimal.to_integer(restaked_amount_wei) |> EthConverter.wei_to_eth(2)
+    end
 
     {:noreply,
      assign(
@@ -45,11 +50,16 @@ defmodule ExplorerWeb.Home.Index do
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
-    restaked_amount_eth =
+    restaked_amount_eth = nil
+
+    restaked_amount_wei =
       Restakings.get_aggregated_restakings()
       |> Map.get(:total_stake)
-      |> Decimal.to_integer()
-      |> EthConverter.wei_to_eth(2)
+
+    if restaked_amount_wei != nil do
+      restaked_amount_eth =
+        Decimal.to_integer(restaked_amount_wei) |> EthConverter.wei_to_eth(2)
+    end
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 

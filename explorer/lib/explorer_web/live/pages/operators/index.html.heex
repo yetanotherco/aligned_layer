@@ -17,11 +17,10 @@
         </span>
       </.link>
     </:col>
-    <:col :let={_operator} label="Restake Concentration">
-      TODO
-    </:col>
-    <:col :let={_operator} label="Total ETH Restaked">
-      TODO
+    <:col :let={operator} label="Total ETH Restaked">
+      <%= operator.total_stake
+      |> Decimal.to_integer()
+      |> EthConverter.wei_to_eth(2) %> ETH
     </:col>
     <:col :let={operator} label="Status">
       <.dynamic_badge status={operator.is_active} truthy_text="Active" falsy_text="Inactive" />
