@@ -8,9 +8,9 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 
 	for {
 		select {
-		case err := <-agg.taskSubscriber.Err():
+		case err := <-agg.taskSubscriber:
 			agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to subscribe to new tasks", "err", err)
-			agg.taskSubscriber.Unsubscribe()
+
 			err = agg.subscribeToNewTasks()
 			if err != nil {
 				return err
