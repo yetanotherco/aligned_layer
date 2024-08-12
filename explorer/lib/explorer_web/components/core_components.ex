@@ -664,7 +664,7 @@ defmodule ExplorerWeb.CoreComponents do
             class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate"
           >
             <td
-              :for={{col, i} <- Enum.with_index(@col)}
+              :for={{col} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
               class={["p-0", @row_click && "hover:cursor-pointer"]}
             >

@@ -15,16 +15,7 @@ defmodule ExplorerWeb.Home.Index do
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
-    restaked_amount_eth = nil
-
-    restaked_amount_wei =
-      Restakings.get_aggregated_restakings()
-      |> Map.get(:total_stake)
-
-    if restaked_amount_wei != nil do
-      restaked_amount_eth =
-        Decimal.to_integer(restaked_amount_wei) |> EthConverter.wei_to_eth(2)
-    end
+    restaked_amount_eth = get_restaked_amount_eth()
 
     {:noreply,
      assign(
@@ -50,16 +41,7 @@ defmodule ExplorerWeb.Home.Index do
 
     verified_proofs = Batches.get_amount_of_verified_proofs()
 
-    restaked_amount_eth = nil
-
-    restaked_amount_wei =
-      Restakings.get_aggregated_restakings()
-      |> Map.get(:total_stake)
-
-    if restaked_amount_wei != nil do
-      restaked_amount_eth =
-        Decimal.to_integer(restaked_amount_wei) |> EthConverter.wei_to_eth(2)
-    end
+    restaked_amount_eth = get_restaked_amount_eth()
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -113,6 +95,21 @@ defmodule ExplorerWeb.Home.Index do
     e ->
       Logger.error("Other error: #{inspect(e)}")
       {:ok, socket |> put_flash(:error, "Something went wrong, please try again later.")}
+  end
+
+  defp get_restaked_amount_eth() do
+    restaked_amount_wei =
+      Restakings.get_aggregated_restakings()
+      |> Map.get(:total_stake)
+
+    case restaked_amount_wei do
+      nil ->
+        nil
+
+      _ ->
+        Decimal.to_integer(restaked_amount_wei)
+        |> EthConverter.wei_to_eth(2)
+    end
   end
 
   embed_templates "*"
