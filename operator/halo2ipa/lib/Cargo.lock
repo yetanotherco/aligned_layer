@@ -314,7 +314,7 @@ dependencies = [
 [[package]]
 name = "halo2_backend"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=05c4e08edc8dc9c10ce127d7484818fe67de1a68#05c4e08edc8dc9c10ce127d7484818fe67de1a68"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -332,7 +332,7 @@ dependencies = [
 [[package]]
 name = "halo2_frontend"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=05c4e08edc8dc9c10ce127d7484818fe67de1a68#05c4e08edc8dc9c10ce127d7484818fe67de1a68"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -345,7 +345,7 @@ dependencies = [
 [[package]]
 name = "halo2_middleware"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=05c4e08edc8dc9c10ce127d7484818fe67de1a68#05c4e08edc8dc9c10ce127d7484818fe67de1a68"
 dependencies = [
  "ff",
  "halo2curves",
@@ -356,7 +356,7 @@ dependencies = [
 [[package]]
 name = "halo2_proofs"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=05c4e08edc8dc9c10ce127d7484818fe67de1a68#05c4e08edc8dc9c10ce127d7484818fe67de1a68"
 dependencies = [
  "bincode",
  "group",
@@ -364,6 +364,7 @@ dependencies = [
  "halo2_frontend",
  "halo2_middleware",
  "halo2curves",
+ "log",
  "rand_core",
  "serde",
 ]

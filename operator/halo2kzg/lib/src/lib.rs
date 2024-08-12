@@ -1,25 +1,17 @@
 use halo2_proofs::{
-    circuit::{Layouter, SimpleFloorPlanner, Value},
-    plonk::{
-        verify_proof, Advice, Circuit, Column, ConstraintSystem, ErrorFront, Fixed, Instance,
-        VerifyingKey,
-    },
+    plonk::{read_fr, read_params, verify_proof, VerifyingKey},
     poly::{
         commitment::Params,
         kzg::{
             commitment::KZGCommitmentScheme, multiopen::VerifierSHPLONK, strategy::SingleStrategy,
         },
-        Rotation,
     },
     transcript::{Blake2bRead, Challenge255, TranscriptReadBuffer},
     SerdeFormat,
 };
-use halo2curves::bn256::{Bn256, Fr, G1Affine};
+use halo2curves::bn256::{Bn256, G1Affine};
 use log::error;
-use std::{
-    io::{BufReader, ErrorKind, Read},
-    slice,
-};
+use std::{io::BufReader, slice};
 
 #[no_mangle]
 pub extern "C" fn verify_halo2_kzg_proof_ffi(
@@ -33,10 +25,7 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
     //TODO
     // - Abstract deserialization logic to external function.
 
-    if proof_buf.is_null()
-        || params_buf.is_null()
-        || public_input_buf.is_null()
-    {
+    if proof_buf.is_null() || params_buf.is_null() || public_input_buf.is_null() {
         error!("Input buffer length null");
         return false;
     }
@@ -54,11 +43,13 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
     let public_input_bytes =
         unsafe { slice::from_raw_parts(public_input_buf, public_input_len as usize) };
 
-    if let Ok((cs_bytes, vk_bytes, vk_params_bytes)) = deserialize_verification_params(&params_bytes) {
-        if let Ok(cs) = bincode::deserialize(&cs_bytes) {
-            if let Ok(vk) =
-                VerifyingKey::<G1Affine>::read(&mut BufReader::new(vk_bytes), SerdeFormat::RawBytes, cs)
-            {
+    if let Ok((cs_bytes, vk_bytes, vk_params_bytes)) = read_params(params_bytes) {
+        if let Ok(cs) = bincode::deserialize(cs_bytes) {
+            if let Ok(vk) = VerifyingKey::<G1Affine>::read(
+                &mut BufReader::new(vk_bytes),
+                SerdeFormat::RawBytes,
+                cs,
+            ) {
                 if let Ok(params) = Params::read::<_>(&mut BufReader::new(vk_params_bytes)) {
                     if let Ok(res) = read_fr(public_input_bytes) {
                         let strategy = SingleStrategy::new(&params);
@@ -87,178 +78,15 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
     false
 }
 
-fn deserialize_verification_params(buf: &[u8]) -> Result<(&[u8], &[u8], &[u8]), ErrorKind> {
-    // Deserialize
-    let cs_len_buf: [u8; 4] = buf[..4]
-        .try_into()
-        .map_err(|_| "Failed to convert slice to [u8; 4]")
-        .unwrap();
-    let cs_len = u32::from_le_bytes(cs_len_buf) as usize;
-    let vk_len_buf: [u8; 4] = buf[4..8]
-        .try_into()
-        .map_err(|_| "Failed to convert slice to [u8; 4]")
-        .unwrap();
-    let vk_len = u32::from_le_bytes(vk_len_buf) as usize;
-    let params_len_buf: [u8; 4] = buf[8..12]
-        .try_into()
-        .map_err(|_| "Failed to convert slice to [u8; 4]")
-        .unwrap();
-    let params_len = u32::from_le_bytes(params_len_buf) as usize;
-
-    //Verify declared lengths are less than total length.
-    if (12 + cs_len + vk_len + params_len) > buf.len() {
-        error!("Serialized parameter lengths greater than parameter bytes length");
-        return Err(ErrorKind::Other)
-    }
-
-    // Select Constraint System Bytes
-    let cs_offset = 12;
-    let cs_buffer = &buf[cs_offset..(cs_offset + cs_len)];
-
-    // Select Verifier Key Bytes
-    let vk_offset = cs_offset + cs_len;
-    let vk_buffer = &buf[vk_offset..(vk_offset + vk_len)];
-
-    // Select ipa Params Bytes
-    let params_offset = vk_offset + vk_len;
-    let params_buffer = &buf[params_offset..(params_offset + params_len)];
-
-    Ok((cs_buffer, vk_buffer, params_buffer))
-}
-
-fn read_fr(mut buf: &[u8]) -> Result<Vec<Fr>, ErrorKind> {
-    let mut instances = Vec::with_capacity(buf.len() / 32);
-    // Buffer to store each 32-byte slice
-    let mut buffer = [0; 32];
-
-    loop {
-        // Read 32 bytes into the buffer
-        match buf.read_exact(&mut buffer) {
-            Ok(_) => {
-                instances.push(Fr::from_bytes(&buffer).unwrap());
-            }
-            Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
-                // If end of file reached, break the loop
-                break;
-            }
-            Err(e) => {
-                eprintln!("Error Deserializing Public Inputs: {}", e);
-                return Err(ErrorKind::Other);
-            }
-        }
-    }
-
-    Ok(instances)
-}
-
-// HALO2 Circuit Example
-#[derive(Clone, Copy)]
-struct StandardPlonkConfig {
-    a: Column<Advice>,
-    b: Column<Advice>,
-    c: Column<Advice>,
-    q_a: Column<Fixed>,
-    q_b: Column<Fixed>,
-    q_c: Column<Fixed>,
-    q_ab: Column<Fixed>,
-    constant: Column<Fixed>,
-    #[allow(dead_code)]
-    instance: Column<Instance>,
-}
-
-impl StandardPlonkConfig {
-    fn configure(meta: &mut ConstraintSystem<Fr>) -> Self {
-        let [a, b, c] = [(); 3].map(|_| meta.advice_column());
-        let [q_a, q_b, q_c, q_ab, constant] = [(); 5].map(|_| meta.fixed_column());
-        let instance = meta.instance_column();
-
-        [a, b, c].map(|column| meta.enable_equality(column));
-
-        meta.create_gate(
-            "q_a·a + q_b·b + q_c·c + q_ab·a·b + constant + instance = 0",
-            |meta| {
-                let [a, b, c] = [a, b, c].map(|column| meta.query_advice(column, Rotation::cur()));
-                let [q_a, q_b, q_c, q_ab, constant] = [q_a, q_b, q_c, q_ab, constant]
-                    .map(|column| meta.query_fixed(column, Rotation::cur()));
-                let instance = meta.query_instance(instance, Rotation::cur());
-                Some(
-                    q_a * a.clone()
-                        + q_b * b.clone()
-                        + q_c * c
-                        + q_ab * a * b
-                        + constant
-                        + instance,
-                )
-            },
-        );
-
-        StandardPlonkConfig {
-            a,
-            b,
-            c,
-            q_a,
-            q_b,
-            q_c,
-            q_ab,
-            constant,
-            instance,
-        }
-    }
-}
-
-#[derive(Clone, Default)]
-struct StandardPlonk(Fr);
-
-impl Circuit<Fr> for StandardPlonk {
-    type Config = StandardPlonkConfig;
-    type FloorPlanner = SimpleFloorPlanner;
-
-    fn without_witnesses(&self) -> Self {
-        Self::default()
-    }
-
-    fn configure(meta: &mut ConstraintSystem<Fr>) -> Self::Config {
-        StandardPlonkConfig::configure(meta)
-    }
-
-    fn synthesize(
-        &self,
-        config: Self::Config,
-        mut layouter: impl Layouter<Fr>,
-    ) -> Result<(), ErrorFront> {
-        layouter.assign_region(
-            || "",
-            |mut region| {
-                region.assign_advice(|| "", config.a, 0, || Value::known(self.0))?;
-                region.assign_fixed(|| "", config.q_a, 0, || Value::known(-Fr::one()))?;
-
-                region.assign_advice(|| "", config.a, 1, || Value::known(-Fr::from(5u64)))?;
-                for (idx, column) in (1..).zip([
-                    config.q_a,
-                    config.q_b,
-                    config.q_c,
-                    config.q_ab,
-                    config.constant,
-                ]) {
-                    region.assign_fixed(|| "", column, 1, || Value::known(Fr::from(idx as u64)))?;
-                }
-
-                let a = region.assign_advice(|| "", config.a, 2, || Value::known(Fr::one()))?;
-                a.copy_advice(|| "", &mut region, config.b, 3)?;
-                a.copy_advice(|| "", &mut region, config.c, 4)?;
-                Ok(())
-            },
-        )
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use ff::{Field, PrimeField};
     use halo2_proofs::{
-        plonk::{create_proof, keygen_pk, keygen_vk_custom, verify_proof},
+        plonk::{
+            create_proof, keygen_pk, keygen_vk_custom, verify_proof, write_params, StandardPlonk,
+        },
         poly::kzg::{
             commitment::{KZGCommitmentScheme, ParamsKZG},
             multiopen::ProverSHPLONK,
@@ -267,6 +95,7 @@ mod tests {
             Blake2bRead, Blake2bWrite, Challenge255, TranscriptReadBuffer, TranscriptWriterBuffer,
         },
     };
+    use halo2curves::bn256::Fr;
     use rand_core::OsRng;
     use std::{
         fs::File,
@@ -288,9 +117,9 @@ mod tests {
         let compress_selectors = true;
         let vk =
             keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
-        let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
         let instances = vec![vec![circuit.0]];
         let cs = vk.clone().cs;
+        let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
 
         // Create Proof
         let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
@@ -345,31 +174,14 @@ mod tests {
 
         let mut vk_buf = Vec::new();
         vk.write(&mut vk_buf, SerdeFormat::RawBytes).unwrap();
-        let vk_len = vk_buf.len();
 
-        let mut kzg_params_buf = Vec::new();
-        vk_params.write(&mut kzg_params_buf).unwrap();
-        let kzg_params_len = kzg_params_buf.len();
+        let mut params_buf = Vec::new();
+        vk_params.write(&mut params_buf).unwrap();
 
         //Write everything to parameters file
         let params_file = File::create("params.bin").unwrap();
         let mut writer = BufWriter::new(params_file);
-        let cs_buf = bincode::serialize(&cs).unwrap();
-
-        //Write Parameter Lengths as u32
-        writer
-            .write_all(&(cs_buf.len() as u32).to_le_bytes())
-            .unwrap();
-        writer.write_all(&(vk_len as u32).to_le_bytes()).unwrap();
-        writer
-            .write_all(&(kzg_params_len as u32).to_le_bytes())
-            .unwrap();
-
-        //Write Parameters
-        writer.write_all(&cs_buf).unwrap();
-        writer.write_all(&vk_buf).unwrap();
-        writer.write_all(&kzg_params_buf).unwrap();
-        writer.flush().unwrap();
+        write_params(&params_buf, cs, &vk_buf, "params.bin").unwrap();
 
         //read proof
         let proof = std::fs::read("proof.bin").expect("should succeed to read proof");
@@ -385,7 +197,7 @@ mod tests {
         let mut params_buf = Vec::new();
         f.read_to_end(&mut params_buf).unwrap();
 
-        let (cs_bytes, vk_bytes, vk_params_bytes) = deserialize_verification_params(&params_buf).unwrap();
+        let (cs_bytes, vk_bytes, vk_params_bytes) = read_params(&params_buf).unwrap();
 
         let cs = bincode::deserialize(cs_bytes).unwrap();
         let vk = VerifyingKey::<G1Affine>::read(
@@ -394,8 +206,7 @@ mod tests {
             cs,
         )
         .unwrap();
-        let params =
-            Params::read::<_>(&mut BufReader::new(vk_params_bytes)).unwrap();
+        let params = Params::read::<_>(&mut BufReader::new(vk_params_bytes)).unwrap();
 
         let strategy = SingleStrategy::new(&params);
         let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
@@ -420,7 +231,6 @@ mod tests {
 
     #[test]
     fn verify_halo2_plonk_proof() {
-
         let proof_len = PROOF.len();
         let proof_buffer = PROOF.as_ptr();
 
