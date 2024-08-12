@@ -89,10 +89,8 @@ pub async fn try_create_new_task(
         .await
         .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
 
-    let receipt = pending_tx
-        .await
-        .map_err(|_| BatcherError::TransactionSendError)?
-        .ok_or(BatcherError::ReceiptNotFoundError)?;
-
-    Ok(receipt)
+pending_tx
+    .await
+    .map_err(|_| BatcherError::TransactionSendError)?
+    .ok_or(BatcherError::ReceiptNotFoundError)
 }
