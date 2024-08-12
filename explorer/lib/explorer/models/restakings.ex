@@ -80,7 +80,7 @@ defmodule Restakings do
     Explorer.Repo.one(query)
   end
 
-  def get_restakes_by_operator_id(%{operator_id: operator_id}) do
+  def get_restakes_by_operator_id(operator_id) do
     query = from r in Restakings,
       join: s in Strategies, on: r.strategy_address == s.strategy_address,
       where: r.operator_id == ^operator_id,
