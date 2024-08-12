@@ -308,7 +308,7 @@ async fn _verify_proof_onchain(
 ) -> Result<bool, errors::VerificationError> {
     let contract_address = match chain {
         Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        Chain::Holesky => "0xe41Faf6446A94961096a1aeeec1268CA4A6D4a77",
+        Chain::Holesky => "0x0584313310bD52B77CF0b81b350Ca447B97Df5DF",
         Chain::HoleskyStage => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
     };
 
