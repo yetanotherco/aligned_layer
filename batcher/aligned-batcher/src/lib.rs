@@ -452,7 +452,11 @@ impl Batcher {
         let current_batch_size = match cbor_serialize(&batch_verification_data) {
             Ok(serialized) => serialized.len(),
             Err(e) => {
-                error!("Failed to serialize verification data: {:?}", e);
+                error!(
+                    "Failed to serialize verification data: {:?}, resetting batch state",
+                    e
+                );
+                self.flush_queue_and_clear_nonce_cache().await;
                 return None;
             }
         };
@@ -466,7 +470,11 @@ impl Batcher {
                 acc_batch_size += match cbor_serialize(verification_data) {
                     Ok(serialized) => serialized.len(),
                     Err(e) => {
-                        error!("Failed to serialize verification data: {:?}", e);
+                        error!(
+                            "Failed to serialize verification data: {:?}, resetting batch",
+                            e
+                        );
+                        self.flush_queue_and_clear_nonce_cache().await;
                         return None;
                     }
                 };
