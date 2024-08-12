@@ -10,8 +10,6 @@ defmodule ExplorerWeb.Assets.Index do
   def handle_params(_params, _url, socket) do
     assets = Strategies.get_all_strategies()
 
-    dbg(assets)
-
     {:noreply, assign(socket, assets: assets)}
   end
 
@@ -26,7 +24,7 @@ defmodule ExplorerWeb.Assets.Index do
         </:col>
         <:col :let={asset} label="Total ETH Restaked">
           <%= if asset.total_staked != nil do %>
-            <%= asset.total_staked %>
+            <%= asset.total_staked |> Decimal.to_integer() |> EthConverter.wei_to_eth(5) %>
           <% else %>
             N/A
           <% end %>
