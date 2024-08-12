@@ -2,7 +2,7 @@
   <.card_preheding>Batches</.card_preheding>
   <%= if @batches != :empty and @batches != [] do %>
     <.table id="batches" rows={@batches}>
-      <:col :let={batch} label="Batch Hash">
+      <:col :let={batch} label="Batch Hash" class="text-left">
         <.link navigate={~p"/batches/#{batch.merkle_root}"}>
           <span
             class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80"
