@@ -6,8 +6,7 @@ defmodule ExplorerWeb.Operator.Index do
     operator = Operators.get_operator_by_address(address)
 
     restaked_amount_eth =
-      Restakings.get_aggregated_restake_by_operator(operator.id)
-      |> Map.get(:total_stake)
+      Operators.get_total_stake(operator)
       |> Decimal.to_integer()
       |> EthConverter.wei_to_eth(2)
 

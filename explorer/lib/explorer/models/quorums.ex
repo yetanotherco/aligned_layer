@@ -73,7 +73,7 @@ defmodule QuorumStrategies do
   end
 
   def generate_changeset(quorum_id, strategy_id) do
-    QuorumStrategies.changeset(%QuorumStrategies{}, Map.from_struct(%QuorumStrategies{quorum_id: quorum_id, strategy_id: strategy_id})) |> tap(&dbg/1)
+    QuorumStrategies.changeset(%QuorumStrategies{}, Map.from_struct(%QuorumStrategies{quorum_id: quorum_id, strategy_id: strategy_id}))
   end
 
 
@@ -88,11 +88,12 @@ defmodule QuorumStrategies do
     existing_strategies = QuorumStrategies.get_quorum_strategy_associations(quorum)
 
     unless strategy.id in existing_strategies do
-      QuorumStrategies.generate_changeset(quorum.id, strategy.id) |> Explorer.Repo.insert() |> dbg
+      QuorumStrategies.generate_changeset(quorum.id, strategy.id) |> Explorer.Repo.insert()
     end
   end
-  def insert_quorum_strategy(_any, nil) do
+  def insert_quorum_strategy(_any_quorum, nil) do
     dbg "trying to insert a nil or errored strategy, skipping"
+    dbg {_any_quorum, nil}
     nil
   end
 end

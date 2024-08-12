@@ -80,13 +80,4 @@ defmodule Restakings do
     Explorer.Repo.all(query)
   end
 
-  def get_aggregated_restake_by_operator(operator_id) do
-    query = from(
-      r in Restakings,
-      where: r.operator_id == ^operator_id,
-      select: %{total_stake: sum(r.stake)}
-    )
-    Explorer.Repo.one(query)
-  end
-
 end
