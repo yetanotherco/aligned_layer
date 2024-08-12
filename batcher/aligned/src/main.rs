@@ -30,6 +30,8 @@ use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
+// Test
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct AlignedArgs {
