@@ -106,7 +106,7 @@ pub async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<Option<Vec<AlignedVerificationData>>, SubmitError> {
+) -> Result<Vec<AlignedVerificationData>, SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
 
@@ -135,11 +135,13 @@ pub async fn receive(
         if *num_responses.lock().await == total_messages {
             debug!("All messages responded. Closing connection...");
             ws_write.lock().await.close().await?;
-            return Ok(Some(aligned_verification_data));
+            return Ok(aligned_verification_data);
         }
     }
 
-    Ok(None)
+    Err(SubmitError::GenericError(
+        "Connection was closed without close message before receiving all messages".to_string(),
+    ))
 }
 
 async fn process_batch_inclusion_data(
