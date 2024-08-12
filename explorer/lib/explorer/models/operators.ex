@@ -43,7 +43,8 @@ defmodule Operators do
 
   # TODO: add pagination
   def get_operators() do
-    query = from(o in Operators, select: o)
+    # add sort
+    query = from(o in Operators, select: o, order_by: [desc: o.total_stake])
     Explorer.Repo.all(query)
   end
 
