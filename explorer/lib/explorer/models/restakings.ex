@@ -38,19 +38,28 @@ defmodule Restakings do
     # Temporal solution to handle new quorums, until Eigenlayer implements emition of QuorumCreated event
     Quorums.handle_quorum(%Quorums{id: restaking.quorum_number})
 
-    case Restakings.get_by_operator_and_strategy(%Restakings{operator_address: restaking.operator_address, strategy_address: restaking.strategy_address}) do
+    multi =
+      case Restakings.get_by_operator_and_strategy(%Restakings{operator_address: restaking.operator_address, strategy_address: restaking.strategy_address}) do
       nil ->
-        "nil, inserting restaking" |> dbg
-        Explorer.Repo.insert(changeset)
-
-      [] ->
-        "[], inserting restaking" |> dbg
-        Explorer.Repo.insert(changeset)
+        "inserting restaking" |> dbg
+        Ecto.Multi.new()
+          |> Ecto.Multi.insert(:insert_restaking, changeset)
+          |> Ecto.Multi.update(:update_strategy_total_staked, Strategies.generate_update_total_staked_changeset(%{new_restaking: restaking}))
 
       existing_restaking ->
         "updating restaking" |> dbg
-        Explorer.Repo.update(Ecto.Changeset.change(existing_restaking, changeset.changes))
+        Ecto.Multi.new()
+          |> Ecto.Multi.update(:update_restaking, Ecto.Changeset.change(existing_restaking, changeset.changes))
+          |> Ecto.Multi.update(:update_strategy_total_staked, Strategies.generate_update_total_staked_changeset(%{new_restaking: restaking}))
+      end
 
+    case Explorer.Repo.transaction(multi) do
+      {:ok, _} ->
+        "Restaking and total_stake inserted/updated" |> IO.puts()
+        {:ok, :empty}
+      {:error, _, changeset, _} ->
+        "Error: #{inspect(changeset.errors)}" |> IO.puts()
+        {:error, changeset}
     end
   end
 
@@ -60,7 +69,7 @@ defmodule Restakings do
       where: r.operator_address == ^operator_address and r.strategy_address == ^strategy_address,
       select: r
     )
-    Explorer.Repo.all(query)
+    Explorer.Repo.one(query)
   end
 
   def get_aggregated_restakings() do

@@ -91,9 +91,9 @@ defmodule QuorumStrategies do
       QuorumStrategies.generate_changeset(quorum.id, strategy.id) |> Explorer.Repo.insert()
     end
   end
-  def insert_quorum_strategy(_any_quorum, nil) do
+  def insert_quorum_strategy(any_quorum, nil) do
     dbg "trying to insert a nil or errored strategy, skipping"
-    dbg {_any_quorum, nil}
+    dbg {any_quorum, nil}
     nil
   end
 end

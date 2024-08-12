@@ -72,4 +72,24 @@ defmodule Strategies do
     Explorer.Repo.all(query)
   end
 
+  def generate_update_total_staked_changeset(%{new_restaking: new_restaking}) do
+    query = from(s in Strategies,
+      where: s.strategy_address == ^new_restaking.strategy_address,
+      select: s)
+    strategy = Explorer.Repo.one(query)
+    dbg strategy
+
+    query = from(r in Restakings,
+      where: r.strategy_address == ^new_restaking.strategy_address and r.operator_address == ^new_restaking.operator_address,
+      select: r)
+    old_restaking = case Explorer.Repo.one(query) do
+      nil -> %Restakings{stake: 0}
+      restaking -> restaking
+    end
+
+    restaking_amount_diff = Decimal.sub(new_restaking.stake, old_restaking.stake)
+    new_stake = Decimal.add(strategy.total_staked, (restaking_amount_diff))
+    Strategies.changeset(strategy, %{total_staked: new_stake})
+  end
+
 end
