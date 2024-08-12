@@ -9,6 +9,7 @@ on:
       - 'aggregator/**'
       - 'common/**'
       - 'core/**'
+      - 'metrics/**'
       - '.github/workflows/golangci-lint.yml'
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - 'aggregator/**'
       - 'common/**'
       - 'core/**'
+      - 'metrics/**'
       - '.github/workflows/golangci-lint.yml'
 
 permissions:

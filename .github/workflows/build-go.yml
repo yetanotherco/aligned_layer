@@ -9,6 +9,7 @@ on:
       - 'aggregator/**'
       - 'common/**'
       - 'core/**'
+      - 'metrics/**'
       - '.github/workflows/build-go.yml'
   pull_request:
     branches: ["*"]
@@ -17,6 +18,7 @@ on:
       - 'aggregator/**'
       - 'common/**'
       - 'core/**'
+      - 'metrics/**'
       - '.github/workflows/build-go.yml'
 env:
   FFI_FOR_RELEASE: false
