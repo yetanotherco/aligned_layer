@@ -632,6 +632,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   slot :col, required: true do
     attr :label, :string
+    attr :class, :string
   end
 
   slot :action, doc: "the slot for showing user actions in the last table column"
@@ -659,7 +660,11 @@ defmodule ExplorerWeb.CoreComponents do
           </tr>
         </thead>
         <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate">
+          <tr
+            :for={row <- @rows}
+            id={@row_id && @row_id.(row)}
+            class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate"
+          >
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
@@ -667,8 +672,8 @@ defmodule ExplorerWeb.CoreComponents do
             >
               <div class={[
                 "group block normal-case font-medium text-base min-w-28",
-                i == 0 && "text-left font-semibold",
-                i != 0 && "text-center"
+                col[:class] != nil && col[:class],
+                col[:class] == nil && "text-center font-semibold"
               ]}>
                 <%= render_slot(col, @row_item.(row)) %>
               </div>
