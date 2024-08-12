@@ -684,7 +684,7 @@ pub async fn get_user_balance(
     contract_address: Address,
     user_address: Address,
 ) -> Result<U256, ProviderError> {
-    let selector = &ethers::utils::keccak256("UserData(address)".as_bytes())[..4];
+    let selector = &ethers::utils::keccak256("user_balances(address)".as_bytes())[..4];
 
     let encoded_params = ethers::abi::encode(&[ethers::abi::Token::Address(user_address)]);
 
@@ -699,9 +699,8 @@ pub async fn get_user_balance(
 
     let result = provider.call_raw(&tx).await?;
 
-    // 3 * 32 bytes (one for each U256) because UserInfo has U256 balance, U256 unlockBlock and U256 nonce.
-    if result.len() == 96 {
-        let balance = U256::from_big_endian(&result[..32]);
+    if result.len() == 32 {
+        let balance = U256::from_big_endian(&result);
         Ok(balance)
     } else {
         Err(ProviderError::CustomError(
