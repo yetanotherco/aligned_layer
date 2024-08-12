@@ -619,7 +619,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 __EXPLORER__:
 run_explorer: run_db ecto_setup_db
 	@cd explorer/ && \
-		npm install --prefix assets && \
+		pnpm install --prefix assets && \
 		mix setup && \
 		./start.sh
 
