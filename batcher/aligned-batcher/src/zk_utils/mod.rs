@@ -2,7 +2,7 @@ use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
-use crate::{gnark::verify_gnark, mina::verify_protocol_state_proof_integrity};
+use crate::{gnark::verify_gnark, mina::verify_proof_integrity};
 use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
 use log::{debug, warn};
 
@@ -93,7 +93,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
                 .pub_input
                 .as_ref()
                 .expect("Public input is required");
-            verify_protocol_state_proof_integrity(&verification_data.proof, pub_input)
+            verify_proof_integrity(&verification_data.proof, pub_input)
             // TODO(xqft): add Pickles aggregator checks which are run alongside the Kimchi
             // verifier. These checks are fast and if they aren't successful then the Pickles proof
             // isn't valid.
