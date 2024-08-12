@@ -12,10 +12,13 @@ defmodule ExplorerWeb.Operator.Index do
       |> Decimal.to_integer()
       |> EthConverter.wei_to_eth(2)
 
+    restakes_by_operator = Restakings.get_restakes_by_operator_id(operator.id)
+
     {:ok,
      assign(socket,
        operator: operator,
        restaked_amount_eth: restaked_amount_eth,
+       restakes_by_operator: restakes_by_operator,
        page_title: operator.name
      )}
   end
@@ -29,9 +32,9 @@ defmodule ExplorerWeb.Operator.Index do
       </.card_preheding>
       <.card
         class="px-4 py-5 min-h-fit flex flex-col"
-        inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>div>p]:text-foreground [&>p]:text-foreground [&>a]:text-foreground [&>p]:break-all [&>*]:font-normal"
+        inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>div>p]:text-foreground [&>p]:text-foreground [&>a]:text-foreground [&>p]:break-all [&>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
       >
-        <div class="flex flex-col md:flex-row gap-x-6">
+        <div class="flex flex-col md:flex-row gap-x-6 gap-y-2.5">
           <img
             alt={@operator.name}
             class="rounded-full size-24 object-scale-down"
@@ -63,17 +66,45 @@ defmodule ExplorerWeb.Operator.Index do
             </div>
           </div>
         </div>
-        Address:
-        <p>
-          <%= @operator.address %>
-        </p>
-        <div class="flex gap-x-2">
+        <.divider class="my-2 sm:mt-5 sm:mb-3" />
+        <div>
+          <h3>
+            Address:
+          </h3>
+          <p>
+            <%= @operator.address %>
+          </p>
+        </div>
+        <div>
           <h3>
             Total Restaked:
           </h3>
           <p>
             <%= @restaked_amount_eth %> ETH
           </p>
+        </div>
+        <div>
+          <h3>
+            Restakes:
+          </h3>
+          <%= if @restakes_by_operator != [] do %>
+            <div class="flex flex-col gap-y-2">
+              <%= for {restake, strategy} <- @restakes_by_operator do %>
+                <div class="flex flex-col gap-y-1">
+                  <h3>
+                    <%= strategy.name %>
+                  </h3>
+                  <p>
+                    <%= restake.stake %> ETH
+                  </p>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <p>
+              No restakes found.
+            </p>
+          <% end %>
         </div>
       </.card>
     </div>

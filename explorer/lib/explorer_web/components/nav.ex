@@ -30,8 +30,8 @@ defmodule NavComponent do
             Operators
           </.link>
         </div>
+        <.live_component module={SearchComponent} id="nav_search" />
       </div>
-      <.live_component module={SearchComponent} id="nav_search" />
       <div class="items-center gap-4 font-semibold leading-6 text-foreground/80 flex [&>a]:hidden lg:[&>a]:inline-block [&>a]:drop-shadow-md">
         <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
           Docs
