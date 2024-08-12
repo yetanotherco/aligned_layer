@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"sync"
@@ -173,7 +174,7 @@ func (o *Operator) Start(ctx context.Context) error {
 func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
-		"batch merkle root", newBatchLog.BatchMerkleRoot,
+		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
 	)
 
 	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
