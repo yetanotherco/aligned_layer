@@ -4,9 +4,6 @@ on:
   merge_group:
   push:
     branches: [main]
-    paths:
-      - 'operator/risc_zero/**'
-      - '.github/workflows/test-risc-zero.yml'
   pull_request:
     branches: ["*"]
     paths:

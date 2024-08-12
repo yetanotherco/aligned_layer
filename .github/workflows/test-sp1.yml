@@ -4,9 +4,6 @@ on:
   merge_group:
   push:
     branches: [main]
-    paths:
-      - 'operator/sp1/**'
-      - '.github/workflows/test-sp1.yml'
   pull_request:
     branches: ["*"]
     paths:

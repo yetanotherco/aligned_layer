@@ -4,9 +4,6 @@ on:
   merge_group:
   push:
     branches: [main]
-    paths:
-      - 'operator/halo2ipa/**'
-      - '.github/workflows/test-halo2-ipa.yml'
   pull_request:
     branches: ["*"]
     paths:

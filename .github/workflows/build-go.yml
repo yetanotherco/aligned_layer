@@ -4,13 +4,6 @@ on:
   merge_group:
   push:
     branches: [main]
-    paths:
-      - 'operator/**'
-      - 'aggregator/**'
-      - 'common/**'
-      - 'core/**'
-      - 'metrics/**'
-      - '.github/workflows/build-go.yml'
   pull_request:
     branches: ["*"]
     paths:

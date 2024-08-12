@@ -4,9 +4,6 @@ on:
   merge_group:
   push:
     branches: [main]
-    paths:
-      - 'operator/halo2kzg/**'
-      - '.github/workflows/test-halo2-kzg.yml'
   pull_request:
     branches: ["*"]
     paths:

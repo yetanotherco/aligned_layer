@@ -4,13 +4,6 @@ on:
     branches:
       - master
       - main
-    paths:
-      - 'operator/**'
-      - 'aggregator/**'
-      - 'common/**'
-      - 'core/**'
-      - 'metrics/**'
-      - '.github/workflows/golangci-lint.yml'
   pull_request:
     paths:
       - 'operator/**'
