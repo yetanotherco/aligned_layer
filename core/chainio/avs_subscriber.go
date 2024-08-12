@@ -80,7 +80,7 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		batchesSet := make(map[[32]byte]struct{})
 		for {
 			newBatch := <-internalChannel
-			s.logger.Info("Received new task", "batchMerkleRoot", hex.EncodeToString(newBatch.BatchMerkleRoot[:]))
+			s.logger.Info("Received new task", "batchMerkleRoot", "0x"+hex.EncodeToString(newBatch.BatchMerkleRoot[:]))
 			newBatchMutex.Lock()
 
 			if _, ok := batchesSet[newBatch.BatchMerkleRoot]; !ok {

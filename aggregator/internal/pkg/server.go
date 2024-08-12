@@ -50,7 +50,7 @@ func (agg *Aggregator) ServeOperators() error {
 //   - 1: Error
 func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *types.SignedTaskResponse, reply *uint8) error {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response",
-		"merkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+		"merkleRoot", "0x"+hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
 	taskIndex := uint32(0)
