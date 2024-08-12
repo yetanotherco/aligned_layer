@@ -5,6 +5,8 @@ defmodule ExplorerWeb.Operator.Index do
   def mount(%{"address" => address}, _, socket) do
     operator = Operators.get_operator_by_address(address)
 
+    Operators.get_operator_weight(operator) |> dbg
+
     restaked_amount_eth =
       operator.total_stake
       |> Decimal.to_integer()

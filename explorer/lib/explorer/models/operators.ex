@@ -113,4 +113,17 @@ defmodule Operators do
     Explorer.Repo.one(query)
   end
 
+  def get_operator_weight(%Operators{} = operator) do
+    dbg operator
+    query = from(o in Operators, where: o.address == ^operator.address, select: o.total_stake)
+    operator_stake = Explorer.Repo.one(query)
+    dbg operator_stake
+
+    query = from(o in Operators, select: sum(o.total_stake))
+    total_stake = Explorer.Repo.one(query)
+    dbg total_stake
+
+    Decimal.div(operator_stake, total_stake)
+  end
+
 end
