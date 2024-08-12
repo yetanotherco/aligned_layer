@@ -249,11 +249,11 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.taskMutex.Unlock()
 
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
-		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		"merkleRoot", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
 
 	agg.logger.Info("Maybe waiting one block to send aggregated response onchain",
 		"taskIndex", blsAggServiceResp.TaskIndex,
-		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
+		"merkleRoot", "0x"+hex.EncodeToString(batchMerkleRoot[:]),
 		"taskCreatedBlock", taskCreatedBlock)
 
 	err := agg.avsSubscriber.WaitForOneBlock(taskCreatedBlock)
@@ -262,14 +262,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	}
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
-		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		"merkleRoot", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
 		_, err = agg.sendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
 		if err == nil {
 			agg.logger.Info("Aggregator successfully responded to task",
 				"taskIndex", blsAggServiceResp.TaskIndex,
-				"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+				"merkleRoot", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
 
 			return
 		}
@@ -281,7 +281,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.logger.Error("Aggregator failed to respond to task, this batch will be lost",
 		"err", err,
 		"taskIndex", blsAggServiceResp.TaskIndex,
-		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		"merkleRoot", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
 }
 
 // / Sends response to contract and waits for transaction receipt
@@ -313,7 +313,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task",
-		"Batch merkle root", hex.EncodeToString(batchMerkleRoot[:]))
+		"Batch merkle root", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
 
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Adding new task")
@@ -351,5 +351,5 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uin
 
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
-	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchMerkleRoot", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
 }
