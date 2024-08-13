@@ -59,7 +59,7 @@ use futures_util::{
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
-pub async fn submit_multiple_and_wait(
+pub async fn submit_multiple_and_wait_verification(
     batcher_addr: &str,
     eth_rpc_url: &str,
     chain: Chain,
@@ -211,7 +211,7 @@ async fn _submit_multiple(
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
-pub async fn submit_and_wait(
+pub async fn submit_and_wait_verification(
     batcher_addr: &str,
     eth_rpc_url: &str,
     chain: Chain,
@@ -221,7 +221,7 @@ pub async fn submit_and_wait(
 ) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let aligned_verification_data = submit_multiple_and_wait(
+    let aligned_verification_data = submit_multiple_and_wait_verification(
         batcher_addr,
         eth_rpc_url,
         chain,
@@ -429,7 +429,7 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data = submit_multiple_and_wait(
+        let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
@@ -463,7 +463,7 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let result = submit_multiple_and_wait(
+        let result = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
@@ -504,7 +504,7 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data = submit_multiple_and_wait(
+        let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
@@ -555,7 +555,7 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data = submit_multiple_and_wait(
+        let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
