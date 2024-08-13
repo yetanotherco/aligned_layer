@@ -8,17 +8,30 @@ defmodule Explorer.Periodically do
 
   def init(_) do
     send_work()
-    {:ok, 0}
+    {:ok, %{batches_count: 0, restakings_last_read_block: 0}}
   end
 
   def send_work() do
-    # once per block
-    seconds = 12
-    # send every n seconds
-    :timer.send_interval(seconds * 1000, :work)
+    seconds = 12 * 1000 # once per block
+    seconds_in_an_hour = 60 * 60
+    
+    :timer.send_interval(seconds, :batches) # every 12 seconds
+    :timer.send_interval(seconds * seconds_in_an_hour, :restakings) #every 12 hours
   end
 
-  def handle_info(:work, count) do
+  def handle_info(:restakings, state) do
+    last_read_block = Map.get(state, :restakings_last_read_block)
+    latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
+
+    process_quorum_strategy_changes()
+    process_operators(last_read_block)
+    process_restaking_changes(last_read_block)
+
+    {:noreply, %{state | restakings_last_read_block: latest_block_number}}
+  end
+
+  def handle_info(:batches, state) do
+    count = Map.get(state, :batches_count)
     # Reads and process last n blocks for new batches or batch changes
     read_block_qty = 8
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
@@ -30,16 +43,9 @@ defmodule Explorer.Periodically do
     new_count = rem(count + 1, run_every_n_iterations)
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
-      Task.start(fn -> process_quorum_strategy_changes() end)
-      Task.start(fn -> process_operators(read_from_block) end)
-      Task.start(fn -> process_restaking_changes(read_from_block) end)
     end
-    # process_operators(0)
-    # process_quorum_strategy_changes()
-    # process_restaking_changes(0)
 
-
-    {:noreply, new_count}
+    {:noreply, %{state | batches_count: new_count}}
   end
 
   def process_batches(fromBlock, toBlock) do
