@@ -33,41 +33,34 @@ defmodule AssetsCTAComponent do
     ~H"""
     <header>
       <.card_background class="min-h-24 flex flex-col md:flex-row gap-y-1 justify-between p-4">
-        <div class="flex flex-col justify-start gap-0.5">
-          <.link
-            navigate="/operators"
-            class="text-muted-foreground font-semibold group flex gap-2 items-center"
-          >
+        <.link navigate="/operators" class="flex flex-col justify-start gap-0.5 group">
+          <div class="text-muted-foreground font-semibold flex gap-2 items-center">
             <h2>
               Total Operators
             </h2>
             <.right_arrow />
-            <.tooltip>
-              View all operators
-            </.tooltip>
-          </.link>
+          </div>
           <span class={["text-4xl font-bold slashed-zero"]}>
             <%= @operators_registered %>
           </span>
-        </div>
-        <div class="flex flex-col justify-start gap-0.5">
-          <.link
-            navigate="/assets"
-            class="text-muted-foreground font-semibold group flex gap-2 items-center"
-          >
+          <.tooltip>
+            View all operators
+          </.tooltip>
+        </.link>
+        <.link navigate="/assets" class="flex flex-col justify-start gap-0.5 group">
+          <div class="text-muted-foreground font-semibold flex gap-2 items-center">
             <h2>
               Total Restaked
             </h2>
             <.right_arrow />
-            <.tooltip>
-              View all restaked assets
-            </.tooltip>
-          </.link>
-
+          </div>
           <span class={["text-4xl font-bold slashed-zero"]}>
             <%= @total_staked %> ETH
           </span>
-        </div>
+          <.tooltip>
+            View all restaked assets
+          </.tooltip>
+        </.link>
         <div class="" />
       </.card_background>
     </header>
