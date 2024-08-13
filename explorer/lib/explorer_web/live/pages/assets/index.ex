@@ -10,7 +10,10 @@ defmodule ExplorerWeb.Assets.Index do
   def handle_params(_params, _url, socket) do
     assets = Strategies.get_all_strategies()
 
-    {:noreply, assign(socket, assets: assets)}
+    {:noreply,
+     assign(socket,
+       assets: assets
+     )}
   end
 
   @impl true
@@ -18,15 +21,18 @@ defmodule ExplorerWeb.Assets.Index do
     ~H"""
     <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
       <.card_preheding>Assets</.card_preheding>
+      <.live_component module={AssetsCTAComponent} id="assets_cta" />
       <.table id="assets" rows={@assets}>
         <:col :let={asset} label="Token" class="text-left">
-          <%= asset.name %>
+          <div class="flex gap-x-2 items-center">
+            <%= asset.name %>
+            <p class="text-muted-foreground text-sm">
+              <%= asset.symbol %>
+            </p>
+          </div>
           <.tooltip>
             <%= asset.token_address %>
           </.tooltip>
-        </:col>
-        <:col :let={asset} label="Symbol">
-          <%= asset.symbol %>
         </:col>
         <:col :let={asset} label="Total ETH Restaked">
           <%= if asset.total_staked != nil do %>

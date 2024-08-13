@@ -23,6 +23,7 @@ defmodule ExplorerWeb.Operators.Index do
     ~H"""
     <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
       <.card_preheding>Operators</.card_preheding>
+      <.live_component module={AssetsCTAComponent} id="operators_cta" />
       <.table id="operators" rows={@operators}>
         <:col :let={operator} label="Name" class="[animation-delay: 3s]">
           <.link navigate={~p"/operators/#{operator.address}"} class="flex gap-x-2">
