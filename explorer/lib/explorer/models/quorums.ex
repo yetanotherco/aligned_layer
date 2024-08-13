@@ -9,9 +9,7 @@ defmodule Quorums do
   end
 
   def process_quorum_changes() do
-    our_quorums = get_all_quorums()
-
-    Enum.each(our_quorums, &handle_quorum/1)
+    Enum.each(get_all_quorums(), &handle_quorum/1)
   end
 
   def handle_quorum(%Quorums{} = quorum) do
@@ -33,7 +31,7 @@ defmodule Quorums do
   def insert_quorum_if_not_present(%Quorums{} = quorum) do
     case get_quorum_by_id(quorum.id) do
       nil ->
-        dbg "inserting quorum"
+        dbg "inserting new quorum"
         Explorer.Repo.insert(quorum)
       _ ->
         nil

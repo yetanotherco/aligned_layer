@@ -41,9 +41,7 @@ defmodule Operators do
     Explorer.Repo.one(query)
   end
 
-  # TODO: add pagination
   def get_operators() do
-    # add sort
     query = from(o in Operators, select: o, order_by: [desc: o.total_stake])
     Explorer.Repo.all(query)
   end
@@ -81,7 +79,6 @@ defmodule Operators do
     operator_address = Enum.at(event.topics, 1)
     operator_id = RegistryCoordinatorManager.get_operator_id_from_chain(operator_address)
     operator_url = DelegationManager.get_operator_url(operator_address)
-    dbg operator_url
     operator_metadata = case Utils.fetch_eigen_operator_metadata(operator_url) do
       {:ok, operator_metadata} ->
         operator_metadata
@@ -114,14 +111,11 @@ defmodule Operators do
   end
 
   def get_operator_weight(%Operators{} = operator) do
-    dbg operator
     query = from(o in Operators, where: o.address == ^operator.address, select: o.total_stake)
     operator_stake = Explorer.Repo.one(query)
-    dbg operator_stake
 
     query = from(o in Operators, select: sum(o.total_stake))
     total_stake = Explorer.Repo.one(query)
-    dbg total_stake
 
     Decimal.div(operator_stake, total_stake)
   end

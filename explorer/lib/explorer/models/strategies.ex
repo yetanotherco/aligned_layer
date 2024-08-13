@@ -3,7 +3,6 @@ defmodule Strategies do
   import Ecto.Changeset
   import Ecto.Query
 
-
   schema "strategies" do
     field :strategy_address, :binary
     field :token_address, :binary
@@ -18,10 +17,10 @@ defmodule Strategies do
   @doc false
   def changeset(strategy, attrs) do
     strategy
-    |> cast(attrs, [:strategy_address, :token_address, :name, :symbol, :total_staked])
-    |> validate_required([:strategy_address, :token_address, :name, :symbol])
-    |> unique_constraint(:strategy_address)
-    |> unique_constraint(:token_address)
+      |> cast(attrs, [:strategy_address, :token_address, :name, :symbol, :total_staked])
+      |> validate_required([:strategy_address, :token_address, :name, :symbol])
+      |> unique_constraint(:strategy_address)
+      |> unique_constraint(:token_address)
   end
 
   def generate_changeset(%Strategies{} = strategy) do
@@ -33,7 +32,7 @@ defmodule Strategies do
       |> Enum.reject(&Strategies.get_by_strategy_address/1)
       |> Enum.map(&extract_info/1)
       |> Enum.reject(&is_nil/1)
-      |> Enum.map(&add_strategy/1)
+      |> Enum.each(&add_strategy/1)
   end
 
   def get_by_strategy_address(strategy_address) do
@@ -48,11 +47,11 @@ defmodule Strategies do
     |> StrategyInterfaceManager.fetch_token_address()
     |> StrategyInterfaceManager.fetch_token_name()
     |> StrategyInterfaceManager.fetch_token_symbol()
-    # Total stake is set when inserting rows to `Restakings` table (?)
+      # Total stake is set when inserting values to `Restakings` table
   end
 
   def add_strategy(%Strategies{} = new_strategy) do
-    dbg("adding strategy")
+    dbg "adding strategy"
     Strategies.generate_changeset(new_strategy) |> Explorer.Repo.insert()
   end
   def add_strategy({:error, _error}) do

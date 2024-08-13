@@ -14,11 +14,12 @@ defmodule Explorer.Periodically do
   def send_work() do
     seconds = 12 * 1000 # once per block
     seconds_in_an_hour = 60 * 60
-    
+
     :timer.send_interval(seconds, :batches) # every 12 seconds
     :timer.send_interval(seconds * seconds_in_an_hour, :restakings) #every 12 hours
   end
 
+  # Reads and process last blocks for operators and restaking changes
   def handle_info(:restakings, state) do
     last_read_block = Map.get(state, :restakings_last_read_block)
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
@@ -30,9 +31,9 @@ defmodule Explorer.Periodically do
     {:noreply, %{state | restakings_last_read_block: latest_block_number}}
   end
 
+  # Reads and process last n blocks for new batches or batch changes
   def handle_info(:batches, state) do
     count = Map.get(state, :batches_count)
-    # Reads and process last n blocks for new batches or batch changes
     read_block_qty = 8
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)

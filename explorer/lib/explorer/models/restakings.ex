@@ -16,8 +16,8 @@ defmodule Restakings do
   @doc false
   def changeset(restaking, attrs) do
     restaking
-    |> cast(attrs, [:operator_id, :operator_address, :stake, :quorum_number, :strategy_address])
-    |> validate_required([:operator_id, :stake, :quorum_number, :strategy_address])
+      |> cast(attrs, [:operator_id, :operator_address, :stake, :quorum_number, :strategy_address])
+      |> validate_required([:operator_id, :stake, :quorum_number, :strategy_address])
   end
 
   def generate_changeset(%Restakings{} = restaking) do
