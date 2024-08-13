@@ -3,9 +3,9 @@ defmodule ExplorerWeb.Restake.Index do
 
   @impl true
   def handle_info(_, socket) do
-    restaked_amount_eth = socket.assigns.restake.strategy_address |> Strategies.get_total_staked()
+    restaked_amount_eth = socket.assigns.restake.strategy_address |> Strategies.get_total_staked() |> EthConverter.wei_to_eth(2)
 
-    {:ok,
+    {:noreply,
      assign(socket,
        restaked_amount_eth: restaked_amount_eth
      )}

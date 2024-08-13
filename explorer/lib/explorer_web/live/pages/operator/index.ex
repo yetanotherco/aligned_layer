@@ -9,7 +9,7 @@ defmodule ExplorerWeb.Operator.Index do
 
     weight = Operators.get_operator_weight(socket.assigns.operator) |> Numbers.show_percentage()
 
-    {:ok,
+    {:noreply,
      assign(socket,
        restaked_amount_eth: restaked_amount_eth,
        restakes_by_operator: restakes_by_operator,
