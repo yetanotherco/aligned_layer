@@ -66,7 +66,7 @@ defmodule DelegationManager do
         Enum.zip(all_strategies, shares)
           |> Enum.map(fn {strategy_address, share} ->
             %Restakings{operator_id: operator_id, operator_address: operator_address, stake: share, quorum_number: 0, strategy_address: strategy_address}
-          end) |> Enum.at(0)
+          end)
       {:error, error} ->
         IO.inspect("Error fetching operator's strategies shares")
         IO.inspect(error)
