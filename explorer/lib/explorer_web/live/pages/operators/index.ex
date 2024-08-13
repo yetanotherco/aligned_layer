@@ -15,6 +15,7 @@ defmodule ExplorerWeb.Operators.Index do
   @impl true
   def handle_params(_params, _url, socket) do
     operators = Operators.get_operators_with_their_weights()
+
     {:noreply, assign(socket, operators: operators)}
   end
 
@@ -35,15 +36,19 @@ defmodule ExplorerWeb.Operators.Index do
               />
               <%= operator.name %>
               <.right_arrow />
-              <.tooltip>
-                <%= operator.address %>
+              <.tooltip class="rounded-3xl">
+                Id: <%= operator.id |> Helpers.binary_to_hex_string() %>
+                <br/>
+                Addr: <%= operator.address %>
               </.tooltip>
             </span>
           </.link>
         </:col>
+        <:col :let={operator} label="Restake Concentration">
+          <%= operator.weight |> Numbers.show_percentage() %>
+        </:col>
         <:col :let={operator} label="Total ETH Restaked">
-          <%= operator.total_stake
-          |> EthConverter.wei_to_eth(2) |> Helpers.format_number() %> ETH
+          <%= operator.total_stake |> EthConverter.wei_to_eth(2) |> Helpers.format_number() %> ETH
         </:col>
         <:col :let={operator} label="Status">
           <.dynamic_badge status={operator.is_active} truthy_text="Active" falsy_text="Inactive" />
