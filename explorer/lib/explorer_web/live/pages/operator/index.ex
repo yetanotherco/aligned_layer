@@ -14,6 +14,7 @@ defmodule ExplorerWeb.Operator.Index do
     {:ok,
      assign(socket,
        operator: operator,
+       operator_id: operator.id |> Utils.binary_to_hex_string(),
        restaked_amount_eth: restaked_amount_eth,
        restakes_by_operator: restakes_by_operator,
        page_title: operator.name
@@ -64,12 +65,32 @@ defmodule ExplorerWeb.Operator.Index do
           </div>
         </div>
         <.divider class="my-2 sm:mt-5 sm:mb-3" />
+        <div class="break-all">
+          <h3>
+            Id:
+          </h3>
+          <p>
+            <%= @operator_id %>
+            <.live_component
+              module={CopyToClipboardButtonComponent}
+              text_to_copy={@operator_id}
+              id={"copy_#{@operator_id}"}
+              class="inline-flex"
+            />
+          </p>
+        </div>
         <div>
           <h3>
             Address:
           </h3>
           <p>
             <%= @operator.address %>
+            <.live_component
+              module={CopyToClipboardButtonComponent}
+              text_to_copy={@operator.address}
+              id={"copy_#{@operator.address}"}
+              class="inline-flex"
+            />
           </p>
         </div>
         <div>

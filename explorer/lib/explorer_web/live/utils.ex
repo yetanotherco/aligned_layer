@@ -113,6 +113,11 @@ defmodule ExplorerWeb.Utils do
       _ -> "http://localhost:4000"
     end
   end
+
+  def binary_to_hex_string(binary) do
+    hex_string = binary |> Base.encode16(case: :lower)
+    "0x" <> hex_string
+  end
 end
 
 # Backend utils
