@@ -2,6 +2,22 @@ defmodule ExplorerWeb.Operator.Index do
   use ExplorerWeb, :live_view
 
   @impl true
+  def handle_info(_, socket) do
+    restaked_amount_eth = socket.assigns.operator.total_stake |> EthConverter.wei_to_eth(2)
+
+    restakes_by_operator = Restakings.get_restakes_by_operator_id(socket.assigns.operator.id)
+
+    weight = Operators.get_operator_weight(socket.assigns.operator) |> Numbers.show_percentage()
+
+    {:ok,
+     assign(socket,
+       restaked_amount_eth: restaked_amount_eth,
+       restakes_by_operator: restakes_by_operator,
+       weight: weight
+     )}
+  end
+
+  @impl true
   def mount(%{"address" => address}, _, socket) do
     operator = Operators.get_operator_by_address(address)
 
@@ -10,6 +26,8 @@ defmodule ExplorerWeb.Operator.Index do
     restakes_by_operator = Restakings.get_restakes_by_operator_id(operator.id)
 
     weight = Operators.get_operator_weight(operator) |> Numbers.show_percentage()
+
+    if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
 
     {:ok,
      assign(socket,

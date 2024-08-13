@@ -9,6 +9,7 @@ defmodule ExplorerWeb.Operators.Index do
 
   @impl true
   def mount(_, _, socket) do
+    if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
     {:ok, assign(socket, page_title: "Operators")}
   end
 

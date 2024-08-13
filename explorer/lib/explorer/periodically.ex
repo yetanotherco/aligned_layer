@@ -27,6 +27,8 @@ defmodule Explorer.Periodically do
     process_quorum_strategy_changes()
     process_operators(last_read_block)
     process_restaking_changes(last_read_block)
+    PubSub.broadcast(Explorer.PubSub, "update_restakings", %{})
+
 
     {:noreply, %{state | restakings_last_read_block: latest_block_number}}
   end

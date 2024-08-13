@@ -2,7 +2,16 @@ defmodule ExplorerWeb.Restakes.Index do
   use ExplorerWeb, :live_view
 
   @impl true
+  def handle_info(_, socket) do
+    assets = Strategies.get_all_strategies()
+
+    {:noreply, assign(socket, assets: assets)}
+  end
+
+  @impl true
   def mount(_, _, socket) do
+    if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
+
     {:ok, assign(socket, page_title: "Restaked Assets")}
   end
 
@@ -24,7 +33,10 @@ defmodule ExplorerWeb.Restakes.Index do
       <.live_component module={AssetsCTAComponent} id="assets_cta" />
       <.table id="assets" rows={@assets}>
         <:col :let={asset} label="Token" class="text-left">
-          <.link navigate={~p"/restakes/#{asset.strategy_address}"} class="flex gap-x-2 items-center group-hover:text-foreground/80">
+          <.link
+            navigate={~p"/restakes/#{asset.strategy_address}"}
+            class="flex gap-x-2 items-center group-hover:text-foreground/80"
+          >
             <%= asset.name %>
             <p class="text-muted-foreground text-sm">
               <%= asset.symbol %>

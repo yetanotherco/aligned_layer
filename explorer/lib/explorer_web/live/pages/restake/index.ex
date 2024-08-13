@@ -2,12 +2,22 @@ defmodule ExplorerWeb.Restake.Index do
   use ExplorerWeb, :live_view
 
   @impl true
+  def handle_info(_, socket) do
+    restaked_amount_eth = socket.assigns.restake.strategy_address |> Strategies.get_total_staked()
+
+    {:ok,
+     assign(socket,
+       restaked_amount_eth: restaked_amount_eth
+     )}
+  end
+
+  @impl true
   def mount(%{"address" => address}, _, socket) do
     restake = Strategies.get_by_strategy_address(address)
 
     restaked_amount_eth = restake.total_staked |> EthConverter.wei_to_eth(2)
 
-    dbg(restake)
+    if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
 
     {:ok,
      assign(socket,

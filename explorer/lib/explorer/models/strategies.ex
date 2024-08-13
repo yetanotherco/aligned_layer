@@ -42,6 +42,13 @@ defmodule Strategies do
     Explorer.Repo.one(query)
   end
 
+  def get_total_staked(strategy_address) do
+    query = from(s in Strategies,
+      where: s.strategy_address == ^strategy_address,
+      select: s.total_staked)
+    Explorer.Repo.one(query)
+  end
+
   def extract_info(strategy_address) do
     %Strategies{strategy_address: strategy_address}
     |> StrategyInterfaceManager.fetch_token_address()
