@@ -9,12 +9,15 @@ defmodule ExplorerWeb.Operator.Index do
 
     restakes_by_operator = Restakings.get_restakes_by_operator_id(operator.id)
 
+    weight = Operators.get_operator_weight(operator) |> Numbers.show_percentage()
+
     {:ok,
      assign(socket,
        operator: operator,
        operator_id: operator.id |> Helpers.binary_to_hex_string(),
        restaked_amount_eth: restaked_amount_eth,
        restakes_by_operator: restakes_by_operator,
+       weight: weight,
        page_title: operator.name
      )}
   end
@@ -97,6 +100,14 @@ defmodule ExplorerWeb.Operator.Index do
           </h3>
           <p>
             <%= @restaked_amount_eth |> Helpers.format_number() %> ETH
+          </p>
+        </div>
+        <div>
+          <h3>
+            Concentration Restaked:
+          </h3>
+          <p>
+            <%= @weight %>
           </p>
         </div>
         <div>
