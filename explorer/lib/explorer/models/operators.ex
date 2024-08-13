@@ -82,7 +82,7 @@ defmodule Operators do
     operator_id = RegistryCoordinatorManager.get_operator_id_from_chain(operator_address)
     operator_url = DelegationManager.get_operator_url(operator_address)
     dbg operator_url
-    operator_metadata = case Helpers.fetch_eigen_operator_metadata(operator_url) do
+    operator_metadata = case Utils.fetch_eigen_operator_metadata(operator_url) do
       {:ok, operator_metadata} ->
         operator_metadata
 
