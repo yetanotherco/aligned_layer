@@ -1,4 +1,4 @@
-defmodule ExplorerWeb.Assets.Index do
+defmodule ExplorerWeb.Restakes.Index do
   use ExplorerWeb, :live_view
 
   @impl true
@@ -20,7 +20,7 @@ defmodule ExplorerWeb.Assets.Index do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
-      <.card_preheding>Assets</.card_preheding>
+      <.card_preheding>Restaked Assets</.card_preheding>
       <.live_component module={AssetsCTAComponent} id="assets_cta" />
       <.table id="assets" rows={@assets}>
         <:col :let={asset} label="Token" class="text-left">

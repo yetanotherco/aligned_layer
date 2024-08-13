@@ -33,7 +33,7 @@ defmodule AssetsCTAComponent do
     ~H"""
     <header>
       <.card_background class="min-h-24 flex flex-col md:flex-row gap-y-1 justify-between p-4">
-        <.link navigate="/operators" class="flex flex-col justify-start gap-0.5 group">
+        <.link navigate={~p"/operators"} class="flex flex-col justify-start gap-0.5 group">
           <div class="text-muted-foreground font-semibold flex gap-2 items-center">
             <h2>
               Total Operators
@@ -47,7 +47,7 @@ defmodule AssetsCTAComponent do
             View all operators
           </.tooltip>
         </.link>
-        <.link navigate="/assets" class="flex flex-col justify-start gap-0.5 group">
+        <.link navigate={~p"/restakes"} class="flex flex-col justify-start gap-0.5 group">
           <div class="text-muted-foreground font-semibold flex gap-2 items-center">
             <h2>
               Total Restaked
