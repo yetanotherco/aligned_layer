@@ -39,7 +39,7 @@ use futures_util::{
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce to use.
+/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -93,7 +93,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce to use.
+/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -191,7 +191,7 @@ async fn _submit_multiple(
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce to use
+/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -243,7 +243,7 @@ pub async fn submit_and_wait_verification(
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce to use.
+/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -363,7 +363,7 @@ pub fn get_commitment(content: &[u8]) -> [u8; 32] {
 /// * `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
 /// * `batcher_contract_address` - The address of the batcher payment service contract.
 /// # Returns
-/// * The next nonce.
+/// * The next nonce of the proof submitter account.
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumCallError` if there is an error in the Ethereum call.
