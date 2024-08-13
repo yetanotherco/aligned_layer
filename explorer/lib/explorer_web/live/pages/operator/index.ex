@@ -98,7 +98,7 @@ defmodule ExplorerWeb.Operator.Index do
             Total Restaked:
           </h3>
           <p>
-            <%= @restaked_amount_eth %> ETH
+            <%= @restaked_amount_eth |> Helpers.format_number() %> ETH
           </p>
         </div>
         <div>

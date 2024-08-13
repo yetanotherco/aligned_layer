@@ -16,7 +16,7 @@
     </.card_link>
     <.card_link icon="hero-arrow-right-solid" navigate={~p"/restakes"} title="Total ETH Restaked">
       <%= if @restaked_amount_eth != :nil and @restaked_amount_eth != :nil do %>
-        <%= @restaked_amount_eth %>
+        <%= @restaked_amount_eth |> Helpers.format_number() %>
       <% else %>
         0
       <% end %>

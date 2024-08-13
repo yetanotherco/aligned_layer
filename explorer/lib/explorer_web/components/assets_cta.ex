@@ -55,7 +55,7 @@ defmodule AssetsCTAComponent do
             <.right_arrow />
           </div>
           <span class={["text-4xl font-bold slashed-zero"]}>
-            <%= @total_staked %> ETH
+            <%= @total_staked |> Helpers.format_number() %> ETH
           </span>
           <.tooltip>
             View all restaked assets
