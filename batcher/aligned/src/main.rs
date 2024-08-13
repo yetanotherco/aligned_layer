@@ -11,7 +11,7 @@ use aligned_sdk::core::{
     types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::{get_commitment, submit_multiple, verify_proof_onchain};
+use aligned_sdk::sdk::{get_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -353,7 +353,7 @@ async fn main() -> Result<(), AlignedError> {
                 serde_json::from_reader(reader).map_err(SubmitError::SerializationError)?;
 
             info!("Verifying response data matches sent proof data...");
-            let response = verify_proof_onchain(
+            let response = is_proof_verified(
                 &aligned_verification_data,
                 chain,
                 &verify_inclusion_args.eth_rpc_url,
