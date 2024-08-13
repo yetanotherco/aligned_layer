@@ -1,13 +1,13 @@
-defmodule Strategy do
+defmodule StrategyInterfaceManager do
   require Logger
 
   use Ethers.Contract,
   abi_file: "lib/abi/IStrategy.json"
 
   def fetch_token_address(%Strategies{strategy_address: strategy_address} = strategy) do
-    case Strategy.underlying_token() |> Ethers.call(to: strategy_address) do
+    case StrategyInterfaceManager.underlying_token() |> Ethers.call(to: strategy_address) do
       {:ok, "0x"} -> # Strategy is native ETH
-        %{strategy | token_address: "0x"} #storing "0x" as its token address, and handling its cases in ERC20Manager
+        %{strategy | token_address: "0x"} #storing "0x" as its token address, and handling its cases in ERC20InterfaceManager
 
       {:ok, token_address} -> %{strategy | token_address: token_address}
 
@@ -23,7 +23,7 @@ defmodule Strategy do
   end
 
   def fetch_token_name(%Strategies{token_address: token_address} = strategy) do
-    case ERC20Manager.name(token_address) do
+    case ERC20InterfaceManager.name(token_address) do
       {:ok, name} -> %{strategy | name: name}
       error ->
         dbg("Error fetching token name")
@@ -36,7 +36,7 @@ defmodule Strategy do
   end
 
   def fetch_token_symbol(%Strategies{token_address: token_address} = strategy) do
-    case ERC20Manager.symbol(token_address) do
+    case ERC20InterfaceManager.symbol(token_address) do
       {:ok, symbol} -> %{strategy | symbol: symbol}
       error ->
         dbg("Error fetching token symbol")

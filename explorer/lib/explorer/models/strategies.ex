@@ -45,9 +45,9 @@ defmodule Strategies do
 
   def extract_info(strategy_address) do
     %Strategies{strategy_address: strategy_address}
-    |> Strategy.fetch_token_address()
-    |> Strategy.fetch_token_name()
-    |> Strategy.fetch_token_symbol()
+    |> StrategyInterfaceManager.fetch_token_address()
+    |> StrategyInterfaceManager.fetch_token_name()
+    |> StrategyInterfaceManager.fetch_token_symbol()
     # Total stake is set when inserting rows to `Restakings` table (?)
   end
 
