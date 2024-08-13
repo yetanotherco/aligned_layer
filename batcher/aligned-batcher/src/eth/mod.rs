@@ -7,7 +7,7 @@ use ethers::prelude::*;
 use gas_escalator::{Frequency, GeometricGasPrice};
 use log::info;
 
-use crate::{config::ECDSAConfig, types::errors::BatcherError};
+use crate::{config::ECDSAConfig, types::errors::BatcherSendError};
 
 #[derive(Debug, Clone, EthEvent)]
 pub struct BatchVerified {
@@ -72,7 +72,7 @@ pub async fn try_create_new_task(
     gas_for_aggregator: U256,
     gas_per_proof: U256,
     payment_service: &BatcherPaymentService,
-) -> Result<TransactionReceipt, BatcherError> {
+) -> Result<TransactionReceipt, BatcherSendError> {
     let call = payment_service.create_new_task(
         batch_merkle_root,
         batch_data_pointer,
@@ -84,13 +84,13 @@ pub async fn try_create_new_task(
 
     info!("Creating task for: {}", hex::encode(batch_merkle_root));
 
-    let pending_tx = call
-        .send()
-        .await
-        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+    let pending_tx = call.send().await.map_err(|err| match err {
+        ContractError::Revert(err) => BatcherSendError::TransactionReverted(err.to_string()),
+        _ => BatcherSendError::UnknownError(err.to_string()),
+    })?;
 
     pending_tx
         .await
-        .map_err(|_| BatcherError::TransactionSendError)?
-        .ok_or(BatcherError::ReceiptNotFoundError)
+        .map_err(|err| BatcherSendError::UnknownError(err.to_string()))?
+        .ok_or(BatcherSendError::ReceiptNotFound)
 }

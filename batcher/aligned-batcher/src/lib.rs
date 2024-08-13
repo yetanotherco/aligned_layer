@@ -34,7 +34,7 @@ use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
-use types::errors::BatcherError;
+use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 
@@ -740,8 +740,15 @@ impl Batcher {
         .await
         {
             Ok(receipt) => Ok(receipt),
+            Err(BatcherSendError::TransactionReverted(err)) => {
+                // dont retry with fallback
+                // just return the error
+                warn!("Transaction reverted {:?}", err);
+
+                Err(BatcherError::TransactionSendError)
+            }
             Err(_) => {
-                try_create_new_task(
+                let receipt = try_create_new_task(
                     batch_merkle_root,
                     batch_data_pointer,
                     padded_leaves,
@@ -750,7 +757,9 @@ impl Batcher {
                     gas_per_proof,
                     &self.payment_service_fallback,
                 )
-                .await
+                .await?;
+
+                Ok(receipt)
             }
         }
     }
