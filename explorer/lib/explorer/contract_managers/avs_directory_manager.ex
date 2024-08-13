@@ -22,13 +22,6 @@ defmodule AVSDirectoryManager do
                          |> Map.get("addresses")
                          |> Map.get("avsDirectory")
 
-  # @first_block (case @environment do
-  #                 "devnet" -> 0
-  #                 "holesky" -> 1_600_000
-  #                 "mainnet" -> 20_020_000
-  #                 _ -> raise("Invalid environment")
-  #               end)
-
   use Ethers.Contract,
     abi_file: "lib/abi/AVSDirectory.json",
     default_address: @avs_directory_address
