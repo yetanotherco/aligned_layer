@@ -96,7 +96,7 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 			case newBatch := <-internalChannel:
 				s.processNewBatch(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			case <-pollLatestBatchTicker.C:
-				latestBatch, err := s.getLatestTaskFromBlockchain()
+				latestBatch, err := s.getLatestTaskFromEthereum()
 				if err != nil {
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
@@ -173,10 +173,10 @@ func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLay
 	}
 }
 
-// getLatestTaskFromBlockchain queries the blockchain for the latest task using the FilterLogs method.
+// getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
 // The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
 // to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
-func (s *AvsSubscriber) getLatestTaskFromBlockchain() (*servicemanager.ContractAlignedLayerServiceManagerNewBatch, error) {
+func (s *AvsSubscriber) getLatestTaskFromEthereum() (*servicemanager.ContractAlignedLayerServiceManagerNewBatch, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
