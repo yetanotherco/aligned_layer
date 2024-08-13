@@ -29,12 +29,14 @@ defmodule Restakings do
       |> Enum.map(fn operator -> StakeRegistryManager.has_operator_changed_staking(%{fromBlock: from_block, operator_id: operator.id, operator_address: operator.address}) end)
       |> Enum.reject(fn {_operator_id, _operator_address, has_changed_stake} -> not has_changed_stake end)
       |> Enum.map(fn {operator_id, operator_address, _has_changed_stake} -> DelegationManager.get_operator_all_strategies_shares(%Operators{id: operator_id, address: operator_address}) end)
-      |> Enum.map(&insert_or_update_restakings/1)
+      |> Enum.each(&insert_or_update_restakings/1)
   end
 
+  def insert_or_update_restakings(restakings) when is_list(restakings) do
+    Enum.each(restakings, &insert_or_update_restakings/1)
+  end
   def insert_or_update_restakings(%Restakings{} = restaking) do
     changeset = restaking |> generate_changeset()
-
 
     multi =
       case Restakings.get_by_operator_and_strategy(%Restakings{operator_address: restaking.operator_address, strategy_address: restaking.strategy_address}) do
@@ -53,6 +55,7 @@ defmodule Restakings do
 
     case Explorer.Repo.transaction(multi) do
       {:ok, _} ->
+        dbg "Restaking inserted or updated"
         {:ok, :empty}
       {:error, _, changeset, _} ->
         "Error updating restakings table: #{inspect(changeset.errors)}" |> IO.puts()
