@@ -35,8 +35,6 @@ defmodule Restakings do
   def insert_or_update_restakings(%Restakings{} = restaking) do
     changeset = restaking |> generate_changeset()
 
-    # Temporal solution to handle new quorums, until Eigenlayer implements emition of QuorumCreated event
-    Quorums.handle_quorum(%Quorums{id: restaking.quorum_number})
 
     multi =
       case Restakings.get_by_operator_and_strategy(%Restakings{operator_address: restaking.operator_address, strategy_address: restaking.strategy_address}) do
@@ -55,10 +53,9 @@ defmodule Restakings do
 
     case Explorer.Repo.transaction(multi) do
       {:ok, _} ->
-        "Restaking and total_stake inserted/updated" |> IO.puts()
         {:ok, :empty}
       {:error, _, changeset, _} ->
-        "Error: #{inspect(changeset.errors)}" |> IO.puts()
+        "Error updating restakings table: #{inspect(changeset.errors)}" |> IO.puts()
         {:error, changeset}
     end
   end

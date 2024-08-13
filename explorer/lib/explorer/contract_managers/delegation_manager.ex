@@ -72,6 +72,7 @@ defmodule DelegationManager do
         IO.inspect(error)
         error
       other ->
+        IO.inspect("Unexpected response on get_operator_all_strategies_shares:")
         dbg other
         other
     end
