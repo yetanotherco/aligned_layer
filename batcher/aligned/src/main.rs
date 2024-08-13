@@ -684,7 +684,7 @@ pub async fn get_user_balance(
     contract_address: Address,
     user_address: Address,
 ) -> Result<U256, ProviderError> {
-    let selector = &ethers::utils::keccak256("UserBalances(address)".as_bytes())[..4];
+    let selector = &ethers::utils::keccak256("user_balances(address)".as_bytes())[..4];
 
     let encoded_params = ethers::abi::encode(&[ethers::abi::Token::Address(user_address)]);
 

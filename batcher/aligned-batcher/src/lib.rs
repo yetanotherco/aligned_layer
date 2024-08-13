@@ -607,7 +607,7 @@ impl Batcher {
     ) -> Result<(), BatcherError> {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
-        info!("Batch merkle root: {}", batch_merkle_root_hex);
+        info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
@@ -684,7 +684,7 @@ impl Batcher {
             gas_per_proof,
         );
 
-        info!("Creating task for: {}", hex::encode(batch_merkle_root));
+        info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
 
         let pending_tx = call
             .send()

@@ -1,10 +1,13 @@
 name: Build contracts
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
     branches: ["*"]
+    paths:
+      - 'contracts/**'
+      - 'foundry.toml'
+      - '.github/workflows/build-contracts.yml'
 
 jobs:
   build:
