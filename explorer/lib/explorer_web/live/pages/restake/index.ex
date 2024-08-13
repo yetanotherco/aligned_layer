@@ -69,14 +69,18 @@ defmodule ExplorerWeb.Restake.Index do
           <h3>
             Token Address:
           </h3>
-          <.a
-            href={"#{Helpers.get_etherescan_url()}/address/#{@restake.token_address}"}
-            class="text-foreground"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <%= @restake.token_address %>
-          </.a>
+          <%= if @restake.token_address != "0x" do %>
+            <.a
+              href={"#{Helpers.get_etherescan_url()}/address/#{@restake.token_address}"}
+              class="text-foreground"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <%= @restake.token_address %>
+            </.a>
+          <% else %>
+            <p>N/A</p>
+          <% end %>
         </div>
       </.card>
     </div>
