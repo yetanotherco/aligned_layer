@@ -76,7 +76,14 @@ Once the results from a batch have been checked on Ethereum, the Aligned contrac
 Additionally, the contract needs to be set to receive only proofs of specific programs. For example, in an L2, this may be a specific program that represents the state transition of the blockchain.
 In the contract, the code would look like this:
 
-![Figure 3: Reading results](../images/read.png)
+```Plain Text
+is_verified = VerifyWithAlignedVerificationData(
+   AlignedVerificationData
+)
+require(is_verified)
+require(ProofVerificationData.ProgramComm ==...)
+```
+
 Optionally, a committed address can also be used, an example being if one wants to give an NFT or tokens to a user that submitted a proof. Depending on the application it may be needed or not.
 
 ## Aggregation mode 
@@ -85,6 +92,6 @@ General Prover/Verifier: Every several days, takes the proofs from the DA layer 
 
 To aggregate all the proofs, in the first step, all proofs are transformed into proofs of execution of the virtual machine, achieving proof uniformity (see Figure 2). We can then shrink proof size by recursively proving the verification of proofs, as shown in the tree diagram (see Figure 3).
 
-![Figure 4: Prover](../images/prover.png)
+![Figure 3: Prover](../images/prover.png)
 
-![Figure 5: Recursion tree](../images/recursion.png)
+![Figure 4: Recursion tree](../images/recursion.png)
