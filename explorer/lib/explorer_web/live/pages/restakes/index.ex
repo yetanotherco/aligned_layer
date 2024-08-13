@@ -34,7 +34,7 @@ defmodule ExplorerWeb.Restakes.Index do
         </:col>
         <:col :let={asset} label="Total ETH Restaked">
           <%= if asset.total_staked != nil do %>
-            <%= asset.total_staked |> EthConverter.wei_to_eth(5) %>
+            <%= asset.total_staked |> EthConverter.wei_to_eth(3) |> Helpers.format_number() %>
           <% else %>
             N/A
           <% end %>
