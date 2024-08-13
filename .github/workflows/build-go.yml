@@ -6,6 +6,13 @@ on:
     branches: [main]
   pull_request:
     branches: ["*"]
+    paths:
+      - 'operator/**'
+      - 'aggregator/**'
+      - 'common/**'
+      - 'core/**'
+      - 'metrics/**'
+      - '.github/workflows/build-go.yml'
 env:
   FFI_FOR_RELEASE: false
 jobs:
