@@ -46,6 +46,18 @@ defmodule Operators do
     Explorer.Repo.all(query)
   end
 
+  def get_operators_with_their_weights() do
+    total_stake = Explorer.Repo.one(from(o in Operators, select: sum(o.total_stake)))
+
+    get_operators() |>
+      Enum.map(
+        fn operator ->
+          weight = Decimal.div(operator.total_stake, total_stake)
+          Map.from_struct(operator) |> Map.put(:weight, weight)
+        end
+      )
+  end
+
   def get_amount_of_operators do
     query = from(
       o in Operators,

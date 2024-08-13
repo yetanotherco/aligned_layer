@@ -3,7 +3,7 @@ defmodule ExplorerWeb.Operators.Index do
 
   @impl true
   def handle_info(_, socket) do
-    operators = Operators.get_operators()
+    operators = Operators.get_operators_with_their_weights()
     {:noreply, assign(socket, operators: operators)}
   end
 
@@ -14,7 +14,7 @@ defmodule ExplorerWeb.Operators.Index do
 
   @impl true
   def handle_params(_params, _url, socket) do
-    operators = Operators.get_operators()
+    operators = Operators.get_operators_with_their_weights()
     {:noreply, assign(socket, operators: operators)}
   end
 
