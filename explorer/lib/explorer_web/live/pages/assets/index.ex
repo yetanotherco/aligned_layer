@@ -21,6 +21,12 @@ defmodule ExplorerWeb.Assets.Index do
       <.table id="assets" rows={@assets}>
         <:col :let={asset} label="Token" class="text-left">
           <%= asset.name %>
+          <.tooltip>
+            <%= asset.token_address %>
+          </.tooltip>
+        </:col>
+        <:col :let={asset} label="Symbol">
+          <%= asset.symbol %>
         </:col>
         <:col :let={asset} label="Total ETH Restaked">
           <%= if asset.total_staked != nil do %>
