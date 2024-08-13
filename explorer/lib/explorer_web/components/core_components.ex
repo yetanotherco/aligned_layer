@@ -369,7 +369,7 @@ defmodule ExplorerWeb.CoreComponents do
     ~H"""
     <.link
       class={[
-        "underline underline-offset-4 font-medium flex items-center gap-1",
+        "underline underline-offset-4 font-medium flex items-center gap-1 hover:text-foreground/80",
         @class
       ]}
       {@rest}

@@ -28,7 +28,7 @@ defmodule ExplorerWeb.Restake.Index do
         class="px-4 py-5 min-h-fit flex flex-col"
         inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>div>p]:text-foreground [&>p]:text-foreground [&>a]:text-foreground [&>p]:break-all [&>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
       >
-        <div class="">
+        <div>
           <h3>
             Name:
           </h3>
@@ -36,7 +36,7 @@ defmodule ExplorerWeb.Restake.Index do
             <%= @restake.name %>
           </p>
         </div>
-        <div class="">
+        <div>
           <h3>
             Symbol:
           </h3>
@@ -44,9 +44,9 @@ defmodule ExplorerWeb.Restake.Index do
             <%= @restake.symbol %>
           </p>
         </div>
-                <div class="">
+        <div>
           <h3>
-             Total Restaked:
+            Total Restaked:
           </h3>
           <p>
             <%= @restaked_amount_eth %> ETH
@@ -56,17 +56,27 @@ defmodule ExplorerWeb.Restake.Index do
           <h3>
             Strategy Address:
           </h3>
-          <p>
+          <.a
+            href={"#{Helpers.get_eigenlayer_explorer_url()}/restake/#{@restake.symbol}"}
+            class="text-foreground"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <%= @restake.strategy_address %>
-          </p>
+          </.a>
         </div>
         <div class="break-all">
           <h3>
             Token Address:
           </h3>
-          <p>
+          <.a
+            href={"#{Helpers.get_etherescan_url()}/address/#{@restake.token_address}"}
+            class="text-foreground"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <%= @restake.token_address %>
-          </p>
+          </.a>
         </div>
       </.card>
     </div>

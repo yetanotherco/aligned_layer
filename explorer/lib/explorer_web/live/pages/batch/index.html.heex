@@ -80,7 +80,7 @@
           target="_blank"
           rel="noopener"
           href={
-          "https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
+          "#{Helpers.get_etherescan_url()}/block/#{@current_batch.submission_block_number}"
         }
           class="hover:text-foreground/80"
         >
@@ -94,7 +94,7 @@
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
+          href={"#{Helpers.get_etherescan_url()}/tx/#{@current_batch.submission_transaction_hash}"}
           class="hover:text-foreground/80"
         >
           <%= @current_batch.submission_transaction_hash %>
@@ -123,7 +123,7 @@
           <.a
             target="_blank"
             rel="noopener"
-            href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
+            href={"#{Helpers.get_etherescan_url()}/block/#{@current_batch.response_block_number}"}
             class="hover:text-foreground/80"
           >
             <%= @current_batch.response_block_number |> Helpers.format_number() %>
@@ -136,7 +136,7 @@
           <.a
             target="_blank"
             rel="noopener"
-            href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
+            href={"#{Helpers.get_etherescan_url()}/tx/#{@current_batch.response_transaction_hash}"}
             class="hover:text-foreground/80"
           >
             <%= @current_batch.response_transaction_hash %>

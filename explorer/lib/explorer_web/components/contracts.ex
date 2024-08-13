@@ -35,7 +35,7 @@ defmodule ContractsComponent do
           <.icon name="hero-cpu-chip" class="size-4 mb-0.5" /> Service Manager:
         </h3>
         <.a
-          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/address/#{@service_manager_address}"}
+          href={"#{Helpers.get_etherescan_url()}/address/#{@service_manager_address}"}
           class="hover:text-foreground/80"
           target="_blank"
           rel="noopener noreferrer"
@@ -46,7 +46,7 @@ defmodule ContractsComponent do
           <.icon name="hero-wallet" class="size-4 mb-0.5" /> Batcher Payment Service:
         </h3>
         <.a
-          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/address/#{@batcher_payment_service_address}"}
+          href={"#{Helpers.get_etherescan_url()}/address/#{@batcher_payment_service_address}"}
           class="hover:text-foreground/80"
           target="_blank"
           rel="noopener noreferrer"

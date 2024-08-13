@@ -114,6 +114,22 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
+  @doc """
+  Get the Etherscan URL based on the environment.
+  - `holesky` -> https://holesky.etherscan.io
+  - `mainnet` -> https://etherscan.io
+  - `default` -> http://localhost:4000
+  """
+  def get_etherescan_url() do
+    prefix = System.get_env("ENVIRONMENT")
+
+    case prefix do
+      "mainnet" -> "https://etherscan.io"
+      "holesky" -> "https://holesky.etherscan.io"
+      _ -> "http://localhost:4000"
+    end
+  end
+
   def binary_to_hex_string(binary) do
     Utils.binary_to_hex_string(binary)
   end
