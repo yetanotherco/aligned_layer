@@ -1,6 +1,5 @@
 package chainio
 
-import "C"
 import (
 	"context"
 	"encoding/hex"
