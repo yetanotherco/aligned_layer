@@ -289,7 +289,7 @@ pub async fn submit(
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumCallError` if there is an error in the Ethereum call.
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
-pub async fn verify_proof_onchain(
+pub async fn is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
     chain: Chain,
     eth_rpc_url: &str,
@@ -298,10 +298,10 @@ pub async fn verify_proof_onchain(
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
             errors::VerificationError::EthereumProviderError(e.to_string())
         })?;
-    _verify_proof_onchain(aligned_verification_data, chain, eth_rpc_provider).await
+    _is_proof_verified(aligned_verification_data, chain, eth_rpc_provider).await
 }
 
-async fn _verify_proof_onchain(
+async fn _is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
     chain: Chain,
     eth_rpc_provider: Provider<Http>,
@@ -518,7 +518,7 @@ mod test {
 
         sleep(std::time::Duration::from_secs(20)).await;
 
-        let result = verify_proof_onchain(
+        let result = is_proof_verified(
             &aligned_verification_data[0],
             Chain::Devnet,
             "http://localhost:8545",
@@ -574,7 +574,7 @@ mod test {
         // Modify the batch merkle root so that the verification fails
         aligned_verification_data_modified.batch_merkle_root[0] = 0;
 
-        let result = verify_proof_onchain(
+        let result = is_proof_verified(
             &aligned_verification_data_modified,
             Chain::Devnet,
             "http://localhost:8545",
