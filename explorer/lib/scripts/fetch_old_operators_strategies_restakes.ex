@@ -1,6 +1,6 @@
 defmodule Scripts.FetchOldOperatorsStrategiesRestakes do
 
-  # This Script is to fetch old operators from the blockchain activity
+  # This Script is to fetch old operators, strategies and restakes from the blockchain activity
   # and insert them into the Ecto database
 
   def run(fromBlock) do

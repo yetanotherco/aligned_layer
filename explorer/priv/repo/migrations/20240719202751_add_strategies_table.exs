@@ -8,7 +8,7 @@ defmodule Explorer.Repo.Migrations.AddTokensTable do
       add :token_address, :binary, null: false
       add :name, :string, null: false
       add :symbol, :string, null: false
-      add :total_staked, :decimal, precision: 30, scale: 0, default: 0 #TODO check if it is being updated on inserting new restake
+      add :total_staked, :decimal, precision: 30, scale: 0, default: 0
 
       timestamps()
     end
