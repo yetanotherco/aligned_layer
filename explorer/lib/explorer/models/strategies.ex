@@ -61,7 +61,8 @@ defmodule Strategies do
 
   def get_all_strategies() do
     query = from(s in Strategies,
-      select: s)
+      select: s,
+      order_by: [desc: s.total_staked])
     Explorer.Repo.all(query)
   end
 
