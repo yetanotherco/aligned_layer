@@ -38,7 +38,7 @@ defmodule StakeRegistryManager do
       |> Ethers.get_logs(fromBlock: fromBlock)
       |> case do
         {:ok, data} ->
-          {operator_id, operator_address, Enum.count(data) > 1}
+          {operator_id, operator_address, Enum.count(data) > 0}
 
         {:error, reason} ->
           dbg("Error getting latest operator stake update")
