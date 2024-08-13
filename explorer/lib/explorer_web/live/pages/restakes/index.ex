@@ -24,7 +24,7 @@ defmodule ExplorerWeb.Restakes.Index do
       <.live_component module={AssetsCTAComponent} id="assets_cta" />
       <.table id="assets" rows={@assets}>
         <:col :let={asset} label="Token" class="text-left">
-          <.link navigate={~p"/restakes/#{asset.strategy_address}"} class="flex gap-x-2 items-center">
+          <.link navigate={~p"/restakes/#{asset.strategy_address}"} class="flex gap-x-2 items-center group-hover:text-foreground/80">
             <%= asset.name %>
             <p class="text-muted-foreground text-sm">
               <%= asset.symbol %>
