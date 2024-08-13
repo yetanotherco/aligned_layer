@@ -6,6 +6,9 @@ on:
     branches: [main]
   pull_request:
     branches: ["*"]
+    paths:
+        - 'batcher/**'
+        - '.github/workflows/build-rust.yml'
 
 jobs:
   build:
