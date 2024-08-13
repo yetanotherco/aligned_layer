@@ -1,5 +1,5 @@
 # Frontend Utils
-defmodule ExplorerWeb.Utils do
+defmodule ExplorerWeb.Helpers do
   def shorten_hash(hash, decimals \\ 6) do
     case String.length(hash) do
       n when n < decimals -> hash
@@ -115,8 +115,7 @@ defmodule ExplorerWeb.Utils do
   end
 
   def binary_to_hex_string(binary) do
-    hex_string = binary |> Base.encode16(case: :lower)
-    "0x" <> hex_string
+    Utils.binary_to_hex_string(binary)
   end
 end
 

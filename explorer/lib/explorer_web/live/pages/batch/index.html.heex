@@ -84,7 +84,7 @@
         }
           class="hover:text-foreground/80"
         >
-          <%= @current_batch.submission_block_number |> Utils.format_number() %>
+          <%= @current_batch.submission_block_number |> Helpers.format_number() %>
         </.a>
       </div>
       <div>
@@ -105,7 +105,7 @@
           Submission Timestamp:
         </h3>
         <p>
-          <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
+          <%= @current_batch.submission_timestamp |> Helpers.parse_timestamp() %>
         </p>
       </div>
       <%= if @current_batch.is_verified do %>
@@ -126,7 +126,7 @@
             href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
             class="hover:text-foreground/80"
           >
-            <%= @current_batch.response_block_number |> Utils.format_number() %>
+            <%= @current_batch.response_block_number |> Helpers.format_number() %>
           </.a>
         </div>
         <div>
@@ -147,7 +147,7 @@
             Response Timestamp:
           </h3>
           <p>
-            <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
+            <%= @current_batch.response_timestamp |> Helpers.parse_timestamp() %>
           </p>
         </div>
       <% end %>

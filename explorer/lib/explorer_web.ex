@@ -93,7 +93,7 @@ defmodule ExplorerWeb do
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
-      alias ExplorerWeb.Utils
+      alias ExplorerWeb.Helpers
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

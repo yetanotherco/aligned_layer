@@ -7,7 +7,7 @@
           <span
             class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80"
           >
-            <%= Utils.shorten_hash(batch.merkle_root, 6) %>
+            <%= Helpers.shorten_hash(batch.merkle_root, 6) %>
             <.right_arrow />
             <.tooltip>
               <%= batch.merkle_root %>
@@ -20,11 +20,11 @@
       </:col>
       <:col :let={batch} label="Age">
         <span class="md:px-0" title={batch.submission_timestamp}>
-          <%= batch.submission_timestamp |> Utils.parse_timeago() %>
+          <%= batch.submission_timestamp |> Helpers.parse_timeago() %>
         </span>
       </:col>
       <:col :let={batch} label="Submission Block Number">
-        <%= batch.submission_block_number |> Utils.format_number() %>
+        <%= batch.submission_block_number |> Helpers.format_number() %>
       </:col>
     </.table>
   <% else %>

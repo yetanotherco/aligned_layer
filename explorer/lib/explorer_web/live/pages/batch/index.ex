@@ -26,7 +26,7 @@ defmodule ExplorerWeb.Batch.Index do
         proof_hashes: :empty,
         network: System.get_env("ENVIRONMENT"),
         site_url: System.get_env("PHX_HOST"),
-        page_title: Utils.shorten_hash(merkle_root),
+        page_title: Helpers.shorten_hash(merkle_root),
         eth_usd_price:
           case Cachex.get(:eth_price_cache, :eth_price) do
             {:ok, eth_usd_price} ->

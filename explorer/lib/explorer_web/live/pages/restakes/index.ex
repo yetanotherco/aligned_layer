@@ -24,15 +24,13 @@ defmodule ExplorerWeb.Restakes.Index do
       <.live_component module={AssetsCTAComponent} id="assets_cta" />
       <.table id="assets" rows={@assets}>
         <:col :let={asset} label="Token" class="text-left">
-          <div class="flex gap-x-2 items-center">
+          <.link navigate={~p"/restakes/#{asset.strategy_address}"} class="flex gap-x-2 items-center">
             <%= asset.name %>
             <p class="text-muted-foreground text-sm">
               <%= asset.symbol %>
             </p>
-          </div>
-          <.tooltip>
-            <%= asset.token_address %>
-          </.tooltip>
+            <.right_arrow />
+          </.link>
         </:col>
         <:col :let={asset} label="Total ETH Restaked">
           <%= if asset.total_staked != nil do %>

@@ -14,7 +14,7 @@ defmodule ExplorerWeb.Operator.Index do
     {:ok,
      assign(socket,
        operator: operator,
-       operator_id: operator.id |> Utils.binary_to_hex_string(),
+       operator_id: operator.id |> Helpers.binary_to_hex_string(),
        restaked_amount_eth: restaked_amount_eth,
        restakes_by_operator: restakes_by_operator,
        page_title: operator.name
@@ -54,7 +54,7 @@ defmodule ExplorerWeb.Operator.Index do
               </.a>
               <.a
                 href={
-          "#{Utils.get_eigenlayer_explorer_url()}/operator/#{@operator.address}"
+          "#{Helpers.get_eigenlayer_explorer_url()}/operator/#{@operator.address}"
           }
                 target="_blank"
                 rel="noopener"

@@ -23,14 +23,14 @@
     </.card_link>
     <.card title="verified batches">
       <%= if @verified_batches != :empty do %>
-        <%= @verified_batches |> Utils.format_number() %>
+        <%= @verified_batches |> Helpers.format_number() %>
       <% else %>
         0
       <% end %>
     </.card>
     <.card title="Verified Proofs" class="-mt-0.5 md:mt-0">
       <%= if @verified_proofs != :empty do %>
-        <%= @verified_proofs |> Utils.format_number() %>
+        <%= @verified_proofs |> Helpers.format_number() %>
       <% else %>
         0
       <% end %>
@@ -51,7 +51,7 @@
         <%= for batch <- @latest_batches do %>
           <.link class="flex justify-between group" navigate={~p"/batches/#{batch}"}>
             <span class="group-hover:text-foreground/80">
-              <%= Utils.shorten_hash(batch) %>
+              <%= Helpers.shorten_hash(batch) %>
             </span>
             <.right_arrow />
             <.tooltip>
