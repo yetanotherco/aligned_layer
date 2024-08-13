@@ -11,7 +11,7 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     merkle_root: &[u8; 32],
 ) -> bool {
     if batch_ptr.is_null() {
-        error!("Batch buffer length null");
+        error!("Batch buffer null");
         return false;
     }
 

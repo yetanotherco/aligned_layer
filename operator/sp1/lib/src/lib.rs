@@ -15,7 +15,7 @@ pub extern "C" fn verify_sp1_proof_ffi(
     elf_len: u32,
 ) -> bool {
     if proof_bytes.is_null() || elf_bytes.is_null() {
-        error!("Input buffer length null");
+        error!("Input buffer null");
         return false;
     }
 
