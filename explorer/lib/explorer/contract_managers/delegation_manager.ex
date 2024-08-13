@@ -1,14 +1,6 @@
 defmodule DelegationManager do
   require Logger
 
-  # @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")
-
-  # config_file_path =
-  #   case @aligned_config_file do
-  #     nil -> raise("ALIGNED_CONFIG_FILE not set in .env")
-  #     file -> file
-  #   end
-
   @environment System.get_env("ENVIRONMENT")
 
   eigenlayer_output_file_path =

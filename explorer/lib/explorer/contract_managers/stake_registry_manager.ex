@@ -51,8 +51,6 @@ defmodule StakeRegistryManager do
   end
 
   def get_strategies_of_quorum(quorum_number) do
-    "get_strategies_of_quorum" |> dbg
-
     amount_of_strategies = case StakeRegistryManager.strategy_params_length(quorum_number) |> Ethers.call() do
       {:ok, amount} ->
         amount
@@ -88,4 +86,3 @@ defmodule StakeRegistryManager do
   end
 
 end
-

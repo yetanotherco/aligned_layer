@@ -78,7 +78,6 @@ defmodule Strategies do
       where: s.strategy_address == ^new_restaking.strategy_address,
       select: s)
     strategy = Explorer.Repo.one(query)
-    dbg strategy
 
     query = from(r in Restakings,
       where: r.strategy_address == ^new_restaking.strategy_address and r.operator_address == ^new_restaking.operator_address,

@@ -44,16 +44,3 @@ defmodule RegistryCoordinatorManager do
   end
 
 end
-
-# relevant:
-# /// Emits when an operator is registered
-# event OperatorRegistered(address indexed operator, bytes32 indexed operatorId);
-
-# /// Emits when an operator is deregistered
-# event OperatorDeregistered(address indexed operator, bytes32 indexed operatorId);
-
-# /// @notice Returns the operator struct for the given `operator`
-# function getOperator(address operator) external view returns (OperatorInfo memory);
-
-# /// @notice Returns the operatorId for the given `operator`
-# function getOperatorId(address operator) external view returns (bytes32);
