@@ -7,10 +7,7 @@ defmodule ExplorerWeb.Operator.Index do
 
     Operators.get_operator_weight(operator) |> dbg
 
-    restaked_amount_eth =
-      operator.total_stake
-      |> Decimal.to_integer()
-      |> EthConverter.wei_to_eth(2)
+    restaked_amount_eth = operator.total_stake |> EthConverter.wei_to_eth(2)
 
     restakes_by_operator = Restakings.get_restakes_by_operator_id(operator.id)
 
@@ -89,14 +86,12 @@ defmodule ExplorerWeb.Operator.Index do
           </h3>
           <%= if @restakes_by_operator != [] do %>
             <div class="flex flex-col gap-y-2">
-              <%= for {restake, strategy} <- @restakes_by_operator do %>
-                <div class="flex flex-col gap-y-1">
-                  <h3>
-                    <%= strategy.name %>
-                  </h3>
-                  <p>
-                    <%= restake.stake %> ETH
-                  </p>
+              <%= for %{strategy: strategy, restaking: restaking} <- @restakes_by_operator do %>
+                <div class="flex flex-col gap-y-1 text-foreground">
+                  <%= strategy.name %> (<%= strategy.symbol %>) <%= EthConverter.wei_to_eth(
+                    restaking.stake,
+                    3
+                  ) %> ETH
                 </div>
               <% end %>
             </div>

@@ -24,7 +24,7 @@ defmodule ExplorerWeb.Operators.Index do
     <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
       <.card_preheding>Operators</.card_preheding>
       <.table id="operators" rows={@operators}>
-        <:col :let={operator} label="Name" class={"[animation-delay: 3s]"}>
+        <:col :let={operator} label="Name" class="[animation-delay: 3s]">
           <.link navigate={~p"/operators/#{operator.address}"} class="flex gap-x-2">
             <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
               <img
@@ -42,7 +42,6 @@ defmodule ExplorerWeb.Operators.Index do
         </:col>
         <:col :let={operator} label="Total ETH Restaked">
           <%= operator.total_stake
-          |> Decimal.to_integer()
           |> EthConverter.wei_to_eth(2) %> ETH
         </:col>
         <:col :let={operator} label="Status">

@@ -107,7 +107,7 @@ defmodule ExplorerWeb.Home.Index do
         nil
 
       _ ->
-        Decimal.to_integer(restaked_amount_wei)
+        restaked_amount_wei
         |> EthConverter.wei_to_eth(2)
     end
   end
