@@ -90,7 +90,6 @@ pub async fn submit_multiple_and_wait_verification(
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
-/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.

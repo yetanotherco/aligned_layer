@@ -39,7 +39,7 @@ pub async fn submit(
 - `batcher_addr` - The address of the batcher to which the proof will be submitted.
 - `verification_data` - The verification data for the proof.
 - `wallet` - The wallet used to sign the proof.
-- `nonce` - The nonce to use.
+- `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 
 #### Returns
 
@@ -79,7 +79,7 @@ pub async fn submit_multiple(
 - `batcher_addr` - The address of the batcher to which the proof will be submitted.
 - `verification_data` - A verification data array.
 - `wallet` - The wallet used to sign the proof.
-- `nonce` - The nonce to use.
+- `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 
 #### Returns
 
@@ -101,13 +101,13 @@ pub async fn submit_multiple(
 - `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### `submit_and_wait`
+### `submit_and_wait_verification`
 
 Submits a proof to the batcher to be verified, waits for the verification on ethereum and returns an aligned
 verification data struct.
 
 ```rust
-pub async fn submit_and_wait(
+pub async fn submit_and_wait_verification(
     batcher_addr: &str,
     eth_rpc_url: &str,
     chain: Chain,
@@ -124,7 +124,7 @@ pub async fn submit_and_wait(
 - `chain` - The chain on which the verification will be done.
 - `verification_data` - The verification data for the proof.
 - `wallet` - The wallet used to sign the proof.
-- `nonce` - The nonce to use.
+- `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 
 #### Returns
 
@@ -149,13 +149,13 @@ pub async fn submit_and_wait(
 - `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### `submit_multiple_and_wait`
+### `submit_multiple_and_wait_verification`
 
 Submits multiple proofs to the batcher to be verified, waits for the verification on Ethereum and returns an aligned
 verification data array.
 
 ```rust
-pub async fn submit_multiple_and_wait(
+pub async fn submit_multiple_and_wait_verification(
     batcher_addr: &str,
     eth_rpc_url: &str,
     chain: Chain,
@@ -172,7 +172,7 @@ pub async fn submit_multiple_and_wait(
 - `chain` - The chain on which the verification will be done.
 - `verification_data` - A verification data array.
 - `wallet` - The wallet used to sign the proof.
-- `nonce` - The nonce to use.
+- `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 
 #### Returns
 
@@ -197,12 +197,12 @@ pub async fn submit_multiple_and_wait(
 - `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 - `GenericError` if the error doesn't match any of the previous ones.
 
-### `verify_proof_onchain`
+### `is_proof_verified`
 
 Checks if the proof has been verified with Aligned and is included in the batch on-chain.
 
 ```rust
-pub async fn verify_proof_onchain(
+pub async fn is_proof_verified(
     aligned_verification_data: AlignedVerificationData,
     chain: Chain,
     eth_rpc_url: &str,
@@ -251,7 +251,7 @@ Returns the nonce to use for a given address.
 ```rust
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
-    address: Address,
+    submitter_addr: Address,
     batcher_contract_address: &str,
 ) -> Result<U256, errors::NonceError>
 ```
@@ -259,7 +259,7 @@ pub async fn get_next_nonce(
 #### Arguments
 
 - `eth_rpc_url` - The URL of the Ethereum RPC node.
-- `address` - The address for which the nonce will be retrieved.
+- `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
 - `batcher_contract_address` - The address of the batcher payment service contract.
 
 #### Returns
