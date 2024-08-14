@@ -1,12 +1,9 @@
 defmodule CopyToClipboardButtonComponent do
   use ExplorerWeb, :live_component
 
-  attr :text_to_copy, :string, required: true
-  attr :class, :string, default: nil
-
   @impl true
-  def mount(socket) do
-    {:ok, assign(socket, text_to_copy: @text_to_copy)}
+  def update(assigns, socket) do
+    {:ok, assign(socket, text_to_copy: assigns.text_to_copy, class: assigns.class)}
   end
 
   @impl true
@@ -25,7 +22,9 @@ defmodule CopyToClipboardButtonComponent do
       ]}
       phx-hook="CopyToClipboard"
       data-clipboard-text={@text_to_copy}
-      id="copy-to-clipboard"
+      id={"copy-to-clipboard-" <> @text_to_copy}
+      phx-target={@myself}
+      phx-click="copied"
     >
       <.icon name="hero-clipboard" class="size-3" />
       <span class="sr-only">Copy to clipboard</span>
