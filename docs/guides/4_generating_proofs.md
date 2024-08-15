@@ -40,11 +40,12 @@ aligned submit \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
 --conn wss://batcher.alignedlayer.com \
---proof_generator_addr <proof_generator_addr\
+--proof_generator_addr <proof_generator_addr> \
 --rpc https://ethereum-holesky-rpc.publicnode.com \
---batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003``
+--batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
 
-Where `proof_path` is the path to the proof file and vm program path is the path to the elf file.
+Where `proof_path` is the path to the proof file, `vm_program_path` is the path to the ELF file. `proof_generator_addr` is an optional parameter that works as a helper for some applications where you can be frontrunned.
 
 For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
 
