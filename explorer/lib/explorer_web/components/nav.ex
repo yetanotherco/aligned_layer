@@ -44,8 +44,49 @@ defmodule NavComponent do
           GitHub
         </.link>
         <DarkMode.button />
+        <button
+          class="md:hidden z-50 relative"
+          id="menu-toggle"
+          phx-click={toggle_menu()}
+          aria-label="Toggle menu"
+        >
+          <.icon name="hero-bars-3" class="toggle-open" />
+          <.icon name="hero-x-mark" class="toggle-close hidden" />
+        </button>
+        <div id="menu-overlay" class="fixed inset-0 bg-background/90 z-40 hidden min-h-dvh">
+          <div class="h-full flex flex-col gap-y-10 text-2xl justify-end items-center p-12">
+            <.link
+              class="text-foreground/80 hover:text-foreground font-semibold"
+              navigate={~p"/batches"}
+            >
+              Batches
+            </.link>
+            <.link
+              class="text-foreground/80 hover:text-foreground font-semibold"
+              navigate={~p"/operators"}
+            >
+              Operators
+            </.link>
+            <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
+              Docs
+            </.link>
+            <.link
+              class="hover:text-foreground"
+              target="_blank"
+              href="https://github.com/yetanotherco/aligned_layer"
+            >
+              GitHub
+            </.link>
+          </div>
+        </div>
       </div>
     </nav>
     """
+  end
+
+  def toggle_menu() do
+    JS.toggle(to: "#menu-overlay")
+    |> JS.toggle(to: ".toggle-open")
+    |> JS.toggle(to: ".toggle-close")
   end
 end
