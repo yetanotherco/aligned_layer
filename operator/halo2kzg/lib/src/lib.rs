@@ -178,9 +178,6 @@ mod tests {
         let mut params_buf = Vec::new();
         vk_params.write(&mut params_buf).unwrap();
 
-        //Write everything to parameters file
-        let params_file = File::create("params.bin").unwrap();
-        let mut writer = BufWriter::new(params_file);
         write_params(&params_buf, cs, &vk_buf, "params.bin").unwrap();
 
         //read proof
