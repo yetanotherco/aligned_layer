@@ -27,7 +27,7 @@ Submits a proof to the batcher to be verified and returns an aligned verificatio
 
 ```rust
 pub async fn submit(
-    batcher_addr: &str,
+    batcher_url: &str,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
     nonce: U256,
@@ -36,7 +36,7 @@ pub async fn submit(
 
 #### Arguments
 
-- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `batcher_url` - The url of the batcher to which the proof will be submitted.
 - `verification_data` - The verification data for the proof.
 - `wallet` - The wallet used to sign the proof.
 - `nonce` - The nonce of the submitter address. See `get_next_nonce`.
@@ -67,7 +67,7 @@ Submits multiple proofs to the batcher to be verified and returns an aligned ver
 
 ```rust
 pub async fn submit_multiple(
-    batcher_addr: &str,
+    batcher_url: &str,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
@@ -76,7 +76,7 @@ pub async fn submit_multiple(
 
 #### Arguments
 
-- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `batcher_url` - The url of the batcher to which the proof will be submitted.
 - `verification_data` - A verification data array.
 - `wallet` - The wallet used to sign the proof.
 - `nonce` - The nonce of the submitter address. See `get_next_nonce`.
@@ -108,7 +108,7 @@ verification data struct.
 
 ```rust
 pub async fn submit_and_wait_verification(
-    batcher_addr: &str,
+    batcher_url: &str,
     eth_rpc_url: &str,
     chain: Chain,
     verification_data: &VerificationData,
@@ -119,7 +119,7 @@ pub async fn submit_and_wait_verification(
 
 #### Arguments
 
-- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `batcher_url` - The url of the batcher to which the proof will be submitted.
 - `eth_rpc_url` - The URL of the Ethereum RPC node.
 - `chain` - The chain on which the verification will be done.
 - `verification_data` - The verification data for the proof.
@@ -156,7 +156,7 @@ verification data array.
 
 ```rust
 pub async fn submit_multiple_and_wait_verification(
-    batcher_addr: &str,
+    batcher_url: &str,
     eth_rpc_url: &str,
     chain: Chain,
     verification_data: &[VerificationData],
@@ -167,7 +167,7 @@ pub async fn submit_multiple_and_wait_verification(
 
 #### Arguments
 
-- `batcher_addr` - The address of the batcher to which the proof will be submitted.
+- `batcher_url` - The url of the batcher to which the proof will be submitted.
 - `eth_rpc_url` - The URL of the Ethereum RPC node.
 - `chain` - The chain on which the verification will be done.
 - `verification_data` - A verification data array.
@@ -252,7 +252,7 @@ Returns the nonce to use for a given address.
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
     submitter_addr: Address,
-    batcher_contract_address: &str,
+    batcher_payment_addr: &str,
 ) -> Result<U256, errors::NonceError>
 ```
 
@@ -260,7 +260,7 @@ pub async fn get_next_nonce(
 
 - `eth_rpc_url` - The URL of the Ethereum RPC node.
 - `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
-- `batcher_contract_address` - The address of the batcher payment service contract.
+- `batcher_payment_addr` - The address of the batcher payment service contract.
 
 #### Returns
 
