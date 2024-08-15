@@ -1,4 +1,8 @@
 defmodule Numbers do
+  def format_number(number) when is_nil(number) do
+    nil
+  end
+
   def format_number(number) when is_integer(number) do
     do_format_number(Integer.to_string(number))
   end
