@@ -48,7 +48,7 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 	}
 
 	// Check if the response body is larger than expected
-	if reader.N == 0 {
+	if reader.N <= 0 {
 		return nil, fmt.Errorf("batch size exceeds max batch size %d", o.Config.Operator.MaxBatchSize)
 	}
 
