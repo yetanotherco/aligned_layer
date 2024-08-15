@@ -98,7 +98,7 @@ defmodule ExplorerWeb.Operator.Index do
             />
           </p>
         </div>
-        <div>
+        <div class="break-all">
           <h3>
             Address:
           </h3>
@@ -135,7 +135,7 @@ defmodule ExplorerWeb.Operator.Index do
           <%= if @restakes_by_operator != [] do %>
             <div class="flex flex-col gap-y-2 basis-3/4">
               <%= for %{strategy: strategy, restaking: restaking} <- @restakes_by_operator do %>
-                <div class="flex text-foreground gap-x-1 justify-between pr-3">
+                <div class="flex text-foreground gap-x-1 justify-between lg:pr-2">
                   <p>
                     <%= strategy.name %>
                     <span class="text-xs text-muted-foreground"><%= strategy.symbol %></span>
