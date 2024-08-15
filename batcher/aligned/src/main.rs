@@ -67,10 +67,10 @@ pub struct SubmitArgs {
     batcher_url: String,
     #[arg(
         name = "Batcher Payment Service Eth Address",
-        long = "batcher_payment_addr",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_payment_addr: String,
+    payment_service_addr: String,
     #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
@@ -116,10 +116,10 @@ pub struct SubmitArgs {
 pub struct DepositToBatcherArgs {
     #[arg(
         name = "Batcher Payment Service Eth Address",
-        long = "batcher_payment_addr",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_payment_addr: String,
+    payment_service_addr: String,
     #[arg(
         name = "Path to local keystore",
         long = "keystore_path",
@@ -175,10 +175,10 @@ pub struct GetCommitmentArgs {
 pub struct GetUserBalanceArgs {
     #[arg(
         name = "Batcher Payment Service Eth Address",
-        long = "batcher_payment_addr",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_payment_addr: String,
+    payment_service_addr: String,
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
@@ -284,7 +284,7 @@ async fn main() -> Result<(), AlignedError> {
             };
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
-            let batcher_eth_address = submit_args.batcher_payment_addr.clone();
+            let batcher_eth_address = submit_args.payment_service_addr.clone();
 
             let verification_data = verification_data_from_args(submit_args)?;
 
@@ -443,7 +443,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let batcher_addr = Address::from_str(&deposit_to_batcher_args.batcher_payment_addr)
+            let batcher_addr = Address::from_str(&deposit_to_batcher_args.payment_service_addr)
                 .map_err(|e| {
                     SubmitError::HexDecodingError(format!(
                         "Error while parsing batcher address: {}",
@@ -502,7 +502,7 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let batcher_addr = Address::from_str(&get_user_balance_args.batcher_payment_addr)
+            let batcher_addr = Address::from_str(&get_user_balance_args.payment_service_addr)
                 .map_err(|e| {
                     SubmitError::HexDecodingError(format!(
                         "Error while parsing batcher address: {}",

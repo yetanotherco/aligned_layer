@@ -252,7 +252,7 @@ Returns the nonce to use for a given address.
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
     submitter_addr: Address,
-    batcher_payment_addr: &str,
+    payment_service_addr: &str,
 ) -> Result<U256, errors::NonceError>
 ```
 
@@ -260,7 +260,7 @@ pub async fn get_next_nonce(
 
 - `eth_rpc_url` - The URL of the Ethereum RPC node.
 - `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
-- `batcher_payment_addr` - The address of the batcher payment service contract.
+- `payment_service_addr` - The address of the batcher payment service contract.
 
 #### Returns
 

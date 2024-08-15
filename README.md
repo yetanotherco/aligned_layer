@@ -48,7 +48,7 @@ aligned submit \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --batcher_url wss://batcher.alignedlayer.com \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 5. You should get a response like this:

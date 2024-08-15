@@ -360,7 +360,7 @@ pub fn get_commitment(content: &[u8]) -> [u8; 32] {
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
-/// * `batcher_payment_addr` - The address of the batcher payment service contract.
+/// * `payment_service_addr` - The address of the batcher payment service contract.
 /// # Returns
 /// * The next nonce of the proof submitter account.
 /// # Errors
@@ -369,12 +369,12 @@ pub fn get_commitment(content: &[u8]) -> [u8; 32] {
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
     submitter_addr: Address,
-    batcher_payment_addr: &str,
+    payment_service_addr: &str,
 ) -> Result<U256, errors::NonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
 
-    match batcher_payment_service(eth_rpc_provider, batcher_payment_addr).await {
+    match batcher_payment_service(eth_rpc_provider, payment_service_addr).await {
         Ok(contract) => {
             let call = contract.user_nonces(submitter_addr);
 

@@ -68,7 +68,7 @@ To use it you can use the `aligned` CLI, as shown with the following example:
 
 ```bash
 aligned deposit-to-batcher \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --chain holesky \
 --keystore_path <keystore_path> \
@@ -77,7 +77,7 @@ aligned deposit-to-batcher \
 
 These commands allows the usage of the following flags:
 
-- `--batcher_payment_addr` to specify the address of the Batcher Payment Service smart contract.
+- `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used. Could be holesky or devnet.
 - `--keystore_path` the path to the keystore.
@@ -88,14 +88,14 @@ After depositing funds, you can verify the Service has correctly received them b
 
 ```bash
 aligned get-user-balance \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --user_addr <user_addr>
 ```
 
 These commands allows the usage of the following flags:
 
-- `--batcher_payment_addr` to specify the address of the Batcher Payment Service smart contract.
+- `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
 - `--user_addr` the address of the user that funded the Batcher.
 
@@ -131,7 +131,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 **Example**
@@ -145,7 +145,7 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ### Risc0 proof
@@ -166,7 +166,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 **Example**
@@ -182,7 +182,7 @@ aligned submit \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
@@ -201,7 +201,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 **Examples**:
@@ -216,7 +216,7 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --eth_rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ```bash
@@ -229,7 +229,7 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ```bash
@@ -242,5 +242,5 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
