@@ -187,8 +187,8 @@ Aligned supports verification of Halo2 proofs using the IPA and KZG backends. To
 Aligned maintains its own fork of the PSE's Halo2 repository that provides helper methods to serialize and send Halo2 proofs to Aligned.
 
 ```rust
-halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git" }
-halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git" }
+halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", branch = "feat/serde_constraint_system" }
+halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", branch = "feat/serde_constraint_system" }
 ```
 
 ### How to generate a proof
@@ -200,16 +200,38 @@ You can add `prove_and_serialize_kzg_circuit` or `prove_and_serialize_ipa_circui
 ```rust
 fn main() {
 
-    // your code here
+  // your code here
+  pub struct YourCircuit (pub Fr);
 
-    let circuit = StandardPlonk(Fr::random(OsRng));
-    let params = ParamsKZG::setup(4, OsRng);
-    let compress_selectors = true;
-    let vk = keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
-    let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
-    let input: Vec<Vec<Fr>> = vec![vec![circuit.0]];
-    prove_and_serialize_kzg_circuit(&params, &pk, &vk, circuit.clone(), &vec![input.clone()])
-        .unwrap();
+  impl Circuit<Fr> for YourCircuit {
+    type Config = YourCircuitConfig;
+    type FloorPlanner = YourCircuitPlanner;
+
+    fn without_witnesses(&self) -> Self {
+      // ... //
+    }
+
+    fn configure(meta: &mut ConstraintSystem<Fr>) -> Self::Config {
+        YourCircuitConfig::configure(meta)
+    }
+
+    fn synthesize(
+        &self,
+        config: Self::Config,
+        mut layouter: impl Layouter<Fr>,
+    ) -> Result<(), ErrorFront> {
+      // ... //
+    }
+  }
+
+  let circuit = YourCircuit(Fr::random(OsRng));
+  let params = ParamsKZG::setup(4, OsRng);
+  let compress_selectors = true;
+  let vk = keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
+  let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
+  let input: Vec<Vec<Fr>> = vec![vec![circuit.0]];
+  prove_and_serialize_kzg_circuit(&params, &pk, &vk, circuit.clone(), &vec![input.clone()])
+      .unwrap();
 }
 ```
 
