@@ -45,15 +45,19 @@ defmodule NavComponent do
         </.link>
         <DarkMode.button />
         <button
-          class="md:hidden z-50 relative"
+          class="md:hidden z-50"
           id="menu-toggle"
           phx-click={toggle_menu()}
-          aria-label="Toggle menu"
+          aria-label="Toggle hamburger menu"
         >
           <.icon name="hero-bars-3" class="toggle-open" />
           <.icon name="hero-x-mark" class="toggle-close hidden" />
         </button>
-        <div id="menu-overlay" class="fixed inset-0 bg-background/90 z-40 hidden min-h-dvh">
+        <div
+          id="menu-overlay"
+          class="fixed inset-0 bg-background/90 z-40 hidden min-h-dvh animate-in fade-in"
+          phx-click={toggle_menu()}
+        >
           <div class="h-full flex flex-col gap-y-10 text-2xl justify-end items-center p-12">
             <.link
               class="text-foreground/80 hover:text-foreground font-semibold"
