@@ -193,7 +193,7 @@ batcher_start_local: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
 
 install_batcher:
-	@cargo +nightly-2024-04-17 install --path batcher/aligned-batcher
+	@cargo install --path batcher/aligned-batcher
 
 install_aligned:
 	@./batcher/aligned/install_aligned.sh
