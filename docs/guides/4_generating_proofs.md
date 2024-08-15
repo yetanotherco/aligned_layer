@@ -169,3 +169,87 @@ aligned submit \
 ```
 
 For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
+
+## Halo2
+
+### Dependencies
+
+This guide assumes that:
+
+- You are using PSE fork of the Halo2 [proof system](https://github.com/privacy-scaling-explorations/halo2).
+- You have a strong understanding of Halo2 circuit development and are familiar with the Halo2 proof system.
+- Aligned installed (instructions [here](../introduction/1_getting_started.md#quickstart)).
+
+### Import the Halo2 fork library
+
+Aligned supports verification of Halo2 proofs using the IPA and KZG backends. To verify Halo2 proofs on Aligned a description of your Halo2 circuits [constraint system](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/plonk/circuit.rs#L63) must be serialized and sent over the wire to Aligned in addition to the ciruits verification parameters, verification key, and public inputs. 
+
+Aligned maintains its own fork of the PSE's Halo2 repository that provides helper methods to serialize and send Halo2 proofs to Aligned.
+
+```rust
+halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git" }
+halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git" }
+```
+
+### How to generate a proof
+
+Once you have developed your circuit and generated its respective, prover key, verifier key, and public input.
+
+You can add `prove_and_serialize_kzg_circuit` or `prove_and_serialize_ipa_circuit` from Aligned's Halo2 fork to generate a proof for your cicuit and serialize the circuit and its public inputs to be sent to Aligned.
+
+```rust
+fn main() {
+
+    // your code here
+
+    let circuit = StandardPlonk(Fr::random(OsRng));
+    let params = ParamsKZG::setup(4, OsRng);
+    let compress_selectors = true;
+    let vk = keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
+    let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
+    let input: Vec<Vec<Fr>> = vec![vec![circuit.0]];
+    prove_and_serialize_kzg_circuit(&params, &pk, &vk, circuit.clone(), &vec![input.clone()])
+        .unwrap();
+}
+```
+
+Then run the following command to generate the proof, parameters, and public inputs:
+
+```bash
+cargo run --release
+```
+
+The files will be saved within a `proof_files/` directory containing:
+- `proof.bin`
+- `params.bin`
+- `public_input.bin`
+
+### How to get the proof verified by Aligned
+
+After generating the proof, you can send the proof for the respective proof systems of Halo2 to the Aligned network by running one of the following commands:
+
+```bash
+aligned submit \
+  --proving_system Halo2KZG \
+  --proof <proof_file_path> \
+  --vk <method_id_file_path> \
+  --public_input <pub_input_file_path> \
+  --conn wss://batcher.alignedlayer.com \
+  --proof_generator_addr <proof_generator_addr> \
+  --rpc https://ethereum-holesky-rpc.publicnode.com \
+  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
+```bash
+aligned submit \
+  --proving_system Halo2IPA \
+  --proof <proof_file_path> \
+  --vk <method_id_file_path> \
+  --public_input <pub_input_file_path> \
+  --conn wss://batcher.alignedlayer.com \
+  --proof_generator_addr <proof_generator_addr> \
+  --rpc https://ethereum-holesky-rpc.publicnode.com \
+  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
+For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
