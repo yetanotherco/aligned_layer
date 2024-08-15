@@ -170,7 +170,7 @@ If you want to run an operator, check our [Operator Guide](./docs/operator_guide
 
 ## Aligned Infrastructure Guide
 
-If you are developing on Aligned, or want to run your own devnet, check our [setup Aligned guide](docs/guides/5_setup_aligned.md).
+If you are developing on Aligned, or want to run your own devnet, check our [setup Aligned guide](docs/guides/6_setup_aligned.md).
 
 
 ## Submitting Proofs to Aligned
