@@ -99,11 +99,24 @@ These commands allows the usage of the following flags:
 - `--rpc_url` to specify the rpc url to be used.
 - `--user_addr` the address of the user that funded the Batcher.
 
-## 3. Send your proof to the batcher
+## 3. Submit your proof to the batcher
+
+This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [Aligned SDK guide](../guides/1_SDK.md).
+
+Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are
+* `proving_system`: The proving system corresponding to the proof you want to submit.
+* `proof`: The path of the proof associated to the computation to be verified.
+* `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program. 
+* `pub_input`: The path to the file with the public input associated with the proof.
+* `conn`: The batcher websocket URL.
+* `rpc`: The RPC Ethereum node URL.
+* `batcher_addr`: The Ethereum address of the Batcher Payments System contract.
+* `proof_generator_addr`: An optional parameter that can be used in some applications to avoid frontrunning.
+* `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
 
 ### SP1 proof
 
-The current SP1 version used in Aligned is v1.0.8-testnet.
+The current SP1 version used in Aligned is v1.0.1.
 
 The SP1 proof needs the proof file and the vm program file.
 
