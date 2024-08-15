@@ -28,9 +28,9 @@ aligned submit \
 --proof ~/.aligned/test_files/sp1_fibonacci.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci.elf \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
---conn wss://batcher.alignedlayer.com \
---rpc https://ethereum-holesky-rpc.publicnode.com \
---batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--batcher_url wss://batcher.alignedlayer.com \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--batcher_payment_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 5. You should get a response like this:
@@ -50,7 +50,7 @@ Use the link in the response to check the status of your transaction in the Alig
 ```bash
 aligned verify-proof-onchain \
 --aligned-verification-data ~/.aligned/aligned_verification_data/*.json \
---rpc https://ethereum-holesky-rpc.publicnode.com \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --chain holesky
 ```
 
