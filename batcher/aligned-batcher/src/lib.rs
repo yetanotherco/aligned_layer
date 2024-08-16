@@ -649,7 +649,10 @@ impl Batcher {
             )
             .await
         {
-            Ok(_) => {
+            Ok(receipt) => {
+                if let Some(gas_used) = receipt.gas_used {
+                    info!("Gas used to create new task: {}", gas_used);
+                }
                 info!("Batch verification task created on Aligned contract");
                 Ok(())
             }

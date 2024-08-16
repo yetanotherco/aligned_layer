@@ -208,7 +208,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	if blsAggServiceResp.Err != nil {
 		agg.taskMutex.Lock()
 		batchMerkleRoot := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
-        agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 
 		// Remove task from the list of tasks
@@ -287,8 +287,10 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err = agg.sendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
+		receipt, err := agg.sendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
 		if err == nil {
+			agg.logger.Info("Gas cost used to send aggregated response", "gasUsed", receipt.GasUsed)
+
 			agg.logger.Info("Aggregator successfully responded to task",
 				"taskIndex", blsAggServiceResp.TaskIndex,
 				"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))

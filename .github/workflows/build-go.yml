@@ -28,6 +28,8 @@ jobs:
         run: make build_halo2_ipa_linux
       - name: Build Merkle Tree bindings
         run: make build_merkle_tree_linux
+      - name: Build Mina bindings
+        run: make build_mina_linux
       - name: Build operator
         run: go build operator/cmd/main.go
       - name: Build aggregator
