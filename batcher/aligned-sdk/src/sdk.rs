@@ -66,22 +66,13 @@ pub async fn submit_multiple_and_wait(
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
+) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     let aligned_verification_data =
         submit_multiple(batcher_addr, verification_data, wallet, nonce).await?;
 
-    match &aligned_verification_data {
-        Some(aligned_verification_data) => {
-            for aligned_verification_data_item in aligned_verification_data.iter() {
-                await_batch_verification(
-                    aligned_verification_data_item,
-                    eth_rpc_url,
-                    chain.clone(),
-                )
-                .await?;
-            }
-        }
-        None => return Ok(None),
+    for aligned_verification_data_item in aligned_verification_data.iter() {
+        await_batch_verification(aligned_verification_data_item, eth_rpc_url, chain.clone())
+            .await?;
     }
 
     Ok(aligned_verification_data)
@@ -115,7 +106,7 @@ pub async fn submit_multiple(
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
+) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     let (ws_stream, _) = connect_async(batcher_addr)
         .await
         .map_err(errors::SubmitError::WebSocketConnectionError)?;
@@ -134,7 +125,7 @@ async fn _submit_multiple(
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError> {
+) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     // First message from the batcher is the protocol version
     check_protocol_version(&mut ws_read).await?;
 
@@ -218,7 +209,7 @@ pub async fn submit_and_wait(
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
+) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
     let aligned_verification_data = submit_multiple_and_wait(
@@ -231,11 +222,7 @@ pub async fn submit_and_wait(
     )
     .await?;
 
-    if let Some(mut aligned_verification_data) = aligned_verification_data {
-        Ok(aligned_verification_data.pop())
-    } else {
-        Ok(None)
-    }
+    Ok(aligned_verification_data[0].clone())
 }
 
 /// Submits a proof to the batcher to be verified in Aligned.
@@ -265,17 +252,13 @@ pub async fn submit(
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<AlignedVerificationData>, errors::SubmitError> {
+) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
     let aligned_verification_data =
         submit_multiple(batcher_addr, &verification_data, wallet, nonce).await?;
 
-    if let Some(mut aligned_verification_data) = aligned_verification_data {
-        Ok(aligned_verification_data.pop())
-    } else {
-        Ok(None)
-    }
+    Ok(aligned_verification_data[0].clone())
 }
 
 /// Checks if the proof has been verified with Aligned and is included in the batch.
@@ -438,7 +421,6 @@ mod test {
             U256::zero(),
         )
         .await
-        .unwrap()
         .unwrap();
 
         assert_eq!(aligned_verification_data.len(), 1);
@@ -513,7 +495,6 @@ mod test {
             U256::zero(),
         )
         .await
-        .unwrap()
         .unwrap();
 
         sleep(std::time::Duration::from_secs(20)).await;
@@ -564,7 +545,6 @@ mod test {
             U256::zero(),
         )
         .await
-        .unwrap()
         .unwrap();
 
         sleep(std::time::Duration::from_secs(20)).await;
