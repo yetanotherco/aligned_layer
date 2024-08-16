@@ -18,9 +18,15 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
     event NewBatch(
         bytes32 indexed batchMerkleRoot,
+        address senderAddress,
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
+
+    struct BatchIdentifier {
+        bytes32 batchMerkleRoot;
+        address senderAddress;
+    }
 
     event BatchVerified(bytes32 batchMerkleRoot);
 
@@ -56,7 +62,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         address(alignedLayerServiceManager).call{value: 0.1 ether}("");
 
         vm.expectEmit(true, true, true, true);
-        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
+        emit NewBatch(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer);
 
         vm.prank(batcher);
         alignedLayerServiceManager.createNewTask(
@@ -64,11 +70,19 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
             batchDataPointer
         );
 
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encode(
+                BatchIdentifier({
+                    batchMerkleRoot: batchMerkleRoot,
+                    senderAddress: msg.sender
+                })
+            )
+        );
+
         (
             uint32 taskCreatedBlock,
-            bool responded,
-            address batcherAddress
-        ) = alignedLayerServiceManager.batchesState(batchMerkleRoot);
+            bool responded
+        ) = alignedLayerServiceManager.batchesState(batchIdentifierHash);
 
         assertEq(taskCreatedBlock, uint32(block.number));
         assertEq(responded, false);
