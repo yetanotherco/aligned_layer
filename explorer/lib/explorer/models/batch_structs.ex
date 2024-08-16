@@ -1,7 +1,7 @@
 # Raised event in batch creation
 defmodule NewBatchEvent do
-  @enforce_keys [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer]
-  defstruct [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer]
+  @enforce_keys [:batchMerkleRoot, :senderAddress, :taskCreatedBlock, :batchDataPointer]
+  defstruct [:batchMerkleRoot, :senderAddress, :taskCreatedBlock, :batchDataPointer]
 
   def extract_merkle_root(event) do
     event.topics_raw |> Enum.at(1)
