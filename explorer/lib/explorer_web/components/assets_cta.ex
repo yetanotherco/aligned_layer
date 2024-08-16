@@ -2,9 +2,20 @@ defmodule AssetsCTAComponent do
   use ExplorerWeb, :live_component
 
   @impl true
+  def handle_info(_, socket) do
+    total_staked = get_restaked_amount_eth()
+    operators_registered = Operators.get_amount_of_operators()
+
+    {:noreply,
+     socket |> assign(total_staked: total_staked, operators_registered: operators_registered)}
+  end
+
+  @impl true
   def mount(socket) do
     total_staked = get_restaked_amount_eth()
     operators_registered = Operators.get_amount_of_operators()
+
+    if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
 
     {:ok,
      assign(socket,
