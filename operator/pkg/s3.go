@@ -57,7 +57,13 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 
 	err = decoder.Decode(&batch)
 	if err != nil {
-		return nil, err
+		o.Logger.Infof("Error decoding batch as CBOR: %s", err)
+		// try json
+		decoder = codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
+		err = decoder.Decode(&batch)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return batch, nil

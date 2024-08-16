@@ -19,7 +19,13 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     let batch = match ciborium::from_reader::<Vec<VerificationData>, _>(reader) {
         Ok(batch) => batch,
         Err(_e) => {
-            return false;
+            // try json
+            let batch: Vec<VerificationData> = match serde_json::from_slice(batch_bytes) {
+                Ok(batch) => batch,
+                Err(_e) => return false,
+            };
+
+            batch
         }
     };
 
