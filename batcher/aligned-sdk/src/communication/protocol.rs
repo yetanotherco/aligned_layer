@@ -6,7 +6,7 @@ use crate::core::{errors::SubmitError, types::ResponseMessage};
 
 use super::serialization::cbor_deserialize;
 
-pub const EXPECTED_PROTOCOL_VERSION: u16 = 2;
+pub const EXPECTED_PROTOCOL_VERSION: u16 = 3;
 
 pub async fn check_protocol_version(
     ws_read: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
