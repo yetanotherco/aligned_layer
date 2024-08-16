@@ -12,11 +12,11 @@ defmodule Explorer.Periodically do
   end
 
   def send_work() do
-    seconds = 12 * 1000 # once per block
+    one_second = 1000
     seconds_in_an_hour = 60 * 60
 
-    :timer.send_interval(seconds, :batches) # every 12 seconds
-    :timer.send_interval(seconds * seconds_in_an_hour, :restakings) #every 12 hours
+    :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
+    :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
   end
 
   # Reads and process last blocks for operators and restaking changes
