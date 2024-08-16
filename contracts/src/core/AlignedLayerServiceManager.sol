@@ -26,6 +26,7 @@ contract AlignedLayerServiceManager is
     // EVENTS
     event NewBatch(
         bytes32 indexed batchMerkleRoot,
+        address senderAddress,
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
@@ -57,8 +58,17 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
     ) external payable {
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encode(
+                BatchIdentifier({
+                    batchMerkleRoot: batchMerkleRoot,
+                    senderAddress: msg.sender
+                })
+            )
+        );
+
         require(
-            batchesState[batchMerkleRoot].taskCreatedBlock == 0,
+            batchesState[batchIdentifierHash].taskCreatedBlock == 0,
             "Batch was already submitted"
         );
 
@@ -72,41 +82,50 @@ contract AlignedLayerServiceManager is
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
-        batchState.batcherAddress = msg.sender;
 
-        batchesState[batchMerkleRoot] = batchState;
+        batchesState[batchIdentifierHash] = batchState;
 
-        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
+        emit NewBatch(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer);
     }
 
     function respondToTask(
         // Root is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
+        address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         uint256 initialGasLeft = gasleft();
+
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encode(
+                BatchIdentifier({
+                    batchMerkleRoot: batchMerkleRoot,
+                    senderAddress: senderAddress
+                })
+            )
+        );
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
         require(
-            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
+            batchesState[batchIdentifierHash].taskCreatedBlock != 0,
             "Batch doesn't exists"
         );
 
         // Check task hasn't been responsed yet
         require(
-            batchesState[batchMerkleRoot].responded == false,
+            batchesState[batchIdentifierHash].responded == false,
             "Batch already responded"
         );
 
         require(
-            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] > 0,
+            batchersBalances[senderAddress] > 0,
             "Batcher has no balance"
         );
 
-        batchesState[batchMerkleRoot].responded = true;
+        batchesState[batchIdentifierHash].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
@@ -114,8 +133,8 @@ contract AlignedLayerServiceManager is
             QuorumStakeTotals memory quorumStakeTotals,
             bytes32 _hashOfNonSigners
         ) = checkSignatures(
-                batchMerkleRoot,
-                batchesState[batchMerkleRoot].taskCreatedBlock,
+                batchIdentifierHash,
+                batchesState[batchIdentifierHash].taskCreatedBlock,
                 nonSignerStakesAndSignature
             );
 
@@ -127,7 +146,7 @@ contract AlignedLayerServiceManager is
             "Signatories do not own at least threshold percentage of a quorum"
         );
 
-        emit BatchVerified(batchMerkleRoot);
+        emit BatchVerified(batchMerkleRoot); //TODO do we want to emit senderAddress as well?
 
         // Calculate estimation of gas used, check that batcher has sufficient funds
         // and send transaction cost to aggregator.
@@ -137,14 +156,12 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
         require(
-            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=
+            batchersBalances[senderAddress] >=
                 txCost,
             "Batcher has not sufficient funds for paying this transaction"
         );
 
-        batchersBalances[
-            batchesState[batchMerkleRoot].batcherAddress
-        ] -= txCost;
+        batchersBalances[senderAddress] -= txCost;
         payable(msg.sender).transfer(txCost);
     }
 
@@ -155,13 +172,23 @@ contract AlignedLayerServiceManager is
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint256 verificationDataBatchIndex
+        uint256 verificationDataBatchIndex,
+        address senderAddress
     ) external view returns (bool) {
-        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encode(
+                BatchIdentifier({
+                    batchMerkleRoot: batchMerkleRoot,
+                    senderAddress: senderAddress
+                })
+            )
+        );
+
+        if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
             return false;
         }
 
-        if (!batchesState[batchMerkleRoot].responded) {
+        if (!batchesState[batchIdentifierHash].responded) {
             return false;
         }
 
@@ -177,7 +204,7 @@ contract AlignedLayerServiceManager is
         return
             Merkle.verifyInclusionKeccak(
                 merkleProof,
-                batchMerkleRoot,
+                batchIdentifierHash,
                 hashedLeaf,
                 verificationDataBatchIndex
             );
