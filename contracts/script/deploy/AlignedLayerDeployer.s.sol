@@ -21,6 +21,7 @@ import {AlignedLayerServiceManager} from "src/core/AlignedLayerServiceManager.so
 import {IServiceManager} from "eigenlayer-middleware/interfaces/IServiceManager.sol";
 import {OperatorStateRetriever} from "eigenlayer-middleware/OperatorStateRetriever.sol";
 import {ServiceManagerRouter} from "eigenlayer-middleware/ServiceManagerRouter.sol";
+import {AlignedLayerServiceManagerFactory} from "src/core/AlignedLayerServiceManagerFactory.sol";
 
 import "script/deploy/utils/ExistingDeploymentParser.sol";
 import "forge-std/Test.sol";
@@ -54,13 +55,32 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         string memory deployConfigPath,
         string memory outputPath
     ) external {
-        // get info on all the already-deployed contracts
         _parseDeployedContracts(existingDeploymentInfoPath);
-
-        // READ JSON CONFIG DATA
         string memory config_data = vm.readFile(deployConfigPath);
+        _validateChainId(config_data);
+        _parsePermissions(config_data);
 
-        // check that the chainID matches the one in the config
+        vm.startBroadcast();
+
+        _deployProxyAdmin();
+        _deployServiceManagerRouter();
+        _deployProxies();
+        _deployAndUpgradeImplementations();
+
+        AlignedLayerServiceManagerFactory.DeployParams
+            memory params = _createDeployParams(config_data);
+        _deployAlignedLayerContracts(params);
+
+        _deployOperatorStateRetriever();
+        _transferProxyAdminOwnership();
+
+        vm.stopBroadcast();
+
+        _performSanityChecks(config_data);
+        _writeOutput(config_data, outputPath);
+    }
+
+    function _validateChainId(string memory config_data) internal {
         uint256 currentChainId = block.chainid;
         uint256 configChainId = stdJson.readUint(
             config_data,
@@ -71,51 +91,17 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             configChainId == currentChainId,
             "You are on the wrong chain for this config"
         );
+    }
 
-        // parse the addresses of permissioned roles
-        alignedLayerOwner = stdJson.readAddress(
-            config_data,
-            ".permissions.owner"
-        );
-        alignedLayerUpgrader = stdJson.readAddress(
-            config_data,
-            ".permissions.upgrader"
-        );
-        initalPausedStatus = stdJson.readUint(
-            config_data,
-            ".permissions.initalPausedStatus"
-        );
-
-        pauser = address(eigenLayerPauserReg);
-
-        deployer = stdJson.readAddress(config_data, ".permissions.deployer");
-        require(
-            deployer == tx.origin,
-            "Deployer address must be the same as the tx.origin"
-        );
-        emit log_named_address("You are deploying from", deployer);
-
-        vm.startBroadcast();
-
-        // deploy proxy admin for ability to upgrade proxy contracts
+    function _deployProxyAdmin() internal {
         alignedLayerProxyAdmin = new ProxyAdmin();
+    }
 
-        //deploy service manager router
+    function _deployServiceManagerRouter() internal {
         serviceManagerRouter = new ServiceManagerRouter();
+    }
 
-        /**
-         * First, deploy upgradeable proxy contracts that **will point** to the implementations. Since the implementation contracts are
-         * not yet deployed, we give these proxies an empty contract as the initial implementation, to act as if they have no code.
-         */
-        alignedLayerServiceManager = AlignedLayerServiceManager(
-            payable(
-                new TransparentUpgradeableProxy(
-                    address(emptyContract),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
-            )
-        );
+    function _deployProxies() internal {
         registryCoordinator = RegistryCoordinator(
             address(
                 new TransparentUpgradeableProxy(
@@ -152,112 +138,105 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
                 )
             )
         );
+    }
 
-        //deploy index registry implementation
+    function _deployAndUpgradeImplementations() internal {
         indexRegistryImplementation = new IndexRegistry(registryCoordinator);
-
-        //upgrade index registry proxy to implementation
         alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(indexRegistry))),
             address(indexRegistryImplementation)
         );
 
-        //deploy stake registry implementation
         stakeRegistryImplementation = new StakeRegistry(
             registryCoordinator,
             delegationManager
         );
-
-        //upgrade stake registry proxy to implementation
         alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(stakeRegistry))),
             address(stakeRegistryImplementation)
         );
 
-        //deploy apk registry implementation
         apkRegistryImplementation = new BLSApkRegistry(registryCoordinator);
-
-        //upgrade apk registry proxy to implementation
         alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(payable(address(apkRegistry))),
             address(apkRegistryImplementation)
         );
+    }
 
-        //deploy the registry coordinator implementation.
-        registryCoordinatorImplementation = new RegistryCoordinator(
-            IServiceManager(address(alignedLayerServiceManager)),
-            stakeRegistry,
-            apkRegistry,
-            indexRegistry
-        );
-
-        {
-            // parse initalization params and permissions from config data
-            (
-                uint96[] memory minimumStakeForQuourm,
-                IStakeRegistry.StrategyParams[][]
-                    memory strategyAndWeightingMultipliers
-            ) = _parseStakeRegistryParams(config_data);
-            (
-                IRegistryCoordinator.OperatorSetParam[]
-                    memory operatorSetParams,
-                address churner,
-                address ejector
-            ) = _parseRegistryCoordinatorParams(config_data);
-
-            //upgrade the registry coordinator proxy to implementation
-            alignedLayerProxyAdmin.upgradeAndCall(
-                TransparentUpgradeableProxy(
-                    payable(address(registryCoordinator))
-                ),
-                address(registryCoordinatorImplementation),
-                abi.encodeWithSelector(
-                    RegistryCoordinator.initialize.selector,
-                    alignedLayerOwner,
-                    churner,
-                    ejector,
-                    IPauserRegistry(pauser),
-                    initalPausedStatus,
-                    operatorSetParams,
-                    minimumStakeForQuourm,
-                    strategyAndWeightingMultipliers
-                )
-            );
-        }
-
-        //deploy the alignedLayer service manager implementation
-        alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
-            avsDirectory,
-            rewardsCoordinator,
-            registryCoordinator,
-            stakeRegistry
-        );
-
-        //upgrade the alignedLayer service manager proxy to implementation
-        alignedLayerProxyAdmin.upgradeAndCall(
-            TransparentUpgradeableProxy(
-                payable(address(alignedLayerServiceManager))
-            ),
-            address(alignedLayerServiceManagerImplementation),
-            abi.encodeWithSelector(
-                AlignedLayerServiceManager.initialize.selector,
-                deployer
-            )
-        );
-
+    function _createDeployParams(
+        string memory config_data
+    )
+        internal
+        view
+        returns (AlignedLayerServiceManagerFactory.DeployParams memory)
+    {
+        (
+            uint96[] memory minimumStakeForQuourm,
+            IStakeRegistry.StrategyParams[][]
+                memory strategyAndWeightingMultipliers
+        ) = _parseStakeRegistryParams(config_data);
+        (
+            IRegistryCoordinator.OperatorSetParam[] memory operatorSetParams,
+            address churner,
+            address ejector
+        ) = _parseRegistryCoordinatorParams(config_data);
         string memory metadataURI = stdJson.readString(config_data, ".uri");
-        alignedLayerServiceManager.updateAVSMetadataURI(metadataURI);
-        alignedLayerServiceManager.transferOwnership(alignedLayerOwner);
 
-        //deploy the operator state retriever
+        return
+            AlignedLayerServiceManagerFactory.DeployParams({
+                emptyContract: emptyContract,
+                alignedLayerProxyAdmin: alignedLayerProxyAdmin,
+                stakeRegistry: stakeRegistry,
+                apkRegistry: apkRegistry,
+                indexRegistry: indexRegistry,
+                alignedLayerOwner: alignedLayerOwner,
+                churner: churner,
+                ejector: ejector,
+                pauser: pauser,
+                deployer: deployer,
+                initalPausedStatus: initalPausedStatus,
+                operatorSetParams: operatorSetParams,
+                minimumStakeForQuourm: minimumStakeForQuourm,
+                strategyAndWeightingMultipliers: strategyAndWeightingMultipliers,
+                avsDirectory: avsDirectory,
+                rewardsCoordinator: rewardsCoordinator,
+                registryCoordinator: registryCoordinator,
+                metadataURI: metadataURI
+            });
+    }
+
+    function _deployAlignedLayerContracts(
+        AlignedLayerServiceManagerFactory.DeployParams memory params
+    ) internal {
+        AlignedLayerServiceManagerFactory factory = new AlignedLayerServiceManagerFactory();
+        (
+            address alignedLayerServiceManagerAddress,
+            address alignedLayerServiceManagerImplementationAddress,
+            address registryCoordinatorAddress,
+            address registryCoordinatorImplementationAddress
+        ) = factory.deploy(params);
+
+        alignedLayerServiceManager = AlignedLayerServiceManager(
+            payable(alignedLayerServiceManagerAddress)
+        );
+        alignedLayerServiceManagerImplementation = AlignedLayerServiceManager(
+            payable(alignedLayerServiceManagerImplementationAddress)
+        );
+        registryCoordinator = RegistryCoordinator(registryCoordinatorAddress);
+        registryCoordinatorImplementation = RegistryCoordinator(
+            registryCoordinatorImplementationAddress
+        );
+    }
+
+    function _deployOperatorStateRetriever() internal {
         operatorStateRetriever = new OperatorStateRetriever();
+    }
 
-        // transfer ownership of proxy admin to upgrader
+    function _transferProxyAdminOwnership() internal {
         alignedLayerProxyAdmin.transferOwnership(alignedLayerUpgrader);
+    }
 
-        vm.stopBroadcast();
-
-        // sanity checks
+    function _performSanityChecks(string memory config_data) internal view {
         __verifyContractPointers(
             apkRegistry,
             alignedLayerServiceManager,
@@ -276,9 +255,28 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
 
         __verifyImplementations();
         __verifyInitalizations(config_data);
+    }
 
-        //write output
-        _writeOutput(config_data, outputPath);
+    function _parsePermissions(string memory config_data) internal {
+        alignedLayerOwner = stdJson.readAddress(
+            config_data,
+            ".permissions.owner"
+        );
+        alignedLayerUpgrader = stdJson.readAddress(
+            config_data,
+            ".permissions.upgrader"
+        );
+        initalPausedStatus = stdJson.readUint(
+            config_data,
+            ".permissions.initalPausedStatus"
+        );
+        pauser = address(eigenLayerPauserReg);
+        deployer = stdJson.readAddress(config_data, ".permissions.deployer");
+        require(
+            deployer == tx.origin,
+            "Deployer address must be the same as the tx.origin"
+        );
+        emit log_named_address("You are deploying from", deployer);
     }
 
     function xtest(
@@ -607,7 +605,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
     }
 
-    function __verifyInitalizations(string memory config_data) internal {
+    function __verifyInitalizations(string memory config_data) internal view {
         (
             uint96[] memory minimumStakeForQuourm,
             IStakeRegistry.StrategyParams[][]
@@ -854,6 +852,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         string memory config_data
     )
         internal
+        pure
         returns (
             IRegistryCoordinator.OperatorSetParam[] memory operatorSetParams,
             address churner,
