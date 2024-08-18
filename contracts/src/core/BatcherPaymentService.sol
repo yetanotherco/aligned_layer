@@ -188,7 +188,7 @@ contract BatcherPaymentService is
                 abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
             );
 
-            verifySignatureAndDecreaseBalance(
+            _verifySignatureAndDecreaseBalance(
                 leaves[i],
                 signatures[i],
                 feePerProof
@@ -197,7 +197,7 @@ contract BatcherPaymentService is
 
         // Verify the rest of the signatures
         for (; i < signatures.length; i++) {
-            verifySignatureAndDecreaseBalance(
+            _verifySignatureAndDecreaseBalance(
                 leaves[i],
                 signatures[i],
                 feePerProof
@@ -227,7 +227,7 @@ contract BatcherPaymentService is
         }
     }
 
-    function verifySignatureAndDecreaseBalance(
+    function _verifySignatureAndDecreaseBalance(
         bytes32 hash,
         SignatureData calldata signatureData,
         uint256 feePerProof
