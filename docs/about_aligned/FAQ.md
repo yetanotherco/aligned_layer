@@ -57,7 +57,7 @@ The fast mode is designed to offer very cheap verification costs and low latency
 It uses crypto-economic guarantees provided by restaking; costs can be as low as 2100 gas.
 The aggregation mode works with proof aggregation, with higher fees and latency, and achieves the complete security of
 Ethereum.
-We verify an aggregated BLS signature (around 113,000 gas) in the fast mode.
+We verify an aggregated BLS signature (around 120,000 gas) in the fast mode.
 We verify an aggregated proof (around 300,000 gas) in the aggregation mode.
 
 ### Why don’t you run Aligned on top of a virtual machine?
