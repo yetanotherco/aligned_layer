@@ -95,7 +95,7 @@ contract BatcherPaymentService is
             "Not enough gas to pay the aggregator"
         );
 
-        checkMerkleRootAndVerifySignatures(
+        _checkMerkleRootAndVerifySignatures(
             leaves,
             batchMerkleRoot,
             signatures,
@@ -170,12 +170,12 @@ contract BatcherPaymentService is
         _;
     }
 
-    function checkMerkleRootAndVerifySignatures(
+    function _checkMerkleRootAndVerifySignatures(
         bytes32[] calldata leaves,
         bytes32 batchMerkleRoot,
         SignatureData[] calldata signatures,
         uint256 feePerProof
-    ) public {
+    ) private {
         uint256 numNodesInLayer = leaves.length / 2;
         bytes32[] memory layer = new bytes32[](numNodesInLayer);
 
