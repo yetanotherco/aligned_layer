@@ -1,5 +1,5 @@
 /target
 
-libmina_state_verifier.so
-libmina_state_verifier.a
-libmina_state_verifier.dylib
+libmina_account_verifier.so
+libmina_account_verifier.a
+libmina_account_verifier.dylib
