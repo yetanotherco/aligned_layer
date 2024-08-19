@@ -88,7 +88,7 @@ impl BatchState {
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
-    storage_endpoint: String,
+    download_endpoint: String,
     eth_ws_provider: Provider<Ws>,
     eth_ws_provider_fallback: Provider<Ws>,
     payment_service: BatcherPaymentService,
@@ -109,15 +109,15 @@ impl Batcher {
         dotenv().ok();
 
         // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/localstack.html
-        let endpoint_url = env::var("LOCALSTACK_ENDPOINT_URL").ok();
+        let upload_endpoint = env::var("UPLOAD_ENDPOINT").ok();
 
         let s3_bucket_name =
             env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
 
-        let storage_endpoint =
-            env::var("STORAGE_ENDPOINT").expect("STORAGE_ENDPOINT not found in environment");
+        let download_endpoint =
+            env::var("DOWNLOAD_ENDPOINT").expect("DOWNLOAD_ENDPOINT not found in environment");
 
-        let s3_client = s3::create_client(endpoint_url).await;
+        let s3_client = s3::create_client(upload_endpoint).await;
 
         let config = ConfigFromYaml::new(config_file);
         let deployment_output =
@@ -177,7 +177,7 @@ impl Batcher {
         Self {
             s3_client,
             s3_bucket_name,
-            storage_endpoint,
+            download_endpoint,
             eth_ws_provider,
             eth_ws_provider_fallback,
             payment_service,
@@ -676,7 +676,7 @@ impl Batcher {
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        let batch_data_pointer: String = "".to_owned() + &self.storage_endpoint + "/" + &file_name;
+        let batch_data_pointer: String = "".to_owned() + &self.download_endpoint + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
 

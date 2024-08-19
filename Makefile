@@ -15,7 +15,6 @@ ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
 
-
 FFI_FOR_RELEASE ?= true
 
 ifeq ($(FFI_FOR_RELEASE),true)
@@ -185,15 +184,15 @@ user_fund_payment_service:
 
 batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
-	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
-batcher_start_local: ./batcher/aligned-batcher/.env user_fund_payment_service
+batcher_start_local: user_fund_payment_service
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
-	@cargo +nightly-2024-04-17 run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
 
 install_batcher:
-	@cargo +nightly-2024-04-17 install --path batcher/aligned-batcher
+	@cargo install --path batcher/aligned-batcher
 
 install_aligned:
 	@./batcher/aligned/install_aligned.sh
@@ -202,7 +201,7 @@ uninstall_aligned:
 	@rm -rf ~/.aligned && echo "Aligned uninstalled"
 
 install_aligned_compiling:
-	@cargo +nightly-2024-04-17 install --path batcher/aligned
+	@cargo install --path batcher/aligned
 
 build_batcher_client:
 	@cd batcher/aligned && cargo b --release
