@@ -31,7 +31,7 @@ pub async fn submit(
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<AlignedVerificationData>, errors::SubmitError>
+) -> Result<AlignedVerificationData, errors::SubmitError>
 ```
 
 #### Arguments
@@ -43,7 +43,7 @@ pub async fn submit(
 
 #### Returns
 
-- `Result<Option<AlignedVerificationData>>, SubmitError>` - An aligned verification data or an error.
+- `Result<AlignedVerificationData, SubmitError>` - An aligned verification data or an error.
 
 #### Errors
 
@@ -71,7 +71,7 @@ pub async fn submit_multiple(
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError>
+) -> Result<Vec<AlignedVerificationData>, errors::SubmitError>
 ```
 
 #### Arguments
@@ -83,7 +83,7 @@ pub async fn submit_multiple(
 
 #### Returns
 
-- `Result<Option<Vec<AlignedVerificationData>>>, SubmitError>` - An aligned verification data array or an error.
+- `Result<Vec<AlignedVerificationData>, SubmitError>` - An aligned verification data array or an error.
 
 #### Errors
 
@@ -114,7 +114,7 @@ pub async fn submit_and_wait_verification(
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<AlignedVerificationData>, errors::SubmitError>
+) -> Result<AlignedVerificationData, errors::SubmitError>
 ```
 
 #### Arguments
@@ -128,7 +128,7 @@ pub async fn submit_and_wait_verification(
 
 #### Returns
 
-- `Result<Option<AlignedVerificationData>>, SubmitError>` - An aligned verification data or an error.
+- `Result<AlignedVerificationData, SubmitError>` - An aligned verification data or an error.
 
 #### Errors
 
@@ -162,7 +162,7 @@ pub async fn submit_multiple_and_wait_verification(
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-) -> Result<Option<Vec<AlignedVerificationData>>, errors::SubmitError>
+) -> Result<Vec<AlignedVerificationData>, errors::SubmitError>
 ```
 
 #### Arguments
@@ -176,7 +176,7 @@ pub async fn submit_multiple_and_wait_verification(
 
 #### Returns
 
-- `Result<Option<Vec<AlignedVerificationData>>>, SubmitError>` - An aligned verification data array or an error.
+- `Result<Vec<AlignedVerificationData>, SubmitError>` - An aligned verification data array or an error.
 
 #### Errors
 

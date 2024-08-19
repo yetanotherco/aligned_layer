@@ -21,9 +21,10 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 		return nil, fmt.Errorf("error getting Proof Head from S3: %s", resp.Status)
 	}
 
-	if resp.ContentLength > o.Config.Operator.MaxBatchSize {
+	contentLength := resp.ContentLength
+	if contentLength > o.Config.Operator.MaxBatchSize {
 		return nil, fmt.Errorf("proof size %d exceeds max batch size %d",
-			resp.ContentLength, o.Config.Operator.MaxBatchSize)
+			contentLength, o.Config.Operator.MaxBatchSize)
 	}
 
 	resp, err = http.Get(batchURL)
@@ -37,9 +38,18 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 		}
 	}(resp.Body)
 
-	batchBytes, err := io.ReadAll(resp.Body)
+	// Use io.LimitReader to limit the size of the response body
+	// This is to prevent the operator from downloading a larger than expected file
+	// + 1 is added to the contentLength to check if the response body is larger than expected
+	reader := io.LimitedReader{R: resp.Body, N: contentLength + 1}
+	batchBytes, err := io.ReadAll(&reader)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if the response body is larger than expected
+	if reader.N <= 0 {
+		return nil, fmt.Errorf("batch size exceeds max batch size %d", o.Config.Operator.MaxBatchSize)
 	}
 
 	// Checks if downloaded merkle root is the same as the expected one
