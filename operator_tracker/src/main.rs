@@ -19,10 +19,6 @@ use serde::Serialize;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
 
-const DATABASE_URL: &str = "postgres://postgres:admin@localhost:5432/postgres";
-const RPC_URL: &str = "http://localhost:8545";
-const REGISTRY_COORDINATOR_ADDRESS: &str = "0x851356ae760d987E095750cCeb3bC6014560891C";
-
 // The RegistryCoordinator contract
 // This is the contract that the service will interact with to get the status of the operator
 // The response is a uint8 that represents the status of the operator
@@ -40,13 +36,41 @@ struct AppState {
     registry_coordinator: RegistryCoordinator<Provider<Http>>,
 }
 
+/// The main entry point for the application
+/// This function initializes the database, the Ethereum provider, and the RegistryCoordinator contract
+#[derive(argh::FromArgs)]
+struct Args {
+    /// path to the .env file
+    #[argh(option)]
+    env_file: Option<String>,
+}
+
 #[tokio::main]
 async fn main() {
+    let args: Args = argh::from_env();
+
+    if let Some(env_file) = args.env_file {
+        dotenv::from_filename(env_file).expect("Failed to load env file");
+    } else {
+        dotenv::dotenv().expect("Failed to load env file");
+    }
+
     env_logger::init();
+
+    let database_url = &std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+    let rpc_url = &std::env::var("RPC_URL").expect("RPC_URL must be set");
+
+    let registry_coordinator_addr = &std::env::var("REGISTRY_COORDINATOR_ADDRESS")
+        .expect("REGISTRY_COORDINATOR_ADDRESS must be set");
+
+    let registry_coordinator_addr: Address = registry_coordinator_addr
+        .parse()
+        .expect("Failed to parse registry coordinator addr");
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(DATABASE_URL)
+        .connect(database_url)
         .await
         .expect("Failed to create connection pool");
 
@@ -54,11 +78,7 @@ async fn main() {
         .await
         .expect("Failed to initialize DB");
 
-    let eth_rpc = Arc::new(Provider::<Http>::connect(RPC_URL).await);
-
-    let registry_coordinator_addr: Address = REGISTRY_COORDINATOR_ADDRESS
-        .parse()
-        .expect("Failed to parse registry coordinator addr");
+    let eth_rpc = Arc::new(Provider::<Http>::connect(rpc_url).await);
 
     let registry_coordinator = RegistryCoordinator::new(registry_coordinator_addr, eth_rpc.clone());
 
