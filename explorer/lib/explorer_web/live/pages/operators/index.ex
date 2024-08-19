@@ -37,10 +37,11 @@ defmodule ExplorerWeb.Operators.Index do
               />
               <%= operator.name %>
               <.right_arrow />
-              <.tooltip class="rounded-3xl">
-                Id: <%= operator.id |> Helpers.binary_to_hex_string() %>
-                <br/>
-                Addr: <%= operator.address %>
+              <.tooltip class="py-2 px-2.5 rounded-2xl">
+                <span class="font-semibold text-muted-foreground">Id:</span> <%= operator.id
+                |> Helpers.binary_to_hex_string() %>
+                <br />
+                <span class="font-semibold text-muted-foreground">Address:</span> <%= operator.address %>
               </.tooltip>
             </span>
           </.link>

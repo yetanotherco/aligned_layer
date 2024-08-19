@@ -18,7 +18,7 @@ defmodule ContractsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class={["relative truncate", @class]}>
+    <div class={classes(["relative truncate", @class])}>
       <.card
         inner_class="text-base leading-9 flex flex-wrap sm:flex-row overflow-x-auto gap-x-2"
         title="Contract Addresses"

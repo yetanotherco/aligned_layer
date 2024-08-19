@@ -91,9 +91,9 @@ defmodule ExplorerWeb do
       import ExplorerWeb.CoreComponents
       import ExplorerWeb.Gettext
 
-      # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
       alias ExplorerWeb.Helpers
+      import Tails, only: [classes: 1]
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

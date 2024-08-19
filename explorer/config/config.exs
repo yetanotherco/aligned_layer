@@ -48,6 +48,29 @@ config :tailwind,
     cd: Path.expand("../assets", __DIR__)
   ]
 
+config :tails, :color_classes, [
+  "primary",
+  "secondary",
+  "accent",
+  "destructive",
+  "muted",
+  "popover",
+  "card",
+  "border",
+  "input",
+  "foreground",
+  "muted-foreground",
+  "popover-foreground",
+  "card-foreground",
+  "primary-foreground",
+  "secondary-foreground",
+  "accent-foreground",
+  "destructive-foreground",
+  "ring",
+  "radius",
+  "tooltip"
+]
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
