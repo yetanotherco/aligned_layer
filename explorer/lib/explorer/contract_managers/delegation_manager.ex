@@ -46,8 +46,7 @@ defmodule DelegationManager do
       end
   end
 
-  # this gets of all eigenlayer, not avs. sad
-  # This function makes use of Eigenlayer's Operator delegation structure and process:
+  # This function makes use of Eigenlayer's Operator delegation structure and process (not AVS):
   # When Stakers want to stake to external Operators, they stake to an Operator address which was subscribed to Aligned's Slasher, not to any Operator that can be running any AVS.
   # This is how Eigenlayer maintains Staker's autonomy in choosing which AVS they want to restake to.
   # This way, even though we are querying Eigenlayer's DelegationManager, we are able to get the Operator's shares specifically in Aligned.
