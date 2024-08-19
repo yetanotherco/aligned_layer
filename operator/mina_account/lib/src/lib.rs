@@ -9,7 +9,6 @@ mod merkle_verifier;
 const MAX_PROOF_SIZE: usize = 16 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
 const HASH_SIZE: usize = 32;
-const MERKLE_PATH_LEN_SIZE: usize = 4;
 
 #[no_mangle]
 pub extern "C" fn verify_account_inclusion_ffi(
@@ -64,10 +63,7 @@ pub fn parse_pub_inputs(pub_inputs: &[u8]) -> Result<(Fp, Fp), String> {
 }
 
 pub fn parse_proof(proof_bytes: &[u8]) -> Result<Vec<MerklePath>, String> {
-    let merkle_path_bytes = proof_bytes
-        .get(MERKLE_PATH_LEN_SIZE..)
-        .ok_or("Failed to slice merkle path".to_string())?
-        .chunks_exact(HASH_SIZE + 1);
+    let merkle_path_bytes = proof_bytes.chunks_exact(HASH_SIZE + 1);
 
     if !merkle_path_bytes.remainder().is_empty() {
         return Err(format!(
