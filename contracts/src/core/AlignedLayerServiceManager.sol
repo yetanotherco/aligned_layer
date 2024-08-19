@@ -31,7 +31,7 @@ contract AlignedLayerServiceManager is
         string batchDataPointer
     );
 
-    event BatchVerified(bytes32 indexed batchMerkleRoot);
+    event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -84,14 +84,13 @@ contract AlignedLayerServiceManager is
     }
 
     function respondToTask(
-        // Root is signed as a way to verify the batch was right
+        // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
         address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         uint256 initialGasLeft = gasleft();
 
-        // BatchIdentifier = concat(batchMerkleRoot, senderAddress)
         bytes32 batchIdentifierHash = keccak256(
                 abi.encodePacked(batchMerkleRoot, senderAddress)
         );
@@ -137,7 +136,7 @@ contract AlignedLayerServiceManager is
             "Signatories do not own at least threshold percentage of a quorum"
         );
 
-        emit BatchVerified(batchMerkleRoot); //TODO do we want to emit senderAddress as well?
+        emit BatchVerified(batchMerkleRoot, senderAddress); // TODO test and apply in explorer
 
         // Calculate estimation of gas used, check that batcher has sufficient funds
         // and send transaction cost to aggregator.
