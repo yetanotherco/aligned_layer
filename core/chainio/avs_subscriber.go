@@ -19,6 +19,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/config"
 
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (
@@ -154,20 +155,37 @@ func subscribeToNewTasks(
 	return nil, fmt.Errorf("Failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
 }
 
+// event NewBatch(
+//
+//	bytes32 indexed batchMerkleRoot,
+//	address senderAddress,
+//	uint32 taskCreatedBlock,
+//	string batchDataPointer
+//
+// );
 func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatch, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatch) {
+	// WIP process new batch here is called
 	newBatchMutex.Lock()
 	defer newBatchMutex.Unlock()
 
-	if _, ok := batchesSet[batch.BatchMerkleRoot]; !ok {
-		s.logger.Info("Received new task", "batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]))
-		batchesSet[batch.BatchMerkleRoot] = struct{}{}
+	batchIdentifier := append(batch.BatchMerkleRoot[:], batch.SenderAddress[:]...)
+	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+
+	if _, ok := batchesSet[batchIdentifierHash]; !ok {
+		// TODO WIP fix to new struct of NewBatch
+		s.logger.Info("Received new task",
+		"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
+		"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
+		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]),)
+
+		batchesSet[batchIdentifierHash] = struct{}{}
 		newTaskCreatedChan <- batch
 
 		// Remove the batch from the set after RemoveBatchFromSetInterval time
 		go func() {
 			time.Sleep(RemoveBatchFromSetInterval)
 			newBatchMutex.Lock()
-			delete(batchesSet, batch.BatchMerkleRoot)
+			delete(batchesSet, batchIdentifierHash)
 			newBatchMutex.Unlock()
 		}()
 	}
