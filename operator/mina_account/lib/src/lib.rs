@@ -1,10 +1,15 @@
 use kimchi::o1_utils::FieldHelpers;
+use merkle_verifier::verify_merkle_proof;
 use mina_curves::pasta::Fp;
+use mina_tree::MerklePath;
+
+mod merkle_verifier;
 
 // TODO(xqft): check sizes
 const MAX_PROOF_SIZE: usize = 16 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
 const HASH_SIZE: usize = 32;
+const MERKLE_PATH_LEN_SIZE: usize = 4;
 
 #[no_mangle]
 pub extern "C" fn verify_account_inclusion_ffi(
@@ -35,7 +40,7 @@ pub extern "C" fn verify_account_inclusion_ffi(
         }
     };
 
-    todo!()
+    verify_merkle_proof(account_hash, merkle_proof, merkle_root)
 }
 
 pub fn parse_hash(pub_inputs: &[u8], offset: &mut usize) -> Result<Fp, String> {
@@ -58,19 +63,34 @@ pub fn parse_pub_inputs(pub_inputs: &[u8]) -> Result<(Fp, Fp), String> {
     Ok((merkle_root, account_hash))
 }
 
-pub fn parse_proof(proof_bytes: &[u8]) -> Result<(), String> {
-    todo!()
-    // std::str::from_utf8(proof_bytes)
-    //     .map_err(|err| err.to_string())
-    //     .and_then(|base64| {
-    //         BASE64_URL_SAFE
-    //             .decode(base64)
-    //             .map_err(|err| err.to_string())
-    //     })
-    //     .and_then(|binprot| {
-    //         MinaBaseProofStableV2::binprot_read(&mut binprot.as_slice())
-    //             .map_err(|err| err.to_string())
-    //     })
+pub fn parse_proof(proof_bytes: &[u8]) -> Result<Vec<MerklePath>, String> {
+    let merkle_path_bytes = proof_bytes
+        .get(MERKLE_PATH_LEN_SIZE..)
+        .ok_or("Failed to slice merkle path".to_string())?
+        .chunks_exact(HASH_SIZE + 1);
+
+    if !merkle_path_bytes.remainder().is_empty() {
+        return Err(format!(
+            "Merkle path bytes not a multiple of HASH_SIZE + 1 ({})",
+            HASH_SIZE + 1
+        ));
+    }
+
+    merkle_path_bytes
+        .map(|bytes| {
+            let left_or_right = bytes
+                .first()
+                .ok_or("left_or_right byte not found".to_string())?;
+            let hash = Fp::from_bytes(bytes).map_err(|err| {
+                format!("Failed to convert merkle hash into field element: {err}")
+            })?;
+            match left_or_right {
+                0 => Ok(MerklePath::Left(hash)),
+                1 => Ok(MerklePath::Right(hash)),
+                _ => Err("Unexpected left_or_right byte".to_string()),
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]
