@@ -3,6 +3,13 @@ defmodule DelegationManager do
 
   @environment System.get_env("ENVIRONMENT")
 
+  @first_block (case @environment do
+                  "devnet" -> 0
+                  "holesky" -> 1_210_000
+                  "mainnet" -> 20_020_000
+                  _ -> raise("Invalid environment")
+                end)
+
   eigenlayer_output_file_path =
     "../contracts/script/output/#{@environment}/eigenlayer_deployment_output.json"
 
@@ -32,7 +39,7 @@ defmodule DelegationManager do
 
   def get_operator_url(operator_address) do
     DelegationManager.EventFilters.operator_metadata_uri_updated(operator_address)
-      |> Ethers.get_logs(fromBlock: 0)
+      |> Ethers.get_logs(fromBlock: @first_block)
       |> case do
         {:ok, data} -> List.last(data).data |> hd() # most recent entry
 
