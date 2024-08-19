@@ -155,14 +155,6 @@ func subscribeToNewTasks(
 	return nil, fmt.Errorf("Failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
 }
 
-// event NewBatch(
-//
-//	bytes32 indexed batchMerkleRoot,
-//	address senderAddress,
-//	uint32 taskCreatedBlock,
-//	string batchDataPointer
-//
-// );
 func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatch, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatch) {
 	newBatchMutex.Lock()
 	defer newBatchMutex.Unlock()
