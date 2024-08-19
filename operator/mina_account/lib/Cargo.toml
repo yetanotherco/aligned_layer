@@ -1,5 +1,5 @@
 [package]
-name = "mina-state-verifier-ffi"
+name = "mina-account-verifier-ffi"
 version = "0.1.0"
 edition = "2021"
 
