@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"os"
+
+	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type OperatorConfig struct {
@@ -16,6 +17,7 @@ type OperatorConfig struct {
 
 	Operator struct {
 		AggregatorServerIpPortAddress string
+		MetricsServerIpPortAddress    string
 		Address                       common.Address
 		EarningsReceiverAddress       common.Address
 		DelegationApproverAddress     common.Address
@@ -31,6 +33,7 @@ type OperatorConfig struct {
 type OperatorConfigFromYaml struct {
 	Operator struct {
 		AggregatorServerIpPortAddress string         `yaml:"aggregator_rpc_server_ip_port_address"`
+		MetricsServerIpPortAddress    string         `yaml:"metrics_server_ip_port_address"`
 		Address                       common.Address `yaml:"address"`
 		EarningsReceiverAddress       common.Address `yaml:"earnings_receiver_address"`
 		DelegationApproverAddress     common.Address `yaml:"delegation_approver_address"`
@@ -79,6 +82,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		Operator: struct {
 			AggregatorServerIpPortAddress string
+			MetricsServerIpPortAddress    string
 			Address                       common.Address
 			EarningsReceiverAddress       common.Address
 			DelegationApproverAddress     common.Address

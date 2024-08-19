@@ -7,7 +7,7 @@ require (
 	github.com/ethereum/go-ethereum v1.14.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/urfave/cli/v2 v2.27.1
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.22.0
 )
 
 require (
