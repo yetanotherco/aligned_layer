@@ -2,7 +2,7 @@ package mina
 
 /*
 #cgo darwin LDFLAGS: -L./lib -lmina_state_verifier
-#cgo linux LDFLAGS: -L./lib -lmina_state_verifier -ldl -lrt -lm
+#cgo linux LDFLAGS: ${SRCDIR}/lib/libmina_state_verifier.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
 
 #include "lib/mina_verifier.h"
 */
