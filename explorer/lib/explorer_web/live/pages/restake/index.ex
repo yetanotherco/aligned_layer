@@ -73,6 +73,9 @@ defmodule ExplorerWeb.Restake.Index do
             rel="noopener noreferrer"
           >
             <%= @restake.strategy_address %>
+            <.tooltip>
+              View on EigenLayer Explorer
+            </.tooltip>
           </.a>
         </div>
         <div class="break-all">
@@ -87,6 +90,9 @@ defmodule ExplorerWeb.Restake.Index do
               rel="noopener noreferrer"
             >
               <%= @restake.token_address %>
+              <.tooltip>
+                View on Etherscan
+              </.tooltip>
             </.a>
           <% else %>
             <p>N/A</p>
