@@ -4,11 +4,13 @@ defmodule NavComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <nav class={[
-      "px-4 sm:px-6 lg:px-8 fixed top-0 p-3 z-50",
-      "flex justify-between items-center w-full",
-      "border-b border-foreground/10 backdrop-blur-lg backdrop-saturate-200"
-    ]}>
+    <nav class={
+      classes([
+        "px-4 sm:px-6 lg:px-8 fixed top-0 p-3 z-50",
+        "flex justify-between items-center w-full",
+        "border-b border-foreground/10 backdrop-blur-lg backdrop-saturate-200"
+      ])
+    }>
       <div class="gap-x-6 inline-flex">
         <.link
           class="text-3xl hover:scale-105 transform duration-150 active:scale-95"

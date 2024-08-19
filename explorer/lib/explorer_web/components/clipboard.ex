@@ -16,10 +16,12 @@ defmodule CopyToClipboardButtonComponent do
   def render(assigns) do
     ~H"""
     <button
-      class={[
-        "flex items-center justify-center size-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground/80 hover:text-foreground/100",
-        @class
-      ]}
+      class={
+        classes([
+          "flex items-center justify-center size-7 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground/80 hover:text-foreground/100",
+          @class
+        ])
+      }
       phx-hook="CopyToClipboard"
       data-clipboard-text={@text_to_copy}
       id={"copy-to-clipboard-" <> @text_to_copy}

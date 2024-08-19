@@ -4,9 +4,7 @@
     <.table id="batches" rows={@batches}>
       <:col :let={batch} label="Batch Hash" class="text-left">
         <.link navigate={~p"/batches/#{batch.merkle_root}"}>
-          <span
-            class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80"
-          >
+          <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
             <%= Helpers.shorten_hash(batch.merkle_root, 6) %>
             <.right_arrow />
             <.tooltip>
@@ -57,12 +55,14 @@
         name="page"
         id="page"
         type="number"
-        class={[
-          "border border-foreground/20 text-muted-foreground w-20 focus:ring-primary",
-          "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
-          "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
-          "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-        ]}
+        class={
+          classes([
+            "border border-foreground/20 text-muted-foreground w-20 focus:ring-primary",
+            "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
+            "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
+            "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          ])
+        }
         value={@current_page}
         min="1"
       />
