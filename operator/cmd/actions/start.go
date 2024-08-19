@@ -59,7 +59,10 @@ func operatorMain(ctx *cli.Context) error {
 	bodyBuffer := new(bytes.Buffer)
 
 	bodyReader := json.NewEncoder(bodyBuffer)
-	bodyReader.Encode(body)
+	err = bodyReader.Encode(body)
+	if err != nil {
+		return err
+	}
 
 	// send version to metrics server
 	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/versions"
@@ -68,6 +71,7 @@ func operatorMain(ctx *cli.Context) error {
 	res, err := http.Post(endpoint, "application/json",
 		bodyBuffer)
 	if err != nil || res.StatusCode != http.StatusOK {
+		// Dont prevent operator from starting if metrics server is down
 		log.Println("Error sending version to metrics server: ", err)
 	}
 
