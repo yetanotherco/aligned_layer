@@ -37,6 +37,11 @@ defmodule ExplorerWeb.Restakes.Index do
             navigate={~p"/restakes/#{asset.strategy_address}"}
             class="flex gap-x-2 items-center group-hover:text-foreground/80"
           >
+            <img
+              src={~s"/images/restakes/#{asset.symbol}.webp"}
+              alt={asset.name}
+              class="size-5 rounded-full object-scale-down text-xs truncate text-center"
+            />
             <%= asset.name %>
             <p class="text-muted-foreground text-sm">
               <%= asset.symbol %>

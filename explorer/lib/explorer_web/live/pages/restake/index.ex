@@ -3,7 +3,10 @@ defmodule ExplorerWeb.Restake.Index do
 
   @impl true
   def handle_info(_, socket) do
-    restaked_amount_eth = socket.assigns.restake.strategy_address |> Strategies.get_total_staked() |> EthConverter.wei_to_eth(2)
+    restaked_amount_eth =
+      socket.assigns.restake.strategy_address
+      |> Strategies.get_total_staked()
+      |> EthConverter.wei_to_eth(2)
 
     {:noreply,
      assign(socket,
@@ -38,6 +41,11 @@ defmodule ExplorerWeb.Restake.Index do
         class="px-4 py-5 min-h-fit flex flex-col"
         inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>div>p]:text-foreground [&>p]:text-foreground [&>a]:text-foreground [&>p]:break-all [&>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
       >
+        <img
+          src={~s"/images/restakes/#{@restake.symbol}.webp"}
+          alt={@restake.name}
+          class="py-2 text-xs truncate text-center self-start size-28 object-scale-down rounded-xl"
+        />
         <div>
           <h3>
             Name:
