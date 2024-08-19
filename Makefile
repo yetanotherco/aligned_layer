@@ -186,7 +186,7 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
-batcher_start_local: ./batcher/aligned-batcher/.env user_fund_payment_service
+batcher_start_local: user_fund_payment_service
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
