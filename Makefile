@@ -661,7 +661,7 @@ test_mina_account_go_bindings_macos: build_mina_account_macos
 	@echo "Testing Mina Account Go bindings..."
 	go test ./operator/mina_account/... -v
 
-test_mina_go_bindings_linux: build_mina_linux
+test_mina_account_go_bindings_linux: build_mina_linux
 	@echo "Testing Mina Account Go bindings..."
 	go test ./operator/mina_account/... -v
 
