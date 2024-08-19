@@ -2253,7 +2253,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "operator_metrics"
+name = "operator_tracker"
 version = "0.1.0"
 dependencies = [
  "argh",

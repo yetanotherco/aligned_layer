@@ -1,5 +1,5 @@
 [package]
-name = "operator_metrics"
+name = "operator_tracker"
 version = "0.1.0"
 edition = "2021"
 
