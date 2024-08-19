@@ -53,13 +53,13 @@ type Aggregator struct {
 	// Since our ID is not an idx, we build this cache
 	// Note: In case of a reboot, this doesn't need to be loaded,
 	// and can start from zero
-	batchesRootByIdx map[uint32][32]byte
+	batchesIdentifierHashByIdx map[uint32][32]byte
 
 	// This is the counterpart,
 	// to use when we have the batch but not the index
 	// Note: In case of a reboot, this doesn't need to be loaded,
 	// and can start from zero
-	batchesIdxByRoot map[[32]byte]uint32
+	batchesIdxByIdentifierHash map[[32]byte]uint32
 
 	// Stores the taskCreatedBlock for each batch bt batch index
 	batchCreatedBlockByIdx map[uint32]uint64
@@ -78,7 +78,7 @@ type Aggregator struct {
 	// Note: In case of a reboot it can start from 0 again
 	nextBatchIndex uint32
 
-	// Mutex to protect batchesRootByIdx, batchesIdxByRoot and nextBatchIndex
+	// Mutex to protect batchesIdentifierHashByIdx, batchesIdxByIdentifierHash and nextBatchIndex
 	taskMutex *sync.Mutex
 
 	// Mutex to protect ethereum wallet
@@ -108,8 +108,8 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return nil, err
 	}
 
-	batchesRootByIdx := make(map[uint32][32]byte)
-	batchesIdxByRoot := make(map[[32]byte]uint32)
+	batchesIdentifierHashByIdx := make(map[uint32][32]byte)
+	batchesIdxByIdentifierHash := make(map[[32]byte]uint32)
 	batchDataByIdentifierHash := make(map[[32]byte]BatchData)
 	batchCreatedBlockByIdx := make(map[uint32]uint64)
 
@@ -163,14 +163,14 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsWriter:        avsWriter,
 		NewBatchChan:     newBatchChan,
 
-		batchesRootByIdx:          batchesRootByIdx,
-		batchesIdxByRoot:          batchesIdxByRoot,
-		batchDataByIdentifierHash: batchDataByIdentifierHash,
-		batchCreatedBlockByIdx:    batchCreatedBlockByIdx,
-		operatorRespondedBatch:    make(map[uint32]map[eigentypes.Bytes32]struct{}),
-		nextBatchIndex:            nextBatchIndex,
-		taskMutex:                 &sync.Mutex{},
-		walletMutex:               &sync.Mutex{},
+		batchesIdentifierHashByIdx: batchesIdentifierHashByIdx,
+		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
+		batchDataByIdentifierHash:  batchDataByIdentifierHash,
+		batchCreatedBlockByIdx:     batchCreatedBlockByIdx,
+		operatorRespondedBatch:     make(map[uint32]map[eigentypes.Bytes32]struct{}),
+		nextBatchIndex:             nextBatchIndex,
+		taskMutex:                  &sync.Mutex{},
+		walletMutex:                &sync.Mutex{},
 
 		blsAggregationService: blsAggregationService,
 		logger:                logger,
@@ -218,7 +218,7 @@ const MaxSentTxRetries = 5
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
 		agg.taskMutex.Lock()
-		batchIdentifierHash := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex] //TODO change name of 'batchesRootByIdx' since it no longer returns the merkle root, rather it returns the batchIdentifierHash
+		batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 
@@ -251,7 +251,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
-	batchIdentifierHash := agg.batchesRootByIdx[blsAggServiceResp.TaskIndex]
+	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
 	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
 	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
 
@@ -278,7 +278,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
-		// TODO read address from some place
 		_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 		if err == nil {
 			agg.logger.Info("Aggregator successfully responded to task",
@@ -348,7 +347,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 
 	// --- UPDATE BATCH - INDEX CACHES ---
 	batchIndex := agg.nextBatchIndex
-	if _, ok := agg.batchesIdxByRoot[batchIdentifierHash]; ok {
+	if _, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]; ok {
 		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchIdentifierHash", batchIdentifierHash)
 		agg.taskMutex.Unlock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
@@ -356,16 +355,16 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	}
 
 	// This shouldn't happen, since both maps are updated together
-	if _, ok := agg.batchesRootByIdx[batchIndex]; ok {
+	if _, ok := agg.batchesIdentifierHashByIdx[batchIndex]; ok {
 		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchIdentifierHash", batchIdentifierHash)
 		agg.taskMutex.Unlock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 		return
 	}
 
-	agg.batchesIdxByRoot[batchIdentifierHash] = batchIndex
+	agg.batchesIdxByIdentifierHash[batchIdentifierHash] = batchIndex
 	agg.batchCreatedBlockByIdx[batchIndex] = uint64(taskCreatedBlock)
-	agg.batchesRootByIdx[batchIndex] = batchIdentifierHash
+	agg.batchesIdentifierHashByIdx[batchIndex] = batchIdentifierHash
 	agg.batchDataByIdentifierHash[batchIdentifierHash] = BatchData{
 		BatchMerkleRoot: batchMerkleRoot,
 		SenderAddress:   senderAddress,

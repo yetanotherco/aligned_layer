@@ -164,7 +164,6 @@ func subscribeToNewTasks(
 //
 // );
 func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatch, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatch) {
-	// WIP process new batch here is called
 	newBatchMutex.Lock()
 	defer newBatchMutex.Unlock()
 
@@ -172,7 +171,6 @@ func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLay
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 
 	if _, ok := batchesSet[batchIdentifierHash]; !ok {
-		// TODO WIP fix to new struct of NewBatch
 		s.logger.Info("Received new task",
 		"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
 		"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
