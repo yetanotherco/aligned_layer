@@ -3,6 +3,7 @@ extern crate core;
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
 use dotenv::dotenv;
+use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use serde::Serialize;
 
@@ -19,7 +20,7 @@ use aligned_sdk::core::types::{
     VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::BatcherPaymentService;
+use eth::{try_create_new_task, BatcherPaymentService, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
@@ -33,7 +34,7 @@ use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
-use types::errors::BatcherError;
+use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 
@@ -87,9 +88,11 @@ impl BatchState {
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
-    storage_endpoint: String,
+    download_endpoint: String,
     eth_ws_provider: Provider<Ws>,
+    eth_ws_provider_fallback: Provider<Ws>,
     payment_service: BatcherPaymentService,
+    payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -106,15 +109,15 @@ impl Batcher {
         dotenv().ok();
 
         // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/localstack.html
-        let endpoint_url = env::var("LOCALSTACK_ENDPOINT_URL").ok();
+        let upload_endpoint = env::var("UPLOAD_ENDPOINT").ok();
 
         let s3_bucket_name =
             env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
 
-        let storage_endpoint =
-            env::var("STORAGE_ENDPOINT").expect("STORAGE_ENDPOINT not found in environment");
+        let download_endpoint =
+            env::var("DOWNLOAD_ENDPOINT").expect("DOWNLOAD_ENDPOINT not found in environment");
 
-        let s3_client = s3::create_client(endpoint_url).await;
+        let s3_client = s3::create_client(upload_endpoint).await;
 
         let config = ConfigFromYaml::new(config_file);
         let deployment_output =
@@ -125,8 +128,18 @@ impl Batcher {
                 .await
                 .expect("Failed to get ethereum websocket provider");
 
+        let eth_ws_provider_fallback = Provider::connect_with_reconnects(
+            &config.eth_ws_url_fallback,
+            config.batcher.eth_ws_reconnects,
+        )
+        .await
+        .expect("Failed to get fallback ethereum websocket provider");
+
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
+
+        let eth_rpc_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
+            .expect("Failed to get fallback provider");
 
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
@@ -139,11 +152,19 @@ impl Batcher {
 
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
+            config.ecdsa.clone(),
+            deployment_output.addresses.batcher_payment_service.clone(),
+        )
+        .await
+        .expect("Failed to get Batcher Payment Service contract");
+
+        let payment_service_fallback = eth::get_batcher_payment_service(
+            eth_rpc_provider_fallback,
             config.ecdsa,
             deployment_output.addresses.batcher_payment_service,
         )
         .await
-        .expect("Failed to get Batcher Payment Service contract");
+        .expect("Failed to get fallback Batcher Payment Service contract");
 
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
@@ -156,9 +177,11 @@ impl Batcher {
         Self {
             s3_client,
             s3_bucket_name,
-            storage_endpoint,
+            download_endpoint,
             eth_ws_provider,
+            eth_ws_provider_fallback,
             payment_service,
+            payment_service_fallback,
             batch_state: Mutex::new(BatchState::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
@@ -191,10 +214,30 @@ impl Batcher {
             .await
             .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
 
-        while let Some(block) = stream.next().await {
+        let mut stream_fallback = self
+            .eth_ws_provider_fallback
+            .subscribe_blocks()
+            .await
+            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+
+        let last_seen_block = Mutex::<u64>::new(0);
+
+        while let Some(block) = tokio::select! {
+            block = stream.next() => block,
+            block = stream_fallback.next() => block,
+        } {
             let batcher = self.clone();
-            let block_number = block.number.unwrap();
-            let block_number = u64::try_from(block_number).unwrap();
+            let block_number = block.number.unwrap_or_default();
+            let block_number = u64::try_from(block_number).unwrap_or_default();
+
+            {
+                let mut last_seen_block = last_seen_block.lock().await;
+                if block_number <= *last_seen_block {
+                    continue;
+                }
+                *last_seen_block = block_number;
+            }
+
             info!("Received new block: {}", block_number);
             tokio::spawn(async move {
                 if let Err(e) = batcher.handle_new_block(block_number).await {
@@ -350,7 +393,7 @@ impl Batcher {
         let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
             Some(nonce) => *nonce,
             None => {
-                let user_nonce = match self.payment_service.user_nonces(addr).call().await {
+                let user_nonce = match self.get_user_nonce(addr).await {
                     Ok(nonce) => nonce,
                     Err(e) => {
                         error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
@@ -373,6 +416,16 @@ impl Batcher {
 
         batch_state.user_nonces.insert(addr, nonce + U256::one());
         true
+    }
+
+    async fn get_user_nonce(
+        &self,
+        addr: Address,
+    ) -> Result<U256, ContractError<SignerMiddlewareT>> {
+        match self.payment_service.user_nonces(addr).call().await {
+            Ok(nonce) => Ok(nonce),
+            Err(_) => self.payment_service_fallback.user_nonces(addr).call().await,
+        }
     }
 
     /// Adds verification data to the current batch queue.
@@ -623,7 +676,7 @@ impl Batcher {
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        let batch_data_pointer: String = "".to_owned() + &self.storage_endpoint + "/" + &file_name;
+        let batch_data_pointer: String = "".to_owned() + &self.download_endpoint + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
 
@@ -675,28 +728,42 @@ impl Batcher {
         // pad leaves to next power of 2
         let padded_leaves = Self::pad_leaves(leaves);
 
-        let call = self.payment_service.create_new_task(
-            batch_merkle_root,
-            batch_data_pointer,
-            padded_leaves,
-            signatures,
-            gas_for_aggregator,
-            gas_per_proof,
-        );
-
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
 
-        let pending_tx = call
-            .send()
-            .await
-            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+        match try_create_new_task(
+            batch_merkle_root,
+            batch_data_pointer.clone(),
+            padded_leaves.clone(),
+            signatures.clone(),
+            gas_for_aggregator,
+            gas_per_proof,
+            &self.payment_service,
+        )
+        .await
+        {
+            Ok(receipt) => Ok(receipt),
+            Err(BatcherSendError::TransactionReverted(err)) => {
+                // dont retry with fallback
+                // just return the error
+                warn!("Transaction reverted {:?}", err);
 
-        let receipt = pending_tx
-            .await
-            .map_err(|_| BatcherError::TransactionSendError)?
-            .ok_or(BatcherError::ReceiptNotFoundError)?;
+                Err(BatcherError::TransactionSendError)
+            }
+            Err(_) => {
+                let receipt = try_create_new_task(
+                    batch_merkle_root,
+                    batch_data_pointer,
+                    padded_leaves,
+                    signatures,
+                    gas_for_aggregator,
+                    gas_per_proof,
+                    &self.payment_service_fallback,
+                )
+                .await?;
 
-        Ok(receipt)
+                Ok(receipt)
+            }
+        }
     }
 
     fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
@@ -724,12 +791,7 @@ impl Batcher {
         let non_paying_config = self.non_paying_config.as_ref().unwrap();
         let addr = non_paying_config.replacement.address();
 
-        let user_balance = self
-            .payment_service
-            .user_balances(addr)
-            .call()
-            .await
-            .unwrap_or_default();
+        let user_balance = self.get_user_balance(&addr).await;
 
         if user_balance == U256::from(0) {
             error!("Insufficient funds for address {:?}", addr);
@@ -805,20 +867,29 @@ impl Batcher {
     }
 
     async fn get_user_balance(&self, addr: &Address) -> U256 {
-        self.payment_service
-            .user_balances(*addr)
-            .call()
-            .await
-            .unwrap_or_default()
+        match self.payment_service.user_balances(*addr).call().await {
+            Ok(val) => val,
+            Err(_) => self
+                .payment_service_fallback
+                .user_balances(*addr)
+                .call()
+                .await
+                .unwrap_or_default(),
+        }
     }
 
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
-        self.payment_service
-            .user_unlock_block(*addr)
-            .call()
-            .await
-            .unwrap_or_default()
-            != U256::zero()
+        let unlock_block = match self.payment_service.user_unlock_block(*addr).call().await {
+            Ok(val) => val,
+            Err(_) => self
+                .payment_service_fallback
+                .user_unlock_block(*addr)
+                .call()
+                .await
+                .unwrap_or_default(),
+        };
+
+        unlock_block != U256::zero()
     }
 }
 

@@ -4,6 +4,7 @@ import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initia
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract BatcherPaymentService is
     Initializable,
@@ -11,6 +12,8 @@ contract BatcherPaymentService is
     PausableUpgradeable,
     UUPSUpgradeable
 {
+    using ECDSA for bytes32;
+
     // CONSTANTS
     uint256 public constant UNLOCK_BLOCK_COUNT = 100;
 
@@ -19,9 +22,7 @@ contract BatcherPaymentService is
     event FundsWithdrawn(address indexed recipient, uint256 amount);
 
     struct SignatureData {
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
+        bytes signature;
         uint256 nonce;
     }
 
@@ -236,12 +237,8 @@ contract BatcherPaymentService is
             abi.encodePacked(hash, signatureData.nonce)
         );
 
-        address signer = ecrecover(
-            noncedHash,
-            signatureData.v,
-            signatureData.r,
-            signatureData.s
-        );
+        address signer = noncedHash.recover(signatureData.signature);
+        require(signer != address(0), "Invalid signature");
 
         UserInfo storage user_data = UserData[signer];
 
