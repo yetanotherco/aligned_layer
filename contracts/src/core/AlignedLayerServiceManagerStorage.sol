@@ -8,13 +8,8 @@ contract AlignedLayerServiceManagerStorage {
         bool responded;
     }
 
-    struct BatchIdentifier {
-        bytes32 batchMerkleRoot;
-        address senderAddress;
-    }
-
     /* STORAGE */
-    // KEY is keccak256(BatchIdentifier)
+    // KEY is keccak256(batchMerkleRoot,senderAddress)
     mapping(bytes32 => BatchState) public batchesState;
 
     // Storage for batchers balances. Used by aggregator to pay for respondToTask

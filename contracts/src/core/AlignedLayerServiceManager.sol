@@ -59,12 +59,7 @@ contract AlignedLayerServiceManager is
         string calldata batchDataPointer
     ) external payable {
         bytes32 batchIdentifierHash = keccak256(
-            abi.encode(
-                BatchIdentifier({
-                    batchMerkleRoot: batchMerkleRoot,
-                    senderAddress: msg.sender
-                })
-            )
+            abi.encodePacked(batchMerkleRoot, msg.sender)
         );
 
         require(
@@ -96,13 +91,9 @@ contract AlignedLayerServiceManager is
     ) external {
         uint256 initialGasLeft = gasleft();
 
+        // BatchIdentifier = concat(batchMerkleRoot, senderAddress)
         bytes32 batchIdentifierHash = keccak256(
-            abi.encode(
-                BatchIdentifier({
-                    batchMerkleRoot: batchMerkleRoot,
-                    senderAddress: senderAddress
-                })
-            )
+                abi.encodePacked(batchMerkleRoot, senderAddress)
         );
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
