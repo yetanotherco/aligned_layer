@@ -50,7 +50,9 @@ func (agg *Aggregator) ServeOperators() error {
 //   - 1: Error
 func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *types.SignedTaskResponse, reply *uint8) error {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response",
-		"merkleRoot", "0x"+hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+		"BatchMerkleRoot", "0x"+hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+		"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]), //TODO FIX is printing 0x000. so it is recieving 0x00 from operator i think
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
 
 	taskIndex := uint32(0)
@@ -59,7 +61,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	for i := 0; i < waitForEventRetries; i++ {
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
-		taskIndex, ok = agg.batchesIdxByRoot[signedTaskResponse.BatchMerkleRoot]
+		taskIndex, ok = agg.batchesIdxByRoot[signedTaskResponse.BatchIdentifierHash]
 		if !ok {
 			agg.taskMutex.Unlock()
 			agg.logger.Info("- Unlocked Resources: Task not found in the internal map")
@@ -106,10 +108,11 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *typ
 	agg.logger.Info("Starting bls signature process")
 	go func() {
 		err := agg.blsAggregationService.ProcessNewSignature(
-			context.Background(), taskIndex, signedTaskResponse.BatchMerkleRoot,
+			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
 
+		
 		if err != nil {
 			agg.logger.Warnf("BLS aggregation service error: %s", err)
 			// remove operator from the list of operators that responded
