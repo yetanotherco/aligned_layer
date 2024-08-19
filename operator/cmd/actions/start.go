@@ -62,7 +62,7 @@ func operatorMain(ctx *cli.Context) error {
 	bodyReader.Encode(body)
 
 	// send version to metrics server
-	endpoint := operatorConfig.Operator.MetricsServerIpPortAddress + "/version"
+	endpoint := operatorConfig.Operator.MetricsServerIpPortAddress + "/versions"
 	log.Println("Sending version to metrics server: ", endpoint)
 
 	res, err := http.Post(endpoint, "application/json",

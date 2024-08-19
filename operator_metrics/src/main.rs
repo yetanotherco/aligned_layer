@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use axum::response::IntoResponse;
+use axum::routing::get;
 use axum::routing::post;
 use axum::Json;
 use axum::Router;
@@ -12,10 +13,13 @@ use ethers::core::types::Signature;
 use ethers::providers::{Http, Provider, ProviderExt};
 use ethers::types::Address;
 use ethers::utils::keccak256;
+use log::debug;
 use log::info;
+use serde::Serialize;
 use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::Executor;
 
-const PG_CONNECTION_STRING: &str = "postgres://postgres:admin@localhost:5432/postgres";
+const DATABASE_URL: &str = "postgres://postgres:admin@localhost:5432/postgres";
 const RPC_URL: &str = "http://localhost:8545";
 const REGISTRY_COORDINATOR_ADDRESS: &str = "0x851356ae760d987E095750cCeb3bC6014560891C";
 
@@ -42,9 +46,13 @@ async fn main() {
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(PG_CONNECTION_STRING)
+        .connect(DATABASE_URL)
         .await
         .expect("Failed to create connection pool");
+
+    pool.execute(include_str!("../sql/schema.sql"))
+        .await
+        .expect("Failed to initialize DB");
 
     let eth_rpc = Arc::new(Provider::<Http>::connect(RPC_URL).await);
 
@@ -64,7 +72,8 @@ async fn main() {
         .expect("Failed to bind listener");
 
     let router = Router::new()
-        .route("/version", post(operator_version))
+        .route("/versions", post(post_operator_version))
+        .route("/versions", get(list_operator_versions))
         .with_state(state);
 
     axum::serve(listener, router)
@@ -95,14 +104,44 @@ impl IntoResponse for OperatorVersionError {
     }
 }
 
-async fn operator_version(
+#[derive(sqlx::FromRow, Debug, Serialize)]
+struct OperatorVersion {
+    address: String,
+    version: String,
+}
+
+impl IntoResponse for OperatorVersion {
+    fn into_response(self) -> axum::http::Response<axum::body::Body> {
+        axum::http::Response::builder()
+            .status(axum::http::StatusCode::OK)
+            .body(axum::body::Body::from(
+                serde_json::to_string(&self).unwrap(),
+            ))
+            .unwrap()
+    }
+}
+
+async fn post_operator_version(
     state: State<AppState>,
     Json(payload): Json<OperatorVersionPayload>,
 ) -> Result<(), OperatorVersionError> {
+    debug!(
+        "Received operator version request. Version {}",
+        payload.version
+    );
+
     // Recover operator address from signature
 
     // hash keccak256(version) and recover address from signature
     let version = keccak256(payload.version.as_bytes());
+
+    // check version matches v*.*.* format with regex
+    if !regex::Regex::new(r"^v\d+\.\d+\.\d+$")
+        .unwrap()
+        .is_match(&payload.version)
+    {
+        return Err(OperatorVersionError::InvalidSignature);
+    }
 
     // decode base64 signature
     let signature = BASE64_STANDARD
@@ -136,9 +175,58 @@ async fn operator_version(
         return Err(OperatorVersionError::OperatorNotRegistered);
     }
 
-    info!("Operator is registered");
+    info!("Operator is registered, updating version");
 
-    // TODO: Store operator version in database
+    // Convert to string
+    // Using {:?} because to_string() gives shortened address
+    let operator_address = format!("{:?}", operator_address);
+
+    // Store operator version in database
+    // - If operator version already exists, update it
+    // - If operator version does not exist, insert it
+    let row =
+        sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions WHERE address = $1")
+            .bind(&operator_address)
+            .fetch_optional(&state.pool)
+            .await
+            .expect("Failed to execute query");
+
+    let query = if let Some(row) = row {
+        let version: String = row.version;
+        if version == payload.version {
+            debug!("Operator {} version already up to date", operator_address);
+            return Ok(()); // No need to update
+        }
+
+        debug!(
+            "Updating operator {} version from {} to {}",
+            operator_address, version, payload.version
+        );
+
+        sqlx::query("UPDATE operator_versions SET version = $2 WHERE address = $1")
+    } else {
+        debug!(
+            "Inserting operator {} version {}",
+            operator_address, payload.version
+        );
+
+        sqlx::query("INSERT INTO operator_versions (address, version) VALUES ($1, $2)")
+    };
+
+    state
+        .pool
+        .execute(query.bind(&operator_address).bind(&payload.version))
+        .await
+        .expect("Failed to update operator version");
 
     Ok(())
+}
+
+async fn list_operator_versions(state: State<AppState>) -> Json<Vec<OperatorVersion>> {
+    let rows = sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions")
+        .fetch_all(&state.pool)
+        .await
+        .expect("Failed to execute query");
+
+    Json(rows)
 }

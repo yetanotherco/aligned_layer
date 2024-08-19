@@ -2224,6 +2224,7 @@ dependencies = [
  "env_logger",
  "ethers",
  "log",
+ "regex",
  "serde",
  "serde_json",
  "sqlx",
