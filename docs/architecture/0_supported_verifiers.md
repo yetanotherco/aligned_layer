@@ -14,4 +14,6 @@ The following is the list of the verifiers currently supported by Aligned:
 The following are going to be added soon:
 
 - :black_square_button: Kimchi
+- :black_square_button: Jolt
+- :black_square_button: Nexus
 - :black_square_button: Circom
