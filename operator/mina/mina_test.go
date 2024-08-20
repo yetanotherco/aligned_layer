@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lambdaclass/aligned_layer/operator/mina"
+	"github.com/yetanotherco/aligned_layer/operator/mina"
 )
 
 func TestMinaStateProofVerifies(t *testing.T) {

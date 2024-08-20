@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/lambdaclass/aligned_layer/operator/merkle_tree"
+	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
 func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {

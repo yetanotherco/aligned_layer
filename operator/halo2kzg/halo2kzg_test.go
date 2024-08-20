@@ -2,7 +2,7 @@ package halo2kzg_test
 
 import (
 	"encoding/binary"
-	"github.com/lambdaclass/aligned_layer/operator/halo2kzg"
+	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 	"os"
 	"testing"
 )

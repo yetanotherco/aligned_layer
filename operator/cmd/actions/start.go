@@ -6,8 +6,8 @@ import (
 
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
 	"github.com/urfave/cli/v2"
-	"github.com/lambdaclass/aligned_layer/core/config"
-	operator "github.com/lambdaclass/aligned_layer/operator/pkg"
+	"github.com/yetanotherco/aligned_layer/core/config"
+	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
 )
 
 var StartFlags = []cli.Flag{

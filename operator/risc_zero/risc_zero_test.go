@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lambdaclass/aligned_layer/operator/risc_zero"
+	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 )
 
 func TestFibonacciRiscZeroProofVerifies(t *testing.T) {

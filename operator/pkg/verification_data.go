@@ -1,7 +1,7 @@
 package operator
 
 import (
-	"github.com/lambdaclass/aligned_layer/common"
+	"github.com/yetanotherco/aligned_layer/common"
 )
 
 type VerificationData struct {
