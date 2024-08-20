@@ -12,7 +12,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/signerv2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/lambdaclass/aligned_layer/core/config"
 )
 
 var (

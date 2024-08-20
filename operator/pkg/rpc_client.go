@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
-	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/lambdaclass/aligned_layer/core/types"
 )
 
 // AggregatorRpcClient is the client to communicate with the aggregator via RPC

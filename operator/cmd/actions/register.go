@@ -2,12 +2,12 @@ package actions
 
 import (
 	"context"
-	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
+	operator "github.com/lambdaclass/aligned_layer/operator/pkg"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/lambdaclass/aligned_layer/core/config"
 )
 
 var registerFlags = []cli.Flag{

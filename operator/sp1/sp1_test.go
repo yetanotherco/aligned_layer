@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/lambdaclass/aligned_layer/operator/sp1"
 )
 
 const MaxProofSize = 2 * 1024 * 1024

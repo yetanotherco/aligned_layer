@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/types"
-	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/lambdaclass/aligned_layer/core/chainio"
+	"github.com/lambdaclass/aligned_layer/core/config"
 )
 
 // RegisterOperator operator registers the operator with the given public key for the given quorum IDs.

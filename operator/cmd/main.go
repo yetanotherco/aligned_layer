@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/operator/cmd/actions"
+	"github.com/lambdaclass/aligned_layer/operator/cmd/actions"
 )
 
 var (

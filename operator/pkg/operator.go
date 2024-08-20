@@ -11,15 +11,15 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/yetanotherco/aligned_layer/operator/mina"
-	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	"github.com/lambdaclass/aligned_layer/operator/mina"
+	"github.com/lambdaclass/aligned_layer/operator/risc_zero"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/yetanotherco/aligned_layer/metrics"
+	"github.com/lambdaclass/aligned_layer/metrics"
 
-	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
-	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
-	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/lambdaclass/aligned_layer/operator/halo2ipa"
+	"github.com/lambdaclass/aligned_layer/operator/halo2kzg"
+	"github.com/lambdaclass/aligned_layer/operator/sp1"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -30,12 +30,12 @@ import (
 	"github.com/consensys/gnark/backend/witness"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/yetanotherco/aligned_layer/common"
-	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
-	"github.com/yetanotherco/aligned_layer/core/chainio"
-	"github.com/yetanotherco/aligned_layer/core/types"
+	"github.com/lambdaclass/aligned_layer/common"
+	servicemanager "github.com/lambdaclass/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	"github.com/lambdaclass/aligned_layer/core/chainio"
+	"github.com/lambdaclass/aligned_layer/core/types"
 
-	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/lambdaclass/aligned_layer/core/config"
 )
 
 type Operator struct {

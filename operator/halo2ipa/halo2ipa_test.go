@@ -2,7 +2,7 @@ package halo2ipa_test
 
 import (
 	"encoding/binary"
-	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
+	"github.com/lambdaclass/aligned_layer/operator/halo2ipa"
 	"os"
 	"testing"
 )
