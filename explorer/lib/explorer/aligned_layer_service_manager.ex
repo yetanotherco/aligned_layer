@@ -112,7 +112,7 @@ defmodule AlignedLayerServiceManager do
 
     %NewBatchEvent{
       batchMerkleRoot: topics_raw |> Enum.at(1),
-      senderAddress: data |> Enum.at(0), #TODO add storing and/or handling of this new data
+      senderAddress: data |> Enum.at(0),
       taskCreatedBlock: data |> Enum.at(1),
       batchDataPointer: data |> Enum.at(2)
     }

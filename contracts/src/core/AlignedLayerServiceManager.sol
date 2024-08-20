@@ -136,7 +136,7 @@ contract AlignedLayerServiceManager is
             "Signatories do not own at least threshold percentage of a quorum"
         );
 
-        emit BatchVerified(batchMerkleRoot, senderAddress); // TODO test and apply in explorer
+        emit BatchVerified(batchMerkleRoot, senderAddress);
 
         // Calculate estimation of gas used, check that batcher has sufficient funds
         // and send transaction cost to aggregator.
