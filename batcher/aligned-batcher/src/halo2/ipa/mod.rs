@@ -1,5 +1,5 @@
 use halo2_proofs::{
-    plonk::{verify_proof, VerifyingKey, read_params, read_fr},
+    plonk::{read_fr, read_params, verify_proof, VerifyingKey},
     poly::{
         commitment::Params,
         ipa::{commitment::IPACommitmentScheme, multiopen::VerifierIPA, strategy::SingleStrategy},
@@ -30,12 +30,10 @@ pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u
         error!("Failed to deserialize constraint system");
         return false;
     };
-    
-    let Ok(vk) = VerifyingKey::<G1Affine>::read(
-            &mut BufReader::new(vk_bytes),
-            SerdeFormat::RawBytes,
-            cs,
-        ) else {
+
+    let Ok(vk) =
+        VerifyingKey::<G1Affine>::read(&mut BufReader::new(vk_bytes), SerdeFormat::RawBytes, cs)
+    else {
         error!("Failed to deserialize verification key");
         return false;
     };
@@ -44,7 +42,7 @@ pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u
         error!("Failed to deserialize verification parameters");
         return false;
     };
-    
+
     let Ok(res) = read_fr(public_input) else {
         error!("Failed to deserialize public inputs");
         return false;
@@ -52,16 +50,13 @@ pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u
 
     let strategy = SingleStrategy::new(&params);
     let instances = res;
-    let mut transcript =
-        Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(proof);
+    let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(proof);
     verify_proof::<
         IPACommitmentScheme<G1Affine>,
         VerifierIPA<G1Affine>,
         Challenge255<G1Affine>,
         Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
         SingleStrategy<G1Affine>,
-    >(
-        &params, &vk, strategy, &[vec![instances]], &mut transcript
-    )
+    >(&params, &vk, strategy, &[vec![instances]], &mut transcript)
     .is_ok()
 }
