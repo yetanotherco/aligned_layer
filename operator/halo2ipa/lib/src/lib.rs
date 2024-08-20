@@ -22,7 +22,7 @@ pub extern "C" fn verify_halo2_ipa_proof_ffi(
     public_input_len: u32,
 ) -> bool {
     if proof_buf.is_null() || params_buf.is_null() || public_input_buf.is_null() {
-        error!("Input buffer length null");
+        error!("Halo2 IPA input buffer length null");
         return false;
     }
 
@@ -30,7 +30,7 @@ pub extern "C" fn verify_halo2_ipa_proof_ffi(
     // We therefore require that the `params_buf` is greater than 12 bytes and treat the case that buffer lengths and buffers themselves are 0 size as false.
     // [ cs_len | vk_len | vk_params_len | cs_bytes | vk_bytes | vk_params_bytes ].
     if proof_len == 0 || params_len <= 12 || public_input_len == 0 {
-        error!("Input buffer length zero size");
+        error!("Halo2 IPA input buffer length zero size");
         return false;
     }
 

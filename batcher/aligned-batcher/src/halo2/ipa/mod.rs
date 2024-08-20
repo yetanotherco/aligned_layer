@@ -12,27 +12,12 @@ use halo2curves::bn256::G1Affine;
 use log::error;
 use std::io::BufReader;
 
-// MaxConstraintSystemSize 2KB
-pub const MAX_CONSTRAINT_SYSTEM_SIZE: usize = 2 * 1024;
-
-// MaxVerificationKeySize 1KB
-pub const MAX_VERIFIER_KEY_SIZE: usize = 1024;
-
-// MaxipaParamsSize 4KB
-pub const MAX_IPA_PARAMS_SIZE: usize = 4 * 1024;
-
 pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
     // For Halo2 the `verification_key` contains the serialized cs, vk, and params with there respective sizes serialized as u32 values (4 bytes) => 3 * 4 bytes = 12:
     // We therefore require that the `verification_key` is greater than 12 bytes and treat the case that buffer lengths and buffers themselves are 0 size as false.
     // [ cs_len | vk_len | vk_params_len | cs_bytes | vk_bytes | vk_params_bytes ].
-    if verification_key.len() <= 12 {
-        error!("Halo2-IPA verification input buffers less than 12 bytes");
-        return false;
-    } else if proof.is_empty() {
-        error!("Halo2-IPA proof input buffers zero size");
-        return false;
-    } else if public_input.is_empty() {
-        error!("Halo2-IPA public input input buffers zero size");
+    if proof.is_empty() || verification_key.len() <= 12 || public_input.is_empty() {
+        error!("Input buffer length zero size");
         return false;
     }
 
