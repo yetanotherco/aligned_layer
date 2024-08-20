@@ -22,15 +22,14 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
     public_input_buf: *const u8,
     public_input_len: u32,
 ) -> bool {
-    //TODO
-    // - Abstract deserialization logic to external function.
-
     if proof_buf.is_null() || params_buf.is_null() || public_input_buf.is_null() {
         error!("Input buffer length null");
         return false;
     }
 
-    // NOTE: Params contains the cs, vk, and params with there respective sizes serialized in front as u32 values [ 12 bytes | cs_bytes | vk_bytes | vk_params_bytes ].
+    // For Halo2 the `params_buf` contains the serialized cs, vk, and params with there respective sizes serialized as u32 values (4 bytes) => 3 * 4 bytes = 12:
+    // We therefore require that the `params_buf` is greater than 12 bytes and treat the case that buffer lengths and buffers themselves are 0 size as false.
+    // [ cs_len | vk_len | vk_params_len | cs_bytes | vk_bytes | vk_params_bytes ].
     if proof_len == 0 || params_len <= 12 || public_input_len == 0 {
         error!("Input buffer length zero size");
         return false;
@@ -43,39 +42,43 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
     let public_input_bytes =
         unsafe { slice::from_raw_parts(public_input_buf, public_input_len as usize) };
 
-    if let Ok((cs_bytes, vk_bytes, vk_params_bytes)) = read_params(params_bytes) {
-        if let Ok(cs) = bincode::deserialize(cs_bytes) {
-            if let Ok(vk) = VerifyingKey::<G1Affine>::read(
-                &mut BufReader::new(vk_bytes),
-                SerdeFormat::RawBytes,
-                cs,
-            ) {
-                if let Ok(params) = Params::read::<_>(&mut BufReader::new(vk_params_bytes)) {
-                    if let Ok(res) = read_fr(public_input_bytes) {
-                        let strategy = SingleStrategy::new(&params);
-                        let instances = res;
-                        let mut transcript =
-                            Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(proof_bytes);
-                        return verify_proof::<
-                            KZGCommitmentScheme<Bn256>,
-                            VerifierSHPLONK<Bn256>,
-                            Challenge255<G1Affine>,
-                            Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
-                            SingleStrategy<Bn256>,
-                        >(
-                            &params, &vk, strategy, &[vec![instances]], &mut transcript
-                        )
-                        .is_ok();
-                    }
-                    error!("Failed to deserialize public inputs");
-                }
-                error!("Failed to deserialize verification parameters");
-            }
-            error!("Failed to deserialize verification key");
-        }
-        error!("Failed to deserialize verifiation parameter buffers from parameters buffer ");
-    }
-    false
+    let Ok((cs_bytes, vk_bytes, vk_params_bytes)) = read_params(params_bytes) else {
+        error!("Failed to deserialize verifiation parameter buffers from parameters buffer");
+        return false;
+    };
+
+    let Ok(cs) = bincode::deserialize(cs_bytes) else {
+        error!("Failed to deserialize verifiation parameter buffers from parameters buffer");
+        return false;
+    };
+
+    let Ok(vk) =
+        VerifyingKey::<G1Affine>::read(&mut BufReader::new(vk_bytes), SerdeFormat::RawBytes, cs)
+    else {
+        error!("Failed to deserialize verification key");
+        return false;
+    };
+
+    let Ok(params) = Params::read::<_>(&mut BufReader::new(vk_params_bytes)) else {
+        error!("Failed to deserialize verification parameters");
+        return false;
+    };
+
+    let Ok(res) = read_fr(public_input_bytes) else {
+        error!("Failed to deserialize public inputs");
+        return false;
+    };
+    let strategy = SingleStrategy::new(&params);
+    let instances = res;
+    let mut transcript = Blake2bRead::<&[u8], G1Affine, Challenge255<_>>::init(proof_bytes);
+    verify_proof::<
+        KZGCommitmentScheme<Bn256>,
+        VerifierSHPLONK<Bn256>,
+        Challenge255<G1Affine>,
+        Blake2bRead<&[u8], G1Affine, Challenge255<G1Affine>>,
+        SingleStrategy<Bn256>,
+    >(&params, &vk, strategy, &[vec![instances]], &mut transcript)
+    .is_ok()
 }
 
 #[cfg(test)]

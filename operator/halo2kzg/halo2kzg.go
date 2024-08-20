@@ -13,7 +13,12 @@ func VerifyHalo2KzgProof(
 	paramsBuffer []byte, paramsLen uint32,
 	publicInputBuffer []byte, publicInputLen uint32,
 ) bool {
-	if len(proofBuffer) == 0 || len(paramsBuffer) == 0 || len(publicInputBuffer) == 0 {
+	/*
+		For Halo2 the `paramsBuffer` contains the serialized cs, vk, and params with there respective sizes serialized as u32 values (4 bytes) => 3 * 4 bytes = 12:
+		We therefore require that the `paramsBuffer` is greater than 12 bytes and treat the case that buffer lengths and buffers themselves are 0 size as false.
+		[ cs_len | vk_len | vk_params_len | cs_bytes | vk_bytes | vk_params_bytes ].
+	*/
+	if len(proofBuffer) == 0 || len(paramsBuffer) <= 12 || len(publicInputBuffer) == 0 {
 		return false
 	}
 
