@@ -1,4 +1,4 @@
-package mina_test
+package mina_account_test
 
 import (
 	"fmt"

@@ -12,6 +12,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/operator/mina"
+	"github.com/yetanotherco/aligned_layer/operator/mina_account"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -375,7 +376,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
 		copy(pubInputBuffer, verificationData.PubInput)
 
-		verificationResult := mina.VerifyAccountInclusion(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		verificationResult := mina_account.VerifyAccountInclusion(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
 		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
