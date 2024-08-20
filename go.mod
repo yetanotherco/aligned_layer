@@ -1,4 +1,4 @@
-module github.com/yetanotherco/aligned_layer
+module github.com/lambdaclass/aligned_layer
 
 go 1.22.2
 
@@ -13,6 +13,7 @@ require (
 require (
 	github.com/consensys/gnark v0.10.0
 	github.com/consensys/gnark-crypto v0.12.2-0.20240215234832-d72fcb379d3e
+	github.com/yetanotherco/aligned_layer v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -94,4 +95,4 @@ require (
 
 replace github.com/Layr-Labs/eigensdk-go => github.com/yetanotherco/eigensdk-go v0.1.10-0.20240805154752-29f4d3457921
 
-replace github.com/yetanotherco/aligned_layer => github.com/lambdaclass/aligned_layer v0.0.0-20240819205938-66fc5d3df926
+replace github.com/yetanotherco/aligned_layer => github.com/lambdaclass/aligned_layer account_inclusion_verifier
