@@ -8,9 +8,9 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
 - :white_check_mark: SP1 [(v1.0.1)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.1)
 - :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
+- :white_check_mark: Halo2 - Plonk/KZG
+- :white_check_mark: Halo2 - Plonk/IPA
 
-The following proof systems are going to be added soon:
+The following proof system is going to be added soon:
 
 - :black_square_button: Kimchi
-- :black_square_button: Halo2 - Plonk/KZG
-- :black_square_button: Halo2 - Plonk/IPA
