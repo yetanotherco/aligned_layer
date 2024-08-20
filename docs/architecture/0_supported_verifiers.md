@@ -11,6 +11,7 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: Halo2 - Plonk/KZG
 - :white_check_mark: Halo2 - Plonk/IPA
 
-The following proof system is going to be added soon:
+The following are going to be added soon:
 
 - :black_square_button: Kimchi
+- :black_square_button: Circom
