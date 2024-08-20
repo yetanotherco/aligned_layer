@@ -2,41 +2,8 @@ defmodule AssetsCTAComponent do
   use ExplorerWeb, :live_component
 
   @impl true
-  def update(_assigns, socket) do
-    total_staked = get_restaked_amount_eth()
-    operators_registered = Operators.get_amount_of_operators()
-
-    {:ok,
-     socket |> assign(total_staked: total_staked, operators_registered: operators_registered)}
-  end
-
-  @impl true
-  def mount(socket) do
-    total_staked = get_restaked_amount_eth()
-    operators_registered = Operators.get_amount_of_operators()
-
-    if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
-
-    {:ok,
-     assign(socket,
-       total_staked: total_staked,
-       operators_registered: operators_registered
-     )}
-  end
-
-  defp get_restaked_amount_eth() do
-    restaked_amount_wei =
-      Restakings.get_aggregated_restakings()
-      |> Map.get(:total_stake)
-
-    case restaked_amount_wei do
-      nil ->
-        nil
-
-      _ ->
-        restaked_amount_wei
-        |> EthConverter.wei_to_eth(2)
-    end
+  def update(assigns, socket) do
+    {:ok, assign(socket, assigns)}
   end
 
   @impl true

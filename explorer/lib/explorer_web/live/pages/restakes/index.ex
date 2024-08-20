@@ -4,8 +4,15 @@ defmodule ExplorerWeb.Restakes.Index do
   @impl true
   def handle_info(_, socket) do
     assets = Strategies.get_all_strategies()
+    total_staked = Restakings.get_restaked_amount_eth()
+    operators_registered = Operators.get_amount_of_operators()
 
-    {:noreply, assign(socket, assets: assets)}
+    {:noreply,
+     assign(socket,
+       assets: assets,
+       total_staked: total_staked,
+       operators_registered: operators_registered
+     )}
   end
 
   @impl true
@@ -18,10 +25,14 @@ defmodule ExplorerWeb.Restakes.Index do
   @impl true
   def handle_params(_params, _url, socket) do
     assets = Strategies.get_all_strategies()
+    total_staked = Restakings.get_restaked_amount_eth()
+    operators_registered = Operators.get_amount_of_operators()
 
     {:noreply,
      assign(socket,
-       assets: assets
+       assets: assets,
+       total_staked: total_staked,
+       operators_registered: operators_registered
      )}
   end
 
@@ -30,7 +41,12 @@ defmodule ExplorerWeb.Restakes.Index do
     ~H"""
     <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
       <.card_preheding>Restaked Assets</.card_preheding>
-      <.live_component module={AssetsCTAComponent} id="assets_cta" />
+      <.live_component
+        module={AssetsCTAComponent}
+        id="assets_cta"
+        total_staked={@total_staked}
+        operators_registered={@operators_registered}
+      />
       <.table id="assets" rows={@assets}>
         <:col :let={asset} label="Token" class="text-left">
           <.link

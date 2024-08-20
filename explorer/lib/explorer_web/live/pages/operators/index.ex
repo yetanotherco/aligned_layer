@@ -4,7 +4,15 @@ defmodule ExplorerWeb.Operators.Index do
   @impl true
   def handle_info(_, socket) do
     operators = Operators.get_operators_with_their_weights()
-    {:noreply, assign(socket, operators: operators)}
+    total_staked = Restakings.get_restaked_amount_eth()
+    operators_registered = Operators.get_amount_of_operators()
+
+    {:noreply,
+     assign(socket,
+       operators: operators,
+       total_staked: total_staked,
+       operators_registered: operators_registered
+     )}
   end
 
   @impl true
@@ -16,8 +24,15 @@ defmodule ExplorerWeb.Operators.Index do
   @impl true
   def handle_params(_params, _url, socket) do
     operators = Operators.get_operators_with_their_weights()
+    total_staked = Restakings.get_restaked_amount_eth()
+    operators_registered = Operators.get_amount_of_operators()
 
-    {:noreply, assign(socket, operators: operators)}
+    {:noreply,
+     assign(socket,
+       operators: operators,
+       total_staked: total_staked,
+       operators_registered: operators_registered
+     )}
   end
 
   @impl true
@@ -25,7 +40,12 @@ defmodule ExplorerWeb.Operators.Index do
     ~H"""
     <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
       <.card_preheding>Operators</.card_preheding>
-      <.live_component module={AssetsCTAComponent} id="operators_cta" />
+      <.live_component
+        module={AssetsCTAComponent}
+        id="operators_cta"
+        total_staked={@total_staked}
+        operators_registered={@operators_registered}
+      />
       <.table id="operators" rows={@operators}>
         <:col :let={operator} label="Name" class="[animation-delay: 3s]">
           <.link navigate={~p"/operators/#{operator.address}"} class="flex gap-x-2">

@@ -97,4 +97,18 @@ defmodule Restakings do
     Explorer.Repo.all(query)
   end
 
+  def get_restaked_amount_eth() do
+    restaked_amount_wei =
+      Restakings.get_aggregated_restakings()
+      |> Map.get(:total_stake)
+
+    case restaked_amount_wei do
+      nil ->
+        nil
+
+      _ ->
+        restaked_amount_wei
+        |> EthConverter.wei_to_eth(2)
+    end
+  end
 end
