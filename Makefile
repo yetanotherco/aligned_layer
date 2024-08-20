@@ -669,8 +669,7 @@ __TRACKER__:
 
 tracker_devnet_start: tracker_run_db
 	@cd operator_tracker/ && \
-		cp .env.dev .env && \
-		cargo run -r
+		cargo run -r -- --env-file .env.dev
 
 tracker_install: tracker_build_db
 	cargo install --path ./operator_tracker
