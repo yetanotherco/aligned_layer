@@ -26,13 +26,13 @@ pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u
     // We therefore require that the `verification_key` is greater than 12 bytes and treat the case that buffer lengths and buffers themselves are 0 size as false.
     // [ cs_len | vk_len | vk_params_len | cs_bytes | vk_bytes | vk_params_bytes ].
     if verification_key.len() <= 12 {
-        error!("verification input buffers less than 12 bytes");
+        error!("Halo2-IPA verification input buffers less than 12 bytes");
         return false;
     } else if proof.is_empty() {
-        error!("proof input buffers zero size");
+        error!("Halo2-IPA proof input buffers zero size");
         return false;
     } else if public_input.is_empty() {
-        error!("public input input buffers zero size");
+        error!("Halo2-IPA public input input buffers zero size");
         return false;
     }
 
