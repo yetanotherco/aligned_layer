@@ -87,4 +87,4 @@ require (
 
 replace github.com/Layr-Labs/eigensdk-go => github.com/yetanotherco/eigensdk-go v0.1.10-0.20240805154752-29f4d3457921
 
-replace github.com/yetanotherco/aligned_layer => github.com/lambdaclass/aligned_layer v0.0.0-20240820200620-d2af2d6a7064
+replace github.com/yetanotherco/aligned_layer => .

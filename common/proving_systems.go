@@ -41,7 +41,6 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Risc0, nil
 	case "Mina":
 		return Mina, nil
-	}
 	case "MinaAccount":
 		return MinaAccount, nil
 	}
@@ -67,7 +66,6 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "Risc0", nil
 	case Mina:
 		return "Mina", nil
-	}
 	case MinaAccount:
 		return "MinaAccount", nil
 	}
