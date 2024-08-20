@@ -64,13 +64,13 @@ func operatorMain(ctx *cli.Context) error {
 		return err
 	}
 
-	// send version to metrics server
+	// send version to operator tracker server
 	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/versions"
 	log.Println("Sending version to metrics server: ", endpoint)
 
 	res, err := http.Post(endpoint, "application/json",
 		bodyBuffer)
-	if err != nil || res.StatusCode != http.StatusOK {
+	if err != nil || (res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusNoContent) {
 		// Dont prevent operator from starting if metrics server is down
 		log.Println("Error sending version to metrics server: ", err)
 	}
