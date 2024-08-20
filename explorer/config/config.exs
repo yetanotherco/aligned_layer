@@ -10,9 +10,11 @@ import Config
 config :explorer,
   generators: [timestamp_type: :utc_datetime]
 
+host = System.get_env("PHX_HOST") || "localhost"
+
 # Configures the endpoint
 config :explorer, ExplorerWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: host],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: ExplorerWeb.ErrorHTML, json: ExplorerWeb.ErrorJSON],
