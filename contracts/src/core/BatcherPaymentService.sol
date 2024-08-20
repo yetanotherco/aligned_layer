@@ -4,6 +4,7 @@ import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initia
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract BatcherPaymentService is
     Initializable,
@@ -11,6 +12,8 @@ contract BatcherPaymentService is
     PausableUpgradeable,
     UUPSUpgradeable
 {
+    using ECDSA for bytes32;
+
     // CONSTANTS
     uint256 public constant UNLOCK_BLOCK_COUNT = 100;
 
@@ -19,9 +22,7 @@ contract BatcherPaymentService is
     event FundsWithdrawn(address indexed recipient, uint256 amount);
 
     struct SignatureData {
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
+        bytes signature;
         uint256 nonce;
     }
 
@@ -95,7 +96,7 @@ contract BatcherPaymentService is
             "Not enough gas to pay the aggregator"
         );
 
-        checkMerkleRootAndVerifySignatures(
+        _checkMerkleRootAndVerifySignatures(
             leaves,
             batchMerkleRoot,
             signatures,
@@ -170,12 +171,12 @@ contract BatcherPaymentService is
         _;
     }
 
-    function checkMerkleRootAndVerifySignatures(
+    function _checkMerkleRootAndVerifySignatures(
         bytes32[] calldata leaves,
         bytes32 batchMerkleRoot,
         SignatureData[] calldata signatures,
         uint256 feePerProof
-    ) public {
+    ) private {
         uint256 numNodesInLayer = leaves.length / 2;
         bytes32[] memory layer = new bytes32[](numNodesInLayer);
 
@@ -188,7 +189,7 @@ contract BatcherPaymentService is
                 abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
             );
 
-            verifySignatureAndDecreaseBalance(
+            _verifySignatureAndDecreaseBalance(
                 leaves[i],
                 signatures[i],
                 feePerProof
@@ -197,7 +198,7 @@ contract BatcherPaymentService is
 
         // Verify the rest of the signatures
         for (; i < signatures.length; i++) {
-            verifySignatureAndDecreaseBalance(
+            _verifySignatureAndDecreaseBalance(
                 leaves[i],
                 signatures[i],
                 feePerProof
@@ -227,7 +228,7 @@ contract BatcherPaymentService is
         }
     }
 
-    function verifySignatureAndDecreaseBalance(
+    function _verifySignatureAndDecreaseBalance(
         bytes32 hash,
         SignatureData calldata signatureData,
         uint256 feePerProof
@@ -236,12 +237,8 @@ contract BatcherPaymentService is
             abi.encodePacked(hash, signatureData.nonce)
         );
 
-        address signer = ecrecover(
-            noncedHash,
-            signatureData.v,
-            signatureData.r,
-            signatureData.s
-        );
+        address signer = noncedHash.recover(signatureData.signature);
+        require(signer != address(0), "Invalid signature");
 
         UserInfo storage user_data = UserData[signer];
 

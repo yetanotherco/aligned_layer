@@ -38,9 +38,9 @@ cmd=(
     --public_input "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.pub"
     --vk "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.vk"
     --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
-    --rpc "$RPC"
-    --conn "$BATCHER_CONN"
-    --batcher_addr "$BATCHER_ADDR"
+    --rpc_url "$RPC"
+    --batcher_url "$BATCHER_CONN"
+    --payment_service_addr "$BATCHER_ADDR"
 )
 
 # If PRIVATE_KEY is set then add private key argument
