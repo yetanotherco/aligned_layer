@@ -166,12 +166,7 @@ contract AlignedLayerServiceManager is
         address senderAddress
     ) external view returns (bool) {
         bytes32 batchIdentifierHash = keccak256(
-            abi.encode(
-                BatchIdentifier({
-                    batchMerkleRoot: batchMerkleRoot,
-                    senderAddress: senderAddress
-                })
-            )
+            abi.encodePacked(batchMerkleRoot, senderAddress)
         );
 
         if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
