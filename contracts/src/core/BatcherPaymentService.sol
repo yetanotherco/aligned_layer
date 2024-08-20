@@ -146,6 +146,7 @@ contract BatcherPaymentService is
         );
 
         user_data.balance -= amount;
+        user_data.unlockBlock = 0;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }
