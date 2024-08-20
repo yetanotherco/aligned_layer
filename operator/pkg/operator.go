@@ -367,6 +367,17 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		verificationResult := mina.VerifyProtocolStateProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
 		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
 		results <- verificationResult
+	case common.MinaAccount:
+		proofLen := (uint)(len(verificationData.Proof))
+		pubInputLen := (uint)(len(verificationData.PubInput))
+		proofBuffer := make([]byte, mina.MAX_PROOF_SIZE)
+		copy(proofBuffer, verificationData.Proof)
+		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
+		copy(pubInputBuffer, verificationData.PubInput)
+
+		verificationResult := mina.VerifyAccountInclusion(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
+		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
