@@ -38,7 +38,7 @@ defmodule ExplorerWeb.Restakes.Index do
             class="flex gap-x-2 items-center group-hover:text-foreground/80"
           >
             <img
-              src={~s"/images/restakes/#{asset.symbol}.webp"}
+              src={~s"/images/restakes/#{asset.symbol |> String.downcase()}.webp"}
               alt={asset.name}
               class="size-5 rounded-full object-scale-down text-xs truncate text-center"
             />

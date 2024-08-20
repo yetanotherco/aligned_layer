@@ -42,7 +42,7 @@ defmodule ExplorerWeb.Restake.Index do
         inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>div>p]:text-foreground [&>p]:text-foreground [&>a]:text-foreground [&>p]:break-all [&>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
       >
         <img
-          src={~s"/images/restakes/#{@restake.symbol}.webp"}
+          src={~s"/images/restakes/#{@restake.symbol |> String.downcase()}.webp"}
           alt={@restake.name}
           class="py-2 text-xs truncate text-center self-start size-28 object-scale-down rounded-xl"
         />
