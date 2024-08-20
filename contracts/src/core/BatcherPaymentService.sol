@@ -5,6 +5,7 @@ import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/Ownabl
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 
 contract BatcherPaymentService is
     Initializable,
@@ -33,8 +34,9 @@ contract BatcherPaymentService is
     }
 
     // STORAGE
-    address public AlignedLayerServiceManager;
     address public BatcherWallet;
+
+    IAlignedLayerServiceManager private alignedLayerServiceManager;
 
     // map to user data
     mapping(address => UserInfo) public UserData;
@@ -56,7 +58,9 @@ contract BatcherPaymentService is
         __UUPSUpgradeable_init();
         _transferOwnership(_BatcherPaymentServiceOwner);
 
-        AlignedLayerServiceManager = _AlignedLayerServiceManager;
+        alignedLayerServiceManager = IAlignedLayerServiceManager(
+            _AlignedLayerServiceManager
+        );
         BatcherWallet = _BatcherWallet;
     }
 
@@ -105,17 +109,10 @@ contract BatcherPaymentService is
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
-        (bool success, ) = AlignedLayerServiceManager.call{
-            value: feeForAggregator
-        }(
-            abi.encodeWithSignature(
-                "createNewTask(bytes32,string)",
-                batchMerkleRoot,
-                batchDataPointer
-            )
+        alignedLayerServiceManager.createNewTask{value: feeForAggregator}(
+            batchMerkleRoot,
+            batchDataPointer
         );
-
-        require(success, "createNewTask call failed");
 
         payable(BatcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator
