@@ -66,16 +66,16 @@ func operatorMain(ctx *cli.Context) error {
 
 	// send version to operator tracker server
 	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/versions"
-	log.Println("Sending version to metrics server: ", endpoint)
+	operator.Logger.Info("Sending version to operator tracker server: ", "endpoint", endpoint)
 
 	res, err := http.Post(endpoint, "application/json",
 		bodyBuffer)
 	if err != nil || (res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusNoContent) {
 		// Dont prevent operator from starting if metrics server is down
-		log.Println("Error sending version to metrics server: ", err)
+		operator.Logger.Error("Error sending version to metrics server: ", "err", err)
 	}
 
-	log.Println("Operator starting...")
+	operator.Logger.Info("Operator starting...")
 	err = operator.Start(context.Background())
 	if err != nil {
 		return err
