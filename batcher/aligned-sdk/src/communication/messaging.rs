@@ -1,3 +1,4 @@
+use ethers::signers::Signer;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use log::{debug, error, info};
 use std::sync::Arc;
@@ -40,13 +41,17 @@ pub async fn send_messages(
 
     let mut response_stream = response_stream.lock().await;
 
+    let chain_id = U256::from(wallet.chain_id());
+
     for verification_data in verification_data.iter() {
         nonce.to_big_endian(&mut nonce_bytes);
 
-        let verification_data = NoncedVerificationData::new(verification_data.clone(), nonce_bytes);
+        let verification_data =
+            NoncedVerificationData::new(verification_data.clone(), nonce_bytes, chain_id);
+
         nonce += U256::one();
 
-        let msg = ClientMessage::new(verification_data.clone(), wallet.clone());
+        let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
         let msg_str = serde_json::to_string(&msg).map_err(SubmitError::SerializationError)?;
         ws_write
             .send(Message::Text(msg_str.clone()))

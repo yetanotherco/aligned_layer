@@ -836,16 +836,28 @@ impl Batcher {
                 nonpaying_nonce.to_big_endian(&mut nonce_bytes);
                 *nonpaying_nonce += U256::one();
 
+                let chain_id = match self.eth_ws_provider.get_chainid().await {
+                    Ok(chain_id) => chain_id,
+                    Err(e) => {
+                        error!("Failed to get chain id: {:?}", e);
+                        send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce)
+                            .await;
+                        return Ok(());
+                    }
+                };
+
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
                     nonce_bytes,
+                    chain_id,
                 )
             };
 
             let client_msg = ClientMessage::new(
                 nonced_verification_data.clone(),
                 non_paying_config.replacement.clone(),
-            );
+            )
+            .await;
 
             self.clone()
                 .add_to_batch(

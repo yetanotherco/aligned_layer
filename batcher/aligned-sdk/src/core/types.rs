@@ -1,8 +1,12 @@
 use ethers::core::k256::ecdsa::SigningKey;
+use ethers::signers::Signer;
 use ethers::signers::Wallet;
+use ethers::types::transaction::eip712::EIP712Domain;
+use ethers::types::transaction::eip712::Eip712;
 use ethers::types::Address;
 use ethers::types::Signature;
 use ethers::types::SignatureError;
+use ethers::types::U256;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
@@ -35,14 +39,52 @@ pub struct VerificationData {
 pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
     pub nonce: [u8; 32],
+    pub chain_id: U256,
 }
 
+const NONCED_VERIFICATION_DATA_TYPE: &str =
+    "NoncedVerificationData(bytes32 verification_data_hash, bytes32 nonce)";
+
 impl NoncedVerificationData {
-    pub fn new(verification_data: VerificationData, nonce: [u8; 32]) -> Self {
+    pub fn new(verification_data: VerificationData, nonce: [u8; 32], chain_id: U256) -> Self {
         Self {
             verification_data,
             nonce,
+            chain_id,
         }
+    }
+}
+
+impl Eip712 for NoncedVerificationData {
+    type Error = SignatureError;
+
+    fn domain(&self) -> Result<ethers::types::transaction::eip712::EIP712Domain, Self::Error> {
+        Ok(EIP712Domain {
+            name: Some("NoncedVerificationData".to_string()),
+            version: Some("1".to_string()),
+            chain_id: Some(self.chain_id),
+            verifying_contract: None,
+            salt: None,
+        })
+    }
+
+    fn type_hash() -> Result<[u8; 32], Self::Error> {
+        let mut hasher = Keccak256::new();
+        hasher.update(NONCED_VERIFICATION_DATA_TYPE.as_bytes());
+        Ok(hasher.finalize().into())
+    }
+
+    fn struct_hash(&self) -> Result<[u8; 32], Self::Error> {
+        let mut hasher = Keccak256::new();
+        hasher.update(NoncedVerificationData::type_hash()?);
+
+        let verification_data_hash =
+            VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
+
+        hasher.update(verification_data_hash.as_slice());
+        hasher.update(self.nonce.as_ref());
+
+        Ok(hasher.finalize().into())
     }
 }
 
@@ -169,10 +211,14 @@ pub struct ClientMessage {
 impl ClientMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
-    pub fn new(verification_data: NoncedVerificationData, wallet: Wallet<SigningKey>) -> Self {
-        let hashed_leaf = ClientMessage::hash_with_nonce(&verification_data);
-
-        let signature = wallet.sign_hash(hashed_leaf.into()).unwrap();
+    pub async fn new(
+        verification_data: NoncedVerificationData,
+        wallet: Wallet<SigningKey>,
+    ) -> Self {
+        let signature = wallet
+            .sign_typed_data(&verification_data)
+            .await
+            .expect("Failed to sign the verification data");
 
         ClientMessage {
             verification_data,
@@ -183,21 +229,24 @@ impl ClientMessage {
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
-        let hashed_leaf: [u8; 32] = ClientMessage::hash_with_nonce(&self.verification_data);
+        let recovered = self.signature.recover_typed_data(&self.verification_data)?;
 
-        let recovered = self.signature.recover(hashed_leaf)?;
-        self.signature.verify(hashed_leaf, recovered)?;
+        // let hashed_leaf: [u8; 32] = ClientMessage::hash_with_nonce(&self.verification_data);
+
+        let hashed_data = self.verification_data.encode_eip712()?;
+        // let recovered = self.signature.recover(hashed_leaf)?;
+        self.signature.verify(hashed_data, recovered)?;
         Ok(recovered)
     }
 
-    fn hash_with_nonce(verification_data: &NoncedVerificationData) -> [u8; 32] {
-        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.into());
+    // fn hash_with_nonce(verification_data: &NoncedVerificationData) -> [u8; 32] {
+    //     let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.into());
 
-        let mut hasher = Keccak256::new();
-        hasher.update(hashed_leaf);
-        hasher.update(verification_data.nonce);
-        hasher.finalize().into()
-    }
+    //     let mut hasher = Keccak256::new();
+    //     hasher.update(hashed_leaf);
+    //     hasher.update(verification_data.nonce);
+    //     hasher.finalize().into()
+    // }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
