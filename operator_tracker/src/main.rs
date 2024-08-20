@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use axum::body::Body;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::routing::get;
@@ -114,12 +115,10 @@ enum OperatorVersionError {
 }
 
 impl IntoResponse for OperatorVersionError {
-    fn into_response(self) -> axum::http::Response<axum::body::Body> {
+    fn into_response(self) -> axum::http::Response<Body> {
         axum::http::Response::builder()
             .status(axum::http::StatusCode::BAD_REQUEST)
-            .body(axum::body::Body::from(
-                serde_json::to_string(&self).unwrap(),
-            ))
+            .body(Body::from(serde_json::to_string(&self).unwrap()))
             .unwrap()
     }
 }
@@ -131,12 +130,10 @@ struct OperatorVersion {
 }
 
 impl IntoResponse for OperatorVersion {
-    fn into_response(self) -> axum::http::Response<axum::body::Body> {
+    fn into_response(self) -> axum::http::Response<Body> {
         axum::http::Response::builder()
             .status(axum::http::StatusCode::OK)
-            .body(axum::body::Body::from(
-                serde_json::to_string(&self).unwrap(),
-            ))
+            .body(Body::from(serde_json::to_string(&self).unwrap()))
             .unwrap()
     }
 }
@@ -242,11 +239,22 @@ async fn post_operator_version(
     Ok(())
 }
 
-async fn list_operator_versions(state: State<AppState>) -> Json<Vec<OperatorVersion>> {
+async fn list_operator_versions(state: State<AppState>) -> axum::http::Response<Body> {
     let rows = sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions")
         .fetch_all(&state.pool)
         .await
         .expect("Failed to execute query");
 
-    Json(rows)
+    let status = if rows.is_empty() {
+        axum::http::StatusCode::NO_CONTENT
+    } else {
+        axum::http::StatusCode::OK
+    };
+
+    let body = serde_json::to_string(&rows).expect("Failed to serialize response");
+
+    axum::http::Response::builder()
+        .status(status)
+        .body(Body::from(body))
+        .expect("Failed to build response") // This should never fail
 }
