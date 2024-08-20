@@ -62,7 +62,7 @@ Aligned provides proof aggregation as part of its slow mode, a feature shared wi
     
 ### What proof systems do you support?
     
-Aligned is designed to support any proof system. Currently supported ones are Groth16 and Plonk (gnark), SP1, Halo 2 (IPA and KZG)
+Aligned is designed to support any proof system. Currently supported ones are Groth16 and Plonk (gnark), SP1, Halo 2 (IPA and KZG).
     
 ### How hard is it to add new proof systems?
     
