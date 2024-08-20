@@ -114,12 +114,7 @@ pub async fn create_or_update_operator_version(
     // Store operator version in database
     // - If operator version already exists, update it
     // - If operator version does not exist, insert it
-    let row =
-        sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions WHERE address = $1")
-            .bind(&operator_address)
-            .fetch_optional(db)
-            .await
-            .expect("Failed to execute query");
+    let row = get_operator_version(db, &operator_address).await;
 
     let (query, response) = if let Some(row) = row {
         let version: String = row.version;
@@ -157,4 +152,19 @@ pub async fn create_or_update_operator_version(
         .expect("Failed to update operator version");
 
     Ok(response)
+}
+
+pub async fn list_operator_versions(db: &PgPool) -> Vec<OperatorVersion> {
+    sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions")
+        .fetch_all(db)
+        .await
+        .expect("Failed to execute query")
+}
+
+pub async fn get_operator_version(db: &PgPool, address: &String) -> Option<OperatorVersion> {
+    sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions WHERE address = $1")
+        .bind(address)
+        .fetch_optional(db)
+        .await
+        .expect("Failed to execute query")
 }
