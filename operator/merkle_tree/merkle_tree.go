@@ -1,8 +1,8 @@
 package merkle_tree
 
 /*
-#cgo linux LDFLAGS: ./lib/libmerkle_tree.a -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
-#cgo darwin LDFLAGS: ./lib/libmerkle_tree.dylib
+#cgo linux LDFLAGS: -L./lib -llibmerkle_tree -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo darwin LDFLAGS: -L./lib -llibmerkle_tree
 
 #include "lib/merkle_tree.h"
 */
