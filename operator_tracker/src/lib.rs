@@ -162,6 +162,11 @@ pub async fn list_operator_versions(db: &PgPool) -> Vec<OperatorVersion> {
 }
 
 pub async fn get_operator_version(db: &PgPool, address: &String) -> Option<OperatorVersion> {
+    // check operator address is hex and 42 characters long
+    if address.len() != 42 || !address.starts_with("0x") {
+        return None;
+    }
+
     sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions WHERE address = $1")
         .bind(address)
         .fetch_optional(db)
