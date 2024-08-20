@@ -81,11 +81,6 @@ pub async fn create_or_update_operator_version(
         payload.version
     );
 
-    // Recover operator address from signature
-
-    // hash keccak256(version) and recover address from signature
-    let version = keccak256(payload.version.as_bytes());
-
     // check version matches v*.*.* format with regex
     if !regex::Regex::new(r"^v\d+\.\d+\.\d+$")
         .unwrap()
@@ -109,8 +104,11 @@ pub async fn create_or_update_operator_version(
         v: signature[64] as u64,
     };
 
+    // hash keccak256(version) and recover address from signature
+    let hashed_version = keccak256(payload.version.as_bytes());
+
     let operator_address = signature
-        .recover(version)
+        .recover(hashed_version)
         .map_err(|_| OperatorVersionError::InvalidSignature)?;
 
     info!("Operator address: {:?}", operator_address);
