@@ -1,10 +1,11 @@
+use axum::http::StatusCode;
 use axum::{body::Body, response::IntoResponse};
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use ethers::providers::{Http, Provider};
 use ethers::utils::keccak256;
 use ethers::{contract::abigen, core::types::Signature};
-use log::{debug, info};
+use log::{debug, error, info};
 use serde::Serialize;
 use sqlx::{Executor, PgPool};
 
@@ -25,14 +26,31 @@ pub struct OperatorVersionPayload {
 pub enum OperatorVersionError {
     InvalidSignature,
     OperatorNotRegistered,
+    InternalServerError,
+    BadRequest,
 }
 
 impl IntoResponse for OperatorVersionError {
     fn into_response(self) -> axum::http::Response<Body> {
-        axum::http::Response::builder()
-            .status(axum::http::StatusCode::BAD_REQUEST)
-            .body(Body::from(serde_json::to_string(&self).unwrap()))
-            .unwrap()
+        let err_msg = serde_json::to_string(&self).unwrap_or("Unkown error".to_string());
+
+        let builder = axum::http::Response::builder();
+        let builder = match self {
+            OperatorVersionError::InvalidSignature => builder
+                .status(axum::http::StatusCode::UNAUTHORIZED)
+                .body(Body::from(err_msg)),
+            OperatorVersionError::InternalServerError => builder
+                .status(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from(err_msg)),
+            OperatorVersionError::OperatorNotRegistered => builder
+                .status(axum::http::StatusCode::BAD_REQUEST)
+                .body(Body::from(err_msg)),
+            OperatorVersionError::BadRequest => builder
+                .status(axum::http::StatusCode::BAD_REQUEST)
+                .body(Body::from(err_msg)),
+        };
+
+        builder.unwrap_or_default()
     }
 }
 
@@ -44,10 +62,12 @@ pub struct OperatorVersion {
 
 impl IntoResponse for OperatorVersion {
     fn into_response(self) -> axum::http::Response<Body> {
+        let (status, body) = serialize_or_err(self);
+
         axum::http::Response::builder()
-            .status(axum::http::StatusCode::OK)
-            .body(Body::from(serde_json::to_string(&self).unwrap()))
-            .unwrap()
+            .status(status)
+            .body(body)
+            .unwrap_or_default()
     }
 }
 
@@ -99,7 +119,7 @@ pub async fn create_or_update_operator_version(
     let status = registry_coordinator
         .get_operator_status(operator_address)
         .await
-        .expect("Failed to get operator status");
+        .map_err(|_| OperatorVersionError::InternalServerError)?;
 
     if status != 1 {
         return Err(OperatorVersionError::OperatorNotRegistered);
@@ -114,7 +134,10 @@ pub async fn create_or_update_operator_version(
     // Store operator version in database
     // - If operator version already exists, update it
     // - If operator version does not exist, insert it
-    let row = get_operator_version(db, &operator_address).await;
+    let row = match get_operator_version(db, &operator_address).await {
+        Ok(row) => row,
+        Err(_) => return Err(OperatorVersionError::InternalServerError),
+    };
 
     let (query, response) = if let Some(row) = row {
         let version: String = row.version;
@@ -149,27 +172,45 @@ pub async fn create_or_update_operator_version(
 
     db.execute(query.bind(&operator_address).bind(&payload.version))
         .await
-        .expect("Failed to update operator version");
+        .map_err(|_| OperatorVersionError::InternalServerError)?;
 
     Ok(response)
 }
 
-pub async fn list_operator_versions(db: &PgPool) -> Vec<OperatorVersion> {
+pub async fn list_operator_versions(
+    db: &PgPool,
+) -> Result<Vec<OperatorVersion>, OperatorVersionError> {
     sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions")
         .fetch_all(db)
         .await
-        .expect("Failed to execute query")
+        .map_err(|_| OperatorVersionError::InternalServerError)
 }
 
-pub async fn get_operator_version(db: &PgPool, address: &String) -> Option<OperatorVersion> {
+pub async fn get_operator_version(
+    db: &PgPool,
+    address: &String,
+) -> Result<Option<OperatorVersion>, OperatorVersionError> {
     // check operator address is hex and 42 characters long
     if address.len() != 42 || !address.starts_with("0x") {
-        return None;
+        return Err(OperatorVersionError::BadRequest);
     }
 
     sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions WHERE address = $1")
         .bind(address)
         .fetch_optional(db)
         .await
-        .expect("Failed to execute query")
+        .map_err(|_| OperatorVersionError::InternalServerError)
+}
+
+pub fn serialize_or_err<T: Serialize>(content: T) -> (StatusCode, Body) {
+    match serde_json::to_string(&content) {
+        Ok(body) => (StatusCode::OK, Body::from(body)),
+        Err(_) => {
+            error!("Failed to serialize response");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Body::from("Failed to serialize response"),
+            )
+        }
+    }
 }

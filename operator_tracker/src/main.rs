@@ -13,6 +13,7 @@ use ethers::types::Address;
 use log::debug;
 use log::info;
 use operator_tracker::create_or_update_operator_version;
+use operator_tracker::serialize_or_err;
 use operator_tracker::{OperatorVersionPayload, RegistryCoordinator, RegistryCoordinatorContract};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
@@ -110,12 +111,12 @@ async fn post_operator_version(
         Ok(Some(body)) => {
             info!("Operator version created successfully");
 
-            let body = serde_json::to_string(&body).expect("Failed to serialize response");
+            let (status, body) = serialize_or_err(body);
 
             axum::http::Response::builder()
-                .status(axum::http::StatusCode::CREATED)
-                .body(Body::from(body))
-                .expect("Failed to build response")
+                .status(status)
+                .body(body)
+                .unwrap_or_default() // Should never fail but dont panic
         }
         Ok(None) => {
             info!("Operator version updated or already matched");
@@ -123,7 +124,7 @@ async fn post_operator_version(
             axum::http::Response::builder()
                 .status(axum::http::StatusCode::NO_CONTENT)
                 .body(Body::empty())
-                .expect("Failed to build response")
+                .unwrap_or_default() // Should never fail but dont panic
         }
         Err(err) => {
             info!("Operator version already exists");
@@ -133,32 +134,34 @@ async fn post_operator_version(
 }
 
 async fn list_operator_versions(state: State<AppState>) -> axum::http::Response<Body> {
-    let rows = operator_tracker::list_operator_versions(&state.pool).await;
+    let rows = match operator_tracker::list_operator_versions(&state.pool).await {
+        Ok(rows) => rows,
+        Err(err) => return err.into_response(),
+    };
 
     let (status, body) = if rows.is_empty() {
         (axum::http::StatusCode::NO_CONTENT, Body::empty())
     } else {
-        let body = serde_json::to_string(&rows).expect("Failed to serialize response");
-
-        (axum::http::StatusCode::OK, Body::from(body))
+        serialize_or_err(rows)
     };
 
     axum::http::Response::builder()
         .status(status)
         .body(body)
-        .expect("Failed to build response") // This should never fail
+        .unwrap_or_default() // Should never fail but dont panic
 }
 
 async fn get_operator_version(
     state: State<AppState>,
     Path(address): Path<String>,
 ) -> axum::http::Response<Body> {
-    let row = operator_tracker::get_operator_version(&state.pool, &address).await;
+    let row = match operator_tracker::get_operator_version(&state.pool, &address).await {
+        Ok(row) => row,
+        Err(err) => return err.into_response(),
+    };
 
     let (status, body) = if let Some(row) = row {
-        let body = serde_json::to_string(&row).expect("Failed to serialize response");
-
-        (axum::http::StatusCode::OK, Body::from(body))
+        serialize_or_err(row)
     } else {
         (axum::http::StatusCode::NOT_FOUND, Body::empty())
     };
@@ -166,5 +169,5 @@ async fn get_operator_version(
     axum::http::Response::builder()
         .status(status)
         .body(body)
-        .expect("Failed to build response") // This should never fail
+        .unwrap_or_default() // Should never fail but dont panic
 }
