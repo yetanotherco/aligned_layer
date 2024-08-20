@@ -7,16 +7,15 @@ use axum::routing::get;
 use axum::routing::post;
 use axum::Json;
 use axum::Router;
-use base64::prelude::BASE64_STANDARD;
-use base64::Engine;
-use ethers::contract::abigen;
-use ethers::core::types::Signature;
 use ethers::providers::{Http, Provider, ProviderExt};
 use ethers::types::Address;
-use ethers::utils::keccak256;
 use log::debug;
 use log::info;
-use serde::Serialize;
+use operator_tracker::create_or_update_operator_version;
+use operator_tracker::OperatorVersion;
+use operator_tracker::OperatorVersionPayload;
+use operator_tracker::RegistryCoordinator;
+use operator_tracker::RegistryCoordinatorContract;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
 
@@ -26,15 +25,11 @@ use sqlx::Executor;
 // 0 - Never registered
 // 1 - Registered
 // 2 - Deregistered
-abigen!(
-    RegistryCoordinator,
-    r#"[function getOperatorStatus(address) external view returns (uint8)]"#,
-);
 
 #[derive(Clone)]
 struct AppState {
     pool: PgPool,
-    registry_coordinator: RegistryCoordinator<Provider<Http>>,
+    registry_coordinator: RegistryCoordinatorContract,
 }
 
 /// The main entry point for the application
@@ -102,141 +97,40 @@ async fn main() {
         .expect("Failed to serve app");
 }
 
-#[derive(serde::Deserialize)]
-struct OperatorVersionPayload {
-    pub version: String,
-    pub signature: String,
-}
-
-#[derive(serde::Serialize, Debug)]
-enum OperatorVersionError {
-    InvalidSignature,
-    OperatorNotRegistered,
-}
-
-impl IntoResponse for OperatorVersionError {
-    fn into_response(self) -> axum::http::Response<Body> {
-        axum::http::Response::builder()
-            .status(axum::http::StatusCode::BAD_REQUEST)
-            .body(Body::from(serde_json::to_string(&self).unwrap()))
-            .unwrap()
-    }
-}
-
-#[derive(sqlx::FromRow, Debug, Serialize)]
-struct OperatorVersion {
-    address: String,
-    version: String,
-}
-
-impl IntoResponse for OperatorVersion {
-    fn into_response(self) -> axum::http::Response<Body> {
-        axum::http::Response::builder()
-            .status(axum::http::StatusCode::OK)
-            .body(Body::from(serde_json::to_string(&self).unwrap()))
-            .unwrap()
-    }
-}
-
 async fn post_operator_version(
     state: State<AppState>,
     Json(payload): Json<OperatorVersionPayload>,
-) -> Result<(), OperatorVersionError> {
+) -> axum::http::Response<Body> {
     debug!(
         "Received operator version request. Version {}",
         payload.version
     );
 
-    // Recover operator address from signature
-
-    // hash keccak256(version) and recover address from signature
-    let version = keccak256(payload.version.as_bytes());
-
-    // check version matches v*.*.* format with regex
-    if !regex::Regex::new(r"^v\d+\.\d+\.\d+$")
-        .unwrap()
-        .is_match(&payload.version)
+    match create_or_update_operator_version(&state.pool, &state.registry_coordinator, payload).await
     {
-        return Err(OperatorVersionError::InvalidSignature);
-    }
+        Ok(Some(body)) => {
+            info!("Operator version created successfully");
 
-    // decode base64 signature
-    let signature = BASE64_STANDARD
-        .decode(payload.signature)
-        .map_err(|_| OperatorVersionError::InvalidSignature)?;
+            let body = serde_json::to_string(&body).expect("Failed to serialize response");
 
-    if signature.len() != 65 {
-        return Err(OperatorVersionError::InvalidSignature);
-    }
-
-    let signature = Signature {
-        r: ethers::types::U256::from_big_endian(&signature[0..32]),
-        s: ethers::types::U256::from_big_endian(&signature[32..64]),
-        v: signature[64] as u64,
-    };
-
-    let operator_address = signature
-        .recover(version)
-        .map_err(|_| OperatorVersionError::InvalidSignature)?;
-
-    info!("Operator address: {:?}", operator_address);
-
-    // Check if operator is registered on registry coordinator
-    let status = state
-        .registry_coordinator
-        .get_operator_status(operator_address)
-        .await
-        .expect("Failed to get operator status");
-
-    if status != 1 {
-        return Err(OperatorVersionError::OperatorNotRegistered);
-    }
-
-    info!("Operator is registered, updating version");
-
-    // Convert to string
-    // Using {:?} because to_string() gives shortened address
-    let operator_address = format!("{:?}", operator_address);
-
-    // Store operator version in database
-    // - If operator version already exists, update it
-    // - If operator version does not exist, insert it
-    let row =
-        sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions WHERE address = $1")
-            .bind(&operator_address)
-            .fetch_optional(&state.pool)
-            .await
-            .expect("Failed to execute query");
-
-    let query = if let Some(row) = row {
-        let version: String = row.version;
-        if version == payload.version {
-            debug!("Operator {} version already up to date", operator_address);
-            return Ok(()); // No need to update
+            axum::http::Response::builder()
+                .status(axum::http::StatusCode::CREATED)
+                .body(Body::from(body))
+                .expect("Failed to build response")
         }
+        Ok(None) => {
+            info!("Operator version updated or already matched");
 
-        debug!(
-            "Updating operator {} version from {} to {}",
-            operator_address, version, payload.version
-        );
-
-        sqlx::query("UPDATE operator_versions SET version = $2 WHERE address = $1")
-    } else {
-        debug!(
-            "Inserting operator {} version {}",
-            operator_address, payload.version
-        );
-
-        sqlx::query("INSERT INTO operator_versions (address, version) VALUES ($1, $2)")
-    };
-
-    state
-        .pool
-        .execute(query.bind(&operator_address).bind(&payload.version))
-        .await
-        .expect("Failed to update operator version");
-
-    Ok(())
+            axum::http::Response::builder()
+                .status(axum::http::StatusCode::NO_CONTENT)
+                .body(Body::empty())
+                .expect("Failed to build response")
+        }
+        Err(err) => {
+            info!("Operator version already exists");
+            err.into_response()
+        }
+    }
 }
 
 async fn list_operator_versions(state: State<AppState>) -> axum::http::Response<Body> {
@@ -245,16 +139,16 @@ async fn list_operator_versions(state: State<AppState>) -> axum::http::Response<
         .await
         .expect("Failed to execute query");
 
-    let status = if rows.is_empty() {
-        axum::http::StatusCode::NO_CONTENT
+    let (status, body) = if rows.is_empty() {
+        (axum::http::StatusCode::NO_CONTENT, Body::empty())
     } else {
-        axum::http::StatusCode::OK
-    };
+        let body = serde_json::to_string(&rows).expect("Failed to serialize response");
 
-    let body = serde_json::to_string(&rows).expect("Failed to serialize response");
+        (axum::http::StatusCode::OK, Body::from(body))
+    };
 
     axum::http::Response::builder()
         .status(status)
-        .body(Body::from(body))
+        .body(body)
         .expect("Failed to build response") // This should never fail
 }
