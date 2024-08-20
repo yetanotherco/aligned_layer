@@ -34,12 +34,12 @@ use futures_util::{
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
-/// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
+/// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce to use.
+/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -59,8 +59,8 @@ use futures_util::{
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
-pub async fn submit_multiple_and_wait(
-    batcher_addr: &str,
+pub async fn submit_multiple_and_wait_verification(
+    batcher_url: &str,
     eth_rpc_url: &str,
     chain: Chain,
     verification_data: &[VerificationData],
@@ -68,7 +68,7 @@ pub async fn submit_multiple_and_wait(
     nonce: U256,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     let aligned_verification_data =
-        submit_multiple(batcher_addr, verification_data, wallet, nonce).await?;
+        submit_multiple(batcher_url, verification_data, wallet, nonce).await?;
 
     for aligned_verification_data_item in aligned_verification_data.iter() {
         await_batch_verification(aligned_verification_data_item, eth_rpc_url, chain.clone())
@@ -80,11 +80,10 @@ pub async fn submit_multiple_and_wait(
 
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
-/// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
-/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce to use.
+/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -102,12 +101,12 @@ pub async fn submit_multiple_and_wait(
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
-    batcher_addr: &str,
+    batcher_url: &str,
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
-    let (ws_stream, _) = connect_async(batcher_addr)
+    let (ws_stream, _) = connect_async(batcher_url)
         .await
         .map_err(errors::SubmitError::WebSocketConnectionError)?;
 
@@ -177,12 +176,12 @@ async fn _submit_multiple(
 
 /// Submits a proof to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
-/// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
+/// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce to use
+/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -202,8 +201,8 @@ async fn _submit_multiple(
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
-pub async fn submit_and_wait(
-    batcher_addr: &str,
+pub async fn submit_and_wait_verification(
+    batcher_url: &str,
     eth_rpc_url: &str,
     chain: Chain,
     verification_data: &VerificationData,
@@ -212,8 +211,8 @@ pub async fn submit_and_wait(
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let aligned_verification_data = submit_multiple_and_wait(
-        batcher_addr,
+    let aligned_verification_data = submit_multiple_and_wait_verification(
+        batcher_url,
         eth_rpc_url,
         chain,
         &verification_data,
@@ -227,10 +226,10 @@ pub async fn submit_and_wait(
 
 /// Submits a proof to the batcher to be verified in Aligned.
 /// # Arguments
-/// * `batcher_addr` - The address of the batcher to which the proof will be submitted.
+/// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
-/// * `nonce` - The nonce to use.
+/// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -248,7 +247,7 @@ pub async fn submit_and_wait(
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
-    batcher_addr: &str,
+    batcher_url: &str,
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
     nonce: U256,
@@ -256,7 +255,7 @@ pub async fn submit(
     let verification_data = vec![verification_data.clone()];
 
     let aligned_verification_data =
-        submit_multiple(batcher_addr, &verification_data, wallet, nonce).await?;
+        submit_multiple(batcher_url, &verification_data, wallet, nonce).await?;
 
     Ok(aligned_verification_data[0].clone())
 }
@@ -272,7 +271,7 @@ pub async fn submit(
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumCallError` if there is an error in the Ethereum call.
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
-pub async fn verify_proof_onchain(
+pub async fn is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
     chain: Chain,
     eth_rpc_url: &str,
@@ -281,10 +280,10 @@ pub async fn verify_proof_onchain(
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
             errors::VerificationError::EthereumProviderError(e.to_string())
         })?;
-    _verify_proof_onchain(aligned_verification_data, chain, eth_rpc_provider).await
+    _is_proof_verified(aligned_verification_data, chain, eth_rpc_provider).await
 }
 
-async fn _verify_proof_onchain(
+async fn _is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
     chain: Chain,
     eth_rpc_provider: Provider<Http>,
@@ -343,24 +342,24 @@ pub fn get_commitment(content: &[u8]) -> [u8; 32] {
 /// Returns the next nonce for a given address.
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `address` - The address for which the nonce will be retrieved.
-/// * `batcher_contract_address` - The address of the batcher payment service contract.
+/// * `submitter_addr` - The address of the proof submitter for which the nonce will be retrieved.
+/// * `payment_service_addr` - The address of the batcher payment service contract.
 /// # Returns
-/// * The next nonce.
+/// * The next nonce of the proof submitter account.
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumCallError` if there is an error in the Ethereum call.
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
-    address: Address,
-    batcher_contract_address: &str,
+    submitter_addr: Address,
+    payment_service_addr: &str,
 ) -> Result<U256, errors::NonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
 
-    match batcher_payment_service(eth_rpc_provider, batcher_contract_address).await {
+    match batcher_payment_service(eth_rpc_provider, payment_service_addr).await {
         Ok(contract) => {
-            let call = contract.user_nonces(address);
+            let call = contract.user_nonces(submitter_addr);
 
             let result = call
                 .call()
@@ -412,7 +411,7 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data = submit_multiple_and_wait(
+        let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
@@ -445,7 +444,7 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let result = submit_multiple_and_wait(
+        let result = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
@@ -486,7 +485,7 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data = submit_multiple_and_wait(
+        let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
@@ -499,7 +498,7 @@ mod test {
 
         sleep(std::time::Duration::from_secs(20)).await;
 
-        let result = verify_proof_onchain(
+        let result = is_proof_verified(
             &aligned_verification_data[0],
             Chain::Devnet,
             "http://localhost:8545",
@@ -536,7 +535,7 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
-        let aligned_verification_data = submit_multiple_and_wait(
+        let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
@@ -554,7 +553,7 @@ mod test {
         // Modify the batch merkle root so that the verification fails
         aligned_verification_data_modified.batch_merkle_root[0] = 0;
 
-        let result = verify_proof_onchain(
+        let result = is_proof_verified(
             &aligned_verification_data_modified,
             Chain::Devnet,
             "http://localhost:8545",

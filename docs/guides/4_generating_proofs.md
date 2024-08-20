@@ -39,10 +39,10 @@ aligned submit \
 --proving_system SP1 \
 --proof <proof_path> \
 --vm_program <vm_program_path> \
---conn wss://batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc https://ethereum-holesky-rpc.publicnode.com \
---batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 Where `proof_path` is the path to the proof file, `vm_program_path` is the path to the ELF file. `proof_generator_addr` is an optional parameter that works as a helper for some applications where you can be frontrunned.
@@ -89,10 +89,10 @@ aligned submit \
 --proof <proof_path> \
 --public_input <public_input_path>
 --vk <verification_key_path> \
---conn wss://batcher.alignedlayer.com \
+--batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc https://ethereum-holesky-rpc.publicnode.com \
---batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 Where proof path is the path to the proof file, `public_input_path` is the path to the public input file,
@@ -163,10 +163,10 @@ aligned submit \
   --proof <proof_file_path> \
   --vm_program <method_id_file_path> \
   --public_input <pub_input_file_path> \
-  --conn wss://batcher.alignedlayer.com \
+  --batcher_url wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr> \
-  --rpc https://ethereum-holesky-rpc.publicnode.com \
-  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+  --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+  --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
