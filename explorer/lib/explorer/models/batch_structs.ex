@@ -16,8 +16,8 @@ end
 
 # Blockchain Information about the batch response event
 defmodule BatchVerifiedInfo do
-  @enforce_keys [:address, :block_number, :block_timestamp, :transaction_hash, :batch_verified]
-  defstruct [:address, :block_number, :block_timestamp, :transaction_hash, :batch_verified]
+  @enforce_keys [:address, :block_number, :block_timestamp, :transaction_hash, :batch_merkle_root, :sender_address]
+  defstruct [:address, :block_number, :block_timestamp, :transaction_hash, :batch_merkle_root, :sender_address]
 end
 
 # Database model for batches
