@@ -56,7 +56,7 @@ impl IntoResponse for OperatorVersionError {
 
 #[derive(sqlx::FromRow, Debug, Serialize)]
 pub struct OperatorVersion {
-    address: String,
+    pub address: String,
     pub version: String,
 }
 

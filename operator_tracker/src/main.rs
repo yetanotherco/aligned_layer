@@ -3,6 +3,7 @@ use std::sync::Arc;
 use axum::body::Body;
 use axum::extract::Path;
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::routing::post;
@@ -111,11 +112,15 @@ async fn post_operator_version(
         Ok(Some(body)) => {
             info!("Operator version created successfully");
 
-            let (status, body) = serialize_or_err(body);
+            let (mut status, serialized_body) = serialize_or_err(&body);
+            if status == StatusCode::OK {
+                status = StatusCode::CREATED;
+            }
 
             axum::http::Response::builder()
+                .header("Location", format!("/versions/{}", body.address))
                 .status(status)
-                .body(body)
+                .body(serialized_body)
                 .unwrap_or_default() // Should never fail but dont panic
         }
         Ok(None) => {
