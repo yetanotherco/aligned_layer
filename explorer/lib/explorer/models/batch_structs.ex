@@ -30,7 +30,8 @@ defmodule BatchDB do
     :submission_transaction_hash,
     :submission_timestamp,
     :proof_hashes,
-    :cost_per_proof
+    :cost_per_proof,
+    :sender_address
   ]
   defstruct [
     :merkle_root,
@@ -44,6 +45,7 @@ defmodule BatchDB do
     :response_timestamp,
     :data_pointer,
     :proof_hashes,
-    :cost_per_proof
+    :cost_per_proof,
+    :sender_address
   ]
 end

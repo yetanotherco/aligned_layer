@@ -150,7 +150,8 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
       proof_hashes: nil,
-      cost_per_proof: get_cost_per_proof()
+      cost_per_proof: get_cost_per_proof(),
+      sender_address: Utils.string_to_bytes32(created_batch.senderAddress)
     }
   end
 
@@ -178,7 +179,8 @@ defmodule AlignedLayerServiceManager do
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
           cost_per_proof: unverified_batch.cost_per_proof,
-          proof_hashes: nil #don't need this value to update an existing but unverified batch, it is on another table
+          proof_hashes: nil, #don't need this value to update an existing but unverified batch, it is on another table
+          sender_address: unverified_batch.sender_address
         }
     end
   end
