@@ -101,7 +101,8 @@ These commands allow the usage of the following flags:
 
 This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [Aligned SDK guide](../guides/1_SDK.md).
 
-Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are
+Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are:
+
 * `proving_system`: The proving system corresponding to the proof you want to submit.
 * `proof`: The path of the proof associated to the computation to be verified.
 * `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program. 
@@ -249,6 +250,7 @@ The Halo2PlonkKzg and Halo2PlonkIpa proofs need the proof file, the public input
 If you are using the Halo2PlonkKzg proving system, you need to specify the `--proving_system Halo2KZG` flag.
 
 ```bash
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
   --proving_system Halo2KZG \
   --proof <proof_file_path> \
@@ -257,12 +259,14 @@ aligned submit \
   --conn wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr> \
   --rpc https://ethereum-holesky-rpc.publicnode.com \
-  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+  --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 If you are using the Halo2PlonkIpa proving system, you need to specify the `--proving_system Halo2IPA` flag.
 
 ```bash
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
   --proving_system Halo2IPA \
   --proof <proof_file_path> \
@@ -277,6 +281,7 @@ aligned submit \
 **Examples**:
 
 ```bash
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
   --proving_system Halo2KZG \
   --proof ./scripts/test_files/halo2_kzg/proof.bin \
@@ -289,6 +294,7 @@ aligned submit \
 ```
 
 ```bash
+rm -rf ./aligned_verification_data/ &&
 aligned submit \
   --proving_system Halo2IPA \
   --proof ./scripts/test_files/halo2_ipa/proof.bin \
