@@ -856,8 +856,7 @@ impl Batcher {
             let client_msg = ClientMessage::new(
                 nonced_verification_data.clone(),
                 non_paying_config.replacement.clone(),
-            )
-            .await;
+            );
 
             self.clone()
                 .add_to_batch(

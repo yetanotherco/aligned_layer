@@ -172,10 +172,7 @@ pub struct ClientMessage {
 impl ClientMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
-    pub async fn new(
-        verification_data: NoncedVerificationData,
-        wallet: Wallet<SigningKey>,
-    ) -> Self {
+    pub fn new(verification_data: NoncedVerificationData, wallet: Wallet<SigningKey>) -> Self {
         let hashed_data = ClientMessage::hash_with_nonce_and_chain_id(&verification_data);
 
         let signature = wallet

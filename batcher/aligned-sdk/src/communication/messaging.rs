@@ -51,7 +51,7 @@ pub async fn send_messages(
 
         nonce += U256::one();
 
-        let msg = ClientMessage::new(verification_data.clone(), wallet.clone()).await;
+        let msg = ClientMessage::new(verification_data.clone(), wallet.clone());
         let msg_str = serde_json::to_string(&msg).map_err(SubmitError::SerializationError)?;
         ws_write
             .send(Message::Text(msg_str.clone()))
