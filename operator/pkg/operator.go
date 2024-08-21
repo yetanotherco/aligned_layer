@@ -55,6 +55,10 @@ type Operator struct {
 	//Timeout time.Duration
 }
 
+const (
+	BatchDownloadTimeout = 1 * time.Minute
+)
+
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
 	logger := configuration.BaseConfig.Logger
 
@@ -177,7 +181,10 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
 	)
 
-	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
+	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
+	defer cancel()
+
+	verificationDataBatch, err := o.getBatchFromS3(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err

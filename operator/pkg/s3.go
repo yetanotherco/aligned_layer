@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,12 +11,25 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
-func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {
+func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {
 	o.Logger.Infof("Getting batch from S3..., batchURL: %s", batchURL)
-	resp, err := http.Head(batchURL)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", batchURL, nil)
+
 	if err != nil {
 		return nil, err
 	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("error closing body: ", err)
+		}
+	}(resp.Body)
 
 	// Check if the response is OK
 	if resp.StatusCode != http.StatusOK {
@@ -27,17 +41,6 @@ func (o *Operator) getBatchFromS3(batchURL string, expectedMerkleRoot [32]byte) 
 		return nil, fmt.Errorf("proof size %d exceeds max batch size %d",
 			contentLength, o.Config.Operator.MaxBatchSize)
 	}
-
-	resp, err = http.Get(batchURL)
-	if err != nil {
-		return nil, err
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			fmt.Println("error closing body: ", err)
-		}
-	}(resp.Body)
 
 	// Use io.LimitReader to limit the size of the response body
 	// This is to prevent the operator from downloading a larger than expected file
