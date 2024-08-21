@@ -20,6 +20,11 @@ contract BatcherPaymentService is
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
+    event newTaskCreated(
+        bytes32 indexed batchMerkleRoot,
+        uint256 gasForAggregator,
+        uint256 gasPerProof
+    );
 
     struct SignatureData {
         bytes signature;
@@ -101,6 +106,12 @@ contract BatcherPaymentService is
             batchMerkleRoot,
             signatures,
             feePerProof
+        );
+
+        emit newTaskCreated(
+            batchMerkleRoot,
+            gasForAggregator,
+            gasPerProof
         );
 
         // call alignedLayerServiceManager
