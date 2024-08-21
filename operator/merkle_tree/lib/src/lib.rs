@@ -46,7 +46,7 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     let computed_batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
         MerkleTree::build(&batch_data_comm);
 
-    return computed_batch_merkle_tree.root == *merkle_root;
+    computed_batch_merkle_tree.root == *merkle_root
 }
 
 #[cfg(test)]
@@ -56,7 +56,7 @@ mod tests {
     use std::io::Read;
 
     #[test]
-    fn test_verify_merkle_tree_batch_ffi() {
+    fn verify_merkle_tree_batch_returns_true() {
         let mut merkle_batch_file = File::open("./test_files/merkle_tree_batch.bin").unwrap();
         let mut bytes_vec = Vec::new();
         merkle_batch_file.read_to_end(&mut bytes_vec).unwrap();
@@ -75,5 +75,45 @@ mod tests {
             verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
 
         assert_eq!(result, true);
+    }
+
+    #[test]
+    fn merkle_batch_len_1_does_not_panic() {
+        let bytes_vec = vec![1u8];
+
+        let mut merkle_root_file = File::open("./test_files/merkle_root.bin").unwrap();
+        let mut root_vec = Vec::new();
+        merkle_root_file.read_to_end(&mut root_vec).unwrap();
+
+        let mut merkle_root = [0; 32];
+        merkle_root.copy_from_slice(
+            &hex::decode(&root_vec)
+                .unwrap(),
+        );
+
+        let result =
+            verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
+
+        assert_eq!(result, false);
+    }
+
+    #[test]
+    fn merkle_batch_len_0_does_not_panic() {
+        let bytes_vec = Vec::new();
+
+        let mut merkle_root_file = File::open("./test_files/merkle_root.bin").unwrap();
+        let mut root_vec = Vec::new();
+        merkle_root_file.read_to_end(&mut root_vec).unwrap();
+
+        let mut merkle_root = [0; 32];
+        merkle_root.copy_from_slice(
+            &hex::decode(&root_vec)
+                .unwrap(),
+        );
+
+        let result =
+            verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
+
+        assert_eq!(result, false);
     }
 }

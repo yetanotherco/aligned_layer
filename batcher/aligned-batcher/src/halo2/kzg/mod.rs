@@ -27,7 +27,7 @@ pub fn verify_halo2_kzg(proof: &[u8], public_input: &[u8], verification_key: &[u
         return false;
     };
 
-    let Ok(cs) = bincode::deserialize(&cs_bytes) else {
+    let Ok(cs) = bincode::deserialize(cs_bytes) else {
         error!("Failed to deserialize constraint system");
         return false;
     };
