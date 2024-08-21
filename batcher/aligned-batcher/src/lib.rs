@@ -575,6 +575,10 @@ impl Batcher {
         let batch_bytes = cbor_serialize(&batch_verification_data)
             .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
 
+        //write proof
+        std::fs::write("../../merkle_tree_batch.bin", &batch_bytes)
+        .expect("should succeed to write new batch"); 
+
         info!("Finalizing batch. Length: {}", finalized_batch.len());
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
             .clone()
@@ -594,6 +598,12 @@ impl Batcher {
                 block_number
             );
         }
+
+        //write proof
+        println!("merkle root: {:?}", batch_merkle_tree.root);
+        std::fs::write("../../merkle_root.bin", &hex::encode(batch_merkle_tree.root))
+            .expect("should succeed to write new batch");
+
 
         let leaves: Vec<[u8; 32]> = batch_data_comm
             .iter()

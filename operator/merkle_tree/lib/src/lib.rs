@@ -57,17 +57,17 @@ mod tests {
 
     #[test]
     fn test_verify_merkle_tree_batch_ffi() {
-        let path =
-            "./test_files/a3cf9e0284d77d342087b1ed4ab2de0267417577452a3187c9b9592e4cc89188.json";
-
-        let mut file = File::open(path).unwrap();
-
+        let mut merkle_batch_file = File::open("./test_files/merkle_tree_batch.bin").unwrap();
         let mut bytes_vec = Vec::new();
-        file.read_to_end(&mut bytes_vec).unwrap();
+        merkle_batch_file.read_to_end(&mut bytes_vec).unwrap();
+
+        let mut merkle_root_file = File::open("./test_files/merkle_root.bin").unwrap();
+        let mut root_vec = Vec::new();
+        merkle_root_file.read_to_end(&mut root_vec).unwrap();
 
         let mut merkle_root = [0; 32];
         merkle_root.copy_from_slice(
-            &hex::decode("a3cf9e0284d77d342087b1ed4ab2de0267417577452a3187c9b9592e4cc89188")
+            &hex::decode(&root_vec)
                 .unwrap(),
         );
 
