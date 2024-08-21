@@ -108,12 +108,6 @@ contract BatcherPaymentService is
             feePerProof
         );
 
-        emit newTaskCreated(
-            batchMerkleRoot,
-            gasForAggregator,
-            gasPerProof
-        );
-
         // call alignedLayerServiceManager
         // with value to fund the task's response
         (bool success, ) = AlignedLayerServiceManager.call{
@@ -130,6 +124,12 @@ contract BatcherPaymentService is
 
         payable(BatcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator
+        );
+
+        emit newTaskCreated(
+            batchMerkleRoot,
+            gasForAggregator,
+            gasPerProof
         );
     }
 
