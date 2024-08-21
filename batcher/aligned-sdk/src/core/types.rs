@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
+#[repr(u8)]
 pub enum ProvingSystemId {
     GnarkPlonkBls12_381,
     GnarkPlonkBn254,

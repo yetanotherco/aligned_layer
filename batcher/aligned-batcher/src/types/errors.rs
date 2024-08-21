@@ -12,6 +12,7 @@ pub enum BatcherError {
     ReceiptNotFoundError,
     TransactionSendError,
     MaxRetriesReachedError,
+    SerializationError(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -55,6 +56,9 @@ impl fmt::Debug for BatcherError {
                     f,
                     "Maximum tries reached. Could not send createNewTask call"
                 )
+            }
+            BatcherError::SerializationError(e) => {
+                write!(f, "Serialization error: {}", e)
             }
         }
     }

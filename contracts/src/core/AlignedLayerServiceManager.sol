@@ -11,11 +11,13 @@ import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.so
 import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
+import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 
 /**
  * @title Primary entrypoint for procuring services from Aligned.
  */
 contract AlignedLayerServiceManager is
+    IAlignedLayerServiceManager,
     ServiceManagerBase,
     BLSSignatureChecker,
     AlignedLayerServiceManagerStorage

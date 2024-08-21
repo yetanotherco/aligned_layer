@@ -1,5 +1,6 @@
 extern crate core;
 
+use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
 use dotenv::dotenv;
@@ -24,7 +25,7 @@ use eth::{try_create_new_task, BatcherPaymentService, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
-use futures_util::stream::{self, SplitSink};
+use futures_util::stream::SplitSink;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -276,7 +277,7 @@ impl Batcher {
             aligned_sdk::communication::protocol::EXPECTED_PROTOCOL_VERSION,
         );
 
-        let serialized_protocol_version_msg = serde_json::to_vec(&protocol_version_msg)
+        let serialized_protocol_version_msg = cbor_serialize(&protocol_version_msg)
             .expect("Could not serialize protocol version message");
 
         outgoing
@@ -287,7 +288,7 @@ impl Batcher {
             .expect("Could not send protocol version message");
 
         match incoming
-            .try_filter(|msg| future::ready(msg.is_text()))
+            .try_filter(|msg| future::ready(msg.is_binary()))
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
@@ -304,8 +305,7 @@ impl Batcher {
     ) -> Result<(), Error> {
         // Deserialize verification data from message
         let client_msg: ClientMessage =
-            serde_json::from_str(message.to_text().expect("Message is not text"))
-                .expect("Failed to deserialize task");
+            cbor_deserialize(message.into_data().as_slice()).expect("Failed to deserialize task");
 
         info!(
             "Received message with nonce: {}",
@@ -515,7 +515,17 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
 
-        let current_batch_size = serde_json::to_vec(&batch_verification_data).unwrap().len();
+        let current_batch_size = match cbor_serialize(&batch_verification_data) {
+            Ok(serialized) => serialized.len(),
+            Err(e) => {
+                error!(
+                    "Failed to serialize verification data: {:?}, resetting batch state",
+                    e
+                );
+                self.flush_queue_and_clear_nonce_cache().await;
+                return None;
+            }
+        };
 
         // check if the current batch needs to be splitted into smaller batches
         if current_batch_size > self.max_batch_size {
@@ -523,7 +533,17 @@ impl Batcher {
             let mut acc_batch_size = 0;
             let mut finalized_batch_idx = 0;
             for (idx, (verification_data, _, _, _)) in batch_state.batch_queue.iter().enumerate() {
-                acc_batch_size += serde_json::to_vec(verification_data).unwrap().len();
+                acc_batch_size += match cbor_serialize(verification_data) {
+                    Ok(serialized) => serialized.len(),
+                    Err(e) => {
+                        error!(
+                            "Failed to serialize verification data: {:?}, resetting batch",
+                            e
+                        );
+                        self.flush_queue_and_clear_nonce_cache().await;
+                        return None;
+                    }
+                };
                 if acc_batch_size > self.max_batch_size {
                     finalized_batch_idx = idx;
                     break;
@@ -565,8 +585,8 @@ impl Batcher {
             .map(|vd| vd.verification_data.clone())
             .collect();
 
-        let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
-            .expect("Failed to serialize batch");
+        let batch_bytes = cbor_serialize(&batch_verification_data)
+            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
 
         info!("Finalizing batch. Length: {}", finalized_batch.len());
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
@@ -628,9 +648,7 @@ impl Batcher {
             return Err(e);
         };
 
-        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
-
-        Ok(())
+        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
@@ -910,44 +928,43 @@ impl Batcher {
 async fn send_batch_inclusion_data_responses(
     finalized_batch: BatchQueue,
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
-) {
-    stream::iter(finalized_batch.iter())
-        .enumerate()
-        .for_each(|(vd_batch_idx, (_, _, ws_sink, _))| async move {
-            let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
-            let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+) -> Result<(), BatcherError> {
+    for (vd_batch_idx, (_, _, ws_sink, _)) in finalized_batch.iter().enumerate() {
+        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+        let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
 
-            let serialized_response =
-                serde_json::to_vec(&response).expect("Could not serialize response");
+        let serialized_response = cbor_serialize(&response)
+            .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
 
-            let sending_result = ws_sink
-                .write()
-                .await
-                .send(Message::binary(serialized_response))
-                .await;
+        let sending_result = ws_sink
+            .write()
+            .await
+            .send(Message::binary(serialized_response))
+            .await;
 
-            match sending_result {
-                Err(Error::AlreadyClosed) => (),
-                Err(e) => error!("Error while sending batch inclusion data response: {}", e),
-                Ok(_) => (),
-            }
+        match sending_result {
+            Err(Error::AlreadyClosed) => (),
+            Err(e) => error!("Error while sending batch inclusion data response: {}", e),
+            Ok(_) => (),
+        }
 
-            info!("Response sent");
-        })
-        .await;
+        info!("Response sent");
+    }
+
+    Ok(())
 }
 
 async fn send_message<T: Serialize>(
     ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     message: T,
 ) {
-    let serialized_response = serde_json::to_vec(&message).expect("Could not serialize response");
-
-    // Send error message
-    ws_conn_sink
-        .write()
-        .await
-        .send(Message::binary(serialized_response))
-        .await
-        .expect("Failed to send message");
+    match cbor_serialize(&message) {
+        Ok(serialized_response) => ws_conn_sink
+            .write()
+            .await
+            .send(Message::binary(serialized_response))
+            .await
+            .expect("Failed to send message"),
+        Err(e) => error!("Error while serializing message: {}", e),
+    }
 }
