@@ -77,7 +77,7 @@ pub fn parse_proof(proof_bytes: &[u8]) -> Result<Vec<MerklePath>, String> {
             let left_or_right = bytes
                 .first()
                 .ok_or("left_or_right byte not found".to_string())?;
-            let hash = Fp::from_bytes(bytes).map_err(|err| {
+            let hash = Fp::from_bytes(&bytes[1..]).map_err(|err| {
                 format!("Failed to convert merkle hash into field element: {err}")
             })?;
             match left_or_right {
