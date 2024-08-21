@@ -71,13 +71,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         );
 
         bytes32 batchIdentifierHash = keccak256(
-            abi.encode(
-                BatchIdentifier({
-                    batchMerkleRoot: batchMerkleRoot,
-                    senderAddress: msg.sender
-                })
-            )
-        );
+            abi.encode(batchMerkleRoot, msg.sender));
 
         (
             uint32 taskCreatedBlock,
