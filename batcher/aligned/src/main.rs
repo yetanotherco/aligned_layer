@@ -6,6 +6,8 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
@@ -346,7 +348,7 @@ async fn main() -> Result<(), AlignedError> {
             let reader = BufReader::new(batch_inclusion_file);
 
             let aligned_verification_data: AlignedVerificationData =
-                serde_json::from_reader(reader).map_err(SubmitError::SerializationError)?;
+                cbor_deserialize(reader).map_err(SubmitError::SerializationError)?;
 
             info!("Verifying response data matches sent proof data...");
             let response = is_proof_verified(
@@ -661,7 +663,7 @@ fn save_response(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    let data = serde_json::to_vec(&aligned_verification_data)?;
+    let data = cbor_serialize(&aligned_verification_data)?;
 
     let mut file = File::create(&batch_inclusion_data_path)
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;

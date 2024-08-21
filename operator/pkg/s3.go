@@ -2,10 +2,11 @@ package operator
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/ugorji/go/codec"
 
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
@@ -65,9 +66,17 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 
 	var batch []VerificationData
 
-	err = json.Unmarshal(batchBytes, &batch)
+	decoder := codec.NewDecoderBytes(batchBytes, new(codec.CborHandle))
+
+	err = decoder.Decode(&batch)
 	if err != nil {
-		return nil, err
+		o.Logger.Infof("Error decoding batch as CBOR: %s. Trying JSON decoding...", err)
+		// try json
+		decoder = codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
+		err = decoder.Decode(&batch)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return batch, nil

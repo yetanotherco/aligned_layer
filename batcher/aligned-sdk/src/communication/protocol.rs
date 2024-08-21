@@ -4,13 +4,15 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use crate::core::{errors::SubmitError, types::ResponseMessage};
 
-pub const EXPECTED_PROTOCOL_VERSION: u16 = 2;
+use super::serialization::cbor_deserialize;
+
+pub const EXPECTED_PROTOCOL_VERSION: u16 = 3;
 
 pub async fn check_protocol_version(
     ws_read: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
 ) -> Result<(), SubmitError> {
     if let Some(Ok(msg)) = ws_read.next().await {
-        match serde_json::from_slice::<ResponseMessage>(&msg.into_data()) {
+        match cbor_deserialize(msg.into_data().as_slice()) {
             Ok(ResponseMessage::ProtocolVersion(protocol_version)) => {
                 if protocol_version > EXPECTED_PROTOCOL_VERSION {
                     return Err(SubmitError::ProtocolVersionMismatch {
