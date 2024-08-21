@@ -10,12 +10,12 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
     public_input: *const u8,
     public_input_len: u32,
 ) -> bool {
-    if receipt_bytes.is_null() || image_id.is_null() {
+    if inner_receipt_bytes.is_null() || image_id.is_null() {
         error!("Input buffer null");
         return false;
     }
 
-    if receipt_len == 0 || image_id_len == 0 {
+    if inner_receipt_len == 0 || image_id_len == 0 {
         error!("Input buffer length zero size");
         return false;
     }

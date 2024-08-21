@@ -1,5 +1,5 @@
-use risc0_zkvm::{InnerReceipt, Receipt};
 use log::error;
+use risc0_zkvm::{InnerReceipt, Receipt};
 
 pub fn verify_risc_zero_proof(
     inner_receipt_bytes: &[u8],
@@ -7,7 +7,7 @@ pub fn verify_risc_zero_proof(
     public_input: &[u8],
 ) -> bool {
     // We verify that the buffers are non-zero otherwise return false. We allow public_input size of 0.
-    if receipt_bytes.is_empty() || image_id.is_empty() {
+    if inner_receipt_bytes.is_empty() || image_id.is_empty() {
         error!("Risc0 input buffer zero size");
         return false;
     }
