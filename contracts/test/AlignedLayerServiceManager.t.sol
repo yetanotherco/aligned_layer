@@ -62,7 +62,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         address(alignedLayerServiceManager).call{value: 0.1 ether}("");
 
         vm.expectEmit(true, true, true, true);
-        emit NewBatch(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer);
+        emit NewBatch(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer);
 
         vm.prank(batcher);
         alignedLayerServiceManager.createNewTask(
@@ -71,7 +71,8 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         );
 
         bytes32 batchIdentifierHash = keccak256(
-            abi.encode(batchMerkleRoot, msg.sender));
+            abi.encodePacked(batchMerkleRoot, batcher)
+        );
 
         (
             uint32 taskCreatedBlock,
