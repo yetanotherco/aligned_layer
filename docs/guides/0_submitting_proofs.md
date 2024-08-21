@@ -12,12 +12,10 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
 - :white_check_mark: SP1 [(v1.0.1)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.1)
 - :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
+- :white_check_mark: Halo2 - Plonk/KZG
+- :white_check_mark: Halo2 - Plonk/IPA
 
-The following proof systems are going to be added soon:
-
-- :black_square_button: Kimchi
-- :black_square_button: Halo2 - Plonk/KZG
-- :black_square_button: Halo2 - Plonk/IPA
+Learn more about future verifiers [here](../architecture/0_supported_verifiers.md).
 
 ## 1. Import/Create Keystore file
 
@@ -33,7 +31,7 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
     cast wallet new-mnemonic --words 12
     ```
 
-    It will show you a new mnemonic phrase, and a public-private key pair, similar to the following example:
+    It will show you a new mnemonic phrase and a public-private key pair, similar to the following example:
 
     ```
     Phrase:
@@ -58,13 +56,13 @@ This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
 ### Alternative 2: With EigenLayer CLI
 
-- If you have the EigenLayer CLI installed, the keystore can be generated following [this](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#import-keys) instructions. The key will be stored into `~/.eigenlayer/operator_keys`.
+- If you have the EigenLayer CLI installed, the keystore can be generated following [these](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#import-keys) instructions. The key will be stored into `~/.eigenlayer/operator_keys`.
 
 ## 2. Fund the batcher
 
 To be able to send proofs to Aligned using the Batcher, the user must fund its transactions. For this, there is a simple Batcher Payment System.
 
-To use it you can use the `aligned` CLI, as shown with the following example:
+To use it, you can use the `aligned` CLI, as shown with the following example:
 
 ```bash
 aligned deposit-to-batcher \
@@ -75,13 +73,13 @@ aligned deposit-to-batcher \
 --amount 0.1ether
 ```
 
-These commands allows the usage of the following flags:
+These commands allow the usage of the following flags:
 
 - `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
 - `--chain` to specify the chain id to be used. Could be holesky or devnet.
 - `--keystore_path` the path to the keystore.
-- `--amount` the amount of ethers to transfer to the Batcher.
+- `--amount` the number of ethers to transfer to the Batcher.
 - Note: `--amount` flag parameter must be with the shown format. The amount followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
 
 After depositing funds, you can verify the Service has correctly received them by executing the following command:
@@ -93,7 +91,7 @@ aligned get-user-balance \
 --user_addr <user_addr>
 ```
 
-These commands allows the usage of the following flags:
+These commands allow the usage of the following flags:
 
 - `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
@@ -111,7 +109,7 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * `conn`: The batcher websocket URL.
 * `rpc`: The RPC Ethereum node URL.
 * `batcher_addr`: The Ethereum address of the Batcher Payments System contract.
-* `proof_generator_addr`: An optional parameter that can be used in some applications to avoid frontrunning.
+* `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
 * `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
 
 ### SP1 proof
@@ -244,3 +242,61 @@ aligned submit \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
+### Halo2 KZG and Halo2 IPA
+
+The Halo2PlonkKzg and Halo2PlonkIpa proofs need the proof file, the public input file and the verification key file.
+
+If you are using the Halo2PlonkKzg proving system, you need to specify the `--proving_system Halo2KZG` flag.
+
+```bash
+aligned submit \
+  --proving_system Halo2KZG \
+  --proof <proof_file_path> \
+  --vk <method_id_file_path> \
+  --public_input <pub_input_file_path> \
+  --conn wss://batcher.alignedlayer.com \
+  --proof_generator_addr <proof_generator_addr> \
+  --rpc https://ethereum-holesky-rpc.publicnode.com \
+  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
+If you are using the Halo2PlonkIpa proving system, you need to specify the `--proving_system Halo2IPA` flag.
+
+```bash
+aligned submit \
+  --proving_system Halo2IPA \
+  --proof <proof_file_path> \
+  --vk <method_id_file_path> \
+  --public_input <pub_input_file_path> \
+  --conn wss://batcher.alignedlayer.com \
+  --proof_generator_addr <proof_generator_addr> \
+  --rpc https://ethereum-holesky-rpc.publicnode.com \
+  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
+**Examples**:
+
+```bash
+aligned submit \
+  --proving_system Halo2KZG \
+  --proof ./scripts/test_files/halo2_kzg/proof.bin \
+  --vk ./scripts/test_files/halo2_kzg/params.bin \
+  --public_input ./scripts/test_files/halo2_kzg/pub_input.bin \
+  --conn wss://batcher.alignedlayer.com \
+  --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+  --rpc https://ethereum-holesky-rpc.publicnode.com \
+  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
+```bash
+aligned submit \
+  --proving_system Halo2IPA \
+  --proof ./scripts/test_files/halo2_ipa/proof.bin \
+  --vk ./scripts/test_files/halo2_ipa/params.bin \
+  --public_input ./scripts/test_files/halo2_ipa/pub_input.bin \
+  --conn wss://batcher.alignedlayer.com \
+  --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+  --rpc https://ethereum-holesky-rpc.publicnode.com \
+  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
