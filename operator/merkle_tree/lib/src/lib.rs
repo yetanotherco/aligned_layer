@@ -15,10 +15,17 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
 
     let batch_bytes = unsafe { std::slice::from_raw_parts(batch_ptr, batch_len) };
 
-    let batch = match serde_json::from_slice::<Vec<VerificationData>>(batch_bytes) {
+    let reader = std::io::Cursor::new(batch_bytes);
+    let batch = match ciborium::from_reader::<Vec<VerificationData>, _>(reader) {
         Ok(batch) => batch,
         Err(_e) => {
-            return false;
+            // try json
+            let batch: Vec<VerificationData> = match serde_json::from_slice(batch_bytes) {
+                Ok(batch) => batch,
+                Err(_e) => return false,
+            };
+
+            batch
         }
     };
 

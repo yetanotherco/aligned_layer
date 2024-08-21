@@ -6,12 +6,14 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::{get_commitment, submit_multiple, verify_proof_onchain};
+use aligned_sdk::sdk::{get_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -60,20 +62,20 @@ pub enum AlignedCommands {
 #[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
-        name = "Batcher address",
-        long = "conn",
+        name = "Batcher connection address",
+        long = "batcher_url",
         default_value = "ws://localhost:8080"
     )]
-    connect_addr: String,
+    batcher_url: String,
     #[arg(
-        name = "Batcher Eth Address",
-        long = "batcher_addr",
+        name = "Batcher Payment Service Eth Address",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_eth_address: String,
+    payment_service_addr: String,
     #[arg(
-        name = "Ethereum RPC provider address",
-        long = "rpc",
+        name = "Ethereum RPC provider connection address",
+        long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
@@ -115,11 +117,11 @@ pub struct SubmitArgs {
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
     #[arg(
-        name = "Batcher Eth Address",
-        long = "batcher_addr",
+        name = "Batcher Payment Service Eth Address",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_eth_address: String,
+    payment_service_addr: String,
     #[arg(
         name = "Path to local keystore",
         long = "keystore_path",
@@ -128,7 +130,7 @@ pub struct DepositToBatcherArgs {
     keystore_path: Option<PathBuf>,
     #[arg(
         name = "Ethereum RPC provider address",
-        long = "rpc",
+        long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
@@ -149,7 +151,7 @@ pub struct VerifyProofOnchainArgs {
     batch_inclusion_data: PathBuf,
     #[arg(
         name = "Ethereum RPC provider address",
-        long = "rpc",
+        long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
@@ -174,14 +176,14 @@ pub struct GetCommitmentArgs {
 #[command(version, about, long_about = None)]
 pub struct GetUserBalanceArgs {
     #[arg(
-        name = "Batcher Eth Address",
-        long = "batcher_addr",
+        name = "Batcher Payment Service Eth Address",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_eth_address: String,
+    payment_service_addr: String,
     #[arg(
         name = "Ethereum RPC provider address",
-        long = "rpc",
+        long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
@@ -259,7 +261,7 @@ async fn main() -> Result<(), AlignedError> {
             })?;
 
             let repetitions = submit_args.repetitions;
-            let connect_addr = submit_args.connect_addr.clone();
+            let connect_addr = submit_args.batcher_url.clone();
 
             let keystore_path = &submit_args.keystore_path;
             let private_key = &submit_args.private_key;
@@ -284,7 +286,7 @@ async fn main() -> Result<(), AlignedError> {
             };
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
-            let batcher_eth_address = submit_args.batcher_eth_address.clone();
+            let batcher_eth_address = submit_args.payment_service_addr.clone();
 
             let verification_data = verification_data_from_args(submit_args)?;
 
@@ -346,10 +348,10 @@ async fn main() -> Result<(), AlignedError> {
             let reader = BufReader::new(batch_inclusion_file);
 
             let aligned_verification_data: AlignedVerificationData =
-                serde_json::from_reader(reader).map_err(SubmitError::SerializationError)?;
+                cbor_deserialize(reader).map_err(SubmitError::SerializationError)?;
 
             info!("Verifying response data matches sent proof data...");
-            let response = verify_proof_onchain(
+            let response = is_proof_verified(
                 &aligned_verification_data,
                 chain,
                 &verify_inclusion_args.eth_rpc_url,
@@ -439,7 +441,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let batcher_addr = Address::from_str(&deposit_to_batcher_args.batcher_eth_address)
+            let batcher_addr = Address::from_str(&deposit_to_batcher_args.payment_service_addr)
                 .map_err(|e| {
                     SubmitError::HexDecodingError(format!(
                         "Error while parsing batcher address: {}",
@@ -498,7 +500,7 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let batcher_addr = Address::from_str(&get_user_balance_args.batcher_eth_address)
+            let batcher_addr = Address::from_str(&get_user_balance_args.payment_service_addr)
                 .map_err(|e| {
                     SubmitError::HexDecodingError(format!(
                         "Error while parsing batcher address: {}",
@@ -661,7 +663,7 @@ fn save_response(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    let data = serde_json::to_vec(&aligned_verification_data)?;
+    let data = cbor_serialize(&aligned_verification_data)?;
 
     let mut file = File::create(&batch_inclusion_data_path)
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
