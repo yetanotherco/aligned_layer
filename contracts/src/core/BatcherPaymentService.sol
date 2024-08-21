@@ -234,7 +234,7 @@ contract BatcherPaymentService is
         uint256 feePerProof
     ) private {
         bytes32 noncedHash = keccak256(
-            abi.encodePacked(hash, signatureData.nonce)
+            abi.encodePacked(hash, signatureData.nonce, block.chainid)
         );
 
         address signer = noncedHash.recover(signatureData.signature);

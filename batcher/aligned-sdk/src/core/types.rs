@@ -1,8 +1,5 @@
 use ethers::core::k256::ecdsa::SigningKey;
-use ethers::signers::Signer;
 use ethers::signers::Wallet;
-use ethers::types::transaction::eip712::EIP712Domain;
-use ethers::types::transaction::eip712::Eip712;
 use ethers::types::Address;
 use ethers::types::Signature;
 use ethers::types::SignatureError;
@@ -42,9 +39,6 @@ pub struct NoncedVerificationData {
     pub chain_id: U256,
 }
 
-const NONCED_VERIFICATION_DATA_TYPE: &str =
-    "NoncedVerificationData(bytes32 verification_data_hash, bytes32 nonce)";
-
 impl NoncedVerificationData {
     pub fn new(verification_data: VerificationData, nonce: [u8; 32], chain_id: U256) -> Self {
         Self {
@@ -52,39 +46,6 @@ impl NoncedVerificationData {
             nonce,
             chain_id,
         }
-    }
-}
-
-impl Eip712 for NoncedVerificationData {
-    type Error = SignatureError;
-
-    fn domain(&self) -> Result<ethers::types::transaction::eip712::EIP712Domain, Self::Error> {
-        Ok(EIP712Domain {
-            name: Some("NoncedVerificationData".to_string()),
-            version: Some("1".to_string()),
-            chain_id: Some(self.chain_id),
-            verifying_contract: None,
-            salt: None,
-        })
-    }
-
-    fn type_hash() -> Result<[u8; 32], Self::Error> {
-        let mut hasher = Keccak256::new();
-        hasher.update(NONCED_VERIFICATION_DATA_TYPE.as_bytes());
-        Ok(hasher.finalize().into())
-    }
-
-    fn struct_hash(&self) -> Result<[u8; 32], Self::Error> {
-        let mut hasher = Keccak256::new();
-        hasher.update(NoncedVerificationData::type_hash()?);
-
-        let verification_data_hash =
-            VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
-
-        hasher.update(verification_data_hash.as_slice());
-        hasher.update(self.nonce.as_ref());
-
-        Ok(hasher.finalize().into())
     }
 }
 
@@ -215,9 +176,10 @@ impl ClientMessage {
         verification_data: NoncedVerificationData,
         wallet: Wallet<SigningKey>,
     ) -> Self {
+        let hashed_data = ClientMessage::hash_with_nonce_and_chain_id(&verification_data);
+
         let signature = wallet
-            .sign_typed_data(&verification_data)
-            .await
+            .sign_hash(hashed_data.into())
             .expect("Failed to sign the verification data");
 
         ClientMessage {
@@ -229,24 +191,28 @@ impl ClientMessage {
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
-        let recovered = self.signature.recover_typed_data(&self.verification_data)?;
+        let hashed_data: [u8; 32] =
+            ClientMessage::hash_with_nonce_and_chain_id(&self.verification_data);
 
-        // let hashed_leaf: [u8; 32] = ClientMessage::hash_with_nonce(&self.verification_data);
-
-        let hashed_data = self.verification_data.encode_eip712()?;
-        // let recovered = self.signature.recover(hashed_leaf)?;
+        let recovered = self.signature.recover(hashed_data)?;
         self.signature.verify(hashed_data, recovered)?;
         Ok(recovered)
     }
 
-    // fn hash_with_nonce(verification_data: &NoncedVerificationData) -> [u8; 32] {
-    //     let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.into());
+    fn hash_with_nonce_and_chain_id(verification_data: &NoncedVerificationData) -> [u8; 32] {
+        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.into());
 
-    //     let mut hasher = Keccak256::new();
-    //     hasher.update(hashed_leaf);
-    //     hasher.update(verification_data.nonce);
-    //     hasher.finalize().into()
-    // }
+        let mut chain_id_bytes = [0u8; 32];
+        verification_data
+            .chain_id
+            .to_big_endian(&mut chain_id_bytes);
+
+        let mut hasher = Keccak256::new();
+        hasher.update(hashed_leaf);
+        hasher.update(verification_data.nonce);
+        hasher.update(chain_id_bytes);
+        hasher.finalize().into()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
