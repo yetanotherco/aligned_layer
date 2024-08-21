@@ -151,10 +151,16 @@ impl Batcher {
             .try_into()
             .unwrap();
 
-        let chain_id = eth_rpc_provider
-            .get_chainid()
-            .await
-            .expect("Failed to get chain id");
+        let chain_id = match eth_rpc_provider.get_chainid().await {
+            Ok(chain_id) => chain_id,
+            Err(e) => {
+                warn!("Failed to get chain id with main rpc: {}", e);
+                eth_rpc_provider_fallback
+                    .get_chainid()
+                    .await
+                    .expect("Failed to get chain id with fallback rpc")
+            }
+        };
 
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
