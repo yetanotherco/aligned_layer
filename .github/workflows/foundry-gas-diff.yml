@@ -34,6 +34,20 @@ jobs:
           # due to non-deterministic fuzzing (but still use pseudo-random fuzzing seeds)
           FOUNDRY_FUZZ_SEED: 0x${{ github.event.pull_request.base.sha || github.sha }}
 
+      - name: Upload Gas Report
+        if: ${{ failure() || cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: gas-report
+          path: gasreport.ansi
+
+      - name: Upload Proptest Failure Cache
+        if: ${{ failure() || cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: proptest-failure-cache
+          path: cache/fuzz/failures
+
       - name: Compare gas reports
         uses: Rubilmax/foundry-gas-diff@v3.16
         with:
