@@ -662,5 +662,4 @@ explorer_fetch_old_batches:
 
 explorer_fetch_old_operators_strategies_restakes:
 	@cd explorer && \
-	./scripts/fetch_old_operators_strategies_restakes.sh 1728056
-# ./scripts/fetch_old_operators.sh 0 (devnet) or 1728056 (testnet)
+	./scripts/fetch_old_operators_strategies_restakes.sh 0
