@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
+	"github.com/lambdaclass/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
