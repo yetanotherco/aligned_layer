@@ -91,6 +91,7 @@ pub struct Batcher {
     download_endpoint: String,
     eth_ws_provider: Provider<Ws>,
     eth_ws_provider_fallback: Provider<Ws>,
+    chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
@@ -150,6 +151,11 @@ impl Batcher {
             .try_into()
             .unwrap();
 
+        let chain_id = eth_rpc_provider
+            .get_chainid()
+            .await
+            .expect("Failed to get chain id");
+
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
             config.ecdsa.clone(),
@@ -180,6 +186,7 @@ impl Batcher {
             download_endpoint,
             eth_ws_provider,
             eth_ws_provider_fallback,
+            chain_id,
             payment_service,
             payment_service_fallback,
             batch_state: Mutex::new(BatchState::new()),
@@ -836,20 +843,10 @@ impl Batcher {
                 nonpaying_nonce.to_big_endian(&mut nonce_bytes);
                 *nonpaying_nonce += U256::one();
 
-                let chain_id = match self.eth_ws_provider.get_chainid().await {
-                    Ok(chain_id) => chain_id,
-                    Err(e) => {
-                        error!("Failed to get chain id: {:?}", e);
-                        send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce)
-                            .await;
-                        return Ok(());
-                    }
-                };
-
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
                     nonce_bytes,
-                    chain_id,
+                    self.chain_id,
                 )
             };
 
