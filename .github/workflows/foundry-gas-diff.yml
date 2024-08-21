@@ -28,25 +28,11 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1.2.0
 
       - name: Run tests
-        run: forge test --gas-report > ../gasreport.ansi # <- this file name should be unique in your repository!
+        run: forge test --gas-report #> ../gasreport.ansi # <- this file name should be unique in your repository!
         env:
           # make fuzzing semi-deterministic to avoid noisy gas cost estimation
           # due to non-deterministic fuzzing (but still use pseudo-random fuzzing seeds)
           FOUNDRY_FUZZ_SEED: 0x${{ github.event.pull_request.base.sha || github.sha }}
-
-      - name: Upload Gas Report
-        if: ${{ failure() || cancelled() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: gas-report
-          path: gasreport.ansi
-
-      - name: Upload Proptest Failure Cache
-        if: ${{ failure() || cancelled() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: proptest-failure-cache
-          path: cache/fuzz/failures
 
       - name: Compare gas reports
         uses: Rubilmax/foundry-gas-diff@v3.16
