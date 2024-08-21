@@ -36,7 +36,7 @@ contract BatcherPaymentService is
     // STORAGE
     address public BatcherWallet;
 
-    IAlignedLayerServiceManager private alignedLayerServiceManager;
+    IAlignedLayerServiceManager private AlignedLayerServiceManager;
 
     // map to user data
     mapping(address => UserInfo) public UserData;
@@ -58,7 +58,7 @@ contract BatcherPaymentService is
         __UUPSUpgradeable_init();
         _transferOwnership(_BatcherPaymentServiceOwner);
 
-        alignedLayerServiceManager = IAlignedLayerServiceManager(
+        AlignedLayerServiceManager = IAlignedLayerServiceManager(
             _AlignedLayerServiceManager
         );
         BatcherWallet = _BatcherWallet;
@@ -109,7 +109,7 @@ contract BatcherPaymentService is
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
-        alignedLayerServiceManager.createNewTask{value: feeForAggregator}(
+        AlignedLayerServiceManager.createNewTask{value: feeForAggregator}(
             batchMerkleRoot,
             batchDataPointer
         );
