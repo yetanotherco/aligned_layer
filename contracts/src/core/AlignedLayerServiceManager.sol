@@ -25,11 +25,12 @@ contract AlignedLayerServiceManager is
     // EVENTS
     event NewBatch(
         bytes32 indexed batchMerkleRoot,
+        address senderAddress,
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
 
-    event BatchVerified(bytes32 indexed batchMerkleRoot);
+    event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
 
     // ERRORS
     error BatchAlreadySubmitted(bytes32 batchMerkleRoot);
@@ -69,6 +70,9 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
     ) external payable {
+     bytes32 batchIdentifierHash = keccak256(
+                abi.encodePacked(batchMerkleRoot, msg.sender)
+            );
         if (batchesState[batchMerkleRoot].taskCreatedBlock != 0) {
             revert BatchAlreadySubmitted(batchMerkleRoot);
         }
@@ -85,50 +89,56 @@ contract AlignedLayerServiceManager is
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
-        batchState.batcherAddress = msg.sender;
 
-        batchesState[batchMerkleRoot] = batchState;
+        batchesState[batchIdentifierHash] = batchState;
 
-        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
+        emit NewBatch(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer);
     }
 
     function respondToTask(
-        // Root is signed as a way to verify the batch was right
+        // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
+        address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
         uint256 initialGasLeft = gasleft();
+
+        bytes32 batchIdentifierHash = keccak256(
+                abi.encodePacked(batchMerkleRoot, senderAddress)
+        );
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
-        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
-            revert BatchDoesNotExist(batchMerkleRoot);
+        if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
+            revert BatchDoesNotExist(batchIdentifierHash);
         }
 
         // Check task hasn't been responsed yet
-        if (batchesState[batchMerkleRoot].responded) {
-            revert BatchAlreadyResponded(batchMerkleRoot);
+        if (batchesState[batchIdentifierHash].responded) {
+            revert BatchAlreadyResponded(batchIdentifierHash);
         }
 
         if (
-            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] <= 0
+            batchersBalances[senderAddress] <= 0
         ) {
             revert BatcherHasNoBalance(
-                batchesState[batchMerkleRoot].batcherAddress
+                senderAddress
             );
         }
 
-        batchesState[batchMerkleRoot].responded = true;
+        batchesState[batchIdentifierHash].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
-        (QuorumStakeTotals memory quorumStakeTotals, ) = checkSignatures(
-            batchMerkleRoot,
-            batchesState[batchMerkleRoot].taskCreatedBlock,
-            nonSignerStakesAndSignature
-        );
+        (
+            QuorumStakeTotals memory quorumStakeTotals
+        ) = checkSignatures(
+                batchIdentifierHash,
+                batchesState[batchIdentifierHash].taskCreatedBlock,
+                nonSignerStakesAndSignature
+            );
 
         // check that signatories own at least a threshold percentage of each quourm
         if (
@@ -144,7 +154,7 @@ contract AlignedLayerServiceManager is
             );
         }
 
-        emit BatchVerified(batchMerkleRoot);
+        emit BatchVerified(batchMerkleRoot, senderAddress);
 
         // Calculate estimation of gas used, check that batcher has sufficient funds
         // and send transaction cost to aggregator.
@@ -154,19 +164,17 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
         if (
-            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] <
+            batchersBalances[senderAddress] <
             txCost
         ) {
             revert InsufficientFunds(
-                batchesState[batchMerkleRoot].batcherAddress,
+                senderAddress,
                 txCost,
-                batchersBalances[batchesState[batchMerkleRoot].batcherAddress]
+                batchersBalances[senderAddress]
             );
         }
 
-        batchersBalances[
-            batchesState[batchMerkleRoot].batcherAddress
-        ] -= txCost;
+        batchersBalances[senderAddress] -= txCost;
         payable(msg.sender).transfer(txCost);
     }
 
@@ -177,13 +185,18 @@ contract AlignedLayerServiceManager is
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint256 verificationDataBatchIndex
+        uint256 verificationDataBatchIndex,
+        address senderAddress
     ) external view returns (bool) {
-        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encodePacked(batchMerkleRoot, senderAddress)
+        );
+
+        if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
             return false;
         }
 
-        if (!batchesState[batchMerkleRoot].responded) {
+        if (!batchesState[batchIdentifierHash].responded) {
             return false;
         }
 
@@ -199,7 +212,7 @@ contract AlignedLayerServiceManager is
         return
             Merkle.verifyInclusionKeccak(
                 merkleProof,
-                batchMerkleRoot,
+                batchIdentifierHash,
                 hashedLeaf,
                 verificationDataBatchIndex
             );
