@@ -164,8 +164,8 @@ defmodule Utils do
     |> Enum.reverse()
   end
 
-  def calculate_proof_hashes({:ok, batch_json}) do
-    batch_json
+  def calculate_proof_hashes({:ok, deserialized_batch}) do
+    deserialized_batch
     |> Enum.map(fn s3_object ->
       :crypto.hash(:sha3_256, s3_object["proof"])
     end)
@@ -179,9 +179,24 @@ defmodule Utils do
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
-        case Jason.decode(body) do
-          {:ok, json} -> {:ok, json}
-          {:error, reason} -> {:error, {:json_decode, reason}}
+        cond do
+          is_json?(body) ->
+            case Jason.decode(body) do
+              {:ok, json} -> {:ok, json}
+              {:error, reason} ->
+                {:error, {:json_decode, reason}}
+            end
+
+          is_cbor?(body) ->
+            case CBOR.decode(body) do
+              {:ok, cbor_data, _} -> {:ok, cbor_data}
+              {:error, reason} ->
+                {:error, {:cbor_decode, reason}}
+            end
+
+          true ->
+            Logger.error("Unknown S3 object format")
+            {:error, :unknown_format}
         end
 
       {:ok, %Finch.Response{status: status_code}} ->
@@ -189,6 +204,24 @@ defmodule Utils do
 
       {:error, reason} ->
         {:error, {:http_error, reason}}
+    end
+  end
+  defp is_json?(body) do
+    case Jason.decode(body) do
+      {:ok, _} ->
+        true
+      {:error, _} ->
+        false
+    end
+  end
+  defp is_cbor?(body) do
+    case CBOR.decode(body) do
+      {:ok, _, _} ->
+        true
+      {:error, _} ->
+        false
+      _other ->
+        false
     end
   end
 
