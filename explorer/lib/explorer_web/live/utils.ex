@@ -179,10 +179,8 @@ defmodule Utils do
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
-        dbg "hello"
         cond do
           is_json?(body) ->
-            dbg "JSON object format"
             case Jason.decode(body) do
               {:ok, json} -> {:ok, json}
               {:error, reason} ->
@@ -190,7 +188,6 @@ defmodule Utils do
             end
 
           is_cbor?(body) ->
-            dbg "CBOR object format"
             case CBOR.decode(body) do
               {:ok, cbor_data, _} -> {:ok, cbor_data}
               {:error, reason} ->
@@ -198,7 +195,7 @@ defmodule Utils do
             end
 
           true ->
-            dbg "Unknown S3 object format"
+            Logger.error("Unknown S3 object format")
             {:error, :unknown_format}
         end
 
@@ -210,7 +207,6 @@ defmodule Utils do
     end
   end
   defp is_json?(body) do
-    dbg "is json?"
     case Jason.decode(body) do
       {:ok, _} ->
         true
