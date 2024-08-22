@@ -33,6 +33,11 @@ contract AlignedLayerServiceManager is
     );
 
     event BatchVerified(bytes32 indexed batchMerkleRoot);
+    event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
+    event TaskResponseProcessed(
+        bytes32 indexed batchMerkleRoot,
+        address aggregator
+    );
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -66,6 +71,10 @@ contract AlignedLayerServiceManager is
 
         if (msg.value > 0) {
             batchersBalances[msg.sender] += msg.value;
+            emit BatcherBalanceUpdated(
+                msg.sender,
+                batchersBalances[msg.sender]
+            );
         }
 
         require(batchersBalances[msg.sender] > 0, "Batcher balance is empty");
@@ -148,6 +157,7 @@ contract AlignedLayerServiceManager is
             batchesState[batchMerkleRoot].batcherAddress
         ] -= txCost;
         payable(msg.sender).transfer(txCost);
+        emit TaskResponseProcessed(batchMerkleRoot, msg.sender);
     }
 
     function verifyBatchInclusion(

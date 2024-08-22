@@ -21,6 +21,12 @@ contract BatcherPaymentService is
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
+    event TaskCreated(bytes32 indexed batchMerkleRoot, string batchDataPointer);
+    event SignerBalanceDecreased(address indexed signer, uint256 amount);
+    event BalanceLocked(address indexed user);
+    event BalanceUnlocked(address indexed user, uint256 unlockBlock);
+    event MerkleRootVerified(bytes32 batchMerkleRoot);
+    event SignatureVerified(address indexed signer);
 
     struct SignatureData {
         bytes signature;
@@ -114,6 +120,8 @@ contract BatcherPaymentService is
             batchDataPointer
         );
 
+        emit TaskCreated(batchMerkleRoot, batchDataPointer);
+
         payable(BatcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator
         );
@@ -126,11 +134,13 @@ contract BatcherPaymentService is
         );
 
         UserData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
+        emit BalanceUnlocked(msg.sender, UserData[msg.sender].unlockBlock);
     }
 
     function lock() external whenNotPaused {
         require(UserData[msg.sender].balance > 0, "User has no funds to lock");
         UserData[msg.sender].unlockBlock = 0;
+        emit BalanceLocked(msg.sender);
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
@@ -223,6 +233,8 @@ contract BatcherPaymentService is
         } else {
             require(layer[0] == batchMerkleRoot, "Invalid merkle root");
         }
+
+        emit MerkleRootVerified(batchMerkleRoot);
     }
 
     function _verifySignatureAndDecreaseBalance(
@@ -248,6 +260,8 @@ contract BatcherPaymentService is
         );
 
         user_data.balance -= feePerProof;
+        emit SignerBalanceDecreased(signer, user_data.balance);
+        emit SignatureVerified(signer);
     }
 
     function user_balances(address account) public view returns (uint256) {
