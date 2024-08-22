@@ -74,7 +74,7 @@ func operatorMain(ctx *cli.Context) error {
 		// Dont prevent operator from starting if operator tracker server is down
 		operator.Logger.Warn("Error sending version to metrics server: ", "err", err)
 	} else if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusNoContent {
-		operator.Logger.Warn("Error sending version to metrics server: ", "status_code", res.StatusCode)
+		operator.Logger.Warn("Error sending version to operator tracker server: ", "status_code", res.StatusCode)
 	}
 
 	operator.Logger.Info("Operator starting...")
