@@ -39,6 +39,10 @@ The way it does is:
   discount the corresponding funds from the user's balance and
   create a new batch in the [Aligned Service Manager](./3_service_manager_contract.md).
 
+## Diagram
+
+![alt text](../../images/payment_service_diagram.png)
+
 ## Details of the contract
 
 ### API
