@@ -71,6 +71,9 @@ anvil_upgrade_index_registry:
 	@echo "Upgrading Index Registry Contracts..."
 	. contracts/scripts/anvil/upgrade_index_registry.sh
 
+lint_contracts:
+	@cd contracts && npm run lint:sol
+
 anvil_start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
