@@ -75,6 +75,7 @@ defmodule StakeRegistryManager do
   def get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: nil}) do # AT THE MOMENT, ONLY USING QUORUM 0
     get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: 0})
   end
+  
   def get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: quorum_number}) do
     case StakeRegistryManager.weight_of_operator_for_quorum(quorum_number, operator_address) |> Ethers.call() do
       {:ok, stake_of_operator} ->
