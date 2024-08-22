@@ -23,14 +23,29 @@ pub fn verify_merkle_proof(merkle_leaf: Fp, merkle_path: Vec<MerklePath>, merkle
 
                 hash_with_kimchi(param.as_str(), &hashes)
             });
-
     calculated_root == merkle_root
 }
 
 #[cfg(test)]
 mod test {
+    use ark_serialize::CanonicalDeserialize;
+
+    use super::*;
+
     #[test]
     fn test_verify_merkle_proof() {
-        todo!();
+        let merkle_leaf = Fp::from(0);
+        let merkle_path = vec![
+            MerklePath::Left(Fp::from(0)),
+            MerklePath::Right(Fp::from(0)),
+        ];
+        let merkle_root = Fp::deserialize(
+            &[
+                140u8, 130, 39, 24, 215, 108, 36, 34, 181, 80, 10, 131, 110, 152, 243, 145, 144,
+                175, 100, 161, 62, 28, 236, 143, 184, 143, 185, 114, 129, 4, 63, 47,
+            ][..],
+        )
+        .unwrap();
+        assert!(verify_merkle_proof(merkle_leaf, merkle_path, merkle_root))
     }
 }
