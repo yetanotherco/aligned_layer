@@ -71,7 +71,7 @@ func operatorMain(ctx *cli.Context) error {
 	res, err := http.Post(endpoint, "application/json",
 		bodyBuffer)
 	if err != nil {
-		// Dont prevent operator from starting if metrics server is down
+		// Dont prevent operator from starting if operator tracker server is down
 		operator.Logger.Warn("Error sending version to metrics server: ", "err", err)
 	} else if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusNoContent {
 		operator.Logger.Warn("Error sending version to metrics server: ", "status_code", res.StatusCode)
