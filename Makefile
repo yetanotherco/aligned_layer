@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.4.0
+OPERATOR_VERSION=v0.4.1
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -662,3 +662,32 @@ explorer_fetch_old_batches:
 explorer_fetch_old_operators_strategies_restakes:
 	@cd explorer && \
 	./scripts/fetch_old_operators_strategies_restakes.sh 0
+
+__TRACKER__:
+
+tracker_devnet_start: tracker_run_db
+	@cd operator_tracker/ && \
+		cargo run -r -- --env-file .env.dev
+
+tracker_install: tracker_build_db
+	cargo install --path ./operator_tracker
+
+tracker_build_db:
+	@cd operator_tracker && \
+		docker build -t tracker-postgres-image .
+
+tracker_run_db: tracker_build_db tracker_remove_db_container
+	@cd operator_tracker && \
+		docker run -d --name tracker-postgres-container -p 5433:5432 -v tracker-postgres-data:/var/lib/postgresql/data tracker-postgres-image
+
+tracker_remove_db_container:
+	docker stop tracker-postgres-container || true  && \
+	    docker rm tracker-postgres-container || true
+
+tracker_clean_db: tracker_remove_db_container
+	docker volume rm tracker-postgres-data || true
+
+tracker_dump_db:
+	@cd operator_tracker && \
+		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
+	@echo "Dumped database successfully to /operator_tracker"
