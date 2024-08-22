@@ -242,7 +242,7 @@ defmodule AlignedLayerServiceManager do
       {:ok, restakeable_strategies} ->
         Strategies.update(restakeable_strategies)
       {:error, error} ->
-        dbg("Error fetching restakeable stratergies: #{error}")
+        dbg("Error fetching restakeable strategies: #{error}")
         raise("Error fetching restakeable stratergies: #{error}")
     end
   end
