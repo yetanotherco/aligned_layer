@@ -22,6 +22,28 @@ contract BatcherPaymentService is
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
 
+    // ERRORS
+    error OnlyBatcherAllowed(address caller);
+    error NoLeavesSubmitted();
+    error NoProofSubmitterSignatures();
+    error NotEnoughLeaves(uint256 leavesQty, uint256 signaturesQty);
+    error LeavesNotPowerOfTwo(uint256 leavesQty);
+    error NoGasForAggregator();
+    error NoGasPerProof();
+    error InsufficientGasForAggregator(uint256 required, uint256 available);
+    error UserHasNoFundsToUnlock(address user);
+    error UserHasNoFundsToLock(address user);
+    error PayerInsufficientBalance(uint256 balance, uint256 amount);
+    error FundsLocked(uint256 unlockBlock, uint256 currentBlock);
+    error InvalidSignature();
+    error InvalidNonce(uint256 expected, uint256 actual);
+    error SignerInsufficientBalance(
+        address signer,
+        uint256 balance,
+        uint256 required
+    );
+    error InvalidMerkleRoot(bytes32 expected, bytes32 actual);
+
     struct SignatureData {
         bytes signature;
         uint256 nonce;
@@ -51,10 +73,9 @@ contract BatcherPaymentService is
 
     // MODIFIERS
     modifier onlyBatcher() {
-        require(
-            msg.sender == batcherWallet,
-            "Only Batcher can call this function"
-        );
+        if (msg.sender != batcherWallet) {
+            revert OnlyBatcherAllowed(msg.sender);
+        }
         _;
     }
 
@@ -94,20 +115,36 @@ contract BatcherPaymentService is
         uint256 feeForAggregator = gasForAggregator * tx.gasprice;
         uint256 feePerProof = gasPerProof * tx.gasprice;
 
-        require(leavesQty > 0, "No leaves submitted");
-        require(signaturesQty > 0, "No proof submitter signatures");
-        require(leavesQty >= signaturesQty, "Not enough leaves");
-        require(
-            (leavesQty & (leavesQty - 1)) == 0,
-            "Leaves length is not a power of 2"
-        );
+        if (leavesQty <= 0) {
+            revert NoLeavesSubmitted();
+        }
 
-        require(feeForAggregator > 0, "No gas for aggregator");
-        require(feePerProof > 0, "No gas per proof");
-        require(
-            feePerProof * signaturesQty > feeForAggregator,
-            "Not enough gas to pay the aggregator"
-        );
+        if (signaturesQty <= 0) {
+            revert NoProofSubmitterSignatures();
+        }
+
+        if (leavesQty < signaturesQty) {
+            revert NotEnoughLeaves(leavesQty, signaturesQty);
+        }
+
+        if ((leavesQty & (leavesQty - 1)) != 0) {
+            revert LeavesNotPowerOfTwo(leavesQty);
+        }
+
+        if (feeForAggregator <= 0) {
+            revert NoGasForAggregator();
+        }
+
+        if (feePerProof <= 0) {
+            revert NoGasPerProof();
+        }
+
+        if (feePerProof * signaturesQty <= feeForAggregator) {
+            revert InsufficientGasForAggregator(
+                feeForAggregator,
+                feePerProof * signaturesQty
+            );
+        }
 
         _checkMerkleRootAndVerifySignatures(
             leaves,
@@ -129,27 +166,31 @@ contract BatcherPaymentService is
     }
 
     function unlock() external whenNotPaused {
-        require(
-            userData[msg.sender].balance > 0,
-            "User has no funds to unlock"
-        );
+        if (userData[msg.sender].balance <= 0) {
+            revert UserHasNoFundsToUnlock(msg.sender);
+        }
 
         userData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
     }
 
     function lock() external whenNotPaused {
-        require(userData[msg.sender].balance > 0, "User has no funds to lock");
+        if (userData[msg.sender].balance <= 0) {
+            revert UserHasNoFundsToLock(msg.sender);
+        }
         userData[msg.sender].unlockBlock = 0;
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
         UserInfo storage user_data = userData[msg.sender];
-        require(user_data.balance >= amount, "Payer has insufficient balance");
+        if (user_data.balance < amount) {
+            revert PayerInsufficientBalance(user_data.balance, amount);
+        }
 
-        require(
-            user_data.unlockBlock != 0 && user_data.unlockBlock <= block.number,
-            "Funds are locked"
-        );
+        if (
+            user_data.unlockBlock == 0 || user_data.unlockBlock > block.number
+        ) {
+            revert FundsLocked(user_data.unlockBlock, block.number);
+        }
 
         user_data.balance -= amount;
         payable(msg.sender).transfer(amount);
@@ -219,9 +260,13 @@ contract BatcherPaymentService is
         }
 
         if (leaves.length == 1) {
-            require(leaves[0] == batchMerkleRoot, "Invalid merkle root");
+            if (leaves[0] != batchMerkleRoot) {
+                revert InvalidMerkleRoot(batchMerkleRoot, leaves[0]);
+            }
         } else {
-            require(layer[0] == batchMerkleRoot, "Invalid merkle root");
+            if (layer[0] != batchMerkleRoot) {
+                revert InvalidMerkleRoot(batchMerkleRoot, layer[0]);
+            }
         }
     }
 
@@ -235,17 +280,25 @@ contract BatcherPaymentService is
         );
 
         address signer = noncedHash.recover(signatureData.signature);
-        require(signer != address(0), "Invalid signature");
+
+        if (signer == address(0)) {
+            revert InvalidSignature();
+        }
 
         UserInfo storage user_data = userData[signer];
 
-        require(user_data.nonce == signatureData.nonce, "Invalid Nonce");
+        if (user_data.nonce != signatureData.nonce) {
+            revert InvalidNonce(user_data.nonce, signatureData.nonce);
+        }
         user_data.nonce++;
 
-        require(
-            user_data.balance >= feePerProof,
-            "Signer has insufficient balance"
-        );
+        if (user_data.balance < feePerProof) {
+            revert SignerInsufficientBalance(
+                signer,
+                user_data.balance,
+                feePerProof
+            );
+        }
 
         user_data.balance -= feePerProof;
     }

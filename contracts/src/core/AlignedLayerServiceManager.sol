@@ -31,6 +31,19 @@ contract AlignedLayerServiceManager is
 
     event BatchVerified(bytes32 indexed batchMerkleRoot);
 
+    // ERRORS
+    error BatchAlreadySubmitted(bytes32 batchMerkleRoot);
+    error BatcherBalanceIsEmpty(address batcher);
+    error BatchDoesNotExist(bytes32 batchMerkleRoot);
+    error BatchAlreadyResponded(bytes32 batchMerkleRoot);
+    error BatcherHasNoBalance(address batcher);
+    error InsufficientFunds(
+        address batcher,
+        uint256 required,
+        uint256 available
+    );
+    error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake);
+
     constructor(
         IAVSDirectory __avsDirectory,
         IRewardsCoordinator __rewardsCoordinator,
@@ -56,16 +69,17 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
     ) external payable {
-        require(
-            batchesState[batchMerkleRoot].taskCreatedBlock == 0,
-            "Batch was already submitted"
-        );
+        if (batchesState[batchMerkleRoot].taskCreatedBlock != 0) {
+            revert BatchAlreadySubmitted(batchMerkleRoot);
+        }
 
         if (msg.value > 0) {
             batchersBalances[msg.sender] += msg.value;
         }
 
-        require(batchersBalances[msg.sender] > 0, "Batcher balance is empty");
+        if (batchersBalances[msg.sender] <= 0) {
+            revert BatcherBalanceIsEmpty(msg.sender);
+        }
 
         BatchState memory batchState;
 
@@ -89,21 +103,22 @@ contract AlignedLayerServiceManager is
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
-        require(
-            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
-            "Batch doesn't exists"
-        );
+        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+            revert BatchDoesNotExist(batchMerkleRoot);
+        }
 
         // Check task hasn't been responsed yet
-        require(
-            batchesState[batchMerkleRoot].responded == false,
-            "Batch already responded"
-        );
+        if (batchesState[batchMerkleRoot].responded) {
+            revert BatchAlreadyResponded(batchMerkleRoot);
+        }
 
-        require(
-            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] > 0,
-            "Batcher has no balance"
-        );
+        if (
+            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] <= 0
+        ) {
+            revert BatcherHasNoBalance(
+                batchesState[batchMerkleRoot].batcherAddress
+            );
+        }
 
         batchesState[batchMerkleRoot].responded = true;
 
@@ -116,12 +131,18 @@ contract AlignedLayerServiceManager is
         );
 
         // check that signatories own at least a threshold percentage of each quourm
-        require(
-            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR >=
+        if (
+            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR <
+            quorumStakeTotals.totalStakeForQuorum[0] *
+                QUORUM_THRESHOLD_PERCENTAGE
+        ) {
+            revert InvalidQuorumThreshold(
+                quorumStakeTotals.signedStakeForQuorum[0] *
+                    THRESHOLD_DENOMINATOR,
                 quorumStakeTotals.totalStakeForQuorum[0] *
-                    QUORUM_THRESHOLD_PERCENTAGE,
-            "Signatories do not own at least threshold percentage of a quorum"
-        );
+                    QUORUM_THRESHOLD_PERCENTAGE
+            );
+        }
 
         emit BatchVerified(batchMerkleRoot);
 
@@ -132,11 +153,16 @@ contract AlignedLayerServiceManager is
         // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
-        require(
-            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=
+        if (
+            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] <
+            txCost
+        ) {
+            revert InsufficientFunds(
+                batchesState[batchMerkleRoot].batcherAddress,
                 txCost,
-            "Batcher has not sufficient funds for paying this transaction"
-        );
+                batchersBalances[batchesState[batchMerkleRoot].batcherAddress]
+            );
+        }
 
         batchersBalances[
             batchesState[batchMerkleRoot].batcherAddress
