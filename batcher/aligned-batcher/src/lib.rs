@@ -312,6 +312,21 @@ impl Batcher {
             U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
         );
 
+        if client_msg.verification_data.chain_id != self.chain_id {
+            warn!(
+                "Received message with incorrect chain id: {}",
+                client_msg.verification_data.chain_id
+            );
+
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidChainId,
+            )
+            .await;
+
+            return Ok(());
+        }
+
         info!("Verifying message signature...");
         if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");

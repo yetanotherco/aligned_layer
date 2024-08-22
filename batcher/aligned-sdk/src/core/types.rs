@@ -244,6 +244,7 @@ pub enum ValidityResponseMessage {
     Valid,
     InvalidNonce,
     InvalidSignature,
+    InvalidChainId,
     InvalidProof,
     ProofTooLarge,
     InsufficientBalance(Address),

@@ -98,6 +98,10 @@ pub async fn send_messages(
                 error!("Insufficient balance for address: {}", addr);
                 return Err(SubmitError::InsufficientBalance);
             }
+            ValidityResponseMessage::InvalidChainId => {
+                error!("Invalid chain id!");
+                return Err(SubmitError::InvalidChainId);
+            }
         };
 
         sent_verification_data.push(verification_data.clone());
