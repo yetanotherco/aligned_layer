@@ -35,10 +35,6 @@ contract AlignedLayerServiceManager is
 
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
-    event TaskResponseProcessed(
-        bytes32 indexed batchMerkleRoot,
-        address aggregator
-    );
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -165,7 +161,6 @@ contract AlignedLayerServiceManager is
 
         batchersBalances[senderAddress] -= txCost;
         payable(msg.sender).transfer(txCost);
-        emit TaskResponseProcessed(batchMerkleRoot, msg.sender);
     }
 
     function verifyBatchInclusion(
