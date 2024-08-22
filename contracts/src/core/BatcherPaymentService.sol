@@ -152,6 +152,7 @@ contract BatcherPaymentService is
 
         user_data.balance -= amount;
         user_data.unlockBlock = 0;
+        emit BalanceLocked(msg.sender);
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }
