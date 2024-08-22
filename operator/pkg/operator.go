@@ -159,7 +159,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 
 			responseSignature := o.SignTaskResponse(batchIdentifierHash)
-			o.Logger.Infof("responseSignature about to send: %x", responseSignature)
+			o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
 
 			signedTaskResponse := types.SignedTaskResponse{
 				BatchIdentifierHash: batchIdentifierHash,
@@ -169,7 +169,12 @@ func (o *Operator) Start(ctx context.Context) error {
 				OperatorId:      o.OperatorId,
 			}
 
-			o.Logger.Infof("Signed Task Response to send: %+v", signedTaskResponse)
+			// o.Logger.Infof("Signed Task Response to send: %+v", signedTaskResponse)
+			o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+				hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+				hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+				hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+			)
 			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
 	}
