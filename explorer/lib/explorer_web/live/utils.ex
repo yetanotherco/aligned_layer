@@ -179,11 +179,27 @@ defmodule Utils do
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
-        case Jason.decode(body) do
-          {:ok, json} -> {:ok, json}
-          {:error, reason} ->
-            dbg reason # if because CBOR, then we need to decode it
-            {:error, {:json_decode, reason}}
+        dbg "hello"
+        cond do
+          is_json?(body) ->
+            dbg "JSON object format"
+            case Jason.decode(body) do
+              {:ok, json} -> {:ok, json}
+              {:error, reason} ->
+                {:error, {:json_decode, reason}}
+            end
+
+          is_cbor?(body) ->
+            dbg "CBOR object format"
+            case CBOR.decode(body) do
+              {:ok, cbor_data, _} -> {:ok, cbor_data}
+              {:error, reason} ->
+                {:error, {:cbor_decode, reason}}
+            end
+
+          true ->
+            dbg "Unknown S3 object format"
+            {:error, :unknown_format}
         end
 
       {:ok, %Finch.Response{status: status_code}} ->
@@ -238,5 +254,31 @@ defmodule Utils do
 
   def random_id(prefix) do
     prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
+  end
+
+  defp is_json?(body) do
+    dbg "is json?"
+    case Jason.decode(body) do
+      {:ok, _} ->
+        dbg "yes"
+        true
+      {:error, _} ->
+        dbg "no"
+        false
+    end
+  end
+
+  defp is_cbor?(body) do
+    dbg "is cbor?"
+    dbg CBOR.decode(body)
+
+    case CBOR.decode(body) do
+      {:ok, _, _} ->
+        true
+      {:error, _} ->
+        false
+      _other ->
+        false
+    end
   end
 end
