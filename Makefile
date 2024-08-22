@@ -680,7 +680,7 @@ tracker_build_db:
 
 tracker_run_db: tracker_build_db tracker_remove_db_container
 	@cd operator_tracker && \
-		docker run -d --name tracker-postgres-container -p 5432:5432 -v tracker-postgres-data:/var/lib/postgresql/data tracker-postgres-image
+		docker run -d --name tracker-postgres-container -p 5433:5432 -v tracker-postgres-data:/var/lib/postgresql/data tracker-postgres-image
 
 tracker_remove_db_container:
 	docker stop tracker-postgres-container || true  && \

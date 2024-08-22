@@ -60,6 +60,8 @@ async fn main() {
     let registry_coordinator_addr = &std::env::var("REGISTRY_COORDINATOR_ADDRESS")
         .expect("REGISTRY_COORDINATOR_ADDRESS must be set");
 
+    let listen_addr = &std::env::var("LISTEN_ADDR").expect("LISTEN_ADDR must be set");
+
     let registry_coordinator_addr: Address = registry_coordinator_addr
         .parse()
         .expect("Failed to parse registry coordinator addr");
@@ -83,7 +85,7 @@ async fn main() {
         registry_coordinator,
     };
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+    let listener = tokio::net::TcpListener::bind(listen_addr)
         .await
         .expect("Failed to bind listener");
 
