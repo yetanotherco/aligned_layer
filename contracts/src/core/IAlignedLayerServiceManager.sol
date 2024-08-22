@@ -11,6 +11,7 @@ interface IAlignedLayerServiceManager {
 
     function respondToTask(
         bytes32 batchMerkleRoot,
+        address senderAddress,
         IBLSSignatureChecker.NonSignerStakesAndSignature
             memory nonSignerStakesAndSignature
     ) external;
