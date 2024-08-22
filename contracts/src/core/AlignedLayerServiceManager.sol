@@ -160,6 +160,10 @@ contract AlignedLayerServiceManager is
         );
 
         batchersBalances[senderAddress] -= txCost;
+        emit BatcherBalanceUpdated(
+            senderAddress,
+            batchersBalances[senderAddress]
+        );
         payable(msg.sender).transfer(txCost);
     }
 
@@ -209,6 +213,7 @@ contract AlignedLayerServiceManager is
 
     receive() external payable {
         batchersBalances[msg.sender] += msg.value;
+        emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
     }
 
     function checkPublicInput(
