@@ -37,8 +37,8 @@ defmodule ExplorerWeb.Router do
       live "/", Home.Index
       live "/batches/:merkle_root", Batch.Index
       live "/batches", Batches.Index
-      live "/restakes", Restakes.Index
-      live "/restakes/:address", Restake.Index
+      live "/restake", Restakes.Index
+      live "/restake/:address", Restake.Index
       live "/operators", Operators.Index
       live "/operators/:address", Operator.Index
     end

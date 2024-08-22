@@ -50,7 +50,7 @@ defmodule ExplorerWeb.Restakes.Index do
       <.table id="assets" rows={@assets}>
         <:col :let={asset} label="Token" class="text-left">
           <.link
-            navigate={~p"/restakes/#{asset.strategy_address}"}
+            navigate={~p"/restake/#{asset.strategy_address}"}
             class="flex gap-x-2 items-center group-hover:text-foreground/80"
           >
             <img
