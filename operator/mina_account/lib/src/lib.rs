@@ -111,6 +111,3 @@ fn parse_proof(proof_bytes: &[u8]) -> Result<Vec<MerklePath>, String> {
         })
         .collect()
 }
-
-#[cfg(test)]
-mod test {}
