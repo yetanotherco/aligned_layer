@@ -15,7 +15,7 @@ func TestMinaStateProofVerifies(t *testing.T) {
 		t.Errorf("could not open mina account proof file")
 	}
 
-	proofBuffer := make([]byte, mina.MAX_PROOF_SIZE)
+	proofBuffer := make([]byte, mina_account.MAX_PROOF_SIZE)
 	proofLen, err := proofFile.Read(proofBuffer)
 	if err != nil {
 		t.Errorf("could not read bytes from mina account proof file")
@@ -25,13 +25,13 @@ func TestMinaStateProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not open mina account pub inputs file")
 	}
-	pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
+	pubInputBuffer := make([]byte, mina_account.MAX_PUB_INPUT_SIZE)
 	pubInputLen, err := pubInputFile.Read(pubInputBuffer)
 	if err != nil {
 		t.Errorf("could not read bytes from mina account pub inputs hash")
 	}
 
-	if !mina_account.VerifyAccountInclusion(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), uint(proofLen), ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), uint(pubInputLen)) {
+	if !mina_account.VerifyAccountInclusion(([mina_account.MAX_PROOF_SIZE]byte)(proofBuffer), uint(proofLen), ([mina_account.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), uint(pubInputLen)) {
 		t.Errorf("proof did not verify")
 	}
 }
