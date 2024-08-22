@@ -8,6 +8,7 @@ use futures_util::future::Ready;
 use futures_util::stream::{SplitSink, TryFilter};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
+use crate::communication::serialization::{cbor_deserialize, cbor_serialize};
 use crate::{
     communication::batch::handle_batch_inclusion_data,
     core::{
@@ -47,9 +48,9 @@ pub async fn send_messages(
         nonce += U256::one();
 
         let msg = ClientMessage::new(verification_data.clone(), wallet.clone());
-        let msg_str = serde_json::to_string(&msg).map_err(SubmitError::SerializationError)?;
+        let msg_bin = cbor_serialize(&msg).map_err(SubmitError::SerializationError)?;
         ws_write
-            .send(Message::Text(msg_str.clone()))
+            .send(Message::Binary(msg_bin.clone()))
             .await
             .map_err(SubmitError::WebSocketConnectionError)?;
 
@@ -65,7 +66,7 @@ pub async fn send_messages(
             }
         };
 
-        let response_msg = serde_json::from_slice::<ValidityResponseMessage>(&msg.into_data())
+        let response_msg: ValidityResponseMessage = cbor_deserialize(msg.into_data().as_slice())
             .map_err(SubmitError::SerializationError)?;
 
         match response_msg {
@@ -154,7 +155,7 @@ async fn process_batch_inclusion_data(
     *num_responses_lock += 1;
 
     let data = msg.into_data();
-    match serde_json::from_slice::<ResponseMessage>(&data) {
+    match cbor_deserialize(data.as_slice()) {
         Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
             let _ = handle_batch_inclusion_data(
                 batch_inclusion_data,
