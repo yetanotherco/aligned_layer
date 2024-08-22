@@ -34,11 +34,12 @@ contract AlignedLayerServiceManager is
     );
 
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
-event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
+    event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
     event TaskResponseProcessed(
         bytes32 indexed batchMerkleRoot,
         address aggregator
     );
+
     constructor(
         IAVSDirectory __avsDirectory,
         IRewardsCoordinator __rewardsCoordinator,
@@ -90,7 +91,12 @@ event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
 
         batchesState[batchIdentifierHash] = batchState;
 
-        emit NewBatch(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer);
+        emit NewBatch(
+            batchMerkleRoot,
+            msg.sender,
+            uint32(block.number),
+            batchDataPointer
+        );
     }
 
     function respondToTask(
@@ -102,7 +108,7 @@ event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
         uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
-                abi.encodePacked(batchMerkleRoot, senderAddress)
+            abi.encodePacked(batchMerkleRoot, senderAddress)
         );
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
@@ -120,10 +126,7 @@ event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
             "Batch already responded"
         );
 
-        require(
-            batchersBalances[senderAddress] > 0,
-            "Batcher has no balance"
-        );
+        require(batchersBalances[senderAddress] > 0, "Batcher has no balance");
 
         batchesState[batchIdentifierHash].responded = true;
 
@@ -156,8 +159,7 @@ event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
         require(
-            batchersBalances[senderAddress] >=
-                txCost,
+            batchersBalances[senderAddress] >= txCost,
             "Batcher has not sufficient funds for paying this transaction"
         );
 
