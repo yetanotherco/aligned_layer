@@ -49,6 +49,15 @@ contract BatcherPaymentService is
         _disableInitializers();
     }
 
+    // MODIFIERS
+    modifier onlyBatcher() {
+        require(
+            msg.sender == batcherWallet,
+            "Only Batcher can call this function"
+        );
+        _;
+    }
+
     function initialize(
         address _alignedLayerServiceManager,
         address _batcherPaymentServiceOwner,
@@ -158,15 +167,6 @@ contract BatcherPaymentService is
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyOwner {}
-
-    // MODIFIERS
-    modifier onlyBatcher() {
-        require(
-            msg.sender == batcherWallet,
-            "Only Batcher can call this function"
-        );
-        _;
-    }
 
     function _checkMerkleRootAndVerifySignatures(
         bytes32[] calldata leaves,
