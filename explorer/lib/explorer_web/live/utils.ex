@@ -181,7 +181,9 @@ defmodule Utils do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         case Jason.decode(body) do
           {:ok, json} -> {:ok, json}
-          {:error, reason} -> {:error, {:json_decode, reason}}
+          {:error, reason} ->
+            dbg reason # if because CBOR, then we need to decode it
+            {:error, {:json_decode, reason}}
         end
 
       {:ok, %Finch.Response{status: status_code}} ->
