@@ -1053,6 +1053,7 @@ dependencies = [
  "rmp-serde",
  "serde",
  "serde_json",
+ "sha3",
 ]
 
 [[package]]

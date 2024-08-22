@@ -8,7 +8,8 @@ mod merkle_verifier;
 // TODO(xqft): check sizes
 const MAX_PROOF_SIZE: usize = 16 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
-const HASH_SIZE: usize = 32;
+const MINA_HASH_SIZE: usize = 32;
+const KECCAK_HASH_SIZE: usize = 32;
 
 #[no_mangle]
 pub extern "C" fn verify_account_inclusion_ffi(
@@ -22,7 +23,7 @@ pub extern "C" fn verify_account_inclusion_ffi(
     // and validated in this verifier. A smart contract could implement Poseidon
     // and hash the data itself but it's prohibitively expensive.
 
-    let (merkle_root, account_hash) =
+    let (merkle_root, account_hash, _account_id_hash) =
         match parse_pub_inputs(&public_input_bytes[..public_input_len]) {
             Ok(pub_inputs) => pub_inputs,
             Err(err) => {
@@ -39,36 +40,58 @@ pub extern "C" fn verify_account_inclusion_ffi(
         }
     };
 
+    // TODO(xqft): when the needed account GraphQL query is done, do:
+    // 1. send encoded account as part of the proof
+    // 2. define account_id from encoded account.
+    // 2. assert keccak256(account_id) == account_id_hash
+
     verify_merkle_proof(account_hash, merkle_proof, merkle_root)
 }
 
-pub fn parse_hash(pub_inputs: &[u8], offset: &mut usize) -> Result<Fp, String> {
+fn parse_mina_hash(pub_inputs: &[u8], offset: &mut usize) -> Result<Fp, String> {
     let hash = pub_inputs
-        .get(*offset..*offset + HASH_SIZE)
-        .ok_or("Failed to slice candidate hash".to_string())
+        .get(*offset..*offset + MINA_HASH_SIZE)
+        .ok_or("Failed to slice Mina hash".to_string())
         .and_then(|bytes| Fp::from_bytes(bytes).map_err(|err| err.to_string()))?;
 
-    *offset += HASH_SIZE;
+    *offset += MINA_HASH_SIZE;
 
     Ok(hash)
 }
 
-pub fn parse_pub_inputs(pub_inputs: &[u8]) -> Result<(Fp, Fp), String> {
-    let mut offset = 0;
+fn parse_keccak256_hash(
+    pub_inputs: &[u8],
+    offset: &mut usize,
+) -> Result<[u8; KECCAK_HASH_SIZE], String> {
+    let mut hash = [0; KECCAK_HASH_SIZE];
+    hash.copy_from_slice(
+        pub_inputs
+            .get(*offset..*offset + KECCAK_HASH_SIZE)
+            .ok_or("Failed to slice keccak hash".to_string())?,
+    );
 
-    let merkle_root = parse_hash(pub_inputs, &mut offset)?;
-    let account_hash = parse_hash(pub_inputs, &mut offset)?;
+    *offset += KECCAK_HASH_SIZE;
 
-    Ok((merkle_root, account_hash))
+    Ok(hash)
 }
 
-pub fn parse_proof(proof_bytes: &[u8]) -> Result<Vec<MerklePath>, String> {
-    let merkle_path_bytes = proof_bytes.chunks_exact(HASH_SIZE + 1);
+fn parse_pub_inputs(pub_inputs: &[u8]) -> Result<(Fp, Fp, [u8; KECCAK_HASH_SIZE]), String> {
+    let mut offset = 0;
+
+    let merkle_root = parse_mina_hash(pub_inputs, &mut offset)?;
+    let account_hash = parse_mina_hash(pub_inputs, &mut offset)?;
+    let account_id_hash = parse_keccak256_hash(&pub_inputs, &mut offset)?;
+
+    Ok((merkle_root, account_hash, account_id_hash))
+}
+
+fn parse_proof(proof_bytes: &[u8]) -> Result<Vec<MerklePath>, String> {
+    let merkle_path_bytes = proof_bytes.chunks_exact(MINA_HASH_SIZE + 1);
 
     if !merkle_path_bytes.remainder().is_empty() {
         return Err(format!(
             "Merkle path bytes not a multiple of HASH_SIZE + 1 ({})",
-            HASH_SIZE + 1
+            MINA_HASH_SIZE + 1
         ));
     }
 
