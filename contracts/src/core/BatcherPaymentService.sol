@@ -34,12 +34,12 @@ contract BatcherPaymentService is
     }
 
     // STORAGE
-    address public BatcherWallet;
+    address public batcherWallet;
 
-    IAlignedLayerServiceManager public AlignedLayerServiceManager;
+    IAlignedLayerServiceManager public alignedLayerServiceManager;
 
     // map to user data
-    mapping(address => UserInfo) public UserData;
+    mapping(address => UserInfo) public userData;
 
     // storage gap for upgradeability
     uint256[24] private __GAP;
@@ -50,23 +50,23 @@ contract BatcherPaymentService is
     }
 
     function initialize(
-        address _AlignedLayerServiceManager,
-        address _BatcherPaymentServiceOwner,
-        address _BatcherWallet
+        address _alignedLayerServiceManager,
+        address _batcherPaymentServiceOwner,
+        address _batcherWallet
     ) public initializer {
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
-        _transferOwnership(_BatcherPaymentServiceOwner);
+        _transferOwnership(_batcherPaymentServiceOwner);
 
-        AlignedLayerServiceManager = IAlignedLayerServiceManager(
-            _AlignedLayerServiceManager
+        alignedLayerServiceManager = IAlignedLayerServiceManager(
+            _alignedLayerServiceManager
         );
-        BatcherWallet = _BatcherWallet;
+        batcherWallet = _batcherWallet;
     }
 
     // PAYABLE FUNCTIONS
     receive() external payable {
-        UserData[msg.sender].balance += msg.value;
+        userData[msg.sender].balance += msg.value;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
@@ -109,32 +109,32 @@ contract BatcherPaymentService is
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
-        AlignedLayerServiceManager.createNewTask{value: feeForAggregator}(
+        alignedLayerServiceManager.createNewTask{value: feeForAggregator}(
             batchMerkleRoot,
             batchDataPointer
         );
 
-        payable(BatcherWallet).transfer(
+        payable(batcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator
         );
     }
 
     function unlock() external whenNotPaused {
         require(
-            UserData[msg.sender].balance > 0,
+            userData[msg.sender].balance > 0,
             "User has no funds to unlock"
         );
 
-        UserData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
+        userData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
     }
 
     function lock() external whenNotPaused {
-        require(UserData[msg.sender].balance > 0, "User has no funds to lock");
-        UserData[msg.sender].unlockBlock = 0;
+        require(userData[msg.sender].balance > 0, "User has no funds to lock");
+        userData[msg.sender].unlockBlock = 0;
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
-        UserInfo storage user_data = UserData[msg.sender];
+        UserInfo storage user_data = userData[msg.sender];
         require(user_data.balance >= amount, "Payer has insufficient balance");
 
         require(
@@ -162,7 +162,7 @@ contract BatcherPaymentService is
     // MODIFIERS
     modifier onlyBatcher() {
         require(
-            msg.sender == BatcherWallet,
+            msg.sender == batcherWallet,
             "Only Batcher can call this function"
         );
         _;
@@ -237,7 +237,7 @@ contract BatcherPaymentService is
         address signer = noncedHash.recover(signatureData.signature);
         require(signer != address(0), "Invalid signature");
 
-        UserInfo storage user_data = UserData[signer];
+        UserInfo storage user_data = userData[signer];
 
         require(user_data.nonce == signatureData.nonce, "Invalid Nonce");
         user_data.nonce++;
@@ -251,14 +251,14 @@ contract BatcherPaymentService is
     }
 
     function user_balances(address account) public view returns (uint256) {
-        return UserData[account].balance;
+        return userData[account].balance;
     }
 
     function user_nonces(address account) public view returns (uint256) {
-        return UserData[account].nonce;
+        return userData[account].nonce;
     }
 
     function user_unlock_block(address account) public view returns (uint256) {
-        return UserData[account].unlockBlock;
+        return userData[account].unlockBlock;
     }
 }

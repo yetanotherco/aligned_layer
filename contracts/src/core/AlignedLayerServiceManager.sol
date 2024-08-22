@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.12;
 
-import {Pausable} from "eigenlayer-core/contracts/permissions/Pausable.sol";
-import {IPauserRegistry} from "eigenlayer-core/contracts/interfaces/IPauserRegistry.sol";
-
 import {ServiceManagerBase, IAVSDirectory} from "eigenlayer-middleware/ServiceManagerBase.sol";
 import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol";
 import {IRegistryCoordinator} from "eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
@@ -112,14 +109,11 @@ contract AlignedLayerServiceManager is
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
-        (
-            QuorumStakeTotals memory quorumStakeTotals,
-            bytes32 _hashOfNonSigners
-        ) = checkSignatures(
-                batchMerkleRoot,
-                batchesState[batchMerkleRoot].taskCreatedBlock,
-                nonSignerStakesAndSignature
-            );
+        (QuorumStakeTotals memory quorumStakeTotals, ) = checkSignatures(
+            batchMerkleRoot,
+            batchesState[batchMerkleRoot].taskCreatedBlock,
+            nonSignerStakesAndSignature
+        );
 
         // check that signatories own at least a threshold percentage of each quourm
         require(

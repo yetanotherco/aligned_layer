@@ -1,7 +1,5 @@
 pragma solidity ^0.8.12;
 
-import "eigenlayer-middleware/interfaces/IServiceManager.sol";
-
 contract AlignedLayerServiceManagerStorage {
     struct BatchState {
         uint32 taskCreatedBlock;
