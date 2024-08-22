@@ -209,6 +209,25 @@ defmodule Utils do
         {:error, {:http_error, reason}}
     end
   end
+  defp is_json?(body) do
+    dbg "is json?"
+    case Jason.decode(body) do
+      {:ok, _} ->
+        true
+      {:error, _} ->
+        false
+    end
+  end
+  defp is_cbor?(body) do
+    case CBOR.decode(body) do
+      {:ok, _, _} ->
+        true
+      {:error, _} ->
+        false
+      _other ->
+        false
+    end
+  end
 
   def extract_info_from_data_pointer(%BatchDB{} = batch) do
     IO.inspect("Extracting batch's proofs info: #{batch.merkle_root}")
@@ -254,31 +273,5 @@ defmodule Utils do
 
   def random_id(prefix) do
     prefix <> "_" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
-  end
-
-  defp is_json?(body) do
-    dbg "is json?"
-    case Jason.decode(body) do
-      {:ok, _} ->
-        dbg "yes"
-        true
-      {:error, _} ->
-        dbg "no"
-        false
-    end
-  end
-
-  defp is_cbor?(body) do
-    dbg "is cbor?"
-    dbg CBOR.decode(body)
-
-    case CBOR.decode(body) do
-      {:ok, _, _} ->
-        true
-      {:error, _} ->
-        false
-      _other ->
-        false
-    end
   end
 end
