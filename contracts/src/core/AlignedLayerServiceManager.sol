@@ -33,10 +33,10 @@ contract AlignedLayerServiceManager is
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
 
     // ERRORS
-    error BatchAlreadySubmitted(bytes32 batchMerkleRoot);
+    error BatchAlreadySubmitted(bytes32 batchIdentifierHash);
     error BatcherBalanceIsEmpty(address batcher);
-    error BatchDoesNotExist(bytes32 batchMerkleRoot);
-    error BatchAlreadyResponded(bytes32 batchMerkleRoot);
+    error BatchDoesNotExist(bytes32 batchIdentifierHash);
+    error BatchAlreadyResponded(bytes32 batchIdentifierHash);
     error BatcherHasNoBalance(address batcher);
     error InsufficientFunds(
         address batcher,
@@ -70,11 +70,12 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
     ) external payable {
-     bytes32 batchIdentifierHash = keccak256(
-                abi.encodePacked(batchMerkleRoot, msg.sender)
-            );
-        if (batchesState[batchMerkleRoot].taskCreatedBlock != 0) {
-            revert BatchAlreadySubmitted(batchMerkleRoot);
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encodePacked(batchMerkleRoot, msg.sender)
+        );
+
+        if (batchesState[batchIdentifierHash].taskCreatedBlock != 0) {
+            revert BatchAlreadySubmitted(batchIdentifierHash);
         }
 
         if (msg.value > 0) {
@@ -92,7 +93,12 @@ contract AlignedLayerServiceManager is
 
         batchesState[batchIdentifierHash] = batchState;
 
-        emit NewBatch(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer);
+        emit NewBatch(
+            batchMerkleRoot,
+            msg.sender,
+            uint32(block.number),
+            batchDataPointer
+        );
     }
 
     function respondToTask(
@@ -104,7 +110,7 @@ contract AlignedLayerServiceManager is
         uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
-                abi.encodePacked(batchMerkleRoot, senderAddress)
+            abi.encodePacked(batchMerkleRoot, senderAddress)
         );
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
@@ -120,25 +126,19 @@ contract AlignedLayerServiceManager is
             revert BatchAlreadyResponded(batchIdentifierHash);
         }
 
-        if (
-            batchersBalances[senderAddress] <= 0
-        ) {
-            revert BatcherHasNoBalance(
-                senderAddress
-            );
+        if (batchersBalances[senderAddress] <= 0) {
+            revert BatcherHasNoBalance(senderAddress);
         }
 
         batchesState[batchIdentifierHash].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
-        (
-            QuorumStakeTotals memory quorumStakeTotals
-        ) = checkSignatures(
-                batchIdentifierHash,
-                batchesState[batchIdentifierHash].taskCreatedBlock,
-                nonSignerStakesAndSignature
-            );
+        (QuorumStakeTotals memory quorumStakeTotals, ) = checkSignatures(
+            batchIdentifierHash,
+            batchesState[batchIdentifierHash].taskCreatedBlock,
+            nonSignerStakesAndSignature
+        );
 
         // check that signatories own at least a threshold percentage of each quourm
         if (
@@ -163,10 +163,7 @@ contract AlignedLayerServiceManager is
         // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
-        if (
-            batchersBalances[senderAddress] <
-            txCost
-        ) {
+        if (batchersBalances[senderAddress] < txCost) {
             revert InsufficientFunds(
                 senderAddress,
                 txCost,
