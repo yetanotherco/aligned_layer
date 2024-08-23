@@ -1,4 +1,5 @@
 defmodule Restakings do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -58,7 +59,7 @@ defmodule Restakings do
         dbg "Restaking inserted or updated"
         {:ok, :empty}
       {:error, _, changeset, _} ->
-        "Error updating restakings table: #{inspect(changeset.errors)}" |> IO.puts()
+        "Error updating restakings table: #{inspect(changeset.errors)}" |> Logger.error()
         {:error, changeset}
     end
   end

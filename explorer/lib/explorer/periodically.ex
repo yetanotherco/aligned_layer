@@ -61,7 +61,7 @@ defmodule Explorer.Periodically do
       # This function will avoid processing a batch taken by another process
       |> Enum.map(&process_batch_if_not_in_other_process/1)
     rescue
-      error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
+      error -> Logger.error("An error occurred during batch processing:\n#{inspect(error)}")
     end
 
     Logger.debug("Done processing from block #{fromBlock} to block #{toBlock}")
