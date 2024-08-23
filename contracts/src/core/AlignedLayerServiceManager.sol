@@ -22,29 +22,6 @@ contract AlignedLayerServiceManager is
     uint256 internal constant THRESHOLD_DENOMINATOR = 100;
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
 
-    // EVENTS
-    event NewBatch(
-        bytes32 indexed batchMerkleRoot,
-        address senderAddress,
-        uint32 taskCreatedBlock,
-        string batchDataPointer
-    );
-
-    event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
-
-    // ERRORS
-    error BatchAlreadySubmitted(bytes32 batchIdentifierHash);
-    error BatcherBalanceIsEmpty(address batcher);
-    error BatchDoesNotExist(bytes32 batchIdentifierHash);
-    error BatchAlreadyResponded(bytes32 batchIdentifierHash);
-    error BatcherHasNoBalance(address batcher);
-    error InsufficientFunds(
-        address batcher,
-        uint256 required,
-        uint256 available
-    );
-    error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake);
-
     constructor(
         IAVSDirectory __avsDirectory,
         IRewardsCoordinator __rewardsCoordinator,
