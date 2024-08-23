@@ -24,7 +24,6 @@ contract BatcherPaymentService is
     event TaskCreated(bytes32 indexed batchMerkleRoot, string batchDataPointer);
     event BalanceLocked(address indexed user);
     event BalanceUnlocked(address indexed user, uint256 unlockBlock);
-    event MerkleRootVerified(bytes32 batchMerkleRoot);
 
     struct SignatureData {
         bytes signature;
@@ -233,8 +232,6 @@ contract BatcherPaymentService is
         } else {
             require(layer[0] == batchMerkleRoot, "Invalid merkle root");
         }
-
-        emit MerkleRootVerified(batchMerkleRoot);
     }
 
     function _verifySignatureAndDecreaseBalance(
