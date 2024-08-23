@@ -1772,6 +1772,7 @@ dependencies = [
  "ciborium",
  "hex",
  "lambdaworks-crypto",
+ "log",
  "serde",
  "serde_json",
  "sha3",
