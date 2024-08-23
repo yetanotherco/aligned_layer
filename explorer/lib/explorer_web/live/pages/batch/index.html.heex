@@ -27,11 +27,11 @@
         </h3>
         <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       </div>
-            <div>
+      <div>
         <h3>
           Batch sender address:
         </h3>
-        <p><%= @current_batch.sender_address %></p>
+        <p><%= @current_batch.sender_address |> Helpers.binary_to_hex_string() %></p>
       </div>
       <div>
         <h3>
