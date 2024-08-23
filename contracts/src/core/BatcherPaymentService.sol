@@ -285,22 +285,22 @@ contract BatcherPaymentService is
             revert InvalidSignature();
         }
 
-        UserInfo storage user_data = userData[signer];
+        UserInfo storage signerData = userData[signer];
 
-        if (user_data.nonce != signatureData.nonce) {
-            revert InvalidNonce(user_data.nonce, signatureData.nonce);
+        if (signerData.nonce != signatureData.nonce) {
+            revert InvalidNonce(signerData.nonce, signatureData.nonce);
         }
-        user_data.nonce++;
+        signerData.nonce++;
 
-        if (user_data.balance < feePerProof) {
+        if (signerData.balance < feePerProof) {
             revert SignerInsufficientBalance(
                 signer,
-                user_data.balance,
+                signerData.balance,
                 feePerProof
             );
         }
 
-        user_data.balance -= feePerProof;
+        signerData.balance -= feePerProof;
     }
 
     function user_balances(address account) public view returns (uint256) {
