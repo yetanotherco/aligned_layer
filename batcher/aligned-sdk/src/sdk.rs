@@ -16,7 +16,7 @@ use crate::{
 
 use ethers::{
     prelude::k256::ecdsa::SigningKey,
-    providers::{Http, Provider},
+    providers::{Http, Middleware, Provider},
     signers::Wallet,
     types::{Address, U256},
 };
@@ -370,6 +370,26 @@ pub async fn get_next_nonce(
         }
         Err(e) => Err(errors::NonceError::EthereumCallError(e.to_string())),
     }
+}
+
+/// Returns the chain ID of the Ethereum network.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// # Returns
+/// * The chain ID of the Ethereum network.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumCallError` if there is an error in the Ethereum call.
+pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| errors::ChainIdError::EthereumProviderError(e.to_string()))?;
+
+    let chain_id = eth_rpc_provider
+        .get_chainid()
+        .await
+        .map_err(|e| errors::ChainIdError::EthereumCallError(e.to_string()))?;
+
+    Ok(chain_id.as_u64())
 }
 
 #[cfg(test)]

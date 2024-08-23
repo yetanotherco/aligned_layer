@@ -38,7 +38,7 @@ pub async fn submit(
 
 - `batcher_url` - The url of the batcher to which the proof will be submitted.
 - `verification_data` - The verification data for the proof.
-- `wallet` - The wallet used to sign the proof.
+- `wallet` - The wallet used to sign the proof. Should be using correct chain id. See `get_chain_id`.
 - `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 
 #### Returns
@@ -78,7 +78,7 @@ pub async fn submit_multiple(
 
 - `batcher_url` - The url of the batcher to which the proof will be submitted.
 - `verification_data` - A verification data array.
-- `wallet` - The wallet used to sign the proof.
+- `wallet` - The wallet used to sign the proof. Should be using correct chain id. See `get_chain_id`.
 - `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 
 #### Returns
@@ -123,7 +123,7 @@ pub async fn submit_and_wait_verification(
 - `eth_rpc_url` - The URL of the Ethereum RPC node.
 - `chain` - The chain on which the verification will be done.
 - `verification_data` - The verification data for the proof.
-- `wallet` - The wallet used to sign the proof.
+- `wallet` - The wallet used to sign the proof. Should be using correct chain id. See `get_chain_id`.
 - `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 
 #### Returns
@@ -171,7 +171,7 @@ pub async fn submit_multiple_and_wait_verification(
 - `eth_rpc_url` - The URL of the Ethereum RPC node.
 - `chain` - The chain on which the verification will be done.
 - `verification_data` - A verification data array.
-- `wallet` - The wallet used to sign the proof.
+- `wallet` - The wallet used to sign the proof. Should be using correct chain id. See `get_chain_id`.
 - `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 
 #### Returns
@@ -265,6 +265,29 @@ pub async fn get_next_nonce(
 #### Returns
 
 - `Result<U256, NonceError>` - The nonce to use or an error.
+
+#### Errors
+
+- `EthereumProviderError` if there is an error in the connection with the RPC provider.
+- `EthereumCallError` if there is an error in the Ethereum call.
+
+### `get_chain_id`
+
+Returns the chain id for a given rpc url.
+
+Should be used before submiting proofs to the batcher. Wallet chain id needs to be set with:
+
+```rust
+wallet = wallet.with_chain_id(chain_id);
+```
+
+### Arguments
+
+- `eth_rpc_url` - The URL of the Ethereum RPC node.
+
+#### Returns
+
+- `Result<U256, ChainIdError>` - The nonce to use or an error.
 
 #### Errors
 

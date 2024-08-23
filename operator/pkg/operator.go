@@ -159,15 +159,26 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 				continue
 			}
-			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
+			batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
+			var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+
+			responseSignature := o.SignTaskResponse(batchIdentifierHash)
+			o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
 
 			signedTaskResponse := types.SignedTaskResponse{
+				BatchIdentifierHash: batchIdentifierHash,
 				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+				SenderAddress:   newBatchLog.SenderAddress,
 				BlsSignature:    *responseSignature,
 				OperatorId:      o.OperatorId,
 			}
 
-			o.Logger.Infof("Signed hash: %+v", *responseSignature)
+			// o.Logger.Infof("Signed Task Response to send: %+v", signedTaskResponse)
+			o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+				hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+				hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+				hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+			)
 			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
 	}
@@ -179,6 +190,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
+		"sender address", "0x"+hex.EncodeToString(newBatchLog.SenderAddress[:]),
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
@@ -444,7 +456,7 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 	return err == nil
 }
 
-func (o *Operator) SignTaskResponse(batchMerkleRoot [32]byte) *bls.Signature {
-	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchMerkleRoot)
+func (o *Operator) SignTaskResponse(batchIdentifierHash [32]byte) *bls.Signature {
+	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchIdentifierHash)
 	return &responseSignature
 }

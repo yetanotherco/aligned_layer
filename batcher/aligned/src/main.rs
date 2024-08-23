@@ -12,6 +12,7 @@ use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::{get_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
@@ -271,7 +272,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let wallet = if let Some(keystore_path) = keystore_path {
+            let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?;
                 Wallet::decrypt_keystore(keystore_path, password)
@@ -286,6 +287,10 @@ async fn main() -> Result<(), AlignedError> {
             };
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
+
+            let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
+            wallet = wallet.with_chain_id(chain_id);
+
             let batcher_eth_address = submit_args.payment_service_addr.clone();
 
             let verification_data = verification_data_from_args(submit_args)?;
