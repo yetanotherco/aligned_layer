@@ -2,6 +2,7 @@ pragma solidity =0.8.12;
 
 import {BatcherPaymentService} from "../../src/core/BatcherPaymentService.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {IAlignedLayerServiceManager} from "../../src/core/IAlignedLayerServiceManager.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
@@ -36,7 +37,7 @@ contract BatcherPaymentServiceDeployer is Script {
             ""
         );
         BatcherPaymentService(payable(address(proxy))).initialize(
-            alignedLayerServiceManager,
+            IAlignedLayerServiceManager(alignedLayerServiceManager),
             batcherPaymentServiceOwner,
             batcherWallet
         );
