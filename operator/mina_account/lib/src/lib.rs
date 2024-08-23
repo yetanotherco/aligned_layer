@@ -80,7 +80,7 @@ fn parse_pub_inputs(pub_inputs: &[u8]) -> Result<(Fp, Fp, [u8; KECCAK_HASH_SIZE]
 
     let merkle_root = parse_mina_hash(pub_inputs, &mut offset)?;
     let account_hash = parse_mina_hash(pub_inputs, &mut offset)?;
-    let account_id_hash = parse_keccak256_hash(&pub_inputs, &mut offset)?;
+    let account_id_hash = parse_keccak256_hash(pub_inputs, &mut offset)?;
 
     Ok((merkle_root, account_hash, account_id_hash))
 }
