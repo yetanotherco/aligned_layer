@@ -14,5 +14,6 @@ abstract contract AlignedLayerServiceManagerStorage {
     mapping(address => uint256) internal batchersBalances;
 
     // storage gap for upgradeability
+    // solhint-disable-next-line var-name-mixedcase
     uint256[48] private __GAP;
 }

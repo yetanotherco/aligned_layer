@@ -64,6 +64,7 @@ contract BatcherPaymentService is
     mapping(address => UserInfo) public userData;
 
     // storage gap for upgradeability
+    // solhint-disable-next-line var-name-mixedcase
     uint256[24] private __GAP;
 
     // CONSTRUCTOR & INITIALIZER
@@ -208,7 +209,10 @@ contract BatcherPaymentService is
 
     function _authorizeUpgrade(
         address newImplementation
-    ) internal override onlyOwner {}
+    ) internal override onlyOwner // solhint-disable-next-line no-empty-blocks
+    {
+
+    }
 
     function _checkMerkleRootAndVerifySignatures(
         bytes32[] calldata leaves,
