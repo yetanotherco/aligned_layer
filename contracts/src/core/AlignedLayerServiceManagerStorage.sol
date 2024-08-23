@@ -1,6 +1,6 @@
 pragma solidity ^0.8.12;
 
-contract AlignedLayerServiceManagerStorage {
+abstract contract AlignedLayerServiceManagerStorage {
     struct BatchState {
         uint32 taskCreatedBlock;
         bool responded;
