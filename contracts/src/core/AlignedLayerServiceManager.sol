@@ -39,8 +39,12 @@ contract AlignedLayerServiceManager is
         _disableInitializers();
     }
 
-    function initialize(address _initialOwner) public initializer {
-        _transferOwnership(_initialOwner);
+    // @param _rewardsInitiator The address which is allowed to create AVS rewards submissions.
+    function initialize(
+        address _initialOwner,
+        address _rewardsInitiator
+    ) public initializer {
+        __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
     }
 
     function createNewTask(
