@@ -22,8 +22,7 @@ contract BatcherPaymentService is
     event FundsWithdrawn(address indexed recipient, uint256 amount);
     event newTaskCreated(
         bytes32 indexed batchMerkleRoot,
-        uint256 gasForAggregator,
-        uint256 gasPerProof
+        uint256 feePerProof
     );
 
     struct SignatureData {
@@ -122,14 +121,13 @@ contract BatcherPaymentService is
 
         require(success, "createNewTask call failed");
 
-        payable(BatcherWallet).transfer(
-            (feePerProof * signaturesQty) - feeForAggregator
-        );
-
         emit newTaskCreated(
             batchMerkleRoot,
-            gasForAggregator,
-            gasPerProof
+            feePerProof
+        );
+
+        payable(BatcherWallet).transfer(
+            (feePerProof * signaturesQty) - feeForAggregator
         );
     }
 

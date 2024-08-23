@@ -18,11 +18,7 @@ defmodule AlignedLayerServiceManager do
       file -> file
     end
 
-  payment_service_path =
-    "../contracts/script/deploy/config/#{@environment}/batcher-payment-service.#{@environment}.config.json"
-
   {status_aligned_config, config_json_string} = File.read(config_file_path)
-  {status_payment_service, payment_service_json_string} = File.read(payment_service_path)
 
   case status_aligned_config do
     :ok ->
@@ -34,28 +30,13 @@ defmodule AlignedLayerServiceManager do
       )
   end
 
-  case status_payment_service do
-    :ok ->
-      Logger.debug("Payment service file read successfully")
-
-    :error ->
-      raise(
-        "Payment service file not read successfully, did you run make create-env? If you did,\n make sure Alignedlayer config file is correctly stored"
-      )
-  end
-
   @aligned_layer_service_manager_address Jason.decode!(config_json_string)
                                          |> Map.get("addresses")
                                          |> Map.get("alignedLayerServiceManager")
 
   @batcher_payment_service_address Jason.decode!(config_json_string)
-                                         |> Map.get("addresses")
-                                         |> Map.get("batcherPaymentService")
-
-
-  @gas_per_proof Jason.decode!(payment_service_json_string)
-                 |> Map.get("amounts")
-                 |> Map.get("gasPerProof")
+                                   |> Map.get("addresses")
+                                   |> Map.get("batcherPaymentService")
 
   @first_block (case @environment do
                   "devnet" -> 0
@@ -149,7 +130,7 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
       proof_hashes: nil,
-      cost_per_proof: get_cost_per_proof()
+      cost_per_proof: get_cost_per_proof(created_batch.batchMerkleRoot)
     }
   end
 
@@ -177,7 +158,7 @@ defmodule AlignedLayerServiceManager do
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
           cost_per_proof: unverified_batch.cost_per_proof,
-          proof_hashes: nil #don't need this value to update an existing but unverified batch, it is on another table
+          proof_hashes: nil
         }
     end
   end
@@ -226,23 +207,25 @@ defmodule AlignedLayerServiceManager do
     case Ethers.current_gas_price() do
       {:ok, gas_price} ->
         gas_price
-      {:error, error} -> raise("Error fetching gas price: #{error}")
+
+      {:error, error} ->
+        raise("Error fetching gas price: #{error}")
     end
   end
 
-  def get_cost_per_proof() do
-    case Integer.parse(@gas_per_proof) do
-      {value, _} -> value * get_current_gas_price()
-      :error -> raise("Error parsing @gas_per_proof")
-    end
+  def get_cost_per_proof(merkle_root) do
+    data = BatcherPaymentServiceManager.get_gas_per_proof(merkle_root)
+    Logger.debug("Cost per proof of #{merkle_root}: #{data}")
+    data * get_current_gas_price()
   end
 
   def update_restakeable_strategies() do
     case AlignedLayerServiceManager.get_restakeable_strategies() |> Ethers.call() do
       {:ok, restakeable_strategies} ->
         Strategies.update(restakeable_strategies)
+
       {:error, error} ->
-        dbg("Error fetching restakeable strategies: #{error}")
+        Logger.error("Error fetching restakeable strategies: #{error}")
         raise("Error fetching restakeable strategies: #{error}")
     end
   end

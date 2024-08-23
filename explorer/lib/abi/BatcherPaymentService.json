@@ -482,13 +482,7 @@
 				"internalType": "bytes32"
 			},
 			{
-				"name": "gasForAggregator",
-				"type": "uint256",
-				"indexed": false,
-				"internalType": "uint256"
-			},
-			{
-				"name": "gasPerProof",
+				"name": "feePerProof",
 				"type": "uint256",
 				"indexed": false,
 				"internalType": "uint256"
