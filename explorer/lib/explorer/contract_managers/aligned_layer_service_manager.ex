@@ -246,4 +246,14 @@ defmodule AlignedLayerServiceManager do
       :error -> raise("Error parsing @gas_per_proof")
     end
   end
+
+  def update_restakeable_strategies() do
+    case AlignedLayerServiceManager.get_restakeable_strategies() |> Ethers.call() do
+      {:ok, restakeable_strategies} ->
+        Strategies.update(restakeable_strategies)
+      {:error, error} ->
+        dbg("Error fetching restakeable strategies: #{error}")
+        raise("Error fetching restakeable strategies: #{error}")
+    end
+  end
 end

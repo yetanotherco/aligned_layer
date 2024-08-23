@@ -7,7 +7,14 @@ defmodule EthConverter do
   def wei_to_eth(wei, decimal_places \\ 18)
 
   def wei_to_eth(wei, _decimal_places) when is_nil(wei) do
-    :nil
+    nil
+  end
+
+  def wei_to_eth(%Decimal{} = wei, decimal_places) do
+    wei
+    |> Decimal.div(Decimal.new(@wei_per_eth))
+    |> Decimal.round(decimal_places)
+    |> Decimal.to_string(:normal)
   end
 
   def wei_to_eth(wei, decimal_places) when is_integer(wei) do

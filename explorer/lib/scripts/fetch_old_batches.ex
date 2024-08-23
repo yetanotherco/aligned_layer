@@ -10,7 +10,7 @@ defmodule Scripts.FetchOldBatches do
 
   def fetch_old_events(fromBlock, toBlock) do
     "fetching old events, from #{fromBlock} to #{toBlock}" |> IO.inspect()
-    chunk_size = 16 #do in smaller chunks, if there are too many blocks to process
+    chunk_size = 32 #do in smaller chunks, if there are too many blocks to process
     chunkify(fromBlock, toBlock, chunk_size) |> Enum.each(&make_request/1)
     "done fetching old events" |> IO.inspect()
   end
@@ -27,7 +27,7 @@ defmodule Scripts.FetchOldBatches do
     "Making old batches request" |> IO.inspect()
     "from #{fromBlock} to #{toBlock}" |> IO.inspect()
     try do
-      Explorer.Periodically.process_blocks_from_to(fromBlock, toBlock)
+      Explorer.Periodically.process_batches(fromBlock, toBlock)
     rescue
       error -> IO.puts("An error occurred during batch processing*:\n#{inspect(error)}")
     end
