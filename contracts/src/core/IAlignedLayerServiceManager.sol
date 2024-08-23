@@ -11,6 +11,7 @@ interface IAlignedLayerServiceManager {
 
     function respondToTask(
         bytes32 batchMerkleRoot,
+        address senderAddress,
         IBLSSignatureChecker.NonSignerStakesAndSignature
             memory nonSignerStakesAndSignature
     ) external;
@@ -22,7 +23,8 @@ interface IAlignedLayerServiceManager {
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint256 verificationDataBatchIndex
+        uint256 verificationDataBatchIndex,
+        address senderAddress
     ) external view returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
