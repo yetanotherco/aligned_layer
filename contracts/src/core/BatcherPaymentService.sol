@@ -181,19 +181,19 @@ contract BatcherPaymentService is
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
-        UserInfo storage user_data = userData[msg.sender];
-        if (user_data.balance < amount) {
-            revert PayerInsufficientBalance(user_data.balance, amount);
+        UserInfo storage senderData = userData[msg.sender];
+        if (senderData.balance < amount) {
+            revert PayerInsufficientBalance(senderData.balance, amount);
         }
 
         if (
-            user_data.unlockBlock == 0 || user_data.unlockBlock > block.number
+            senderData.unlockBlock == 0 || senderData.unlockBlock > block.number
         ) {
-            revert FundsLocked(user_data.unlockBlock, block.number);
+            revert FundsLocked(senderData.unlockBlock, block.number);
         }
 
-        user_data.balance -= amount;
-        user_data.unlockBlock = 0;
+        senderData.balance -= amount;
+        senderData.unlockBlock = 0;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }
