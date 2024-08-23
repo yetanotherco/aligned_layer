@@ -85,16 +85,21 @@ defmodule AlignedLayerServiceManager do
 
     %NewBatchEvent{
       batchMerkleRoot: topics_raw |> Enum.at(1),
-      taskCreatedBlock: data |> Enum.at(0),
-      batchDataPointer: data |> Enum.at(1)
+      senderAddress: data |> Enum.at(0),
+      taskCreatedBlock: data |> Enum.at(1),
+      batchDataPointer: data |> Enum.at(2)
     }
   end
 
   def is_batch_responded(merkle_root) do
-    case AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root))
-         |> Ethers.call() do
-      {:ok, [_, true]} -> true
-      _ -> false
+    event =
+      AlignedLayerServiceManager.EventFilters.batch_verified(Utils.string_to_bytes32(merkle_root))
+        |> Ethers.get_logs(fromBlock: @first_block)
+
+    case event do
+      {:error, reason} -> {:error, reason}
+      {_, []} -> false
+      {:ok, _} -> true
     end
   end
 
@@ -123,6 +128,7 @@ defmodule AlignedLayerServiceManager do
       amount_of_proofs: nil,
       proof_hashes: nil,
       fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot})
+      sender_address: Utils.string_to_bytes32(created_batch.senderAddress)
     }
   end
 
@@ -151,6 +157,7 @@ defmodule AlignedLayerServiceManager do
           amount_of_proofs: unverified_batch.amount_of_proofs,
           fee_per_proof: unverified_batch.fee_per_proof,
           proof_hashes: nil
+          sender_address: unverified_batch.sender_address
         }
     end
   end
@@ -176,7 +183,9 @@ defmodule AlignedLayerServiceManager do
   end
 
   defp extract_batch_verified_event_info(event) do
-    batch_verified = event |> Map.get(:topics_raw) |> Enum.at(1)
+    batch_merkle_root = event |> Map.get(:topics_raw) |> Enum.at(1)
+    sender_address = event |> Map.get(:data) |> Enum.at(0)
+
 
     {:ok,
      %BatchVerifiedInfo{
@@ -184,7 +193,8 @@ defmodule AlignedLayerServiceManager do
        block_number: event |> Map.get(:block_number),
        block_timestamp: get_block_timestamp(event |> Map.get(:block_number)),
        transaction_hash: event |> Map.get(:transaction_hash),
-       batch_verified: batch_verified
+       batch_merkle_root: batch_merkle_root,
+       sender_address: sender_address
      }}
   end
 
@@ -212,6 +222,16 @@ defmodule AlignedLayerServiceManager do
 
       {:error, error} ->
         Logger.error("Error fetching restakeable strategies: #{error}")
+        raise("Error fetching restakeable strategies: #{error}")
+    end
+  end
+
+  def update_restakeable_strategies() do
+    case AlignedLayerServiceManager.get_restakeable_strategies() |> Ethers.call() do
+      {:ok, restakeable_strategies} ->
+        Strategies.update(restakeable_strategies)
+      {:error, error} ->
+        dbg("Error fetching restakeable strategies: #{error}")
         raise("Error fetching restakeable strategies: #{error}")
     end
   end

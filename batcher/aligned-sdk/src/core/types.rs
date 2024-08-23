@@ -3,6 +3,7 @@ use ethers::signers::Wallet;
 use ethers::types::Address;
 use ethers::types::Signature;
 use ethers::types::SignatureError;
+use ethers::types::U256;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
@@ -36,13 +37,15 @@ pub struct VerificationData {
 pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
     pub nonce: [u8; 32],
+    pub chain_id: U256,
 }
 
 impl NoncedVerificationData {
-    pub fn new(verification_data: VerificationData, nonce: [u8; 32]) -> Self {
+    pub fn new(verification_data: VerificationData, nonce: [u8; 32], chain_id: U256) -> Self {
         Self {
             verification_data,
             nonce,
+            chain_id,
         }
     }
 }
@@ -171,9 +174,11 @@ impl ClientMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
     pub fn new(verification_data: NoncedVerificationData, wallet: Wallet<SigningKey>) -> Self {
-        let hashed_leaf = ClientMessage::hash_with_nonce(&verification_data);
+        let hashed_data = ClientMessage::hash_with_nonce_and_chain_id(&verification_data);
 
-        let signature = wallet.sign_hash(hashed_leaf.into()).unwrap();
+        let signature = wallet
+            .sign_hash(hashed_data.into())
+            .expect("Failed to sign the verification data");
 
         ClientMessage {
             verification_data,
@@ -184,19 +189,26 @@ impl ClientMessage {
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
     pub fn verify_signature(&self) -> Result<Address, SignatureError> {
-        let hashed_leaf: [u8; 32] = ClientMessage::hash_with_nonce(&self.verification_data);
+        let hashed_data: [u8; 32] =
+            ClientMessage::hash_with_nonce_and_chain_id(&self.verification_data);
 
-        let recovered = self.signature.recover(hashed_leaf)?;
-        self.signature.verify(hashed_leaf, recovered)?;
+        let recovered = self.signature.recover(hashed_data)?;
+        self.signature.verify(hashed_data, recovered)?;
         Ok(recovered)
     }
 
-    fn hash_with_nonce(verification_data: &NoncedVerificationData) -> [u8; 32] {
+    fn hash_with_nonce_and_chain_id(verification_data: &NoncedVerificationData) -> [u8; 32] {
         let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.into());
+
+        let mut chain_id_bytes = [0u8; 32];
+        verification_data
+            .chain_id
+            .to_big_endian(&mut chain_id_bytes);
 
         let mut hasher = Keccak256::new();
         hasher.update(hashed_leaf);
         hasher.update(verification_data.nonce);
+        hasher.update(chain_id_bytes);
         hasher.finalize().into()
     }
 }
@@ -232,6 +244,7 @@ pub enum ValidityResponseMessage {
     Valid,
     InvalidNonce,
     InvalidSignature,
+    InvalidChainId,
     InvalidProof,
     ProofTooLarge,
     InsufficientBalance(Address),
