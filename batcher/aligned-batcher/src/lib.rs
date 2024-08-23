@@ -145,12 +145,21 @@ impl Batcher {
 
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
-        let last_uploaded_batch_block = eth_rpc_provider
-            .get_block_number()
-            .await
-            .expect("Failed to get block number")
-            .try_into()
-            .unwrap();
+        let last_uploaded_batch_block = match eth_rpc_provider.get_block_number().await {
+            Ok(block_num) => block_num,
+            Err(e) => {
+                warn!(
+                    "Failed to get block number with main rpc, trying with fallback rpc. Err: {:?}",
+                    e
+                );
+                eth_rpc_provider_fallback
+                    .get_block_number()
+                    .await
+                    .expect("Failed to get block number with fallback rpc")
+            }
+        };
+
+        let last_uploaded_batch_block = last_uploaded_batch_block.as_u64();
 
         let chain_id = match eth_rpc_provider.get_chainid().await {
             Ok(chain_id) => chain_id,
@@ -263,11 +272,13 @@ impl Batcher {
         Ok(())
     }
 
-    async fn handle_connection(self: Arc<Self>, raw_stream: TcpStream, addr: SocketAddr) {
+    async fn handle_connection(
+        self: Arc<Self>,
+        raw_stream: TcpStream,
+        addr: SocketAddr,
+    ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
-        let ws_stream = tokio_tungstenite::accept_async(raw_stream)
-            .await
-            .expect("Error during the websocket handshake occurred");
+        let ws_stream = tokio_tungstenite::accept_async(raw_stream).await?;
 
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
@@ -278,14 +289,13 @@ impl Batcher {
         );
 
         let serialized_protocol_version_msg = cbor_serialize(&protocol_version_msg)
-            .expect("Could not serialize protocol version message");
+            .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
 
         outgoing
             .write()
             .await
             .send(Message::binary(serialized_protocol_version_msg))
-            .await
-            .expect("Could not send protocol version message");
+            .await?;
 
         match incoming
             .try_filter(|msg| future::ready(msg.is_binary()))
@@ -295,6 +305,8 @@ impl Batcher {
             Err(e) => error!("Unexpected error: {}", e),
             Ok(_) => info!("{} disconnected", &addr),
         }
+
+        Ok(())
     }
 
     /// Handle an individual message from the client.
@@ -304,8 +316,13 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), Error> {
         // Deserialize verification data from message
-        let client_msg: ClientMessage =
-            cbor_deserialize(message.into_data().as_slice()).expect("Failed to deserialize task");
+        let client_msg: ClientMessage = match cbor_deserialize(message.into_data().as_slice()) {
+            Ok(msg) => msg,
+            Err(e) => {
+                warn!("Failed to deserialize message: {}", e);
+                return Ok(());
+            }
+        };
 
         info!(
             "Received message with nonce: {}",
@@ -717,7 +734,7 @@ impl Batcher {
             &file_name,
         )
         .await
-        .expect("Failed to upload object to S3");
+        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -865,12 +882,19 @@ impl Batcher {
                 let nonpaying_nonce = match batch_state.user_nonces.entry(addr) {
                     Entry::Occupied(o) => o.into_mut(),
                     Entry::Vacant(vacant) => {
-                        let nonce = self
-                            .payment_service
-                            .user_nonces(addr)
-                            .call()
-                            .await
-                            .expect("Failed to get nonce");
+                        let nonce = match self.payment_service.user_nonces(addr).call().await {
+                            Ok(nonce) => nonce,
+                            Err(e) => {
+                                error!("Failed to get nonce for address {:?}: {:?}", addr, e);
+                                send_message(
+                                    ws_conn_sink.clone(),
+                                    ValidityResponseMessage::InvalidNonce,
+                                )
+                                .await;
+
+                                return Ok(());
+                            }
+                        };
 
                         vacant.insert(nonce)
                     }
@@ -916,24 +940,36 @@ impl Batcher {
     async fn get_user_balance(&self, addr: &Address) -> U256 {
         match self.payment_service.user_balances(*addr).call().await {
             Ok(val) => val,
-            Err(_) => self
+            Err(_) => match self
                 .payment_service_fallback
                 .user_balances(*addr)
                 .call()
                 .await
-                .unwrap_or_default(),
+            {
+                Ok(balance) => balance,
+                Err(_) => {
+                    warn!("Failed to get balance for address {:?}", addr);
+                    U256::zero()
+                }
+            },
         }
     }
 
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
         let unlock_block = match self.payment_service.user_unlock_block(*addr).call().await {
             Ok(val) => val,
-            Err(_) => self
+            Err(_) => match self
                 .payment_service_fallback
                 .user_unlock_block(*addr)
                 .call()
                 .await
-                .unwrap_or_default(),
+            {
+                Ok(unlock_block) => unlock_block,
+                Err(_) => {
+                    warn!("Failed to get unlock block for address {:?}", addr);
+                    U256::zero()
+                }
+            },
         };
 
         unlock_block != U256::zero()
@@ -974,12 +1010,16 @@ async fn send_message<T: Serialize>(
     message: T,
 ) {
     match cbor_serialize(&message) {
-        Ok(serialized_response) => ws_conn_sink
-            .write()
-            .await
-            .send(Message::binary(serialized_response))
-            .await
-            .expect("Failed to send message"),
+        Ok(serialized_response) => {
+            if let Err(err) = ws_conn_sink
+                .write()
+                .await
+                .send(Message::binary(serialized_response))
+                .await
+            {
+                error!("Error while sending message: {}", err)
+            }
+        }
         Err(e) => error!("Error while serializing message: {}", e),
     }
 }
