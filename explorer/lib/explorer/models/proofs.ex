@@ -16,7 +16,6 @@ defmodule Proofs do
     |> cast(updates, [:batch_merkle_root, :proof_hash])
     |> validate_required([:batch_merkle_root, :proof_hash])
     |> validate_format(:batch_merkle_root, ~r/0x[a-fA-F0-9]{64}/)
-    # |> validate_format(:proof_hash, ~r/0x[a-fA-F0-9]{64}/) //TODO is binary, check size
   end
 
   def cast_to_proofs(%BatchDB{} = batch) do

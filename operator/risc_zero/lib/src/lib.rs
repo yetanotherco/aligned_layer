@@ -1,4 +1,5 @@
 use risc0_zkvm::{InnerReceipt, Receipt};
+use log::error;
 
 #[no_mangle]
 pub extern "C" fn verify_risc_zero_receipt_ffi(
@@ -10,7 +11,22 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
     public_input_len: u32,
 ) -> bool {
     if inner_receipt_bytes.is_null() || image_id.is_null() {
+        error!("Input buffer null");
         return false;
+    }
+
+    if inner_receipt_len == 0 || image_id_len == 0 {
+        error!("Input buffer length zero size");
+        return false;
+    }
+
+    let mut public_input: *const u8 = public_input;
+    let mut public_input_len: u32 = public_input_len;
+    if public_input.is_null() || public_input_len == 0 {
+        // set public input to pointer to empty slice
+        let empty_slice: &[u8] = &[];
+        public_input = empty_slice.as_ptr();
+        public_input_len = 0;
     }
 
     let inner_receipt_bytes =

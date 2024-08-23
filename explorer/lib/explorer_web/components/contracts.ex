@@ -1,6 +1,8 @@
 defmodule ContractsComponent do
   use ExplorerWeb, :live_component
 
+  attr :class, :string, default: nil
+
   @impl true
   def mount(socket) do
     {:ok,
@@ -16,7 +18,7 @@ defmodule ContractsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="relative sm:col-span-3 truncate">
+    <div class={classes(["relative truncate", @class])}>
       <.card
         inner_class="text-base leading-9 flex flex-wrap sm:flex-row overflow-x-auto gap-x-2"
         title="Contract Addresses"
@@ -33,7 +35,7 @@ defmodule ContractsComponent do
           <.icon name="hero-cpu-chip" class="size-4 mb-0.5" /> Service Manager:
         </h3>
         <.a
-          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/address/#{@service_manager_address}"}
+          href={"#{Helpers.get_etherescan_url()}/address/#{@service_manager_address}"}
           class="hover:text-foreground/80"
           target="_blank"
           rel="noopener noreferrer"
@@ -44,7 +46,7 @@ defmodule ContractsComponent do
           <.icon name="hero-wallet" class="size-4 mb-0.5" /> Batcher Payment Service:
         </h3>
         <.a
-          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/address/#{@batcher_payment_service_address}"}
+          href={"#{Helpers.get_etherescan_url()}/address/#{@batcher_payment_service_address}"}
           class="hover:text-foreground/80"
           target="_blank"
           rel="noopener noreferrer"
