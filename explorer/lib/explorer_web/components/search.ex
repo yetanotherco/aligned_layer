@@ -40,10 +40,12 @@ defmodule SearchComponent do
     <form
       phx-target={@myself}
       phx-submit="search_batch"
-      class={[
-        "relative flex items-center gap-2 z-10 px-5 sm:px-0 drop-shadow-sm max-w-md",
-        @class
-      ]}
+      class={
+        classes([
+          "relative flex items-center gap-2 z-10 px-5 sm:px-0 drop-shadow-sm max-w-md",
+          @class
+        ])
+      }
     >
       <input
         phx-hook="SearchFocus"

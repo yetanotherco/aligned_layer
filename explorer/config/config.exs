@@ -10,9 +10,11 @@ import Config
 config :explorer,
   generators: [timestamp_type: :utc_datetime]
 
+host = System.get_env("PHX_HOST") || "localhost"
+
 # Configures the endpoint
 config :explorer, ExplorerWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: host],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: ExplorerWeb.ErrorHTML, json: ExplorerWeb.ErrorJSON],
@@ -38,7 +40,7 @@ config :esbuild,
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "3.4.0",
+  version: "3.4.9",
   explorer: [
     args: ~w(
       --config=tailwind.config.js
@@ -47,6 +49,29 @@ config :tailwind,
     ),
     cd: Path.expand("../assets", __DIR__)
   ]
+
+config :tails, :color_classes, [
+  "primary",
+  "secondary",
+  "accent",
+  "destructive",
+  "muted",
+  "popover",
+  "card",
+  "border",
+  "input",
+  "foreground",
+  "muted-foreground",
+  "popover-foreground",
+  "card-foreground",
+  "primary-foreground",
+  "secondary-foreground",
+  "accent-foreground",
+  "destructive-foreground",
+  "ring",
+  "radius",
+  "tooltip"
+]
 
 # Configures Elixir's Logger
 config :logger, :console,

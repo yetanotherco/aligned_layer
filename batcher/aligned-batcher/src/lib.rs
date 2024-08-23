@@ -1,8 +1,10 @@
 extern crate core;
 
+use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
 use dotenv::dotenv;
+use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use serde::Serialize;
 
@@ -19,11 +21,11 @@ use aligned_sdk::core::types::{
     VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::BatcherPaymentService;
+use eth::{try_create_new_task, BatcherPaymentService, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
-use futures_util::stream::{self, SplitSink};
+use futures_util::stream::SplitSink;
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -33,7 +35,7 @@ use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::BatchQueue;
-use types::errors::BatcherError;
+use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 
@@ -87,9 +89,12 @@ impl BatchState {
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
-    storage_endpoint: String,
+    download_endpoint: String,
     eth_ws_provider: Provider<Ws>,
+    eth_ws_provider_fallback: Provider<Ws>,
+    chain_id: U256,
     payment_service: BatcherPaymentService,
+    payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -106,15 +111,15 @@ impl Batcher {
         dotenv().ok();
 
         // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/localstack.html
-        let endpoint_url = env::var("LOCALSTACK_ENDPOINT_URL").ok();
+        let upload_endpoint = env::var("UPLOAD_ENDPOINT").ok();
 
         let s3_bucket_name =
             env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
 
-        let storage_endpoint =
-            env::var("STORAGE_ENDPOINT").expect("STORAGE_ENDPOINT not found in environment");
+        let download_endpoint =
+            env::var("DOWNLOAD_ENDPOINT").expect("DOWNLOAD_ENDPOINT not found in environment");
 
-        let s3_client = s3::create_client(endpoint_url).await;
+        let s3_client = s3::create_client(upload_endpoint).await;
 
         let config = ConfigFromYaml::new(config_file);
         let deployment_output =
@@ -125,25 +130,63 @@ impl Batcher {
                 .await
                 .expect("Failed to get ethereum websocket provider");
 
+        let eth_ws_provider_fallback = Provider::connect_with_reconnects(
+            &config.eth_ws_url_fallback,
+            config.batcher.eth_ws_reconnects,
+        )
+        .await
+        .expect("Failed to get fallback ethereum websocket provider");
+
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
+        let eth_rpc_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
+            .expect("Failed to get fallback provider");
+
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
-        let last_uploaded_batch_block = eth_rpc_provider
-            .get_block_number()
-            .await
-            .expect("Failed to get block number")
-            .try_into()
-            .unwrap();
+        let last_uploaded_batch_block = match eth_rpc_provider.get_block_number().await {
+            Ok(block_num) => block_num,
+            Err(e) => {
+                warn!(
+                    "Failed to get block number with main rpc, trying with fallback rpc. Err: {:?}",
+                    e
+                );
+                eth_rpc_provider_fallback
+                    .get_block_number()
+                    .await
+                    .expect("Failed to get block number with fallback rpc")
+            }
+        };
+
+        let last_uploaded_batch_block = last_uploaded_batch_block.as_u64();
+
+        let chain_id = match eth_rpc_provider.get_chainid().await {
+            Ok(chain_id) => chain_id,
+            Err(e) => {
+                warn!("Failed to get chain id with main rpc: {}", e);
+                eth_rpc_provider_fallback
+                    .get_chainid()
+                    .await
+                    .expect("Failed to get chain id with fallback rpc")
+            }
+        };
 
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
+            config.ecdsa.clone(),
+            deployment_output.addresses.batcher_payment_service.clone(),
+        )
+        .await
+        .expect("Failed to get Batcher Payment Service contract");
+
+        let payment_service_fallback = eth::get_batcher_payment_service(
+            eth_rpc_provider_fallback,
             config.ecdsa,
             deployment_output.addresses.batcher_payment_service,
         )
         .await
-        .expect("Failed to get Batcher Payment Service contract");
+        .expect("Failed to get fallback Batcher Payment Service contract");
 
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
@@ -156,9 +199,12 @@ impl Batcher {
         Self {
             s3_client,
             s3_bucket_name,
-            storage_endpoint,
+            download_endpoint,
             eth_ws_provider,
+            eth_ws_provider_fallback,
+            chain_id,
             payment_service,
+            payment_service_fallback,
             batch_state: Mutex::new(BatchState::new()),
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
@@ -191,10 +237,30 @@ impl Batcher {
             .await
             .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
 
-        while let Some(block) = stream.next().await {
+        let mut stream_fallback = self
+            .eth_ws_provider_fallback
+            .subscribe_blocks()
+            .await
+            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+
+        let last_seen_block = Mutex::<u64>::new(0);
+
+        while let Some(block) = tokio::select! {
+            block = stream.next() => block,
+            block = stream_fallback.next() => block,
+        } {
             let batcher = self.clone();
-            let block_number = block.number.unwrap();
-            let block_number = u64::try_from(block_number).unwrap();
+            let block_number = block.number.unwrap_or_default();
+            let block_number = u64::try_from(block_number).unwrap_or_default();
+
+            {
+                let mut last_seen_block = last_seen_block.lock().await;
+                if block_number <= *last_seen_block {
+                    continue;
+                }
+                *last_seen_block = block_number;
+            }
+
             info!("Received new block: {}", block_number);
             tokio::spawn(async move {
                 if let Err(e) = batcher.handle_new_block(block_number).await {
@@ -206,11 +272,13 @@ impl Batcher {
         Ok(())
     }
 
-    async fn handle_connection(self: Arc<Self>, raw_stream: TcpStream, addr: SocketAddr) {
+    async fn handle_connection(
+        self: Arc<Self>,
+        raw_stream: TcpStream,
+        addr: SocketAddr,
+    ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
-        let ws_stream = tokio_tungstenite::accept_async(raw_stream)
-            .await
-            .expect("Error during the websocket handshake occurred");
+        let ws_stream = tokio_tungstenite::accept_async(raw_stream).await?;
 
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
@@ -220,24 +288,25 @@ impl Batcher {
             aligned_sdk::communication::protocol::EXPECTED_PROTOCOL_VERSION,
         );
 
-        let serialized_protocol_version_msg = serde_json::to_vec(&protocol_version_msg)
-            .expect("Could not serialize protocol version message");
+        let serialized_protocol_version_msg = cbor_serialize(&protocol_version_msg)
+            .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
 
         outgoing
             .write()
             .await
             .send(Message::binary(serialized_protocol_version_msg))
-            .await
-            .expect("Could not send protocol version message");
+            .await?;
 
         match incoming
-            .try_filter(|msg| future::ready(msg.is_text()))
+            .try_filter(|msg| future::ready(msg.is_binary()))
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
             Err(e) => error!("Unexpected error: {}", e),
             Ok(_) => info!("{} disconnected", &addr),
         }
+
+        Ok(())
     }
 
     /// Handle an individual message from the client.
@@ -247,14 +316,33 @@ impl Batcher {
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> Result<(), Error> {
         // Deserialize verification data from message
-        let client_msg: ClientMessage =
-            serde_json::from_str(message.to_text().expect("Message is not text"))
-                .expect("Failed to deserialize task");
+        let client_msg: ClientMessage = match cbor_deserialize(message.into_data().as_slice()) {
+            Ok(msg) => msg,
+            Err(e) => {
+                warn!("Failed to deserialize message: {}", e);
+                return Ok(());
+            }
+        };
 
         info!(
             "Received message with nonce: {}",
             U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
         );
+
+        if client_msg.verification_data.chain_id != self.chain_id {
+            warn!(
+                "Received message with incorrect chain id: {}",
+                client_msg.verification_data.chain_id
+            );
+
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidChainId,
+            )
+            .await;
+
+            return Ok(());
+        }
 
         info!("Verifying message signature...");
         if let Ok(addr) = client_msg.verify_signature() {
@@ -350,7 +438,7 @@ impl Batcher {
         let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
             Some(nonce) => *nonce,
             None => {
-                let user_nonce = match self.payment_service.user_nonces(addr).call().await {
+                let user_nonce = match self.get_user_nonce(addr).await {
                     Ok(nonce) => nonce,
                     Err(e) => {
                         error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
@@ -373,6 +461,16 @@ impl Batcher {
 
         batch_state.user_nonces.insert(addr, nonce + U256::one());
         true
+    }
+
+    async fn get_user_nonce(
+        &self,
+        addr: Address,
+    ) -> Result<U256, ContractError<SignerMiddlewareT>> {
+        match self.payment_service.user_nonces(addr).call().await {
+            Ok(nonce) => Ok(nonce),
+            Err(_) => self.payment_service_fallback.user_nonces(addr).call().await,
+        }
     }
 
     /// Adds verification data to the current batch queue.
@@ -449,7 +547,17 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
 
-        let current_batch_size = serde_json::to_vec(&batch_verification_data).unwrap().len();
+        let current_batch_size = match cbor_serialize(&batch_verification_data) {
+            Ok(serialized) => serialized.len(),
+            Err(e) => {
+                error!(
+                    "Failed to serialize verification data: {:?}, resetting batch state",
+                    e
+                );
+                self.flush_queue_and_clear_nonce_cache().await;
+                return None;
+            }
+        };
 
         // check if the current batch needs to be splitted into smaller batches
         if current_batch_size > self.max_batch_size {
@@ -457,7 +565,17 @@ impl Batcher {
             let mut acc_batch_size = 0;
             let mut finalized_batch_idx = 0;
             for (idx, (verification_data, _, _, _)) in batch_state.batch_queue.iter().enumerate() {
-                acc_batch_size += serde_json::to_vec(verification_data).unwrap().len();
+                acc_batch_size += match cbor_serialize(verification_data) {
+                    Ok(serialized) => serialized.len(),
+                    Err(e) => {
+                        error!(
+                            "Failed to serialize verification data: {:?}, resetting batch",
+                            e
+                        );
+                        self.flush_queue_and_clear_nonce_cache().await;
+                        return None;
+                    }
+                };
                 if acc_batch_size > self.max_batch_size {
                     finalized_batch_idx = idx;
                     break;
@@ -499,8 +617,8 @@ impl Batcher {
             .map(|vd| vd.verification_data.clone())
             .collect();
 
-        let batch_bytes = serde_json::to_vec(batch_verification_data.as_slice())
-            .expect("Failed to serialize batch");
+        let batch_bytes = cbor_serialize(&batch_verification_data)
+            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
 
         info!("Finalizing batch. Length: {}", finalized_batch.len());
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
@@ -562,9 +680,7 @@ impl Batcher {
             return Err(e);
         };
 
-        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await;
-
-        Ok(())
+        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
@@ -607,7 +723,7 @@ impl Batcher {
     ) -> Result<(), BatcherError> {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
-        info!("Batch merkle root: {}", batch_merkle_root_hex);
+        info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
@@ -618,12 +734,12 @@ impl Batcher {
             &file_name,
         )
         .await
-        .expect("Failed to upload object to S3");
+        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 
         info!("Uploading batch to contract");
-        let batch_data_pointer: String = "".to_owned() + &self.storage_endpoint + "/" + &file_name;
+        let batch_data_pointer: String = "".to_owned() + &self.download_endpoint + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
 
@@ -675,28 +791,42 @@ impl Batcher {
         // pad leaves to next power of 2
         let padded_leaves = Self::pad_leaves(leaves);
 
-        let call = self.payment_service.create_new_task(
+        info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
+
+        match try_create_new_task(
             batch_merkle_root,
-            batch_data_pointer,
-            padded_leaves,
-            signatures,
+            batch_data_pointer.clone(),
+            padded_leaves.clone(),
+            signatures.clone(),
             gas_for_aggregator,
             gas_per_proof,
-        );
+            &self.payment_service,
+        )
+        .await
+        {
+            Ok(receipt) => Ok(receipt),
+            Err(BatcherSendError::TransactionReverted(err)) => {
+                // dont retry with fallback
+                // just return the error
+                warn!("Transaction reverted {:?}", err);
 
-        info!("Creating task for: {}", hex::encode(batch_merkle_root));
+                Err(BatcherError::TransactionSendError)
+            }
+            Err(_) => {
+                let receipt = try_create_new_task(
+                    batch_merkle_root,
+                    batch_data_pointer,
+                    padded_leaves,
+                    signatures,
+                    gas_for_aggregator,
+                    gas_per_proof,
+                    &self.payment_service_fallback,
+                )
+                .await?;
 
-        let pending_tx = call
-            .send()
-            .await
-            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
-
-        let receipt = pending_tx
-            .await
-            .map_err(|_| BatcherError::TransactionSendError)?
-            .ok_or(BatcherError::ReceiptNotFoundError)?;
-
-        Ok(receipt)
+                Ok(receipt)
+            }
+        }
     }
 
     fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
@@ -724,12 +854,7 @@ impl Batcher {
         let non_paying_config = self.non_paying_config.as_ref().unwrap();
         let addr = non_paying_config.replacement.address();
 
-        let user_balance = self
-            .payment_service
-            .user_balances(addr)
-            .call()
-            .await
-            .unwrap_or_default();
+        let user_balance = self.get_user_balance(&addr).await;
 
         if user_balance == U256::from(0) {
             error!("Insufficient funds for address {:?}", addr);
@@ -757,12 +882,19 @@ impl Batcher {
                 let nonpaying_nonce = match batch_state.user_nonces.entry(addr) {
                     Entry::Occupied(o) => o.into_mut(),
                     Entry::Vacant(vacant) => {
-                        let nonce = self
-                            .payment_service
-                            .user_nonces(addr)
-                            .call()
-                            .await
-                            .expect("Failed to get nonce");
+                        let nonce = match self.payment_service.user_nonces(addr).call().await {
+                            Ok(nonce) => nonce,
+                            Err(e) => {
+                                error!("Failed to get nonce for address {:?}: {:?}", addr, e);
+                                send_message(
+                                    ws_conn_sink.clone(),
+                                    ValidityResponseMessage::InvalidNonce,
+                                )
+                                .await;
+
+                                return Ok(());
+                            }
+                        };
 
                         vacant.insert(nonce)
                     }
@@ -777,6 +909,7 @@ impl Batcher {
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
                     nonce_bytes,
+                    self.chain_id,
                 )
             };
 
@@ -805,64 +938,88 @@ impl Batcher {
     }
 
     async fn get_user_balance(&self, addr: &Address) -> U256 {
-        self.payment_service
-            .user_balances(*addr)
-            .call()
-            .await
-            .unwrap_or_default()
+        match self.payment_service.user_balances(*addr).call().await {
+            Ok(val) => val,
+            Err(_) => match self
+                .payment_service_fallback
+                .user_balances(*addr)
+                .call()
+                .await
+            {
+                Ok(balance) => balance,
+                Err(_) => {
+                    warn!("Failed to get balance for address {:?}", addr);
+                    U256::zero()
+                }
+            },
+        }
     }
 
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
-        self.payment_service
-            .user_unlock_block(*addr)
-            .call()
-            .await
-            .unwrap_or_default()
-            != U256::zero()
+        let unlock_block = match self.payment_service.user_unlock_block(*addr).call().await {
+            Ok(val) => val,
+            Err(_) => match self
+                .payment_service_fallback
+                .user_unlock_block(*addr)
+                .call()
+                .await
+            {
+                Ok(unlock_block) => unlock_block,
+                Err(_) => {
+                    warn!("Failed to get unlock block for address {:?}", addr);
+                    U256::zero()
+                }
+            },
+        };
+
+        unlock_block != U256::zero()
     }
 }
 
 async fn send_batch_inclusion_data_responses(
     finalized_batch: BatchQueue,
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
-) {
-    stream::iter(finalized_batch.iter())
-        .enumerate()
-        .for_each(|(vd_batch_idx, (_, _, ws_sink, _))| async move {
-            let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
-            let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+) -> Result<(), BatcherError> {
+    for (vd_batch_idx, (_, _, ws_sink, _)) in finalized_batch.iter().enumerate() {
+        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+        let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
 
-            let serialized_response =
-                serde_json::to_vec(&response).expect("Could not serialize response");
+        let serialized_response = cbor_serialize(&response)
+            .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
 
-            let sending_result = ws_sink
-                .write()
-                .await
-                .send(Message::binary(serialized_response))
-                .await;
+        let sending_result = ws_sink
+            .write()
+            .await
+            .send(Message::binary(serialized_response))
+            .await;
 
-            match sending_result {
-                Err(Error::AlreadyClosed) => (),
-                Err(e) => error!("Error while sending batch inclusion data response: {}", e),
-                Ok(_) => (),
-            }
+        match sending_result {
+            Err(Error::AlreadyClosed) => (),
+            Err(e) => error!("Error while sending batch inclusion data response: {}", e),
+            Ok(_) => (),
+        }
 
-            info!("Response sent");
-        })
-        .await;
+        info!("Response sent");
+    }
+
+    Ok(())
 }
 
 async fn send_message<T: Serialize>(
     ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     message: T,
 ) {
-    let serialized_response = serde_json::to_vec(&message).expect("Could not serialize response");
-
-    // Send error message
-    ws_conn_sink
-        .write()
-        .await
-        .send(Message::binary(serialized_response))
-        .await
-        .expect("Failed to send message");
+    match cbor_serialize(&message) {
+        Ok(serialized_response) => {
+            if let Err(err) = ws_conn_sink
+                .write()
+                .await
+                .send(Message::binary(serialized_response))
+                .await
+            {
+                error!("Error while sending message: {}", err)
+            }
+        }
+        Err(e) => error!("Error while serializing message: {}", e),
+    }
 }

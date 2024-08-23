@@ -504,7 +504,7 @@ make install_aligned_compiling
 
 The SP1 and Risc0 proofs need the proof file and the vm program file.
 The current SP1 version used in Aligned is
-`v1.0.8-testnet` and the current Risc0 version used in Aligned is v1.0.1.
+`v1.0.1` and the current Risc0 version used in Aligned is v1.0.1.
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the
 verification key file.
 
@@ -517,8 +517,9 @@ aligned submit \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path [path_to_ecdsa_keystore] \
---rpc https://ethereum-holesky-rpc.publicnode.com \
---batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--batcher_url wss://batcher.alignedlayer.com \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 </details>

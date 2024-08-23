@@ -28,9 +28,9 @@ $$
   C =\frac{C_{task} + C_{verification}}{N} + C_{read}
 $$
     
-### Why do you have a fast and slow mode?
+### Why do you have a fast and aggregation mode?
     
-The fast mode is designed to offer very cheap verification costs and low latency. It uses crypto-economic guarantees provided by restaking; costs can be as low as 2100 gas. The slow mode works with proof aggregation, with higher fees and latency, and achieves the complete security of Ethereum. We verify an aggregated BLS signature (around 113,000 gas) in the fast mode. We verify an aggregated proof (around 300,000 gas) in the slow mode.
+The fast mode is designed to offer very cheap verification costs and low latency. It uses crypto-economic guarantees provided by restaking; costs can be as low as 2100 gas. The aggregation mode works with proof aggregation, with higher fees and latency, and achieves the complete security of Ethereum. We verify an aggregated BLS signature (around 113,000 gas) in the fast mode. We verify an aggregated proof (around 300,000 gas) in the aggregation mode.
     
 ### Why don’t you run Aligned on top of a virtual machine?
     
@@ -58,11 +58,11 @@ Aligned solves all of this. No matter how or what you want to prove, it can be v
     
 ### Is Aligned an aggregation layer?
     
-Aligned provides proof aggregation as part of its slow mode, a feature shared with all aggregation layers. However, Aligned offers a unique fast mode designed to provide cheap and low-latency proof verification, leveraging the power of restaking. Aligned is a decentralized network designed to verify zero-knowledge proofs and uses recursive proof aggregation as one of its tools. 
+Aligned provides proof aggregation as part of its aggregation mode, a feature shared with all aggregation layers. However, Aligned offers a unique fast mode designed to provide cheap and low-latency proof verification, leveraging the power of restaking. Aligned is a decentralized network designed to verify zero-knowledge proofs and uses recursive proof aggregation as one of its tools. 
     
 ### What proof systems do you support?
     
-Aligned is designed to support any proof system. Currently supported ones are Groth 16 and Plonk (gnark), SP1, Halo 2 (IPA and KZG)
+Aligned is designed to support any proof system. Currently supported ones are Groth16 and Plonk (gnark), SP1, Halo 2 (IPA and KZG).
     
 ### How hard is it to add new proof systems?
     
@@ -137,7 +137,7 @@ Zero-knowledge proofs let you generate proofs that show the correct execution of
 1. Convert one proof type to another (for example, a STARK proof to a Plonk proof) either to reduce the proof size, have efficient recursion, or because the proof system cannot be verified where we want.
 2. Proof aggregation: if we have to verify N proofs on-chain, we can generate a single proof that we verified the N proofs off-chain and just check the single proof in Ethereum.
     
-Proof recursion is the primary tool of Aligned’s slow mode.
+Proof recursion is the primary tool of Aligned’s aggregation mode.
     
 ### What are the use cases of Aligned?
     

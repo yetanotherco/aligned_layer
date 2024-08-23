@@ -7,9 +7,10 @@ edition = "2021"
 bincode = "1.3.3"
 halo2curves = { version = "0.6.0", default-features = false }
 rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }
-halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", rev = "a3a56819d9183ac0b11c8d0543c7673c4a4c71a6" }
-halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", rev = "a3a56819d9183ac0b11c8d0543c7673c4a4c71a6" }
+halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", rev = "22b5d224f3cbeba917e48ba10c618a165e43cd23" }
+halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", rev = "22b5d224f3cbeba917e48ba10c618a165e43cd23" }
 ff = "0.13"
+log = "0.4.21"
 
 [dev-dependencies]
 group = "0.13"

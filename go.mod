@@ -7,12 +7,13 @@ require (
 	github.com/ethereum/go-ethereum v1.14.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/urfave/cli/v2 v2.27.1
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.22.0
 )
 
 require (
 	github.com/consensys/gnark v0.10.0
 	github.com/consensys/gnark-crypto v0.12.2-0.20240215234832-d72fcb379d3e
+	github.com/ugorji/go/codec v1.2.12
 )
 
 require (
