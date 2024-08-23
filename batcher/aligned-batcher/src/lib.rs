@@ -92,6 +92,7 @@ pub struct Batcher {
     download_endpoint: String,
     eth_ws_provider: Provider<Ws>,
     eth_ws_provider_fallback: Provider<Ws>,
+    chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
@@ -151,6 +152,17 @@ impl Batcher {
             .try_into()
             .unwrap();
 
+        let chain_id = match eth_rpc_provider.get_chainid().await {
+            Ok(chain_id) => chain_id,
+            Err(e) => {
+                warn!("Failed to get chain id with main rpc: {}", e);
+                eth_rpc_provider_fallback
+                    .get_chainid()
+                    .await
+                    .expect("Failed to get chain id with fallback rpc")
+            }
+        };
+
         let payment_service = eth::get_batcher_payment_service(
             eth_rpc_provider,
             config.ecdsa.clone(),
@@ -181,6 +193,7 @@ impl Batcher {
             download_endpoint,
             eth_ws_provider,
             eth_ws_provider_fallback,
+            chain_id,
             payment_service,
             payment_service_fallback,
             batch_state: Mutex::new(BatchState::new()),
@@ -306,6 +319,21 @@ impl Batcher {
             "Received message with nonce: {}",
             U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
         );
+
+        if client_msg.verification_data.chain_id != self.chain_id {
+            warn!(
+                "Received message with incorrect chain id: {}",
+                client_msg.verification_data.chain_id
+            );
+
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidChainId,
+            )
+            .await;
+
+            return Ok(());
+        }
 
         info!("Verifying message signature...");
         if let Ok(addr) = client_msg.verify_signature() {
@@ -872,6 +900,7 @@ impl Batcher {
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
                     nonce_bytes,
+                    self.chain_id,
                 )
             };
 
