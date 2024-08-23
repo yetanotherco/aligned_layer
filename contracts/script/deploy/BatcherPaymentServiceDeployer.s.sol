@@ -37,7 +37,7 @@ contract BatcherPaymentServiceDeployer is Script {
             address(batcherPaymentService),
             abi.encodeWithSignature(
                 "initialize(address,address,address)",
-                 IAlignedLayerServiceManager(alignedLayerServiceManager),
+                IAlignedLayerServiceManager(alignedLayerServiceManager),
                 batcherPaymentServiceOwner,
                 batcherWallet
             )
