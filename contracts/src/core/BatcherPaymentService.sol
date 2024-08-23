@@ -50,7 +50,7 @@ contract BatcherPaymentService is
     }
 
     function initialize(
-        address _AlignedLayerServiceManager,
+        IAlignedLayerServiceManager _AlignedLayerServiceManager,
         address _BatcherPaymentServiceOwner,
         address _BatcherWallet
     ) public initializer {
@@ -58,9 +58,7 @@ contract BatcherPaymentService is
         __UUPSUpgradeable_init();
         _transferOwnership(_BatcherPaymentServiceOwner);
 
-        AlignedLayerServiceManager = IAlignedLayerServiceManager(
-            _AlignedLayerServiceManager
-        );
+        AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
     }
 
