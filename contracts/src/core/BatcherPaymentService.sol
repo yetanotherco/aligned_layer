@@ -264,11 +264,10 @@ contract BatcherPaymentService is
             if (leaves[0] != batchMerkleRoot) {
                 revert InvalidMerkleRoot(batchMerkleRoot, leaves[0]);
             }
-        } else {
-            if (layer[0] != batchMerkleRoot) {
-                revert InvalidMerkleRoot(batchMerkleRoot, layer[0]);
-            }
+        } else if(layer[0] != batchMerkleRoot)
+            revert InvalidMerkleRoot(batchMerkleRoot, layer[0]);
         }
+
     }
 
     function _verifySignatureAndDecreaseBalance(
