@@ -19,6 +19,16 @@ defmodule BatcherPaymentServiceManager do
 
   {status_aligned_config, config_json_string} = File.read(config_file_path)
 
+  case status_aligned_config do
+    :ok ->
+      Logger.debug("Aligned config file read successfully")
+
+    :error ->
+      raise(
+        "Config file not read successfully, did you run make create-env? If you did,\n make sure Alignedlayer config file is correctly stored"
+      )
+  end
+
   @batcher_payment_service_address Jason.decode!(config_json_string)
     |> Map.get("addresses")
     |> Map.get("batcherPaymentService")
@@ -31,7 +41,7 @@ defmodule BatcherPaymentServiceManager do
     @batcher_payment_service_address
   end
 
-  def get_gas_per_proof(merkle_root) do
+  def get_fee_per_proof(%{merkle_root: merkle_root}) do
     BatcherPaymentServiceManager.EventFilters.new_task_created(
       merkle_root
       |> Utils.string_to_bytes32()
@@ -39,7 +49,11 @@ defmodule BatcherPaymentServiceManager do
     |> Ethers.get_logs(fromBlock: @first_block)
     |> case do
       {:ok, events} ->
-        List.last(events).data |> hd()
+        event = events |> hd()
+        fee_per_proof = event.data |> hd()
+        Logger.debug("Fee per proof of #{merkle_root}: #{fee_per_proof} wei")
+
+        fee_per_proof
 
       {:error, reason} ->
         Logger.error("Error getting gas per proof: #{inspect(reason)}")

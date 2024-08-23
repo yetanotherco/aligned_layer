@@ -122,7 +122,7 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
       proof_hashes: nil,
-      cost_per_proof: get_cost_per_proof(created_batch.batchMerkleRoot)
+      fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot})
     }
   end
 
@@ -149,7 +149,7 @@ defmodule AlignedLayerServiceManager do
           response_transaction_hash: batch_response.transaction_hash,
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
-          cost_per_proof: unverified_batch.cost_per_proof,
+          fee_per_proof: unverified_batch.fee_per_proof,
           proof_hashes: nil
         }
     end
@@ -203,12 +203,6 @@ defmodule AlignedLayerServiceManager do
       {:error, error} ->
         raise("Error fetching gas price: #{error}")
     end
-  end
-
-  def get_cost_per_proof(merkle_root) do
-    data = BatcherPaymentServiceManager.get_gas_per_proof(merkle_root)
-    Logger.debug("Cost per proof of #{merkle_root}: #{data}")
-    data * get_current_gas_price()
   end
 
   def update_restakeable_strategies() do
