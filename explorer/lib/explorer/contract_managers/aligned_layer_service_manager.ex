@@ -127,7 +127,7 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
       proof_hashes: nil,
-      fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot})
+      fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot}),
       sender_address: Utils.string_to_bytes32(created_batch.senderAddress)
     }
   end
@@ -156,7 +156,7 @@ defmodule AlignedLayerServiceManager do
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
           fee_per_proof: unverified_batch.fee_per_proof,
-          proof_hashes: nil
+          proof_hashes: nil,
           sender_address: unverified_batch.sender_address
         }
     end
