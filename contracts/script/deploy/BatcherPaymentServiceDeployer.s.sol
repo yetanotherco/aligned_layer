@@ -32,14 +32,15 @@ contract BatcherPaymentServiceDeployer is Script {
         vm.startBroadcast();
 
         BatcherPaymentService batcherPaymentService = new BatcherPaymentService();
+
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(batcherPaymentService),
-            ""
-        );
-        BatcherPaymentService(payable(address(proxy))).initialize(
-            IAlignedLayerServiceManager(alignedLayerServiceManager),
-            batcherPaymentServiceOwner,
-            batcherWallet
+            abi.encodeWithSignature(
+                "initialize(address,address,address)",
+                 IAlignedLayerServiceManager(alignedLayerServiceManager),
+                batcherPaymentServiceOwner,
+                batcherWallet
+            )
         );
 
         vm.stopBroadcast();
