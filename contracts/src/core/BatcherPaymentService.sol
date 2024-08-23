@@ -143,6 +143,7 @@ contract BatcherPaymentService is
         );
 
         user_data.balance -= amount;
+        user_data.unlockBlock = 0;
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }
@@ -231,7 +232,7 @@ contract BatcherPaymentService is
         uint256 feePerProof
     ) private {
         bytes32 noncedHash = keccak256(
-            abi.encodePacked(hash, signatureData.nonce)
+            abi.encodePacked(hash, signatureData.nonce, block.chainid)
         );
 
         address signer = noncedHash.recover(signatureData.signature);
