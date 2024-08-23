@@ -1,4 +1,5 @@
 defmodule Quorums do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -31,7 +32,7 @@ defmodule Quorums do
   def insert_quorum_if_not_present(%Quorums{} = quorum) do
     case get_quorum_by_id(quorum.id) do
       nil ->
-        dbg "inserting new quorum"
+        "Inserting new quorum" |> Logger.debug()
         Explorer.Repo.insert(quorum)
       _ ->
         nil
@@ -53,6 +54,7 @@ defmodule Quorums do
 end
 
 defmodule QuorumStrategies do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -89,9 +91,9 @@ defmodule QuorumStrategies do
       QuorumStrategies.generate_changeset(quorum.id, strategy.id) |> Explorer.Repo.insert()
     end
   end
+
   def insert_quorum_strategy(any_quorum, nil) do
-    dbg "trying to insert a nil or errored strategy, skipping"
-    dbg {any_quorum, nil}
+    "Trying to insert a nil or errored strategy, skipping: #{inspect(any_quorum)}" |> Logger.warn()
     nil
   end
 end
