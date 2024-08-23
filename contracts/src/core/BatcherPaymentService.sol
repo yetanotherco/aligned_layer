@@ -64,7 +64,6 @@ contract BatcherPaymentService is
     mapping(address => UserInfo) public userData;
 
     // storage gap for upgradeability
-    // solhint-disable-next-line var-name-mixedcase
     uint256[24] private __GAP;
 
     // CONSTRUCTOR & INITIALIZER
