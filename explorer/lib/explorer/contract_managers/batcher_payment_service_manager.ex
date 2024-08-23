@@ -1,6 +1,8 @@
 defmodule BatcherPaymentServiceManager do
   require Logger
 
+  @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")
+
   @environment System.get_env("ENVIRONMENT")
   @first_block (case @environment do
                   "devnet" -> 0
@@ -8,6 +10,14 @@ defmodule BatcherPaymentServiceManager do
                   "mainnet" -> 20_020_000
                   _ -> raise("Invalid environment")
                 end)
+
+  config_file_path =
+    case @aligned_config_file do
+      nil -> raise("ALIGNED_CONFIG_FILE not set in .env")
+      file -> file
+    end
+
+  {status_aligned_config, config_json_string} = File.read(config_file_path)
 
   @batcher_payment_service_address Jason.decode!(config_json_string)
     |> Map.get("addresses")
