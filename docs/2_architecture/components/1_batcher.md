@@ -9,3 +9,5 @@ Also, to avoid unnecessary proof submissions, the Batcher performs a preliminary
 However, each proof has a cost of verification, so each batch must contain some sort of payment for it to be verified. To handle the payment for each batch, the Batcher submits the batch through its [Batcher Payment Service](./2_payment_service_contract.md).
 
 To send the batch of proofs to the [Aligned Service Manager](./3_service_manager_contract.md), the Batcher stores the batch of proofs in an S3 for 1 week, and sends the link to the file to the [Aligned Service Manager](./3_service_manager_contract.md).
+
+To view how to submit your own batch, without the use of this Batcher, you may follow [the following guide](../../3_guides/8_submitting_batch_without_batcher.md)
