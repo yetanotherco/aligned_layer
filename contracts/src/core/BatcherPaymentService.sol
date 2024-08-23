@@ -53,7 +53,7 @@ contract BatcherPaymentService is
     }
 
     function initialize(
-        address _AlignedLayerServiceManager,
+        IAlignedLayerServiceManager _AlignedLayerServiceManager,
         address _BatcherPaymentServiceOwner,
         address _BatcherWallet
     ) public initializer {
@@ -61,9 +61,7 @@ contract BatcherPaymentService is
         __UUPSUpgradeable_init();
         _transferOwnership(_BatcherPaymentServiceOwner);
 
-        AlignedLayerServiceManager = IAlignedLayerServiceManager(
-            _AlignedLayerServiceManager
-        );
+        AlignedLayerServiceManager = _AlignedLayerServiceManager;
         BatcherWallet = _BatcherWallet;
     }
 
@@ -240,7 +238,7 @@ contract BatcherPaymentService is
         uint256 feePerProof
     ) private {
         bytes32 noncedHash = keccak256(
-            abi.encodePacked(hash, signatureData.nonce)
+            abi.encodePacked(hash, signatureData.nonce, block.chainid)
         );
 
         address signer = noncedHash.recover(signatureData.signature);
