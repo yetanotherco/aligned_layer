@@ -27,7 +27,7 @@ pub extern "C" fn verify_halo2_kzg_proof_ffi(
         return false;
     }
 
-    // For Halo2 the `params_buf` contains the serialized cs, vk, and params with there respective sizes serialized as u32 values (4 bytes) => 3 * 4 bytes = 12:
+    // For Halo2 the `params_buf` contains the serialized cs, vk, and params with there respective sizes serialized as u32 values (4 bytes) => 3 * 4 bytes = 12 by the concatenated variable length buffers:
     // We therefore require that the `params_buf` is greater than 12 bytes and treat the case that buffer lengths and buffers themselves are 0 size as false.
     // [ cs_len | vk_len | vk_params_len | cs_bytes | vk_bytes | vk_params_bytes ].
     if proof_len == 0 || params_len <= 12 || public_input_len == 0 {

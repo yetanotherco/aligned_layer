@@ -13,7 +13,7 @@ use log::error;
 use std::io::BufReader;
 
 pub fn verify_halo2_ipa(proof: &[u8], public_input: &[u8], verification_key: &[u8]) -> bool {
-    // For Halo2 the `verification_key` contains the serialized cs, vk, and params with there respective sizes serialized as u32 values (4 bytes) => 3 * 4 bytes = 12:
+    // For Halo2 the `verification_key` contains the serialized cs, vk, and params with there respective sizes serialized as u32 values (4 bytes) => 3 * 4 bytes = 12 followed by the concatenated variable length buffers:
     // We therefore require that the `verification_key` is greater than 12 bytes and treat the case that buffer lengths and buffers themselves are 0 size as false.
     // [ cs_len | vk_len | vk_params_len | cs_bytes | vk_bytes | vk_params_bytes ].
     if proof.is_empty() || verification_key.len() <= 12 || public_input.is_empty() {
