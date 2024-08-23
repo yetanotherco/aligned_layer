@@ -9,11 +9,17 @@ defmodule BatcherPaymentServiceManager do
                   _ -> raise("Invalid environment")
                 end)
 
-  payment_service_address = AlignedLayerServiceManager.get_batcher_payment_service_address()
+  @batcher_payment_service_address Jason.decode!(config_json_string)
+    |> Map.get("addresses")
+    |> Map.get("batcherPaymentService")
 
   use Ethers.Contract,
     abi_file: "lib/abi/BatcherPaymentService.json",
-    default_address: payment_service_address
+    default_address: @batcher_payment_service_address
+
+  def get_batcher_payment_service_address() do
+    @batcher_payment_service_address
+  end
 
   def get_gas_per_proof(merkle_root) do
     BatcherPaymentServiceManager.EventFilters.new_task_created(
