@@ -145,12 +145,21 @@ impl Batcher {
 
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
-        let last_uploaded_batch_block = eth_rpc_provider
-            .get_block_number()
-            .await
-            .expect("Failed to get block number")
-            .try_into()
-            .unwrap();
+        let last_uploaded_batch_block = match eth_rpc_provider.get_block_number().await {
+            Ok(block_num) => block_num,
+            Err(e) => {
+                warn!(
+                    "Failed to get block number with main rpc, trying with fallback rpc. Err: {:?}",
+                    e
+                );
+                eth_rpc_provider_fallback
+                    .get_block_number()
+                    .await
+                    .expect("Failed to get block number with fallback rpc")
+            }
+        };
+
+        let last_uploaded_batch_block = last_uploaded_batch_block.as_u64();
 
         let chain_id = match eth_rpc_provider.get_chainid().await {
             Ok(chain_id) => chain_id,
