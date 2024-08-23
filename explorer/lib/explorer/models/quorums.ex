@@ -93,7 +93,7 @@ defmodule QuorumStrategies do
   end
 
   def insert_quorum_strategy(any_quorum, nil) do
-    "Trying to insert a nil or errored strategy, skipping: #{inspect(any_quorum)}" |> Logger.warn()
+    "Trying to insert a nil or errored strategy, skipping: #{inspect(any_quorum)}" |> Logger.warning()
     nil
   end
 end
