@@ -27,6 +27,12 @@
         </h3>
         <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
       </div>
+            <div>
+        <h3>
+          Batch sender address:
+        </h3>
+        <p><%= @current_batch.sender_address %></p>
+      </div>
       <div>
         <h3>
           Amount of Proofs in this Batch:

@@ -1,3 +1,4 @@
+use ethers::signers::Signer;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use log::{debug, error, info};
 use std::sync::Arc;
@@ -41,10 +42,14 @@ pub async fn send_messages(
 
     let mut response_stream = response_stream.lock().await;
 
+    let chain_id = U256::from(wallet.chain_id());
+
     for verification_data in verification_data.iter() {
         nonce.to_big_endian(&mut nonce_bytes);
 
-        let verification_data = NoncedVerificationData::new(verification_data.clone(), nonce_bytes);
+        let verification_data =
+            NoncedVerificationData::new(verification_data.clone(), nonce_bytes, chain_id);
+
         nonce += U256::one();
 
         let msg = ClientMessage::new(verification_data.clone(), wallet.clone());
@@ -92,6 +97,10 @@ pub async fn send_messages(
             ValidityResponseMessage::InsufficientBalance(addr) => {
                 error!("Insufficient balance for address: {}", addr);
                 return Err(SubmitError::InsufficientBalance);
+            }
+            ValidityResponseMessage::InvalidChainId => {
+                error!("Invalid chain id!");
+                return Err(SubmitError::InvalidChainId);
             }
         };
 

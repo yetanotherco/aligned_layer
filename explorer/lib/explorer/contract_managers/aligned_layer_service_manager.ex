@@ -112,16 +112,21 @@ defmodule AlignedLayerServiceManager do
 
     %NewBatchEvent{
       batchMerkleRoot: topics_raw |> Enum.at(1),
-      taskCreatedBlock: data |> Enum.at(0),
-      batchDataPointer: data |> Enum.at(1)
+      senderAddress: data |> Enum.at(0),
+      taskCreatedBlock: data |> Enum.at(1),
+      batchDataPointer: data |> Enum.at(2)
     }
   end
 
   def is_batch_responded(merkle_root) do
-    case AlignedLayerServiceManager.batches_state(Utils.string_to_bytes32(merkle_root))
-         |> Ethers.call() do
-      {:ok, [_, true]} -> true
-      _ -> false
+    event =
+      AlignedLayerServiceManager.EventFilters.batch_verified(Utils.string_to_bytes32(merkle_root))
+        |> Ethers.get_logs(fromBlock: @first_block)
+
+    case event do
+      {:error, reason} -> {:error, reason}
+      {_, []} -> false
+      {:ok, _} -> true
     end
   end
 
@@ -149,7 +154,8 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
       proof_hashes: nil,
-      cost_per_proof: get_cost_per_proof()
+      cost_per_proof: get_cost_per_proof(),
+      sender_address: Utils.string_to_bytes32(created_batch.senderAddress)
     }
   end
 
@@ -177,7 +183,8 @@ defmodule AlignedLayerServiceManager do
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
           cost_per_proof: unverified_batch.cost_per_proof,
-          proof_hashes: nil #don't need this value to update an existing but unverified batch, it is on another table
+          proof_hashes: nil, #don't need this value to update an existing but unverified batch, it is on another table
+          sender_address: unverified_batch.sender_address
         }
     end
   end
@@ -203,7 +210,9 @@ defmodule AlignedLayerServiceManager do
   end
 
   defp extract_batch_verified_event_info(event) do
-    batch_verified = event |> Map.get(:topics_raw) |> Enum.at(1)
+    batch_merkle_root = event |> Map.get(:topics_raw) |> Enum.at(1)
+    sender_address = event |> Map.get(:data) |> Enum.at(0)
+
 
     {:ok,
      %BatchVerifiedInfo{
@@ -211,7 +220,8 @@ defmodule AlignedLayerServiceManager do
        block_number: event |> Map.get(:block_number),
        block_timestamp: get_block_timestamp(event |> Map.get(:block_number)),
        transaction_hash: event |> Map.get(:transaction_hash),
-       batch_verified: batch_verified
+       batch_merkle_root: batch_merkle_root,
+       sender_address: sender_address
      }}
   end
 
