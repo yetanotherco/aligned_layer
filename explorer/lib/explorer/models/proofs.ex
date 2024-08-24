@@ -42,7 +42,7 @@ defmodule Proofs do
     end
   end
 
-  def get_batch_from_proof(%{proof_hash: proof_hash_hex}) do
+  def get_batch_from_proof(proof_hash_hex) do
     proof_hash_hex = String.replace_prefix(proof_hash_hex, "0x", "")
 
     {:ok, proof_hash_binary} = Base.decode16(proof_hash_hex, case: :mixed)
@@ -50,14 +50,18 @@ defmodule Proofs do
     query = from(p in Proofs,
       where: p.proof_hash == ^proof_hash_binary,
       order_by: [desc: p.id],
-      limit: 1,
       select: p)
 
-    case Explorer.Repo.one(query) do
-      nil ->
-        nil
-      result ->
-        result.batch_merkle_root
+    case Explorer.Repo.all(query) do
+      [] ->
+        []
+      results ->
+        results
+        |> Enum.map(& &1.batch_merkle_root)
+        |> case do
+          [_] -> []
+          roots -> roots
+        end
     end
   end
 

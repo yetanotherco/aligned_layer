@@ -7,22 +7,9 @@ defmodule SearchComponent do
     |> (fn hash ->
           if String.match?(hash, ~r/^0x[a-fA-F0-9]+$/), do: {:ok, hash}, else: :invalid_hash
         end).()
-    |> (fn
-          {:ok, hash} ->
-            case Proofs.get_batch_from_proof(%{proof_hash: hash}) do
-              nil -> {:not_found, hash}
-              batch_hash -> {:ok, batch_hash}
-            end
-
-          :invalid_hash ->
-            :invalid_hash
-        end).()
     |> case do
-      {:ok, target_hash} ->
-        {:noreply, push_navigate(socket, to: ~p"/batches/#{target_hash}")}
-
-      {:not_found, hash} ->
-        {:noreply, push_navigate(socket, to: ~p"/batches/#{hash}")}
+      {:ok, hash} ->
+        {:noreply, push_navigate(socket, to: ~p"/search/#{hash}")}
 
       :invalid_hash ->
         {:noreply,
