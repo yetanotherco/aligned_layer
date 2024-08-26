@@ -19,15 +19,21 @@ defmodule ExplorerWeb.Search.Index do
       </.card_preheding>
       <%= if @results != nil or @results != [] do %>
         <.table id="results" rows={@results}>
-          <:col :let={result} label="Batch Merkle Root" class="text-left">
-            <.link navigate={~p"/batches/#{result}"} class="group-hover:text-foreground/80">
-              <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
+          <:col :let={result} label="Batch Hash" class="text-left">
+            <.link
+              navigate={~p"/batches/#{result}"}
+              class="flex justify-between group group-hover:text-foreground/80"
+            >
+              <span class="items-center group-hover:text-foreground/80 hidden md:inline">
                 <%= result %>
-                <.right_arrow />
-                <.tooltip>
-                  <%= result %>
-                </.tooltip>
               </span>
+              <span class="items-center group-hover:text-foreground/80 md:hidden">
+                <%= result |> Helpers.shorten_hash(12) %>
+              </span>
+              <.right_arrow />
+              <.tooltip>
+                <%= result %>
+              </.tooltip>
             </.link>
           </:col>
         </.table>
