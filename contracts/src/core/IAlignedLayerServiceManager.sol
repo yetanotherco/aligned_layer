@@ -12,6 +12,7 @@ interface IAlignedLayerServiceManager {
         string batchDataPointer
     );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
+    event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
 
     // ERRORS
     error BatchAlreadySubmitted(bytes32 batchIdentifierHash); // 3102f10c

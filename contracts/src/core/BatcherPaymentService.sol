@@ -175,7 +175,7 @@ contract BatcherPaymentService is
         }
 
         userData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
-        emit BalanceUnlocked(msg.sender, UserData[msg.sender].unlockBlock);
+        emit BalanceUnlocked(msg.sender, userData[msg.sender].unlockBlock);
     }
 
     function lock() external whenNotPaused {
