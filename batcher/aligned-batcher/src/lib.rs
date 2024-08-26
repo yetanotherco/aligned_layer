@@ -54,6 +54,7 @@ const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
 const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
+const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -916,7 +917,7 @@ impl Batcher {
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
                     nonce_bytes,
-                    18446744073709551615u64.into(),
+                    DEFAULT_MAX_FEE.into(), // 11_000 gas per proof * 10 gwei gas price (upper bound)
                     self.chain_id,
                 )
             };

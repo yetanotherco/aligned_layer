@@ -115,7 +115,7 @@ pub struct SubmitArgs {
     #[arg(
         name = "Max Fee",
         long = "max_fee",
-        default_value = "100000000000000000"
+        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
     max_fee: U256,
 }
