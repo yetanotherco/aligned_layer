@@ -616,39 +616,39 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 
 
 __EXPLORER__:
-run_explorer: run_db ecto_setup_db
+run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
 		mix setup && \
 		./start.sh
 
-build_db:
+explorer_build_db:
 	@cd explorer && \
 		docker build -t explorer-postgres-image .
 
-run_db: remove_db_container
+explorer_run_db: explorer_remove_db_container
 	@cd explorer && \
 		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
 
-ecto_setup_db:
+explorer_ecto_setup_db:
 		@cd explorer/ && \
 		./ecto_setup_db.sh
 
-remove_db_container:
+explorer_remove_db_container:
 	@cd explorer && \
 		docker stop explorer-postgres-container || true  && \
 		docker rm explorer-postgres-container || true
 
-clean_db: remove_db_container
+explorer_clean_db: explorer_remove_db_container
 	@cd explorer && \
 		docker volume rm explorer-postgres-data || true
 
-dump_db:
+explorer_dump_db:
 	@cd explorer && \
 		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /explorer"
 
-recover_db: run_db
+explorer_recover_db: run_db
 	@read -p $$'\e[32mEnter the dump file to recover (e.g., dump.20230607_123456.sql): \e[0m' DUMP_FILE && \
 	cd explorer && \
 	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
