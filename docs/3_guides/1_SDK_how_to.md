@@ -97,3 +97,5 @@ fn main() {
     }
 }
 ```
+
+On the [next section](./1.2_SDK_api_reference.md) we will dive deeper into what does each argument mean, and what other functions does Aligned SDK contain.
