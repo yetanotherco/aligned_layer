@@ -111,6 +111,79 @@ contract AlignedLayerServiceManager is
         );
     }
 
+    // previous version of this function, for smooth upgradeability
+    function respondToTask_old(
+        // Root is signed as a way to verify the batch was right
+        bytes32 batchMerkleRoot,
+        NonSignerStakesAndSignature memory nonSignerStakesAndSignature
+    ) external {
+            // batcherAddress [address(0x7969c5eD335650692Bc04293B07F5BF2e7A673C0)] > 0, // Devnet
+            // batcherAddress [address(0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b)] > 0, // Stage
+            // batcherAddress [address(0x815aeCA64a974297942D2Bbf034ABEe22a38A003)] > 0, // Prod
+        address batcherAddress = address(0x7969c5eD335650692Bc04293B07F5BF2e7A673C0);
+        uint256 initialGasLeft = gasleft();
+
+        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+
+        // Note: This is a hacky solidity way to see that the element exists
+        // Value 0 would mean that the task is in block 0 so this can't happen.
+        require(
+            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
+            "Batch doesn't exists"
+        );
+
+        // Check task hasn't been responsed yet
+        require(
+            batchesState[batchMerkleRoot].responded == false,
+            "Batch already responded"
+        );
+
+        require(
+            batchersBalances[batcherAddress] > 0,
+            "Batcher has no balance"
+        );
+
+        batchesState[batchMerkleRoot].responded = true;
+
+        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        // check that aggregated BLS signature is valid
+        (
+            QuorumStakeTotals memory quorumStakeTotals,
+            bytes32 _hashOfNonSigners
+        ) = checkSignatures(
+                batchMerkleRoot,
+                batchesState[batchMerkleRoot].taskCreatedBlock,
+                nonSignerStakesAndSignature
+            );
+
+        // check that signatories own at least a threshold percentage of each quourm
+        require(
+            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR >=
+                quorumStakeTotals.totalStakeForQuorum[0] *
+                    QUORUM_THRESHOLD_PERCENTAGE,
+            "Signatories do not own at least threshold percentage of a quorum"
+        );
+
+        emit BatchVerified(batchMerkleRoot, batcherAddress);
+
+        // Calculate estimation of gas used, check that batcher has sufficient funds
+        // and send transaction cost to aggregator.
+        uint256 finalGasLeft = gasleft();
+        // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
+        uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
+
+        require(
+            batchersBalances[batcherAddress] >=
+                txCost,
+            "Batcher has not sufficient funds for paying this transaction"
+        );
+
+        batchersBalances[
+            batcherAddress
+        ] -= txCost;
+        payable(msg.sender).transfer(txCost);
+    }
+
     function respondToTask(
         // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,

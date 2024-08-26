@@ -9,6 +9,13 @@ interface IAlignedLayerServiceManager {
         string calldata batchDataPointer
     ) external payable;
 
+    // old respondToTask for smooth upgradeability:
+    function respondToTask_old(
+        bytes32 batchMerkleRoot,
+        IBLSSignatureChecker.NonSignerStakesAndSignature
+            memory nonSignerStakesAndSignature
+    ) external;
+
     function respondToTask(
         bytes32 batchMerkleRoot,
         address senderAddress,
