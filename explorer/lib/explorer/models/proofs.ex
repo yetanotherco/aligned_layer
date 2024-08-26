@@ -60,7 +60,8 @@ defmodule Proofs do
         |> Enum.map(& &1.batch_merkle_root)
         |> Enum.uniq()
         |> case do
-          [_] -> []
+          [] -> []
+          [root] -> [root]
           roots -> roots
         end
     end
