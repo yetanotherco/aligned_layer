@@ -71,6 +71,9 @@ anvil_upgrade_index_registry:
 	@echo "Upgrading Index Registry Contracts..."
 	. contracts/scripts/anvil/upgrade_index_registry.sh
 
+lint_contracts:
+	@cd contracts && npm run lint:sol
+
 anvil_start:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
@@ -440,6 +443,12 @@ upgrade_batcher_payment_service:
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
+
+show_aligned_error_codes:
+	@echo "\nAlignedLayerServiceManager errors:"
+	@cd contracts/src/core && forge inspect IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@echo "\nBatcherPaymentService errors:"
+	@cd contracts/src/core && forge inspect BatcherPaymentService.sol:BatcherPaymentService errors
 
 __BUILD__:
 build_binaries:
