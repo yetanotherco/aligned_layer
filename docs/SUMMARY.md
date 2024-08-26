@@ -46,5 +46,6 @@
 * [Telegram Group](https://t.me/aligned_layer)
 * [Twitter/X](https://x.com/alignedlayer)
 * [Discord](https://discord.gg/alignedlayer)
+* [Blog](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901)
 * [Website](https://alignedlayer.com)
 * [Github](https://github.com/yetanotherco/aligned_layer)
