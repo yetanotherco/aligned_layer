@@ -2,15 +2,21 @@
 
 ## Introduction
 
-This is an example of a program running over Aligned, leveraging its ZK verification infrastructure. It consists of a simple quiz program, which if answered correctly, will grant the user an NFT acknowledging this.
+This program leverages Aligned's ZK verification infrastructure to run a small quiz. 
+If answered correctly, the user receives an NFT.
 
-The User first runs the ZKQuiz program, answers the questions on the quiz, and ZKQuiz will generate a ZK Proof stating the user has answered the quiz correctly. After this, ZKQuiz will post the ZK Proof on Aligned. Once this proof is verified by Aligned, ZKQuiz mints an NFT through a Smart Contract that checks if the user has indeed verified a correct ZKQuiz proof.
+The process is as follows:
 
-This way, the User can only obtain this NFT if he knows the answers to the ZKQuiz;
-- If the User answers incorrectly, the proof generation will fail.
-- If the User tries to tamper ZKQuiz code, the ZK Proof will correspond to another Rust code, with another checksum. Therefore, the Smart Contract will not mint an NFT for the User
+1. The user runs ZKQuiz and answers the questions.
+2. ZKQuiz generates a ZK Proof of correct answers.
+3. The proof is posted on Aligned.
+4. Upon verification, ZKQuiz mints an NFT via a Smart Contract.
 
-Next, we will see how to execute ZKQuiz, so you can get your own ZKQuiz NFT!
+The NFT is only granted if the user answers correctly. 
+Incorrect answers or tampering with the ZKQuiz code will result in proof generation failure or mismatched checksums, 
+preventing NFT minting.
+
+Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
 
 ## Requirements
 
@@ -22,7 +28,7 @@ Next, we will see how to execute ZKQuiz, so you can get your own ZKQuiz NFT!
 ### 1 - Create Keystore
 
 You can use cast to create a local keystore.
-If you already have one you can skip this step.
+If you already have one, you can skip this step.
 
 ```bash
 cast wallet new-mnemonic
@@ -34,7 +40,7 @@ Then you can import your created keystore using:
 cast wallet import --interactive <path_to_keystore.json>
 ```
 
-Then you need to obtain some funds to pay for gas and proof verification.
+Then you need to get some funds to pay for gas and proof verification.
 You can do this by using this [faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
 
 ### 2 - Answer Quiz
