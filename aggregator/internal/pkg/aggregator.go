@@ -301,6 +301,39 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 // / Sends response to contract and waits for transaction receipt
 // / Returns error if it fails to send tx or receipt is not found
+func (agg *Aggregator) sendAggregatedResponseV2(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
+	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+
+	agg.walletMutex.Lock()
+	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch",
+		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
+		"senderAddress", hex.EncodeToString(senderAddress[:]),
+		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
+
+	txHash, err := agg.avsWriter.SendAggregatedResponseV2(batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	if err != nil {
+		agg.walletMutex.Unlock()
+		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
+		return nil, err
+	}
+
+	agg.walletMutex.Unlock()
+	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchIdentifierHash[:]))
+
+	receipt, err := utils.WaitForTransactionReceipt(
+		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	agg.metrics.IncAggregatedResponses()
+
+	return receipt, nil
+}
+
+// / Sends response to contract and waits for transaction receipt
+// / Returns error if it fails to send tx or receipt is not found
 func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
@@ -311,7 +344,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
-	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
