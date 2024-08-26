@@ -43,7 +43,8 @@ jobs:
           ssh -o "StrictHostKeyChecking=no" ${USERNAME}@${HOST_NAME} "
             cd ${APP_DIR} &&
             git fetch &&
-            git reset &&
+            git reset --hard HEAD &&
+            git clean -fd &&            
             git checkout ${REF} &&
             git pull &&
             sudo systemctl restart ${SERVICE_NAME}
