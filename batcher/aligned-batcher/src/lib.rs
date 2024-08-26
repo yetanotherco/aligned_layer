@@ -366,6 +366,12 @@ impl Batcher {
 
                 let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
                 let nonced_verification_data = client_msg.verification_data;
+
+                if !self.check_nonce(addr, nonce).await {
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                    return Ok(());
+                }
+
                 if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
                     error!("Proof size exceeds the maximum allowed size.");
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge)
@@ -382,11 +388,8 @@ impl Batcher {
                     return Ok(()); // Send error message to the client and return
                 }
 
-                // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-                if !self.check_nonce_and_increment(addr, nonce).await {
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
-                    return Ok(()); // Send error message to the client and return
-                }
+                // Increment nonce after successful proof verification
+                self.increment_nonce(addr, nonce).await;
 
                 self.add_to_batch(
                     nonced_verification_data,
@@ -432,25 +435,18 @@ impl Batcher {
         true
     }
 
-    async fn check_nonce_and_increment(&self, addr: Address, nonce: U256) -> bool {
-        let mut batch_state = self.batch_state.lock().await;
-
+    async fn check_nonce(&self, addr: Address, nonce: U256) -> bool {
+        let batch_state = self.batch_state.lock().await;
         let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
             Some(nonce) => *nonce,
-            None => {
-                let user_nonce = match self.get_user_nonce(addr).await {
-                    Ok(nonce) => nonce,
-                    Err(e) => {
-                        error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
-                        return false;
-                    }
-                };
-
-                batch_state.user_nonces.insert(addr, user_nonce);
-                user_nonce
-            }
+            None => match self.get_user_nonce(addr).await {
+                Ok(nonce) => nonce,
+                Err(e) => {
+                    error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
+                    return false;
+                }
+            },
         };
-
         if nonce != expected_user_nonce {
             error!(
                 "Invalid nonce for address {addr} Expected: {:?}, got: {:?}",
@@ -458,9 +454,12 @@ impl Batcher {
             );
             return false;
         }
-
-        batch_state.user_nonces.insert(addr, nonce + U256::one());
         true
+    }
+
+    async fn increment_nonce(&self, addr: Address, nonce: U256) {
+        let mut batch_state = self.batch_state.lock().await;
+        batch_state.user_nonces.insert(addr, nonce + U256::one());
     }
 
     async fn get_user_nonce(
@@ -866,7 +865,53 @@ impl Batcher {
             return Ok(()); // Send error message to the client and return
         }
 
-        if client_msg.verification_data.verification_data.proof.len() <= self.max_proof_size {
+        if client_msg.verification_data.verification_data.proof.len() > self.max_proof_size {
+            error!("Proof size exceeds the maximum allowed size.");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
+            return Ok(());
+        }
+
+        let nonced_verification_data = {
+            let mut batch_state = self.batch_state.lock().await;
+
+            let nonpaying_nonce = match batch_state.user_nonces.entry(addr) {
+                Entry::Occupied(o) => o.into_mut(),
+                Entry::Vacant(vacant) => {
+                    let nonce = match self.payment_service.user_nonces(addr).call().await {
+                        Ok(nonce) => nonce,
+                        Err(e) => {
+                            error!("Failed to get nonce for address {:?}: {:?}", addr, e);
+                            send_message(
+                                ws_conn_sink.clone(),
+                                ValidityResponseMessage::InvalidNonce,
+                            )
+                            .await;
+
+                            return Ok(());
+                        }
+                    };
+
+                    vacant.insert(nonce)
+                }
+            };
+
+            debug!("non paying nonce: {:?}", nonpaying_nonce);
+
+            let mut nonce_bytes = [0u8; 32];
+            nonpaying_nonce.to_big_endian(&mut nonce_bytes);
+
+            let client_msg_nonce =
+                U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
+
+            if *nonpaying_nonce != client_msg_nonce {
+                error!(
+                    "Invalid nonce for address {:?} Expected: {:?}, got: {:?}",
+                    addr, nonpaying_nonce, client_msg_nonce
+                );
+                send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                return Ok(());
+            }
+
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled
                 && !zk_utils::verify(&client_msg.verification_data.verification_data).await
@@ -876,60 +921,27 @@ impl Batcher {
                 return Ok(()); // Send error message to the client and return
             }
 
-            let nonced_verification_data = {
-                let mut batch_state = self.batch_state.lock().await;
+            *nonpaying_nonce += U256::one();
 
-                let nonpaying_nonce = match batch_state.user_nonces.entry(addr) {
-                    Entry::Occupied(o) => o.into_mut(),
-                    Entry::Vacant(vacant) => {
-                        let nonce = match self.payment_service.user_nonces(addr).call().await {
-                            Ok(nonce) => nonce,
-                            Err(e) => {
-                                error!("Failed to get nonce for address {:?}: {:?}", addr, e);
-                                send_message(
-                                    ws_conn_sink.clone(),
-                                    ValidityResponseMessage::InvalidNonce,
-                                )
-                                .await;
-
-                                return Ok(());
-                            }
-                        };
-
-                        vacant.insert(nonce)
-                    }
-                };
-
-                debug!("non paying nonce: {:?}", nonpaying_nonce);
-
-                let mut nonce_bytes = [0u8; 32];
-                nonpaying_nonce.to_big_endian(&mut nonce_bytes);
-                *nonpaying_nonce += U256::one();
-
-                NoncedVerificationData::new(
-                    client_msg.verification_data.verification_data.clone(),
-                    nonce_bytes,
-                    self.chain_id,
-                )
-            };
-
-            let client_msg = ClientMessage::new(
-                nonced_verification_data.clone(),
-                non_paying_config.replacement.clone(),
-            );
-
-            self.clone()
-                .add_to_batch(
-                    nonced_verification_data,
-                    ws_conn_sink.clone(),
-                    client_msg.signature,
-                )
-                .await;
-        } else {
-            error!("Proof is too large");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
-            return Ok(()); // Send error message to the client and return
+            NoncedVerificationData::new(
+                client_msg.verification_data.verification_data.clone(),
+                nonce_bytes,
+                self.chain_id,
+            )
         };
+
+        let client_msg = ClientMessage::new(
+            nonced_verification_data.clone(),
+            non_paying_config.replacement.clone(),
+        );
+
+        self.clone()
+            .add_to_batch(
+                nonced_verification_data,
+                ws_conn_sink.clone(),
+                client_msg.signature,
+            )
+            .await;
 
         info!("Verification data message handled");
 
