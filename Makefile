@@ -648,7 +648,7 @@ explorer_dump_db:
 		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /explorer"
 
-explorer_recover_db: run_db
+explorer_recover_db: explorer_run_db
 	@read -p $$'\e[32mEnter the dump file to recover (e.g., dump.20230607_123456.sql): \e[0m' DUMP_FILE && \
 	cd explorer && \
 	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
