@@ -137,6 +137,10 @@ func (o *Operator) Start(ctx context.Context) error {
 	if err != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
+	subV2, err := o.SubscribeToNewTasksV2()
+	if err != nil {
+		log.Fatal("Could not subscribe to new tasks")
+	}
 
 	var metricsErrChan <-chan error
 	if o.Config.Operator.EnableMetrics {
@@ -158,7 +162,14 @@ func (o *Operator) Start(ctx context.Context) error {
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
+		case err := <-subV2:
+			o.Logger.Infof("Error in websocket subscription", "err", err)
+			sub, err = o.SubscribeToNewTasks()
+			if err != nil {
+				o.Logger.Fatal("Could not subscribe to new tasks")
+			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
+			o.Logger.Infof("Received new batch log: V1")
 			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
 				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
@@ -178,6 +189,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			)
 			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
+			o.Logger.Infof("Received new batch log: V2")
 			err := o.ProcessNewBatchLogV2(newBatchLogV2)
 			if err != nil {
 				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLogV2.BatchMerkleRoot, err)

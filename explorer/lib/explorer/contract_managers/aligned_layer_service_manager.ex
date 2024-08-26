@@ -83,7 +83,7 @@ defmodule AlignedLayerServiceManager do
 
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
     events =
-      AlignedLayerServiceManager.EventFilters.new_batch(nil)
+      AlignedLayerServiceManager.EventFilters.new_batch_v2(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
 
     case events do

@@ -43,7 +43,7 @@ type BatchData struct {
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
 	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
-	NewBatchChanV2          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewBatchChanV2        chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
@@ -93,6 +93,7 @@ type Aggregator struct {
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
 	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+	newBatchChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
@@ -163,6 +164,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsSubscriber:    avsSubscriber,
 		avsWriter:        avsWriter,
 		NewBatchChan:     newBatchChan,
+		NewBatchChanV2:   newBatchChanV2,
 
 		batchesIdentifierHashByIdx: batchesIdentifierHashByIdx,
 		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
@@ -279,7 +281,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
-		if true { //V1
+		if false { //V1
+			agg.logger.Info("agg if V1")
 			_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, nonSignerStakesAndSignature)
 			if err == nil {
 				agg.logger.Info("Aggregator successfully responded to task",
@@ -293,6 +296,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 			time.Sleep(2 * time.Second)
 
 		} else { //V2
+			agg.logger.Info("agg if V2")
 			_, err = agg.sendAggregatedResponseV2(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 			if err == nil {
 				agg.logger.Info("Aggregator successfully responded to task",
