@@ -4,7 +4,7 @@ The Aligned SDK aims to help developers interact with Aligned in a simple way.
 Using the Aligned SDK, you can do things like submitting and verifying proofs through the Aligned Batcher, as well as checking the inclusion of the verified proofs on-chain.
 This guide provides an overview of the SDK, its installation, usage, and API details.
 
-You can check the list of supported verifiers [here](../architecture/0_supported_verifiers.md).
+You can check the list of supported verifiers [here](../2_architecture/0_supported_verifiers.md).
 
 ## Installation
 
@@ -45,7 +45,7 @@ fn main() {
 }
 ```
 
-Or you can make a more complex call, to submit a proof: 
+Or you can make a more complex call to submit a proof: 
 
 (code extract from [ZKQuiz](../1_introduction/2_zkquiz.md))
 
@@ -98,4 +98,4 @@ fn main() {
 }
 ```
 
-On the [next section](./1.2_SDK_api_reference.md) we will dive deeper into what does each argument mean, and what other functions does Aligned SDK contain.
+In the [next section,](./1.2_SDK_api_reference.md) we will dive deeper into what does each argument mean, and what other functions does Aligned SDK contain.
