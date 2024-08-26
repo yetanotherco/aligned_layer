@@ -3,7 +3,7 @@ use halo2_proofs::{
     circuit::{Layouter, SimpleFloorPlanner, Value},
     plonk::{
         create_proof, keygen_pk, keygen_vk_custom, Advice, Circuit, Column,
-        ConstraintSystem, ErrorFront, Fixed, Instance
+        ConstraintSystem, ErrorFront, Fixed, Instance, write_params
     },
     poly::{
         kzg::{
@@ -184,24 +184,9 @@ fn main() {
 
     let mut vk_buf = Vec::new();
     vk.write(&mut vk_buf, SerdeFormat::RawBytes).unwrap();
-    let vk_len = vk_buf.len();
+
     let mut kzg_params_buf = Vec::new();
     vk_params.write(&mut kzg_params_buf).unwrap();
-    let kzg_params_len = kzg_params_buf.len();
 
-    //Write everything to parameters file
-    let params_file = File::create("params.bin").unwrap();
-    let mut writer = BufWriter::new(params_file);
-    let cs_buf = bincode::serialize(&cs).unwrap();
-
-    //Write Parameter Lengths as u32
-    writer.write_all(&(cs_buf.len() as u32).to_le_bytes()).unwrap();
-    writer.write_all(&(vk_len as u32).to_le_bytes()).unwrap();
-    writer.write_all(&(kzg_params_len as u32).to_le_bytes()).unwrap();
-
-    //Write Parameters
-    writer.write_all(&cs_buf).unwrap();
-    writer.write_all(&vk_buf).unwrap();
-    writer.write_all(&kzg_params_buf).unwrap();
-    writer.flush().unwrap();
+    write_params(&kzg_params_buf, cs, &vk_buf, "params.bin").unwrap();
 }

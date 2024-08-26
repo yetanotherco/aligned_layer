@@ -8,35 +8,50 @@ defmodule Explorer.Periodically do
 
   def init(_) do
     send_work()
-    {:ok, 0}
+    {:ok, %{batches_count: 0, restakings_last_read_block: 0}}
   end
 
   def send_work() do
-    # once per block
-    seconds = 12
-    # send every n seconds
-    :timer.send_interval(seconds * 1000, :work)
+    one_second = 1000
+    seconds_in_an_hour = 60 * 60
+
+    :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
+    :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
   end
 
-  def handle_info(:work, count) do
-    # Reads and process last n blocks for new batches or batch changes
+  # Reads and process last blocks for operators and restaking changes
+  def handle_info(:restakings, state) do
+    last_read_block = Map.get(state, :restakings_last_read_block)
+    latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
+
+    process_quorum_strategy_changes()
+    process_operators(last_read_block)
+    process_restaking_changes(last_read_block)
+
+    PubSub.broadcast(Explorer.PubSub, "update_restakings", %{})
+
+    {:noreply, %{state | restakings_last_read_block: latest_block_number}}
+  end
+
+  # Reads and process last n blocks for new batches or batch changes
+  def handle_info(:batches, state) do
+    count = Map.get(state, :batches_count)
     read_block_qty = 8
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)
 
-    Task.start(fn -> process_blocks_from_to(read_from_block, latest_block_number) end)
+    Task.start(fn -> process_batches(read_from_block, latest_block_number) end)
 
-    # Gets previous unverified batches and checks if they were verified
     run_every_n_iterations = 8
     new_count = rem(count + 1, run_every_n_iterations)
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
     end
 
-    {:noreply, new_count}
+    {:noreply, %{state | batches_count: new_count}}
   end
 
-  def process_blocks_from_to(fromBlock, toBlock) do
+  def process_batches(fromBlock, toBlock) do
     "Processing from block #{fromBlock} to block #{toBlock}..." |> IO.inspect()
 
     try do
@@ -109,5 +124,21 @@ defmodule Explorer.Periodically do
         Batches.insert_or_update(batch_changeset, proofs)
       end
     )
+  end
+
+  def process_quorum_strategy_changes() do
+    "Processing strategy changes..." |> IO.inspect()
+    AlignedLayerServiceManager.update_restakeable_strategies()
+    Quorums.process_quorum_changes()
+  end
+
+  def process_operators(fromBlock) do
+    "Processing operators..." |> IO.inspect()
+    AVSDirectoryManager.process_and_store_operator_data(%{fromBlock: fromBlock})
+  end
+
+  def process_restaking_changes(read_from_block) do
+    "Processing restaking changes..." |> IO.inspect()
+    Restakings.process_restaking_changes(%{fromBlock: read_from_block})
   end
 end

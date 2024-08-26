@@ -12,7 +12,7 @@ defmodule ExplorerWeb.Router do
                               _ ->
                                 "default-src 'self' 'unsafe-eval' 'unsafe-inline';" <>
                                   "connect-src ws://#{@host}:*;" <>
-                                  "img-src 'self' blob: data:;" <>
+                                  "img-src * blob: data:;" <>
                                   "font-src data:;"
                             end)
 
@@ -37,6 +37,10 @@ defmodule ExplorerWeb.Router do
       live "/", Home.Index
       live "/batches/:merkle_root", Batch.Index
       live "/batches", Batches.Index
+      live "/restake", Restakes.Index
+      live "/restake/:address", Restake.Index
+      live "/operators", Operators.Index
+      live "/operators/:address", Operator.Index
     end
   end
 

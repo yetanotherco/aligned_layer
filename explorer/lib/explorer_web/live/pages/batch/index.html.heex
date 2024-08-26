@@ -29,6 +29,12 @@
       </div>
       <div>
         <h3>
+          Batch sender address:
+        </h3>
+        <p><%= @current_batch.sender_address |> Helpers.binary_to_hex_string() %></p>
+      </div>
+      <div>
+        <h3>
           Amount of Proofs in this Batch:
         </h3>
         <p><%= @current_batch.amount_of_proofs %></p>
@@ -80,11 +86,11 @@
           target="_blank"
           rel="noopener"
           href={
-          "https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
+          "#{Helpers.get_etherescan_url()}/block/#{@current_batch.submission_block_number}"
         }
           class="hover:text-foreground/80"
         >
-          <%= @current_batch.submission_block_number |> Utils.format_number() %>
+          <%= @current_batch.submission_block_number |> Helpers.format_number() %>
         </.a>
       </div>
       <div>
@@ -94,7 +100,7 @@
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
+          href={"#{Helpers.get_etherescan_url()}/tx/#{@current_batch.submission_transaction_hash}"}
           class="hover:text-foreground/80"
         >
           <%= @current_batch.submission_transaction_hash %>
@@ -105,7 +111,7 @@
           Submission Timestamp:
         </h3>
         <p>
-          <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
+          <%= @current_batch.submission_timestamp |> Helpers.parse_timestamp() %>
         </p>
       </div>
       <%= if @current_batch.is_verified do %>
@@ -123,10 +129,10 @@
           <.a
             target="_blank"
             rel="noopener"
-            href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
+            href={"#{Helpers.get_etherescan_url()}/block/#{@current_batch.response_block_number}"}
             class="hover:text-foreground/80"
           >
-            <%= @current_batch.response_block_number |> Utils.format_number() %>
+            <%= @current_batch.response_block_number |> Helpers.format_number() %>
           </.a>
         </div>
         <div>
@@ -136,7 +142,7 @@
           <.a
             target="_blank"
             rel="noopener"
-            href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
+            href={"#{Helpers.get_etherescan_url()}/tx/#{@current_batch.response_transaction_hash}"}
             class="hover:text-foreground/80"
           >
             <%= @current_batch.response_transaction_hash %>
@@ -147,7 +153,7 @@
             Response Timestamp:
           </h3>
           <p>
-            <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
+            <%= @current_batch.response_timestamp |> Helpers.parse_timestamp() %>
           </p>
         </div>
       <% end %>
