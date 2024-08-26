@@ -95,7 +95,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
+		return nil, fmt.Errorf("could not create RPC client: %s. Is aggregator running?", err)
 	}
 
 	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
