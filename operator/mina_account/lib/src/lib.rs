@@ -43,7 +43,7 @@ pub extern "C" fn verify_account_inclusion_ffi(
     // TODO(xqft): when the needed account GraphQL query is done, do:
     // 1. send encoded account as part of the proof
     // 2. define account_id from encoded account.
-    // 2. assert keccak256(account_id) == account_id_hash
+    // 3. assert keccak256(account_id) == account_id_hash
 
     verify_merkle_proof(account_hash, merkle_proof, merkle_root)
 }
