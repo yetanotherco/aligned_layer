@@ -21,6 +21,9 @@ contract BatcherPaymentService is
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
+    event TaskCreated(bytes32 indexed batchMerkleRoot, string batchDataPointer);
+    event BalanceLocked(address indexed user);
+    event BalanceUnlocked(address indexed user, uint256 unlockBlock);
 
     // ERRORS
     error OnlyBatcherAllowed(address caller); // 152bc288
@@ -159,6 +162,8 @@ contract BatcherPaymentService is
             batchDataPointer
         );
 
+        emit TaskCreated(batchMerkleRoot, batchDataPointer);
+
         payable(batcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator
         );
@@ -170,6 +175,7 @@ contract BatcherPaymentService is
         }
 
         userData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
+        emit BalanceUnlocked(msg.sender, UserData[msg.sender].unlockBlock);
     }
 
     function lock() external whenNotPaused {
@@ -177,6 +183,7 @@ contract BatcherPaymentService is
             revert UserHasNoFundsToLock(msg.sender);
         }
         userData[msg.sender].unlockBlock = 0;
+        emit BalanceLocked(msg.sender);
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
@@ -193,6 +200,7 @@ contract BatcherPaymentService is
 
         senderData.balance -= amount;
         senderData.unlockBlock = 0;
+        emit BalanceLocked(msg.sender);
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }
