@@ -34,7 +34,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
-use types::batch_queue::BatchQueue;
+use types::batch_queue::{BatchQueue, BatchQueueEntry};
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -485,7 +485,7 @@ impl Batcher {
         info!("Calculating verification data commitments...");
         let verification_data_comm = verification_data.clone().into();
         info!("Adding verification data to batch...");
-        batch_state.batch_queue.push((
+        batch_state.batch_queue.push(BatchQueueEntry::new(
             verification_data,
             verification_data_comm,
             ws_conn_sink,
@@ -507,7 +507,7 @@ impl Batcher {
     /// depending on the configured maximum batch size. The batch is splitted at the index where the max size is surpassed,
     /// and all the elements up to that index are copied and cleared from the batch queue. The copy is then passed to the
     /// `finalize_batch` function.
-    async fn is_batch_ready(&self, block_number: u64) -> Option<BatchQueue> {
+    async fn is_batch_ready(&self, block_number: u64) -> Option<Vec<BatchQueueEntry>> {
         let mut batch_state = self.batch_state.lock().await;
         let current_batch_len = batch_state.batch_queue.len();
 
@@ -533,7 +533,7 @@ impl Batcher {
         let batch_verification_data: Vec<NoncedVerificationData> = batch_state
             .batch_queue
             .iter()
-            .map(|(vd, _, _, _)| vd.clone())
+            .map(|entry| entry.nonced_verification_data.clone())
             .collect();
 
         // Check if a batch is currently being posted
@@ -565,8 +565,8 @@ impl Batcher {
             info!("Batch max size exceded. Splitting current batch...");
             let mut acc_batch_size = 0;
             let mut finalized_batch_idx = 0;
-            for (idx, (verification_data, _, _, _)) in batch_state.batch_queue.iter().enumerate() {
-                acc_batch_size += match cbor_serialize(verification_data) {
+            for (idx, entry) in batch_state.batch_queue.iter().enumerate() {
+                acc_batch_size += match cbor_serialize(&entry.nonced_verification_data) {
                     Ok(serialized) => serialized.len(),
                     Err(e) => {
                         error!(
@@ -582,15 +582,21 @@ impl Batcher {
                     break;
                 }
             }
-            let finalized_batch = batch_state
-                .batch_queue
-                .drain(..finalized_batch_idx)
-                .collect();
+            // let finalized_batch = batch_state
+            //     .batch_queue
+            //     .drain(..finalized_batch_idx)
+            //     .collect();
+            let mut finalized_batch = Vec::new();
+            // temporary solution
+            for _ in 0..finalized_batch_idx {
+                finalized_batch.push(batch_state.batch_queue.pop().unwrap());
+            }
+
             return Some(finalized_batch);
         }
 
         // A copy of the batch is made to be returned and the current batch is cleared
-        let finalized_batch = batch_state.batch_queue.clone();
+        let finalized_batch = batch_state.batch_queue.clone().into();
         batch_state.batch_queue.clear();
 
         // Clear the user proofs in batch as well
@@ -605,12 +611,12 @@ impl Batcher {
     async fn finalize_batch(
         &self,
         block_number: u64,
-        finalized_batch: BatchQueue,
+        finalized_batch: Vec<BatchQueueEntry>,
     ) -> Result<(), BatcherError> {
         let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
-            .map(|(data, _, _, _)| data)
+            .map(|entry| entry.nonced_verification_data)
             .collect();
 
         let batch_verification_data: Vec<VerificationData> = nonced_batch_verifcation_data
@@ -625,7 +631,7 @@ impl Batcher {
         let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
             .clone()
             .into_iter()
-            .map(|(_, data_comm, _, _)| data_comm)
+            .map(|entry| entry.verification_data_commitment)
             .collect();
 
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
@@ -648,18 +654,18 @@ impl Batcher {
 
         let signatures = finalized_batch
             .iter()
-            .map(|(_, _, _, sig)| sig)
+            .map(|entry| &entry.signature)
             .cloned()
             .collect();
 
         let nonces = finalized_batch
             .iter()
-            .map(|(nonced_vd, _, _, _)| nonced_vd.nonce)
+            .map(|entry| entry.nonced_verification_data.nonce)
             .collect();
 
         let max_fees = finalized_batch
             .iter()
-            .map(|(nonced_vd, _, _, _)| nonced_vd.max_fee)
+            .map(|entry| entry.nonced_verification_data.max_fee)
             .collect();
 
         if let Err(e) = self
@@ -673,10 +679,10 @@ impl Batcher {
             )
             .await
         {
-            for (_, _, ws_sink, _) in finalized_batch.iter() {
+            for entry in finalized_batch.iter() {
                 let merkle_root = hex::encode(batch_merkle_tree.root);
                 send_message(
-                    ws_sink.clone(),
+                    entry.messaging_sink.clone(),
                     ResponseMessage::CreateNewTaskError(merkle_root),
                 )
                 .await
@@ -694,8 +700,8 @@ impl Batcher {
         warn!("Resetting state... Flushing queue and nonces");
         let mut batch_state = self.batch_state.lock().await;
 
-        for (_, _, ws_sink, _) in batch_state.batch_queue.iter() {
-            send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
+        for entry in batch_state.batch_queue.iter() {
+            send_message(entry.messaging_sink.clone(), ResponseMessage::BatchReset).await;
         }
 
         batch_state.batch_queue.clear();
@@ -986,17 +992,18 @@ impl Batcher {
 }
 
 async fn send_batch_inclusion_data_responses(
-    finalized_batch: BatchQueue,
+    finalized_batch: Vec<BatchQueueEntry>,
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
 ) -> Result<(), BatcherError> {
-    for (vd_batch_idx, (_, _, ws_sink, _)) in finalized_batch.iter().enumerate() {
+    for (vd_batch_idx, entry) in finalized_batch.iter().enumerate() {
         let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
         let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
 
         let serialized_response = cbor_serialize(&response)
             .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
 
-        let sending_result = ws_sink
+        let sending_result = entry
+            .messaging_sink
             .write()
             .await
             .send(Message::binary(serialized_response))
