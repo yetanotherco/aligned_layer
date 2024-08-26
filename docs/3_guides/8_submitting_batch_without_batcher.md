@@ -1,8 +1,7 @@
 # Submitting a batch without using the Batcher
 
-Aligned's infrastructure contains a key element, the [Batcher](../2_architecture/components/1_batcher.md).
-As mentioned in its documentation, 
-it batches many proofs together to reduce the cost of both submission and verification for each proof.
+Aligned's infrastructure contains a key element, the [Batcher](../2_architecture/components/1_batcher.md),
+which bundles many proofs together to reduce the cost of both submission and verification for each proof.
 
 However, the Batcher is not 100% necessary for a User to submit proofs to Aligned.
 This is because, as you may have realized, any account can call `createNewTask(bytes32 batchMerkleRoot, string batchDataPointer)` in [Aligned Service Manager Contract](../2_architecture/components/3_service_manager_contract.md).
