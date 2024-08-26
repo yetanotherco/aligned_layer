@@ -444,6 +444,12 @@ upgrade_batcher_payment_service:
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 
+show_aligned_error_codes:
+	@echo "\nAlignedLayerServiceManager errors:"
+	@cd contracts/src/core && forge inspect IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@echo "\nBatcherPaymentService errors:"
+	@cd contracts/src/core && forge inspect BatcherPaymentService.sol:BatcherPaymentService errors
+
 __BUILD__:
 build_binaries:
 	@echo "Building aggregator..."
