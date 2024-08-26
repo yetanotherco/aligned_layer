@@ -21,6 +21,9 @@ contract BatcherPaymentService is
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
+    event TaskCreated(bytes32 indexed batchMerkleRoot, string batchDataPointer);
+    event BalanceLocked(address indexed user);
+    event BalanceUnlocked(address indexed user, uint256 unlockBlock);
 
     struct SignatureData {
         bytes signature;
@@ -112,6 +115,8 @@ contract BatcherPaymentService is
             batchDataPointer
         );
 
+        emit TaskCreated(batchMerkleRoot, batchDataPointer);
+
         payable(BatcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator
         );
@@ -124,11 +129,13 @@ contract BatcherPaymentService is
         );
 
         UserData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
+        emit BalanceUnlocked(msg.sender, UserData[msg.sender].unlockBlock);
     }
 
     function lock() external whenNotPaused {
         require(UserData[msg.sender].balance > 0, "User has no funds to lock");
         UserData[msg.sender].unlockBlock = 0;
+        emit BalanceLocked(msg.sender);
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
@@ -142,6 +149,7 @@ contract BatcherPaymentService is
 
         user_data.balance -= amount;
         user_data.unlockBlock = 0;
+        emit BalanceLocked(msg.sender);
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
     }

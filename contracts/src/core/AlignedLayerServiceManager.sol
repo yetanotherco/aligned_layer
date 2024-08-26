@@ -34,6 +34,7 @@ contract AlignedLayerServiceManager is
     );
 
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
+    event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -75,6 +76,10 @@ contract AlignedLayerServiceManager is
 
         if (msg.value > 0) {
             batchersBalances[msg.sender] += msg.value;
+            emit BatcherBalanceUpdated(
+                msg.sender,
+                batchersBalances[msg.sender]
+            );
         }
 
         require(batchersBalances[msg.sender] > 0, "Batcher balance is empty");
@@ -86,7 +91,12 @@ contract AlignedLayerServiceManager is
 
         batchesState[batchIdentifierHash] = batchState;
 
-        emit NewBatch(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer);
+        emit NewBatch(
+            batchMerkleRoot,
+            msg.sender,
+            uint32(block.number),
+            batchDataPointer
+        );
     }
 
     function respondToTask(
@@ -98,7 +108,7 @@ contract AlignedLayerServiceManager is
         uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
-                abi.encodePacked(batchMerkleRoot, senderAddress)
+            abi.encodePacked(batchMerkleRoot, senderAddress)
         );
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
@@ -116,10 +126,7 @@ contract AlignedLayerServiceManager is
             "Batch already responded"
         );
 
-        require(
-            batchersBalances[senderAddress] > 0,
-            "Batcher has no balance"
-        );
+        require(batchersBalances[senderAddress] > 0, "Batcher has no balance");
 
         batchesState[batchIdentifierHash].responded = true;
 
@@ -152,12 +159,15 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
         require(
-            batchersBalances[senderAddress] >=
-                txCost,
+            batchersBalances[senderAddress] >= txCost,
             "Batcher has not sufficient funds for paying this transaction"
         );
 
         batchersBalances[senderAddress] -= txCost;
+        emit BatcherBalanceUpdated(
+            senderAddress,
+            batchersBalances[senderAddress]
+        );
         payable(msg.sender).transfer(txCost);
     }
 
@@ -207,6 +217,7 @@ contract AlignedLayerServiceManager is
 
     receive() external payable {
         batchersBalances[msg.sender] += msg.value;
+        emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
     }
 
     function checkPublicInput(
