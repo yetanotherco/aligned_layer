@@ -656,6 +656,11 @@ impl Batcher {
             .map(|(nonced_vd, _, _, _)| nonced_vd.nonce)
             .collect();
 
+        let max_fees = finalized_batch
+            .iter()
+            .map(|(nonced_vd, _, _, _)| nonced_vd.max_fee)
+            .collect();
+
         if let Err(e) = self
             .submit_batch(
                 &batch_bytes,
@@ -663,6 +668,7 @@ impl Batcher {
                 leaves,
                 signatures,
                 nonces,
+                max_fees,
             )
             .await
         {
@@ -720,6 +726,7 @@ impl Batcher {
         leaves: Vec<[u8; 32]>,
         signatures: Vec<Signature>,
         nonces: Vec<[u8; 32]>,
+        max_fees: Vec<U256>,
     ) -> Result<(), BatcherError> {
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
@@ -750,7 +757,7 @@ impl Batcher {
         let signatures = signatures
             .iter()
             .enumerate()
-            .map(|(i, signature)| SignatureData::new(signature, nonces[i]))
+            .map(|(i, signature)| SignatureData::new(signature, nonces[i], max_fees[i]))
             .collect();
 
         match self
@@ -909,6 +916,7 @@ impl Batcher {
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
                     nonce_bytes,
+                    18446744073709551615u64.into(),
                     self.chain_id,
                 )
             };

@@ -37,14 +37,21 @@ pub struct VerificationData {
 pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
     pub nonce: [u8; 32],
+    pub max_fee: U256,
     pub chain_id: U256,
 }
 
 impl NoncedVerificationData {
-    pub fn new(verification_data: VerificationData, nonce: [u8; 32], chain_id: U256) -> Self {
+    pub fn new(
+        verification_data: VerificationData,
+        nonce: [u8; 32],
+        max_fee: U256,
+        chain_id: U256,
+    ) -> Self {
         Self {
             verification_data,
             nonce,
+            max_fee,
             chain_id,
         }
     }
@@ -205,9 +212,13 @@ impl ClientMessage {
             .chain_id
             .to_big_endian(&mut chain_id_bytes);
 
+        let mut max_fee_bytes = [0u8; 32];
+        verification_data.max_fee.to_big_endian(&mut max_fee_bytes);
+
         let mut hasher = Keccak256::new();
         hasher.update(hashed_leaf);
         hasher.update(verification_data.nonce);
+        hasher.update(max_fee_bytes);
         hasher.update(chain_id_bytes);
         hasher.finalize().into()
     }

@@ -28,6 +28,7 @@ contract BatcherPaymentService is
     struct SignatureData {
         bytes signature;
         uint256 nonce;
+        uint256 maxFee;
     }
 
     struct UserInfo {
@@ -237,8 +238,18 @@ contract BatcherPaymentService is
         SignatureData calldata signatureData,
         uint256 feePerProof
     ) private {
+        require(
+            signatureData.maxFee >= feePerProof,
+            "Signer has insufficient maxFee"
+        );
+
         bytes32 noncedHash = keccak256(
-            abi.encodePacked(hash, signatureData.nonce, block.chainid)
+            abi.encodePacked(
+                hash,
+                signatureData.nonce,
+                signatureData.maxFee,
+                block.chainid
+            )
         );
 
         address signer = noncedHash.recover(signatureData.signature);

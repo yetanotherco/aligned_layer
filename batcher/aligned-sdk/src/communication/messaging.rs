@@ -47,8 +47,12 @@ pub async fn send_messages(
     for verification_data in verification_data.iter() {
         nonce.to_big_endian(&mut nonce_bytes);
 
-        let verification_data =
-            NoncedVerificationData::new(verification_data.clone(), nonce_bytes, chain_id);
+        let verification_data = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_bytes,
+            10000000000000u64.into(),
+            chain_id,
+        );
 
         nonce += U256::one();
 
