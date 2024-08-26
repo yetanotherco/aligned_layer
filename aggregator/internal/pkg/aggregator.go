@@ -43,6 +43,7 @@ type BatchData struct {
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
 	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	NewBatchChanV2          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
@@ -207,7 +208,7 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 		case blsAggServiceResp := <-agg.blsAggregationService.GetResponseChannel():
 			agg.logger.Info("Received response from BLS aggregation service",
 				"taskIndex", blsAggServiceResp.TaskIndex)
-
+			
 			go agg.handleBlsAggServiceResponse(blsAggServiceResp)
 		}
 	}
@@ -278,17 +279,33 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
-		if err == nil {
-			agg.logger.Info("Aggregator successfully responded to task",
-				"taskIndex", blsAggServiceResp.TaskIndex,
-				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+		if true { //V1
+			_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, nonSignerStakesAndSignature)
+			if err == nil {
+				agg.logger.Info("Aggregator successfully responded to task",
+					"taskIndex", blsAggServiceResp.TaskIndex,
+					"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+	
+				return
+			}
+	
+			// Sleep for a bit before retrying
+			time.Sleep(2 * time.Second)
 
-			return
+		} else { //V2
+			_, err = agg.sendAggregatedResponseV2(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+			if err == nil {
+				agg.logger.Info("Aggregator successfully responded to task",
+					"taskIndex", blsAggServiceResp.TaskIndex,
+					"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+	
+				return
+			}
+	
+			// Sleep for a bit before retrying
+			time.Sleep(2 * time.Second)
 		}
 
-		// Sleep for a bit before retrying
-		time.Sleep(2 * time.Second)
 	}
 
 	agg.logger.Error("Aggregator failed to respond to task, this batch will be lost",
@@ -309,7 +326,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSigne
 	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.walletMutex.Unlock()
-		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
+		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchMerkleRoot[:]), err)
 		return nil, err
 	}
 
