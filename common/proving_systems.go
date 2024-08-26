@@ -16,10 +16,11 @@ const (
 	Halo2IPA
 	Risc0
 	Mina
+  MinaAccount
 )
 
 func (t *ProvingSystemId) String() string {
-	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1", "Halo2IPA", "Mina"}[*t]
+	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1", "Halo2IPA", "Mina", "MinaAccount"}[*t]
 }
 
 func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
@@ -40,6 +41,8 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Risc0, nil
 	case "Mina":
 		return Mina, nil
+	case "MinaAccount":
+		return MinaAccount, nil
 	}
 
 	return 0, fmt.Errorf("unknown proving system: %s", provingSystem)
@@ -63,6 +66,8 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "Risc0", nil
 	case Mina:
 		return "Mina", nil
+	case MinaAccount:
+		return "MinaAccount", nil
 	}
 
 	return "", fmt.Errorf("unknown proving system: %d", provingSystem)

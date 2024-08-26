@@ -7,7 +7,9 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v2"
-	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
+  // TODO(xqft): used lambdaclass below as a temporary solution, can't
+  // import the internal package when in presence of a replace directive.
+  "github.com/lambdaclass/aligned_layer/aggregator/internal/pkg"
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 

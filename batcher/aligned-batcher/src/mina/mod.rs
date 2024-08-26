@@ -60,7 +60,8 @@ pub fn check_state(pub_inputs: &[u8], offset: &mut usize) -> Result<(), String> 
 pub fn check_pub_inputs(pub_inputs: &[u8]) -> Result<(), String> {
     let mut offset = 0;
 
-    check_hash(pub_inputs, &mut offset)?; // candidate hash
+    check_hash(pub_inputs, &mut offset)?; // candidate ledger hash
+    check_hash(pub_inputs, &mut offset)?; // candidate state hash
     check_hash(pub_inputs, &mut offset)?; // tip hash
 
     check_state(pub_inputs, &mut offset)?; // candidate state

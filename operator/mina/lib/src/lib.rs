@@ -43,7 +43,7 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
         }
     };
 
-    let (candidate_hash, tip_hash, candidate_state, tip_state) =
+    let (candidate_ledger_hash, candidate_hash, tip_hash, candidate_state, tip_state) =
         match parse_pub_inputs(&public_input_bytes[..public_input_len]) {
             Ok(protocol_state_pub) => protocol_state_pub,
             Err(err) => {
@@ -52,11 +52,33 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
             }
         };
 
+    let expected_candidate_ledger_hash = match candidate_state
+        .body
+        .blockchain_state
+        .staged_ledger_hash
+        .non_snark
+        .ledger_hash
+        .to_fp()
+    {
+        Ok(hash) => hash,
+        Err(err) => {
+            eprintln!("Failed to parse candidate ledger hash: {}", err);
+            return false;
+        }
+    };
+
+    // TODO(xqft): this can be a batcher's pre-verification check (but don't remove it from here)
+    if candidate_ledger_hash != expected_candidate_ledger_hash {
+        eprintln!("Candidate ledger hash on public inputs doesn't match the encoded state's one");
+        return false;
+    }
+
     // TODO(xqft): this can be a batcher's pre-verification check (but don't remove it from here)
     if MinaHash::hash(&tip_state) != tip_hash {
         eprintln!("The tip's protocol state doesn't match the hash provided as public input");
         return false;
     }
+    // TODO(xqft): this can be a batcher's pre-verification check (but don't remove it from here)
     if MinaHash::hash(&candidate_state) != candidate_hash {
         eprintln!("The candidate's protocol state doesn't match the hash provided as public input");
         return false;
@@ -129,6 +151,7 @@ pub fn parse_pub_inputs(
     (
         Fp,
         Fp,
+        Fp,
         MinaStateProtocolStateValueStableV2,
         MinaStateProtocolStateValueStableV2,
     ),
@@ -136,13 +159,21 @@ pub fn parse_pub_inputs(
 > {
     let mut offset = 0;
 
+    let candidate_ledger_hash = parse_hash(pub_inputs, &mut offset)?;
+
     let candidate_hash = parse_hash(pub_inputs, &mut offset)?;
     let tip_hash = parse_hash(pub_inputs, &mut offset)?;
 
     let candidate_state = parse_state(pub_inputs, &mut offset)?;
     let tip_state = parse_state(pub_inputs, &mut offset)?;
 
-    Ok((candidate_hash, tip_hash, candidate_state, tip_state))
+    Ok((
+        candidate_ledger_hash,
+        candidate_hash,
+        tip_hash,
+        candidate_state,
+        tip_state,
+    ))
 }
 
 pub fn parse_proof(proof_bytes: &[u8]) -> Result<MinaBaseProofStableV2, String> {

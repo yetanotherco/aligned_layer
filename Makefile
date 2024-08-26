@@ -644,6 +644,27 @@ test_mina_go_bindings_linux: build_mina_linux
 	@echo "Testing Mina Go bindings..."
 	go test ./operator/mina/... -v
 
+__MINA_ACCOUNT_FFI__: ##
+build_mina_account_macos:
+	@cd operator/mina_account/lib && cargo build --release
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.dylib operator/mina_account/lib/libmina_account_verifier.dylib
+
+build_mina_account_linux:
+	@cd operator/mina_account/lib && cargo build --release
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.so operator/mina_account/lib/libmina_account_verifier.so
+
+test_mina_account_rust_ffi:
+	@echo "Testing Mina Account Rust FFI source code..."
+	@cd operator/mina_account/lib && cargo t --release
+
+test_mina_account_go_bindings_macos: build_mina_account_macos
+	@echo "Testing Mina Account Go bindings..."
+	go test ./operator/mina_account/... -v
+
+test_mina_account_go_bindings_linux: build_mina_linux
+	@echo "Testing Mina Account Go bindings..."
+	go test ./operator/mina_account/... -v
+
 __BUILD_ALL_FFI__:
 
 build_all_ffi: ## Build all FFIs
@@ -657,6 +678,8 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
+	@$(MAKE) build_mina_macos
+	@$(MAKE) build_mina_account_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -666,6 +689,8 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
+	@$(MAKE) build_mina_linux
+	@$(MAKE) build_mina_account_linux
 	@echo "All Linux FFIs built successfully."
 
 

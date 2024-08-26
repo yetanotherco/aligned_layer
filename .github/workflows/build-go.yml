@@ -30,6 +30,8 @@ jobs:
         run: make build_merkle_tree_linux
       - name: Build Mina bindings
         run: make build_mina_linux
+      - name: Build Mina Account bindings
+        run: make build_mina_account_linux
       - name: Build operator
         run: go build operator/cmd/main.go
       - name: Build aggregator

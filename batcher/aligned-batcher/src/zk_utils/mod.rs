@@ -98,5 +98,14 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             // verifier. These checks are fast and if they aren't successful then the Pickles proof
             // isn't valid.
         }
+        ProvingSystemId::MinaAccount => {
+            verification_data
+                .pub_input
+                .as_ref()
+                .expect("Public input is required");
+            true
+            // TODO(xqft): add basic integrity checks (e.g. length of merkle proof being multiple of 32
+            // bytes, etc)
+        }
     }
 }
