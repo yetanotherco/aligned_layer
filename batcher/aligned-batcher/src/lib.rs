@@ -530,11 +530,19 @@ impl Batcher {
             return None;
         }
 
-        let batch_verification_data: Vec<NoncedVerificationData> = batch_state
-            .batch_queue
-            .iter()
-            .map(|entry| entry.nonced_verification_data.clone())
-            .collect();
+        let gas_price = match self.get_gas_price().await {
+            Some(price) => price,
+            None => {
+                error!("Failed to get gas price");
+                return None;
+            }
+        };
+
+        // Multiply the gas price by 2 to allow for spike in gas price before submitting
+        let gas_price = match gas_price.checked_mul(U256::from(2)) {
+            Some(price) => price,
+            None => return None, // gas price was too high
+        };
 
         // Check if a batch is currently being posted
         let mut batch_posting = self.posting_batch.lock().await;
@@ -548,58 +556,67 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
 
-        let current_batch_size = match cbor_serialize(&batch_verification_data) {
-            Ok(serialized) => serialized.len(),
-            Err(e) => {
-                error!(
-                    "Failed to serialize verification data: {:?}, resetting batch state",
-                    e
-                );
-                self.flush_queue_and_clear_nonce_cache().await;
-                return None;
-            }
-        };
+        // We use a copy of the batch queue because we might not find a working batch,
+        // in that case batch queue should stay the same
+        let mut batch_queue_copy = batch_state.batch_queue.clone();
+        let mut finalized_batch = vec![];
+        let mut finalized_batch_size = 0;
+        let mut finalized_batch_works = false;
 
-        // check if the current batch needs to be splitted into smaller batches
-        if current_batch_size > self.max_batch_size {
-            info!("Batch max size exceded. Splitting current batch...");
-            let mut acc_batch_size = 0;
-            let mut finalized_batch_idx = 0;
-            for (idx, entry) in batch_state.batch_queue.iter().enumerate() {
-                acc_batch_size += match cbor_serialize(&entry.nonced_verification_data) {
-                    Ok(serialized) => serialized.len(),
+        while let Some(entry) = batch_queue_copy.peek() {
+            let serialized_vd_size =
+                match cbor_serialize(&entry.nonced_verification_data.verification_data) {
+                    Ok(val) => val.len(),
                     Err(e) => {
-                        error!(
-                            "Failed to serialize verification data: {:?}, resetting batch",
-                            e
-                        );
-                        self.flush_queue_and_clear_nonce_cache().await;
-                        return None;
+                        warn!("Serialization error: {:?}", e);
+                        break;
                     }
                 };
-                if acc_batch_size > self.max_batch_size {
-                    finalized_batch_idx = idx;
-                    break;
-                }
-            }
-            // let finalized_batch = batch_state
-            //     .batch_queue
-            //     .drain(..finalized_batch_idx)
-            //     .collect();
-            let mut finalized_batch = Vec::new();
-            // temporary solution
-            for _ in 0..finalized_batch_idx {
-                finalized_batch.push(batch_state.batch_queue.pop().unwrap());
+
+            if finalized_batch_size + serialized_vd_size > self.max_batch_size {
+                break;
             }
 
-            return Some(finalized_batch);
+            let num_proofs = finalized_batch.len() + 1;
+
+            let gas_per_proof = (CONSTANT_COST
+                + ADDITIONAL_SUBMISSION_COST_PER_PROOF * num_proofs as u128)
+                / num_proofs as u128;
+
+            let fee = U256::from(gas_per_proof).checked_mul(gas_price).unwrap(); // TODO: remove unwrap
+
+            // it is sufficient to check this max fee because it will be the lowest since its sorted
+            if fee < entry.nonced_verification_data.max_fee {
+                finalized_batch_works = true;
+            } else if finalized_batch_works {
+                // Can not add latest element since it is not willing to pay the corresponding fee
+                // Could potentially still find another working solution later with more elements,
+                // maybe we can explore all lengths in a future version
+                // or do the reverse from this, try with whole batch,
+                // then with whole batch minus last element, etc
+                break;
+            }
+
+            // Either max fee is insufficient but we have not found a working solution yet,
+            // or we can keep adding to a working batch,
+            // Either way we need to keep iterating
+            finalized_batch_size += serialized_vd_size;
+
+            // We can unwrap here because we have already peeked to check there is a value
+            finalized_batch.push(batch_queue_copy.pop().unwrap());
         }
 
-        // A copy of the batch is made to be returned and the current batch is cleared
-        let finalized_batch = batch_state.batch_queue.clone().into();
-        batch_state.batch_queue.clear();
+        if !finalized_batch_works {
+            // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
+            return None;
+        }
+
+        // Set the batch queue to batch queue copy
+        batch_state.batch_queue = batch_queue_copy;
 
         // Clear the user proofs in batch as well
+        // TODO: this should not clear,
+        // it should recalculate with whats remaining in batch queue
         batch_state.user_proof_count_in_batch.clear();
 
         Some(finalized_batch)
@@ -988,6 +1005,19 @@ impl Batcher {
         };
 
         unlock_block != U256::zero()
+    }
+
+    async fn get_gas_price(&self) -> Option<U256> {
+        match self.eth_ws_provider.get_gas_price().await {
+            Ok(gas_price) => Some(gas_price),
+            Err(_) => match self.eth_ws_provider_fallback.get_gas_price().await {
+                Ok(gas_price) => Some(gas_price),
+                Err(_) => {
+                    warn!("Failed to get gas price");
+                    None
+                }
+            },
+        }
     }
 }
 
