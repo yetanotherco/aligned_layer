@@ -152,10 +152,30 @@ func subscribeToNewTasks(
 		return sub, nil
 	}
 
-	return nil, fmt.Errorf("Failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
+	return nil, fmt.Errorf("failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
 }
 
 func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatch, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatch) {
+	newBatchMutex.Lock()
+	defer newBatchMutex.Unlock()
+
+	if _, ok := batchesSet[batch.BatchMerkleRoot]; !ok {
+		s.logger.Info("Received new task", "batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]))
+		batchesSet[batch.BatchMerkleRoot] = struct{}{}
+
+		newTaskCreatedChan <- batch
+
+		// Remove the batch from the set after RemoveBatchFromSetInterval time
+		go func() {
+			time.Sleep(RemoveBatchFromSetInterval)
+			newBatchMutex.Lock()
+			delete(batchesSet, batch.BatchMerkleRoot)
+			newBatchMutex.Unlock()
+		}()
+	}
+}
+
+func (s *AvsSubscriber) processNewBatchV2(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
 	newBatchMutex.Lock()
 	defer newBatchMutex.Unlock()
 
