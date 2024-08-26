@@ -30,8 +30,8 @@ defmodule BatcherPaymentServiceManager do
   end
 
   @batcher_payment_service_address Jason.decode!(config_json_string)
-    |> Map.get("addresses")
-    |> Map.get("batcherPaymentService")
+                                   |> Map.get("addresses")
+                                   |> Map.get("batcherPaymentService")
 
   use Ethers.Contract,
     abi_file: "lib/abi/BatcherPaymentService.json",
@@ -42,7 +42,7 @@ defmodule BatcherPaymentServiceManager do
   end
 
   def get_fee_per_proof(%{merkle_root: merkle_root}) do
-    BatcherPaymentServiceManager.EventFilters.new_task_created(
+    BatcherPaymentServiceManager.EventFilters.task_created(
       merkle_root
       |> Utils.string_to_bytes32()
     )

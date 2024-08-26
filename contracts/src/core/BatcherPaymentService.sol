@@ -21,13 +21,9 @@ contract BatcherPaymentService is
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
-    event TaskCreated(bytes32 indexed batchMerkleRoot, string batchDataPointer);
     event BalanceLocked(address indexed user);
     event BalanceUnlocked(address indexed user, uint256 unlockBlock);
-    event newTaskCreated(
-        bytes32 indexed batchMerkleRoot,
-        uint256 feePerProof
-    );
+    event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
 
     struct SignatureData {
         bytes signature;
@@ -119,12 +115,7 @@ contract BatcherPaymentService is
             batchDataPointer
         );
 
-        emit newTaskCreated(
-            batchMerkleRoot,
-            feePerProof
-        );
-
-        emit TaskCreated(batchMerkleRoot, batchDataPointer);
+        emit TaskCreated(batchMerkleRoot, feePerProof);
 
         payable(BatcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator

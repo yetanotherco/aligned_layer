@@ -13,7 +13,7 @@
 			{
 				"name": "",
 				"type": "address",
-				"internalType": "address"
+				"internalType": "contract IAlignedLayerServiceManager"
 			}
 		],
 		"stateMutability": "view"
@@ -130,7 +130,7 @@
 			{
 				"name": "_AlignedLayerServiceManager",
 				"type": "address",
-				"internalType": "address"
+				"internalType": "contract IAlignedLayerServiceManager"
 			},
 			{
 				"name": "_BatcherPaymentServiceOwner",
@@ -351,6 +351,38 @@
 	},
 	{
 		"type": "event",
+		"name": "BalanceLocked",
+		"inputs": [
+			{
+				"name": "user",
+				"type": "address",
+				"indexed": true,
+				"internalType": "address"
+			}
+		],
+		"anonymous": false
+	},
+	{
+		"type": "event",
+		"name": "BalanceUnlocked",
+		"inputs": [
+			{
+				"name": "user",
+				"type": "address",
+				"indexed": true,
+				"internalType": "address"
+			},
+			{
+				"name": "unlockBlock",
+				"type": "uint256",
+				"indexed": false,
+				"internalType": "uint256"
+			}
+		],
+		"anonymous": false
+	},
+	{
+		"type": "event",
 		"name": "BeaconUpgraded",
 		"inputs": [
 			{
@@ -447,6 +479,25 @@
 	},
 	{
 		"type": "event",
+		"name": "TaskCreated",
+		"inputs": [
+			{
+				"name": "batchMerkleRoot",
+				"type": "bytes32",
+				"indexed": true,
+				"internalType": "bytes32"
+			},
+			{
+				"name": "feePerProof",
+				"type": "uint256",
+				"indexed": false,
+				"internalType": "uint256"
+			}
+		],
+		"anonymous": false
+	},
+	{
+		"type": "event",
 		"name": "Unpaused",
 		"inputs": [
 			{
@@ -467,25 +518,6 @@
 				"type": "address",
 				"indexed": true,
 				"internalType": "address"
-			}
-		],
-		"anonymous": false
-	},
-	{
-		"type": "event",
-		"name": "newTaskCreated",
-		"inputs": [
-			{
-				"name": "batchMerkleRoot",
-				"type": "bytes32",
-				"indexed": true,
-				"internalType": "bytes32"
-			},
-			{
-				"name": "feePerProof",
-				"type": "uint256",
-				"indexed": false,
-				"internalType": "uint256"
 			}
 		],
 		"anonymous": false
