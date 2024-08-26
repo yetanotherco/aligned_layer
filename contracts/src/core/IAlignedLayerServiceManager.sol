@@ -10,13 +10,13 @@ interface IAlignedLayerServiceManager {
     ) external payable;
 
     // old respondToTask for smooth upgradeability:
-    function respondToTask_old(
+    function respondToTask(
         bytes32 batchMerkleRoot,
         IBLSSignatureChecker.NonSignerStakesAndSignature
             memory nonSignerStakesAndSignature
     ) external;
 
-    function respondToTask(
+    function respondToTaskV2(
         bytes32 batchMerkleRoot,
         address senderAddress,
         IBLSSignatureChecker.NonSignerStakesAndSignature

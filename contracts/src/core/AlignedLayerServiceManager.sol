@@ -32,7 +32,7 @@ contract AlignedLayerServiceManager is
         string batchDataPointer
     );
     // EVENTS
-    event NewBatch(
+    event NewBatchV2(
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
@@ -97,22 +97,22 @@ contract AlignedLayerServiceManager is
 
         batchesState[batchIdentifierHash] = batchState;
 
-        emit NewBatch(
-            batchMerkleRoot,
-            msg.sender,
-            uint32(block.number),
-            batchDataPointer
-        );
         // old event for smooth Operator upgradeability:
         emit NewBatch(
             batchMerkleRoot,
             uint32(block.number),
             batchDataPointer
         );
+        emit NewBatchV2(
+            batchMerkleRoot,
+            msg.sender,
+            uint32(block.number),
+            batchDataPointer
+        );
     }
 
     // previous version of this function, for smooth upgradeability
-    function respondToTask_old(
+    function respondToTask(
         // Root is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
@@ -184,7 +184,7 @@ contract AlignedLayerServiceManager is
         payable(msg.sender).transfer(txCost);
     }
 
-    function respondToTask(
+    function respondToTaskV2(
         // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
         address senderAddress,
