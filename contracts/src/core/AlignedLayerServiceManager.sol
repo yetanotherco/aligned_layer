@@ -25,16 +25,16 @@ contract AlignedLayerServiceManager is
     uint256 internal constant THRESHOLD_DENOMINATOR = 100;
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
 
+    //old NewBatch event, for smooth Operator upgradeability
+    event NewBatch(
+        bytes32 indexed batchMerkleRoot,
+        uint32 taskCreatedBlock,
+        string batchDataPointer
+    );
     // EVENTS
     event NewBatch(
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
-        uint32 taskCreatedBlock,
-        string batchDataPointer
-    );
-    //old NewBatch event, for smooth Operator upgradeability
-    event NewBatch(
-        bytes32 indexed batchMerkleRoot,
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
@@ -103,6 +103,7 @@ contract AlignedLayerServiceManager is
             uint32(block.number),
             batchDataPointer
         );
+        // old event for smooth Operator upgradeability:
         emit NewBatch(
             batchMerkleRoot,
             uint32(block.number),
