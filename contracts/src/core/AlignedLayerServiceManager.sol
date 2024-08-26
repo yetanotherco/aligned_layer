@@ -32,6 +32,12 @@ contract AlignedLayerServiceManager is
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
+    //old NewBatch event, for smooth Operator upgradeability
+    event NewBatch(
+        bytes32 indexed batchMerkleRoot,
+        uint32 taskCreatedBlock,
+        string batchDataPointer
+    );
 
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
@@ -94,6 +100,11 @@ contract AlignedLayerServiceManager is
         emit NewBatch(
             batchMerkleRoot,
             msg.sender,
+            uint32(block.number),
+            batchDataPointer
+        );
+        emit NewBatch(
+            batchMerkleRoot,
             uint32(block.number),
             batchDataPointer
         );
