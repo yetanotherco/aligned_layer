@@ -12,6 +12,7 @@ hex = "0.4.3"
 sha3 = "0.10.8"
 aligned-sdk = { path = "../../../batcher/aligned-sdk" }
 ciborium = "=0.2.2"
+log = "0.4.21"
 
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
