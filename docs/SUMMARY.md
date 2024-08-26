@@ -44,7 +44,7 @@
 ## Socials
 
 * [Telegram Group](https://t.me/aligned_layer)
-* [Twitter/X](https://twitter.com/alignedlayer)
+* [Twitter/X](https://x.com/alignedlayer)
 * [Discord](https://discord.gg/alignedlayer)
 * [Website](https://alignedlayer.com)
 * [Github](https://github.com/yetanotherco/aligned_layer)
