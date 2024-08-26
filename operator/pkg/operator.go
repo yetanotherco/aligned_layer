@@ -154,29 +154,43 @@ func (o *Operator) Start(ctx context.Context) error {
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
 			err := o.ProcessNewBatchLog(newBatchLog)
+			// err := o.ProcessNewBatchLogV2(newBatchLog)
 			if err != nil {
 				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 				continue
 			}
-			batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
-			var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 
-			responseSignature := o.SignTaskResponse(batchIdentifierHash)
+			// V2
+			// batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
+			// var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+			// responseSignature := o.SignTaskResponse(batchIdentifierHash)
+
+			// V2
+			// signedTaskResponse := types.SignedTaskResponse{
+			// 	BatchIdentifierHash: batchIdentifierHash,
+			// 	BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+			// 	SenderAddress:   newBatchLog.SenderAddress,
+			// 	BlsSignature:    *responseSignature,
+			// 	OperatorId:      o.OperatorId,
+			// }
+			// o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+			// 	hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+			// 	hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+			// 	hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+			// )
+
+
+			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
 			o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
 
 			signedTaskResponse := types.SignedTaskResponse{
-				BatchIdentifierHash: batchIdentifierHash,
 				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-				SenderAddress:   newBatchLog.SenderAddress,
 				BlsSignature:    *responseSignature,
 				OperatorId:      o.OperatorId,
 			}
 
-			// o.Logger.Infof("Signed Task Response to send: %+v", signedTaskResponse)
 			o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
-				hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 				hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
-				hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 			)
 			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
@@ -186,6 +200,46 @@ func (o *Operator) Start(ctx context.Context) error {
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
 func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
+
+	o.Logger.Info("Received new batch with proofs to verify",
+		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
+	defer cancel()
+
+	verificationDataBatch, err := o.getBatchFromS3(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
+	if err != nil {
+		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
+		return err
+	}
+
+	verificationDataBatchLen := len(verificationDataBatch)
+	results := make(chan bool, verificationDataBatchLen)
+	var wg sync.WaitGroup
+	wg.Add(verificationDataBatchLen)
+	for _, verificationData := range verificationDataBatch {
+		go func(data VerificationData) {
+			defer wg.Done()
+			o.verify(data, results)
+			o.metrics.IncOperatorTaskResponses()
+		}(verificationData)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if !result {
+			return fmt.Errorf("invalid proof")
+		}
+	}
+
+	return nil
+}
+func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
