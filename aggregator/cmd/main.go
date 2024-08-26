@@ -56,6 +56,12 @@ func aggregatorMain(ctx *cli.Context) error {
 			aggregatorConfig.BaseConfig.Logger.Fatal("Error subscribing for new tasks", "err", listenErr)
 		}
 	}()
+	go func() {
+		listenErr := aggregator.SubscribeToNewTasksV2()
+		if listenErr != nil {
+			aggregatorConfig.BaseConfig.Logger.Fatal("Error subscribing for new tasks V2", "err", listenErr)
+		}
+	}()
 
 	err = aggregator.Start(context.Background())
 	if err != nil {

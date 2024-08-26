@@ -301,6 +301,31 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 // / Sends response to contract and waits for transaction receipt
 // / Returns error if it fails to send tx or receipt is not found
+func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+	agg.walletMutex.Lock()
+	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch",
+		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
+
+	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
+	if err != nil {
+		agg.walletMutex.Unlock()
+		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
+		return nil, err
+	}
+
+	agg.walletMutex.Unlock()
+	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchMerkleRoot[:]))
+
+	receipt, err := utils.WaitForTransactionReceipt(
+		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	agg.metrics.IncAggregatedResponses()
+
+	return receipt, nil
+}
 func (agg *Aggregator) sendAggregatedResponseV2(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
@@ -332,40 +357,53 @@ func (agg *Aggregator) sendAggregatedResponseV2(batchMerkleRoot [32]byte, sender
 	return receipt, nil
 }
 
-// / Sends response to contract and waits for transaction receipt
-// / Returns error if it fails to send tx or receipt is not found
-func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
-	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task",
+		"Batch merkle root", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
 
-	agg.walletMutex.Lock()
-	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch",
-		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]),
-		"senderAddress", hex.EncodeToString(senderAddress[:]),
-		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
+	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Adding new task")
 
-	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
-	if err != nil {
-		agg.walletMutex.Unlock()
-		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
-		return nil, err
+	// --- UPDATE BATCH - INDEX CACHES ---
+	batchIndex := agg.nextBatchIndex
+	if _, ok := agg.batchesIdxByIdentifierHash[batchMerkleRoot]; ok {
+		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchIdentifierHash (actually batchMerkleRoot)", batchMerkleRoot)
+		agg.taskMutex.Unlock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
+		return
 	}
 
-	agg.walletMutex.Unlock()
-	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchIdentifierHash[:]))
-
-	receipt, err := utils.WaitForTransactionReceipt(
-		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
-	if err != nil {
-		return nil, err
+	// This shouldn't happen, since both maps are updated together
+	if _, ok := agg.batchesIdentifierHashByIdx[batchIndex]; ok {
+		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchIdentifierHash (actually batchMerkleRoot)", batchMerkleRoot)
+		agg.taskMutex.Unlock()
+		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
+		return
 	}
 
-	agg.metrics.IncAggregatedResponses()
+	agg.batchesIdxByIdentifierHash[batchMerkleRoot] = batchIndex
+	agg.batchCreatedBlockByIdx[batchIndex] = uint64(taskCreatedBlock)
+	agg.batchesIdentifierHashByIdx[batchIndex] = batchMerkleRoot
+	agg.batchDataByIdentifierHash[batchMerkleRoot] = BatchData{
+		BatchMerkleRoot: batchMerkleRoot,
+		SenderAddress:   [20]byte{},
+	}
+	agg.nextBatchIndex += 1
 
-	return receipt, nil
+	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
+	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
+
+	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
+	if err != nil {
+		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
+	}
+
+	agg.taskMutex.Unlock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
+	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash (actually batchMerkleRoot)", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
 }
-
-func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
+func (agg *Aggregator) AddNewTaskV2(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
 
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
