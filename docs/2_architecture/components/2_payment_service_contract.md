@@ -20,7 +20,7 @@ the [Aligned Service Manager](./3_service_manager_contract.md),
 including tokens for batch verification payment to the [Aggregator](./5_aggregator.md).
 
 Users can then withdraw extra funds deposited to the Batcher Payments smart contract,
-or leave them to fund future proofs. For this, to avoid DoS'ing the Batcher, Users must first call the contract's to `unlock` function, and then call `withdraw` at least 100 blocks later, to finish their withdraw process. This enables the Batcher to be sure the User will have funds to pay for his proofs when `createNewTask` is called.
+or leave them to fund future proofs. For this, to avoid DoS'ing the Batcher, Users must first call the contract's `unlock` function, and then call `withdraw` at least 100 blocks later, to finish their withdraw process. This enables the Batcher to be sure the User will have funds to pay for his proofs when `createNewTask` is called.
 
 This way, the Batcher can only use User funds to pay for the verification of the User's proofs. The Batcher Payment Service guarantees that the Batcher will not be able to spend the user funds for anything other than submitting the user's proofs to Aligned.
 
