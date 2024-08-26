@@ -23,26 +23,26 @@ contract BatcherPaymentService is
     event FundsWithdrawn(address indexed recipient, uint256 amount);
 
     // ERRORS
-    error OnlyBatcherAllowed(address caller);
-    error NoLeavesSubmitted();
-    error NoProofSubmitterSignatures();
-    error NotEnoughLeaves(uint256 leavesQty, uint256 signaturesQty);
-    error LeavesNotPowerOfTwo(uint256 leavesQty);
-    error NoGasForAggregator();
-    error NoGasPerProof();
-    error InsufficientGasForAggregator(uint256 required, uint256 available);
-    error UserHasNoFundsToUnlock(address user);
-    error UserHasNoFundsToLock(address user);
-    error PayerInsufficientBalance(uint256 balance, uint256 amount);
-    error FundsLocked(uint256 unlockBlock, uint256 currentBlock);
-    error InvalidSignature();
-    error InvalidNonce(uint256 expected, uint256 actual);
+    error OnlyBatcherAllowed(address caller); // 152bc288
+    error NoLeavesSubmitted(); // e5180e03
+    error NoProofSubmitterSignatures(); // 32742c04
+    error NotEnoughLeaves(uint256 leavesQty, uint256 signaturesQty); // 320f0a1b
+    error LeavesNotPowerOfTwo(uint256 leavesQty); // 6b1651e1
+    error NoGasForAggregator(); // ea46d6a4
+    error NoGasPerProof(); // 459e386d
+    error InsufficientGasForAggregator(uint256 required, uint256 available); // ca3b0e0f
+    error UserHasNoFundsToUnlock(address user); // b38340cf
+    error UserHasNoFundsToLock(address user); // 6cc12bc2
+    error PayerInsufficientBalance(uint256 balance, uint256 amount); // 21c3d50f
+    error FundsLocked(uint256 unlockBlock, uint256 currentBlock); // bedc4e5a
+    error InvalidSignature(); // 8baa579f
+    error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
     error SignerInsufficientBalance(
         address signer,
         uint256 balance,
         uint256 required
-    );
-    error InvalidMerkleRoot(bytes32 expected, bytes32 actual);
+    ); // 955c0664
+    error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
 
     struct SignatureData {
         bytes signature;
