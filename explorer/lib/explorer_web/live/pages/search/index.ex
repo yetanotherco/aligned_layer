@@ -22,7 +22,7 @@ defmodule ExplorerWeb.Search.Index do
   @impl true
   def handle_params(params, _url, socket) do
     hash = params["q"]
-    page_param = Integer.parse(params["page"])
+    page_param = Integer.parse(params["page"] || "1")
 
     current_page =
       case page_param do
