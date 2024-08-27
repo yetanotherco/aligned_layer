@@ -208,9 +208,17 @@ contract AlignedLayerServiceManager is
         return batchersBalances[account];
     }
 
+    function depositToBatcher(address account) external payable {
+        _depositToBatcher(account, msg.value);
+    }
+
+    function _depositToBatcher(address account, uint256 amount) internal {
+        batchersBalances[account] += amount;
+        emit BatcherBalanceUpdated(account, batchersBalances[account]);
+    }
+
     receive() external payable {
-        batchersBalances[msg.sender] += msg.value;
-        emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
+        _depositToBatcher(msg.sender, msg.value);
     }
 
     function checkPublicInput(
