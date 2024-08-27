@@ -213,6 +213,9 @@ contract AlignedLayerServiceManager is
     }
 
     function _depositToBatcher(address account, uint256 amount) internal {
+        if (amount <= 0) {
+            revert InvalidDepositAmount(amount);
+        }
         batchersBalances[account] += amount;
         emit BatcherBalanceUpdated(account, batchersBalances[account]);
     }

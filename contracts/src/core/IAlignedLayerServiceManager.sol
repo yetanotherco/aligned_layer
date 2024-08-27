@@ -26,6 +26,7 @@ interface IAlignedLayerServiceManager {
         uint256 available
     ); // 5c54305e
     error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake); // a61eb88a
+    error InvalidDepositAmount(uint256 amount); // 412ed242
 
     function createNewTask(
         bytes32 batchMerkleRoot,
