@@ -8,7 +8,8 @@
 import Config
 
 config :explorer,
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  tracker_api_url: System.get_env("TRACKER_API_URL")
 
 host = System.get_env("PHX_HOST") || "localhost"
 

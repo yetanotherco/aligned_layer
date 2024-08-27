@@ -27,6 +27,8 @@ defmodule ExplorerWeb.Operator.Index do
 
     weight = Operators.get_operator_weight(operator) |> Numbers.show_percentage()
 
+    operator_version = OperatorVersionTracker.get_operator_version(address)
+
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
 
     {:ok,
@@ -36,6 +38,7 @@ defmodule ExplorerWeb.Operator.Index do
        restaked_amount_eth: restaked_amount_eth,
        restakes_by_operator: restakes_by_operator,
        weight: weight,
+       operator_version: operator_version,
        page_title: operator.name
      )}
   end
@@ -98,6 +101,16 @@ defmodule ExplorerWeb.Operator.Index do
             />
           </p>
         </div>
+        <% if @operator_version != nil do %>
+          <div>
+            <h3>
+              Version:
+            </h3>
+            <p class="normal-case">
+              <%= @operator_version %>
+            </p>
+          </div>
+        <% end %>
         <div class="break-all">
           <h3>
             Address:

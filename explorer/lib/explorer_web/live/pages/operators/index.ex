@@ -26,12 +26,14 @@ defmodule ExplorerWeb.Operators.Index do
     operators = Operators.get_operators_with_their_weights()
     total_staked = Restakings.get_restaked_amount_eth()
     operators_registered = Operators.get_amount_of_operators()
+    operator_versions = OperatorVersionTracker.get_operators_version()
 
     {:noreply,
      assign(socket,
        operators: operators,
        total_staked: total_staked,
-       operators_registered: operators_registered
+       operators_registered: operators_registered,
+       operator_versions: operator_versions
      )}
   end
 
@@ -56,6 +58,7 @@ defmodule ExplorerWeb.Operators.Index do
                 class="rounded-full size-5 object-scale-down"
               />
               <%= operator.name %>
+              <%= @operator_versions[operator.address] %>
               <.right_arrow />
               <.tooltip class="py-2 px-2.5 rounded-2xl">
                 <span class="font-semibold text-muted-foreground">Id:</span> <%= operator.id
