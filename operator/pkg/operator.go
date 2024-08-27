@@ -149,10 +149,7 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	var redeployBlockNumber = uint32(100)
-
-	// var V2 = false
-
+	var switchBlockNumber = uint32(100)
 
 	for {
 		select {
@@ -174,8 +171,7 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
-			if newBatchLog.TaskCreatedBlock < redeployBlockNumber {
-			// if !V2 {
+			if newBatchLog.TaskCreatedBlock < switchBlockNumber {
 				o.Logger.Infof("Received new batch log: V1")
 				err := o.ProcessNewBatchLog(newBatchLog)
 				if err != nil {
@@ -198,8 +194,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			} 
 
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
-			if newBatchLogV2.TaskCreatedBlock > redeployBlockNumber {
-			// if V2 {
+			if newBatchLogV2.TaskCreatedBlock >= switchBlockNumber {
 				o.Logger.Infof("Received new batch log: V2")
 				err := o.ProcessNewBatchLogV2(newBatchLogV2)
 				if err != nil {

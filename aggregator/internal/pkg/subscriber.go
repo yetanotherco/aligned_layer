@@ -10,16 +10,13 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 		return err
 	}
 
-	// V2 := false
-	var redeployBlockNumber = uint32(100)
-
+	var switchBlockNumber = uint32(100)
 
 	for {
 		select {
 		case err := <-agg.taskSubscriber:
 			agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to subscribe to new tasks", "err", err)
 
-			// if !V2 {
 			// TODO not sure if this is the best way, but no way to calculate blocknumber from here
 			err = agg.subscribeToNewTasks()
 			errV2 := agg.subscribeToNewTasksV2()
@@ -30,14 +27,12 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 				return err
 			}
 		case newBatch := <-agg.NewBatchChan:
-			if newBatch.TaskCreatedBlock < redeployBlockNumber {
-			// if !V2 {
+			if newBatch.TaskCreatedBlock < switchBlockNumber {
 				agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task, V1")
 				agg.AddNewTask(newBatch.BatchMerkleRoot, newBatch.TaskCreatedBlock)
 			}
 		case newBatchV2 := <-agg.NewBatchChanV2:
-			if newBatchV2.TaskCreatedBlock > redeployBlockNumber {
-			// if V2 {
+			if newBatchV2.TaskCreatedBlock >= switchBlockNumber {
 				agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task, V2")
 				agg.AddNewTaskV2(newBatchV2.BatchMerkleRoot, newBatchV2.SenderAddress, newBatchV2.TaskCreatedBlock)
 			}
