@@ -229,7 +229,7 @@ contract AlignedLayerServiceManager is
     modifier onlyAggregator() {
         if (msg.sender != aggregator) {
             revert SenderIsNotAggregator(msg.sender, aggregator);
-            _;
         }
+        _;
     }
 }
