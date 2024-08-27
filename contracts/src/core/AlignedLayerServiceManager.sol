@@ -204,6 +204,24 @@ contract AlignedLayerServiceManager is
             );
     }
 
+    function withdraw(uint256 amount) external {
+        if (batchersBalances[msg.sender] < amount) {
+            revert InsufficientFunds(
+                msg.sender,
+                amount,
+                batchersBalances[msg.sender]
+            );
+        }
+
+        batchersBalances[msg.sender] -= amount;
+        emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
+
+        (bool success, ) = msg.sender.call{value: amount}("");
+        if (!success) {
+            revert WithdrawalFailed(msg.sender, amount);
+        }
+    }
+
     function balanceOf(address account) public view returns (uint256) {
         return batchersBalances[account];
     }
