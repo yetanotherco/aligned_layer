@@ -24,7 +24,7 @@ defmodule CopyToClipboardButtonComponent do
       }
       phx-hook="CopyToClipboard"
       data-clipboard-text={@text_to_copy}
-      id={"copy-to-clipboard-" <> @text_to_copy}
+      id={"copy-to-clipboard-" <> Utils.random_id(@text_to_copy)}
       phx-target={@myself}
       phx-click="copied"
     >
