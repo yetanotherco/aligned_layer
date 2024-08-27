@@ -42,23 +42,43 @@ defmodule Proofs do
     end
   end
 
-  def get_batches_containing_proof(proof_hash_hex) do
+  def get_number_of_batches_containing_proof(proof_hash_hex) do
     proof_hash_hex = String.replace_prefix(proof_hash_hex, "0x", "")
 
     {:ok, proof_hash_binary} = Base.decode16(proof_hash_hex, case: :mixed)
 
+    query = from p in Proofs,
+      where: p.proof_hash == ^proof_hash_binary,
+      select: %{
+        count: count(p.batch_merkle_root, :distinct)
+      }
+
+    case Explorer.Repo.one(query) do
+      %{count: count} -> count
+      nil -> 0
+    end
+  end
+
+  def get_batches_containing_proof(proof_hash_hex, page \\ 1, page_size \\ 10) do
+    proof_hash_hex = String.replace_prefix(proof_hash_hex, "0x", "")
+
+    {:ok, proof_hash_binary} = Base.decode16(proof_hash_hex, case: :mixed)
+
+    offset = (page - 1) * page_size
+
     query = from(p in Proofs,
       where: p.proof_hash == ^proof_hash_binary,
       order_by: [desc: p.id],
-      select: p)
+      limit: ^page_size,
+      offset: ^offset,
+      distinct: p.batch_merkle_root,
+      select: p.batch_merkle_root)
 
     case Explorer.Repo.all(query) do
       [] ->
         []
       results ->
         results
-        |> Enum.map(& &1.batch_merkle_root)
-        |> Enum.uniq()
         |> case do
           [] -> []
           [root] -> [root]

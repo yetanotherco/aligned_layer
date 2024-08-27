@@ -41,7 +41,7 @@ defmodule ExplorerWeb.Router do
       live "/restake/:address", Restake.Index
       live "/operators", Operators.Index
       live "/operators/:address", Operator.Index
-      live "/search/:hash", Search.Index
+      live "/search", Search.Index
     end
   end
 

@@ -9,7 +9,10 @@ defmodule SearchComponent do
         end).()
     |> case do
       {:ok, hash} ->
-        {:noreply, push_navigate(socket, to: ~p"/search/#{hash}")}
+        case Proofs.get_number_of_batches_containing_proof(hash) do
+          0 -> {:noreply, push_navigate(socket, to: ~p"/batches/#{hash}")}
+          _ -> {:noreply, push_navigate(socket, to: ~p"/search?q=#{hash}")}
+        end
 
       :invalid_hash ->
         {:noreply,

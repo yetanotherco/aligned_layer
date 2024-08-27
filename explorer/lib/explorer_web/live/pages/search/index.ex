@@ -1,21 +1,55 @@
 defmodule ExplorerWeb.Search.Index do
   use ExplorerWeb, :live_view
 
-  def mount(%{"hash" => hash}, _session, socket) do
-    case Proofs.get_batches_containing_proof(hash) do
+  @page_size 15
+
+  @impl true
+  def mount(%{"q" => hash}, _session, socket) do
+    total_pages =
+      Proofs.get_number_of_batches_containing_proof(hash)
+      |> div(@page_size)
+      |> Kernel.ceil()
+      |> max(1)
+
+    {:ok,
+     assign(socket,
+       page_title: "Search Results For #{hash |> Helpers.shorten_hash()}",
+       hash: hash,
+       total_pages: total_pages
+     )}
+  end
+
+  @impl true
+  def handle_params(params, _url, socket) do
+    hash = params["q"]
+    page_param = Integer.parse(params["page"])
+
+    current_page =
+      case page_param do
+        {page, _} when page > 0 -> page
+        _ -> 1
+      end
+
+    case Proofs.get_batches_containing_proof(hash, current_page, @page_size) do
       [] ->
-        {:ok, push_navigate(socket, to: ~p"/batches/#{hash}")}
+        {:noreply, push_navigate(socket, to: ~p"/batches/#{hash}")}
 
       results ->
-        {:ok, assign(socket, page_title: "Search Results", results: results, hash: hash)}
+        {:noreply,
+         assign(socket,
+           page_title: "Search Results For #{hash |> Helpers.shorten_hash()}",
+           results: results,
+           current_page: current_page
+         )}
     end
   end
 
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
       <.card_preheding>
-        Search Results for "<%= assigns.hash |> Helpers.shorten_hash() %>"
+        Search Results for "<%= @hash |> Helpers.shorten_hash() %>"
       </.card_preheding>
       <%= if @results != nil or @results != [] do %>
         <.table id="results" rows={@results}>
@@ -37,9 +71,52 @@ defmodule ExplorerWeb.Search.Index do
             </.link>
           </:col>
         </.table>
+        <div class="flex gap-x-2 justify-center items-center">
+          <%= if @current_page != 1 do %>
+            <.link patch={~p"/search?q=#{@hash}&page=#{@current_page - 1}"}>
+              <.button
+                icon="arrow-left-solid"
+                icon_class="group-hover:-translate-x-1 transition-all duration-150"
+                class="text-muted-foreground size-10 group"
+              >
+                <span class="sr-only">Previous Page</span>
+              </.button>
+            </.link>
+          <% else %>
+            <.button
+              icon="arrow-left-solid"
+              class="text-muted-foreground size-10 group pointer-events-none opacity-50"
+              disabled
+            >
+              <span class="sr-only">Previous Page</span>
+            </.button>
+          <% end %>
+          <p>
+            <%= @current_page %> / <%= @total_pages %>
+          </p>
+          <%= if @current_page != @total_pages do %>
+            <.link patch={~p"/search?q=#{@hash}&page=#{@current_page + 1}"}>
+              <.button
+                icon="arrow-right-solid"
+                icon_class="group-hover:translate-x-1 transition-all duration-150"
+                class="text-muted-foreground size-10 group"
+              >
+                <span class="sr-only">Next Page</span>
+              </.button>
+            </.link>
+          <% else %>
+            <.button
+              icon="arrow-right-solid"
+              class="text-muted-foreground size-10 group pointer-events-none opacity-50"
+              disabled
+            >
+              <span class="sr-only">Next Page</span>
+            </.button>
+          <% end %>
+        </div>
       <% else %>
         <.card_background class="overflow-x-auto min-h-[38.45rem] flex flex-col items-center justify-center gap-2">
-          <p class="text-lg text-muted-foreground">No batches found.</p>
+          <p class="text-lg text-muted-foreground">No matching batches found.</p>
         </.card_background>
       <% end %>
     </div>
