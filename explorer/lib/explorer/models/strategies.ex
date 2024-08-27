@@ -1,4 +1,5 @@
 defmodule Strategies do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -58,7 +59,7 @@ defmodule Strategies do
   end
 
   def add_strategy(%Strategies{} = new_strategy) do
-    dbg "adding strategy"
+    "Adding strategy" |> Logger.debug()
     Strategies.generate_changeset(new_strategy) |> Explorer.Repo.insert()
   end
   def add_strategy({:error, _error}) do
