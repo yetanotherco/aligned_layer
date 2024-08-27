@@ -10,7 +10,7 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 		return err
 	}
 
-	var switchBlockNumber = uint64(2_268_375) // 2_268_375 is the block at sep 3th 15:00
+	var switchBlockNumber = uint32(2_268_375) // 2_268_375 is the block at sep 3th 15:00
 
 	for {
 		select {

@@ -149,7 +149,7 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	var switchBlockNumber = uint64(2_268_375) // 2_268_375 is the block at sep 3th 15:00
+	var switchBlockNumber = uint32(2_268_375) // 2_268_375 is the block at sep 3th 15:00
 
 	for {
 		select {
