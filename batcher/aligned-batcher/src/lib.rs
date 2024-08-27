@@ -133,6 +133,26 @@ impl BatchState {
 
         true
     }
+
+    fn update_user_proofs_in_batch_and_min_fee(&mut self) {
+        let mut user_min_fee = HashMap::new();
+        let mut user_proof_count_in_batch = HashMap::new();
+
+        for (entry, _) in self.batch_queue.iter() {
+            *user_proof_count_in_batch.entry(entry.sender).or_insert(0) += 1;
+
+            let min_fee = user_min_fee
+                .entry(entry.sender)
+                .or_insert(entry.nonced_verification_data.max_fee);
+
+            if entry.nonced_verification_data.max_fee < *min_fee {
+                *min_fee = entry.nonced_verification_data.max_fee;
+            }
+        }
+
+        self.user_proof_count_in_batch = user_proof_count_in_batch;
+        self.user_min_fee = user_min_fee;
+    }
 }
 
 pub struct Batcher {
@@ -735,11 +755,7 @@ impl Batcher {
         // Set the batch queue to batch queue copy
         batch_state.batch_queue = batch_queue_copy;
 
-        // Clear the user proofs in batch as well
-        // TODO: this should not clear,
-        // it should recalculate with whats remaining in batch queue
-        batch_state.user_proof_count_in_batch.clear();
-        batch_state.user_min_fee.clear();
+        batch_state.update_user_proofs_in_batch_and_min_fee();
 
         Some(finalized_batch)
     }
