@@ -216,10 +216,7 @@ contract AlignedLayerServiceManager is
         batchersBalances[msg.sender] -= amount;
         emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
 
-        (bool success, ) = msg.sender.call{value: amount}("");
-        if (!success) {
-            revert WithdrawalFailed(msg.sender, amount);
-        }
+        payable(msg.sender).transfer(amount);
     }
 
     function balanceOf(address account) public view returns (uint256) {
