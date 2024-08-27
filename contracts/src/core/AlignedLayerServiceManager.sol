@@ -71,12 +71,14 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
     ) external payable {
-        bytes32 batchIdentifierHash = keccak256(
-            abi.encodePacked(batchMerkleRoot, msg.sender)
-        );
+        bytes32 batchIdentifier;
+        if (block.number < 200) // TODO set number of blocks
+            batchIdentifier = batchMerkleRoot;
+        else 
+            batchIdentifier = keccak256(abi.encodePacked(batchMerkleRoot, msg.sender));
 
         require(
-            batchesState[batchIdentifierHash].taskCreatedBlock == 0,
+            batchesState[batchIdentifier].taskCreatedBlock == 0,
             "Batch was already submitted"
         );
 
@@ -95,7 +97,7 @@ contract AlignedLayerServiceManager is
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
 
-        batchesState[batchIdentifierHash] = batchState;
+        batchesState[batchIdentifier] = batchState;
 
         // old event for smooth Operator upgradeability:
         emit NewBatch(
