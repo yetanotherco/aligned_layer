@@ -218,7 +218,8 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 
 const MaxSentTxRetries = 5
 
-const V2 = false
+// const V2 = false
+var redeployBlockNumber = uint64(150)
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
@@ -281,9 +282,10 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-
+	current_task_block := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
 	for i := 0; i < MaxSentTxRetries; i++ {
-		if !V2 { //V1
+		if current_task_block < redeployBlockNumber {
+		// if !V2 { //V1
 			agg.logger.Info("agg if V1")
 			_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, nonSignerStakesAndSignature)
 			if err == nil {
@@ -296,8 +298,9 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	
 			// Sleep for a bit before retrying
 			time.Sleep(2 * time.Second)
-
-		} else { //V2
+			
+		} else if current_task_block > redeployBlockNumber {
+		// } else { //V2
 			agg.logger.Info("agg if V2")
 			_, err = agg.sendAggregatedResponseV2(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 			if err == nil {
