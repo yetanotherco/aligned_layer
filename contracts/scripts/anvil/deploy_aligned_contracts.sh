@@ -48,18 +48,21 @@ forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
 batcher_payment_service_proxy=$(echo "$forge_output" | awk '/0: address/ {print $3}')
 batcher_payment_service_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 
-# Use the extracted value to replace the  batcher payment service values in alignedlayer_deployment_output.json and save it to a temporary file
-jq --arg batcher_payment_service_proxy "$batcher_payment_service_proxy" '.addresses.batcherPaymentService = $batcher_payment_service_proxy' "script/output/devnet/alignedlayer_deployment_output.json" > "script/output/devnet/alignedlayer_deployment_output.temp.temp.json"
-jq --arg batcher_payment_service_implementation "$batcher_payment_service_implementation" '.addresses.batcherPaymentServiceImplementation = $batcher_payment_service_implementation' "script/output/devnet/alignedlayer_deployment_output.temp.temp.json" > "script/output/devnet/alignedlayer_deployment_output.temp.json"
+# Save ALIGNED_LAYER_AGGREGATOR_ADDRESS
+ALIGNED_LAYER_AGGREGATOR_ADDRESS=$(jq -r '.address' ../config-files/anvil.aggregator.ecdsa.key.json)
+jq --arg alignedLayerAggregator "0x$ALIGNED_LAYER_AGGREGATOR_ADDRESS" '.permissions += {"alignedLayerAggregator": $alignedLayerAggregator}' "script/output/devnet/alignedlayer_deployment_output.json" > "script/output/devnet/alignedlayer_deployment_output.temp1.json"
 
+# Use the extracted value to replace the  batcher payment service values in alignedlayer_deployment_output.json and save it to a temporary file
+jq --arg batcher_payment_service_proxy "$batcher_payment_service_proxy" '.addresses.batcherPaymentService = $batcher_payment_service_proxy' "script/output/devnet/alignedlayer_deployment_output.temp1.json" > "script/output/devnet/alignedlayer_deployment_output.temp2.json"
+jq --arg batcher_payment_service_implementation "$batcher_payment_service_implementation" '.addresses.batcherPaymentServiceImplementation = $batcher_payment_service_implementation' "script/output/devnet/alignedlayer_deployment_output.temp2.json" > "script/output/devnet/alignedlayer_deployment_output.temp3.json"
 
 # Replace the original file with the temporary file
-mv "script/output/devnet/alignedlayer_deployment_output.temp.json" "script/output/devnet/alignedlayer_deployment_output.json"
+mv "script/output/devnet/alignedlayer_deployment_output.temp3.json" "script/output/devnet/alignedlayer_deployment_output.json"
 
 # Delete the temporary file
-rm -f "script/output/devnet/alignedlayer_deployment_output.temp.json"
-rm -f "script/output/devnet/alignedlayer_deployment_output.temp.temp.json"
-
+rm -f "script/output/devnet/alignedlayer_deployment_output.temp1.json"
+rm -f "script/output/devnet/alignedlayer_deployment_output.temp2.json"
+rm -f "script/output/devnet/alignedlayer_deployment_output.temp3.json"
 
 
 # Kill the anvil process to save state

@@ -25,6 +25,7 @@
     "alignedLayerEjector": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "alignedLayerOwner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "alignedLayerUpgrader": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-    "pauserRegistry": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+    "pauserRegistry": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "alignedLayerAggregator": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
   }
 }

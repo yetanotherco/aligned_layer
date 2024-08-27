@@ -47,7 +47,10 @@ contract AlignedLayerServiceManager is
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
     }
 
-    // TODO - make init#N that runs setAggregator
+    // TODO WIP - make init#N that runs setAggregator
+    function initialize2(address _aggregator) public onlyOwner reinitializer(2) {
+        setAggregator(_aggregator);
+    }
 
     function createNewTask(
         bytes32 batchMerkleRoot,
@@ -206,7 +209,7 @@ contract AlignedLayerServiceManager is
             );
     }
 
-    function setAggregator(address _aggregator) external onlyOwner {
+    function setAggregator(address _aggregator) public onlyOwner {
         aggregator = _aggregator;
     }
 

@@ -91,6 +91,19 @@ contract AlignedLayerUpgrader is Script {
 
         vm.stopBroadcast();
 
+        vm.startBroadcast();
+        // TODO WIP only run initialize2 if not in that version
+        // if (alignedLayerServiceManager.$_initialized == 2) {
+        alignedLayerServiceManager.initialize2(
+            stdJson.readAddress(
+                aligned_deployment_file,
+                ".permissions.alignedLayerAggregator"
+            )
+        );
+        // }
+
+        vm.stopBroadcast();
+
         return (
             address(alignedLayerServiceManager),
             address(alignedLayerServiceManagerImplementation)
