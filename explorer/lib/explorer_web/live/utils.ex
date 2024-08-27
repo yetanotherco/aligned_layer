@@ -175,7 +175,7 @@ defmodule Utils do
   end
 
   def calculate_proof_hashes({:error, reason}) do
-    IO.inspect("Error calculating proof hashes: #{inspect(reason)}")
+    Logger.error("Error calculating proof hashes: #{inspect(reason)}")
     []
   end
 
@@ -238,12 +238,12 @@ defmodule Utils do
   end
 
   def extract_info_from_data_pointer(%BatchDB{} = batch) do
-    IO.inspect("Extracting batch's proofs info: #{batch.merkle_root}")
+    Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
     # only get from s3 if not already in DB
     proof_hashes =
       case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
         nil ->
-          IO.inspect("Fetching from S3")
+          Logger.debug("Fetching from S3")
 
           batch.data_pointer
           |> Utils.fetch_batch_data_pointer()
@@ -251,7 +251,7 @@ defmodule Utils do
 
         proof_hashes ->
           # already processed and stored the S3 data
-          IO.inspect("Fetching from DB")
+          Logger.debug("Fetching from DB")
           proof_hashes
       end
 

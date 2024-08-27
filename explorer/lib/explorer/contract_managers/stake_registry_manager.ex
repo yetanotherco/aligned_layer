@@ -41,12 +41,10 @@ defmodule StakeRegistryManager do
           {operator_id, operator_address, Enum.count(data) > 0}
 
         {:error, reason} ->
-          dbg("Error getting latest operator stake update")
-          dbg(reason)
+          "Error getting latest operator stake update: #{inspect(reason)}" |> Logger.error()
 
         other ->
-          dbg("Unexpected response:")
-          dbg(other)
+          "Unexpected response: #{inspect(other)}" |> Logger.debug()
       end
   end
 
@@ -55,7 +53,7 @@ defmodule StakeRegistryManager do
       {:ok, amount} ->
         amount
       {:error, error} ->
-        dbg("Error fetching amount of strategies: #{error}")
+        "Error fetching amount of strategies: #{error}" |> Logger.error()
         raise("Error fetching amount of strategies: #{error}")
     end
 
@@ -64,7 +62,7 @@ defmodule StakeRegistryManager do
         {:ok, strategy_address} ->
           [strategy_address | acc]
         {:error, error} ->
-          dbg("Error fetching strategy at index #{index}: #{error}")
+          "Error fetching strategy at index #{index}: #{error}" |> Logger.error()
           acc
       end
     end)
@@ -75,13 +73,13 @@ defmodule StakeRegistryManager do
   def get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: nil}) do # AT THE MOMENT, ONLY USING QUORUM 0
     get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: 0})
   end
-  
+
   def get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address, quorum_number: quorum_number}) do
     case StakeRegistryManager.weight_of_operator_for_quorum(quorum_number, operator_address) |> Ethers.call() do
       {:ok, stake_of_operator} ->
         stake_of_operator
       {:error, error} ->
-        dbg("Error fetching stake of operator: #{error}")
+        "Error fetching stake of operator: #{error}" |> Logger.error()
         raise("Error fetching stake of operator: #{error}")
     end
   end

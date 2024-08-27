@@ -21,9 +21,9 @@ contract BatcherPaymentService is
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
-    event TaskCreated(bytes32 indexed batchMerkleRoot, string batchDataPointer);
     event BalanceLocked(address indexed user);
     event BalanceUnlocked(address indexed user, uint256 unlockBlock);
+    event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
 
     // ERRORS
     error OnlyBatcherAllowed(address caller); // 152bc288
@@ -162,7 +162,7 @@ contract BatcherPaymentService is
             batchDataPointer
         );
 
-        emit TaskCreated(batchMerkleRoot, batchDataPointer);
+        emit TaskCreated(batchMerkleRoot, feePerProof);
 
         payable(batcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator
