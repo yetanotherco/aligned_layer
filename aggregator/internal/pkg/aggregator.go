@@ -219,7 +219,7 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 const MaxSentTxRetries = 5
 
 // const V2 = false
-var redeployBlockNumber = uint64(150)
+var redeployBlockNumber = uint64(100)
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {

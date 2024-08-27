@@ -149,7 +149,7 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	var redeployBlockNumber = uint32(150)
+	var redeployBlockNumber = uint32(100)
 
 	// var V2 = false
 

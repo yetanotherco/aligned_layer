@@ -11,7 +11,7 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 	}
 
 	// V2 := false
-	var redeployBlockNumber = uint32(150)
+	var redeployBlockNumber = uint32(100)
 
 
 	for {
