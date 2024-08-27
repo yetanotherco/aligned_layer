@@ -33,3 +33,4 @@ halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.g
 bincode = "1.3.3"
 aligned-sdk = { path = "../aligned-sdk" }
 ciborium = "=0.2.2"
+priority-queue = "2.1.0"

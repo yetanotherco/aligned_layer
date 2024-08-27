@@ -1,6 +1,10 @@
-use ethers::types::Signature;
+use ethers::types::{Signature, U256};
 use futures_util::stream::SplitSink;
-use std::{collections::BinaryHeap, sync::Arc};
+use priority_queue::PriorityQueue;
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
@@ -12,6 +16,12 @@ pub(crate) struct BatchQueueEntry {
     pub(crate) verification_data_commitment: VerificationDataCommitment,
     pub(crate) messaging_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     pub(crate) signature: Signature,
+}
+
+#[derive(Clone)]
+pub(crate) struct BatchQueueEntryPriority {
+    max_fee: U256,
+    nonce: U256,
 }
 
 impl BatchQueueEntry {
@@ -30,6 +40,12 @@ impl BatchQueueEntry {
     }
 }
 
+impl BatchQueueEntryPriority {
+    pub fn new(max_fee: U256, nonce: U256) -> Self {
+        BatchQueueEntryPriority { max_fee, nonce }
+    }
+}
+
 impl Eq for BatchQueueEntry {}
 
 impl PartialEq for BatchQueueEntry {
@@ -39,27 +55,36 @@ impl PartialEq for BatchQueueEntry {
     }
 }
 
-impl PartialOrd for BatchQueueEntry {
+impl Hash for BatchQueueEntry {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.nonced_verification_data.max_fee.hash(state);
+        self.nonced_verification_data.nonce.hash(state);
+    }
+}
+
+impl Eq for BatchQueueEntryPriority {}
+
+impl PartialEq for BatchQueueEntryPriority {
+    fn eq(&self, other: &Self) -> bool {
+        self.max_fee == other.max_fee && self.nonce == other.nonce
+    }
+}
+
+impl PartialOrd for BatchQueueEntryPriority {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for BatchQueueEntry {
+impl Ord for BatchQueueEntryPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let ord = self
-            .nonced_verification_data
-            .max_fee
-            .cmp(&other.nonced_verification_data.max_fee);
+        let ord = self.max_fee.cmp(&other.max_fee);
         if ord == std::cmp::Ordering::Equal {
-            self.nonced_verification_data
-                .nonce
-                .cmp(&other.nonced_verification_data.nonce)
-                .reverse()
+            self.nonce.cmp(&other.nonce).reverse()
         } else {
             ord
         }
     }
 }
 
-pub(crate) type BatchQueue = BinaryHeap<BatchQueueEntry>;
+pub(crate) type BatchQueue = PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>;

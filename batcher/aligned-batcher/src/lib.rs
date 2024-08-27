@@ -34,7 +34,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
-use types::batch_queue::{BatchQueue, BatchQueueEntry};
+use types::batch_queue::{BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -511,12 +511,19 @@ impl Batcher {
         info!("Calculating verification data commitments...");
         let verification_data_comm = verification_data.clone().into();
         info!("Adding verification data to batch...");
-        batch_state.batch_queue.push(BatchQueueEntry::new(
-            verification_data,
-            verification_data_comm,
-            ws_conn_sink,
-            proof_submitter_sig,
-        ));
+
+        let max_fee = verification_data.max_fee;
+        let nonce = U256::from_big_endian(verification_data.nonce.as_slice());
+
+        batch_state.batch_queue.push(
+            BatchQueueEntry::new(
+                verification_data,
+                verification_data_comm,
+                ws_conn_sink,
+                proof_submitter_sig,
+            ),
+            BatchQueueEntryPriority::new(max_fee, nonce),
+        );
         info!(
             "Current batch queue length: {}",
             batch_state.batch_queue.len()
@@ -589,7 +596,7 @@ impl Batcher {
         let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
         let mut finalized_batch_works = false;
 
-        while let Some(entry) = batch_queue_copy.peek() {
+        while let Some((entry, _)) = batch_queue_copy.peek() {
             let serialized_vd_size =
                 match cbor_serialize(&entry.nonced_verification_data.verification_data) {
                     Ok(val) => val.len(),
@@ -629,7 +636,8 @@ impl Batcher {
             finalized_batch_size += serialized_vd_size;
 
             // We can unwrap here because we have already peeked to check there is a value
-            finalized_batch.push(batch_queue_copy.pop().unwrap());
+            let (entry, _) = batch_queue_copy.pop().unwrap();
+            finalized_batch.push(entry);
         }
 
         if !finalized_batch_works {
@@ -746,7 +754,7 @@ impl Batcher {
         warn!("Resetting state... Flushing queue and nonces");
         let mut batch_state = self.batch_state.lock().await;
 
-        for entry in batch_state.batch_queue.iter() {
+        for (entry, _) in batch_state.batch_queue.iter() {
             send_message(entry.messaging_sink.clone(), ResponseMessage::BatchReset).await;
         }
 
