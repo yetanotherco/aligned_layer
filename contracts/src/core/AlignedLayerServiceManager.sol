@@ -78,7 +78,7 @@ contract AlignedLayerServiceManager is
 
         batchesState[batchIdentifierHash] = batchState;
 
-        emit NewBatch(
+        emit NewBatchV2(
             batchMerkleRoot,
             msg.sender,
             uint32(block.number),
@@ -86,7 +86,7 @@ contract AlignedLayerServiceManager is
         );
     }
 
-    function respondToTask(
+    function respondToTaskV2(
         // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
         address senderAddress,
