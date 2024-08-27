@@ -4,6 +4,29 @@ pragma solidity =0.8.12;
 import {IBLSSignatureChecker} from "eigenlayer-middleware/interfaces/IBLSSignatureChecker.sol";
 
 interface IAlignedLayerServiceManager {
+    // EVENTS
+    event NewBatch(
+        bytes32 indexed batchMerkleRoot,
+        address senderAddress,
+        uint32 taskCreatedBlock,
+        string batchDataPointer
+    );
+    event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
+    event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
+
+    // ERRORS
+    error BatchAlreadySubmitted(bytes32 batchIdentifierHash); // 3102f10c
+    error BatcherBalanceIsEmpty(address batcher); // 40b29316
+    error BatchDoesNotExist(bytes32 batchIdentifierHash); // 2396d34e
+    error BatchAlreadyResponded(bytes32 batchIdentifierHash); // 9cf1aff2
+    error BatcherHasNoBalance(address batcher); // 48b78e6a
+    error InsufficientFunds(
+        address batcher,
+        uint256 required,
+        uint256 available
+    ); // 5c54305e
+    error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake); // a61eb88a
+
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
