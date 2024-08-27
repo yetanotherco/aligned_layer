@@ -149,6 +149,8 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
+	var V2 = false
+
 	for {
 		select {
 		case <-context.Background().Done():
@@ -169,51 +171,56 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
-			o.Logger.Infof("Received new batch log: V1")
-			err := o.ProcessNewBatchLog(newBatchLog)
-			if err != nil {
-				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
-				continue
-			}
+			if !V2 {
+				o.Logger.Infof("Received new batch log: V1")
+				err := o.ProcessNewBatchLog(newBatchLog)
+				if err != nil {
+					o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
+					continue
+				}
+	
+				responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
+				o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
+	
+				signedTaskResponse := types.SignedTaskResponse{
+					BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+					BlsSignature:    *responseSignature,
+					OperatorId:      o.OperatorId,
+				}
+				o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+					hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+				)
+				go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+			} 
 
-			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
-			o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
-
-			signedTaskResponse := types.SignedTaskResponse{
-				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-				BlsSignature:    *responseSignature,
-				OperatorId:      o.OperatorId,
-			}
-			o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
-				hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
-			)
-			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
-			o.Logger.Infof("Received new batch log: V2")
-			err := o.ProcessNewBatchLogV2(newBatchLogV2)
-			if err != nil {
-				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLogV2.BatchMerkleRoot, err)
-				continue
+			if V2 {
+				o.Logger.Infof("Received new batch log: V2")
+				err := o.ProcessNewBatchLogV2(newBatchLogV2)
+				if err != nil {
+					o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLogV2.BatchMerkleRoot, err)
+					continue
+				}
+	
+				batchIdentifier := append(newBatchLogV2.BatchMerkleRoot[:], newBatchLogV2.SenderAddress[:]...)
+				var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+				responseSignature := o.SignTaskResponse(batchIdentifierHash)
+				o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
+	
+				signedTaskResponse := types.SignedTaskResponseV2{
+					BatchIdentifierHash: batchIdentifierHash,
+					BatchMerkleRoot: newBatchLogV2.BatchMerkleRoot,
+					SenderAddress:   newBatchLogV2.SenderAddress,
+					BlsSignature:    *responseSignature,
+					OperatorId:      o.OperatorId,
+				}
+				o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+					hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+					hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+					hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+				)
+				go o.aggRpcClient.SendSignedTaskResponseToAggregatorV2(&signedTaskResponse)
 			}
-
-			batchIdentifier := append(newBatchLogV2.BatchMerkleRoot[:], newBatchLogV2.SenderAddress[:]...)
-			var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-			responseSignature := o.SignTaskResponse(batchIdentifierHash)
-			o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
-
-			signedTaskResponse := types.SignedTaskResponseV2{
-				BatchIdentifierHash: batchIdentifierHash,
-				BatchMerkleRoot: newBatchLogV2.BatchMerkleRoot,
-				SenderAddress:   newBatchLogV2.SenderAddress,
-				BlsSignature:    *responseSignature,
-				OperatorId:      o.OperatorId,
-			}
-			o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
-				hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
-				hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
-				hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
-			)
-			go o.aggRpcClient.SendSignedTaskResponseToAggregatorV2(&signedTaskResponse)
 		}
 	}
 }

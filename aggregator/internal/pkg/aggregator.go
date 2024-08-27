@@ -218,6 +218,8 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 
 const MaxSentTxRetries = 5
 
+const V2 = false
+
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
 		agg.taskMutex.Lock()
@@ -281,7 +283,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
-		if false { //V1
+		if !V2 { //V1
 			agg.logger.Info("agg if V1")
 			_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, nonSignerStakesAndSignature)
 			if err == nil {
