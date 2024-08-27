@@ -47,6 +47,8 @@ contract AlignedLayerServiceManager is
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
     }
 
+    // TODO - make init#N that runs setAggregator
+
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
@@ -91,7 +93,7 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
-    ) external {
+    ) external onlyAggregator {
         uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
@@ -204,6 +206,10 @@ contract AlignedLayerServiceManager is
             );
     }
 
+    function setAggregator(address _aggregator) external onlyOwner {
+        aggregator = _aggregator;
+    }
+
     function balanceOf(address account) public view returns (uint256) {
         return batchersBalances[account];
     }
@@ -218,5 +224,12 @@ contract AlignedLayerServiceManager is
         bytes32 hash
     ) public pure returns (bool) {
         return keccak256(publicInput) == hash;
+    }
+
+    modifier onlyAggregator() {
+        if (msg.sender != aggregator) {
+            revert SenderIsNotAggregator(msg.sender, aggregator);
+            _;
+        }
     }
 }

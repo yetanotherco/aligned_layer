@@ -26,6 +26,7 @@ interface IAlignedLayerServiceManager {
         uint256 available
     ); // 5c54305e
     error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake); // a61eb88a
+    error SenderIsNotAggregator(address sender, address aggregator); // 0x2cbe4195
 
     function createNewTask(
         bytes32 batchMerkleRoot,
@@ -51,4 +52,6 @@ interface IAlignedLayerServiceManager {
     ) external view returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
+
+    function setAggregator(address _aggregator) external;
 }
