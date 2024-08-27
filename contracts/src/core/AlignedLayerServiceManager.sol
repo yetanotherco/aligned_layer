@@ -72,7 +72,7 @@ contract AlignedLayerServiceManager is
         string calldata batchDataPointer
     ) external payable {
         bytes32 batchIdentifier;
-        if (block.number < 100) // TODO set number of blocks
+        if (block.number < 100) // TODO set number of blocks 
             batchIdentifier = batchMerkleRoot;
         else 
             batchIdentifier = keccak256(abi.encodePacked(batchMerkleRoot, msg.sender));
@@ -119,9 +119,9 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
-            // batcherAddress [address(0x7969c5eD335650692Bc04293B07F5BF2e7A673C0)] > 0, // Devnet
-            // batcherAddress [address(0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b)] > 0, // Stage
-            // batcherAddress [address(0x815aeCA64a974297942D2Bbf034ABEe22a38A003)] > 0, // Prod
+        // address batcherAddress = address(0x7969c5eD335650692Bc04293B07F5BF2e7A673C0); // Devnet
+        // address batcherAddress = address(0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b); // Stage
+        // address batcherAddress = address(0x815aeCA64a974297942D2Bbf034ABEe22a38A003); // Prod
         address batcherAddress = address(0x7969c5eD335650692Bc04293B07F5BF2e7A673C0);
         uint256 initialGasLeft = gasleft();
 
