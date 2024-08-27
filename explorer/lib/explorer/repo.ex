@@ -15,7 +15,8 @@ defmodule Explorer.Repo do
       hostname: System.get_env("DB_HOST"),
       password: System.get_env("DB_PASS"),
       username: System.get_env("DB_USER"),
-      port: 5432
+      port: 5432,
+      log: false
     ]
 
     system_opts

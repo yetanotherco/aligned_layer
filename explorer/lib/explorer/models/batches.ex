@@ -1,4 +1,5 @@
 defmodule Batches do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -14,7 +15,7 @@ defmodule Batches do
     field :response_transaction_hash, :string
     field :response_timestamp, :utc_datetime
     field :data_pointer, :string
-    field :cost_per_proof, :integer
+    field :fee_per_proof, :integer
     field :sender_address, :binary
 
     timestamps()
@@ -23,8 +24,8 @@ defmodule Batches do
   @doc false
   def changeset(new_batch, updates) do
     new_batch
-    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer, :cost_per_proof, :sender_address])
-    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :cost_per_proof, :sender_address])
+    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer, :fee_per_proof, :sender_address])
+    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :fee_per_proof, :sender_address])
     |> validate_format(:merkle_root, ~r/0x[a-fA-F0-9]{64}/)
     |> unique_constraint(:merkle_root)
     |> validate_number(:amount_of_proofs, greater_than: 0)
@@ -33,7 +34,7 @@ defmodule Batches do
     |> validate_format(:submission_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
     |> validate_number(:response_block_number, greater_than: 0)
     |> validate_format(:response_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
-    |> validate_number(:cost_per_proof, greater_than: 0)
+    |> validate_number(:fee_per_proof, greater_than: 0)
   end
 
   def cast_to_batches(%BatchDB{} = batch_db) do
@@ -48,7 +49,7 @@ defmodule Batches do
       response_transaction_hash: batch_db.response_transaction_hash,
       response_timestamp: batch_db.response_timestamp,
       data_pointer: batch_db.data_pointer,
-      cost_per_proof: batch_db.cost_per_proof,
+      fee_per_proof: batch_db.fee_per_proof,
       sender_address: batch_db.sender_address
     }
   end
@@ -144,12 +145,11 @@ defmodule Batches do
 
           case Explorer.Repo.transaction(multi) do
             {:ok, _} ->
-              IO.puts("Batch inserted successfully")
+              Logger.debug("Batch inserted successfully")
               {:ok, :success}
 
             {:error, _failed_operation, failed_changeset, _reason} ->
-              IO.puts("Batch insert failed:")
-              IO.inspect(failed_changeset)
+              Logger.error("Error inserting batch: #{inspect(failed_changeset.errors)}")
               {:error, failed_changeset}
           end
 
@@ -166,7 +166,7 @@ defmodule Batches do
               and existing_batch.response_transaction_hash != batch_changeset.changes.response_transaction_hash)  # reorg may change response_tx_hash
             or stored_proofs == nil and proofs != %{}                 # no proofs registered in DB, but some received
           do
-            "Batch values have changed, updating in DB" |> IO.puts()
+            "Batch values have changed, updating in DB" |> Logger.debug()
             updated_changeset = Ecto.Changeset.change(existing_batch, batch_changeset.changes) # no changes in proofs table
 
             multi =
@@ -176,18 +176,17 @@ defmodule Batches do
 
             case Explorer.Repo.transaction(multi) do
               {:ok, _} ->
-                "Batch updated and new proofs inserted successfully" |> IO.puts()
+                "Batch updated and new proofs inserted successfully" |> Logger.debug()
                 {:ok, :empty}
               {:error, _, changeset, _} ->
-                "Error: #{inspect(changeset.errors)}" |> IO.puts()
+                "Error: #{inspect(changeset.errors)}" |> Logger.error()
                 {:error, changeset}
             end
 
           end
         rescue
           error ->
-            IO.inspect("Error updating batch in DB: #{inspect(error)}")
-            raise error
+            "Error updating batch in DB: #{inspect(error)}" |> Logger.alert()
         end
     end
   end
