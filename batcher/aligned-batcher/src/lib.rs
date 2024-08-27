@@ -898,18 +898,6 @@ impl Batcher {
             let mut nonce_bytes = [0u8; 32];
             nonpaying_nonce.to_big_endian(&mut nonce_bytes);
 
-            let client_msg_nonce =
-                U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
-
-            if *nonpaying_nonce != client_msg_nonce {
-                error!(
-                    "Invalid nonce for address {:?} Expected: {:?}, got: {:?}",
-                    addr, nonpaying_nonce, client_msg_nonce
-                );
-                send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
-                return Ok(());
-            }
-
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled
                 && !zk_utils::verify(&client_msg.verification_data.verification_data).await
