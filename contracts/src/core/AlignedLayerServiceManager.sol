@@ -72,7 +72,7 @@ contract AlignedLayerServiceManager is
         string calldata batchDataPointer
     ) external payable {
         bytes32 batchIdentifier;
-        if (block.number < 100) // TODO set number of blocks 
+        if (block.number < 2_268_375) // TODO set number of blocks
             batchIdentifier = batchMerkleRoot;
         else 
             batchIdentifier = keccak256(abi.encodePacked(batchMerkleRoot, msg.sender));
