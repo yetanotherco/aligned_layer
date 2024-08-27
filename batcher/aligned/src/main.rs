@@ -317,8 +317,6 @@ async fn main() -> Result<(), AlignedError> {
 
             let max_fees = vec![max_fee; repetitions];
 
-            println!("Max fees: {:?}", max_fees);
-
             let aligned_verification_data_vec = match submit_multiple(
                 &connect_addr,
                 &verification_data_arr,

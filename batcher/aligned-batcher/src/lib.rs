@@ -59,6 +59,7 @@ const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000
 struct BatchState {
     batch_queue: BatchQueue,
     user_nonces: HashMap<Address, U256>,
+    user_min_fee: HashMap<Address, U256>,
     user_proof_count_in_batch: HashMap<Address, u64>,
 }
 
@@ -67,6 +68,7 @@ impl BatchState {
         Self {
             batch_queue: BatchQueue::new(),
             user_nonces: HashMap::new(),
+            user_min_fee: HashMap::new(),
             user_proof_count_in_batch: HashMap::new(),
         }
     }
@@ -366,6 +368,8 @@ impl Batcher {
                 }
 
                 let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
+                let max_fee = client_msg.verification_data.max_fee;
+
                 let nonced_verification_data = client_msg.verification_data;
                 if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
                     error!("Proof size exceeds the maximum allowed size.");
@@ -384,7 +388,10 @@ impl Batcher {
                 }
 
                 // Doing nonce verification after proof verification to avoid unnecessary nonce increment
-                if !self.check_nonce_and_increment(addr, nonce).await {
+                if !self
+                    .check_max_fee_and_nonce_and_increment(addr, nonce, max_fee)
+                    .await
+                {
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
                     return Ok(()); // Send error message to the client and return
                 }
@@ -433,7 +440,12 @@ impl Batcher {
         true
     }
 
-    async fn check_nonce_and_increment(&self, addr: Address, nonce: U256) -> bool {
+    async fn check_max_fee_and_nonce_and_increment(
+        &self,
+        addr: Address,
+        nonce: U256,
+        max_fee: U256,
+    ) -> bool {
         let mut batch_state = self.batch_state.lock().await;
 
         let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
@@ -452,6 +464,11 @@ impl Batcher {
             }
         };
 
+        let min_fee = match batch_state.user_min_fee.get(&addr) {
+            Some(fee) => *fee,
+            None => U256::max_value(),
+        };
+
         if nonce != expected_user_nonce {
             error!(
                 "Invalid nonce for address {addr} Expected: {:?}, got: {:?}",
@@ -460,7 +477,16 @@ impl Batcher {
             return false;
         }
 
+        if max_fee > min_fee {
+            warn!(
+                "Invalid max fee for address {addr}, had fee {:?} < {:?}",
+                min_fee, max_fee
+            );
+            return false;
+        }
+
         batch_state.user_nonces.insert(addr, nonce + U256::one());
+        batch_state.user_min_fee.insert(addr, max_fee);
         true
     }
 
@@ -530,20 +556,6 @@ impl Batcher {
             return None;
         }
 
-        let gas_price = match self.get_gas_price().await {
-            Some(price) => price,
-            None => {
-                error!("Failed to get gas price");
-                return None;
-            }
-        };
-
-        // Multiply the gas price by 2 to allow for spike in gas price before submitting
-        let gas_price = match gas_price.checked_mul(U256::from(2)) {
-            Some(price) => price,
-            None => return None, // gas price was too high
-        };
-
         // Check if a batch is currently being posted
         let mut batch_posting = self.posting_batch.lock().await;
         if *batch_posting {
@@ -553,6 +565,20 @@ impl Batcher {
             return None;
         }
 
+        let gas_price = match self.get_gas_price().await {
+            Some(price) => price,
+            None => {
+                error!("Failed to get gas price");
+                return None;
+            }
+        };
+
+        // Multiply the gas price by 5 to allow for spike in gas price before submitting
+        let gas_price = match gas_price.checked_mul(U256::from(5)) {
+            Some(price) => price,
+            None => return None, // gas price was too high
+        };
+
         // Set the batch posting flag to true
         *batch_posting = true;
 
@@ -560,7 +586,7 @@ impl Batcher {
         // in that case batch queue should stay the same
         let mut batch_queue_copy = batch_state.batch_queue.clone();
         let mut finalized_batch = vec![];
-        let mut finalized_batch_size = 0;
+        let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
         let mut finalized_batch_works = false;
 
         while let Some(entry) = batch_queue_copy.peek() {
@@ -608,6 +634,8 @@ impl Batcher {
 
         if !finalized_batch_works {
             // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
+            info!("No working batch found. Waiting for more proofs...");
+            *batch_posting = false;
             return None;
         }
 
@@ -618,6 +646,7 @@ impl Batcher {
         // TODO: this should not clear,
         // it should recalculate with whats remaining in batch queue
         batch_state.user_proof_count_in_batch.clear();
+        batch_state.user_min_fee.clear();
 
         Some(finalized_batch)
     }
@@ -724,6 +753,7 @@ impl Batcher {
         batch_state.batch_queue.clear();
         batch_state.user_nonces.clear();
         batch_state.user_proof_count_in_batch.clear();
+        batch_state.user_min_fee.clear();
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
