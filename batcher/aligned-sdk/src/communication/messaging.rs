@@ -99,6 +99,10 @@ pub async fn send_messages(
                 error!("Invalid Proof!");
                 return Err(SubmitError::InvalidProof);
             }
+            ValidityResponseMessage::InvalidMaxFee => {
+                error!("Invalid Max Fee!");
+                return Err(SubmitError::InvalidMaxFee);
+            }
             ValidityResponseMessage::InsufficientBalance(addr) => {
                 error!("Insufficient balance for address: {}", addr);
                 return Err(SubmitError::InsufficientBalance);

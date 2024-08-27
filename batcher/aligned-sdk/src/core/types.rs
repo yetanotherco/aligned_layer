@@ -257,6 +257,7 @@ pub enum ValidityResponseMessage {
     InvalidSignature,
     InvalidChainId,
     InvalidProof,
+    InvalidMaxFee,
     ProofTooLarge,
     InsufficientBalance(Address),
 }

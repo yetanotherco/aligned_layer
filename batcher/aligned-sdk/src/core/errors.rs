@@ -70,6 +70,7 @@ pub enum SubmitError {
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
     InvalidNonce,
+    InvalidMaxFee,
     ProofQueueFlushed,
     InvalidSignature,
     InvalidChainId,
@@ -161,6 +162,7 @@ impl fmt::Display for SubmitError {
             }
             SubmitError::EmptyVerificationDataList => write!(f, "Verification data list is empty"),
             SubmitError::InvalidNonce => write!(f, "Invalid nonce"),
+            SubmitError::InvalidMaxFee => write!(f, "Invalid max fee"),
             SubmitError::BatchSubmissionFailed(merkle_root) => write!(
                 f,
                 "Could not create task with batch merkle root {}",

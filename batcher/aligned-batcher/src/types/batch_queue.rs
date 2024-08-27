@@ -1,4 +1,4 @@
-use ethers::types::{Signature, U256};
+use ethers::types::{Address, Signature, U256};
 use futures_util::stream::SplitSink;
 use priority_queue::PriorityQueue;
 use std::{
@@ -16,6 +16,7 @@ pub(crate) struct BatchQueueEntry {
     pub(crate) verification_data_commitment: VerificationDataCommitment,
     pub(crate) messaging_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     pub(crate) signature: Signature,
+    pub(crate) sender: Address,
 }
 
 #[derive(Clone)]
@@ -30,12 +31,14 @@ impl BatchQueueEntry {
         verification_data_commitment: VerificationDataCommitment,
         messaging_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
         signature: Signature,
+        sender: Address,
     ) -> Self {
         BatchQueueEntry {
             nonced_verification_data,
             verification_data_commitment,
             messaging_sink,
             signature,
+            sender,
         }
     }
 }
@@ -50,14 +53,14 @@ impl Eq for BatchQueueEntry {}
 
 impl PartialEq for BatchQueueEntry {
     fn eq(&self, other: &Self) -> bool {
-        self.nonced_verification_data.max_fee == other.nonced_verification_data.max_fee
+        self.sender == other.sender
             && self.nonced_verification_data.nonce == other.nonced_verification_data.nonce
     }
 }
 
 impl Hash for BatchQueueEntry {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.nonced_verification_data.max_fee.hash(state);
+        self.sender.hash(state);
         self.nonced_verification_data.nonce.hash(state);
     }
 }
