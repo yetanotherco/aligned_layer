@@ -2,7 +2,7 @@ defmodule ExplorerWeb.Search.Index do
   use ExplorerWeb, :live_view
 
   def mount(%{"hash" => hash}, _session, socket) do
-    case Proofs.get_batch_from_proof(hash) do
+    case Proofs.get_batches_containing_proof(hash) do
       [] ->
         {:ok, push_navigate(socket, to: ~p"/batches/#{hash}")}
 

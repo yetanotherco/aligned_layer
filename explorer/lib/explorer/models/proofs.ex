@@ -42,7 +42,7 @@ defmodule Proofs do
     end
   end
 
-  def get_batch_from_proof(proof_hash_hex) do
+  def get_batches_containing_proof(proof_hash_hex) do
     proof_hash_hex = String.replace_prefix(proof_hash_hex, "0x", "")
 
     {:ok, proof_hash_binary} = Base.decode16(proof_hash_hex, case: :mixed)
