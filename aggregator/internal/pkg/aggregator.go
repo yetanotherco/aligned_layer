@@ -218,7 +218,7 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 
 const MaxSentTxRetries = 5
 
-var switchBlockNumber = uint64(100)
+var switchBlockNumber = uint64(2_268_375) // 2_268_375 is the block at sep 3th 15:00
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
