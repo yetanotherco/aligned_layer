@@ -25,6 +25,28 @@ contract BatcherPaymentService is
     event BalanceUnlocked(address indexed user, uint256 unlockBlock);
     event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
 
+    // ERRORS
+    error OnlyBatcherAllowed(address caller); // 152bc288
+    error NoLeavesSubmitted(); // e5180e03
+    error NoProofSubmitterSignatures(); // 32742c04
+    error NotEnoughLeaves(uint256 leavesQty, uint256 signaturesQty); // 320f0a1b
+    error LeavesNotPowerOfTwo(uint256 leavesQty); // 6b1651e1
+    error NoGasForAggregator(); // ea46d6a4
+    error NoGasPerProof(); // 459e386d
+    error InsufficientGasForAggregator(uint256 required, uint256 available); // ca3b0e0f
+    error UserHasNoFundsToUnlock(address user); // b38340cf
+    error UserHasNoFundsToLock(address user); // 6cc12bc2
+    error PayerInsufficientBalance(uint256 balance, uint256 amount); // 21c3d50f
+    error FundsLocked(uint256 unlockBlock, uint256 currentBlock); // bedc4e5a
+    error InvalidSignature(); // 8baa579f
+    error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
+    error SignerInsufficientBalance(
+        address signer,
+        uint256 balance,
+        uint256 required
+    ); // 955c0664
+    error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
+
     struct SignatureData {
         bytes signature;
         uint256 nonce;
@@ -37,14 +59,15 @@ contract BatcherPaymentService is
     }
 
     // STORAGE
-    address public BatcherWallet;
+    address public batcherWallet;
 
-    IAlignedLayerServiceManager public AlignedLayerServiceManager;
+    IAlignedLayerServiceManager public alignedLayerServiceManager;
 
     // map to user data
-    mapping(address => UserInfo) public UserData;
+    mapping(address => UserInfo) public userData;
 
     // storage gap for upgradeability
+    // solhint-disable-next-line var-name-mixedcase
     uint256[24] private __GAP;
 
     // CONSTRUCTOR & INITIALIZER
@@ -52,22 +75,30 @@ contract BatcherPaymentService is
         _disableInitializers();
     }
 
+    // MODIFIERS
+    modifier onlyBatcher() {
+        if (msg.sender != batcherWallet) {
+            revert OnlyBatcherAllowed(msg.sender);
+        }
+        _;
+    }
+
     function initialize(
-        IAlignedLayerServiceManager _AlignedLayerServiceManager,
-        address _BatcherPaymentServiceOwner,
-        address _BatcherWallet
+        IAlignedLayerServiceManager _alignedLayerServiceManager,
+        address _batcherPaymentServiceOwner,
+        address _batcherWallet
     ) public initializer {
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
-        _transferOwnership(_BatcherPaymentServiceOwner);
+        _transferOwnership(_batcherPaymentServiceOwner);
 
-        AlignedLayerServiceManager = _AlignedLayerServiceManager;
-        BatcherWallet = _BatcherWallet;
+        alignedLayerServiceManager = _alignedLayerServiceManager;
+        batcherWallet = _batcherWallet;
     }
 
     // PAYABLE FUNCTIONS
     receive() external payable {
-        UserData[msg.sender].balance += msg.value;
+        userData[msg.sender].balance += msg.value;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
@@ -86,20 +117,36 @@ contract BatcherPaymentService is
         uint256 feeForAggregator = gasForAggregator * tx.gasprice;
         uint256 feePerProof = gasPerProof * tx.gasprice;
 
-        require(leavesQty > 0, "No leaves submitted");
-        require(signaturesQty > 0, "No proof submitter signatures");
-        require(leavesQty >= signaturesQty, "Not enough leaves");
-        require(
-            (leavesQty & (leavesQty - 1)) == 0,
-            "Leaves length is not a power of 2"
-        );
+        if (leavesQty <= 0) {
+            revert NoLeavesSubmitted();
+        }
 
-        require(feeForAggregator > 0, "No gas for aggregator");
-        require(feePerProof > 0, "No gas per proof");
-        require(
-            feePerProof * signaturesQty > feeForAggregator,
-            "Not enough gas to pay the aggregator"
-        );
+        if (signaturesQty <= 0) {
+            revert NoProofSubmitterSignatures();
+        }
+
+        if (leavesQty < signaturesQty) {
+            revert NotEnoughLeaves(leavesQty, signaturesQty);
+        }
+
+        if ((leavesQty & (leavesQty - 1)) != 0) {
+            revert LeavesNotPowerOfTwo(leavesQty);
+        }
+
+        if (feeForAggregator <= 0) {
+            revert NoGasForAggregator();
+        }
+
+        if (feePerProof <= 0) {
+            revert NoGasPerProof();
+        }
+
+        if (feePerProof * signaturesQty <= feeForAggregator) {
+            revert InsufficientGasForAggregator(
+                feeForAggregator,
+                feePerProof * signaturesQty
+            );
+        }
 
         _checkMerkleRootAndVerifySignatures(
             leaves,
@@ -110,45 +157,49 @@ contract BatcherPaymentService is
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
-        AlignedLayerServiceManager.createNewTask{value: feeForAggregator}(
+        alignedLayerServiceManager.createNewTask{value: feeForAggregator}(
             batchMerkleRoot,
             batchDataPointer
         );
 
         emit TaskCreated(batchMerkleRoot, feePerProof);
 
-        payable(BatcherWallet).transfer(
+        payable(batcherWallet).transfer(
             (feePerProof * signaturesQty) - feeForAggregator
         );
     }
 
     function unlock() external whenNotPaused {
-        require(
-            UserData[msg.sender].balance > 0,
-            "User has no funds to unlock"
-        );
+        if (userData[msg.sender].balance <= 0) {
+            revert UserHasNoFundsToUnlock(msg.sender);
+        }
 
-        UserData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
-        emit BalanceUnlocked(msg.sender, UserData[msg.sender].unlockBlock);
+        userData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
+        emit BalanceUnlocked(msg.sender, userData[msg.sender].unlockBlock);
     }
 
     function lock() external whenNotPaused {
-        require(UserData[msg.sender].balance > 0, "User has no funds to lock");
-        UserData[msg.sender].unlockBlock = 0;
+        if (userData[msg.sender].balance <= 0) {
+            revert UserHasNoFundsToLock(msg.sender);
+        }
+        userData[msg.sender].unlockBlock = 0;
         emit BalanceLocked(msg.sender);
     }
 
     function withdraw(uint256 amount) external whenNotPaused {
-        UserInfo storage user_data = UserData[msg.sender];
-        require(user_data.balance >= amount, "Payer has insufficient balance");
+        UserInfo storage senderData = userData[msg.sender];
+        if (senderData.balance < amount) {
+            revert PayerInsufficientBalance(senderData.balance, amount);
+        }
 
-        require(
-            user_data.unlockBlock != 0 && user_data.unlockBlock <= block.number,
-            "Funds are locked"
-        );
+        if (
+            senderData.unlockBlock == 0 || senderData.unlockBlock > block.number
+        ) {
+            revert FundsLocked(senderData.unlockBlock, block.number);
+        }
 
-        user_data.balance -= amount;
-        user_data.unlockBlock = 0;
+        senderData.balance -= amount;
+        senderData.unlockBlock = 0;
         emit BalanceLocked(msg.sender);
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
@@ -164,16 +215,11 @@ contract BatcherPaymentService is
 
     function _authorizeUpgrade(
         address newImplementation
-    ) internal override onlyOwner {}
-
-    // MODIFIERS
-    modifier onlyBatcher() {
-        require(
-            msg.sender == BatcherWallet,
-            "Only Batcher can call this function"
-        );
-        _;
-    }
+    )
+        internal
+        override
+        onlyOwner // solhint-disable-next-line no-empty-blocks
+    {}
 
     function _checkMerkleRootAndVerifySignatures(
         bytes32[] calldata leaves,
@@ -226,9 +272,11 @@ contract BatcherPaymentService is
         }
 
         if (leaves.length == 1) {
-            require(leaves[0] == batchMerkleRoot, "Invalid merkle root");
-        } else {
-            require(layer[0] == batchMerkleRoot, "Invalid merkle root");
+            if (leaves[0] != batchMerkleRoot) {
+                revert InvalidMerkleRoot(batchMerkleRoot, leaves[0]);
+            }
+        } else if (layer[0] != batchMerkleRoot) {
+            revert InvalidMerkleRoot(batchMerkleRoot, layer[0]);
         }
     }
 
@@ -242,30 +290,38 @@ contract BatcherPaymentService is
         );
 
         address signer = noncedHash.recover(signatureData.signature);
-        require(signer != address(0), "Invalid signature");
 
-        UserInfo storage user_data = UserData[signer];
+        if (signer == address(0)) {
+            revert InvalidSignature();
+        }
 
-        require(user_data.nonce == signatureData.nonce, "Invalid Nonce");
-        user_data.nonce++;
+        UserInfo storage signerData = userData[signer];
 
-        require(
-            user_data.balance >= feePerProof,
-            "Signer has insufficient balance"
-        );
+        if (signerData.nonce != signatureData.nonce) {
+            revert InvalidNonce(signerData.nonce, signatureData.nonce);
+        }
+        signerData.nonce++;
 
-        user_data.balance -= feePerProof;
+        if (signerData.balance < feePerProof) {
+            revert SignerInsufficientBalance(
+                signer,
+                signerData.balance,
+                feePerProof
+            );
+        }
+
+        signerData.balance -= feePerProof;
     }
 
     function user_balances(address account) public view returns (uint256) {
-        return UserData[account].balance;
+        return userData[account].balance;
     }
 
     function user_nonces(address account) public view returns (uint256) {
-        return UserData[account].nonce;
+        return userData[account].nonce;
     }
 
     function user_unlock_block(address account) public view returns (uint256) {
-        return UserData[account].unlockBlock;
+        return userData[account].unlockBlock;
     }
 }

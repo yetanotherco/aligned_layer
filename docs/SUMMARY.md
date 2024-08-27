@@ -2,35 +2,36 @@
 
 ## Introduction
 
-* [About Aligned](introduction/0_about_aligned.md)
-* [Getting started](introduction/1_getting_started.md)
-* [Example - ZKquiz](introduction/2_zkquiz.md)
-* [Use cases](introduction/3_use_cases.md)
-* [FAQ](introduction/4_faq.md)
+* [About Aligned](1_introduction/0_about_aligned.md)
+* [Getting started](1_introduction/1_getting_started.md)
+* [Example - ZKquiz](1_introduction/2_zkquiz.md)
+* [Use cases](1_introduction/3_use_cases.md)
+* [FAQ](1_introduction/4_faq.md)
 
 ## Architecture
 
-* [Supported Verifiers](architecture/0_supported_verifiers.md)
-* [Key Terms](architecture/0b_key_terms.md)
-* [Fast mode](architecture/1_fast_mode.md)
-    * [Batcher](./architecture/components/1_batcher.md)
-    * [Payment Service Contract](./architecture/components/2_payment_service_contract.md)
-    * [Service Manager Contract](./architecture/components/3_service_manager_contract.md)
-    * [Operator](./architecture/components/4_operator.md)
-    * [Aggregator](./architecture/components/5_aggregator.md)
-    * [Explorer](./architecture/components/6_explorer.md)
-* [Aggregation mode](architecture/2_aggregation_mode.md)
+* [Supported Verifiers](2_architecture/0_supported_verifiers.md)
+* [Key Terms](2_architecture/0b_key_terms.md)
+* [Fast mode](2_architecture/1_fast_mode.md)
+    * [Batcher](./2_architecture/components/1_batcher.md)
+    * [Payment Service Contract](./2_architecture/components/2_payment_service_contract.md)
+    * [Service Manager Contract](./2_architecture/components/3_service_manager_contract.md)
+    * [Operator](./2_architecture/components/4_operator.md)
+    * [Aggregator](./2_architecture/components/5_aggregator.md)
+    * [Explorer](./2_architecture/components/6_explorer.md)
+* [Aggregation mode](2_architecture/2_aggregation_mode.md)
 
 ## Guides
 
-* [Submitting proofs](guides/0_submitting_proofs.md)
-* [Integrating Aligned into your Application](guides/2_integrating_aligned_into_your_application.md)
-* [Validating public input](guides/3_validating_public_input.md)
-* [SDK](guides/1_SDK.md)
-* [Generating proofs for Aligned](guides/4_generating_proofs.md)
-* [Generating & submitting proofs of Rust code with ZKRust](guides/5_using_zkrust.md)
-* [Setup Aligned Infrastructure Locally](guides/6_setup_aligned.md)
-* [Contract Addresses](guides/7_contract_addresses.md)
+* [Submitting proofs](3_guides/0_submitting_proofs.md)
+* [Integrating Aligned into your Application](3_guides/2_integrating_aligned_into_your_application.md)
+* [Validating public input](3_guides/3_validating_public_input.md)
+* [SDK Intro](3_guides/1_SDK_how_to.md)
+* [SDK API Reference](3_guides/1.2_SDK_api_reference.md)
+* [Generating proofs for Aligned](3_guides/4_generating_proofs.md)
+* [Generating & submitting proofs of Rust code with ZKRust](3_guides/5_using_zkrust.md)
+* [Setup Aligned Infrastructure Locally](3_guides/6_setup_aligned.md)
+* [Contract Addresses](3_guides/7_contract_addresses.md)
 
 ## Operators
 
@@ -44,7 +45,8 @@
 ## Socials
 
 * [Telegram Group](https://t.me/aligned_layer)
-* [Twitter/X](https://twitter.com/alignedlayer)
+* [Twitter/X](https://x.com/alignedlayer)
 * [Discord](https://discord.gg/alignedlayer)
+* [Blog](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901)
 * [Website](https://alignedlayer.com)
 * [Github](https://github.com/yetanotherco/aligned_layer)
