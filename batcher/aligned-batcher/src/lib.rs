@@ -365,12 +365,35 @@ impl Batcher {
                 }
 
                 let nonce = U256::from_big_endian(client_msg.verification_data.nonce.as_slice());
-                let nonced_verification_data = client_msg.verification_data;
 
-                if !self.check_nonce(addr, nonce).await {
+                let mut batch_state = self.batch_state.lock().await;
+
+                let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
+                    Some(nonce) => *nonce,
+                    None => match self.get_user_nonce(addr).await {
+                        Ok(nonce) => nonce,
+                        Err(e) => {
+                            error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
+                            send_message(
+                                ws_conn_sink.clone(),
+                                ValidityResponseMessage::InvalidNonce,
+                            )
+                            .await;
+                            return Ok(());
+                        }
+                    },
+                };
+
+                if nonce != expected_user_nonce {
+                    error!(
+                        "Invalid nonce for address {addr} Expected: {:?}, got: {:?}",
+                        expected_user_nonce, nonce
+                    );
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
                     return Ok(());
                 }
+
+                let nonced_verification_data = client_msg.verification_data;
 
                 if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
                     error!("Proof size exceeds the maximum allowed size.");
@@ -389,7 +412,9 @@ impl Batcher {
                 }
 
                 // Increment nonce after successful proof verification
-                self.increment_nonce(addr, nonce).await;
+                batch_state.user_nonces.insert(addr, nonce + U256::one());
+
+                drop(batch_state);
 
                 self.add_to_batch(
                     nonced_verification_data,
@@ -433,33 +458,6 @@ impl Batcher {
 
         batch_state.increment_user_proof_count(addr);
         true
-    }
-
-    async fn check_nonce(&self, addr: Address, nonce: U256) -> bool {
-        let batch_state = self.batch_state.lock().await;
-        let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
-            Some(nonce) => *nonce,
-            None => match self.get_user_nonce(addr).await {
-                Ok(nonce) => nonce,
-                Err(e) => {
-                    error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
-                    return false;
-                }
-            },
-        };
-        if nonce != expected_user_nonce {
-            error!(
-                "Invalid nonce for address {addr} Expected: {:?}, got: {:?}",
-                expected_user_nonce, nonce
-            );
-            return false;
-        }
-        true
-    }
-
-    async fn increment_nonce(&self, addr: Address, nonce: U256) {
-        let mut batch_state = self.batch_state.lock().await;
-        batch_state.user_nonces.insert(addr, nonce + U256::one());
     }
 
     async fn get_user_nonce(
