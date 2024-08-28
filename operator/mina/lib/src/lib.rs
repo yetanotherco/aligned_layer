@@ -97,8 +97,8 @@ fn check_pub_inputs(
         .first()
         .map(|state| state.hash())
         .ok_or("failed to retrieve root state hash".to_string())?;
-    // Reconstructs the state hashes if the states form a chain. The iterator will be in the
-    // reversed order of the public inputs one.
+    // Reconstructs the state hashes if the states form a chain, and compares them to the public
+    // input state hashes.
     let mut state_hash = candidate_root_state_hash;
     for (body_hash, expected_prev_state_hash) in proof
         .candidate_chain_states
