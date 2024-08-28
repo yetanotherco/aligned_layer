@@ -1,6 +1,6 @@
 ## What is Aligned?
 
-Aligned is a decentralized network that verifies Zero-Knowledge/validity proofs and posts the results to Ethereum. It is designed to provide high throughput, cheap proof verification with low latency.
+Aligned is a decentralized network that verifies Zero-Knowledge/validity proofs and posts the results to Ethereum. It is designed to provide high throughput, cheap proof verification with low latency. If you are unfamiliar with ZK and why this is useful, see [Why ZK and Aligned?](1_introduction/5_why_zk.md)
 
 ## Mission
 
