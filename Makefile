@@ -71,6 +71,10 @@ anvil_upgrade_index_registry:
 	@echo "Upgrading Index Registry Contracts..."
 	. contracts/scripts/anvil/upgrade_index_registry.sh
 
+anvil_upgrade_add_aggregator:
+	@echo "Adding Aggregator to Aligned Contracts..."
+	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
+
 lint_contracts:
 	@cd contracts && npm run lint:sol
 
