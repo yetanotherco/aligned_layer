@@ -55,6 +55,7 @@ const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
+const MIN_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.000000001 ether (low gas price)
 const GAS_CHECK_MULTIPLIER: u8 = 5; // Multiplier for the max fee check
 
 struct BatchState {
@@ -534,6 +535,10 @@ impl Batcher {
     ) -> (Option<ValidityResponseMessage>, bool) {
         let nonce = U256::from_big_endian(nonced_verification_data.nonce.as_slice());
         let max_fee = nonced_verification_data.max_fee;
+
+        if max_fee < U256::from(MIN_FEE) {
+            return (Some(ValidityResponseMessage::InvalidMaxFee), false);
+        }
 
         let mut batch_state = self.batch_state.lock().await;
 
