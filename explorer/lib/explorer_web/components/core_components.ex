@@ -741,6 +741,37 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+  Renders an empty card background.
+  """
+  slot :inner_block, default: nil
+  slot :class, default: nil
+  slot :text, default: nil
+  slot :inner_text_class, default: nil
+
+  def empty_card_background(assigns) do
+    ~H"""
+    <.card_background class={
+      classes([
+        "overflow-x-auto min-h-[38.45rem] flex flex-col items-center justify-center gap-2",
+        @class
+      ])
+    }>
+      <p
+        :if={@text != nil}
+        class={
+          classes([
+            "text-lg text-muted-foreground"
+          ])
+        }
+      >
+        <%= @text %>
+      </p>
+      <%= render_slot(@inner_block) %>
+    </.card_background>
+    """
+  end
+
+  @doc """
   Renders a data list.
 
   ## Examples
