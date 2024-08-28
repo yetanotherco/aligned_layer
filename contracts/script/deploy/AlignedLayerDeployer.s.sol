@@ -34,7 +34,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
     address public pauser;
     uint256 public initalPausedStatus;
     address public deployer;
-    address public aggregator;
+    address public alignedLayerAggregator;
 
     BLSApkRegistry public apkRegistry;
     AlignedLayerServiceManager public alignedLayerServiceManager;
@@ -96,7 +96,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
         emit log_named_address("You are deploying from", deployer);
 
-        aggregator = stdJson.readAddress(
+        alignedLayerAggregator = stdJson.readAddress(
             config_data,
             ".permissions.aggregator"
         );
@@ -249,7 +249,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
                 AlignedLayerServiceManager.initialize.selector,
                 deployer,
                 deployer,
-                aggregator
+                alignedLayerAggregator
             )
         );
 

@@ -5,7 +5,7 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
 cd "$parent_path"
 
-cd ../../
+cd ../../contracts
 
 # Save the output to a variable to later extract the address of the new deployed contract
 forge_output=$(forge script script/upgrade/AlignedLayerUpgradeAddAggregator.s.sol \

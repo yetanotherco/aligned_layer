@@ -43,19 +43,19 @@ contract AlignedLayerServiceManager is
     function initialize(
         address _initialOwner,
         address _rewardsInitiator,
-        address _aggregator
+        address _alignedAggregator
     ) public initializer {
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
-        aggregator = _aggregator; //can't do setAggregator(aggregator) since caller is not the owner
+        alignedAggregator = _alignedAggregator; //can't do setAggregator(aggregator) since caller is not the owner
     }
 
     // This function is to be run only on upgrade
     // If a new contract is deployed, this function should be removed
     // Because this new value is also added in the constructor
     function initializeAggregator(
-        address _aggregator
+        address _alignedAggregator
     ) public reinitializer(2) {
-        setAggregator(_aggregator);
+        setAggregator(_alignedAggregator);
     }
 
     function createNewTask(
@@ -215,8 +215,8 @@ contract AlignedLayerServiceManager is
             );
     }
 
-    function setAggregator(address _aggregator) public onlyOwner {
-        aggregator = _aggregator;
+    function setAggregator(address _alignedAggregator) public onlyOwner {
+        alignedAggregator = _alignedAggregator;
     }
 
     function balanceOf(address account) public view returns (uint256) {
@@ -236,8 +236,8 @@ contract AlignedLayerServiceManager is
     }
 
     modifier onlyAggregator() {
-        if (msg.sender != aggregator) {
-            revert SenderIsNotAggregator(msg.sender, aggregator);
+        if (msg.sender != alignedAggregator) {
+            revert SenderIsNotAggregator(msg.sender, alignedAggregator);
         }
         _;
     }
