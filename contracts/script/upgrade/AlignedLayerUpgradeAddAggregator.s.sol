@@ -14,7 +14,8 @@ import "forge-std/StdJson.sol";
 contract AlignedLayerSetAggregator is Script {
     function run(
         string memory eigenLayerDeploymentFilePath,
-        string memory alignedLayerDeploymentFilePath
+        string memory alignedLayerDeploymentFilePath,
+        string memory alignedConfigFilePath
     ) external returns (address, address) {
         string memory eigen_deployment_file = vm.readFile(
             eigenLayerDeploymentFilePath
@@ -22,6 +23,10 @@ contract AlignedLayerSetAggregator is Script {
 
         string memory aligned_deployment_file = vm.readFile(
             alignedLayerDeploymentFilePath
+        );
+
+        string memory aligned_config_file = vm.readFile(
+            alignedConfigFilePath
         );
 
         ProxyAdmin alignedLayerProxyAdmin = ProxyAdmin(
@@ -60,7 +65,7 @@ contract AlignedLayerSetAggregator is Script {
         );
 
         address alignedLayerAggregator = stdJson.readAddress(
-            aligned_deployment_file,
+            aligned_config_file,
             ".permissions.aggregator"
         );
 

@@ -11,12 +11,13 @@ cd ../../contracts
 forge_output=$(forge script script/upgrade/AlignedLayerUpgradeAddAggregator.s.sol \
     $EXISTING_DEPLOYMENT_INFO_PATH \
     $OUTPUT_PATH \
+    $DEPLOY_CONFIG_PATH \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
     --broadcast \
     --verify \
     --etherscan-api-key $ETHERSCAN_API_KEY \
-    --sig "run(string memory eigenLayerDeploymentFilePath, string memory alignedLayerDeploymentFilePath)")
+    --sig "run(string memory eigenLayerDeploymentFilePath, string memory alignedLayerDeploymentFilePath, string memory alignedConfigFilePath)")
 
 echo "$forge_output"
 
@@ -26,8 +27,12 @@ new_aligned_layer_service_manager_implementation=$(echo "$forge_output" | awk '/
 # Use the extracted value to replace the alignedLayerServiceManagerImplementation value in alignedlayer_deployment_output.json and save it to a temporary file
 jq --arg new_aligned_layer_service_manager_implementation "$new_aligned_layer_service_manager_implementation" '.addresses.alignedLayerServiceManagerImplementation = $new_aligned_layer_service_manager_implementation' "script/output/holesky/alignedlayer_deployment_output.json" > "script/output/holesky/alignedlayer_deployment_output.temp.json"
 
+# Write aggregator addres to deployment output file
+ALIGNED_LAYER_AGGREGATOR_ADDRESS=$(jq -r '.permissions.aggregator' ./script/deploy/config/holesky/aligned.holesky.config.json)
+jq --arg alignedLayerAggregator "$ALIGNED_LAYER_AGGREGATOR_ADDRESS" '.permissions += {"alignedLayerAggregator": $alignedLayerAggregator}' "script/output/holesky/alignedlayer_deployment_output.temp.json" > "script/output/holesky/alignedlayer_deployment_output.temp2.json"
+
 # Replace the original file with the temporary file
-mv "script/output/holesky/alignedlayer_deployment_output.temp.json" "script/output/holesky/alignedlayer_deployment_output.json"
+mv "script/output/holesky/alignedlayer_deployment_output.temp2.json" "script/output/holesky/alignedlayer_deployment_output.json"
 
 # Delete the temporary file
 rm -f "script/output/holesky/alignedlayer_deployment_output.temp.json"
