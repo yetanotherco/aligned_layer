@@ -799,6 +799,10 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             config_data,
             ".permissions.ejector"
         );
+        address alignedLayerAggregator = stdJson.readAddress(
+            config_data,
+            ".permissions.aggregator"
+        );
         string memory permissions = "permissions";
         vm.serializeAddress(
             permissions,
@@ -811,7 +815,11 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             alignedLayerUpgrader
         );
         vm.serializeAddress(permissions, "alignedLayerChurner", churner);
+
         vm.serializeAddress(permissions, "pauserRegistry", pauser);
+
+        vm.serializeAddress(permissions, "alignedLayerAggregator", alignedLayerAggregator);
+
         string memory permissions_output = vm.serializeAddress(
             permissions,
             "alignedLayerEjector",
