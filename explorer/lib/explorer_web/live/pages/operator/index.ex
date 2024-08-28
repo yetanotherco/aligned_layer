@@ -101,16 +101,6 @@ defmodule ExplorerWeb.Operator.Index do
             />
           </p>
         </div>
-        <% if @operator_version != nil do %>
-          <div>
-            <h3>
-              Version:
-            </h3>
-            <p class="normal-case">
-              <%= @operator_version %>
-            </p>
-          </div>
-        <% end %>
         <div class="break-all">
           <h3>
             Address:
@@ -125,6 +115,16 @@ defmodule ExplorerWeb.Operator.Index do
             />
           </p>
         </div>
+        <%= if @operator_version != nil do %>
+          <div>
+            <h3>
+              Version:
+            </h3>
+            <p class="normal-case">
+              <%= @operator_version %>
+            </p>
+          </div>
+        <% end %>
         <div>
           <h3>
             Total Restaked:
