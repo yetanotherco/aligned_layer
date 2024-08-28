@@ -103,11 +103,9 @@ impl BatchState {
     fn check_validity_and_increment_fee(
         &mut self,
         entry: BatchQueueEntry,
-        nonced_verification_data: NoncedVerificationData,
-        signature: Signature,
     ) -> Option<ValidityResponseMessage> {
-        let max_fee = nonced_verification_data.max_fee;
-        let nonce = U256::from_big_endian(nonced_verification_data.nonce.as_slice());
+        let max_fee = entry.nonced_verification_data.max_fee;
+        let nonce = U256::from_big_endian(entry.nonced_verification_data.nonce.as_slice());
         let sender = entry.sender;
 
         debug!(
@@ -127,19 +125,14 @@ impl BatchState {
         }
 
         info!(
-            "Entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}, entry.max_fee: {:?}",
-            sender, nonce, max_fee, entry.nonced_verification_data.max_fee
+            "Entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
+            sender, nonce, max_fee
         );
-
-        let mut new_entry = entry.clone();
-
-        new_entry.nonced_verification_data = nonced_verification_data;
-        new_entry.signature = signature;
 
         // remove the old entry and insert the new one
         self.batch_queue.remove(&entry);
         self.batch_queue
-            .push(new_entry, BatchQueueEntryPriority::new(max_fee, nonce));
+            .push(entry.clone(), BatchQueueEntryPriority::new(max_fee, nonce));
 
         let user_min_fee = self
             .batch_queue
@@ -476,6 +469,7 @@ impl Batcher {
                         addr,
                         nonced_verification_data.clone(),
                         client_msg.signature,
+                        ws_conn_sink.clone(),
                     )
                     .await;
 
@@ -536,6 +530,7 @@ impl Batcher {
         addr: Address,
         nonced_verification_data: NoncedVerificationData,
         signature: Signature,
+        ws_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     ) -> (Option<ValidityResponseMessage>, bool) {
         let nonce = U256::from_big_endian(nonced_verification_data.nonce.as_slice());
         let max_fee = nonced_verification_data.max_fee;
@@ -568,7 +563,7 @@ impl Batcher {
             // if the message is already in the batch
             // we can check if we need to increment the fee
             // get the entry with the same sender and nonce
-            let entry = match batch_state.get_entry(addr, nonce) {
+            let mut entry = match batch_state.get_entry(addr, nonce) {
                 Some(entry) => {
                     if entry.nonced_verification_data.max_fee < max_fee {
                         entry.clone()
@@ -590,11 +585,13 @@ impl Batcher {
                 addr, nonce, max_fee
             );
 
-            if let Some(msg) = batch_state.check_validity_and_increment_fee(
-                entry,
-                nonced_verification_data,
-                signature,
-            ) {
+            entry.signature = signature;
+            entry.verification_data_commitment =
+                nonced_verification_data.verification_data.clone().into();
+            entry.nonced_verification_data = nonced_verification_data;
+            entry.messaging_sink = ws_sink;
+
+            if let Some(msg) = batch_state.check_validity_and_increment_fee(entry) {
                 return (Some(msg), false);
             }
 
