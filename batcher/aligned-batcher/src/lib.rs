@@ -55,6 +55,7 @@ const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
+const GAS_CHECK_MULTIPLIER: u8 = 5; // Multiplier for the max fee check
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -714,7 +715,7 @@ impl Batcher {
         };
 
         // Multiply the gas price by 5 to allow for spike in gas price before submitting
-        let gas_price = match gas_price.checked_mul(U256::from(5)) {
+        let gas_price = match gas_price.checked_mul(U256::from(GAS_CHECK_MULTIPLIER)) {
             Some(price) => price,
             None => return None, // gas price was too high
         };
