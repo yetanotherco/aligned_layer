@@ -49,9 +49,9 @@ contract AlignedLayerServiceManager is
         aggregator = _aggregator; //can't do setAggregator(aggregator) since caller is not the owner
     }
 
-    // TODO WIP - make init#N that runs setAggregator
-    // This function is only to set aggregator address on upgrade
+    // This function is to be run only on upgrade
     // If a new contract is deployed, this function should be removed
+    // Because this new value is also added in the constructor
     function initializeAggregator(
         address _aggregator
     ) public reinitializer(2) {
