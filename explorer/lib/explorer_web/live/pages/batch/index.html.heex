@@ -64,7 +64,15 @@
           <% else %>
             <div class="space-y-2 basis-3/4">
               <div class="h-36 overflow-y-auto text-foreground space-y-2">
-                <p :for={proof <- @proof_hashes}><%= proof %></p>
+                <p :for={{proof, index} <- Enum.with_index(@proof_hashes)}>
+                  <%= proof %>
+                  <.live_component
+                    module={CopyToClipboardButtonComponent}
+                    text_to_copy={proof}
+                    id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
+                    class="inline-flex"
+                  />
+                </p>
               </div>
               <.button class="w-fit text-foreground" phx-click="hide_proofs">
                 <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
