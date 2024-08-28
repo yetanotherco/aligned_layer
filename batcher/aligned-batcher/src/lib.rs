@@ -758,7 +758,7 @@ impl Batcher {
             );
 
             // it is sufficient to check this max fee because it will be the lowest since its sorted
-            if fee < entry.nonced_verification_data.max_fee {
+            if fee < entry.nonced_verification_data.max_fee && num_proofs >= 2 {
                 finalized_batch_works = true;
             } else if finalized_batch_works {
                 // Can not add latest element since it is not willing to pay the corresponding fee
