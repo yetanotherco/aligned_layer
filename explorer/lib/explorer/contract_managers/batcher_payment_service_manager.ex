@@ -48,6 +48,10 @@ defmodule BatcherPaymentServiceManager do
     )
     |> Ethers.get_logs(fromBlock: @first_block)
     |> case do
+      {:ok, []} ->
+        Logger.error("No events found for merkle root: #{merkle_root}")
+        0
+
       {:ok, events} ->
         event = events |> hd()
         fee_per_proof = event.data |> hd()

@@ -39,19 +39,20 @@
         </h3>
         <p><%= @current_batch.amount_of_proofs %></p>
       </div>
-      <%= if @current_batch.fee_per_proof != nil do %>
-        <div class="flex flex-col sm:flex-row">
-          <h3>
-            Cost per Proof:
-          </h3>
-          <p>
-            <%= @current_batch.fee_per_proof |> EthConverter.wei_to_eth() %> ETH
-            <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
-              <span class="inline-flex md:inline-block">(<%= @eth_usd_price %> USD)</span>
-            <% end %>
-          </p>
-        </div>
-      <% end %>
+      <div
+        :if={@current_batch.fee_per_proof != 0}
+        class="flex flex-col sm:flex-row"
+      >
+        <h3>
+          Fee per Proof:
+        </h3>
+        <p>
+          <%= @current_batch.fee_per_proof |> EthConverter.wei_to_eth() %> ETH
+          <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
+            <span class="inline-flex md:inline-block">(<%= @eth_usd_price %> USD)</span>
+          <% end %>
+        </p>
+      </div>
       <div>
         <h3>
           Proofs in this batch:
