@@ -49,7 +49,7 @@ defmodule BatcherPaymentServiceManager do
     |> Ethers.get_logs(fromBlock: @first_block)
     |> case do
       {:ok, []} ->
-        Logger.error("No events found for merkle root: #{merkle_root}")
+        Logger.warning("No events found for merkle root: #{merkle_root}")
         0
 
       {:ok, events} ->
