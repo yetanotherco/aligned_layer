@@ -42,13 +42,17 @@ contract AlignedLayerServiceManager is
     // @param _rewardsInitiator The address which is allowed to create AVS rewards submissions.
     function initialize(
         address _initialOwner,
-        address _rewardsInitiator
+        address _rewardsInitiator,
+        address _aggregator
     ) public initializer {
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
+        aggregator = _aggregator; //can't do setAggregator(aggregator) since caller is not the owner
     }
 
     // TODO WIP - make init#N that runs setAggregator
-    function initialize2(address _aggregator) public onlyOwner reinitializer(2) {
+    // This function is only to set aggregator address on upgrade
+    // If a new contract is deployed, this function should be removed
+    function initializeAggregator(address _aggregator) public onlyOwner reinitializer(2) {
         setAggregator(_aggregator);
     }
 

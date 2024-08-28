@@ -34,6 +34,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
     address public pauser;
     uint256 public initalPausedStatus;
     address public deployer;
+    address public aggregator;
 
     BLSApkRegistry public apkRegistry;
     AlignedLayerServiceManager public alignedLayerServiceManager;
@@ -94,6 +95,11 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             "Deployer address must be the same as the tx.origin"
         );
         emit log_named_address("You are deploying from", deployer);
+
+        aggregator = stdJson.readAddress(
+            config_data,
+            ".permissions.aggregator"
+        );
 
         vm.startBroadcast();
 
@@ -242,7 +248,8 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
                 deployer,
-                deployer
+                deployer,
+                aggregator
             )
         );
 
