@@ -118,6 +118,8 @@ pub struct SubmitArgs {
         default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
     max_fee: U256,
+    #[arg(name = "Nonce", long = "nonce")]
+    nonce: Option<U256>,
 }
 
 #[derive(Parser, Debug)]
@@ -301,19 +303,24 @@ async fn main() -> Result<(), AlignedError> {
 
             let max_fee = submit_args.max_fee;
 
+            let nonce = match submit_args.nonce {
+                Some(nonce) => nonce,
+                None => {
+                    get_nonce(
+                        &eth_rpc_url,
+                        wallet.address(),
+                        &batcher_eth_address,
+                        repetitions,
+                    )
+                    .await?
+                }
+            };
+
             let verification_data = verification_data_from_args(*submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
 
             info!("Submitting proofs to the Aligned batcher...");
-
-            let nonce = get_nonce(
-                &eth_rpc_url,
-                wallet.address(),
-                &batcher_eth_address,
-                repetitions,
-            )
-            .await?;
 
             let max_fees = vec![max_fee; repetitions];
 
