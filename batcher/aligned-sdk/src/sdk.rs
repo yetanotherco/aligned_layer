@@ -38,6 +38,7 @@ use futures_util::{
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
+/// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
@@ -54,6 +55,7 @@ use futures_util::{
 /// * `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
 /// * `InvalidSignature` if the signature is invalid.
 /// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidMaxFee` if the max fee is invalid.
 /// * `InvalidProof` if the proof is invalid.
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
@@ -83,6 +85,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `verification_data` - An array of verification data of each proof.
+/// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
@@ -96,6 +99,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
 /// * `InvalidSignature` if the signature is invalid.
 /// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidMaxFee` if the max fee is invalid.
 /// * `InvalidProof` if the proof is invalid.
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked.
@@ -192,6 +196,7 @@ async fn _submit_multiple(
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
+/// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
@@ -208,6 +213,7 @@ async fn _submit_multiple(
 /// * `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
 /// * `InvalidSignature` if the signature is invalid.
 /// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidMaxFee` if the max fee is invalid.
 /// * `InvalidProof` if the proof is invalid.
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
@@ -244,6 +250,7 @@ pub async fn submit_and_wait_verification(
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `verification_data` - The verification data of the proof.
+/// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
@@ -257,6 +264,7 @@ pub async fn submit_and_wait_verification(
 /// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
 /// * `InvalidSignature` if the signature is invalid.
 /// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidMaxFee` if the max fee is invalid.
 /// * `InvalidProof` if the proof is invalid.
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
