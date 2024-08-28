@@ -23,6 +23,8 @@ The list below contains examples or projects using ZK. It is meant to illustrate
 - ZK-TLS
 - Bridges
 - Oracles
-- Data processor
+- Data processors
+- Voting
 - ZK-Email
 - Identity protocols
+- IoT
