@@ -9,8 +9,17 @@ defmodule OperatorVersionTracker do
         body
         |> parse_as_map()
 
+      {
+        :ok,
+        %HTTPoison.Response{status_code: _, body: _}
+      } ->
+        Logger.debug("Operator versions not found.")
+        # return empty map when no operators array is returned
+        %{}
+
       {:error, reason} ->
         reason |> Logger.error()
+        %{}
     end
   end
 
