@@ -55,12 +55,16 @@ const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
-const MIN_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.000000001 ether (low gas price)
+const MIN_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.0000000001 ether (low gas price)
 const GAS_CHECK_MULTIPLIER: u8 = 5; // Multiplier for the max fee check
 
 struct BatchState {
     batch_queue: BatchQueue,
     user_nonces: HashMap<Address, U256>,
+    /// The minimum fee of a pending proof for a user.
+    /// This should always be the fee of the biggest pending nonce by the user.
+    /// This is used to check if a user is submitting a proof with a higher nonce and higher fee,
+    /// which is invalid and should be rejected.
     user_min_fee: HashMap<Address, U256>,
     user_proof_count_in_batch: HashMap<Address, u64>,
 }
