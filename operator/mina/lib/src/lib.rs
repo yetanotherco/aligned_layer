@@ -8,6 +8,7 @@ use kimchi::mina_curves::pasta::{Fp, PallasParameters};
 use kimchi::verifier_index::VerifierIndex;
 use lazy_static::lazy_static;
 use mina_p2p_messages::hash::MinaHash;
+use mina_p2p_messages::v2::{MinaStateProtocolStateValueStableV2, StateHash};
 use mina_tree::proofs::verification::verify_block;
 use mina_tree::verifier::get_srs;
 use verifier_index::deserialize_blockchain_vk;
@@ -20,7 +21,7 @@ lazy_static! {
 }
 
 // TODO(xqft): check proof size
-const MAX_PROOF_SIZE: usize = 18 * 1024;
+const MAX_PROOF_SIZE: usize = 48 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
 
 #[no_mangle]
@@ -47,13 +48,14 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
         };
 
     // TODO(xqft): this can also be a batcher's pre-verification check
-    let candidate_tip_state_hash = match check_pub_inputs(&proof, &pub_inputs) {
-        Ok(hash) => hash,
-        Err(err) => {
-            eprintln!("Failed to check pub inputs: {err}");
-            return false;
-        }
-    };
+    let (candidate_tip_state, bridge_tip_state, candidate_tip_state_hash) =
+        match check_pub_inputs(&proof, &pub_inputs) {
+            Ok(validated_data) => validated_data,
+            Err(err) => {
+                eprintln!("Failed to check pub inputs: {err}");
+                return false;
+            }
+        };
 
     // TODO(xqft): srs should be a static, but can't make it so because it doesn't have all its
     // parameters initialized.
@@ -61,13 +63,14 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
     let srs = srs.lock().unwrap();
 
     // Consensus check: Short fork rule
-    let longer_chain = select_longer_chain(&proof.candidate_tip_state, &proof.bridge_tip_state);
+    let longer_chain = select_longer_chain(&candidate_tip_state, &bridge_tip_state);
     if longer_chain == LongerChainResult::Bridge {
         eprintln!("Failed consensus checks for candidate tip state against bridge's tip");
         return false;
     }
 
-    // Pickles verification
+    // Verify the tip block (and thanks to Pickles recursion all the previous states are verified
+    // as well)
     verify_block(
         &proof.candidate_tip_proof,
         candidate_tip_state_hash,
@@ -77,55 +80,106 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
 }
 
 /// Checks public inputs against the proof data, making sure the inputs correspond to the proofs
-/// we're verifying. Returns a validated `candidate_tip_state_hash`.
-fn check_pub_inputs(proof: &MinaStateProof, pub_inputs: &MinaStatePubInputs) -> Result<Fp, String> {
-    let expected_candidate_tip_ledger_hash = &proof
-        .candidate_tip_state
-        .body
-        .blockchain_state
-        .staged_ledger_hash
-        .non_snark
-        .ledger_hash;
-    let candidate_tip_ledger_hash = pub_inputs
-        .candidate_chain_ledger_hashes
+/// we're verifying. Returns validated data for executing the rest of the verification steps.
+fn check_pub_inputs(
+    proof: &MinaStateProof,
+    pub_inputs: &MinaStatePubInputs,
+) -> Result<
+    (
+        MinaStateProtocolStateValueStableV2,
+        MinaStateProtocolStateValueStableV2,
+        Fp,
+    ),
+    String,
+> {
+    let candidate_root_state_hash = proof
+        .candidate_chain_states
         .first()
-        .ok_or("Candidate tip ledger hash not found".to_string())?;
-    // TODO(xqft): we should do this with every ledger hash, so every state should be included in
-    // the proof?
-    if candidate_tip_ledger_hash != expected_candidate_tip_ledger_hash {
+        .map(|state| state.hash())
+        .ok_or("failed to retrieve root state hash".to_string())?;
+    // Reconstructs the state hashes if the states form a chain. The iterator will be in the
+    // reversed order of the public inputs one.
+    let mut state_hash = candidate_root_state_hash;
+    for (body_hash, expected_prev_state_hash) in proof
+        .candidate_chain_states
+        .iter()
+        .skip(1)
+        .map(|state| state.body.hash())
+        .zip(pub_inputs.candidate_chain_state_hashes.iter())
+    {
+        let curr_state_hash = StateHash::from_hashes(&state_hash, &body_hash);
+        let prev_state_hash = std::mem::replace(&mut state_hash, curr_state_hash);
+
+        // Check if all hashes (but the last one) in the public input are correct
+        if &prev_state_hash != expected_prev_state_hash {
+            return Err("public input state hashes do not match the states to verify, or states don't form a chain".to_string());
+        }
+    }
+
+    // Check if the tip hash (the last one) is correct, so we also verify the Merkle list
+    if &state_hash
+        != pub_inputs
+            .candidate_chain_state_hashes
+            .last()
+            .ok_or("failed to retrieve tip state hash".to_string())?
+    {
+        return Err("public input tip state hash is not correct".to_string());
+    }
+
+    // Validate the public input ledger hashes
+    let expected_candidate_chain_ledger_hashes = proof.candidate_chain_states.iter().map(|state| {
+        &state
+            .body
+            .blockchain_state
+            .staged_ledger_hash
+            .non_snark
+            .ledger_hash
+    });
+    if pub_inputs
+        .candidate_chain_ledger_hashes
+        .iter()
+        .ne(expected_candidate_chain_ledger_hashes)
+    {
         return Err(
-            "Candidate tip ledger hash on public inputs doesn't match the encoded state's one"
+            "candidate chain ledger hashes on public inputs don't match the ones on the states to verify"
                 .to_string(),
         );
     }
 
-    let candidate_tip_state_hash = pub_inputs
-        .candidate_chain_state_hashes
-        .first()
-        .ok_or("hash not found".to_string())
-        .and_then(|hash| {
-            hash.to_fp()
-                .map_err(|err| format!("can't parse hash to fp: {err}"))
-        })?;
+    // Validate the public input bridge's tip state hash
     let bridge_tip_state_hash = pub_inputs
         .bridge_tip_state_hash
         .to_fp()
-        .map_err(|err| format!("Can't parse hash to fp: {err}"))?;
+        .map_err(|err| format!("Can't parse bridge tip state hash to fp: {err}"))?;
 
-    if MinaHash::hash(&proof.candidate_tip_state) != candidate_tip_state_hash {
-        return Err(
-            "The bridges's chain tip state doesn't match the hash provided as public input"
-                .to_string(),
-        );
-    }
     if MinaHash::hash(&proof.bridge_tip_state) != bridge_tip_state_hash {
         return Err(
-            "The candidate's chain tip state doesn't match the hash provided as public input"
+            "the candidate's chain tip state doesn't match the hash provided as public input"
                 .to_string(),
         );
     }
 
-    Ok(candidate_tip_state_hash)
+    let candidate_tip_state = proof
+        .candidate_chain_states
+        .last()
+        .ok_or("failed to get candidate tip state from proof".to_string())?
+        .clone();
+    let bridge_tip_state = proof.bridge_tip_state.clone();
+
+    let candidate_tip_state_hash = pub_inputs
+        .candidate_chain_state_hashes
+        .last()
+        .ok_or("failed to get candidate tip hash from public inputs".to_string())
+        .and_then(|hash| {
+            hash.to_fp()
+                .map_err(|err| format!("failed to convert tip state hash to field element: {err}"))
+        })?;
+
+    Ok((
+        candidate_tip_state,
+        bridge_tip_state,
+        candidate_tip_state_hash,
+    ))
 }
 
 #[cfg(test)]
