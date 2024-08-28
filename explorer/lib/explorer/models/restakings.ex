@@ -85,6 +85,7 @@ defmodule Restakings do
     query = from r in Restakings,
       join: s in Strategies, on: r.strategy_address == s.strategy_address,
       where: r.operator_id == ^operator_id,
+      order_by: [desc: r.stake],
       select: %{
         restaking: r,
         strategy: %{
