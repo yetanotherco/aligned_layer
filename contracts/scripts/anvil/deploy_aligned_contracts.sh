@@ -50,7 +50,7 @@ batcher_payment_service_implementation=$(echo "$forge_output" | awk '/1: address
 
 # Save ALIGNED_LAYER_AGGREGATOR_ADDRESS
 ALIGNED_LAYER_AGGREGATOR_ADDRESS=$(jq -r '.address' ../config-files/anvil.aggregator.ecdsa.key.json)
-jq --arg alignedLayerAggregator "0x$ALIGNED_LAYER_AGGREGATOR_ADDRESS" '.permissions += {"alignedLayerAggregator": $alignedLayerAggregator}' "script/output/devnet/alignedlayer_deployment_output.json" > "script/output/devnet/alignedlayer_deployment_output.temp1.json"
+jq --arg aggregator "0x$ALIGNED_LAYER_AGGREGATOR_ADDRESS" '.permissions += {"aggregator": $aggregator}' "script/output/devnet/alignedlayer_deployment_output.json" > "script/output/devnet/alignedlayer_deployment_output.temp1.json"
 
 # Use the extracted value to replace the  batcher payment service values in alignedlayer_deployment_output.json and save it to a temporary file
 jq --arg batcher_payment_service_proxy "$batcher_payment_service_proxy" '.addresses.batcherPaymentService = $batcher_payment_service_proxy' "script/output/devnet/alignedlayer_deployment_output.temp1.json" > "script/output/devnet/alignedlayer_deployment_output.temp2.json"

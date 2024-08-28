@@ -59,6 +59,11 @@ contract AlignedLayerSetAggregator is Script {
             )
         );
 
+        address aggregator = stdJson.readAddress(
+            aligned_deployment_file,
+            ".permissions.aggregator"
+        );
+
         vm.startBroadcast();
 
         AlignedLayerServiceManager alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
@@ -83,22 +88,19 @@ contract AlignedLayerSetAggregator is Script {
 
         vm.stopBroadcast();
         vm.startBroadcast();
-        
-        alignedLayerServiceManager.initializeAggregator(
-            stdJson.readAddress(
-                aligned_deployment_file,
-                ".permissions.alignedLayerAggregator"
-            )
-        );
-
-        vm.stopBroadcast();
-        vm.startBroadcast();
 
         alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(
                 payable(address(alignedLayerServiceManager))
             ),
             address(alignedLayerServiceManagerImplementation)
+        );
+
+        vm.stopBroadcast();
+        vm.startBroadcast();
+        
+        alignedLayerServiceManager.initializeAggregator(
+            aggregator
         );
 
         vm.stopBroadcast();
