@@ -120,9 +120,9 @@ defmodule ExplorerWeb.Operator.Index do
             <h3>
               Version:
             </h3>
-            <p class="normal-case">
+            <.badge class="text-xs px-1.5 normal-case" variant="secondary">
               <%= @operator_version %>
-            </p>
+            </.badge>
           </div>
         <% end %>
         <div>

@@ -57,8 +57,14 @@ defmodule ExplorerWeb.Operators.Index do
                 alt={operator.name}
                 class="rounded-full size-5 object-scale-down"
               />
-              <%= operator.name %>
-              <%= @operator_versions[operator.address] %>
+              <span>
+                <%= operator.name %>
+                <%= if @operator_versions[operator.address] != nil do %>
+                <.badge class="text-xs px-1.5" variant="secondary" >
+                  <%= @operator_versions[operator.address] %>
+                </.badge>
+                <% end %>
+              </span>
               <.right_arrow />
               <.tooltip class="py-2 px-2.5 rounded-2xl">
                 <span class="font-semibold text-muted-foreground">Id:</span> <%= operator.id

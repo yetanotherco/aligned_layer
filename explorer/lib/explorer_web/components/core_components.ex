@@ -388,6 +388,35 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+    Renders a badge component.
+  """
+  attr :class, :string, default: nil
+  attr :variant, :string, default: "accent"
+  slot :inner_block, default: nil
+
+  def badge(assigns) do
+    ~H"""
+    <span class={
+      classes([
+        "px-3 py-1 rounded-full font-semibold",
+        case @variant do
+          "accent" -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
+          "primary" -> "text-primary-foreground bg-primary group-hover:bg-primary/80"
+          "secondary" -> "text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
+          "destructive" -> "text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
+          "foreground" -> "text-background bg-foreground group-hover:bg-foreground/80"
+          "card" -> "text-card-foreground bg-card group-hover:bg-card/80"
+          _ -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
+        end,
+        @class
+      ])
+    }>
+      <%= render_slot(@inner_block) %>
+    </span>
+    """
+  end
+
+  @doc """
     Renders a dynamic badge compoent.
   """
   attr :class, :string, default: nil
@@ -398,22 +427,25 @@ defmodule ExplorerWeb.CoreComponents do
 
   def dynamic_badge(assigns) do
     ~H"""
-    <span class={
-      classes([
-        "px-3 py-1 rounded-full",
+    <.badge
+      variant={
         case @status do
-          true -> "text-accent-foreground bg-accent group-hover:bg-primary/80"
-          false -> "text-background bg-foreground group-hover:bg-foreground/80"
-        end,
-        @class
-      ])
-    }>
+          true -> "accent"
+          false -> "foreground"
+        end
+      }
+      class={
+        classes([
+          @class
+        ])
+      }
+    >
       <%= case @status do
         true -> @truthy_text
         false -> @falsy_text
       end %>
       <%= render_slot(@inner_block) %>
-    </span>
+    </.badge>
     """
   end
 
