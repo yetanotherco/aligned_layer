@@ -4,7 +4,7 @@
   },
   "permissions": {
     "owner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-    "aggregator": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "aggregator": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
     "upgrader": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "churner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "ejector": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
