@@ -765,11 +765,12 @@ defmodule ExplorerWeb.CoreComponents do
         :if={@text != nil}
         class={
           classes([
-            "text-lg text-muted-foreground"
+            "text-lg text-muted-foreground",
+            @inner_text_class
           ])
         }
       >
-        <%= render_slot(@text) %>
+        <%= @text %>
       </p>
       <%= render_slot(@inner_block) %>
     </.card_background>
