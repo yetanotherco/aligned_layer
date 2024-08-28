@@ -742,11 +742,16 @@ defmodule ExplorerWeb.CoreComponents do
 
   @doc """
   Renders an empty card background.
+
+  ## Examples
+
+      <.empty_card_background text="No users found" />
+
   """
-  slot :inner_block, default: nil
-  slot :class, default: nil
-  slot :text, default: nil
-  slot :inner_text_class, default: nil
+  attr :class, :string, default: nil
+  attr :inner_text_class, :string, default: nil
+  attr :text, :string, default: nil
+  slot :inner_block
 
   def empty_card_background(assigns) do
     ~H"""
@@ -764,7 +769,7 @@ defmodule ExplorerWeb.CoreComponents do
           ])
         }
       >
-        <%= @text %>
+        <%= render_slot(@text) %>
       </p>
       <%= render_slot(@inner_block) %>
     </.card_background>
@@ -794,30 +799,6 @@ defmodule ExplorerWeb.CoreComponents do
           <dd class="text-zinc-700"><%= render_slot(item) %></dd>
         </div>
       </dl>
-    </div>
-    """
-  end
-
-  @doc """
-  Renders a back navigation link.
-
-  ## Examples
-
-      <.back navigate={~p"/posts"}>Back to posts</.back>
-  """
-  attr :navigate, :any, required: true
-  slot :inner_block, required: true
-
-  def back(assigns) do
-    ~H"""
-    <div class="mt-16">
-      <.link
-        navigate={@navigate}
-        class="text-sm font-semibold leading-6 text-zinc-900 hover:text-zinc-700"
-      >
-        <.icon name="hero-arrow-left-solid" class="h-3 w-3" />
-        <%= render_slot(@inner_block) %>
-      </.link>
     </div>
     """
   end
