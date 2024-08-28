@@ -49,23 +49,23 @@ defmodule BatcherPaymentServiceManager do
     |> Ethers.get_logs(fromBlock: @first_block)
     |> case do
       {:ok, []} ->
-        Logger.error("No events found for merkle root: #{merkle_root}")
+        Logger.warning("No fee per proof events found for merkle root: #{merkle_root}.")
         0
 
       {:ok, events} ->
         event = events |> hd()
         fee_per_proof = event.data |> hd()
-        Logger.debug("Fee per proof of #{merkle_root}: #{fee_per_proof} wei")
+        Logger.debug("Fee per proof of #{merkle_root}: #{fee_per_proof} WEI.")
 
         fee_per_proof
 
       {:error, reason} ->
-        Logger.error("Error getting gas per proof: #{inspect(reason)}")
-        raise("Error getting gas per proof")
+        Logger.error("Error getting fee per proof: #{inspect(reason)}.")
+        raise("Error getting fee per proof events.")
 
       other ->
-        Logger.error("Unexpected response: #{inspect(other)}")
-        raise("Unexpected response")
+        Logger.error("Unexpected response onfee per proof events: #{inspect(other)}")
+        raise("Unexpected response on fee per proof events.")
     end
   end
 end
