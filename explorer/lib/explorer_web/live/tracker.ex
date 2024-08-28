@@ -2,23 +2,29 @@ defmodule OperatorVersionTracker do
   require Logger
   @tracker_api_url Application.compile_env(:explorer, :tracker_api_url)
 
-  # /versions endpoint
   def get_operators_version() do
-    case HTTPoison.get("#{@tracker_api_url}/versions") do
+    get_operators_version(@tracker_api_url)
+  end
+
+  defp get_operators_version(nil), do: %{}
+  defp get_operators_version(""), do: %{}
+
+  defp get_operators_version(url) do
+    case HTTPoison.get("#{url}/versions") do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         body
         |> parse_as_map()
 
-      {
-        :ok,
-        %HTTPoison.Response{status_code: _, body: _}
-      } ->
+      {:ok, %HTTPoison.Response{status_code: _, body: _}} ->
         Logger.debug("Operator versions not found.")
-        # return empty map when no operators array is returned
         %{}
 
-      {:error, reason} ->
-        reason |> Logger.error()
+      {:error, _reason} ->
+        "Error while fetching operator versions." |> Logger.error()
+        %{}
+
+      [] ->
+        "Empty response received while while fetching operator versions." |> Logger.debug()
         %{}
     end
   end
@@ -31,22 +37,32 @@ defmodule OperatorVersionTracker do
     end)
   end
 
-  # /versions/:address endpoint
   def get_operator_version(address) do
-    case HTTPoison.get("#{@tracker_api_url}/versions/#{address}") do
+    get_operator_version(@tracker_api_url, address)
+  end
+
+  defp get_operator_version(nil, _address), do: nil
+  defp get_operator_version("", _address), do: nil
+
+  defp get_operator_version(url, address) do
+    case HTTPoison.get("#{url}/versions/#{address}") do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         body
         |> parse_version()
 
-      {
-        :ok,
-        %HTTPoison.Response{status_code: _, body: _}
-      } ->
-        Logger.debug("Operator version not found for address: #{address}")
+      {:ok, %HTTPoison.Response{status_code: _, body: _}} ->
+        Logger.debug("Operator version not found.")
         nil
 
-      {:error, reason} ->
-        reason |> Logger.error()
+      {:error, _reason} ->
+        "Error while fetching operator version. Address: #{address}." |> Logger.error()
+        nil
+
+      [] ->
+        "Empty response received while fetching operator version. Address: #{address}."
+        |> Logger.error()
+
+        nil
     end
   end
 
