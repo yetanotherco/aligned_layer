@@ -19,8 +19,9 @@ defmodule OperatorVersionTracker do
         Logger.debug("Operator versions not found.")
         %{}
 
-      {:error, _reason} ->
+      {:error, reason} ->
         "Error while fetching operator versions." |> Logger.error()
+        reason |> Logger.error()
         %{}
 
       [] ->
