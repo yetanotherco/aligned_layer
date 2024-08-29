@@ -133,11 +133,11 @@ contract BatcherPaymentService is
             revert LeavesNotPowerOfTwo(leavesQty);
         }
 
-        if (feeForAggregator <= 0) {
+        if (feeForAggregator == 0) {
             revert NoGasForAggregator();
         }
 
-        if (feePerProof <= 0) {
+        if (feePerProof == 0) {
             revert NoGasPerProof();
         }
 
@@ -170,7 +170,7 @@ contract BatcherPaymentService is
     }
 
     function unlock() external whenNotPaused {
-        if (userData[msg.sender].balance <= 0) {
+        if (userData[msg.sender].balance == 0) {
             revert UserHasNoFundsToUnlock(msg.sender);
         }
 
@@ -179,7 +179,7 @@ contract BatcherPaymentService is
     }
 
     function lock() external whenNotPaused {
-        if (userData[msg.sender].balance <= 0) {
+        if (userData[msg.sender].balance == 0) {
             revert UserHasNoFundsToLock(msg.sender);
         }
         userData[msg.sender].unlockBlock = 0;
