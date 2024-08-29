@@ -67,7 +67,7 @@ contract AlignedLayerServiceManager is
             );
         }
 
-        if (batchersBalances[msg.sender] <= 0) {
+        if (batchersBalances[msg.sender] == 0) {
             revert BatcherBalanceIsEmpty(msg.sender);
         }
 
@@ -111,7 +111,7 @@ contract AlignedLayerServiceManager is
             revert BatchAlreadyResponded(batchIdentifierHash);
         }
 
-        if (batchersBalances[senderAddress] <= 0) {
+        if (batchersBalances[senderAddress] == 0) {
             revert BatcherHasNoBalance(senderAddress);
         }
 
@@ -228,7 +228,7 @@ contract AlignedLayerServiceManager is
     }
 
     function _depositToBatcher(address account, uint256 amount) internal {
-        if (amount <= 0) {
+        if (amount == 0) {
             revert InvalidDepositAmount(amount);
         }
         batchersBalances[account] += amount;
