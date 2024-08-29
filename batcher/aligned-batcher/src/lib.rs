@@ -521,8 +521,6 @@ impl Batcher {
                         return Ok(());
                     }
                     std::cmp::Ordering::Equal => {
-                        // expected user nonce
-                        // check max fee and add to batch
                         // if we are here nonce == expected_user_nonce
                         if !self
                             .handle_expected_nonce(
@@ -598,6 +596,10 @@ impl Batcher {
         true
     }
 
+    /// Handles a message with an expected nonce.
+    /// If the max_fee is valid, it is added to the batch.
+    /// If the max_fee is invalid, a message is sent to the client.
+    /// Returns true if the message was added to the batch, false otherwise.
     async fn handle_expected_nonce(
         &self,
         mut batch_state: tokio::sync::MutexGuard<'_, BatchState>,
@@ -634,6 +636,13 @@ impl Batcher {
         true
     }
 
+    /// Handles a replacement message
+    /// First checks if the message is already in the batch
+    /// If the message is in the batch, checks if the max fee is higher
+    /// If the max fee is higher, replaces the message in the batch
+    /// If the max fee is lower, sends an error message to the client
+    /// If the message is not in the batch, sends an error message to the client
+    /// Returns true if the message was replaced in the batch, false otherwise
     async fn handle_replacement_message(
         &self,
         mut batch_state: tokio::sync::MutexGuard<'_, BatchState>,
@@ -828,6 +837,8 @@ impl Batcher {
     /// The extra check is that the batch size does not surpass the maximum batch size.
     /// Note that the batch queue is sorted descending by the max_fee set by the users.
     /// We use a copy of the batch queue because we might not find a working batch,
+    /// and we want to keep the original batch queue intact.
+    /// Returns true if a working batch is found, false otherwise.
     fn try_build_batch(
         &self,
         batch_queue_copy: &mut PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
