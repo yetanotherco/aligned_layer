@@ -6,6 +6,7 @@ use config::NonPayingConfig;
 use dotenv::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
+use priority_queue::PriorityQueue;
 use serde::Serialize;
 
 use std::collections::hash_map::Entry;
@@ -742,17 +743,14 @@ impl Batcher {
     /// There are essentially two conditions to be checked:
     ///     * Has the current batch reached the minimum size to be posted?
     ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
+    /// Then the batch will be made as big as possible given this two conditions:
+    ///     * The serialized batch size needs to be smaller than the maximum batch size
+    ///     * The minimum fee on the batch is bigger than the fee the users will pay
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
-    /// Once the batch meets the conditions for submission, it check if it needs to be splitted into smaller batches,
-    /// depending on the configured maximum batch size. The batch is splitted at the index where the max size is surpassed,
-    /// and all the elements up to that index are copied and cleared from the batch queue. The copy is then passed to the
+    /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
     async fn is_batch_ready(&self, block_number: u64) -> Option<Vec<BatchQueueEntry>> {
-        /*
-        TODO: refactor and update doc,
-        e.g if can_add_to_batch, add, etc
-        */
         let mut batch_state = self.batch_state.lock().await;
         let current_batch_len = batch_state.batch_queue.len();
 
@@ -801,10 +799,38 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
 
-        // We use a copy of the batch queue because we might not find a working batch,
-        // in that case batch queue should stay the same
-        let mut batch_queue_copy = batch_state.batch_queue.clone();
         let mut finalized_batch = vec![];
+        let mut batch_queue_copy = batch_state.batch_queue.clone();
+
+        if !self.try_build_batch(&mut batch_queue_copy, &mut finalized_batch, gas_price) {
+            // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
+            info!("No working batch found. Waiting for more proofs...");
+            *batch_posting = false;
+            return None;
+        }
+
+        // Set the batch queue to batch queue copy
+        batch_state.batch_queue = batch_queue_copy;
+
+        batch_state.update_user_proofs_in_batch_and_min_fee();
+
+        Some(finalized_batch)
+    }
+
+    /// Tries to build a batch from the current batch queue.
+    /// The function iterates over the batch queue and tries to build a batch that satisfies the gas price
+    /// and the max_fee set by the users.
+    /// If a working batch is found, the function tries to make it as big as possible by adding more proofs,
+    /// until a user is not willing to pay the required fee.
+    /// The extra check is that the batch size does not surpass the maximum batch size.
+    /// Note that the batch queue is sorted descending by the max_fee set by the users.
+    /// We use a copy of the batch queue because we might not find a working batch,
+    fn try_build_batch(
+        &self,
+        batch_queue_copy: &mut PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
+        finalized_batch: &mut Vec<BatchQueueEntry>,
+        gas_price: U256,
+    ) -> bool {
         let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
         let mut finalized_batch_works = false;
 
@@ -857,19 +883,7 @@ impl Batcher {
             finalized_batch.push(entry);
         }
 
-        if !finalized_batch_works {
-            // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
-            info!("No working batch found. Waiting for more proofs...");
-            *batch_posting = false;
-            return None;
-        }
-
-        // Set the batch queue to batch queue copy
-        batch_state.batch_queue = batch_queue_copy;
-
-        batch_state.update_user_proofs_in_batch_and_min_fee();
-
-        Some(finalized_batch)
+        finalized_batch_works
     }
 
     /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
