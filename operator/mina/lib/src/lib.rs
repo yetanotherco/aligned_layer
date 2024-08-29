@@ -1,6 +1,6 @@
 mod consensus_state;
 
-use core::proof::state_proof::{MinaStateProof, MinaStatePubInputs};
+use mina_bridge_core::proof::state_proof::{MinaStateProof, MinaStatePubInputs};
 
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
 use consensus_state::{select_longer_chain, LongerChainResult};
@@ -25,13 +25,13 @@ const MAX_PROOF_SIZE: usize = 48 * 1024;
 const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
 
 #[no_mangle]
-pub extern "C" fn verify_protocol_state_proof_ffi(
-    proof_bytes: &[u8; MAX_PROOF_SIZE],
+pub extern "C" fn verify_mina_state_ffi(
+    proof_buffer: &[u8; MAX_PROOF_SIZE],
     proof_len: usize,
-    pub_input_bytes: &[u8; MAX_PUB_INPUT_SIZE],
+    pub_input_buffer: &[u8; MAX_PUB_INPUT_SIZE],
     pub_input_len: usize,
 ) -> bool {
-    let proof: MinaStateProof = match bincode::deserialize(&proof_bytes[..proof_len]) {
+    let proof: MinaStateProof = match bincode::deserialize(&proof_buffer[..proof_len]) {
         Ok(proof) => proof,
         Err(err) => {
             eprintln!("Failed to deserialize state proof: {}", err);
@@ -39,7 +39,7 @@ pub extern "C" fn verify_protocol_state_proof_ffi(
         }
     };
     let pub_inputs: MinaStatePubInputs =
-        match bincode::deserialize(&pub_input_bytes[..pub_input_len]) {
+        match bincode::deserialize(&pub_input_buffer[..pub_input_len]) {
             Ok(pub_inputs) => pub_inputs,
             Err(err) => {
                 eprintln!("Failed to deserialize state pub inputs: {}", err);
@@ -208,12 +208,8 @@ mod test {
         assert!(pub_input_size <= pub_input_buffer.len());
         pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
 
-        let result = verify_protocol_state_proof_ffi(
-            &proof_buffer,
-            proof_size,
-            &pub_input_buffer,
-            pub_input_size,
-        );
+        let result =
+            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
         assert!(result);
     }
 
@@ -229,12 +225,8 @@ mod test {
         assert!(pub_input_size <= pub_input_buffer.len());
         pub_input_buffer[..pub_input_size].clone_from_slice(PROTOCOL_STATE_BAD_HASH_PUB_BYTES);
 
-        let result = verify_protocol_state_proof_ffi(
-            &proof_buffer,
-            proof_size,
-            &pub_input_buffer,
-            pub_input_size,
-        );
+        let result =
+            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
         assert!(!result);
     }
 

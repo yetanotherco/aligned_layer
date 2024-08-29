@@ -1511,45 +1511,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
-name = "core"
-version = "0.1.0"
-source = "git+https://github.com/lambdaclass/mina_bridge?branch=relative_finalization#fc75962e88fc23988ce3eb09d84f32db6d937b4f"
-dependencies = [
- "aligned-sdk",
- "alloy",
- "ark-ec",
- "ark-ff 0.3.0",
- "ark-poly",
- "ark-serialize 0.3.0",
- "base64 0.22.1",
- "bincode",
- "clap",
- "dotenv",
- "env_logger",
- "ethers",
- "futures",
- "graphql_client",
- "hex",
- "kimchi",
- "log",
- "mina-curves",
- "mina-p2p-messages",
- "mina-signer",
- "mina-tree",
- "num-bigint",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
- "poly-commitment",
- "reqwest 0.11.27",
- "rmp-serde",
- "rpassword",
- "serde",
- "serde_json",
- "serde_with 1.14.0",
- "sha3",
- "tokio",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3556,13 +3517,13 @@ dependencies = [
  "bincode",
  "blake2",
  "bs58 0.5.1",
- "core",
  "hex",
  "kimchi",
  "lazy_static",
  "mina-curves",
  "mina-p2p-messages",
  "mina-tree",
+ "mina_bridge_core",
  "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
  "once_cell",
  "poly-commitment",
@@ -3620,6 +3581,45 @@ dependencies = [
  "uuid 1.10.0",
  "wasm-bindgen",
  "wasm_thread",
+]
+
+[[package]]
+name = "mina_bridge_core"
+version = "0.1.0"
+source = "git+https://github.com/lambdaclass/mina_bridge?branch=relative_finalization#fd359911b8da3039972276c7872e457d45e26646"
+dependencies = [
+ "aligned-sdk",
+ "alloy",
+ "ark-ec",
+ "ark-ff 0.3.0",
+ "ark-poly",
+ "ark-serialize 0.3.0",
+ "base64 0.22.1",
+ "bincode",
+ "clap",
+ "dotenv",
+ "env_logger",
+ "ethers",
+ "futures",
+ "graphql_client",
+ "hex",
+ "kimchi",
+ "log",
+ "mina-curves",
+ "mina-p2p-messages",
+ "mina-signer",
+ "mina-tree",
+ "num-bigint",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
+ "poly-commitment",
+ "reqwest 0.11.27",
+ "rmp-serde",
+ "rpassword",
+ "serde",
+ "serde_json",
+ "serde_with 1.14.0",
+ "sha3",
+ "tokio",
 ]
 
 [[package]]
