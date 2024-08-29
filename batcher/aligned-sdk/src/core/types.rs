@@ -1,9 +1,13 @@
+use ethers::abi::Token;
 use ethers::core::k256::ecdsa::SigningKey;
 use ethers::signers::Wallet;
+use ethers::types::transaction::eip712::EIP712Domain;
+use ethers::types::transaction::eip712::Eip712;
+use ethers::types::transaction::eip712::Eip712Error;
 use ethers::types::Address;
 use ethers::types::Signature;
-use ethers::types::SignatureError;
 use ethers::types::U256;
+use ethers::utils::keccak256;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
@@ -167,33 +171,85 @@ impl BatchInclusionData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientMessage {
     pub verification_data: NoncedVerificationData,
-    pub signature: Signature,
+    pub signature: Option<Signature>,
+}
+
+impl Eip712 for ClientMessage {
+    type Error = Eip712Error;
+
+    fn domain(&self) -> Result<EIP712Domain, Self::Error> {
+        Ok(EIP712Domain {
+            name: Some("Aligned".into()),
+            version: Some("1".into()),
+            chain_id: Some(self.verification_data.chain_id),
+            verifying_contract: None,
+            salt: None,
+        })
+    }
+
+    fn type_hash() -> Result<[u8; 32], Self::Error> {
+        Ok(keccak256(
+            "ClientMessage(NoncedVerificationData verification_data)NoncedVerificationData(VerificationData verification_data,bytes32 nonce,uint256 chain_id)VerificationData(uint8 proving_system,bytes proof,bytes pub_input,bytes verification_key,bytes vm_program_code,address proof_generator_addr)".as_bytes(),
+        ))
+    }
+
+    fn struct_hash(&self) -> Result<[u8; 32], Self::Error> {
+        let verification_data_hash = keccak256(encode_abi(&[
+            Token::Uint(U256::from(keccak256("VerificationData(uint8 proving_system,bytes proof,bytes pub_input,bytes verification_key,bytes vm_program_code,address proof_generator_addr)".as_bytes()))),
+            Token::Uint(U256::from(self.verification_data.verification_data.proving_system.clone() as u8)),
+            Token::Bytes(self.verification_data.verification_data.proof.clone()),
+            Token::Bytes(self.verification_data.verification_data.pub_input.clone().unwrap_or_default()),
+            Token::Bytes(self.verification_data.verification_data.verification_key.clone().unwrap_or_default()),
+            Token::Bytes(self.verification_data.verification_data.vm_program_code.clone().unwrap_or_default()),
+            Token::Address(self.verification_data.verification_data.proof_generator_addr),
+        ]));
+
+        let nonced_verification_data_hash = keccak256(encode_abi(&[
+            Token::Uint(U256::from(keccak256("NoncedVerificationData(VerificationData verification_data,bytes32 nonce,uint256 chain_id)".as_bytes()))),
+            Token::Bytes(verification_data_hash.to_vec()),
+            Token::FixedBytes(self.verification_data.nonce.to_vec()),
+            Token::Uint(self.verification_data.chain_id),
+        ]));
+
+        Ok(keccak256(encode_abi(&[
+            Token::Uint(U256::from(Self::type_hash()?)),
+            Token::Bytes(nonced_verification_data_hash.to_vec()),
+        ])))
+    }
 }
 
 impl ClientMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
-    pub fn new(verification_data: NoncedVerificationData, wallet: Wallet<SigningKey>) -> Self {
-        let hashed_data = ClientMessage::hash_with_nonce_and_chain_id(&verification_data);
+    pub fn new(
+        verification_data: NoncedVerificationData,
+        wallet: Wallet<SigningKey>,
+    ) -> Result<Self, Eip712Error> {
+        let client_message = ClientMessage {
+            verification_data,
+            signature: None, // Placeholder signature
+        };
 
+        let typed_data_hash = client_message.encode_eip712()?;
         let signature = wallet
-            .sign_hash(hashed_data.into())
+            .sign_hash(typed_data_hash.into())
             .expect("Failed to sign the verification data");
 
-        ClientMessage {
-            verification_data,
-            signature,
-        }
+        Ok(ClientMessage {
+            verification_data: client_message.verification_data,
+            signature: Some(signature),
+        })
     }
 
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
-    pub fn verify_signature(&self) -> Result<Address, SignatureError> {
-        let hashed_data: [u8; 32] =
-            ClientMessage::hash_with_nonce_and_chain_id(&self.verification_data);
-
-        let recovered = self.signature.recover(hashed_data)?;
-        self.signature.verify(hashed_data, recovered)?;
+    pub fn verify_signature(&self) -> Result<Address, Eip712Error> {
+        let typed_data_hash = self.encode_eip712()?;
+        let recovered = self.signature.unwrap().recover(typed_data_hash).unwrap();
+        self.signature
+            .unwrap()
+            .verify(typed_data_hash, recovered)
+            .unwrap();
         Ok(recovered)
     }
 
@@ -264,4 +320,8 @@ pub enum Chain {
     Devnet,
     Holesky,
     HoleskyStage,
+}
+
+fn encode_abi(tokens: &[ethers::abi::Token]) -> Vec<u8> {
+    ethers::abi::encode(tokens)
 }
