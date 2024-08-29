@@ -64,7 +64,7 @@ defmodule BatcherPaymentServiceManager do
         raise("Error getting fee per proof events.")
 
       other ->
-        Logger.error("Unexpected response onfee per proof events: #{inspect(other)}")
+        Logger.error("Unexpected response on fee per proof events: #{inspect(other)}")
         raise("Unexpected response on fee per proof events.")
     end
   end
