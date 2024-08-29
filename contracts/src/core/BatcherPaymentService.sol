@@ -117,11 +117,11 @@ contract BatcherPaymentService is
         uint256 feeForAggregator = gasForAggregator * tx.gasprice;
         uint256 feePerProof = gasPerProof * tx.gasprice;
 
-        if (leavesQty <= 0) {
+        if (leavesQty == 0) {
             revert NoLeavesSubmitted();
         }
 
-        if (signaturesQty <= 0) {
+        if (signaturesQty == 0) {
             revert NoProofSubmitterSignatures();
         }
 
