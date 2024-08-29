@@ -42,6 +42,7 @@ defmodule ExplorerWeb.Router do
       live "/operators", Operators.Index
       live "/operators/:address", Operator.Index
       live "/search", Search.Index
+      live "/calculator", Calculator.Index
     end
   end
 
