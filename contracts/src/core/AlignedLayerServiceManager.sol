@@ -263,7 +263,9 @@ contract AlignedLayerServiceManager is
         uint256 verificationDataBatchIndex,
         address senderAddress
     ) external view returns (bool) {
-        bytes32 batchIdentifierHash = batchMerkleRoot;
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encodePacked(batchMerkleRoot, senderAddress)
+        );
 
         if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
             return false;
@@ -285,7 +287,7 @@ contract AlignedLayerServiceManager is
         return
             Merkle.verifyInclusionKeccak(
                 merkleProof,
-                batchIdentifierHash,
+                batchMerkleRoot,
                 hashedLeaf,
                 verificationDataBatchIndex
             );
@@ -320,7 +322,7 @@ contract AlignedLayerServiceManager is
         return
             Merkle.verifyInclusionKeccak(
                 merkleProof,
-                batchIdentifierHash,
+                batchMerkleRoot,
                 hashedLeaf,
                 verificationDataBatchIndex
             );
