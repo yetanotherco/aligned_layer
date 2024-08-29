@@ -198,7 +198,7 @@ contract AlignedLayerServiceManager is
         return
             Merkle.verifyInclusionKeccak(
                 merkleProof,
-                batchIdentifierHash,
+                batchMerkleRoot,
                 hashedLeaf,
                 verificationDataBatchIndex
             );
