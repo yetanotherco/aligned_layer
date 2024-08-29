@@ -680,6 +680,15 @@ impl Batcher {
         entry.verification_data_commitment =
             nonced_verification_data.verification_data.clone().into();
         entry.nonced_verification_data = nonced_verification_data;
+
+        // close old sink and replace with new one
+        {
+            let mut old_sink = entry.messaging_sink.write().await;
+            if let Err(e) = old_sink.close().await {
+                // we dont want to exit here, just log the error
+                warn!("Error closing sink: {:?}", e);
+            }
+        }
         entry.messaging_sink = ws_conn_sink.clone();
 
         if let Some(msg) = batch_state.check_validity_and_increment_fee(entry) {
