@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{submit_and_wait, get_next_nonce};
+use aligned_sdk::sdk::{submit_and_wait_verification, get_next_nonce};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -109,7 +109,7 @@ async fn main() {
             let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS).await
                 .expect("Failed to get next nonce");
 
-            match submit_and_wait(
+            match submit_and_wait_verification(
                 BATCHER_URL,
                 &rpc_url,
                 Chain::Holesky,
@@ -119,25 +119,20 @@ async fn main() {
             )
             .await
             {
-                Ok(maybe_aligned_verification_data) => match maybe_aligned_verification_data {
-                    Some(aligned_verification_data) => {
-                        println!(
-                            "Proof submitted and verified successfully on batch {}, claiming prize...",
-                            hex::encode(aligned_verification_data.batch_merkle_root)
-                        );
+                Ok(aligned_verification_data) => {
+                    println!(
+                        "Proof submitted and verified successfully on batch {}, claiming prize...",
+                        hex::encode(aligned_verification_data.batch_merkle_root)
+                    );
 
-                        if let Err(e) = verify_batch_inclusion(
-                            aligned_verification_data.clone(),
-                            signer.clone(),
-                            args.verifier_contract_address,
-                        )
-                        .await
-                        {
-                            println!("Failed to claim prize: {:?}", e);
-                        }
-                    }
-                    None => {
-                        println!("Proof submission failed. No verification data");
+                    if let Err(e) = verify_batch_inclusion(
+                        aligned_verification_data.clone(),
+                        signer.clone(),
+                        args.verifier_contract_address,
+                    )
+                    .await
+                    {
+                        println!("Failed to claim prize: {:?}", e);
                     }
                 },
                 Err(e) => {
