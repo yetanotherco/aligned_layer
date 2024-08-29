@@ -3,7 +3,6 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::errors::SubmitError;
 use aligned_sdk::core::types::Chain::Holesky;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
