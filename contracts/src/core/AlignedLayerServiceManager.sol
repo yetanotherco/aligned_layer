@@ -293,6 +293,7 @@ contract AlignedLayerServiceManager is
             );
     }
 
+    // Old function, kept for backwards compatibility
     function verifyBatchInclusion(
         bytes32 proofCommitment,
         bytes32 pubInputCommitment,
