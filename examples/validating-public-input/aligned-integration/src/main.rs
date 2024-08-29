@@ -50,7 +50,10 @@ async fn main() -> Result<(), SubmitError> {
         proof_generator_addr,
     };
 
-    let wallet = LocalWallet::from_str(WALLET_PRIVATE_KEY).expect("Failed to create wallet");
+    // Create a wallet and set chain id to holesky
+    let wallet = LocalWallet::from_str(WALLET_PRIVATE_KEY)
+        .expect("Failed to create wallet")
+        .with_chain_id(17000u64);
 
     let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
         .await
@@ -90,6 +93,9 @@ fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), SubmitError> {
+    std::fs::create_dir_all(&batch_inclusion_data_directory_path)
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e))?;
+
     let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
         + "_"
@@ -99,7 +105,7 @@ fn save_response(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    let data = cbor_serialize(&aligned_verification_data)?;
+    let data = serde_json::to_vec(&aligned_verification_data).unwrap();
 
     let mut file = File::create(&batch_inclusion_data_path)
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
