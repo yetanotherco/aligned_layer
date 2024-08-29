@@ -11,6 +11,7 @@ defmodule OperatorVersionTracker do
 
   defp get_operators_version(url) do
     clean_url = String.trim_trailing(url, "/")
+
     case HTTPoison.get("#{clean_url}/versions") do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         body
@@ -47,7 +48,9 @@ defmodule OperatorVersionTracker do
   defp get_operator_version("", _address), do: nil
 
   defp get_operator_version(url, address) do
-    case HTTPoison.get("#{url}/versions/#{address}") do
+    clean_url = String.trim_trailing(url, "/")
+
+    case HTTPoison.get("#{clean_url}/versions/#{address}") do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         body
         |> parse_version()
