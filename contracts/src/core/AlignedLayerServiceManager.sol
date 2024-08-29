@@ -72,10 +72,13 @@ contract AlignedLayerServiceManager is
         string calldata batchDataPointer
     ) external payable {
         bytes32 batchIdentifier;
-        if (block.number < 2_268_375) // TODO set number of blocks
+        if (block.number < 2_268_375)
+            // TODO set number of blocks
             batchIdentifier = batchMerkleRoot;
-        else 
-            batchIdentifier = keccak256(abi.encodePacked(batchMerkleRoot, msg.sender));
+        else
+            batchIdentifier = keccak256(
+                abi.encodePacked(batchMerkleRoot, msg.sender)
+            );
 
         require(
             batchesState[batchIdentifier].taskCreatedBlock == 0,
@@ -100,11 +103,7 @@ contract AlignedLayerServiceManager is
         batchesState[batchIdentifier] = batchState;
 
         // old event for smooth Operator upgradeability:
-        emit NewBatch(
-            batchMerkleRoot,
-            uint32(block.number),
-            batchDataPointer
-        );
+        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
         emit NewBatchV2(
             batchMerkleRoot,
             msg.sender,
@@ -122,7 +121,9 @@ contract AlignedLayerServiceManager is
         // address batcherAddress = address(0x7969c5eD335650692Bc04293B07F5BF2e7A673C0); // Devnet
         // address batcherAddress = address(0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b); // Stage
         // address batcherAddress = address(0x815aeCA64a974297942D2Bbf034ABEe22a38A003); // Prod
-        address batcherAddress = address(0x7969c5eD335650692Bc04293B07F5BF2e7A673C0);
+        address batcherAddress = address(
+            0x7969c5eD335650692Bc04293B07F5BF2e7A673C0
+        );
         uint256 initialGasLeft = gasleft();
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
@@ -140,10 +141,7 @@ contract AlignedLayerServiceManager is
             "Batch already responded"
         );
 
-        require(
-            batchersBalances[batcherAddress] > 0,
-            "Batcher has no balance"
-        );
+        require(batchersBalances[batcherAddress] > 0, "Batcher has no balance");
 
         batchesState[batchMerkleRoot].responded = true;
 
@@ -175,14 +173,11 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
         require(
-            batchersBalances[batcherAddress] >=
-                txCost,
+            batchersBalances[batcherAddress] >= txCost,
             "Batcher has not sufficient funds for paying this transaction"
         );
 
-        batchersBalances[
-            batcherAddress
-        ] -= txCost;
+        batchersBalances[batcherAddress] -= txCost;
         payable(msg.sender).transfer(txCost);
     }
 
@@ -268,15 +263,48 @@ contract AlignedLayerServiceManager is
         uint256 verificationDataBatchIndex,
         address senderAddress
     ) external view returns (bool) {
-        bytes32 batchIdentifierHash = keccak256(
-            abi.encodePacked(batchMerkleRoot, senderAddress)
-        );
+        bytes32 batchIdentifierHash = batchMerkleRoot;
 
         if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
             return false;
         }
 
         if (!batchesState[batchIdentifierHash].responded) {
+            return false;
+        }
+
+        bytes memory leaf = abi.encodePacked(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr
+        );
+
+        bytes32 hashedLeaf = keccak256(leaf);
+
+        return
+            Merkle.verifyInclusionKeccak(
+                merkleProof,
+                batchIdentifierHash,
+                hashedLeaf,
+                verificationDataBatchIndex
+            );
+    }
+
+    function verifyBatchInclusion(
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
+        bytes32 batchMerkleRoot,
+        bytes memory merkleProof,
+        uint256 verificationDataBatchIndex
+    ) external view returns (bool) {
+        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+            return false;
+        }
+
+        if (!batchesState[batchMerkleRoot].responded) {
             return false;
         }
 
