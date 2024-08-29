@@ -3,10 +3,11 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::errors::SubmitError;
 use aligned_sdk::core::types::Chain::Holesky;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{get_next_nonce, submit_and_wait};
+use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use env_logger::Env;
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::Address;
@@ -56,7 +57,7 @@ async fn main() -> Result<(), SubmitError> {
         .expect("Failed to get next nonce");
 
     info!("Submitting Fibonacci proof to Aligned and waiting for verification...");
-    let aligned_verification_data = submit_and_wait(
+    let aligned_verification_data = submit_and_wait_verification(
         BATCHER_URL,
         RPC_URL,
         Holesky,
@@ -72,14 +73,11 @@ async fn main() -> Result<(), SubmitError> {
         "Saving verification data to {:?}",
         batch_inclusion_data_directory_path
     );
-    if let Some(aligned_verification_data) = aligned_verification_data {
-        save_response(
-            batch_inclusion_data_directory_path,
-            &aligned_verification_data,
-        )?;
-    } else {
-        return Err(SubmitError::EmptyVerificationDataList);
-    }
+
+    save_response(
+        batch_inclusion_data_directory_path,
+        &aligned_verification_data,
+    )?;
 
     Ok(())
 }
@@ -92,9 +90,6 @@ fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), SubmitError> {
-    std::fs::create_dir_all(&batch_inclusion_data_directory_path)
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e))?;
-
     let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
         + "_"
@@ -104,13 +99,16 @@ fn save_response(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    let data = serde_json::to_vec(&aligned_verification_data)?;
+    let data = cbor_serialize(&aligned_verification_data)?;
 
     let mut file = File::create(&batch_inclusion_data_path)
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-
     file.write_all(data.as_slice())
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+    info!(
+        "Batch inclusion data written into {}",
+        batch_inclusion_data_path.display()
+    );
 
     Ok(())
 }
