@@ -40,7 +40,7 @@ contract BatcherPaymentService is
     error FundsLocked(uint256 unlockBlock, uint256 currentBlock); // bedc4e5a
     error InvalidSignature(); // 8baa579f
     error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
-    error InvalidMaxFee(uint256 maxFee, uint256 actualFee);
+    error InvalidMaxFee(uint256 maxFee, uint256 actualFee); // f59adf4a
     error SignerInsufficientBalance(
         address signer,
         uint256 balance,
