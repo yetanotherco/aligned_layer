@@ -148,13 +148,13 @@ defmodule ExplorerWeb.Operator.Index do
           <%= if @restakes_by_operator != [] do %>
             <div class="flex flex-col gap-y-2 basis-3/4">
               <%= for %{strategy: strategy, restaking: restaking} <- @restakes_by_operator do %>
-                <div class="flex text-foreground gap-x-1 justify-between lg:pr-2">
+                <div class="flex text-foreground gap-x-3 lg:pr-2">
+                  <p class="font-semibold md:basis-1/5">
+                    <%= EthConverter.wei_to_eth(restaking.stake, 2) |> Helpers.format_number() %> ETH
+                  </p>
                   <p>
                     <%= strategy.name %>
                     <span class="text-xs text-muted-foreground"><%= strategy.symbol %></span>
-                  </p>
-                  <p class="font-semibold">
-                    <%= EthConverter.wei_to_eth(restaking.stake, 2) |> Helpers.format_number() %> ETH
                   </p>
                 </div>
               <% end %>
