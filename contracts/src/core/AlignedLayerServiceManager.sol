@@ -204,6 +204,43 @@ contract AlignedLayerServiceManager is
             );
     }
 
+    // Old verifyBatchInclusion
+    // This function is kept for backwards compatibility
+    function verifyBatchInclusion(
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
+        bytes32 batchMerkleRoot,
+        bytes memory merkleProof,
+        uint256 verificationDataBatchIndex
+    ) external view returns (bool) {
+        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+            return false;
+        }
+
+        if (!batchesState[batchMerkleRoot].responded) {
+            return false;
+        }
+
+        bytes memory leaf = abi.encodePacked(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr
+        );
+
+        bytes32 hashedLeaf = keccak256(leaf);
+
+        return
+            Merkle.verifyInclusionKeccak(
+                merkleProof,
+                batchMerkleRoot,
+                hashedLeaf,
+                verificationDataBatchIndex
+            );
+    }
+
     function balanceOf(address account) public view returns (uint256) {
         return batchersBalances[account];
     }
