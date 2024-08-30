@@ -48,7 +48,7 @@ func (agg *Aggregator) ServeOperators() error {
 // Returns:
 //   - 0: Success
 //   - 1: Error
-func (agg *Aggregator) ProcessOperatorSignedTaskResponse(signedTaskResponse *types.SignedTaskResponse, reply *uint8) error {
+func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *types.SignedTaskResponseV2, reply *uint8) error {
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response",
 		"BatchMerkleRoot", "0x"+hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
 		"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),

@@ -51,12 +51,12 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
     ) external payable {
-        bytes32 batchIdentifierHash = keccak256(
+        bytes32 batchIdentifier = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
         );
 
-        if (batchesState[batchIdentifierHash].taskCreatedBlock != 0) {
-            revert BatchAlreadySubmitted(batchIdentifierHash);
+        if (batchesState[batchIdentifier].taskCreatedBlock != 0) {
+            revert BatchAlreadySubmitted(batchIdentifier);
         }
 
         if (msg.value > 0) {
@@ -76,7 +76,7 @@ contract AlignedLayerServiceManager is
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
 
-        batchesState[batchIdentifierHash] = batchState;
+        batchesState[batchIdentifier] = batchState;
 
         emit NewBatchV2(
             batchMerkleRoot,

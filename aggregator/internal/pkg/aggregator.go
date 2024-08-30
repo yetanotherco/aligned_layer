@@ -32,7 +32,7 @@ const QUORUM_NUMBER = byte(0)
 const QUORUM_THRESHOLD = byte(67)
 
 // Aggregator stores TaskResponse for a task here
-type TaskResponses = []types.SignedTaskResponse
+type TaskResponses = []types.SignedTaskResponseV2
 
 // BatchData stores the data of a batch, for use in map BatchIdentifierHash -> BatchData
 type BatchData struct {
@@ -42,7 +42,7 @@ type BatchData struct {
 
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
-	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	NewBatchChanV2        chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
@@ -91,7 +91,7 @@ type Aggregator struct {
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
-	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+	newBatchChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
@@ -161,7 +161,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsReader:        avsReader,
 		avsSubscriber:    avsSubscriber,
 		avsWriter:        avsWriter,
-		NewBatchChan:     newBatchChan,
+		NewBatchChanV2:   newBatchChanV2,
 
 		batchesIdentifierHashByIdx: batchesIdentifierHashByIdx,
 		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
@@ -207,7 +207,7 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 		case blsAggServiceResp := <-agg.blsAggregationService.GetResponseChannel():
 			agg.logger.Info("Received response from BLS aggregation service",
 				"taskIndex", blsAggServiceResp.TaskIndex)
-
+			
 			go agg.handleBlsAggServiceResponse(blsAggServiceResp)
 		}
 	}
@@ -278,7 +278,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+		agg.logger.Info("agg if V2")
+		_, err = agg.sendAggregatedResponseV2(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 		if err == nil {
 			agg.logger.Info("Aggregator successfully responded to task",
 				"taskIndex", blsAggServiceResp.TaskIndex,
@@ -301,7 +302,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 // / Sends response to contract and waits for transaction receipt
 // / Returns error if it fails to send tx or receipt is not found
-func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
+func (agg *Aggregator) sendAggregatedResponseV2(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 
@@ -311,7 +312,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
-	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	txHash, err := agg.avsWriter.SendAggregatedResponseV2(batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
@@ -332,8 +333,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 	return receipt, nil
 }
 
-func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
-
+func (agg *Aggregator) AddNewTaskV2(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 
