@@ -52,13 +52,5 @@ interface IAlignedLayerServiceManager {
     ) external view returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
-
-    function checkMaxFeeToRespond(
-        bytes32 batchIdentifierHash
-    ) external view returns (uint256);
-
-    function checkMaxFeeToRespond(
-        bytes32 merkleRoot,
-        address senderAddress
-    ) external view returns (uint256);
+    
 }
