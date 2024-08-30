@@ -172,7 +172,7 @@ contract AlignedLayerServiceManager is
             senderAddress,
             batchersBalances[senderAddress]
         );
-        payable(msg.sender).transfer(txCost);
+        payable(alignedAggregator).transfer(txCost);
     }
 
     function verifyBatchInclusion(
