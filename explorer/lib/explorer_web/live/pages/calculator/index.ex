@@ -29,12 +29,14 @@ defmodule ExplorerWeb.Calculator.Index do
 
   @impl true
   def mount(_, _, socket) do
-    {:ok, assign(socket, number_of_proofs: 0)}
+    {:ok, assign(socket, number_of_proofs: 0, cost_in_wei: 0)}
   end
 
   @impl true
   def handle_event("change_number_of_proofs", %{"proofs" => number_of_proofs}, socket) do
-    {:noreply, socket |> assign(number_of_proofs: number_of_proofs)}
+    {:noreply,
+     socket
+     |> assign(number_of_proofs: number_of_proofs, cost_in_wei: calculate_cost(number_of_proofs))}
   end
 
   @impl true
@@ -58,7 +60,7 @@ defmodule ExplorerWeb.Calculator.Index do
               type="number"
               class={
                 classes([
-                  "border border-foreground/20 text-muted-foreground w-20 focus:ring-primary",
+                  "border border-foreground/20 text-foreground w-20 focus:ring-primary",
                   "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
                   "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
                   "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -75,7 +77,7 @@ defmodule ExplorerWeb.Calculator.Index do
               type="range"
               class={
                 classes([
-                  "w-full appearance-none h-1 rounded-ful bg-muted",
+                  "w-full appearance-none h-1.5 rounded-ful bg-muted",
                   "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:bg-accent",
                   "[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-accent",
                   "[&::-moz-range-track]:bg-muted [&::-moz-range-track]:rounded-full"
@@ -87,15 +89,21 @@ defmodule ExplorerWeb.Calculator.Index do
               phx-change="change_number_of_proofs"
             />
           </form>
-          <p>
+          <p class="font-semibold leading-6">
             <%= Numbers.format_number(10000) %>
           </p>
         </div>
         <p>
-          Your estimated cost for verifying <%= @number_of_proofs |> Numbers.format_number() %> proofs in ALIGNED is
+          Your estimated cost for verifying <%= @number_of_proofs |> Numbers.format_number() %>
+          <%= if @number_of_proofs != "1" do %>
+            proofs
+          <% else %>
+            proof
+          <% end %>
+          in ALIGNED is
           <span class="text-xl font-bold ml-1">
             <%= if @number_of_proofs > 0 do %>
-              <%= @number_of_proofs |> calculate_cost() |> Numbers.format_number() %>
+              <%= @cost_in_wei |> Numbers.format_number() %>
             <% else %>
               0
             <% end %>
