@@ -13,8 +13,6 @@
         </h3>
         <p class="flex flex-wrap md:items-center md:gap-x-2">
           <%= @merkle_root %>
-          <%!-- TODO Gian : --%>
-          <%= @max_aggregator_fee %>
           <.live_component
             module={CopyToClipboardButtonComponent}
             text_to_copy={@merkle_root}
@@ -41,10 +39,7 @@
         </h3>
         <p><%= @current_batch.amount_of_proofs %></p>
       </div>
-      <div
-        :if={@current_batch.fee_per_proof != 0}
-        class="flex flex-col sm:flex-row"
-      >
+      <div :if={@current_batch.fee_per_proof != 0} class="flex flex-col sm:flex-row">
         <h3>
           Fee per Proof:
         </h3>
