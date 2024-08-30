@@ -36,7 +36,15 @@ defmodule ExplorerWeb.Calculator.Index do
   def handle_event("change_number_of_proofs", %{"proofs" => number_of_proofs}, socket) do
     {:noreply,
      socket
-     |> assign(number_of_proofs: number_of_proofs, cost_in_wei: calculate_cost(number_of_proofs))}
+     |> assign(
+       number_of_proofs:
+         case number_of_proofs do
+           "" -> 0
+           nil -> 0
+           _ -> number_of_proofs
+         end,
+       cost_in_wei: calculate_cost(number_of_proofs)
+     )}
   end
 
   @impl true
@@ -68,6 +76,7 @@ defmodule ExplorerWeb.Calculator.Index do
               }
               value={@number_of_proofs}
               min="0"
+              phx-change="change_number_of_proofs"
             />
           </form>
           <form phx-submit="change_number_of_proofs" class="w-full">
@@ -94,7 +103,11 @@ defmodule ExplorerWeb.Calculator.Index do
           </p>
         </div>
         <p>
-          Your estimated cost for verifying <%= @number_of_proofs |> Numbers.format_number() %>
+          Your estimated cost for verifying <%= case @number_of_proofs |> Numbers.format_number() do
+            nil -> 0
+            "" -> 0
+            n -> n
+          end %>
           <%= if @number_of_proofs != "1" do %>
             proofs
           <% else %>
@@ -114,6 +127,9 @@ defmodule ExplorerWeb.Calculator.Index do
     </div>
     """
   end
+
+  defp calculate_cost(number_of_proofs) when is_nil(number_of_proofs), do: 0
+  defp calculate_cost(number_of_proofs) when number_of_proofs == "", do: 0
 
   defp calculate_cost(number_of_proofs) do
     case Integer.parse(number_of_proofs) |> elem(0) do
