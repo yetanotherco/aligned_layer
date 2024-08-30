@@ -73,75 +73,85 @@ defmodule ExplorerWeb.Calculator.Index do
       <section class="space-y-3 text-base leading-7">
         <p>
           ALIGNED verifies your proofs for less than 10% of the cost of using Ethereum directly.
-          <br /> Let's see how much you can save by verifying your proofs using:
+          <br />
+          Let's see how much you can save by verifying your proofs. Enter the number of proofs you want to verify:
         </p>
-        <div class="flex items-center gap-3">
-          <form phx-submit="change_number_of_proofs">
-            <label for="proofs" class="text-foreground sr-only">Number of Proofs: </label>
-            <input
-              name="proofs"
-              id="proofs"
-              type="number"
-              class={
-                classes([
-                  "border border-foreground/20 text-foreground w-20 focus:ring-primary",
-                  "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
-                  "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
-                  "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                ])
-              }
-              value={@number_of_proofs}
-              min="0"
-              max={@max_number_of_proofs}
-              phx-change="change_number_of_proofs"
-            />
-          </form>
-          <form phx-submit="change_number_of_proofs" class="w-full">
-            <input
-              name="proofs"
-              id="proofs_slider"
-              type="range"
-              class={
-                classes([
-                  "w-full appearance-none h-1.5 rounded-ful bg-muted",
-                  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:bg-accent",
-                  "[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-accent",
-                  "[&::-moz-range-track]:bg-muted [&::-moz-range-track]:rounded-full"
-                ])
-              }
-              value={@number_of_proofs}
-              min="0"
-              max={@max_number_of_proofs}
-              phx-change="change_number_of_proofs"
-            />
-          </form>
-          <p class="font-semibold leading-6">
-            <%= Numbers.format_number(@max_number_of_proofs) %>
+        <.card_background class="space-y-3">
+          <div class="flex items-center gap-3">
+            <form phx-submit="change_number_of_proofs">
+              <label for="proofs" class="text-foreground sr-only">Number of Proofs: </label>
+              <input
+                name="proofs"
+                id="proofs"
+                type="number"
+                class={
+                  classes([
+                    "border border-foreground/20 text-foreground w-20 focus:ring-primary",
+                    "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
+                    "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
+                    "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  ])
+                }
+                value={@number_of_proofs}
+                min="0"
+                max={@max_number_of_proofs}
+                phx-change="change_number_of_proofs"
+              />
+            </form>
+            <form phx-submit="change_number_of_proofs" class="w-full">
+              <input
+                name="proofs"
+                id="proofs_slider"
+                type="range"
+                class={
+                  classes([
+                    "w-full appearance-none h-1.5 rounded-ful bg-muted",
+                    "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:bg-accent",
+                    "[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-accent",
+                    "[&::-moz-range-track]:bg-muted [&::-moz-range-track]:rounded-full"
+                  ])
+                }
+                value={@number_of_proofs}
+                min="0"
+                max={@max_number_of_proofs}
+                phx-change="change_number_of_proofs"
+              />
+            </form>
+            <p class="font-semibold leading-6">
+              <%= Numbers.format_number(@max_number_of_proofs) %>
+            </p>
+          </div>
+          <p>
+            Your estimated cost for verifying
+            <span class="font-semibold">
+              <%= case @number_of_proofs |> Numbers.format_number() do
+                nil -> 0
+                "" -> 0
+                n -> n
+              end %>
+              <%= if @number_of_proofs != "1" do %>
+                proofs
+              <% else %>
+                proof
+              <% end %>
+            </span>
+            in ALIGNED is
+            <span class="text-xl font-bold ml-1 text-primary">
+              <%= if @number_of_proofs > 0 do %>
+                <%= @cost_in_wei |> Numbers.format_number() %>
+              <% else %>
+                0
+              <% end %>
+              WEI
+            </span>
           </p>
-        </div>
+        </.card_background>
         <p>
-          Your estimated cost for verifying
-          <span class="font-semibold">
-            <%= case @number_of_proofs |> Numbers.format_number() do
-              nil -> 0
-              "" -> 0
-              n -> n
-            end %>
-            <%= if @number_of_proofs != "1" do %>
-              proofs
-            <% else %>
-              proof
-            <% end %>
-          </span>
-          in ALIGNED is
-          <span class="text-xl font-bold ml-1 text-primary">
-            <%= if @number_of_proofs > 0 do %>
-              <%= @cost_in_wei |> Numbers.format_number() %>
-            <% else %>
-              0
-            <% end %>
-            WEI
-          </span>
+          Learn more on how to integrate ALIGNED into your application in our official <.link
+            href="https://docs.alignedlayer.com"
+            target="_blank"
+            class="text-primary underline"
+          >documentation</.link>.
         </p>
       </section>
     </div>
