@@ -50,7 +50,7 @@ contract AlignedLayerServiceManager is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        uint256 maxFeeToRespond,
+        uint256 maxFeeToRespond
     ) external payable {
         bytes32 batchIdentifierHash = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
@@ -108,7 +108,7 @@ contract AlignedLayerServiceManager is
         );
 
         BatchState storage currentBatch = batchesState[batchIdentifierHash];
-        uint256 storage batcherBalance = batchersBalances[senderAddress];
+        uint256 batcherBalance = batchersBalances[senderAddress];
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
@@ -265,7 +265,7 @@ contract AlignedLayerServiceManager is
 // TODO choose one of the following helper functions, may be overkill
 
     function checkMaxFeeToRespond(
-        bytes32 batchIdentifierHash,
+        bytes32 batchIdentifierHash
     ) public view returns (uint256) {
         return batchesState[batchIdentifierHash].maxFeeToRespond;
     }
