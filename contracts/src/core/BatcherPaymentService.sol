@@ -160,7 +160,7 @@ contract BatcherPaymentService is
         alignedLayerServiceManager.createNewTask{value: feeForAggregator}(
             batchMerkleRoot,
             batchDataPointer,
-            feeForAggregator
+            feeForAggregator * 3 //maxFeeToRespond
         );
 
         emit TaskCreated(batchMerkleRoot, feePerProof);
