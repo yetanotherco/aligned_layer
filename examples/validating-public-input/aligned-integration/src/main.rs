@@ -1,3 +1,4 @@
+use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -69,11 +70,18 @@ async fn main() -> Result<(), SubmitError> {
     )
     .await?;
 
-    let batch_inclusion_data_directory_path = PathBuf::from("./batch_inclusion_data");
+    let batch_inclusion_data_directory_path = PathBuf::from("batch_inclusion_data");
 
     info!(
         "Saving verification data to {:?}",
         batch_inclusion_data_directory_path
+    );
+
+    info!("Proof submitted to aligned. See the batch in the explorer:");
+
+    info!(
+        "https://explorer.alignedlayer.com/batches/0x{}",
+        hex::encode(aligned_verification_data.batch_merkle_root)
     );
 
     save_response(
@@ -110,9 +118,12 @@ fn save_response(
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
     file.write_all(data.as_slice())
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+
+    let current_dir = env::current_dir().expect("Failed to get current directory");
+
     info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
+        "Saved batch inclusion data to {:?}",
+        current_dir.join(batch_inclusion_data_path)
     );
 
     Ok(())
