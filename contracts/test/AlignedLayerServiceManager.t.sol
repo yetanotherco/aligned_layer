@@ -20,7 +20,8 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
-        string batchDataPointer
+        string batchDataPointer,
+        uint256 maxFeeToRespond
     );
 
     struct BatchIdentifier {
@@ -50,7 +51,8 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
     function testCreateNewTask(
         string memory root,
-        string memory batchDataPointer
+        string memory batchDataPointer,
+        uint256 maxFeeToRespond
     ) public {
         vm.assume(bytes(batchDataPointer).length > 50);
         bytes32 batchMerkleRoot = keccak256(abi.encodePacked(root));
@@ -59,15 +61,16 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         hoax(batcher, 1 ether);
 
         // transfer to serviceManager
-        address(alignedLayerServiceManager).call{value: 0.1 ether}("");
+        address(alignedLayerServiceManager).call{value: maxFeeToRespond}("");
 
         vm.expectEmit(true, true, true, true);
-        emit NewBatch(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer);
+        emit NewBatch(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer, maxFeeToRespond);
 
         vm.prank(batcher);
         alignedLayerServiceManager.createNewTask(
             batchMerkleRoot,
-            batchDataPointer
+            batchDataPointer,
+            maxFeeToRespond
         );
 
         bytes32 batchIdentifierHash = keccak256(
@@ -76,10 +79,12 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
         (
             uint32 taskCreatedBlock,
-            bool responded
+            bool responded,
+            uint256 _maxFeeToRespond
         ) = alignedLayerServiceManager.batchesState(batchIdentifierHash);
 
         assertEq(taskCreatedBlock, uint32(block.number));
         assertEq(responded, false);
+        assertEq(_maxFeeToRespond, maxFeeToRespond);
     }
 }

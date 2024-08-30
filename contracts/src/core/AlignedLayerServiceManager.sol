@@ -56,25 +56,23 @@ contract AlignedLayerServiceManager is
             abi.encodePacked(batchMerkleRoot, msg.sender)
         );
 
-        uint256 batcherBalance = batchersBalances[msg.sender];
-
         if (batchesState[batchIdentifierHash].taskCreatedBlock != 0) {
             revert BatchAlreadySubmitted(batchIdentifierHash);
         }
 
         if (msg.value > 0) {
-            batcherBalance += msg.value;
+            batchersBalances[msg.sender] += msg.value;
             emit BatcherBalanceUpdated(
                 msg.sender,
-                batcherBalance
+                batchersBalances[msg.sender]
             );
         }
 
-        if (batcherBalance < maxFeeToRespond) {
+        if (batchersBalances[msg.sender] < maxFeeToRespond) {
             revert InsufficientFunds(
                 msg.sender,
                 maxFeeToRespond,
-                batcherBalance
+                batchersBalances[msg.sender]
             );
         }
 
@@ -108,7 +106,6 @@ contract AlignedLayerServiceManager is
         );
 
         BatchState storage currentBatch = batchesState[batchIdentifierHash];
-        uint256 batcherBalance = batchersBalances[senderAddress];
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
@@ -124,11 +121,11 @@ contract AlignedLayerServiceManager is
 
 
         // Check that batcher has enough funds to fund response
-        if (batcherBalance <= currentBatch.maxFeeToRespond) {
+        if (batchersBalances[senderAddress] < currentBatch.maxFeeToRespond) {
             revert InsufficientFunds(
                 senderAddress,
                 currentBatch.maxFeeToRespond,
-                batcherBalance
+                batchersBalances[senderAddress]
             );
         }
 
@@ -170,10 +167,10 @@ contract AlignedLayerServiceManager is
         }
 
         // Subtract the maxFeeToRespond from the batcher's balance
-        batcherBalance -= txCost;
+        batchersBalances[senderAddress] -= txCost;
         emit BatcherBalanceUpdated(
             senderAddress,
-            batcherBalance
+            batchersBalances[senderAddress]
         );
 
         // Send transaction cost to Aggregator
