@@ -847,7 +847,7 @@ impl Batcher {
     /// Note that the batch queue is sorted descending by the max_fee set by the users.
     /// We use a copy of the batch queue because we might not find a working batch,
     /// and we want to keep the original batch queue intact.
-    /// Returns true if a working batch is found, false otherwise.
+    /// Returns Some(working_batch) if found, None otherwise.
     fn try_build_batch(
         &self,
         batch_queue_copy: &mut PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
