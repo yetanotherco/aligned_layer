@@ -256,21 +256,4 @@ contract AlignedLayerServiceManager is
     ) public pure returns (bool) {
         return keccak256(publicInput) == hash;
     }
-
-// TODO choose one of the following helper functions, may be overkill
-
-    function checkMaxFeeToRespond(
-        bytes32 batchIdentifierHash
-    ) public view returns (uint256) {
-        return batchesState[batchIdentifierHash].maxFeeToRespond;
-    }
-
-    function checkMaxFeeToRespond(
-        bytes32 merkleRoot,
-        address senderAddress
-    ) public view returns (uint256) {
-        return batchesState[
-            keccak256(abi.encodePacked(merkleRoot, senderAddress))
-        ].maxFeeToRespond;
-    }
 }
