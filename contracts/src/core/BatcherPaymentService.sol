@@ -159,7 +159,8 @@ contract BatcherPaymentService is
         // with value to fund the task's response
         alignedLayerServiceManager.createNewTask{value: feeForAggregator}(
             batchMerkleRoot,
-            batchDataPointer
+            batchDataPointer,
+            feeForAggregator
         );
 
         emit TaskCreated(batchMerkleRoot, feePerProof);
