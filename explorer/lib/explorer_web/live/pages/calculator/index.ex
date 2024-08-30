@@ -6,6 +6,8 @@ defmodule ExplorerWeb.Calculator.Index do
   @additional_submission_cost_per_proof 13_000
   @constant_cost @aggregator_cost + @batcher_submission_base_cost
 
+  @max_number_of_proofs 10_000
+
   @doc """
   The main components are:
       * **Cost of BLS aggregator task response in Ethereum**: ~constant, 400000 gas. Can vary depending on the amount of Operators that didn't sign but we can't know this beforehand). This cost is paid by the aggregator when interacting with the *ServiceManager* and must be refunded to it.
@@ -29,20 +31,34 @@ defmodule ExplorerWeb.Calculator.Index do
 
   @impl true
   def mount(_, _, socket) do
-    {:ok, assign(socket, number_of_proofs: 0, cost_in_wei: 0)}
+    {:ok,
+     assign(socket,
+       number_of_proofs: 0,
+       cost_in_wei: 0,
+       max_number_of_proofs: @max_number_of_proofs
+     )}
   end
 
   @impl true
   def handle_event("change_number_of_proofs", %{"proofs" => number_of_proofs}, socket) do
+    number_of_proofs =
+      case number_of_proofs do
+        "" -> "0"
+        nil -> "0"
+        _ -> number_of_proofs
+      end
+
+    number_of_proofs =
+      if number_of_proofs |> String.to_integer() > @max_number_of_proofs do
+        Integer.to_string(@max_number_of_proofs)
+      else
+        number_of_proofs
+      end
+
     {:noreply,
      socket
      |> assign(
-       number_of_proofs:
-         case number_of_proofs do
-           "" -> 0
-           nil -> 0
-           _ -> number_of_proofs
-         end,
+       number_of_proofs: number_of_proofs,
        cost_in_wei: calculate_cost(number_of_proofs)
      )}
   end
@@ -76,6 +92,7 @@ defmodule ExplorerWeb.Calculator.Index do
               }
               value={@number_of_proofs}
               min="0"
+              max={@max_number_of_proofs}
               phx-change="change_number_of_proofs"
             />
           </form>
@@ -94,33 +111,36 @@ defmodule ExplorerWeb.Calculator.Index do
               }
               value={@number_of_proofs}
               min="0"
-              max="10000"
+              max={@max_number_of_proofs}
               phx-change="change_number_of_proofs"
             />
           </form>
           <p class="font-semibold leading-6">
-            <%= Numbers.format_number(10000) %>
+            <%= Numbers.format_number(@max_number_of_proofs) %>
           </p>
         </div>
         <p>
-          Your estimated cost for verifying <%= case @number_of_proofs |> Numbers.format_number() do
-            nil -> 0
-            "" -> 0
-            n -> n
-          end %>
-          <%= if @number_of_proofs != "1" do %>
-            proofs
-          <% else %>
-            proof
-          <% end %>
+          Your estimated cost for verifying
+          <span class="font-semibold">
+            <%= case @number_of_proofs |> Numbers.format_number() do
+              nil -> 0
+              "" -> 0
+              n -> n
+            end %>
+            <%= if @number_of_proofs != "1" do %>
+              proofs
+            <% else %>
+              proof
+            <% end %>
+          </span>
           in ALIGNED is
-          <span class="text-xl font-bold ml-1">
+          <span class="text-xl font-bold ml-1 text-primary">
             <%= if @number_of_proofs > 0 do %>
               <%= @cost_in_wei |> Numbers.format_number() %>
             <% else %>
               0
             <% end %>
-            WEI.
+            WEI
           </span>
         </p>
       </section>
