@@ -87,7 +87,8 @@ defmodule AlignedLayerServiceManager do
       batchMerkleRoot: topics_raw |> Enum.at(1),
       senderAddress: data |> Enum.at(0),
       taskCreatedBlock: data |> Enum.at(1),
-      batchDataPointer: data |> Enum.at(2)
+      batchDataPointer: data |> Enum.at(2),
+      maxAggregatorFee: data |> Enum.at(3),
     }
   end
 
@@ -128,7 +129,8 @@ defmodule AlignedLayerServiceManager do
       amount_of_proofs: nil,
       proof_hashes: nil,
       fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot}),
-      sender_address: Utils.string_to_bytes32(created_batch.senderAddress)
+      sender_address: Utils.string_to_bytes32(created_batch.senderAddress),
+      max_aggregator_fee: created_batch.maxAggregatorFee
     }
   end
 
@@ -157,7 +159,8 @@ defmodule AlignedLayerServiceManager do
           amount_of_proofs: unverified_batch.amount_of_proofs,
           fee_per_proof: unverified_batch.fee_per_proof,
           proof_hashes: nil,
-          sender_address: unverified_batch.sender_address
+          sender_address: unverified_batch.sender_address,
+          max_aggregator_fee: unverified_batch.max_aggregator_fee
         }
     end
   end

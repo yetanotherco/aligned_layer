@@ -35,6 +35,7 @@ defmodule ExplorerWeb.Batch.Index do
             _ ->
               :empty
           end
+        # max_aggregator_fee: current_batch.max_aggregator_fee //TODO GIANNIS
       )
     }
   rescue

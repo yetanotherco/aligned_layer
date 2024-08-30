@@ -17,6 +17,7 @@ defmodule Batches do
     field :data_pointer, :string
     field :fee_per_proof, :integer
     field :sender_address, :binary
+    field :max_aggregator_fee, :decimal
 
     timestamps()
   end
@@ -24,7 +25,7 @@ defmodule Batches do
   @doc false
   def changeset(new_batch, updates) do
     new_batch
-    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer, :fee_per_proof, :sender_address])
+    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer, :fee_per_proof, :sender_address, :max_aggregator_fee])
     |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :fee_per_proof, :sender_address])
     |> validate_format(:merkle_root, ~r/0x[a-fA-F0-9]{64}/)
     |> unique_constraint(:merkle_root)
@@ -35,6 +36,7 @@ defmodule Batches do
     |> validate_number(:response_block_number, greater_than: 0)
     |> validate_format(:response_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
     |> validate_number(:fee_per_proof, greater_than: 0)
+    |> validate_number(:max_aggregator_fee, greater_than: 0)
   end
 
   def cast_to_batches(%BatchDB{} = batch_db) do
@@ -50,7 +52,8 @@ defmodule Batches do
       response_timestamp: batch_db.response_timestamp,
       data_pointer: batch_db.data_pointer,
       fee_per_proof: batch_db.fee_per_proof,
-      sender_address: batch_db.sender_address
+      sender_address: batch_db.sender_address,
+      max_aggregator_fee: batch_db.max_aggregator_fee
     }
   end
 

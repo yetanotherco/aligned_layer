@@ -13,6 +13,8 @@
         </h3>
         <p class="flex flex-wrap md:items-center md:gap-x-2">
           <%= @merkle_root %>
+          <%!-- TODO Gian : --%>
+          <%= @max_aggregator_fee %>
           <.live_component
             module={CopyToClipboardButtonComponent}
             text_to_copy={@merkle_root}
