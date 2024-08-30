@@ -9,7 +9,8 @@ interface IAlignedLayerServiceManager {
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
-        string batchDataPointer
+        string batchDataPointer,
+        uint256 maxFeeToRespond
     );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
@@ -19,7 +20,6 @@ interface IAlignedLayerServiceManager {
     error BatcherBalanceIsEmpty(address batcher); // 40b29316
     error BatchDoesNotExist(bytes32 batchIdentifierHash); // 2396d34e
     error BatchAlreadyResponded(bytes32 batchIdentifierHash); // 9cf1aff2
-    error BatcherHasNoBalance(address batcher); // 48b78e6a
     error InsufficientFunds(
         address batcher,
         uint256 required,

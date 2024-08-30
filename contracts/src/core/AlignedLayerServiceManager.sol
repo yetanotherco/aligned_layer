@@ -49,7 +49,8 @@ contract AlignedLayerServiceManager is
 
     function createNewTask(
         bytes32 batchMerkleRoot,
-        string calldata batchDataPointer
+        string calldata batchDataPointer,
+        uint256 maxFeeToRespond,
     ) external payable {
         bytes32 batchIdentifierHash = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
@@ -67,14 +68,20 @@ contract AlignedLayerServiceManager is
             );
         }
 
-        if (batchersBalances[msg.sender] <= 0) {
-            revert BatcherBalanceIsEmpty(msg.sender);
+        if (batchersBalances[msg.sender] <= maxFeeToRespond) {
+            // revert BatcherBalanceIsEmpty(msg.sender); // TODO rename
+            revert InsufficientFunds(
+                msg.sender,
+                maxFeeToRespond,
+                batchersBalances[msg.sender]
+            );
         }
 
         BatchState memory batchState;
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
+        batchState.maxFeeToRespond = maxFeeToRespond;
 
         batchesState[batchIdentifierHash] = batchState;
 
@@ -82,7 +89,8 @@ contract AlignedLayerServiceManager is
             batchMerkleRoot,
             msg.sender,
             uint32(block.number),
-            batchDataPointer
+            batchDataPointer,
+            maxFeeToRespond
         );
     }
 
@@ -92,36 +100,44 @@ contract AlignedLayerServiceManager is
         address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
-        uint256 initialGasLeft = gasleft();
+        uint256 initialGasLeft = gasleft(); // TODO I think its better to just pay the aggregator the maxFeeToRespond
 
         bytes32 batchIdentifierHash = keccak256(
             abi.encodePacked(batchMerkleRoot, senderAddress)
         );
 
-        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        BatchState currentBatch = batchesState[batchIdentifierHash]; // TODO memory or storage?
+        uint256 batcherBalance = batchersBalances[senderAddress];
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
-        if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
+        if (currentBatch.taskCreatedBlock == 0) {
             revert BatchDoesNotExist(batchIdentifierHash);
         }
 
         // Check task hasn't been responsed yet
-        if (batchesState[batchIdentifierHash].responded) {
+        if (currentBatch.responded) {
             revert BatchAlreadyResponded(batchIdentifierHash);
         }
+        currentBatch.responded = true; 
 
-        if (batchersBalances[senderAddress] <= 0) {
-            revert BatcherHasNoBalance(senderAddress);
+
+        // Check that batcher has enough funds to fund response
+        if (batcherBalance <= currentBatch.maxFeeToRespond) {
+            revert InsufficientFunds(
+                senderAddress,
+                currentBatch.maxFeeToRespond,
+                batcherBalance
+            );
         }
 
-        batchesState[batchIdentifierHash].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+
         // check that aggregated BLS signature is valid
         (QuorumStakeTotals memory quorumStakeTotals, ) = checkSignatures(
             batchIdentifierHash,
-            batchesState[batchIdentifierHash].taskCreatedBlock,
+            currentBatch.taskCreatedBlock,
             nonSignerStakesAndSignature
         );
 
@@ -141,27 +157,26 @@ contract AlignedLayerServiceManager is
 
         emit BatchVerified(batchMerkleRoot, senderAddress);
 
-        // Calculate estimation of gas used, check that batcher has sufficient funds
-        // and send transaction cost to aggregator.
-        uint256 finalGasLeft = gasleft();
-
         // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
-        uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
+        uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
-        if (batchersBalances[senderAddress] < txCost) {
+        if (txCost > currentBatch.maxFeeToRespond) {
             revert InsufficientFunds(
                 senderAddress,
-                txCost,
-                batchersBalances[senderAddress]
+                currentBatch.maxFeeToRespond,
+                txCost
             );
         }
 
-        batchersBalances[senderAddress] -= txCost;
+        // Subtract the maxFeeToRespond from the batcher's balance
+        batcherBalance -= txCost;
         emit BatcherBalanceUpdated(
             senderAddress,
-            batchersBalances[senderAddress]
+            batcherBalance
         );
-        payable(msg.sender).transfer(txCost);
+
+        // Send transaction cost to Aggregator
+        payable(msg.sender).transfer(txCost);  // TODO migrate msg.sender to alignedAggregator after PR that does this
     }
 
     function verifyBatchInclusion(
