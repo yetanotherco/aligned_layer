@@ -50,14 +50,6 @@
           <% end %>
         </p>
       </div>
-      <div :if={@current_batch.max_aggregator_fee != 0} class="flex flex-col sm:flex-row">
-        <h3>
-          Max Aggregator Fee:
-        </h3>
-        <p>
-          <%= @current_batch.max_aggregator_fee |> EthConverter.wei_to_eth() %> ETH
-        </p>
-      </div>
       <div>
         <h3>
           Proofs in this batch:

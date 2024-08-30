@@ -34,8 +34,7 @@ defmodule ExplorerWeb.Batch.Index do
 
             _ ->
               :empty
-          end,
-        max_aggregator_fee: current_batch.max_aggregator_fee |> EthConverter.wei_to_eth()
+          end
       )
     }
   rescue
