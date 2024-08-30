@@ -162,8 +162,12 @@ pub struct VerifyProofOnchainArgs {
         default_value = "devnet"
     )]
     chain: ChainArg,
-    #[arg(name = "Batcher address", long = "batcher_address")]
-    batcher_address: String,
+    #[arg(
+        name = "Batcher Payment Service Eth Address",
+        long = "payment_service_addr",
+        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+    )]
+    payment_service_addr: String,
 }
 
 #[derive(Parser, Debug)]
@@ -362,7 +366,7 @@ async fn main() -> Result<(), AlignedError> {
                 &aligned_verification_data,
                 chain,
                 &verify_inclusion_args.eth_rpc_url,
-                &verify_inclusion_args.batcher_address,
+                &verify_inclusion_args.payment_service_addr,
             )
             .await?;
 
