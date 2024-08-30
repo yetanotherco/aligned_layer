@@ -106,6 +106,13 @@ impl BatchState {
             })
     }
 
+    /// Checks if the entry is valid
+    /// An entry is valid if there is no entry with the same sender,
+    /// lower nonce and a lower fee
+    /// If the entry is valid, it replaces the entry in the queue
+    /// to increment the max fee, then it updates the user min fee if necessary
+    /// If the entry is invalid, it returns a validity response message.
+    /// If the entry is valid, it returns None.
     fn validate_and_increment_max_fee(
         &mut self,
         replacement_entry: BatchQueueEntry,
