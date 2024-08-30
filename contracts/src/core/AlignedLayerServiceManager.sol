@@ -56,24 +56,25 @@ contract AlignedLayerServiceManager is
             abi.encodePacked(batchMerkleRoot, msg.sender)
         );
 
+        uint256 batcherBalance = batchersBalances[msg.sender];
+
         if (batchesState[batchIdentifierHash].taskCreatedBlock != 0) {
             revert BatchAlreadySubmitted(batchIdentifierHash);
         }
 
         if (msg.value > 0) {
-            batchersBalances[msg.sender] += msg.value;
+            batcherBalance += msg.value;
             emit BatcherBalanceUpdated(
                 msg.sender,
-                batchersBalances[msg.sender]
+                batcherBalance
             );
         }
 
-        if (batchersBalances[msg.sender] <= maxFeeToRespond) {
-            // revert BatcherBalanceIsEmpty(msg.sender); // TODO rename
+        if (batcherBalance < maxFeeToRespond) {
             revert InsufficientFunds(
                 msg.sender,
                 maxFeeToRespond,
-                batchersBalances[msg.sender]
+                batcherBalance
             );
         }
 
@@ -106,8 +107,8 @@ contract AlignedLayerServiceManager is
             abi.encodePacked(batchMerkleRoot, senderAddress)
         );
 
-        BatchState currentBatch = batchesState[batchIdentifierHash]; // TODO memory or storage?
-        uint256 batcherBalance = batchersBalances[senderAddress];
+        BatchState storage currentBatch = batchesState[batchIdentifierHash];
+        uint256 storage batcherBalance = batchersBalances[senderAddress];
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
@@ -176,7 +177,7 @@ contract AlignedLayerServiceManager is
         );
 
         // Send transaction cost to Aggregator
-        payable(msg.sender).transfer(txCost);  // TODO migrate msg.sender to alignedAggregator after PR that does this
+        payable(msg.sender).transfer(txCost);
     }
 
     function verifyBatchInclusion(

@@ -17,7 +17,6 @@ interface IAlignedLayerServiceManager {
 
     // ERRORS
     error BatchAlreadySubmitted(bytes32 batchIdentifierHash); // 3102f10c
-    error BatcherBalanceIsEmpty(address batcher); // 40b29316
     error BatchDoesNotExist(bytes32 batchIdentifierHash); // 2396d34e
     error BatchAlreadyResponded(bytes32 batchIdentifierHash); // 9cf1aff2
     error InsufficientFunds(
