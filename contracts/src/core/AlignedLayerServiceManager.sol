@@ -119,7 +119,6 @@ contract AlignedLayerServiceManager is
         }
         currentBatch.responded = true; 
 
-
         // Check that batcher has enough funds to fund response
         if (batchersBalances[senderAddress] < currentBatch.maxFeeToRespond) {
             revert InsufficientFunds(
@@ -128,7 +127,6 @@ contract AlignedLayerServiceManager is
                 batchersBalances[senderAddress]
             );
         }
-
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
@@ -241,7 +239,7 @@ contract AlignedLayerServiceManager is
     }
 
     function _depositToBatcher(address account, uint256 amount) internal {
-        if (amount <= 0) {
+        if (amount == 0) {
             revert InvalidDepositAmount(amount);
         }
         batchersBalances[account] += amount;
