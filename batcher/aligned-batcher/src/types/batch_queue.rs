@@ -51,6 +51,7 @@ impl BatchQueueEntryPriority {
 
 impl Eq for BatchQueueEntry {}
 
+// We consider two entries to be equal if they have the same sender and nonce
 impl PartialEq for BatchQueueEntry {
     fn eq(&self, other: &Self) -> bool {
         self.sender == other.sender
@@ -58,6 +59,7 @@ impl PartialEq for BatchQueueEntry {
     }
 }
 
+// We consider two entries to be equal if they have the same sender and nonce
 impl Hash for BatchQueueEntry {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.sender.hash(state);

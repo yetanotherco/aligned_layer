@@ -137,6 +137,9 @@ impl BatchState {
         );
 
         // remove the old entry and insert the new one
+        // note that the entries are considered equal for the priority queue
+        // if they have the same nonce and sender, so we can remove the old entry
+        // by calling remove with the new entry
         self.batch_queue.remove(&replacement_entry);
         self.batch_queue.push(
             replacement_entry.clone(),
