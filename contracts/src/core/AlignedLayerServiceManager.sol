@@ -99,7 +99,7 @@ contract AlignedLayerServiceManager is
         address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
     ) external {
-        uint256 initialGasLeft = gasleft(); // TODO I think its better to just pay the aggregator the maxFeeToRespond
+        uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
             abi.encodePacked(batchMerkleRoot, senderAddress)
