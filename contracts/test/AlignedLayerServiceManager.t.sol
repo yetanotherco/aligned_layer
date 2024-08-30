@@ -58,7 +58,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         bytes32 batchMerkleRoot = keccak256(abi.encodePacked(root));
 
         address batcher = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
-        hoax(batcher, 1 ether);
+        hoax(batcher, maxFeeToRespond);
 
         // transfer to serviceManager
         address(alignedLayerServiceManager).call{value: maxFeeToRespond}("");
