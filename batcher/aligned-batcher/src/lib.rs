@@ -816,22 +816,23 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
 
-        let mut finalized_batch = vec![];
         let mut batch_queue_copy = batch_state.batch_queue.clone();
 
-        if !self.try_build_batch(&mut batch_queue_copy, &mut finalized_batch, gas_price) {
-            // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
-            info!("No working batch found. Waiting for more proofs...");
-            *batch_posting = false;
-            return None;
+        match self.try_build_batch(&mut batch_queue_copy, gas_price) {
+            Some(finalized_batch) => {
+                // Set the batch queue to batch queue copy
+                batch_state.batch_queue = batch_queue_copy;
+                batch_state.update_user_proofs_in_batch_and_min_fee();
+
+                Some(finalized_batch)
+            }
+            None => {
+                // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
+                info!("No working batch found. Waiting for more proofs...");
+                *batch_posting = false;
+                None
+            }
         }
-
-        // Set the batch queue to batch queue copy
-        batch_state.batch_queue = batch_queue_copy;
-
-        batch_state.update_user_proofs_in_batch_and_min_fee();
-
-        Some(finalized_batch)
     }
 
     /// Tries to build a batch from the current batch queue.
@@ -847,9 +848,9 @@ impl Batcher {
     fn try_build_batch(
         &self,
         batch_queue_copy: &mut PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
-        finalized_batch: &mut Vec<BatchQueueEntry>,
         gas_price: U256,
-    ) -> bool {
+    ) -> Option<Vec<BatchQueueEntry>> {
+        let mut finalized_batch = vec![];
         let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
         let mut finalized_batch_works = false;
 
@@ -902,7 +903,11 @@ impl Batcher {
             finalized_batch.push(entry);
         }
 
-        finalized_batch_works
+        if finalized_batch_works {
+            Some(finalized_batch)
+        } else {
+            None
+        }
     }
 
     /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
