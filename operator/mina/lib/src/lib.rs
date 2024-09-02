@@ -1,4 +1,8 @@
+/// Consensus chain selection algorithms. The [`official specification`] was taken as a reference.
+///
+/// [`official specification`]: https://github.com/MinaProtocol/mina/blob/develop/docs/specs/consensus/README.md
 mod consensus_state;
+mod verifier_index;
 
 use mina_bridge_core::proof::state_proof::{MinaStateProof, MinaStatePubInputs};
 
@@ -12,8 +16,6 @@ use mina_p2p_messages::v2::{MinaStateProtocolStateValueStableV2, StateHash};
 use mina_tree::proofs::verification::verify_block;
 use mina_tree::verifier::get_srs;
 use verifier_index::deserialize_blockchain_vk;
-
-mod verifier_index;
 
 lazy_static! {
     static ref VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =

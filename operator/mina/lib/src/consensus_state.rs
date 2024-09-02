@@ -7,9 +7,6 @@ use mina_p2p_messages::{
         MinaStateProtocolStateValueStableV2 as MinaProtocolState,
     },
 };
-///! Consensus chain selection algorithms. The [`official specification`] was taken as a reference.
-///
-///! [`official specification`]: https://github.com/MinaProtocol/mina/blob/develop/docs/specs/consensus/README.md
 use std::cmp::{max, min, Ordering};
 
 const GRACE_PERIOD_END: u32 = 1440;
@@ -135,7 +132,7 @@ fn hash_last_vrf(chain: &MinaProtocolState) -> String {
     hasher.update(chain.body.consensus_state.last_vrf_output.as_slice());
     let digest = hasher.finalize().to_vec();
 
-    hex::encode(&digest)
+    hex::encode(digest)
 }
 
 fn hash_state(chain: &MinaProtocolState) -> String {
