@@ -26,16 +26,16 @@ const GAS_ESCALATOR_INTERVAL: u64 = 12; // Time in seconds between gas escalatio
 
 #[derive(Debug, Clone)]
 pub struct CreateNewTaskFeeParams {
-    pub gas_for_aggregator: U256,
-    pub gas_per_proof: U256,
+    pub fee_for_aggregator: U256,
+    pub fee_per_proof: U256,
     pub gas_price: U256,
 }
 
 impl CreateNewTaskFeeParams {
-    pub fn new(gas_for_aggregator: U256, gas_per_proof: U256, gas_price: U256) -> Self {
+    pub fn new(fee_for_aggregator: U256, fee_per_proof: U256, gas_price: U256) -> Self {
         CreateNewTaskFeeParams {
-            gas_for_aggregator,
-            gas_per_proof,
+            fee_for_aggregator,
+            fee_per_proof,
             gas_price,
         }
     }
@@ -95,8 +95,8 @@ pub async fn try_create_new_task(
             batch_data_pointer,
             padded_leaves,
             signatures,
-            fee_params.gas_for_aggregator,
-            fee_params.gas_per_proof,
+            fee_params.fee_for_aggregator,
+            fee_params.fee_per_proof,
         )
         .gas_price(fee_params.gas_price);
 

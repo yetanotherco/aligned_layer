@@ -50,13 +50,13 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
-const AGGREGATOR_COST: u128 = 400000;
-const BATCHER_SUBMISSION_BASE_COST: u128 = 100000;
-const ADDITIONAL_SUBMISSION_COST_PER_PROOF: u128 = 13_000;
-const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
-const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
-const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
-const MIN_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.0000000001 ether (low gas price)
+const AGGREGATOR_GAS_COST: u128 = 400000;
+const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 100000;
+const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
+const CONSTANT_GAS_COST: u128 = AGGREGATOR_GAS_COST + BATCHER_SUBMISSION_BASE_GAS_COST;
+const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
+const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
+const MIN_FEE: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.0000000001 ether (low gas price)
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -816,12 +816,6 @@ impl Batcher {
             }
         };
 
-        // // Multiply the gas price by 5 to allow for spike in gas price before submitting
-        // let gas_price = match gas_price.checked_mul(U256::from(GAS_CHECK_MULTIPLIER)) {
-        //     Some(price) => price,
-        //     None => return None, // gas price was too high
-        // };
-
         // Set the batch posting flag to true
         *batch_posting = true;
 
@@ -879,8 +873,8 @@ impl Batcher {
 
             let num_proofs = finalized_batch.len() + 1;
 
-            let gas_per_proof = (CONSTANT_COST
-                + ADDITIONAL_SUBMISSION_COST_PER_PROOF * num_proofs as u128)
+            let gas_per_proof = (CONSTANT_GAS_COST
+                + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs as u128)
                 / num_proofs as u128;
 
             let batch_submission_fee = U256::from(gas_per_proof).checked_mul(gas_price).unwrap(); // TODO: remove unwrap
@@ -1072,9 +1066,14 @@ impl Batcher {
 
         let num_proofs_in_batch = leaves.len();
 
-        let gas_per_proof = (CONSTANT_COST
-            + ADDITIONAL_SUBMISSION_COST_PER_PROOF * num_proofs_in_batch as u128)
+        let gas_per_proof = (CONSTANT_GAS_COST
+            + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
             / num_proofs_in_batch as u128;
+
+        let fee_per_proof = U256::from(gas_per_proof) * gas_price;
+        let fee_for_aggregator = U256::from(AGGREGATOR_GAS_COST) * gas_price;
+
+        let fee_params = CreateNewTaskFeeParams::new(fee_for_aggregator, fee_per_proof, gas_price);
 
         let signatures = signatures
             .iter()
@@ -1088,11 +1087,7 @@ impl Batcher {
                 batch_data_pointer,
                 leaves,
                 signatures,
-                CreateNewTaskFeeParams::new(
-                    AGGREGATOR_COST.into(),
-                    gas_per_proof.into(),
-                    gas_price,
-                ),
+                fee_params,
             )
             .await
         {

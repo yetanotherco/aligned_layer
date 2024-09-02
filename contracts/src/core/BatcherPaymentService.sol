@@ -110,14 +110,11 @@ contract BatcherPaymentService is
         string calldata batchDataPointer,
         bytes32[] calldata leaves, // padded to the next power of 2
         SignatureData[] calldata signatures, // actual length (proof sumbitters == proofs submitted)
-        uint256 gasForAggregator,
-        uint256 gasPerProof
+        uint256 feeForAggregator,
+        uint256 feePerProof
     ) external onlyBatcher whenNotPaused {
         uint256 leavesQty = leaves.length;
         uint256 signaturesQty = signatures.length;
-
-        uint256 feeForAggregator = gasForAggregator * tx.gasprice;
-        uint256 feePerProof = gasPerProof * tx.gasprice;
 
         if (leavesQty == 0) {
             revert NoLeavesSubmitted();
