@@ -1240,7 +1240,7 @@ impl Batcher {
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
                     nonce_bytes,
-                    DEFAULT_MAX_FEE.into(), // 11_000 gas per proof * 10 gwei gas price (upper bound)
+                    DEFAULT_MAX_FEE.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
                     self.chain_id,
                 )
             };
