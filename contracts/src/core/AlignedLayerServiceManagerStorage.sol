@@ -4,7 +4,7 @@ abstract contract AlignedLayerServiceManagerStorage {
     struct BatchState {
         uint32 taskCreatedBlock;
         bool responded;
-        uint256 maxFeeToRespond;
+        uint256 maxFeeAllowedToRespond;
     }
 
     /* STORAGE */

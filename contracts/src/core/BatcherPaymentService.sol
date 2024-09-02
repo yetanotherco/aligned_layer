@@ -108,7 +108,8 @@ contract BatcherPaymentService is
         bytes32[] calldata leaves, // padded to the next power of 2
         SignatureData[] calldata signatures, // actual length (proof sumbitters == proofs submitted)
         uint256 feeForAggregator,
-        uint256 feePerProof
+        uint256 feePerProof,
+        uint256 maxFeeAllowedToRespond
     ) external onlyBatcher whenNotPaused {
         uint256 leavesQty = leaves.length;
         uint256 signaturesQty = signatures.length;
@@ -152,7 +153,7 @@ contract BatcherPaymentService is
         alignedLayerServiceManager.createNewTask{value: feeForAggregator}(
             batchMerkleRoot,
             batchDataPointer,
-            feeForAggregator * 3 //maxFeeToRespond
+            maxFeeAllowedToRespond
         );
 
         emit TaskCreated(batchMerkleRoot, feePerProof);

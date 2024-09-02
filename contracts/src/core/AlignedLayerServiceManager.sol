@@ -50,7 +50,7 @@ contract AlignedLayerServiceManager is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        uint256 maxFeeToRespond
+        uint256 maxFeeAllowedToRespond
     ) external payable {
         bytes32 batchIdentifierHash = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
@@ -68,10 +68,10 @@ contract AlignedLayerServiceManager is
             );
         }
 
-        if (batchersBalances[msg.sender] < maxFeeToRespond) {
+        if (batchersBalances[msg.sender] < maxFeeAllowedToRespond) {
             revert InsufficientFunds(
                 msg.sender,
-                maxFeeToRespond,
+                maxFeeAllowedToRespond,
                 batchersBalances[msg.sender]
             );
         }
@@ -80,7 +80,7 @@ contract AlignedLayerServiceManager is
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
-        batchState.maxFeeToRespond = maxFeeToRespond;
+        batchState.maxFeeAllowedToRespond = maxFeeAllowedToRespond;
 
         batchesState[batchIdentifierHash] = batchState;
 
@@ -89,7 +89,7 @@ contract AlignedLayerServiceManager is
             msg.sender,
             uint32(block.number),
             batchDataPointer,
-            maxFeeToRespond
+            maxFeeAllowedToRespond
         );
     }
 
@@ -120,10 +120,10 @@ contract AlignedLayerServiceManager is
         currentBatch.responded = true; 
 
         // Check that batcher has enough funds to fund response
-        if (batchersBalances[senderAddress] < currentBatch.maxFeeToRespond) {
+        if (batchersBalances[senderAddress] < currentBatch.maxFeeAllowedToRespond) {
             revert InsufficientFunds(
                 senderAddress,
-                currentBatch.maxFeeToRespond,
+                currentBatch.maxFeeAllowedToRespond,
                 batchersBalances[senderAddress]
             );
         }
@@ -156,15 +156,15 @@ contract AlignedLayerServiceManager is
         // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
         uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
-        if (txCost > currentBatch.maxFeeToRespond) {
+        if (txCost > currentBatch.maxFeeAllowedToRespond) {
             revert InsufficientFunds(
                 senderAddress,
-                currentBatch.maxFeeToRespond,
+                currentBatch.maxFeeAllowedToRespond,
                 txCost
             );
         }
 
-        // Subtract the maxFeeToRespond from the batcher's balance
+        // Subtract the txCost from the batcher's balance
         batchersBalances[senderAddress] -= txCost;
         emit BatcherBalanceUpdated(
             senderAddress,
