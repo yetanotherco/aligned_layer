@@ -200,7 +200,7 @@ defmodule ExplorerWeb.Calculator.Index do
               <% end %>
             </span>
             <%= @frequency %> in ALIGNED is
-            <span class="text-xl font-bold ml-1 text-primary">
+            <span class="text-xl font-bold text-primary">
               <%= if @number_of_proofs > 0 do %>
                 <%= @cost_in_wei |> Numbers.format_number() %>
               <% else %>
@@ -222,8 +222,10 @@ defmodule ExplorerWeb.Calculator.Index do
     """
   end
 
-  defp calculate_cost(number_of_proofs, frequency) when is_nil(number_of_proofs), do: 0
-  defp calculate_cost(number_of_proofs, frequency) when number_of_proofs == "", do: 0
+  defp calculate_cost(number_of_proofs, _frequency) when is_nil(number_of_proofs), do: 0
+  defp calculate_cost(number_of_proofs, _frequency) when number_of_proofs == "", do: 0
+  defp calculate_cost(number_of_proofs, _frequency) when number_of_proofs == "0", do: 0
+  defp calculate_cost(number_of_proofs, _frequency) when number_of_proofs == 0, do: 0
 
   defp calculate_cost(number_of_proofs, frequency) do
     case Integer.parse(number_of_proofs) |> elem(0) do
