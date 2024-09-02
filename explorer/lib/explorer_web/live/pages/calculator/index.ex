@@ -9,11 +9,11 @@ defmodule ExplorerWeb.Calculator.Index do
   @max_number_of_proofs 10_000
 
   @frequency_map %{
-    "hourly" => 1,
-    "daily" => 24,
-    "weekly" => 24 * 7,
-    "monthly" => 24 * 30,
-    "yearly" => 24 * 365
+    "hourly" => 24 * 365,
+    "daily" => 365,
+    "weekly" => 365 / 7 |> round(),
+    "monthly" => 12,
+    "yearly" => 1
   }
 
   @doc """
@@ -31,20 +31,16 @@ defmodule ExplorerWeb.Calculator.Index do
 
     $c(n) = \frac{TaskResponseCost + BaseTaskCreationCost}{n} + CostPerProof$
 
-  The value of $c(n)$ for a batch of $n$ proofs is what is charged to the user.
-
-    $C(n) = \frac{TaskResponseCost + BaseTaskCreationCost}{n} + CostPerProof$
-
   """
 
   @impl true
   def mount(_, _, socket) do
     {:ok,
      assign(socket,
-       number_of_proofs: 0,
-       cost_in_wei: 0,
+       number_of_proofs: "1",
+       cost_in_wei: calculate_cost("1", "yearly"),
        max_number_of_proofs: @max_number_of_proofs,
-       frequency: "hourly"
+       frequency: "yearly"
      )}
   end
 
@@ -89,13 +85,13 @@ defmodule ExplorerWeb.Calculator.Index do
       <.card_preheding>
         Calculator
       </.card_preheding>
-      <section class="space-y-3 text-base leading-7">
+      <section class="space-y-4 text-base leading-7">
         <p>
           ALIGNED verifies your proofs for less than 10% of the cost of using Ethereum directly.
           <br />
           Let's see how much you can save by verifying your proofs. Enter the number of proofs you want to verify:
         </p>
-        <.card_background class="space-y-3">
+        <.card_background class="space-y-3.5">
           <h3 class="text-lg">
             How many proofs do you generate?
           </h3>
@@ -186,7 +182,7 @@ defmodule ExplorerWeb.Calculator.Index do
             </.button>
           </form>
           <p>
-            Your estimated cost for verifying
+            Your estimated annual cost for verifying
             <span class="font-semibold">
               <%= case @number_of_proofs |> Numbers.format_number() do
                 nil -> 0
@@ -198,8 +194,8 @@ defmodule ExplorerWeb.Calculator.Index do
               <% else %>
                 proof
               <% end %>
+              <%= @frequency %> in ALIGNED is
             </span>
-            <%= @frequency %> in ALIGNED is
             <span class="text-xl font-bold text-primary">
               <%= if @number_of_proofs > 0 do %>
                 <%= @cost_in_wei |> Numbers.format_number() %>
@@ -224,7 +220,6 @@ defmodule ExplorerWeb.Calculator.Index do
 
   defp calculate_cost(number_of_proofs, _frequency) when is_nil(number_of_proofs), do: 0
   defp calculate_cost(number_of_proofs, _frequency) when number_of_proofs == "", do: 0
-  defp calculate_cost(number_of_proofs, _frequency) when number_of_proofs == "0", do: 0
   defp calculate_cost(number_of_proofs, _frequency) when number_of_proofs == 0, do: 0
 
   defp calculate_cost(number_of_proofs, frequency) do
