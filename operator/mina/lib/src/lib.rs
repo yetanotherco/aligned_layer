@@ -68,12 +68,12 @@ pub extern "C" fn verify_mina_state_ffi(
     let secure_chain = match select_secure_chain(&candidate_tip_state, &bridge_tip_state) {
         Ok(res) => res,
         Err(err) => {
-            eprintln!("Failed consensus checks: {err}");
+            eprintln!("Failed consensus checks for candidate tip: {err}");
             return false;
         }
     };
     if secure_chain == ChainResult::Bridge {
-        eprintln!("Failed consensus checks for candidate tip state (bridge's tip is more secure)");
+        eprintln!("Failed consensus checks for candidate tip: bridge's tip is more secure");
         return false;
     }
 
