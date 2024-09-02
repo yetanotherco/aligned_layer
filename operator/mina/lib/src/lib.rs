@@ -3,7 +3,7 @@ mod consensus_state;
 use mina_bridge_core::proof::state_proof::{MinaStateProof, MinaStatePubInputs};
 
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
-use consensus_state::{select_longer_chain, LongerChainResult};
+use consensus_state::{select_secure_chain, ChainResult};
 use kimchi::mina_curves::pasta::{Fp, PallasParameters};
 use kimchi::verifier_index::VerifierIndex;
 use lazy_static::lazy_static;
@@ -62,10 +62,16 @@ pub extern "C" fn verify_mina_state_ffi(
     let srs = get_srs::<Fp>();
     let srs = srs.lock().unwrap();
 
-    // Consensus check: Short fork rule
-    let longer_chain = select_longer_chain(&candidate_tip_state, &bridge_tip_state);
-    if longer_chain == LongerChainResult::Bridge {
-        eprintln!("Failed consensus checks for candidate tip state against bridge's tip");
+    // Consensus checks
+    let secure_chain = match select_secure_chain(&candidate_tip_state, &bridge_tip_state) {
+        Ok(res) => res,
+        Err(err) => {
+            eprintln!("Failed consensus checks: {err}");
+            return false;
+        }
+    };
+    if secure_chain == ChainResult::Bridge {
+        eprintln!("Failed consensus checks for candidate tip state (bridge's tip is more secure)");
         return false;
     }
 
@@ -242,12 +248,8 @@ mod test {
         assert!(pub_input_size <= pub_input_buffer.len());
         pub_input_buffer[..pub_input_size].clone_from_slice(PROTOCOL_STATE_BAD_CONSENSUS_PUB_BYTES);
 
-        let result = verify_protocol_state_proof_ffi(
-            &proof_buffer,
-            proof_size,
-            &pub_input_buffer,
-            pub_input_size,
-        );
+        let result =
+            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
         assert!(!result);
     }
 }
