@@ -14,7 +14,7 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 			if err != nil {
 				return err
 			}
-		case newBatchV2 := <-agg.NewBatchChanV2:
+		case newBatchV2 := <-agg.NewBatchChan:
 			agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task, V2")
 			agg.AddNewTaskV2(newBatchV2.BatchMerkleRoot, newBatchV2.SenderAddress, newBatchV2.TaskCreatedBlock)
 		}
@@ -24,7 +24,7 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 func (agg *Aggregator) subscribeToNewTasksV2() error {
 	var err error
 
-	agg.taskSubscriber, err = agg.avsSubscriber.SubscribeToNewTasksV2(agg.NewBatchChanV2)
+	agg.taskSubscriber, err = agg.avsSubscriber.SubscribeToNewTasksV2(agg.NewBatchChan)
 
 	if err != nil {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to create task subscriber", "err", err)

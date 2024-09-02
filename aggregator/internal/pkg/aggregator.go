@@ -42,7 +42,7 @@ type BatchData struct {
 
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
-	NewBatchChanV2        chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewBatchChan        chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
@@ -91,7 +91,7 @@ type Aggregator struct {
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
-	newBatchChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
+	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
@@ -161,7 +161,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsReader:        avsReader,
 		avsSubscriber:    avsSubscriber,
 		avsWriter:        avsWriter,
-		NewBatchChanV2:   newBatchChanV2,
+		NewBatchChan:     newBatchChan,
 
 		batchesIdentifierHashByIdx: batchesIdentifierHashByIdx,
 		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
