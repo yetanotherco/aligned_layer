@@ -47,7 +47,7 @@ pub extern "C" fn verify_mina_state_ffi(
             }
         };
 
-    // TODO(xqft): this can also be a batcher's pre-verification check
+    // Checks the integrity of the public inputs, also checks if the states form a chain.
     let (candidate_tip_state, bridge_tip_state, candidate_tip_state_hash) =
         match check_pub_inputs(&proof, &pub_inputs) {
             Ok(validated_data) => validated_data,
@@ -98,7 +98,7 @@ fn check_pub_inputs(
         .map(|state| state.hash())
         .ok_or("failed to retrieve root state hash".to_string())?;
     // Reconstructs the state hashes if the states form a chain, and compares them to the public
-    // input state hashes.
+    // input state hashes. Does not compare the tip state hash.
     let mut state_hash = candidate_root_state_hash;
     for (body_hash, expected_prev_state_hash) in proof
         .candidate_chain_states
