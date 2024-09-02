@@ -22,7 +22,7 @@ use aligned_sdk::core::types::{
     VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{try_create_new_task, BatcherPaymentService, SignerMiddlewareT};
+use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
@@ -57,7 +57,6 @@ const CONSTANT_COST: u128 = AGGREGATOR_COST + BATCHER_SUBMISSION_BASE_COST;
 const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 const MIN_FEE: u128 = ADDITIONAL_SUBMISSION_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.0000000001 ether (low gas price)
-const GAS_CHECK_MULTIPLIER: u8 = 5; // Multiplier for the max fee check
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -777,7 +776,7 @@ impl Batcher {
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
-    async fn is_batch_ready(&self, block_number: u64) -> Option<Vec<BatchQueueEntry>> {
+    async fn is_batch_ready(&self, block_number: u64) -> Option<(Vec<BatchQueueEntry>, U256)> {
         let mut batch_state = self.batch_state.lock().await;
         let current_batch_len = batch_state.batch_queue.len();
 
@@ -817,11 +816,11 @@ impl Batcher {
             }
         };
 
-        // Multiply the gas price by 5 to allow for spike in gas price before submitting
-        let gas_price = match gas_price.checked_mul(U256::from(GAS_CHECK_MULTIPLIER)) {
-            Some(price) => price,
-            None => return None, // gas price was too high
-        };
+        // // Multiply the gas price by 5 to allow for spike in gas price before submitting
+        // let gas_price = match gas_price.checked_mul(U256::from(GAS_CHECK_MULTIPLIER)) {
+        //     Some(price) => price,
+        //     None => return None, // gas price was too high
+        // };
 
         // Set the batch posting flag to true
         *batch_posting = true;
@@ -834,7 +833,7 @@ impl Batcher {
                 batch_state.batch_queue = batch_queue_copy;
                 batch_state.update_user_proofs_in_batch_and_min_fee();
 
-                Some(finalized_batch)
+                Some((finalized_batch, gas_price))
             }
             None => {
                 // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
@@ -927,6 +926,7 @@ impl Batcher {
         &self,
         block_number: u64,
         finalized_batch: Vec<BatchQueueEntry>,
+        gas_price: U256,
     ) -> Result<(), BatcherError> {
         let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
@@ -967,30 +967,13 @@ impl Batcher {
             .map(VerificationCommitmentBatch::hash_data)
             .collect();
 
-        let signatures = finalized_batch
-            .iter()
-            .map(|entry| &entry.signature)
-            .cloned()
-            .collect();
-
-        let nonces = finalized_batch
-            .iter()
-            .map(|entry| entry.nonced_verification_data.nonce)
-            .collect();
-
-        let max_fees = finalized_batch
-            .iter()
-            .map(|entry| entry.nonced_verification_data.max_fee)
-            .collect();
-
         if let Err(e) = self
             .submit_batch(
                 &batch_bytes,
                 &batch_merkle_tree.root,
                 leaves,
-                signatures,
-                nonces,
-                max_fees,
+                &finalized_batch,
+                gas_price,
             )
             .await
         {
@@ -1028,9 +1011,10 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        while let Some(finalized_batch) = self.is_batch_ready(block_number).await {
-            let batch_finalization_result =
-                self.finalize_batch(block_number, finalized_batch).await;
+        while let Some((finalized_batch, gas_price)) = self.is_batch_ready(block_number).await {
+            let batch_finalization_result = self
+                .finalize_batch(block_number, finalized_batch, gas_price)
+                .await;
 
             // Resetting this here to avoid doing it on every return path of `finalize_batch` function
             let mut batch_posting = self.posting_batch.lock().await;
@@ -1047,10 +1031,25 @@ impl Batcher {
         batch_bytes: &[u8],
         batch_merkle_root: &[u8; 32],
         leaves: Vec<[u8; 32]>,
-        signatures: Vec<Signature>,
-        nonces: Vec<[u8; 32]>,
-        max_fees: Vec<U256>,
+        finalized_batch: &[BatchQueueEntry],
+        gas_price: U256,
     ) -> Result<(), BatcherError> {
+        let signatures: Vec<_> = finalized_batch
+            .iter()
+            .map(|entry| &entry.signature)
+            .cloned()
+            .collect();
+
+        let nonces: Vec<_> = finalized_batch
+            .iter()
+            .map(|entry| entry.nonced_verification_data.nonce)
+            .collect();
+
+        let max_fees: Vec<_> = finalized_batch
+            .iter()
+            .map(|entry| entry.nonced_verification_data.max_fee)
+            .collect();
+
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
@@ -1089,8 +1088,11 @@ impl Batcher {
                 batch_data_pointer,
                 leaves,
                 signatures,
-                AGGREGATOR_COST.into(),
-                gas_per_proof.into(),
+                CreateNewTaskFeeParams::new(
+                    AGGREGATOR_COST.into(),
+                    gas_per_proof.into(),
+                    gas_price,
+                ),
             )
             .await
         {
@@ -1115,8 +1117,7 @@ impl Batcher {
         batch_data_pointer: String,
         leaves: Vec<[u8; 32]>,
         signatures: Vec<SignatureData>,
-        gas_for_aggregator: U256,
-        gas_per_proof: U256,
+        fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
         // pad leaves to next power of 2
         let padded_leaves = Self::pad_leaves(leaves);
@@ -1128,8 +1129,7 @@ impl Batcher {
             batch_data_pointer.clone(),
             padded_leaves.clone(),
             signatures.clone(),
-            gas_for_aggregator,
-            gas_per_proof,
+            fee_params.clone(),
             &self.payment_service,
         )
         .await
@@ -1148,8 +1148,7 @@ impl Batcher {
                     batch_data_pointer,
                     padded_leaves,
                     signatures,
-                    gas_for_aggregator,
-                    gas_per_proof,
+                    fee_params,
                     &self.payment_service_fallback,
                 )
                 .await?;
