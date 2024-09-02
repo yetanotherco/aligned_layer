@@ -8,6 +8,14 @@ defmodule ExplorerWeb.Calculator.Index do
 
   @max_number_of_proofs 10_000
 
+  @frequency_map %{
+    "hourly" => 1,
+    "daily" => 24,
+    "weekly" => 24 * 7,
+    "monthly" => 24 * 30,
+    "yearly" => 24 * 365
+  }
+
   @doc """
   The main components are:
       * **Cost of BLS aggregator task response in Ethereum**: ~constant, 400000 gas. Can vary depending on the amount of Operators that didn't sign but we can't know this beforehand). This cost is paid by the aggregator when interacting with the *ServiceManager* and must be refunded to it.
@@ -35,7 +43,8 @@ defmodule ExplorerWeb.Calculator.Index do
      assign(socket,
        number_of_proofs: 0,
        cost_in_wei: 0,
-       max_number_of_proofs: @max_number_of_proofs
+       max_number_of_proofs: @max_number_of_proofs,
+       frequency: "hourly"
      )}
   end
 
@@ -59,7 +68,17 @@ defmodule ExplorerWeb.Calculator.Index do
      socket
      |> assign(
        number_of_proofs: number_of_proofs,
-       cost_in_wei: calculate_cost(number_of_proofs)
+       cost_in_wei: calculate_cost(number_of_proofs, socket.assigns.frequency)
+     )}
+  end
+
+  @impl true
+  def handle_event("change_frequency", %{"frequency" => frequency}, socket) do
+    {:noreply,
+     socket
+     |> assign(
+       frequency: frequency,
+       cost_in_wei: calculate_cost(socket.assigns.number_of_proofs, frequency)
      )}
   end
 
@@ -77,6 +96,9 @@ defmodule ExplorerWeb.Calculator.Index do
           Let's see how much you can save by verifying your proofs. Enter the number of proofs you want to verify:
         </p>
         <.card_background class="space-y-3">
+          <h3 class="text-lg">
+            How many proofs do you generate?
+          </h3>
           <div class="flex items-center gap-3">
             <form phx-submit="change_number_of_proofs">
               <label for="proofs" class="text-foreground sr-only">Number of Proofs: </label>
@@ -121,6 +143,48 @@ defmodule ExplorerWeb.Calculator.Index do
               <%= Numbers.format_number(@max_number_of_proofs) %>
             </p>
           </div>
+          <form phx-submit="change_frequency" class="space-x-1">
+            <.button
+              type="button"
+              phx-click="change_frequency"
+              phx-value-frequency="hourly"
+              variant={if @frequency == "hourly", do: "primary"}
+            >
+              Hourly
+            </.button>
+            <.button
+              type="button"
+              phx-click="change_frequency"
+              phx-value-frequency="daily"
+              variant={if @frequency == "daily", do: "primary"}
+            >
+              Daily
+            </.button>
+            <.button
+              type="button"
+              phx-click="change_frequency"
+              phx-value-frequency="weekly"
+              variant={if @frequency == "weekly", do: "primary"}
+            >
+              Weekly
+            </.button>
+            <.button
+              type="button"
+              phx-click="change_frequency"
+              phx-value-frequency="monthly"
+              variant={if @frequency == "monthly", do: "primary"}
+            >
+              Monthly
+            </.button>
+            <.button
+              type="button"
+              phx-click="change_frequency"
+              phx-value-frequency="yearly"
+              variant={if @frequency == "yearly", do: "primary"}
+            >
+              Yearly
+            </.button>
+          </form>
           <p>
             Your estimated cost for verifying
             <span class="font-semibold">
@@ -135,14 +199,14 @@ defmodule ExplorerWeb.Calculator.Index do
                 proof
               <% end %>
             </span>
-            in ALIGNED is
+            <%= @frequency %> in ALIGNED is
             <span class="text-xl font-bold ml-1 text-primary">
               <%= if @number_of_proofs > 0 do %>
                 <%= @cost_in_wei |> Numbers.format_number() %>
               <% else %>
                 0
               <% end %>
-              WEI
+              gas
             </span>
           </p>
         </.card_background>
@@ -158,13 +222,14 @@ defmodule ExplorerWeb.Calculator.Index do
     """
   end
 
-  defp calculate_cost(number_of_proofs) when is_nil(number_of_proofs), do: 0
-  defp calculate_cost(number_of_proofs) when number_of_proofs == "", do: 0
+  defp calculate_cost(number_of_proofs, frequency) when is_nil(number_of_proofs), do: 0
+  defp calculate_cost(number_of_proofs, frequency) when number_of_proofs == "", do: 0
 
-  defp calculate_cost(number_of_proofs) do
+  defp calculate_cost(number_of_proofs, frequency) do
     case Integer.parse(number_of_proofs) |> elem(0) do
       n when n > 0 ->
-        div(@constant_cost, n) + @additional_submission_cost_per_proof
+        (div(@constant_cost, n) + @additional_submission_cost_per_proof) *
+          @frequency_map[frequency]
 
       _ ->
         0
