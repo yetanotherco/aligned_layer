@@ -50,11 +50,11 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
-const AGGREGATOR_GAS_COST: u128 = 400000;
-const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 100000;
+const AGGREGATOR_GAS_COST: u128 = 400_000;
+const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 100_000;
 const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_GAS_COST: u128 = AGGREGATOR_GAS_COST + BATCHER_SUBMISSION_BASE_GAS_COST;
-const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
+const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.0000000001 ether (low gas price)
 
 struct BatchState {
@@ -773,7 +773,8 @@ impl Batcher {
     ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     /// Then the batch will be made as big as possible given this two conditions:
     ///     * The serialized batch size needs to be smaller than the maximum batch size
-    ///     * The minimum fee on the batch is bigger than the fee the users will pay
+    ///     * The batch submition fee is less than the lowest `max fee` included the batch,
+    ///     * And the batch submition fee is more than the highest `max fee` not included the batch.
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
@@ -1240,7 +1241,7 @@ impl Batcher {
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
                     nonce_bytes,
-                    DEFAULT_MAX_FEE.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
+                    DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
                     self.chain_id,
                 )
             };
@@ -1312,7 +1313,7 @@ impl Batcher {
 
     async fn get_gas_price(&self) -> Option<U256> {
         match self.eth_ws_provider.get_gas_price().await {
-            Ok(gas_price) => Some(gas_price),
+            Ok(gas_price) => Some(gas_price), // this is the block's max priority gas price, not the base fee
             Err(_) => match self.eth_ws_provider_fallback.get_gas_price().await {
                 Ok(gas_price) => Some(gas_price),
                 Err(_) => {
