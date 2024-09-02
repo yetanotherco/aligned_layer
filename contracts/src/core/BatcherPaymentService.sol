@@ -31,9 +31,8 @@ contract BatcherPaymentService is
     error NoProofSubmitterSignatures(); // 32742c04
     error NotEnoughLeaves(uint256 leavesQty, uint256 signaturesQty); // 320f0a1b
     error LeavesNotPowerOfTwo(uint256 leavesQty); // 6b1651e1
-    error NoGasForAggregator(); // ea46d6a4
-    error NoGasPerProof(); // 459e386d
-    error InsufficientGasForAggregator(uint256 required, uint256 available); // ca3b0e0f
+    error NoFeePerProof(); // 459e386d
+    error InsufficientFeeForAggregator(uint256 required, uint256 available); // ca3b0e0f
     error UserHasNoFundsToUnlock(address user); // b38340cf
     error UserHasNoFundsToLock(address user); // 6cc12bc2
     error PayerInsufficientBalance(uint256 balance, uint256 amount); // 21c3d50f
@@ -108,14 +107,11 @@ contract BatcherPaymentService is
         string calldata batchDataPointer,
         bytes32[] calldata leaves, // padded to the next power of 2
         SignatureData[] calldata signatures, // actual length (proof sumbitters == proofs submitted)
-        uint256 gasForAggregator,
-        uint256 gasPerProof
+        uint256 feeForAggregator,
+        uint256 feePerProof
     ) external onlyBatcher whenNotPaused {
         uint256 leavesQty = leaves.length;
         uint256 signaturesQty = signatures.length;
-
-        uint256 feeForAggregator = gasForAggregator * tx.gasprice;
-        uint256 feePerProof = gasPerProof * tx.gasprice;
 
         if (leavesQty == 0) {
             revert NoLeavesSubmitted();
@@ -133,16 +129,12 @@ contract BatcherPaymentService is
             revert LeavesNotPowerOfTwo(leavesQty);
         }
 
-        if (feeForAggregator == 0) {
-            revert NoGasForAggregator();
-        }
-
         if (feePerProof == 0) {
-            revert NoGasPerProof();
+            revert NoFeePerProof();
         }
 
         if (feePerProof * signaturesQty <= feeForAggregator) {
-            revert InsufficientGasForAggregator(
+            revert InsufficientFeeForAggregator(
                 feeForAggregator,
                 feePerProof * signaturesQty
             );
