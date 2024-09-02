@@ -759,8 +759,9 @@ impl Batcher {
                 batch_data_pointer,
                 leaves,
                 signatures,
-                AGGREGATOR_COST.into(),
-                gas_per_proof.into(),
+                AGGREGATOR_COST.into(), //TODO migrate to fee per proof
+                gas_per_proof.into(), //TODO migrate to fee per proof
+                AGGREGATOR_COST.into() * 3, //TODO migrate to fee per proof
             )
             .await
         {
