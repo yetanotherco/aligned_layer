@@ -54,9 +54,8 @@ const AGGREGATOR_GAS_COST: u128 = 400000;
 const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 100000;
 const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_GAS_COST: u128 = AGGREGATOR_GAS_COST + BATCHER_SUBMISSION_BASE_GAS_COST;
-const MIN_BALANCE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
 const DEFAULT_MAX_FEE: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
-const MIN_FEE: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.0000000001 ether (low gas price)
+const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.0000000001 ether (low gas price)
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -487,7 +486,7 @@ impl Batcher {
                 let nonce = U256::from_big_endian(nonced_verification_data.nonce.as_slice());
                 let max_fee = nonced_verification_data.max_fee;
 
-                if max_fee < U256::from(MIN_FEE) {
+                if max_fee < U256::from(MIN_FEE_PER_PROOF) {
                     error!("The max fee signed in the message is less than the accepted minimum fee to be included in the batch.");
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee)
                         .await;
@@ -601,7 +600,7 @@ impl Batcher {
 
         let user_balance = self.get_user_balance(addr).await;
 
-        let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_BALANCE_PER_PROOF);
+        let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
         if user_balance < min_balance {
             return false;
         }
