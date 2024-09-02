@@ -776,7 +776,11 @@ impl Batcher {
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
-    async fn is_batch_ready(&self, block_number: u64) -> Option<(Vec<BatchQueueEntry>, U256)> {
+    async fn is_batch_ready(
+        &self,
+        block_number: u64,
+        gas_price: U256,
+    ) -> Option<Vec<BatchQueueEntry>> {
         let mut batch_state = self.batch_state.lock().await;
         let current_batch_len = batch_state.batch_queue.len();
 
@@ -808,14 +812,6 @@ impl Batcher {
             return None;
         }
 
-        let gas_price = match self.get_gas_price().await {
-            Some(price) => price,
-            None => {
-                error!("Failed to get gas price");
-                return None;
-            }
-        };
-
         // Set the batch posting flag to true
         *batch_posting = true;
 
@@ -827,7 +823,7 @@ impl Batcher {
                 batch_state.batch_queue = batch_queue_copy;
                 batch_state.update_user_proofs_in_batch_and_min_fee();
 
-                Some((finalized_batch, gas_price))
+                Some(finalized_batch)
             }
             None => {
                 // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
@@ -1005,7 +1001,15 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        while let Some((finalized_batch, gas_price)) = self.is_batch_ready(block_number).await {
+        let gas_price = match self.get_gas_price().await {
+            Some(price) => price,
+            None => {
+                error!("Failed to get gas price");
+                return Err(BatcherError::GasPriceError);
+            }
+        };
+
+        while let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
             let batch_finalization_result = self
                 .finalize_batch(block_number, finalized_batch, gas_price)
                 .await;
@@ -1016,6 +1020,7 @@ impl Batcher {
 
             batch_finalization_result?;
         }
+
         Ok(())
     }
 
