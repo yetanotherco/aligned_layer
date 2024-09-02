@@ -134,7 +134,7 @@ impl BatchState {
         });
 
         if !is_valid {
-            return Some(ValidityResponseMessage::InvalidMaxFee);
+            return Some(ValidityResponseMessage::InvalidReplacementMessage);
         }
 
         info!(
@@ -675,11 +675,14 @@ impl Batcher {
                     entry.clone()
                 } else {
                     warn!(
-                        "Invalid max fee for address {addr}, had fee {:?} < {:?}",
+                        "Invalid replacement message for address {addr}, had fee {:?} < {:?}",
                         entry.nonced_verification_data.max_fee, replacement_max_fee
                     );
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee)
-                        .await;
+                    send_message(
+                        ws_conn_sink.clone(),
+                        ValidityResponseMessage::InvalidReplacementMessage,
+                    )
+                    .await;
 
                     return false;
                 }

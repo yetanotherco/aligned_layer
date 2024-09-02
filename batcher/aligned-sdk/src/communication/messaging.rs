@@ -111,6 +111,10 @@ pub async fn send_messages(
                 error!("Invalid chain id!");
                 return Err(SubmitError::InvalidChainId);
             }
+            ValidityResponseMessage::InvalidReplacementMessage => {
+                error!("Invalid replacement message!");
+                return Err(SubmitError::InvalidReplacementMessage);
+            }
         };
 
         sent_verification_data.push(verification_data.clone());

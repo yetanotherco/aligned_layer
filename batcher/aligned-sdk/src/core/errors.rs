@@ -76,6 +76,7 @@ pub enum SubmitError {
     InvalidChainId,
     InvalidProof,
     ProofTooLarge,
+    InvalidReplacementMessage,
     InsufficientBalance,
     BatchSubmissionFailed(String),
     GenericError(String),
@@ -173,6 +174,7 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidChainId => write!(f, "Invalid chain Id"),
             SubmitError::InvalidProof => write!(f, "Invalid proof"),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
+            SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }
