@@ -391,7 +391,7 @@ impl Batcher {
                 self.add_to_batch(
                     nonced_verification_data,
                     ws_conn_sink.clone(),
-                    client_msg.signature.unwrap(),
+                    client_msg.signature,
                 )
                 .await;
 
@@ -917,13 +917,13 @@ impl Batcher {
                 nonced_verification_data.clone(),
                 non_paying_config.replacement.clone(),
             )
-            .unwrap();
+            .await;
 
             self.clone()
                 .add_to_batch(
                     nonced_verification_data,
                     ws_conn_sink.clone(),
-                    client_msg.signature.unwrap(),
+                    client_msg.signature,
                 )
                 .await;
         } else {

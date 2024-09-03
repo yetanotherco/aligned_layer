@@ -5,13 +5,15 @@ import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/Ownabl
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 
 contract BatcherPaymentService is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
-    UUPSUpgradeable
+    UUPSUpgradeable,
+    EIP712
 {
     using ECDSA for bytes32;
 
@@ -47,6 +49,11 @@ contract BatcherPaymentService is
     ); // 955c0664
     error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
 
+    bytes32 constant NONCED_VERIFICATION_DATA_TYPEHASH =
+        keccak256(
+            "NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce)"
+        );
+
     struct SignatureData {
         bytes signature;
         uint256 nonce;
@@ -71,7 +78,7 @@ contract BatcherPaymentService is
     uint256[24] private __GAP;
 
     // CONSTRUCTOR & INITIALIZER
-    constructor() {
+    constructor() EIP712("Aligned", "1") {
         _disableInitializers();
     }
 
@@ -281,15 +288,21 @@ contract BatcherPaymentService is
     }
 
     function _verifySignatureAndDecreaseBalance(
-        bytes32 hash,
+        bytes32 leaf,
         SignatureData calldata signatureData,
         uint256 feePerProof
     ) private {
-        bytes32 noncedHash = keccak256(
-            abi.encodePacked(hash, signatureData.nonce, block.chainid)
+        bytes32 structHash = keccak256(
+            abi.encode(
+                NONCED_VERIFICATION_DATA_TYPEHASH,
+                leaf,
+                keccak256(abi.encodePacked(signatureData.nonce))
+            )
         );
 
-        address signer = noncedHash.recover(signatureData.signature);
+        bytes32 hash = _hashTypedDataV4(structHash);
+
+        address signer = ECDSA.recover(hash, signatureData.signature);
 
         if (signer == address(0)) {
             revert InvalidSignature();
