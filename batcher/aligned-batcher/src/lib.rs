@@ -876,7 +876,7 @@ impl Batcher {
                 + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs as u128)
                 / num_proofs as u128;
 
-            let batch_submission_fee = U256::from(gas_per_proof).checked_mul(gas_price).unwrap(); // TODO: remove unwrap
+            let batch_submission_fee = U256::from(gas_per_proof) * gas_price;
 
             debug!(
                 "Validating that batch submission fee {} is less than max fee {} for sender {}",
