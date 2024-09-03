@@ -10,7 +10,7 @@ import (
 
 func TestMinaStateProofVerifies(t *testing.T) {
 	fmt.Println(os.Getwd())
-	proofFile, err := os.Open("../../batcher/aligned/test_files/mina/protocol_state.proof")
+	proofFile, err := os.Open("../../scripts/test_files/mina/mina_state.proof")
 	if err != nil {
 		t.Errorf("could not open mina state proof file")
 	}
@@ -21,7 +21,7 @@ func TestMinaStateProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from mina state proof file")
 	}
 
-	pubInputFile, err := os.Open("../../batcher/aligned/test_files/mina/protocol_state.pub")
+	pubInputFile, err := os.Open("../../scripts/test_files/mina/mina_state.pub")
 	if err != nil {
 		t.Errorf("could not open mina state hash file")
 	}

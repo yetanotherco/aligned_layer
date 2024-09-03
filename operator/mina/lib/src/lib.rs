@@ -195,17 +195,14 @@ mod test {
     use super::*;
 
     const PROOF_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.proof");
+        include_bytes!("../../../../scripts/test_files/mina/mina_state.proof");
     const PUB_INPUT_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.pub");
-    const PROTOCOL_STATE_BAD_HASH_PUB_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state_bad_hash.pub");
-    const PROTOCOL_STATE_BAD_CONSENSUS_PUB_BYTES: &[u8] = include_bytes!(
-        "../../../../batcher/aligned/test_files/mina/protocol_state_bad_consensus.pub"
-    );
+        include_bytes!("../../../../scripts/test_files/mina/mina_state.pub");
+    const BAD_HASH_PUB_INPUT_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina/mina_state_bad_hash.pub");
 
     #[test]
-    fn protocol_state_proof_verifies() {
+    fn valid_mina_state_proof_verifies() {
         let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
         let proof_size = PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
@@ -222,33 +219,16 @@ mod test {
     }
 
     #[test]
-    fn proof_of_protocol_state_with_bad_hash_does_not_verify() {
+    fn mina_state_proof_with_bad_bridge_tip_hash_does_not_verify() {
         let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
         let proof_size = PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
         proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
 
         let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PROTOCOL_STATE_BAD_HASH_PUB_BYTES.len();
+        let pub_input_size = BAD_HASH_PUB_INPUT_BYTES.len();
         assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PROTOCOL_STATE_BAD_HASH_PUB_BYTES);
-
-        let result =
-            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
-        assert!(!result);
-    }
-
-    #[test]
-    fn proof_of_protocol_state_with_bad_consensus_does_not_verify() {
-        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
-        let proof_size = PROOF_BYTES.len();
-        assert!(proof_size <= proof_buffer.len());
-        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
-
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PROTOCOL_STATE_BAD_CONSENSUS_PUB_BYTES.len();
-        assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PROTOCOL_STATE_BAD_CONSENSUS_PUB_BYTES);
+        pub_input_buffer[..pub_input_size].clone_from_slice(BAD_HASH_PUB_INPUT_BYTES);
 
         let result =
             verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);

@@ -13,7 +13,7 @@ const GRACE_PERIOD_END: u32 = 1440;
 const SUB_WINDOWS_PER_WINDOW: u32 = 11;
 const SLOTS_PER_SUB_WINDOW: u32 = 7;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ChainResult {
     Bridge,
     Candidate,
@@ -137,4 +137,38 @@ fn hash_last_vrf(chain: &MinaProtocolState) -> String {
 
 fn hash_state(chain: &MinaProtocolState) -> String {
     MinaHash::hash(chain).to_hex()
+}
+
+#[cfg(test)]
+mod test {
+    use mina_bridge_core::proof::state_proof::MinaStateProof;
+
+    use super::*;
+
+    const PROOF_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina/mina_state.proof");
+
+    #[test]
+    fn new_mina_state_passes_consensus_checks() {
+        let valid_proof: MinaStateProof = bincode::deserialize(PROOF_BYTES).unwrap();
+        let old_tip = valid_proof.bridge_tip_state;
+        let new_tip = valid_proof.candidate_chain_states.last().unwrap();
+
+        assert_eq!(
+            select_secure_chain(new_tip, &old_tip).unwrap(),
+            ChainResult::Candidate
+        );
+    }
+
+    #[test]
+    fn old_mina_state_fails_consensus_checks() {
+        let valid_proof: MinaStateProof = bincode::deserialize(PROOF_BYTES).unwrap();
+        let old_tip = valid_proof.bridge_tip_state;
+        let new_tip = valid_proof.candidate_chain_states.last().unwrap();
+
+        assert_eq!(
+            select_secure_chain(&old_tip, new_tip).unwrap(),
+            ChainResult::Bridge
+        );
+    }
 }

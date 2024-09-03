@@ -3586,7 +3586,7 @@ dependencies = [
 [[package]]
 name = "mina_bridge_core"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/mina_bridge?branch=relative_finalization#fd359911b8da3039972276c7872e457d45e26646"
+source = "git+https://github.com/lambdaclass/mina_bridge?branch=new_account_proof#fea0e6a52fa950bdc60f2afad71ad21c03296a24"
 dependencies = [
  "aligned-sdk",
  "alloy",
@@ -3617,7 +3617,7 @@ dependencies = [
  "rpassword",
  "serde",
  "serde_json",
- "serde_with 1.14.0",
+ "serde_with 3.9.0",
  "sha3",
  "tokio",
 ]
