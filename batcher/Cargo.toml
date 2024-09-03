@@ -1,7 +1,9 @@
 [workspace]
-members = [
-    "aligned-batcher",
-    "aligned-sdk",
-    "aligned"
-]
+members = ["aligned-batcher", "aligned-sdk", "aligned"]
 resolver = "2"
+
+[patch.crates-io]
+ark-ff = { git = "https://github.com/openmina/algebra", branch = "openmina" }
+ark-ec = { git = "https://github.com/openmina/algebra", branch = "openmina" }
+ark-poly = { git = "https://github.com/openmina/algebra", branch = "openmina" }
+ark-serialize = { git = "https://github.com/openmina/algebra", branch = "openmina" }

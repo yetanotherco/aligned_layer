@@ -365,7 +365,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
 		copy(pubInputBuffer, verificationData.PubInput)
 
-		verificationResult := mina.VerifyProtocolStateProof(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		verificationResult := mina.VerifyMinaState(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
 		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.MinaAccount:
@@ -376,7 +376,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
 		copy(pubInputBuffer, verificationData.PubInput)
 
-		verificationResult := mina_account.VerifyAccountInclusion(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		verificationResult := mina_account.VerifyAccountInclusion(([mina_account.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina_account.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
 		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
