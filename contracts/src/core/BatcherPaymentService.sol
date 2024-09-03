@@ -19,6 +19,10 @@ contract BatcherPaymentService is
 
     // CONSTANTS
     uint256 public constant UNLOCK_BLOCK_COUNT = 100;
+    bytes32 private constant NONCED_VERIFICATION_DATA_TYPEHASH =
+        keccak256(
+            "NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce)"
+        );
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
@@ -48,11 +52,6 @@ contract BatcherPaymentService is
         uint256 required
     ); // 955c0664
     error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
-
-    bytes32 constant NONCED_VERIFICATION_DATA_TYPEHASH =
-        keccak256(
-            "NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce)"
-        );
 
     struct SignatureData {
         bytes signature;

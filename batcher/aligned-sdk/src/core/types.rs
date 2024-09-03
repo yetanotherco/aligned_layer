@@ -216,11 +216,11 @@ impl Eip712 for NoncedVerificationData {
         hasher.update(NONCED_VERIFICATION_DATA_TYPE);
         let nonced_verification_data_type_hash = hasher.finalize_reset();
 
-        hasher.update(&self.nonce);
+        hasher.update(self.nonce);
         let nonce_hash = hasher.finalize_reset();
 
         hasher.update(
-            &[
+            [
                 nonced_verification_data_type_hash.as_slice(),
                 verification_data_hash.as_slice(),
                 nonce_hash.as_slice(),
