@@ -259,10 +259,10 @@ defmodule ExplorerWeb.Calculator.Index do
         <.divider />
         <p>
           *The following assumption to determine the estimated costs is being made: <br /> Verifying
-          <strong>one STARK-FRI proof</strong>
+          one STARK-FRI proof
           on Ethereum costs Ethereum is estimated to be <strong>1,500,000 gas.</strong>
-          <br /> Verifying <strong>one Halo2</strong> proof on Ethereum costs Ethereum is estimated to be
-          <strong>550,000 gas.</strong>
+          <br /> Verifying one Halo2
+          proof on Ethereum costs Ethereum is estimated to be <strong>550,000 gas.</strong>
         </p>
       </section>
     </div>
