@@ -174,52 +174,20 @@ contract AlignedLayerServiceManager is
         uint256 verificationDataBatchIndex,
         address senderAddress
     ) external view returns (bool) {
-        bytes32 batchIdentifierHash = keccak256(
-            abi.encodePacked(batchMerkleRoot, senderAddress)
-        );
-
-        if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
-            return false;
-        }
-
-        if (!batchesState[batchIdentifierHash].responded) {
-            return false;
-        }
-
-        bytes memory leaf = abi.encodePacked(
-            proofCommitment,
-            pubInputCommitment,
-            provingSystemAuxDataCommitment,
-            proofGeneratorAddr
-        );
-
-        bytes32 hashedLeaf = keccak256(leaf);
-
-        return
-            Merkle.verifyInclusionKeccak(
-                merkleProof,
-                batchMerkleRoot,
-                hashedLeaf,
-                verificationDataBatchIndex
+        bytes32 batchIdentifier;
+        if (senderAddress == address(0)) {
+            batchIdentifier = batchMerkleRoot;
+        } else {
+            batchIdentifier = keccak256(
+                abi.encodePacked(batchMerkleRoot, senderAddress)
             );
-    }
+        }
 
-    // Old verifyBatchInclusion
-    // This function is kept for backwards compatibility
-    function verifyBatchInclusion(
-        bytes32 proofCommitment,
-        bytes32 pubInputCommitment,
-        bytes32 provingSystemAuxDataCommitment,
-        bytes20 proofGeneratorAddr,
-        bytes32 batchMerkleRoot,
-        bytes memory merkleProof,
-        uint256 verificationDataBatchIndex
-    ) external view returns (bool) {
-        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+        if (batchesState[batchIdentifier].taskCreatedBlock == 0) {
             return false;
         }
 
-        if (!batchesState[batchMerkleRoot].responded) {
+        if (!batchesState[batchIdentifier].responded) {
             return false;
         }
 
