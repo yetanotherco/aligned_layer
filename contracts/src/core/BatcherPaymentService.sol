@@ -66,9 +66,9 @@ contract BatcherPaymentService is
     }
 
     // STORAGE
-    address public batcherWallet;
-
     IAlignedLayerServiceManager public alignedLayerServiceManager;
+
+    address public batcherWallet;
 
     // map to user data
     mapping(address => UserInfo) public userData;

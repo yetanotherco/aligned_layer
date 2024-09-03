@@ -12,3 +12,7 @@ docs/
 
 # Dotenv file
 .env
+
+risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof
+risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub
+risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin
