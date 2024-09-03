@@ -13,6 +13,7 @@ pub enum BatcherError {
     TransactionSendError,
     MaxRetriesReachedError,
     SerializationError(String),
+    GasPriceError,
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -59,6 +60,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::SerializationError(e) => {
                 write!(f, "Serialization error: {}", e)
+            }
+            BatcherError::GasPriceError => {
+                write!(f, "Gas price error")
             }
         }
     }

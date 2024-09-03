@@ -43,7 +43,7 @@ pub struct AlignedArgs {
 #[derive(Subcommand, Debug)]
 pub enum AlignedCommands {
     #[clap(about = "Submit proof to the batcher")]
-    Submit(SubmitArgs),
+    Submit(Box<SubmitArgs>),
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
@@ -112,6 +112,14 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
+    #[arg(
+        name = "Max Fee",
+        long = "max_fee",
+        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
+    )]
+    max_fee: U256,
+    #[arg(name = "Nonce", long = "nonce")]
+    nonce: Option<U256>,
 }
 
 #[derive(Parser, Debug)]
@@ -293,32 +301,46 @@ async fn main() -> Result<(), AlignedError> {
 
             let batcher_eth_address = submit_args.payment_service_addr.clone();
 
-            let verification_data = verification_data_from_args(submit_args)?;
+            let max_fee = submit_args.max_fee;
+
+            let nonce = match submit_args.nonce {
+                Some(nonce) => nonce,
+                None => {
+                    get_nonce(
+                        &eth_rpc_url,
+                        wallet.address(),
+                        &batcher_eth_address,
+                        repetitions,
+                    )
+                    .await?
+                }
+            };
+
+            let verification_data = verification_data_from_args(*submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let nonce = get_nonce(
-                &eth_rpc_url,
-                wallet.address(),
-                &batcher_eth_address,
-                repetitions,
+            let max_fees = vec![max_fee; repetitions];
+
+            let aligned_verification_data_vec = match submit_multiple(
+                &connect_addr,
+                &verification_data_arr,
+                &max_fees,
+                wallet.clone(),
+                nonce,
             )
-            .await?;
+            .await
+            {
+                Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
+                Err(e) => {
+                    let nonce_file = format!("nonce_{:?}.bin", wallet.address());
 
-            let aligned_verification_data_vec =
-                match submit_multiple(&connect_addr, &verification_data_arr, wallet.clone(), nonce)
-                    .await
-                {
-                    Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
-                    Err(e) => {
-                        let nonce_file = format!("nonce_{:?}.bin", wallet.address());
-
-                        handle_submit_err(e, nonce_file.as_str()).await;
-                        return Ok(());
-                    }
-                };
+                    handle_submit_err(e, nonce_file.as_str()).await;
+                    return Ok(());
+                }
+            };
 
             let mut unique_batch_merkle_roots = HashSet::new();
 

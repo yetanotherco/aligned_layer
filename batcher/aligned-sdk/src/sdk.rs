@@ -38,6 +38,7 @@ use futures_util::{
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
+/// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
@@ -54,6 +55,7 @@ use futures_util::{
 /// * `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
 /// * `InvalidSignature` if the signature is invalid.
 /// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidMaxFee` if the max fee is invalid.
 /// * `InvalidProof` if the proof is invalid.
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
@@ -64,11 +66,12 @@ pub async fn submit_multiple_and_wait_verification(
     eth_rpc_url: &str,
     chain: Chain,
     verification_data: &[VerificationData],
+    max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     let aligned_verification_data =
-        submit_multiple(batcher_url, verification_data, wallet, nonce).await?;
+        submit_multiple(batcher_url, verification_data, max_fees, wallet, nonce).await?;
 
     for aligned_verification_data_item in aligned_verification_data.iter() {
         await_batch_verification(aligned_verification_data_item, eth_rpc_url, chain.clone())
@@ -82,6 +85,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `verification_data` - An array of verification data of each proof.
+/// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
@@ -95,6 +99,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
 /// * `InvalidSignature` if the signature is invalid.
 /// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidMaxFee` if the max fee is invalid.
 /// * `InvalidProof` if the proof is invalid.
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked.
@@ -103,6 +108,7 @@ pub async fn submit_multiple_and_wait_verification(
 pub async fn submit_multiple(
     batcher_url: &str,
     verification_data: &[VerificationData],
+    max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
@@ -115,13 +121,22 @@ pub async fn submit_multiple(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit_multiple(ws_write, ws_read, verification_data, wallet, nonce).await
+    _submit_multiple(
+        ws_write,
+        ws_read,
+        verification_data,
+        max_fees,
+        wallet,
+        nonce,
+    )
+    .await
 }
 
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     verification_data: &[VerificationData],
+    max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
@@ -146,6 +161,7 @@ async fn _submit_multiple(
         response_stream.clone(),
         ws_write,
         verification_data,
+        max_fees,
         wallet,
         nonce,
     )
@@ -180,6 +196,7 @@ async fn _submit_multiple(
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
+/// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
@@ -196,6 +213,7 @@ async fn _submit_multiple(
 /// * `BatchVerificationTimeout` if there is a timeout waiting for the batch verification.
 /// * `InvalidSignature` if the signature is invalid.
 /// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidMaxFee` if the max fee is invalid.
 /// * `InvalidProof` if the proof is invalid.
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
@@ -206,16 +224,20 @@ pub async fn submit_and_wait_verification(
     eth_rpc_url: &str,
     chain: Chain,
     verification_data: &VerificationData,
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
+
+    let max_fees = vec![max_fee];
 
     let aligned_verification_data = submit_multiple_and_wait_verification(
         batcher_url,
         eth_rpc_url,
         chain,
         &verification_data,
+        &max_fees,
         wallet,
         nonce,
     )
@@ -228,6 +250,7 @@ pub async fn submit_and_wait_verification(
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
 /// * `verification_data` - The verification data of the proof.
+/// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
 /// # Returns
@@ -241,6 +264,7 @@ pub async fn submit_and_wait_verification(
 /// * `WebSocketClosedUnexpectedlyError` if the connection with the batcher is closed unexpectedly.
 /// * `InvalidSignature` if the signature is invalid.
 /// * `InvalidNonce` if the nonce is invalid.
+/// * `InvalidMaxFee` if the max fee is invalid.
 /// * `InvalidProof` if the proof is invalid.
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
@@ -249,13 +273,15 @@ pub async fn submit_and_wait_verification(
 pub async fn submit(
     batcher_url: &str,
     verification_data: &VerificationData,
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
+    let max_fees = vec![max_fee];
 
     let aligned_verification_data =
-        submit_multiple(batcher_url, &verification_data, wallet, nonce).await?;
+        submit_multiple(batcher_url, &verification_data, &max_fees, wallet, nonce).await?;
 
     Ok(aligned_verification_data[0].clone())
 }
@@ -405,6 +431,8 @@ mod test {
 
     use ethers::signers::LocalWallet;
 
+    const MAX_FEE: U256 = U256::max_value();
+
     #[tokio::test]
     async fn test_submit_success() {
         let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -426,6 +454,8 @@ mod test {
 
         let verification_data = vec![verification_data];
 
+        let max_fees = vec![MAX_FEE];
+
         let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
             .parse::<LocalWallet>()
             .map_err(|e| SubmitError::GenericError(e.to_string()))
@@ -436,6 +466,7 @@ mod test {
             "http://localhost:8545",
             Chain::Devnet,
             &verification_data,
+            &max_fees,
             wallet,
             U256::zero(),
         )
@@ -464,11 +495,14 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
+        let max_fees = vec![MAX_FEE];
+
         let result = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
             &verification_data,
+            &max_fees,
             wallet,
             U256::zero(),
         )
@@ -505,11 +539,14 @@ mod test {
             .map_err(|e| SubmitError::GenericError(e.to_string()))
             .unwrap();
 
+        let max_fees = vec![MAX_FEE];
+
         let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
             Chain::Devnet,
             &verification_data,
+            &max_fees,
             wallet,
             U256::zero(),
         )
@@ -560,6 +597,7 @@ mod test {
             "http://localhost:8545",
             Chain::Devnet,
             &verification_data,
+            &[MAX_FEE],
             wallet,
             U256::zero(),
         )
