@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 import {BatcherPaymentService} from "../../src/core/BatcherPaymentService.sol";
 
 import "forge-std/Script.sol";
