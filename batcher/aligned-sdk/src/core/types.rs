@@ -22,6 +22,7 @@ const HOLESKY_CHAIN_ID: u64 = 17000;
 const MAINNET_CHAIN_ID: u64 = 1;
 // VerificationData is a bytes32 instead of a VerificationData struct because in the BatcherPaymentService contract
 // we don't have the fields of VerificationData, we only have the hash of the VerificationData.
+// chain_id is not included in the type because it is now part of the domain.
 const NONCED_VERIFICATION_DATA_TYPE: &[u8] =
     b"NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce)";
 
