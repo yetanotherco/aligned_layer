@@ -760,7 +760,7 @@ impl Batcher {
                 leaves,
                 signatures,
                 AGGREGATOR_COST.into(),
-                gas_per_proof.into()
+                gas_per_proof.into(),
             )
             .await
         {
