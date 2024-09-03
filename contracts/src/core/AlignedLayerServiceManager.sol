@@ -78,7 +78,7 @@ contract AlignedLayerServiceManager is
             );
         }
 
-        if (batchersBalances[msg.sender] <= 0) {
+        if (batchersBalances[msg.sender] == 0) {
             revert BatcherBalanceIsEmpty(msg.sender);
         }
 
@@ -122,7 +122,7 @@ contract AlignedLayerServiceManager is
             revert BatchAlreadyResponded(batchIdentifierHash);
         }
 
-        if (batchersBalances[senderAddress] <= 0) {
+        if (batchersBalances[senderAddress] == 0) {
             revert BatcherHasNoBalance(senderAddress);
         }
 
@@ -219,13 +219,39 @@ contract AlignedLayerServiceManager is
         alignedAggregator = _alignedAggregator;
     }
 
+    function withdraw(uint256 amount) external {
+        if (batchersBalances[msg.sender] < amount) {
+            revert InsufficientFunds(
+                msg.sender,
+                amount,
+                batchersBalances[msg.sender]
+            );
+        }
+
+        batchersBalances[msg.sender] -= amount;
+        emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
+
+        payable(msg.sender).transfer(amount);
+    }
+
     function balanceOf(address account) public view returns (uint256) {
         return batchersBalances[account];
     }
 
+    function depositToBatcher(address account) external payable {
+        _depositToBatcher(account, msg.value);
+    }
+
+    function _depositToBatcher(address account, uint256 amount) internal {
+        if (amount == 0) {
+            revert InvalidDepositAmount(amount);
+        }
+        batchersBalances[account] += amount;
+        emit BatcherBalanceUpdated(account, batchersBalances[account]);
+    }
+
     receive() external payable {
-        batchersBalances[msg.sender] += msg.value;
-        emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
+        _depositToBatcher(msg.sender, msg.value);
     }
 
     function checkPublicInput(
