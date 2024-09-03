@@ -99,7 +99,7 @@ pub async fn try_create_new_task(
             signatures,
             fee_params.fee_for_aggregator,
             fee_params.fee_per_proof,
-            fee_params.fee_per_proof * 2
+            fee_params.max_fee_allowed_to_respond
         )
         .gas_price(fee_params.gas_price);
 
