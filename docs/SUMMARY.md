@@ -37,6 +37,8 @@
 ## Operators
 
 * [Running an operator](operator_guides/0_running_an_operator.md)
+* [Operator FAQ](operator_guides/1_operator_FAQ.md)
+* [Troubleshooting](operator_guides/2_troubleshooting.md)
 
 ## Useful links
 
