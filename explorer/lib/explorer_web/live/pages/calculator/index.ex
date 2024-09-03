@@ -1,17 +1,25 @@
 defmodule ExplorerWeb.Calculator.Index do
   use ExplorerWeb, :live_view
 
+  # Aligned constants
   @aggregator_cost 400_000
   @batcher_submission_base_cost 100_000
   @additional_submission_cost_per_proof 13_000
   @constant_cost @aggregator_cost + @batcher_submission_base_cost
 
+  # Halo2 constants
+  @halo_2_verification_cost 550_000
+
+  # Stark-FRI constants
+  @stark_fri_verification_cost 1_500_000
+
+  @base_number_of_proofs 8
   @max_number_of_proofs 10_000
 
   @frequency_map %{
     "hourly" => 24 * 365,
     "daily" => 365,
-    "weekly" => 365 / 7 |> round(),
+    "weekly" => (365 / 7) |> round(),
     "monthly" => 12,
     "yearly" => 1
   }
@@ -37,10 +45,13 @@ defmodule ExplorerWeb.Calculator.Index do
   def mount(_, _, socket) do
     {:ok,
      assign(socket,
-       number_of_proofs: "1",
-       cost_in_wei: calculate_cost("1", "yearly"),
+       number_of_proofs: @base_number_of_proofs,
        max_number_of_proofs: @max_number_of_proofs,
-       frequency: "yearly"
+       frequency: "yearly",
+       aligned_cost: calculate_aligned_cost(Integer.to_string(@base_number_of_proofs), "yearly"),
+       halo2_cost: calculate_halo_2_cost(Integer.to_string(@base_number_of_proofs), "yearly"),
+       stark_fri_cost:
+         calculate_stark_fri_cost(Integer.to_string(@base_number_of_proofs), "yearly")
      )}
   end
 
@@ -64,7 +75,9 @@ defmodule ExplorerWeb.Calculator.Index do
      socket
      |> assign(
        number_of_proofs: number_of_proofs,
-       cost_in_wei: calculate_cost(number_of_proofs, socket.assigns.frequency)
+       aligned_cost: calculate_aligned_cost(number_of_proofs, socket.assigns.frequency),
+       halo2_cost: calculate_halo_2_cost(number_of_proofs, socket.assigns.frequency),
+       stark_fri_cost: calculate_stark_fri_cost(number_of_proofs, socket.assigns.frequency)
      )}
   end
 
@@ -74,7 +87,15 @@ defmodule ExplorerWeb.Calculator.Index do
      socket
      |> assign(
        frequency: frequency,
-       cost_in_wei: calculate_cost(socket.assigns.number_of_proofs, frequency)
+       aligned_cost:
+         calculate_aligned_cost(socket.assigns.number_of_proofs |> Integer.to_string(), frequency),
+       halo2_cost:
+         calculate_halo_2_cost(socket.assigns.number_of_proofs |> Integer.to_string(), frequency),
+       stark_fri_cost:
+         calculate_stark_fri_cost(
+           socket.assigns.number_of_proofs |> Integer.to_string(),
+           frequency
+         )
      )}
   end
 
@@ -198,12 +219,34 @@ defmodule ExplorerWeb.Calculator.Index do
             </span>
             <span class="text-xl font-bold text-primary">
               <%= if @number_of_proofs > 0 do %>
-                <%= @cost_in_wei |> Numbers.format_number() %>
+                <%= @aligned_cost |> Numbers.format_number() %>
               <% else %>
                 0
               <% end %>
-              gas
+              gas.
             </span>
+          </p>
+          <p>
+            Your estimated annual cost of verifying the same number of STARK-FRI proofs on Ethereum is
+            <strong>
+              <%= if @number_of_proofs > 0 do %>
+                <%= @stark_fri_cost |> Numbers.format_number() %>
+              <% else %>
+                0
+              <% end %>
+              gas*.
+            </strong>
+          </p>
+          <p>
+            Your estimated annual cost of verifying the same number of Halo2 proofs on Ethereum is
+            <strong>
+              <%= if @number_of_proofs > 0 do %>
+                <%= @halo2_cost |> Numbers.format_number() %>
+              <% else %>
+                0
+              <% end %>
+              gas*.
+            </strong>
           </p>
         </.card_background>
         <p>
@@ -213,20 +256,44 @@ defmodule ExplorerWeb.Calculator.Index do
             class="text-primary underline"
           >documentation</.link>.
         </p>
+        <.divider />
+        <p>
+          *The following assumption to determine the estimated costs is being made: <br /> Verifying
+          <strong>one STARK-FRI proof</strong>
+          on Ethereum costs Ethereum is estimated to be <strong>1,500,000 gas.</strong>
+          <br /> Verifying <strong>one Halo2</strong> proof on Ethereum costs Ethereum is estimated to be
+          <strong>550,000 gas.</strong>
+        </p>
       </section>
     </div>
     """
   end
 
-  defp calculate_cost(number_of_proofs, _frequency) when is_nil(number_of_proofs), do: 0
-  defp calculate_cost(number_of_proofs, _frequency) when number_of_proofs == "", do: 0
-  defp calculate_cost(number_of_proofs, _frequency) when number_of_proofs == 0, do: 0
-
-  defp calculate_cost(number_of_proofs, frequency) do
+  defp calculate_aligned_cost(number_of_proofs, frequency) do
     case Integer.parse(number_of_proofs) |> elem(0) do
       n when n > 0 ->
         (div(@constant_cost, n) + @additional_submission_cost_per_proof) *
           @frequency_map[frequency]
+
+      _ ->
+        0
+    end
+  end
+
+  defp calculate_halo_2_cost(number_of_proofs, frequency) do
+    case Integer.parse(number_of_proofs) |> elem(0) do
+      n when n > 0 ->
+        @halo_2_verification_cost * n * @frequency_map[frequency]
+
+      _ ->
+        0
+    end
+  end
+
+  defp calculate_stark_fri_cost(number_of_proofs, frequency) do
+    case Integer.parse(number_of_proofs) |> elem(0) do
+      n when n > 0 ->
+        @stark_fri_verification_cost * n * @frequency_map[frequency]
 
       _ ->
         0
