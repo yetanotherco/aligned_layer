@@ -4,7 +4,7 @@ use mina_p2p_messages::{hash::MinaHash, v2::MinaStateProtocolStateValueStableV2}
 
 #[derive(PartialEq)]
 pub enum LongerChainResult {
-    Tip,
+    Bridge,
     Candidate,
 }
 
@@ -31,7 +31,7 @@ pub fn select_longer_chain(
         }
     }
 
-    LongerChainResult::Tip
+    LongerChainResult::Bridge
 }
 
 fn hash_last_vrf(chain: &MinaStateProtocolStateValueStableV2) -> String {
