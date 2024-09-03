@@ -122,12 +122,12 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
-	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
+func (o *Operator) SubscribeToNewTasks() (chan error, error) {
+	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChanV2)
 }
 
 func (o *Operator) Start(ctx context.Context) error {
-	subV2, err := o.SubscribeToNewTasksV2()
+	subV2, err := o.SubscribeToNewTasks()
 	if err != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
@@ -148,7 +148,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			o.Logger.Fatal("Metrics server failed", "err", err)
 		case err := <-subV2:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
-			subV2, err = o.SubscribeToNewTasksV2()
+			subV2, err = o.SubscribeToNewTasks()
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
