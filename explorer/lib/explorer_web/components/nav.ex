@@ -2,6 +2,11 @@ defmodule NavComponent do
   use ExplorerWeb, :live_component
 
   @impl true
+  def mount(socket) do
+    {:ok, assign(socket, latest_release: ReleasesHelper.get_latest_release())}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <nav class={
@@ -46,6 +51,12 @@ defmodule NavComponent do
           GitHub
         </.link>
         <DarkMode.button />
+        <.badge :if={@latest_release != nil} class="hidden md:inline">
+          <%= @latest_release %>
+          <.tooltip>
+            Latest Aligned version
+          </.tooltip>
+        </.badge>
         <button
           class="md:hidden z-50"
           id="menu-toggle"
@@ -61,6 +72,9 @@ defmodule NavComponent do
           phx-click={toggle_menu()}
         >
           <div class="h-full flex flex-col gap-y-10 text-2xl justify-end items-center p-12">
+            <.badge :if={@latest_release != nil}>
+              <%= @latest_release %>
+            </.badge>
             <.link
               class="text-foreground/80 hover:text-foreground font-semibold"
               navigate={~p"/batches"}
