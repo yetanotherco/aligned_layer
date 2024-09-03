@@ -536,7 +536,7 @@ impl Batcher {
                     std::cmp::Ordering::Equal => {
                         // if we are here nonce == expected_user_nonce
                         if !self
-                            .handle_expected_nonce(
+                            .handle_expected_nonce_message(
                                 batch_state,
                                 min_fee,
                                 nonced_verification_data,
@@ -613,7 +613,7 @@ impl Batcher {
     /// If the max_fee is valid, it is added to the batch.
     /// If the max_fee is invalid, a message is sent to the client.
     /// Returns true if the message was added to the batch, false otherwise.
-    async fn handle_expected_nonce(
+    async fn handle_expected_nonce_message(
         &self,
         mut batch_state: tokio::sync::MutexGuard<'_, BatchState>,
         min_fee: U256,
@@ -876,15 +876,15 @@ impl Batcher {
                 + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs as u128)
                 / num_proofs as u128;
 
-            let batch_submission_fee = U256::from(gas_per_proof) * gas_price;
+            let fee_per_proof = U256::from(gas_per_proof) * gas_price;
 
             debug!(
                 "Validating that batch submission fee {} is less than max fee {} for sender {}",
-                batch_submission_fee, entry.nonced_verification_data.max_fee, entry.sender,
+                fee_per_proof, entry.nonced_verification_data.max_fee, entry.sender,
             );
 
             // it is sufficient to check this max fee because it will be the lowest since its sorted
-            if batch_submission_fee < entry.nonced_verification_data.max_fee && num_proofs >= 2 {
+            if fee_per_proof < entry.nonced_verification_data.max_fee && num_proofs >= 2 {
                 finalized_batch_works = true;
             } else if finalized_batch_works {
                 // Can not add latest element since it is not willing to pay the corresponding fee
