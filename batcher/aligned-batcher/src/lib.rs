@@ -164,6 +164,12 @@ impl BatchState {
         None
     }
 
+    /// Updates:
+    ///     * The user proof count in batch
+    ///     * The user min fee pending in batch (which is the one with the highest nonce)
+    /// based on whats currenlty in the batch queue.
+    /// This is necessary because the whole batch may not be included in the finalized batch,
+    /// This caches are needed to validate user messages.
     fn update_user_proofs_in_batch_and_min_fee(&mut self) {
         let mut updated_user_min_fee = HashMap::new();
         let mut updated_user_proof_count_in_batch = HashMap::new();
