@@ -1,7 +1,6 @@
 package chainio
 
 import (
-
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
@@ -10,6 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"math/big"
+	"fmt"
 )
 
 type AvsWriter struct {
@@ -62,8 +64,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-
-func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
@@ -74,6 +75,22 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, senderAddre
 			return nil, err
 		}
 	}
+
+	simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
+	w.logger.Info("Simulated cost", "cost", simulatedCost)
+
+	batchState, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
+	if err != nil {
+		return nil, err
+	}
+	w.logger.Info("Batch MaxFeeAllowedToRespond", "MaxFeeAllowedToRespond", batchState.MaxFeeAllowedToRespond)
+
+	if batchState.MaxFeeAllowedToRespond.Cmp(simulatedCost) < 0 {
+		return nil, fmt.Errorf("cost of transaction is higher than Batch.MaxFeeAllowedToRespond")
+	}
+
+	// TODO check Agg wallet balance against maxFeeAllowedToRespond.
+	// TODO check batcher balance against maxFeeAllowedToRespond.
 
 	// Send the transaction
 	txOpts.NoSend = false
