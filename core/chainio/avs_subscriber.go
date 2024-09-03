@@ -95,14 +95,14 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 		for {
 			select {
 			case newBatch := <-internalChannel:
-				s.processNewBatchV2(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				s.processNewBatch(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			case <-pollLatestBatchTicker.C:
-				latestBatch, err := s.getLatestTaskFromEthereumV2()
+				latestBatch, err := s.getLatestTaskFromEthereum()
 				if err != nil {
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
 				}
-				s.processNewBatchV2(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				s.processNewBatch(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			}
 		}
 
@@ -155,7 +155,7 @@ func subscribeToNewTasks(
 	return nil, fmt.Errorf("failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
 }
 
-func (s *AvsSubscriber) processNewBatchV2(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
+func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
 	newBatchMutex.Lock()
 	defer newBatchMutex.Unlock()
 
@@ -184,7 +184,7 @@ func (s *AvsSubscriber) processNewBatchV2(batch *servicemanager.ContractAlignedL
 // getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
 // The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
 // to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
-func (s *AvsSubscriber) getLatestTaskFromEthereumV2() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
+func (s *AvsSubscriber) getLatestTaskFromEthereum() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
@@ -234,7 +234,7 @@ func (s *AvsSubscriber) getLatestTaskFromEthereumV2() (*servicemanager.ContractA
 	lastLog := logs[len(logs)-1]
 
 	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
-	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatchV2", lastLog.Data)
+	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatch", lastLog.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unpack log data: %w", err)
 	}

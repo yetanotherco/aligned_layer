@@ -45,7 +45,7 @@ type Operator struct {
 	KeyPair              *bls.KeyPair
 	OperatorId           eigentypes.OperatorId
 	avsSubscriber        chainio.AvsSubscriber
-	NewTaskCreatedChanV2 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewTaskCreatedChan   chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	Logger               logging.Logger
 	aggRpcClient         AggregatorRpcClient
 	metricsReg           *prometheus.Registry
@@ -91,7 +91,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
-	newTaskCreatedChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
+	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
@@ -110,7 +110,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		Logger:               logger,
 		avsSubscriber:        *avsSubscriber,
 		Address:              address,
-		NewTaskCreatedChanV2: newTaskCreatedChanV2,
+		NewTaskCreatedChan:   newTaskCreatedChan,
 		aggRpcClient:         *rpcClient,
 		OperatorId:           operatorId,
 		metricsReg:           reg,
@@ -123,11 +123,11 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 }
 
 func (o *Operator) SubscribeToNewTasks() (chan error, error) {
-	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChanV2)
+	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
 }
 
 func (o *Operator) Start(ctx context.Context) error {
-	subV2, err := o.SubscribeToNewTasks()
+	sub, err := o.SubscribeToNewTasks()
 	if err != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
@@ -146,29 +146,29 @@ func (o *Operator) Start(ctx context.Context) error {
 			return nil
 		case err := <-metricsErrChan:
 			o.Logger.Fatal("Metrics server failed", "err", err)
-		case err := <-subV2:
+		case err := <-sub:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
-			subV2, err = o.SubscribeToNewTasks()
+			sub, err = o.SubscribeToNewTasks()
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
-		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
-			o.Logger.Infof("Received new batch log: V2")
-			err := o.ProcessNewBatchLogV2(newBatchLogV2)
+		case newBatchLog := <-o.NewTaskCreatedChan:
+			o.Logger.Infof("Received new batch log")
+			err := o.ProcessNewBatchLog(newBatchLog)
 			if err != nil {
-				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLogV2.BatchMerkleRoot, err)
+				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 				continue
 			}
 
-			batchIdentifier := append(newBatchLogV2.BatchMerkleRoot[:], newBatchLogV2.SenderAddress[:]...)
+			batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
 			var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 			responseSignature := o.SignTaskResponse(batchIdentifierHash)
 			o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
 
 			signedTaskResponse := types.SignedTaskResponse{
 				BatchIdentifierHash: batchIdentifierHash,
-				BatchMerkleRoot:     newBatchLogV2.BatchMerkleRoot,
-				SenderAddress:       newBatchLogV2.SenderAddress,
+				BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+				SenderAddress:       newBatchLog.SenderAddress,
 				BlsSignature:        *responseSignature,
 				OperatorId:          o.OperatorId,
 			}
@@ -184,7 +184,7 @@ func (o *Operator) Start(ctx context.Context) error {
 
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
-func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
+func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
