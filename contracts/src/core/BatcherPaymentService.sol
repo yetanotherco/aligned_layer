@@ -31,8 +31,8 @@ contract BatcherPaymentService is
     error NoProofSubmitterSignatures(); // 32742c04
     error NotEnoughLeaves(uint256 leavesQty, uint256 signaturesQty); // 320f0a1b
     error LeavesNotPowerOfTwo(uint256 leavesQty); // 6b1651e1
-    error NoFeePerProof(); // 459e386d
-    error InsufficientFeeForAggregator(uint256 required, uint256 available); // ca3b0e0f
+    error NoFeePerProof(); // a3a8658a
+    error InsufficientFeeForAggregator(uint256 required, uint256 available); // 7899ec71
     error UserHasNoFundsToUnlock(address user); // b38340cf
     error UserHasNoFundsToLock(address user); // 6cc12bc2
     error PayerInsufficientBalance(uint256 balance, uint256 amount); // 21c3d50f
