@@ -19,10 +19,6 @@ contract BatcherPaymentService is
 
     // CONSTANTS
     uint256 public constant UNLOCK_BLOCK_COUNT = 100;
-    bytes32 private constant NONCED_VERIFICATION_DATA_TYPEHASH =
-        keccak256(
-            "NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce)"
-        );
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
@@ -72,9 +68,14 @@ contract BatcherPaymentService is
     // map to user data
     mapping(address => UserInfo) public userData;
 
+    bytes32 private constant NONCED_VERIFICATION_DATA_TYPEHASH =
+        keccak256(
+            "NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce)"
+        );
+
     // storage gap for upgradeability
     // solhint-disable-next-line var-name-mixedcase
-    uint256[24] private __GAP;
+    uint256[23] private __GAP;
 
     // CONSTRUCTOR & INITIALIZER
     constructor() EIP712("Aligned", "1") {
