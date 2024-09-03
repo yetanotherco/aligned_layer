@@ -377,32 +377,24 @@ batcher_send_mina_task:
 	@echo "Sending Mina state task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Mina \
-		--proof test_files/mina/protocol_state.proof \
-		--public_input test_files/mina/protocol_state.pub \
+		--proof ../../scripts/test_files/mina/mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_mina_task_bad_hash:
 	@echo "Sending Mina state task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Mina \
-		--proof test_files/mina/protocol_state.proof \
-		--public_input test_files/mina/protocol_state_bad_hash.pub \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
-
-batcher_send_mina_task_bad_consensus:
-	@echo "Sending Mina state task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Mina \
-		--proof test_files/mina/protocol_state.proof \
-		--public_input test_files/mina/protocol_state_bad_consensus.pub \
+		--proof ../../scripts/test_files/mina/mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state_bad_hash.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_mina_burst:
 	@echo "Sending Mina state task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Mina \
-		--proof test_files/mina/protocol_state.proof \
-		--public_input test_files/mina/protocol_state.pub \
+		--proof ../../scripts/test_files/mina/mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state.pub \
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
