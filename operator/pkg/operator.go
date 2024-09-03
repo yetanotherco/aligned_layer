@@ -165,7 +165,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			responseSignature := o.SignTaskResponse(batchIdentifierHash)
 			o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
 
-			signedTaskResponse := types.SignedTaskResponseV2{
+			signedTaskResponse := types.SignedTaskResponse{
 				BatchIdentifierHash: batchIdentifierHash,
 				BatchMerkleRoot:     newBatchLogV2.BatchMerkleRoot,
 				SenderAddress:       newBatchLogV2.SenderAddress,
@@ -177,7 +177,7 @@ func (o *Operator) Start(ctx context.Context) error {
 				hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
 				hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 			)
-			go o.aggRpcClient.SendSignedTaskResponseToAggregatorV2(&signedTaskResponse)
+			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
 	}
 }

@@ -15,7 +15,7 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 				return err
 			}
 		case newBatch := <-agg.NewBatchChan:
-			agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task, V2")
+			agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task")
 			agg.AddNewTask(newBatch.BatchMerkleRoot, newBatch.SenderAddress, newBatch.TaskCreatedBlock)
 		}
 	}

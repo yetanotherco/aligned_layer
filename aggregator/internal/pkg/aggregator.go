@@ -32,7 +32,7 @@ const QUORUM_NUMBER = byte(0)
 const QUORUM_THRESHOLD = byte(67)
 
 // Aggregator stores TaskResponse for a task here
-type TaskResponses = []types.SignedTaskResponseV2
+type TaskResponses = []types.SignedTaskResponse
 
 // BatchData stores the data of a batch, for use in map BatchIdentifierHash -> BatchData
 type BatchData struct {
@@ -206,7 +206,8 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 			agg.logger.Fatal("Metrics server failed", "err", err)
 		case blsAggServiceResp := <-agg.blsAggregationService.GetResponseChannel():
 			agg.logger.Info("Received response from BLS aggregation service",
-				"taskIndex", blsAggServiceResp.TaskIndex)			
+				"taskIndex", blsAggServiceResp.TaskIndex)
+
 			go agg.handleBlsAggServiceResponse(blsAggServiceResp)
 		}
 	}
@@ -277,7 +278,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	for i := 0; i < MaxSentTxRetries; i++ {
-		agg.logger.Info("agg if V2")
 		_, err = agg.sendAggregatedResponse(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 		if err == nil {
 			agg.logger.Info("Aggregator successfully responded to task",

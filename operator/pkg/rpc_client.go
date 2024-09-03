@@ -36,10 +36,10 @@ func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) 
 
 // SendSignedTaskResponseToAggregator is the method called by operators via RPC to send
 // their signed task response.
-func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregatorV2(signedTaskResponse *types.SignedTaskResponseV2) {
+func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskResponse *types.SignedTaskResponse) {
 	var reply uint8
 	for retries := 0; retries < MaxRetries; retries++ {
-		err := c.rpcClient.Call("Aggregator.ProcessOperatorSignedTaskResponseV2", signedTaskResponse, &reply)
+		err := c.rpcClient.Call("Aggregator.ProcessOperatorSignedTaskResponse", signedTaskResponse, &reply)
 		if err != nil {
 			c.logger.Error("Received error from aggregator", "err", err)
 			if errors.Is(err, rpc.ErrShutdown) {
@@ -53,7 +53,7 @@ func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregatorV2(signedTaskRes
 					c.logger.Info("Reconnected to aggregator")
 				}
 			} else {
-				c.logger.Infof("Received error from aggregator: %s. Retrying ProcessOperatorSignedTaskResponseV2 RPC call...", err)
+				c.logger.Infof("Received error from aggregator: %s. Retrying ProcessOperatorSignedTaskResponse RPC call...", err)
 				time.Sleep(RetryInterval)
 			}
 		} else {
