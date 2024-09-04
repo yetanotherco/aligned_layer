@@ -112,6 +112,7 @@ dependencies = [
  "hex",
  "lambdaworks-crypto",
  "log",
+ "priority-queue",
  "risc0-zkvm",
  "serde",
  "serde_json",
@@ -4859,6 +4860,17 @@ dependencies = [
  "impl-serde",
  "scale-info",
  "uint",
+]
+
+[[package]]
+name = "priority-queue"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "560bcab673ff7f6ca9e270c17bf3affd8a05e3bd9207f123b0d45076fd8197e8"
+dependencies = [
+ "autocfg",
+ "equivalent",
+ "indexmap 2.2.6",
 ]
 
 [[package]]
