@@ -37,19 +37,19 @@ import (
 )
 
 type Operator struct {
-	Config             config.OperatorConfig
-	Address            ethcommon.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
-	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
-	Logger             logging.Logger
-	aggRpcClient       AggregatorRpcClient
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+	Config               config.OperatorConfig
+	Address              ethcommon.Address
+	Socket               string
+	Timeout              time.Duration
+	PrivKey              *ecdsa.PrivateKey
+	KeyPair              *bls.KeyPair
+	OperatorId           eigentypes.OperatorId
+	avsSubscriber        chainio.AvsSubscriber
+	NewTaskCreatedChan   chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	Logger               logging.Logger
+	aggRpcClient         AggregatorRpcClient
+	metricsReg           *prometheus.Registry
+	metrics              *metrics.Metrics
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -91,11 +91,11 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
+		return nil, fmt.Errorf("could not create RPC client: %s. Is aggregator running?", err)
 	}
 
 	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
@@ -106,15 +106,15 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:             configuration,
-		Logger:             logger,
-		avsSubscriber:      *avsSubscriber,
-		Address:            address,
-		NewTaskCreatedChan: newTaskCreatedChan,
-		aggRpcClient:       *rpcClient,
-		OperatorId:         operatorId,
-		metricsReg:         reg,
-		metrics:            operatorMetrics,
+		Config:               configuration,
+		Logger:               logger,
+		avsSubscriber:        *avsSubscriber,
+		Address:              address,
+		NewTaskCreatedChan:   newTaskCreatedChan,
+		aggRpcClient:         *rpcClient,
+		OperatorId:           operatorId,
+		metricsReg:           reg,
+		metrics:              operatorMetrics,
 		// Timeout
 		// Socket
 	}
@@ -153,43 +153,38 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
-			go o.HandleNewBatchLog(newBatchLog)
+			o.Logger.Infof("Received new batch log")
+			err := o.ProcessNewBatchLog(newBatchLog)
+			if err != nil {
+				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
+				continue
+			}
+
+			batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
+			var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+			responseSignature := o.SignTaskResponse(batchIdentifierHash)
+			o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
+
+			signedTaskResponse := types.SignedTaskResponse{
+				BatchIdentifierHash: batchIdentifierHash,
+				BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+				SenderAddress:       newBatchLog.SenderAddress,
+				BlsSignature:        *responseSignature,
+				OperatorId:          o.OperatorId,
+			}
+			o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+				hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+				hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+				hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+			)
+			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
 	}
 }
 
-func (o *Operator) HandleNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) {
-	err := o.ProcessNewBatchLog(newBatchLog)
-	if err != nil {
-		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
-		return
-	}
-	batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
-	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-
-	responseSignature := o.SignTaskResponse(batchIdentifierHash)
-	o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
-
-	signedTaskResponse := types.SignedTaskResponse{
-		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
-		SenderAddress:       newBatchLog.SenderAddress,
-		BlsSignature:        *responseSignature,
-		OperatorId:          o.OperatorId,
-	}
-
-	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
-		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
-		hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
-		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
-	)
-
-	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
-}
-
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
-func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
+func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),

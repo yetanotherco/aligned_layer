@@ -16,7 +16,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
     using stdStorage for StdStorage;
 
-    event NewBatch(
+    event NewBatchV2(
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
@@ -62,7 +62,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         address(alignedLayerServiceManager).call{value: 0.1 ether}("");
 
         vm.expectEmit(true, true, true, true);
-        emit NewBatch(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer);
+        emit NewBatchV2(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer);
 
         vm.prank(batcher);
         alignedLayerServiceManager.createNewTask(

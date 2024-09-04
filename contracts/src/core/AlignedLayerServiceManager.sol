@@ -62,12 +62,12 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer
     ) external payable {
-        bytes32 batchIdentifierHash = keccak256(
+        bytes32 batchIdentifier = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
         );
 
-        if (batchesState[batchIdentifierHash].taskCreatedBlock != 0) {
-            revert BatchAlreadySubmitted(batchIdentifierHash);
+        if (batchesState[batchIdentifier].taskCreatedBlock != 0) {
+            revert BatchAlreadySubmitted(batchIdentifier);
         }
 
         if (msg.value > 0) {
@@ -87,9 +87,9 @@ contract AlignedLayerServiceManager is
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
 
-        batchesState[batchIdentifierHash] = batchState;
+        batchesState[batchIdentifier] = batchState;
 
-        emit NewBatch(
+        emit NewBatchV2(
             batchMerkleRoot,
             msg.sender,
             uint32(block.number),
@@ -97,7 +97,7 @@ contract AlignedLayerServiceManager is
         );
     }
 
-    function respondToTask(
+    function respondToTaskV2(
         // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
         address senderAddress,
@@ -185,15 +185,20 @@ contract AlignedLayerServiceManager is
         uint256 verificationDataBatchIndex,
         address senderAddress
     ) external view returns (bool) {
-        bytes32 batchIdentifierHash = keccak256(
-            abi.encodePacked(batchMerkleRoot, senderAddress)
-        );
+        bytes32 batchIdentifier;
+        if (senderAddress == address(0)) {
+            batchIdentifier = batchMerkleRoot;
+        } else {
+            batchIdentifier = keccak256(
+                abi.encodePacked(batchMerkleRoot, senderAddress)
+            );
+        }
 
-        if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
+        if (batchesState[batchIdentifier].taskCreatedBlock == 0) {
             return false;
         }
 
-        if (!batchesState[batchIdentifierHash].responded) {
+        if (!batchesState[batchIdentifier].responded) {
             return false;
         }
 
@@ -209,10 +214,32 @@ contract AlignedLayerServiceManager is
         return
             Merkle.verifyInclusionKeccak(
                 merkleProof,
-                batchIdentifierHash,
+                batchMerkleRoot,
                 hashedLeaf,
                 verificationDataBatchIndex
             );
+    }
+
+    // Old function signature for backwards compatibility
+    function verifyBatchInclusion(
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
+        bytes32 batchMerkleRoot,
+        bytes memory merkleProof,
+        uint256 verificationDataBatchIndex
+    ) external view returns (bool) {
+        return this.verifyBatchInclusion(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr,
+            batchMerkleRoot,
+            merkleProof,
+            verificationDataBatchIndex,
+            address(0)
+        );
     }
 
     function setAggregator(address _alignedAggregator) public onlyOwner {
