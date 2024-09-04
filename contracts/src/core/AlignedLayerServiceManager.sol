@@ -157,8 +157,7 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
         if (txCost > currentBatch.maxFeeAllowedToRespond) {
-            revert InsufficientFunds(
-                senderAddress,
+            revert ExceededMaxRespondFee(
                 currentBatch.maxFeeAllowedToRespond,
                 txCost
             );
