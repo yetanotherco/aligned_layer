@@ -44,11 +44,17 @@ pub async fn await_batch_verification(
     aligned_verification_data: &AlignedVerificationData,
     rpc_url: &str,
     chain: Chain,
+    payment_service_addr: &str,
 ) -> Result<(), errors::SubmitError> {
     for _ in 0..RETRIES {
-        if is_proof_verified(aligned_verification_data, chain.clone(), rpc_url)
-            .await
-            .is_ok_and(|r| r)
+        if is_proof_verified(
+            aligned_verification_data,
+            chain.clone(),
+            rpc_url,
+            payment_service_addr,
+        )
+        .await
+        .is_ok_and(|r| r)
         {
             return Ok(());
         }
