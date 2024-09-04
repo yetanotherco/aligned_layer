@@ -152,6 +152,9 @@ defmodule Utils do
     hex_string |> String.replace_prefix("0x", "") |> String.to_integer(16)
   end
 
+  def binary_to_hex_string(nil), do: "0x"
+  def binary_to_hex_string(<<>>), do: "0x"
+
   def binary_to_hex_string(binary) do
     hex_string = binary |> Base.encode16(case: :lower)
     "0x" <> hex_string
@@ -182,14 +185,18 @@ defmodule Utils do
         cond do
           is_json?(body) ->
             case Jason.decode(body) do
-              {:ok, json} -> {:ok, json}
+              {:ok, json} ->
+                {:ok, json}
+
               {:error, reason} ->
                 {:error, {:json_decode, reason}}
             end
 
           is_cbor?(body) ->
             case CBOR.decode(body) do
-              {:ok, cbor_data, _} -> {:ok, cbor_data}
+              {:ok, cbor_data, _} ->
+                {:ok, cbor_data}
+
               {:error, reason} ->
                 {:error, {:cbor_decode, reason}}
             end
@@ -206,20 +213,25 @@ defmodule Utils do
         {:error, {:http_error, reason}}
     end
   end
+
   defp is_json?(body) do
     case Jason.decode(body) do
       {:ok, _} ->
         true
+
       {:error, _} ->
         false
     end
   end
+
   defp is_cbor?(body) do
     case CBOR.decode(body) do
       {:ok, _, _} ->
         true
+
       {:error, _} ->
         false
+
       _other ->
         false
     end

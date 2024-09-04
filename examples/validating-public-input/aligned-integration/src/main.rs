@@ -1,3 +1,4 @@
+use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -6,7 +7,7 @@ use std::str::FromStr;
 use aligned_sdk::core::errors::SubmitError;
 use aligned_sdk::core::types::Chain::Holesky;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{get_next_nonce, submit_and_wait};
+use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use env_logger::Env;
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::Address;
@@ -49,14 +50,17 @@ async fn main() -> Result<(), SubmitError> {
         proof_generator_addr,
     };
 
-    let wallet = LocalWallet::from_str(WALLET_PRIVATE_KEY).expect("Failed to create wallet");
+    // Create a wallet and set chain id to holesky
+    let wallet = LocalWallet::from_str(WALLET_PRIVATE_KEY)
+        .expect("Failed to create wallet")
+        .with_chain_id(17000u64);
 
     let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
         .await
         .expect("Failed to get next nonce");
 
     info!("Submitting Fibonacci proof to Aligned and waiting for verification...");
-    let aligned_verification_data = submit_and_wait(
+    let aligned_verification_data = submit_and_wait_verification(
         BATCHER_URL,
         RPC_URL,
         Holesky,
@@ -66,20 +70,24 @@ async fn main() -> Result<(), SubmitError> {
     )
     .await?;
 
-    let batch_inclusion_data_directory_path = PathBuf::from("./batch_inclusion_data");
+    let batch_inclusion_data_directory_path = PathBuf::from("batch_inclusion_data");
 
     info!(
         "Saving verification data to {:?}",
         batch_inclusion_data_directory_path
     );
-    if let Some(aligned_verification_data) = aligned_verification_data {
-        save_response(
-            batch_inclusion_data_directory_path,
-            &aligned_verification_data,
-        )?;
-    } else {
-        return Err(SubmitError::EmptyVerificationDataList);
-    }
+
+    info!("Proof submitted to aligned. See the batch in the explorer:");
+
+    info!(
+        "https://explorer.alignedlayer.com/batches/0x{}",
+        hex::encode(aligned_verification_data.batch_merkle_root)
+    );
+
+    save_response(
+        batch_inclusion_data_directory_path,
+        &aligned_verification_data,
+    )?;
 
     Ok(())
 }
@@ -104,13 +112,19 @@ fn save_response(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    let data = serde_json::to_vec(&aligned_verification_data)?;
+    let data = serde_json::to_vec(&aligned_verification_data).unwrap();
 
     let mut file = File::create(&batch_inclusion_data_path)
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-
     file.write_all(data.as_slice())
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+
+    let current_dir = env::current_dir().expect("Failed to get current directory");
+
+    info!(
+        "Saved batch inclusion data to {:?}",
+        current_dir.join(batch_inclusion_data_path)
+    );
 
     Ok(())
 }
