@@ -53,14 +53,21 @@ pub struct VerificationData {
 pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
     pub nonce: [u8; 32],
+    pub max_fee: U256,
     pub chain_id: U256,
 }
 
 impl NoncedVerificationData {
-    pub fn new(verification_data: VerificationData, nonce: [u8; 32], chain_id: U256) -> Self {
+    pub fn new(
+        verification_data: VerificationData,
+        nonce: [u8; 32],
+        max_fee: U256,
+        chain_id: U256,
+    ) -> Self {
         Self {
             verification_data,
             nonce,
+            max_fee,
             chain_id,
         }
     }
@@ -295,6 +302,8 @@ pub enum ValidityResponseMessage {
     InvalidSignature,
     InvalidChainId,
     InvalidProof,
+    InvalidMaxFee,
+    InvalidReplacementMessage,
     ProofTooLarge,
     InsufficientBalance(Address),
 }
