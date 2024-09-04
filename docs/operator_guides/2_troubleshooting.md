@@ -12,7 +12,7 @@ We have tracked issues with the following RPC providers:
 
 ### My operator is not showing up on the Aligned explorer
 
-The [explorer](https://explorer.alignedlayer.com/) may take some time to update the operator status. The explorer updates the operators list every 1 hour.
+The [explorer](https://explorer.alignedlayer.com/) may take some time to update the operator status. The explorer updates the operators' list every 1 hour.
 
 If your operator is not showing up after 1 hour, please check the following:
 

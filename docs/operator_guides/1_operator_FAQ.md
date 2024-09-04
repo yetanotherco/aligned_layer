@@ -1,6 +1,6 @@
 # Operator FAQ
 
-The Eigenlayer Operator FAQ is available [here](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-faq).
+The EigenLayer Operator FAQ is available [here](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-faq).
 
 ### How do I get whitelisted to run an operator?
 
@@ -21,7 +21,7 @@ Since v0.5.2, there is a fallback mechanism to have two RPCs, so you need to add
 
 ### How can I check if the version I'm using is the latest one?
 
-You can check the latest version available on the [releases page](https://github.com/yetanotherco/aligned_layer/releases).
+You can check the latest version available on the [releases' page](https://github.com/yetanotherco/aligned_layer/releases).
 
 ### How do I check the operator version registered on the Aligned version tracking system?
 
@@ -33,7 +33,7 @@ curl https://holesky.tracker.alignedlayer.com/versions/<operator_address>
 
 Replace `<operator_address>` with your operator address.
 
-In futures releases, the explorer will show the operator version.
+In future releases, the explorer will show the operator version.
 
 ### How do I check the operator version locally?
 
