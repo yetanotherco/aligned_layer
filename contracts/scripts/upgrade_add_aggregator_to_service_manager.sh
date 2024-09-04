@@ -28,7 +28,7 @@ new_aligned_layer_service_manager_implementation=$(echo "$forge_output" | awk '/
 jq --arg new_aligned_layer_service_manager_implementation "$new_aligned_layer_service_manager_implementation" '.addresses.alignedLayerServiceManagerImplementation = $new_aligned_layer_service_manager_implementation' $OUTPUT_PATH > "script/output/holesky/alignedlayer_deployment_output.temp.json"
 
 # Write aggregator addres to deployment output file
-ALIGNED_LAYER_AGGREGATOR_ADDRESS=$(jq -r '.permissions.aggregator' ./script/deploy/config/holesky/aligned.holesky.config.json)
+ALIGNED_LAYER_AGGREGATOR_ADDRESS=$(jq -r '.permissions.aggregator' $DEPLOY_CONFIG_PATH)
 jq --arg alignedLayerAggregator "$ALIGNED_LAYER_AGGREGATOR_ADDRESS" '.permissions += {"alignedLayerAggregator": $alignedLayerAggregator}' "script/output/holesky/alignedlayer_deployment_output.temp.json" > "script/output/holesky/alignedlayer_deployment_output.temp2.json"
 
 # Replace the original file with the temporary file
