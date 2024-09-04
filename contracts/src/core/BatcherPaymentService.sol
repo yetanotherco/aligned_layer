@@ -72,7 +72,7 @@ contract BatcherPaymentService is
 
     bytes32 private constant NONCED_VERIFICATION_DATA_TYPEHASH =
         keccak256(
-            "NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce)"
+            "NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce,uint256 max_fee)"
         );
 
     // storage gap for upgradeability
@@ -291,16 +291,16 @@ contract BatcherPaymentService is
         SignatureData calldata signatureData,
         uint256 feePerProof
     ) private {
-     if (signatureData.maxFee < feePerProof) {
-                revert InvalidMaxFee(signatureData.maxFee, feePerProof);
-            }
-
+        if (signatureData.maxFee < feePerProof) {
+            revert InvalidMaxFee(signatureData.maxFee, feePerProof);
+        }
 
         bytes32 structHash = keccak256(
             abi.encode(
                 NONCED_VERIFICATION_DATA_TYPEHASH,
                 leaf,
-                keccak256(abi.encodePacked(signatureData.nonce))
+                keccak256(abi.encodePacked(signatureData.nonce)),
+                keccak256(abi.encodePacked(signatureData.maxFee))
             )
         );
 

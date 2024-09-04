@@ -24,7 +24,7 @@ const MAINNET_CHAIN_ID: u64 = 1;
 // we don't have the fields of VerificationData, we only have the hash of the VerificationData.
 // chain_id is not included in the type because it is now part of the domain.
 const NONCED_VERIFICATION_DATA_TYPE: &[u8] =
-    b"NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce)";
+    b"NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce,uint256 max_fee)";
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 #[repr(u8)]
@@ -226,9 +226,15 @@ impl Eip712 for NoncedVerificationData {
         hasher.update(self.nonce);
         let nonce_hash = hasher.finalize_reset();
 
+        let mut max_fee_bytes = [0u8; 32];
+        self.max_fee.to_big_endian(&mut max_fee_bytes);
+        hasher.update(max_fee_bytes);
+        let max_fee_hash = hasher.finalize_reset();
+
         hasher.update(nonced_verification_data_type_hash.as_slice());
         hasher.update(verification_data_hash.as_slice());
         hasher.update(nonce_hash.as_slice());
+        hasher.update(max_fee_hash.as_slice());
 
         Ok(hasher.finalize().into())
     }
