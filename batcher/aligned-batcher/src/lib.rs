@@ -56,7 +56,7 @@ const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_GAS_COST: u128 = AGGREGATOR_GAS_COST + BATCHER_SUBMISSION_BASE_GAS_COST;
 const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
 const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // gas_price = 0.1 Gwei = 0.0000000001 ether (low gas price)
-const MAX_FEE_FOR_AGGREGATOR_MULTIPLIER : u128 = 2;
+const MAX_FEE_FOR_AGGREGATOR_MULTIPLIER: u128 = 2;
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -1087,8 +1087,14 @@ impl Batcher {
 
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
         let fee_for_aggregator = U256::from(AGGREGATOR_GAS_COST) * gas_price;
-        let max_fee_allowed_to_respond = fee_for_aggregator * U256::from(MAX_FEE_FOR_AGGREGATOR_MULTIPLIER);
-        let fee_params = CreateNewTaskFeeParams::new(fee_for_aggregator, fee_per_proof, gas_price, max_fee_allowed_to_respond);
+        let max_fee_allowed_to_respond =
+            fee_for_aggregator * U256::from(MAX_FEE_FOR_AGGREGATOR_MULTIPLIER);
+        let fee_params = CreateNewTaskFeeParams::new(
+            fee_for_aggregator,
+            fee_per_proof,
+            gas_price,
+            max_fee_allowed_to_respond,
+        );
 
         let signatures = signatures
             .iter()

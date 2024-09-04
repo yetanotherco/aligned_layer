@@ -33,12 +33,17 @@ pub struct CreateNewTaskFeeParams {
 }
 
 impl CreateNewTaskFeeParams {
-    pub fn new(fee_for_aggregator: U256, fee_per_proof: U256, gas_price: U256, max_fee_allowed_to_respond: U256) -> Self {
+    pub fn new(
+        fee_for_aggregator: U256,
+        fee_per_proof: U256,
+        gas_price: U256,
+        max_fee_allowed_to_respond: U256,
+    ) -> Self {
         CreateNewTaskFeeParams {
             fee_for_aggregator,
             fee_per_proof,
             gas_price,
-            max_fee_allowed_to_respond
+            max_fee_allowed_to_respond,
         }
     }
 }
@@ -99,7 +104,7 @@ pub async fn try_create_new_task(
             signatures,
             fee_params.fee_for_aggregator,
             fee_params.fee_per_proof,
-            fee_params.max_fee_allowed_to_respond
+            fee_params.max_fee_allowed_to_respond,
         )
         .gas_price(fee_params.gas_price);
 
