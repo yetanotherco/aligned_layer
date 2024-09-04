@@ -117,7 +117,7 @@ pub struct SubmitArgs {
         long = "max_fee",
         default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
-    max_fee: U256,
+    max_fee: String,
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<U256>,
 }
@@ -269,6 +269,9 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
+            let max_fee =
+                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
+
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
@@ -300,8 +303,6 @@ async fn main() -> Result<(), AlignedError> {
             wallet = wallet.with_chain_id(chain_id);
 
             let batcher_eth_address = submit_args.payment_service_addr.clone();
-
-            let max_fee = submit_args.max_fee;
 
             let nonce = match submit_args.nonce {
                 Some(nonce) => nonce,
