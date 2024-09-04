@@ -62,6 +62,7 @@ use futures_util::{
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
+#[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_multiple_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
@@ -227,6 +228,7 @@ async fn _submit_multiple(
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
+#[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
