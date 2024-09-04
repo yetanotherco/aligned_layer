@@ -107,13 +107,11 @@ impl BatchState {
     /// Checks if the entry is valid
     /// An entry is valid if there is no entry with the same sender,
     /// lower nonce and a lower fee
-    /// If the entry is valid, it replaces the entry in the queue
-    /// to increment the max fee, then it updates the user min fee if necessary
     /// If the entry is invalid, it returns a validity response message.
     /// If the entry is valid, it returns None.
-    fn validate_and_increment_max_fee(
-        &mut self,
-        replacement_entry: BatchQueueEntry,
+    fn validate_max_fee(
+        &self,
+        replacement_entry: &BatchQueueEntry,
     ) -> Option<ValidityResponseMessage> {
         let replacement_max_fee = replacement_entry.nonced_verification_data.max_fee;
         let nonce =
@@ -136,16 +134,23 @@ impl BatchState {
             return Some(ValidityResponseMessage::InvalidReplacementMessage);
         }
 
-        info!(
-            "Entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
-            sender, nonce, replacement_max_fee
-        );
+        None
+    }
 
+    /// If the call to validate_max_fee is valid, it replaces the entry in the queue
+    /// to increment the max fee, then it updates the user min fee if necessary
+    fn increment_max_fee(
+        &mut self,
+        sender: Address,
+        replacement_max_fee: U256,
+        nonce: U256,
+        replacement_entry: &BatchQueueEntry,
+    ) {
         // remove the old entry and insert the new one
         // note that the entries are considered equal for the priority queue
         // if they have the same nonce and sender, so we can remove the old entry
         // by calling remove with the new entry
-        self.batch_queue.remove(&replacement_entry);
+        self.batch_queue.remove(replacement_entry);
         self.batch_queue.push(
             replacement_entry.clone(),
             BatchQueueEntryPriority::new(replacement_max_fee, nonce),
@@ -160,8 +165,6 @@ impl BatchState {
             .unwrap_or(U256::max_value());
 
         self.user_min_fee.insert(sender, user_min_fee);
-
-        None
     }
 
     /// Updates:
@@ -479,15 +482,6 @@ impl Batcher {
                     return Ok(());
                 }
 
-                // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-                if self.pre_verification_is_enabled
-                    && !zk_utils::verify(&nonced_verification_data.verification_data).await
-                {
-                    error!("Invalid proof detected. Verification failed.");
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
-                    return Ok(()); // Send error message to the client and return
-                }
-
                 // Nonce and max fee verification
                 let nonce = U256::from_big_endian(nonced_verification_data.nonce.as_slice());
                 let max_fee = nonced_verification_data.max_fee;
@@ -541,6 +535,7 @@ impl Batcher {
                     }
                     std::cmp::Ordering::Equal => {
                         // if we are here nonce == expected_user_nonce
+
                         if !self
                             .handle_expected_nonce_message(
                                 batch_state,
@@ -638,6 +633,15 @@ impl Batcher {
             return false;
         }
 
+        // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
+        if self.pre_verification_is_enabled
+            && !zk_utils::verify(&nonced_verification_data.verification_data).await
+        {
+            error!("Invalid proof detected. Verification failed.");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
+            return false;
+        }
+
         let nonce = U256::from_big_endian(&nonced_verification_data.nonce);
 
         batch_state.user_nonces.insert(addr, nonce + U256::one());
@@ -722,11 +726,33 @@ impl Batcher {
         }
         replacement_entry.messaging_sink = ws_conn_sink.clone();
 
-        if let Some(msg) = batch_state.validate_and_increment_max_fee(replacement_entry) {
+        if let Some(msg) = batch_state.validate_max_fee(&replacement_entry) {
             warn!("Invalid max fee");
             send_message(ws_conn_sink.clone(), msg).await;
             return false;
         }
+
+        // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
+        if self.pre_verification_is_enabled
+            && !zk_utils::verify(&replacement_entry.nonced_verification_data.verification_data)
+                .await
+        {
+            error!("Invalid proof detected. Verification failed.");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
+            return false;
+        }
+
+        let sender = replacement_entry.sender;
+        let nonce =
+            U256::from_big_endian(replacement_entry.nonced_verification_data.nonce.as_slice());
+        let replacement_max_fee = replacement_entry.nonced_verification_data.max_fee;
+
+        info!(
+            "Entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
+            sender, nonce, replacement_max_fee
+        );
+
+        batch_state.increment_max_fee(sender, replacement_max_fee, nonce, &replacement_entry);
 
         true
     }
