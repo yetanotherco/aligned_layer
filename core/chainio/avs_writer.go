@@ -89,6 +89,17 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return nil, fmt.Errorf("cost of transaction is higher than Batch.MaxFeeAllowedToRespond")
 	}
 
+	batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
+	if err != nil {
+		return nil, err
+	}
+	w.logger.Info("Batcher balance", "balance", batcherBalance)
+
+	if batcherBalance.Cmp(simulatedCost) < 0 {
+		return nil, fmt.Errorf("cost of transaction is higher than Batcher balance")
+	}
+
+
 	// TODO check Agg wallet balance against maxFeeAllowedToRespond.
 	// TODO check batcher balance against maxFeeAllowedToRespond.
 

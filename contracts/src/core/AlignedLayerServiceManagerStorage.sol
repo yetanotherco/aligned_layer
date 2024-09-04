@@ -12,7 +12,7 @@ abstract contract AlignedLayerServiceManagerStorage {
     mapping(bytes32 => BatchState) public batchesState;
 
     // Storage for batchers balances. Used by aggregator to pay for respondToTask
-    mapping(address => uint256) internal batchersBalances;
+    mapping(address => uint256) public batchersBalances;
 
     // storage gap for upgradeability
     // solhint-disable-next-line var-name-mixedcase
