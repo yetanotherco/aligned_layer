@@ -1,7 +1,5 @@
 pragma solidity ^0.8.12;
 
-import "eigenlayer-middleware/interfaces/IServiceManager.sol";
-
 abstract contract AlignedLayerServiceManagerStorage {
     struct BatchState {
         uint32 taskCreatedBlock;
@@ -16,5 +14,6 @@ abstract contract AlignedLayerServiceManagerStorage {
     mapping(address => uint256) internal batchersBalances;
 
     // storage gap for upgradeability
+    // solhint-disable-next-line var-name-mixedcase
     uint256[48] private __GAP;
 }

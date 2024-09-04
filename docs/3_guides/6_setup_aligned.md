@@ -324,7 +324,7 @@ batcher (`batcher/aligned-batcher/`).
 The necessary environment variables are:
 
 | Variable Name         | Description                                                                                                                    |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------|
 | AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
 | AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
 | AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
@@ -537,7 +537,7 @@ to run it using the following documentation:
 
 ### DB Setup
 
-To set up the explorer, an installation of the DB is needed.
+To set up the explorer, an installation of the DB is necessary.
 
 First, you'll need to install docker if you don't have it already.
 You can follow the instructions [here](https://docs.docker.com/get-docker/).
@@ -545,7 +545,7 @@ You can follow the instructions [here](https://docs.docker.com/get-docker/).
 The explorer uses a PostgreSQL database. To build and start the DB using docker, run:
 
 ```bash
-make build_db
+make explorer_build_db
 ```
 
 <details>
@@ -557,19 +557,19 @@ make build_db
 - Run the database container, opening port `5432`:
 
 ```bash
-make run_db
+make explorer_run_db
 ```
 
 - Configure the database with ecto running `ecto.create` and `ecto.migrate`:
 
 ```bash
-make ecto_setup_db
+make explorer_ecto_setup_db
 ```
 
 - Start the explorer:
 
 ```bash
-make run_explorer # or make run_devnet_explorer
+make run_explorer
 ```
 
 </details>
@@ -577,13 +577,13 @@ make run_explorer # or make run_devnet_explorer
 To clear the DB, you can run:
 
 ```bash
-make clean_db
+make explorer_clean_db
 ```
 
 If you need to dump the data from the DB, you can run:
 
 ```bash
-make dump_db
+make explorer_dump_db
 ```
 
 This will create a `dump.$date.sql` SQL script on the `explorer` directory with all the existing data.
@@ -591,7 +591,7 @@ This will create a `dump.$date.sql` SQL script on the `explorer` directory with 
 Data can be recovered from a `dump.$date.sql` using the following command:
 
 ```bash
-make recover_db
+make explorer_recover_db
 ```
 
 Then you'll be requested to enter the file name of the dump you want to recover already positioned in the `/explorer`
@@ -625,14 +625,31 @@ received
 
 To run the explorer for the local devnet, you'll need to have the devnet running and the DB already setup.
 
+Additionally, you'll need to have the `.env` file in the `/explorer` directory of the project.
+A base example of the `.env` file can be found in `/explorer/.env.dev`.
+
 Use the following command to start the Explorer:
 
 ```bash
-make run_devnet_explorer
+make run_explorer
 ```
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 You can access to a tasks' information by visiting `localhost:4000/batches/:merkle_root`.
+
+<details>
+<summary>There's an additional Explorer script to fetch past operators and restake</summary>
+
+If you want to fetch past operators, strategies and restake, you will need to run:
+
+```bash
+make explorer_fetch_old_operators_strategies_restakes
+```
+
+This will run the script `explorer_fetch_old_operators_strategies_restakes.sh` that will fetch the operators, strategies
+and restake which will later insert into the DB.
+
+</details>
 
 ### Run with custom env / other devnets
 
@@ -640,7 +657,7 @@ Create a `.env` file in the `/explorer` directory of the project.
 The `.env` file needs to contain the following variables:
 
 | Variable              | Description                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
+|-----------------------|-------------------------------------------------------------------------------------------------|
 | `RPC_URL`             | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT`         | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
 | `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information                            |

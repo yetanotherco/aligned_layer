@@ -1,4 +1,5 @@
 defmodule Operators do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -70,18 +71,18 @@ defmodule Operators do
   def register_or_update_operator(%Operators{} = operator) do
     changeset = case Operators.generate_changeset(operator) do
       %Ecto.Changeset{valid?: false} = changeset ->
-        dbg("Invalid changeset: #{inspect(changeset)}")
+        "Invalid changeset: #{inspect(changeset)}" |> Logger.error()
         :nil
       changeset ->
         changeset
     end
     case Explorer.Repo.get_by(Operators, address: operator.address) do
       nil ->
-        dbg("Inserting new operator")
+        "Inserting new operator" |> Logger.debug()
         Explorer.Repo.insert(changeset)
 
       existing_operator ->
-        dbg("Updating operator")
+        "Updating operator" |> Logger.debug()
         Ecto.Changeset.change(existing_operator, changeset.changes)
         |> Explorer.Repo.update()
     end
@@ -98,9 +99,9 @@ defmodule Operators do
       {:error, reason} ->
         case reason do
           %Jason.DecodeError{} ->
-            dbg("Error decoding operator metadata: operator link does not contain a JSON")
+            "Error decoding operator metadata: operator link does not contain a JSON" |> Logger.error()
           _ ->
-            dbg("Error fetching operator metadata:", reason)
+            "Error fetching operator metadata: #{inspect(reason)}" |> Logger.error()
         end
         %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
     end

@@ -12,12 +12,11 @@ defmodule StrategyInterfaceManager do
       {:ok, token_address} -> %{strategy | token_address: token_address}
 
       {:error, %{"code" => -32015}} ->
-        dbg("Strategy has no underlying token: #{strategy_address}") # thus, its not a strategy contract
+        "Strategy has no underlying token: #{strategy_address}" |> Logger.debug() # thus, its not a strategy contract
         {:error, :not_strategy}
 
         other_error ->
-          dbg("Error fetching token address for #{strategy_address}")
-          dbg(other_error)
+          "Error fetching token address for #{strategy_address}: #{inspect(other_error)}" |> Logger.error()
           other_error
     end
   end
@@ -26,8 +25,7 @@ defmodule StrategyInterfaceManager do
     case ERC20InterfaceManager.name(token_address) do
       {:ok, name} -> %{strategy | name: name}
       error ->
-        dbg("Error fetching token name")
-        dbg(error)
+        "Error fetching token name for #{token_address}: #{inspect(error)}" |> Logger.error()
         error
     end
   end
@@ -39,8 +37,7 @@ defmodule StrategyInterfaceManager do
     case ERC20InterfaceManager.symbol(token_address) do
       {:ok, symbol} -> %{strategy | symbol: symbol}
       error ->
-        dbg("Error fetching token symbol")
-        dbg(error)
+        "Error fetching token symbol for #{token_address}: #{inspect(error)}" |> Logger.error()
         error
     end
   end

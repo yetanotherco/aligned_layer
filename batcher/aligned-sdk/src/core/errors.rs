@@ -70,11 +70,13 @@ pub enum SubmitError {
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
     InvalidNonce,
+    InvalidMaxFee,
     ProofQueueFlushed,
     InvalidSignature,
     InvalidChainId,
     InvalidProof,
     ProofTooLarge,
+    InvalidReplacementMessage,
     InsufficientBalance,
     BatchSubmissionFailed(String),
     GenericError(String),
@@ -161,6 +163,7 @@ impl fmt::Display for SubmitError {
             }
             SubmitError::EmptyVerificationDataList => write!(f, "Verification data list is empty"),
             SubmitError::InvalidNonce => write!(f, "Invalid nonce"),
+            SubmitError::InvalidMaxFee => write!(f, "Invalid max fee"),
             SubmitError::BatchSubmissionFailed(merkle_root) => write!(
                 f,
                 "Could not create task with batch merkle root {}",
@@ -171,6 +174,7 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidChainId => write!(f, "Invalid chain Id"),
             SubmitError::InvalidProof => write!(f, "Invalid proof"),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
+            SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }

@@ -37,11 +37,10 @@ defmodule AVSDirectoryManager do
           Enum.map(events, &extract_operator_event_info/1)
 
         {:error, reason} ->
-          IO.inspect("Error fetching operator events")
-          IO.inspect(reason)
+          Logger.error("Error fetching operator events: #{inspect(reason)}")
           []
         _ ->
-          IO.inspect("Unexpected response fetching operator events")
+          Logger.debug("Unexpected response fetching operator events")
           []
       end
   end
@@ -56,7 +55,7 @@ defmodule AVSDirectoryManager do
   def extract_operator_event_info(event) do
     case Mutex.lock(OperatorMutex, {event.topics |> Enum.at(1)}) do
       {:error, :busy} ->
-        "Operator already being processed: #{event.topics |> Enum.at(1)}" |> IO.inspect()
+        "Operator already being processed: #{event.topics |> Enum.at(1)}" |> Logger.error()
         :empty
 
       {:ok, lock} ->
@@ -64,18 +63,18 @@ defmodule AVSDirectoryManager do
           "OperatorAVSRegistrationStatusUpdated(address,address,uint8)" ->
             case event.data |> hd do
               1 ->
-                IO.inspect("Operator registered")
+                Logger.debug("Operator registered")
                 Operators.handle_operator_registration(event)
 
               0 ->
-                IO.inspect("Operator unregistered")
+                Logger.debug("Operator unregistered")
                 Operators.handle_operator_unregistration(event)
 
               _other ->
-                IO.inspect("Unexpected event data", event.data)
+                Logger.error("Unexpected event data: #{inspect(event.data)}")
             end
           _ ->
-            IO.inspect("Unexpected event")
+            Logger.error("Unexpected event")
             :empty
         end
         Mutex.release(OperatorMutex, lock)

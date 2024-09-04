@@ -1,4 +1,5 @@
 defmodule Restakings do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -41,13 +42,13 @@ defmodule Restakings do
     multi =
       case Restakings.get_by_operator_and_strategy(%Restakings{operator_address: restaking.operator_address, strategy_address: restaking.strategy_address}) do
       nil ->
-        "inserting restaking" |> dbg
+        "Inserting restaking" |> Logger.debug()
         Ecto.Multi.new()
           |> Ecto.Multi.insert(:insert_restaking, changeset)
           |> Ecto.Multi.update(:update_strategy_total_staked, Strategies.generate_update_total_staked_changeset(%{new_restaking: restaking}))
 
       existing_restaking ->
-        "updating restaking" |> dbg
+        "Updating restaking" |> Logger.debug()
         Ecto.Multi.new()
           |> Ecto.Multi.update(:update_restaking, Ecto.Changeset.change(existing_restaking, changeset.changes))
           |> Ecto.Multi.update(:update_strategy_total_staked, Strategies.generate_update_total_staked_changeset(%{new_restaking: restaking}))
@@ -55,10 +56,10 @@ defmodule Restakings do
 
     case Explorer.Repo.transaction(multi) do
       {:ok, _} ->
-        dbg "Restaking inserted or updated"
+        "Restaking inserted or updated" |> Logger.debug()
         {:ok, :empty}
       {:error, _, changeset, _} ->
-        "Error updating restakings table: #{inspect(changeset.errors)}" |> IO.puts()
+        "Error updating restakings table: #{inspect(changeset.errors)}" |> Logger.error()
         {:error, changeset}
     end
   end
