@@ -535,7 +535,6 @@ impl Batcher {
                     }
                     std::cmp::Ordering::Equal => {
                         // if we are here nonce == expected_user_nonce
-
                         if !self
                             .handle_expected_nonce_message(
                                 batch_state,
