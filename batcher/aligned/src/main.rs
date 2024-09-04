@@ -117,9 +117,9 @@ pub struct SubmitArgs {
         long = "max_fee",
         default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
-    max_fee: U256,
+    max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
-    nonce: Option<U256>,
+    nonce: Option<String>, // String because U256 expects hex
 }
 
 #[derive(Parser, Debug)]
@@ -275,6 +275,9 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
+            let max_fee =
+                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
+
             let repetitions = submit_args.repetitions;
             let connect_addr = submit_args.batcher_url.clone();
 
@@ -307,10 +310,8 @@ async fn main() -> Result<(), AlignedError> {
 
             let batcher_eth_address = submit_args.payment_service_addr.clone();
 
-            let max_fee = submit_args.max_fee;
-
-            let nonce = match submit_args.nonce {
-                Some(nonce) => nonce,
+            let nonce = match &submit_args.nonce {
+                Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
                 None => {
                     get_nonce(
                         &eth_rpc_url,
