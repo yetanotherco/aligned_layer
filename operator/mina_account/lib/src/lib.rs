@@ -1,5 +1,6 @@
 use merkle_verifier::verify_merkle_proof;
 use mina_bridge_core::proof::account_proof::{MinaAccountProof, MinaAccountPubInputs};
+use mina_p2p_messages::hash::MinaHash;
 
 mod merkle_verifier;
 
@@ -16,7 +17,7 @@ pub extern "C" fn verify_account_inclusion_ffi(
 ) -> bool {
     let MinaAccountProof {
         merkle_path,
-        leaf_hash,
+        account,
     } = match bincode::deserialize(&proof_buffer[..proof_len]) {
         Ok(proof) => proof,
         Err(err) => {
@@ -32,14 +33,8 @@ pub extern "C" fn verify_account_inclusion_ffi(
                 return false;
             }
         };
-    // TODO(xqft): was wrong: this should be an Fp, not a LedgerHash
-    let ledger_hash = match ledger_hash.to_fp() {
-        Ok(hash) => hash,
-        Err(err) => {
-            eprintln!("Failed to convert ledger hash to fp: {}", err);
-            return false;
-        }
-    };
+
+    let leaf_hash = account.hash();
 
     // TODO(xqft): when the needed account GraphQL query is done, do:
     // 1. send encoded account as part of the proof
