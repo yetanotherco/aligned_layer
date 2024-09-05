@@ -25,6 +25,7 @@ interface IAlignedLayerServiceManager {
         uint256 available
     ); // 5c54305e
     error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake); // a61eb88a
+    error SenderIsNotAggregator(address sender, address alignedAggregator); // 2cbe4195
     error InvalidDepositAmount(uint256 amount); // 412ed242
     error ExceededMaxRespondFee(uint256 maxFeeAllowedToRespond, uint256 txCost); // 86fc507e
 
@@ -53,5 +54,6 @@ interface IAlignedLayerServiceManager {
     ) external view returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
-    
+
+    function setAggregator(address _aggregator) external;
 }
