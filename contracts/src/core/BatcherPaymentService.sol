@@ -40,6 +40,7 @@ contract BatcherPaymentService is
     error FundsLocked(uint256 unlockBlock, uint256 currentBlock); // bedc4e5a
     error InvalidSignature(); // 8baa579f
     error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
+    error InvalidMaxFee(uint256 maxFee, uint256 actualFee); // f59adf4a
     error SignerInsufficientBalance(
         address signer,
         uint256 balance,
@@ -50,6 +51,7 @@ contract BatcherPaymentService is
     struct SignatureData {
         bytes signature;
         uint256 nonce;
+        uint256 maxFee;
     }
 
     struct UserInfo {
@@ -108,14 +110,11 @@ contract BatcherPaymentService is
         string calldata batchDataPointer,
         bytes32[] calldata leaves, // padded to the next power of 2
         SignatureData[] calldata signatures, // actual length (proof sumbitters == proofs submitted)
-        uint256 gasForAggregator,
-        uint256 gasPerProof
+        uint256 feeForAggregator,
+        uint256 feePerProof
     ) external onlyBatcher whenNotPaused {
         uint256 leavesQty = leaves.length;
         uint256 signaturesQty = signatures.length;
-
-        uint256 feeForAggregator = gasForAggregator * tx.gasprice;
-        uint256 feePerProof = gasPerProof * tx.gasprice;
 
         if (leavesQty == 0) {
             revert NoLeavesSubmitted();
@@ -285,8 +284,17 @@ contract BatcherPaymentService is
         SignatureData calldata signatureData,
         uint256 feePerProof
     ) private {
+        if (signatureData.maxFee < feePerProof) {
+            revert InvalidMaxFee(signatureData.maxFee, feePerProof);
+        }
+
         bytes32 noncedHash = keccak256(
-            abi.encodePacked(hash, signatureData.nonce, block.chainid)
+            abi.encodePacked(
+                hash,
+                signatureData.nonce,
+                signatureData.maxFee,
+                block.chainid
+            )
         );
 
         address signer = noncedHash.recover(signatureData.signature);

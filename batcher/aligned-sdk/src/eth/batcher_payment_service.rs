@@ -24,7 +24,7 @@ pub async fn batcher_payment_service(
 }
 
 impl SignatureData {
-    pub fn new(signature: &Signature, nonce: [u8; 32]) -> Self {
+    pub fn new(signature: &Signature, nonce: [u8; 32], max_fee: U256) -> Self {
         let mut signature_bytes = [0u8; 65];
 
         signature.r.to_big_endian(&mut signature_bytes[0..32]);
@@ -40,6 +40,7 @@ impl SignatureData {
         SignatureData {
             signature: signature_bytes,
             nonce,
+            max_fee,
         }
     }
 }
