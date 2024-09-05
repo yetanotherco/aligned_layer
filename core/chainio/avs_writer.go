@@ -1,7 +1,10 @@
 package chainio
 
 import (
+	"context"
 	"fmt"
+	"math/big"
+
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
@@ -12,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"math/big"
 )
 
 type AvsWriter struct {
@@ -77,32 +79,10 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 	}
 
-	// simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
-	// w.logger.Info("Simulated cost", "cost", simulatedCost)
-
-	// batchState, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// w.logger.Info("Batch MaxFeeAllowedToRespond", "MaxFeeAllowedToRespond", batchState.MaxFeeAllowedToRespond)
-
-	// if batchState.MaxFeeAllowedToRespond.Cmp(simulatedCost) < 0 {
-	// 	return nil, fmt.Errorf("cost of transaction is higher than Batch.MaxFeeAllowedToRespond")
-	// }
-
-	// // TODO wip check batcher balance against maxFeeAllowedToRespond.
-	// batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// w.logger.Info("Batcher balance", "balance", batcherBalance)
-
-	// if batcherBalance.Cmp(simulatedCost) < 0 {
-	// 	return nil, fmt.Errorf("cost of transaction is higher than Batcher balance")
-	// }
-	// TODO check Agg wallet balance against maxFeeAllowedToRespond.
-	// Should I make this check?
-	// aggregatorAddress := txOpts.From
+	err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
+	if err != nil {
+		return nil, err
+	}
 
 	// Send the transaction
 	txOpts.NoSend = false
@@ -121,7 +101,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	return &txHash, nil
 }
 
-func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
+func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
 	simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
 	w.logger.Info("Simulated cost", "cost", simulatedCost)
 
@@ -129,13 +109,14 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, batchIdent
 	if err != nil {
 		return err
 	}
-	w.logger.Info("Batch MaxFeeAllowedToRespond", "MaxFeeAllowedToRespond", batchState.RespondToTaskFeeLimit)
+	w.logger.Info("Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", batchState.RespondToTaskFeeLimit)
 
+	// check transaction cost against RespondToTaskFeeLimit.
 	if batchState.RespondToTaskFeeLimit.Cmp(simulatedCost) < 0 {
-		return fmt.Errorf("cost of transaction is higher than Batch.MaxFeeAllowedToRespond")
+		return fmt.Errorf("cost of transaction is higher than Batch.RespondToTaskFeeLimit")
 	}
 
-	// TODO wip check batcher balance against maxFeeAllowedToRespond.
+	// check batcher balance against RespondToTaskFeeLimit.
 	batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
 	if err != nil {
 		return err
@@ -145,5 +126,21 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, batchIdent
 	if batcherBalance.Cmp(simulatedCost) < 0 {
 		return fmt.Errorf("cost of transaction is higher than Batcher balance")
 	}
+
+	// check Agg wallet balance against RespondToTaskFeeLimit.
+	// Should I make this check?
+	// aggregatorAddress := txOpts.From
+	aggregatorAddress := txOpts.From
+	// aggregatorBalance, err := w.Client.BalanceAt(nil, aggregatorAddress, nil)
+	aggregatorBalance, err := w.Client.BalanceAt(context.TODO(), aggregatorAddress, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get aggregator balance: %v", err)
+	}
+	w.logger.Info("Aggregator balance", "balance", aggregatorBalance)
+
+	if aggregatorBalance.Cmp(simulatedCost) < 0 {
+		return fmt.Errorf("cost of transaction is higher than Aggregator balance")
+	}
+
 	return nil
 }
