@@ -18,9 +18,12 @@ recipient_address=$OPERATOR_ADDRESS
 # Amount of ETH to send (in Ether)
 amount_in_eth="1ether"
 
+gas_price="100gwei"
+
 # Send Ether transaction
 cast send --from $sender_address \
     --value $amount_in_eth \
     --private-key $sender_private_key \
     --rpc-url "http://localhost:8545" \
-    "$recipient_address"
+    "$recipient_address" \
+    --gas-price $gas_price
