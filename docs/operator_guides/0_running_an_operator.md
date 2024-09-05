@@ -153,7 +153,7 @@ as shown in the EigenLayer guide.
   ```bash
   ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
   ```
-  </summary>
+
 </details>
 
 If you don't have Holesky ETH, these are some useful faucets:
