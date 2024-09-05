@@ -4,7 +4,9 @@ The EigenLayer Operator FAQ is available [here](https://docs.eigenlayer.xyz/eige
 
 ### How do I get whitelisted to run an operator?
 
-To get whitelisted, you need to fill out the form available [here](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform).
+To get whitelisted,
+you need to fill out the form available [here](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform)
+and wait for the Aligned team to approve your request.
 
 ### What RPC should I use?
 
@@ -17,7 +19,7 @@ We also recommend the following RPC providers:
 
 The default configuration uses the public nodes RPC.
 
-Since v0.5.2, there is a fallback mechanism to have two RPCs, so you need to add a second RPC for redundancy.
+Since `v0.5.2`, there is a fallback mechanism to have two RPCs, so you need to add a second RPC for redundancy.
 
 ### How can I check if the version I'm using is the latest one?
 
@@ -33,7 +35,7 @@ curl https://holesky.tracker.alignedlayer.com/versions/<operator_address>
 
 Replace `<operator_address>` with your operator address.
 
-In future releases, the explorer will show the operator version.
+In future releases, the explorer will show the operator version and the latest available version.
 
 ### How do I check the operator version locally?
 
@@ -43,7 +45,7 @@ To see the operator version, run:
 ./operator/build/aligned-operator --version
 ```
 
-You have to be in the `aligned-layer` directory to run this command.
+You have to be in the root `aligned-layer` directory to run this command.
 
 This will show the version of the operator you have built in your filesystem.
 
@@ -59,3 +61,5 @@ cast call \
 ```
 
 > Note: You need to have installed [Foundry](https://book.getfoundry.sh/)
+
+This will return the operator ID if the operator is registered, otherwise it will return `0x`.
