@@ -10,16 +10,15 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 		select {
 		case err := <-agg.taskSubscriber:
 			agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to subscribe to new tasks", "err", err)
-
 			err = agg.subscribeToNewTasks()
 			if err != nil {
 				return err
 			}
 		case newBatch := <-agg.NewBatchChan:
+			agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task")
 			agg.AddNewTask(newBatch.BatchMerkleRoot, newBatch.SenderAddress, newBatch.TaskCreatedBlock)
 		}
 	}
-
 }
 
 func (agg *Aggregator) subscribeToNewTasks() error {

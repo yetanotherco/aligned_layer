@@ -64,10 +64,10 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 		logger:                         baseConfig.Logger,
 	}, nil
 }
-
-func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch) (chan error, error) {
+	
+func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) (chan error, error) {
 	// Create a new channel to receive new tasks
-	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	// Subscribe to new tasks
 	sub, err := subscribeToNewTasks(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
@@ -135,11 +135,11 @@ func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemana
 
 func subscribeToNewTasks(
 	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
-	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch,
+	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2,
 	logger sdklogging.Logger,
 ) (event.Subscription, error) {
 	for i := 0; i < MaxRetries; i++ {
-		sub, err := serviceManager.WatchNewBatch(
+		sub, err := serviceManager.WatchNewBatchV2(
 			&bind.WatchOpts{}, newTaskCreatedChan, nil,
 		)
 		if err != nil {
@@ -152,10 +152,10 @@ func subscribeToNewTasks(
 		return sub, nil
 	}
 
-	return nil, fmt.Errorf("Failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
+	return nil, fmt.Errorf("failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
 }
 
-func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatch, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatch) {
+func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
 	newBatchMutex.Lock()
 	defer newBatchMutex.Unlock()
 
@@ -184,7 +184,7 @@ func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLay
 // getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
 // The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
 // to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
-func (s *AvsSubscriber) getLatestTaskFromEthereum() (*servicemanager.ContractAlignedLayerServiceManagerNewBatch, error) {
+func (s *AvsSubscriber) getLatestTaskFromEthereum() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
@@ -233,7 +233,7 @@ func (s *AvsSubscriber) getLatestTaskFromEthereum() (*servicemanager.ContractAli
 
 	lastLog := logs[len(logs)-1]
 
-	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatch", lastLog.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unpack log data: %w", err)
@@ -243,7 +243,6 @@ func (s *AvsSubscriber) getLatestTaskFromEthereum() (*servicemanager.ContractAli
 	latestTask.BatchMerkleRoot = lastLog.Topics[1]
 
 	return &latestTask, nil
-
 }
 
 func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
