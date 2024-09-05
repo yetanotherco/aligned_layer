@@ -1,17 +1,18 @@
 package chainio
 
 import (
+	"fmt"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"math/big"
-	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type AvsWriter struct {
@@ -76,32 +77,32 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 	}
 
-	simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
-	w.logger.Info("Simulated cost", "cost", simulatedCost)
+	// simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
+	// w.logger.Info("Simulated cost", "cost", simulatedCost)
 
-	batchState, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
-	if err != nil {
-		return nil, err
-	}
-	w.logger.Info("Batch MaxFeeAllowedToRespond", "MaxFeeAllowedToRespond", batchState.MaxFeeAllowedToRespond)
+	// batchState, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// w.logger.Info("Batch MaxFeeAllowedToRespond", "MaxFeeAllowedToRespond", batchState.MaxFeeAllowedToRespond)
 
-	if batchState.MaxFeeAllowedToRespond.Cmp(simulatedCost) < 0 {
-		return nil, fmt.Errorf("cost of transaction is higher than Batch.MaxFeeAllowedToRespond")
-	}
+	// if batchState.MaxFeeAllowedToRespond.Cmp(simulatedCost) < 0 {
+	// 	return nil, fmt.Errorf("cost of transaction is higher than Batch.MaxFeeAllowedToRespond")
+	// }
 
-	batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
-	if err != nil {
-		return nil, err
-	}
-	w.logger.Info("Batcher balance", "balance", batcherBalance)
+	// // TODO wip check batcher balance against maxFeeAllowedToRespond.
+	// batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// w.logger.Info("Batcher balance", "balance", batcherBalance)
 
-	if batcherBalance.Cmp(simulatedCost) < 0 {
-		return nil, fmt.Errorf("cost of transaction is higher than Batcher balance")
-	}
-
-
+	// if batcherBalance.Cmp(simulatedCost) < 0 {
+	// 	return nil, fmt.Errorf("cost of transaction is higher than Batcher balance")
+	// }
 	// TODO check Agg wallet balance against maxFeeAllowedToRespond.
-	// TODO check batcher balance against maxFeeAllowedToRespond.
+	// Should I make this check?
+	// aggregatorAddress := txOpts.From
 
 	// Send the transaction
 	txOpts.NoSend = false
@@ -118,4 +119,31 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txHash := tx.Hash()
 
 	return &txHash, nil
+}
+
+func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, batchIdentifierHash [32]byte, senderAddress [20]byte) (error){
+	simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
+	w.logger.Info("Simulated cost", "cost", simulatedCost)
+
+	batchState, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
+	if err != nil {
+		return err
+	}
+	w.logger.Info("Batch MaxFeeAllowedToRespond", "MaxFeeAllowedToRespond", batchState.MaxFeeAllowedToRespond)
+
+	if batchState.MaxFeeAllowedToRespond.Cmp(simulatedCost) < 0 {
+		return fmt.Errorf("cost of transaction is higher than Batch.MaxFeeAllowedToRespond")
+	}
+
+	// TODO wip check batcher balance against maxFeeAllowedToRespond.
+	batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
+	if err != nil {
+		return err
+	}
+	w.logger.Info("Batcher balance", "balance", batcherBalance)
+
+	if batcherBalance.Cmp(simulatedCost) < 0 {
+		return fmt.Errorf("cost of transaction is higher than Batcher balance")
+	}
+	return nil
 }
