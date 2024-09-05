@@ -30,7 +30,7 @@ This guide assumes you are already [registered as an operator with EigenLayer](h
 Minimum hardware requirements:
 
 | Component     | Specification     |
-| ------------- | ----------------- |
+|---------------|-------------------|
 | **CPU**       | 16 cores          |
 | **Memory**    | 32 GB RAM         |
 | **Bandwidth** | 1 Gbps            |
