@@ -12,7 +12,7 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.4.0" }
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.5.2" }
 ```
 
 To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the
@@ -45,7 +45,7 @@ fn main() {
 }
 ```
 
-Or you can make a more complex call to submit a proof: 
+Or you can make a more complex call to submit a proof:
 
 (code extract from [ZKQuiz](../1_introduction/2_zkquiz.md))
 
@@ -67,7 +67,7 @@ fn main() {
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
         .with_chain_id(17000u64);
-    
+
     // Call to SDK:
     match submit_and_wait(
         BATCHER_URL,

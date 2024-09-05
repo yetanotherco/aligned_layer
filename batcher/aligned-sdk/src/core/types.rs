@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use ethers::core::k256::ecdsa::SigningKey;
 use ethers::signers::Signer;
 use ethers::signers::Wallet;
@@ -9,7 +7,6 @@ use ethers::types::transaction::eip712::Eip712Error;
 use ethers::types::Address;
 use ethers::types::Signature;
 use ethers::types::SignatureError;
-use ethers::types::H160;
 use ethers::types::U256;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
@@ -17,9 +14,6 @@ use lambdaworks_crypto::merkle_tree::{
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-const ANVIL_CHAIN_ID: u64 = 31337;
-const HOLESKY_CHAIN_ID: u64 = 17000;
-const MAINNET_CHAIN_ID: u64 = 1;
 // VerificationData is a bytes32 instead of a VerificationData struct because in the BatcherPaymentService contract
 // we don't have the fields of VerificationData, we only have the hash of the VerificationData.
 // chain_id is not included in the type because it is now part of the domain.
@@ -55,6 +49,7 @@ pub struct NoncedVerificationData {
     pub nonce: [u8; 32],
     pub max_fee: U256,
     pub chain_id: U256,
+    pub payment_service_addr: Address,
 }
 
 impl NoncedVerificationData {
@@ -63,12 +58,14 @@ impl NoncedVerificationData {
         nonce: [u8; 32],
         max_fee: U256,
         chain_id: U256,
+        payment_service_addr: Address,
     ) -> Self {
         Self {
             verification_data,
             nonce,
             max_fee,
             chain_id,
+            payment_service_addr,
         }
     }
 }
@@ -195,15 +192,12 @@ pub struct ClientMessage {
 
 impl Eip712 for NoncedVerificationData {
     type Error = Eip712Error;
-
     fn domain(&self) -> Result<EIP712Domain, Self::Error> {
-        let payment_service_addr = get_payment_service_addr(self.chain_id);
-
         Ok(EIP712Domain {
             name: Some("Aligned".into()),
             version: Some("1".into()),
             chain_id: Some(self.chain_id),
-            verifying_contract: payment_service_addr,
+            verifying_contract: Some(self.payment_service_addr),
             salt: None,
         })
     }
@@ -328,16 +322,4 @@ pub enum Chain {
     Devnet,
     Holesky,
     HoleskyStage,
-}
-
-fn get_payment_service_addr(chain_id: U256) -> Option<H160> {
-    match chain_id.as_u64() {
-        ANVIL_CHAIN_ID => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").ok(),
-        HOLESKY_CHAIN_ID => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").ok(),
-        MAINNET_CHAIN_ID => {
-            //FIXME: Add the payment service address for mainnet
-            None
-        }
-        _ => None,
-    }
 }

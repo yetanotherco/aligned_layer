@@ -40,10 +40,11 @@ pub struct AlignedArgs {
     pub command: AlignedCommands,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Debug)]
 pub enum AlignedCommands {
     #[clap(about = "Submit proof to the batcher")]
-    Submit(Box<SubmitArgs>),
+    Submit(SubmitArgs),
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
@@ -120,6 +121,12 @@ pub struct SubmitArgs {
     max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
+    #[arg(
+        name = "The Ethereum network's name",
+        long = "chain",
+        default_value = "devnet"
+    )]
+    chain: ChainArg,
 }
 
 #[derive(Parser, Debug)]
@@ -323,7 +330,9 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            let verification_data = verification_data_from_args(*submit_args)?;
+            let verification_data = verification_data_from_args(&submit_args)?;
+
+            let chain = submit_args.chain.clone().into();
 
             let verification_data_arr = vec![verification_data; repetitions];
 
@@ -333,6 +342,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let aligned_verification_data_vec = match submit_multiple(
                 &connect_addr,
+                chain,
                 &verification_data_arr,
                 &max_fees,
                 wallet.clone(),
@@ -563,11 +573,11 @@ async fn main() -> Result<(), AlignedError> {
     Ok(())
 }
 
-fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, SubmitError> {
-    let proving_system = args.proving_system_flag.into();
+fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, SubmitError> {
+    let proving_system = args.proving_system_flag.clone().into();
 
     // Read proof file
-    let proof = read_file(args.proof_file_name)?;
+    let proof = read_file(args.proof_file_name.clone())?;
 
     let mut pub_input: Option<Vec<u8>> = None;
     let mut verification_key: Option<Vec<u8>> = None;
@@ -577,17 +587,17 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         ProvingSystemId::SP1 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
-                args.vm_program_code_file_name,
+                args.vm_program_code_file_name.clone(),
             )?);
         }
         ProvingSystemId::Risc0 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
-                args.vm_program_code_file_name,
+                args.vm_program_code_file_name.clone(),
             )?);
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.clone(),
             )?);
         }
         ProvingSystemId::Halo2KZG
@@ -595,10 +605,13 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         | ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
-            verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
+            verification_key = Some(read_file_option(
+                "--vk",
+                args.verification_key_file_name.clone(),
+            )?);
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.clone(),
             )?);
         }
     }

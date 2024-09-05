@@ -1,4 +1,5 @@
 use ethers::signers::Signer;
+use ethers::types::Address;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use log::{debug, error, info};
 use std::sync::Arc;
@@ -30,6 +31,7 @@ pub type ResponseStream = TryFilter<
 pub async fn send_messages(
     response_stream: Arc<Mutex<ResponseStream>>,
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    payment_service_addr: Address,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -53,6 +55,7 @@ pub async fn send_messages(
             nonce_bytes,
             max_fees[idx],
             chain_id,
+            payment_service_addr,
         );
 
         nonce += U256::one();

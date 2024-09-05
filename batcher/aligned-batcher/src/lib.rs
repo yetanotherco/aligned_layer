@@ -1249,6 +1249,7 @@ impl Batcher {
                     nonce_bytes,
                     DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
                     self.chain_id,
+                    self.payment_service.address(),
                 )
             };
 
