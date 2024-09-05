@@ -6,13 +6,14 @@ use ethers::types::transaction::eip712::Eip712;
 use ethers::types::transaction::eip712::Eip712Error;
 use ethers::types::Address;
 use ethers::types::Signature;
-use ethers::types::SignatureError;
 use ethers::types::U256;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+
+use super::errors::VerifySignatureError;
 
 // VerificationData is a bytes32 instead of a VerificationData struct because in the BatcherPaymentService contract
 // we don't have the fields of VerificationData, we only have the hash of the VerificationData.
@@ -254,15 +255,10 @@ impl ClientMessage {
 
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
-    pub fn verify_signature(&self) -> Result<Address, SignatureError> {
+    pub fn verify_signature(&self) -> Result<Address, VerifySignatureError> {
         let recovered = self.signature.recover_typed_data(&self.verification_data)?;
 
-        // We can expect here because encode_eip712 can only error if
-        // struct_hash or domain_separator return an error, which is not possible
-        let hashed_data = self
-            .verification_data
-            .encode_eip712()
-            .expect("Failed to encode verification data for signature verification");
+        let hashed_data = self.verification_data.encode_eip712()?;
 
         self.signature.verify(hashed_data, recovered)?;
         Ok(recovered)
