@@ -71,6 +71,10 @@ anvil_upgrade_index_registry:
 	@echo "Upgrading Index Registry Contracts..."
 	. contracts/scripts/anvil/upgrade_index_registry.sh
 
+anvil_upgrade_add_aggregator:
+	@echo "Adding Aggregator to Aligned Contracts..."
+	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
+
 lint_contracts:
 	@cd contracts && npm run lint:sol
 
@@ -428,6 +432,10 @@ upgrade_index_registry: ## Upgrade Registry Coordinator
 upgrade_stake_registry: ## Upgrade Stake Registry
 	@echo "Upgrading Stake Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_stake_registry.sh
+
+upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
+	@echo "Adding Aggregator to Aligned Contracts..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."

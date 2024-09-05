@@ -42,9 +42,20 @@ contract AlignedLayerServiceManager is
     // @param _rewardsInitiator The address which is allowed to create AVS rewards submissions.
     function initialize(
         address _initialOwner,
-        address _rewardsInitiator
+        address _rewardsInitiator,
+        address _alignedAggregator
     ) public initializer {
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
+        alignedAggregator = _alignedAggregator; //can't do setAggregator(aggregator) since caller is not the owner
+    }
+
+    // This function is to be run only on upgrade
+    // If a new contract is deployed, this function should be removed
+    // Because this new value is also added in the initializer
+    function initializeAggregator(
+        address _alignedAggregator
+    ) public reinitializer(2) {
+        setAggregator(_alignedAggregator);
     }
 
     function createNewTask(
@@ -91,7 +102,7 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
-    ) external {
+    ) external onlyAggregator {
         uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
@@ -161,7 +172,7 @@ contract AlignedLayerServiceManager is
             senderAddress,
             batchersBalances[senderAddress]
         );
-        payable(msg.sender).transfer(txCost);
+        payable(alignedAggregator).transfer(txCost);
     }
 
     function verifyBatchInclusion(
@@ -231,6 +242,10 @@ contract AlignedLayerServiceManager is
         );
     }
 
+    function setAggregator(address _alignedAggregator) public onlyOwner {
+        alignedAggregator = _alignedAggregator;
+    }
+
     function withdraw(uint256 amount) external {
         if (batchersBalances[msg.sender] < amount) {
             revert InsufficientFunds(
@@ -271,5 +286,12 @@ contract AlignedLayerServiceManager is
         bytes32 hash
     ) public pure returns (bool) {
         return keccak256(publicInput) == hash;
+    }
+
+    modifier onlyAggregator() {
+        if (msg.sender != alignedAggregator) {
+            revert SenderIsNotAggregator(msg.sender, alignedAggregator);
+        }
+        _;
     }
 }
