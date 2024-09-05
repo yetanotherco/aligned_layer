@@ -128,10 +128,7 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 	}
 
 	// check Agg wallet balance against RespondToTaskFeeLimit.
-	// Should I make this check?
-	// aggregatorAddress := txOpts.From
 	aggregatorAddress := txOpts.From
-	// aggregatorBalance, err := w.Client.BalanceAt(nil, aggregatorAddress, nil)
 	aggregatorBalance, err := w.Client.BalanceAt(context.TODO(), aggregatorAddress, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get aggregator balance: %v", err)
