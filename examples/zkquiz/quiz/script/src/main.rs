@@ -72,7 +72,7 @@ async fn main() {
 
     let client = ProverClient::new();
     let (pk, vk) = client.setup(ELF);
-    match client.prove(&pk, stdin).compressed().run() {
+    match client.prove(&pk, stdin).run() {
         Ok(proof) => {
             println!("Proof generated successfully. Verifying proof...");
 
