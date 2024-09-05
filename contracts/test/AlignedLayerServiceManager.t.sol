@@ -20,9 +20,16 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
+        string batchDataPointer
+    );
+    event NewBatchV3(
+        bytes32 indexed batchMerkleRoot,
+        address senderAddress,
+        uint32 taskCreatedBlock,
         string batchDataPointer,
         uint256 maxFeeToRespond
     );
+
 
     struct BatchIdentifier {
         bytes32 batchMerkleRoot;
@@ -64,8 +71,9 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         address(alignedLayerServiceManager).call{value: maxFeeToRespond}("");
 
         vm.expectEmit(true, true, true, true);
-        
-        emit NewBatchV2(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer, maxFeeToRespond);
+        emit NewBatchV2(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer);
+        vm.expectEmit(true, true, true, true);
+        emit NewBatchV3(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer, maxFeeToRespond);
 
         vm.prank(batcher);
         alignedLayerServiceManager.createNewTask(

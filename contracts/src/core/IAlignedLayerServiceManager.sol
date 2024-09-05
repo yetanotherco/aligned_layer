@@ -9,6 +9,12 @@ interface IAlignedLayerServiceManager {
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
+        string batchDataPointer
+    );
+    event NewBatchV3(
+        bytes32 indexed batchMerkleRoot,
+        address senderAddress,
+        uint32 taskCreatedBlock,
         string batchDataPointer,
         uint256 respondToTaskFeeLimit
     );
