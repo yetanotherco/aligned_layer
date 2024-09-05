@@ -45,7 +45,7 @@ type Operator struct {
 	KeyPair            *bls.KeyPair
 	OperatorId         eigentypes.OperatorId
 	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
 	metricsReg         *prometheus.Registry
@@ -91,7 +91,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
+	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
@@ -158,7 +158,7 @@ func (o *Operator) Start(ctx context.Context) error {
 	}
 }
 
-func (o *Operator) handleNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
+func (o *Operator) handleNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
 	o.Logger.Infof("Received new batch log")
 	err := o.ProcessNewBatchLog(newBatchLog)
 	if err != nil {
@@ -189,7 +189,7 @@ func (o *Operator) handleNewBatchLog(newBatchLog *servicemanager.ContractAligned
 
 // Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
 // The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
-func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
+func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),

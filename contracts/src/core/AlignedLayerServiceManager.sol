@@ -99,6 +99,12 @@ contract AlignedLayerServiceManager is
             batchMerkleRoot,
             msg.sender,
             uint32(block.number),
+            batchDataPointer
+        );
+        emit NewBatchV3(
+            batchMerkleRoot,
+            msg.sender,
+            uint32(block.number),
             batchDataPointer,
             respondToTaskFeeLimit
         );
