@@ -51,7 +51,7 @@ contract AlignedLayerServiceManager is
 
     // This function is to be run only on upgrade
     // If a new contract is deployed, this function should be removed
-    // Because this new value is also added in the constructor
+    // Because this new value is also added in the initializer
     function initializeAggregator(
         address _alignedAggregator
     ) public reinitializer(2) {
