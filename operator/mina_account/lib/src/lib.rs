@@ -1,6 +1,6 @@
 use merkle_verifier::verify_merkle_proof;
 use mina_bridge_core::proof::account_proof::{MinaAccountProof, MinaAccountPubInputs};
-use mina_p2p_messages::hash::MinaHash;
+use mina_tree::Account;
 
 mod merkle_verifier;
 
@@ -34,7 +34,9 @@ pub extern "C" fn verify_account_inclusion_ffi(
             }
         };
 
-    let leaf_hash = account.hash();
+    // the hash function for MinaBaseAccountBinableArgStableV2 produces a panic every
+    // time it's called. So we use Account's one.
+    let leaf_hash = Account::from(&account).hash();
 
     // TODO(xqft): when the needed account GraphQL query is done, do:
     // 1. send encoded account as part of the proof
