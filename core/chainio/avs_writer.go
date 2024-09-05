@@ -66,10 +66,10 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		// Retry with fallback
-		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTask(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			return nil, err
 		}
@@ -78,10 +78,10 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, senderAddre
 	// Send the transaction
 	txOpts.NoSend = false
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
-	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		// Retry with fallback
-		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTask(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			return nil, err
 		}

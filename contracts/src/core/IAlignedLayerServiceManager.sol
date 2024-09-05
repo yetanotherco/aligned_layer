@@ -5,7 +5,7 @@ import {IBLSSignatureChecker} from "eigenlayer-middleware/interfaces/IBLSSignatu
 
 interface IAlignedLayerServiceManager {
     // EVENTS
-    event NewBatch(
+    event NewBatchV2(
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
@@ -34,7 +34,7 @@ interface IAlignedLayerServiceManager {
         uint256 maxFeeToRespond
     ) external payable;
 
-    function respondToTask(
+    function respondToTaskV2(
         bytes32 batchMerkleRoot,
         address senderAddress,
         IBLSSignatureChecker.NonSignerStakesAndSignature
