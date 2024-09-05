@@ -4,7 +4,7 @@ abstract contract AlignedLayerServiceManagerStorage {
     struct BatchState {
         uint32 taskCreatedBlock;
         bool responded;
-        uint256 maxFeeAllowedToRespond;
+        uint256 respondToTaskFeeLimit;
     }
 
     /* STORAGE */
@@ -14,7 +14,9 @@ abstract contract AlignedLayerServiceManagerStorage {
     // Storage for batchers balances. Used by aggregator to pay for respondToTask
     mapping(address => uint256) public batchersBalances;
 
+    address public alignedAggregator;
+
     // storage gap for upgradeability
     // solhint-disable-next-line var-name-mixedcase
-    uint256[48] private __GAP;
+    uint256[47] private __GAP;
 }

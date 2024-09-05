@@ -62,6 +62,7 @@ use futures_util::{
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
+#[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_multiple_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
@@ -227,6 +228,7 @@ async fn _submit_multiple(
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
+#[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
@@ -456,8 +458,8 @@ mod test {
 
     use ethers::signers::LocalWallet;
 
-    const MAX_FEE: U256 = U256::max_value();
     const BATCHER_PAYMENT_SERVICE_ADDR: &str = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0";
+    const MAX_FEE: U256 = U256::max_value();
 
     #[tokio::test]
     async fn test_submit_success() {

@@ -5,12 +5,12 @@ import {IBLSSignatureChecker} from "eigenlayer-middleware/interfaces/IBLSSignatu
 
 interface IAlignedLayerServiceManager {
     // EVENTS
-    event NewBatch(
+    event NewBatchV2(
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
         string batchDataPointer,
-        uint256 maxFeeToRespond
+        uint256 respondToTaskFeeLimit
     );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
@@ -25,15 +25,17 @@ interface IAlignedLayerServiceManager {
         uint256 available
     ); // 5c54305e
     error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake); // a61eb88a
+    error SenderIsNotAggregator(address sender, address alignedAggregator); // 2cbe4195
     error InvalidDepositAmount(uint256 amount); // 412ed242
+    error ExceededMaxRespondFee(uint256 respondToTaskFeeLimit, uint256 txCost); // 86fc507e
 
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        uint256 maxFeeToRespond
+        uint256 respondToTaskFeeLimit
     ) external payable;
 
-    function respondToTask(
+    function respondToTaskV2(
         bytes32 batchMerkleRoot,
         address senderAddress,
         IBLSSignatureChecker.NonSignerStakesAndSignature
@@ -52,5 +54,6 @@ interface IAlignedLayerServiceManager {
     ) external view returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
-    
+
+    function setAggregator(address _aggregator) external;
 }

@@ -54,9 +54,12 @@ const AGGREGATOR_GAS_COST: u128 = 400_000;
 const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 100_000;
 const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_GAS_COST: u128 = AGGREGATOR_GAS_COST + BATCHER_SUBMISSION_BASE_GAS_COST;
-const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // 100 Gwei = 0.0000001 ether (high gas price)
-const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // 0.1 Gwei = 0.0000000001 ether (low gas price)
-const MAX_FEE_FOR_AGGREGATOR_MULTIPLIER : u128 = 2;
+const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
+const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // gas_price = 0.1 Gwei = 0.0000000001 ether (low gas price)
+const RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER: u128 = 5; // to set the respondToTaskFeeLimit variable higher than fee_for_aggregator
+const RESPOND_TO_TASK_FEE_LIMIT_DIVIDER: u128 = 2;
+const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
+const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -165,6 +168,12 @@ impl BatchState {
         None
     }
 
+    /// Updates:
+    ///     * The user proof count in batch
+    ///     * The user min fee pending in batch (which is the one with the highest nonce)
+    /// based on whats currenlty in the batch queue.
+    /// This is necessary because the whole batch may not be included in the finalized batch,
+    /// This caches are needed to validate user messages.
     fn update_user_proofs_in_batch_and_min_fee(&mut self) {
         let mut updated_user_min_fee = HashMap::new();
         let mut updated_user_proof_count_in_batch = HashMap::new();
@@ -774,8 +783,8 @@ impl Batcher {
     ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     /// Then the batch will be made as big as possible given this two conditions:
     ///     * The serialized batch size needs to be smaller than the maximum batch size
-    ///     * The batch submition fee is less than the lowest `max fee` included the batch,
-    ///     * And the batch submition fee is more than the highest `max fee` not included the batch.
+    ///     * The batch submission fee is less than the lowest `max fee` included the batch,
+    ///     * And the batch submission fee is more than the highest `max fee` not included the batch.
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
@@ -1080,10 +1089,19 @@ impl Batcher {
             / num_proofs_in_batch as u128;
 
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
-        let fee_for_aggregator = U256::from(AGGREGATOR_GAS_COST) * gas_price;
-        let max_fee_allowed_to_respond = fee_for_aggregator * U256::from(MAX_FEE_FOR_AGGREGATOR_MULTIPLIER);
-
-        let fee_params = CreateNewTaskFeeParams::new(fee_for_aggregator, fee_per_proof, gas_price, max_fee_allowed_to_respond);
+        let fee_for_aggregator = (U256::from(AGGREGATOR_GAS_COST)
+            * gas_price
+            * U256::from(DEFAULT_AGGREGATOR_FEE_MULTIPLIER))
+            / U256::from(DEFAULT_AGGREGATOR_FEE_DIVIDER);
+        let respond_to_task_fee_limit = (fee_for_aggregator
+            * U256::from(RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER))
+            / U256::from(RESPOND_TO_TASK_FEE_LIMIT_DIVIDER);
+        let fee_params = CreateNewTaskFeeParams::new(
+            fee_for_aggregator,
+            fee_per_proof,
+            gas_price,
+            respond_to_task_fee_limit,
+        );
 
         let signatures = signatures
             .iter()
