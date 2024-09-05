@@ -9,10 +9,10 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/signer"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"math/big"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type AvsWriter struct {
@@ -121,7 +121,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	return &txHash, nil
 }
 
-func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, batchIdentifierHash [32]byte, senderAddress [20]byte) (error){
+func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
 	simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
 	w.logger.Info("Simulated cost", "cost", simulatedCost)
 
@@ -129,9 +129,9 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, batchIdent
 	if err != nil {
 		return err
 	}
-	w.logger.Info("Batch MaxFeeAllowedToRespond", "MaxFeeAllowedToRespond", batchState.MaxFeeAllowedToRespond)
+	w.logger.Info("Batch MaxFeeAllowedToRespond", "MaxFeeAllowedToRespond", batchState.RespondToTaskFeeLimit)
 
-	if batchState.MaxFeeAllowedToRespond.Cmp(simulatedCost) < 0 {
+	if batchState.RespondToTaskFeeLimit.Cmp(simulatedCost) < 0 {
 		return fmt.Errorf("cost of transaction is higher than Batch.MaxFeeAllowedToRespond")
 	}
 
