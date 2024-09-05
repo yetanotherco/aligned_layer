@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{submit_and_wait, get_next_nonce};
+use aligned_sdk::sdk::{submit_and_wait_verification, get_next_nonce};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -115,7 +115,8 @@ async fn main() {
                 Chain::Holesky,
                 &verification_data,
                 wallet.clone(),
-                nonce
+                nonce,
+                BATCHER_PAYMENTS_ADDRESS
             )
             .await
             {
@@ -135,9 +136,6 @@ async fn main() {
                         {
                             println!("Failed to claim prize: {:?}", e);
                         }
-                    }
-                    None => {
-                        println!("Proof submission failed. No verification data");
                     }
                 },
                 Err(e) => {
