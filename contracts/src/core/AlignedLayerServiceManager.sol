@@ -61,7 +61,7 @@ contract AlignedLayerServiceManager is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        uint256 maxFeeAllowedToRespond
+        uint256 respondToTaskFeeLimit
     ) external payable {
         bytes32 batchIdentifier = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
@@ -79,10 +79,10 @@ contract AlignedLayerServiceManager is
             );
         }
 
-        if (batchersBalances[msg.sender] < maxFeeAllowedToRespond) {
+        if (batchersBalances[msg.sender] < respondToTaskFeeLimit) {
             revert InsufficientFunds(
                 msg.sender,
-                maxFeeAllowedToRespond,
+                respondToTaskFeeLimit,
                 batchersBalances[msg.sender]
             );
         }
@@ -91,7 +91,7 @@ contract AlignedLayerServiceManager is
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
-        batchState.maxFeeAllowedToRespond = maxFeeAllowedToRespond;
+        batchState.respondToTaskFeeLimit = respondToTaskFeeLimit;
 
         batchesState[batchIdentifier] = batchState;
 
@@ -100,7 +100,7 @@ contract AlignedLayerServiceManager is
             msg.sender,
             uint32(block.number),
             batchDataPointer,
-            maxFeeAllowedToRespond
+            respondToTaskFeeLimit
         );
     }
 
@@ -131,10 +131,10 @@ contract AlignedLayerServiceManager is
         currentBatch.responded = true; 
 
         // Check that batcher has enough funds to fund response
-        if (batchersBalances[senderAddress] < currentBatch.maxFeeAllowedToRespond) {
+        if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
             revert InsufficientFunds(
                 senderAddress,
-                currentBatch.maxFeeAllowedToRespond,
+                currentBatch.respondToTaskFeeLimit,
                 batchersBalances[senderAddress]
             );
         }
@@ -167,9 +167,9 @@ contract AlignedLayerServiceManager is
         // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
         uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
-        if (txCost > currentBatch.maxFeeAllowedToRespond) {
+        if (txCost > currentBatch.respondToTaskFeeLimit) {
             revert ExceededMaxRespondFee(
-                currentBatch.maxFeeAllowedToRespond,
+                currentBatch.respondToTaskFeeLimit,
                 txCost
             );
         }

@@ -10,7 +10,7 @@ interface IAlignedLayerServiceManager {
         address senderAddress,
         uint32 taskCreatedBlock,
         string batchDataPointer,
-        uint256 maxFeeToRespond
+        uint256 respondToTaskFeeLimit
     );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
@@ -27,12 +27,12 @@ interface IAlignedLayerServiceManager {
     error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake); // a61eb88a
     error SenderIsNotAggregator(address sender, address alignedAggregator); // 2cbe4195
     error InvalidDepositAmount(uint256 amount); // 412ed242
-    error ExceededMaxRespondFee(uint256 maxFeeAllowedToRespond, uint256 txCost); // 86fc507e
+    error ExceededMaxRespondFee(uint256 respondToTaskFeeLimit, uint256 txCost); // 86fc507e
 
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        uint256 maxFeeToRespond
+        uint256 respondToTaskFeeLimit
     ) external payable;
 
     function respondToTaskV2(

@@ -1087,13 +1087,13 @@ impl Batcher {
 
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
         let fee_for_aggregator = U256::from(AGGREGATOR_GAS_COST) * gas_price;
-        let max_fee_allowed_to_respond =
+        let respond_to_task_fee_limit =
             fee_for_aggregator * U256::from(MAX_FEE_FOR_AGGREGATOR_MULTIPLIER);
         let fee_params = CreateNewTaskFeeParams::new(
             fee_for_aggregator,
             fee_per_proof,
             gas_price,
-            max_fee_allowed_to_respond,
+            respond_to_task_fee_limit,
         );
 
         let signatures = signatures
