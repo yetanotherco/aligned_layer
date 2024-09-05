@@ -122,9 +122,9 @@ eth_ws_url_fallback: "wss://ethereum-holesky-rpc.publicnode.com"
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
-To do so there are 2 options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
+To do so, there are two options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
 
-You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
+You will need to stake a minimum of 1000 WEI in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
 
 ### Option 1
 
@@ -133,7 +133,7 @@ EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/re
 ### Option 2
 
 If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 ETH to WETH.
-Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
+Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) already installed.
 Change the parameter in ```---value``` if you want to wrap a different amount:
 
 ```bash
