@@ -79,7 +79,7 @@ dependencies = [
 [[package]]
 name = "aligned-sdk"
 version = "0.1.0"
-source = "git+https://github.com/yetanotherco/aligned_layer?tag=v0.5.2#f2fac00afac9cb0fa4d07a3aea7cde1825a96419"
+source = "git+https://github.com/yetanotherco/aligned_layer?rev=94fbaee3c3fedcf1bebb02b8f16c317149c003ce#94fbaee3c3fedcf1bebb02b8f16c317149c003ce"
 dependencies = [
  "ciborium",
  "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
@@ -4984,7 +4984,7 @@ checksum = "6c64451ba24fc7a6a2d60fc75dd9c83c90903b19028d4eff35e88fc1e86564e9"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.76",
+ "syn 2.0.72",
 ]
 
 [[package]]
