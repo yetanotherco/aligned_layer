@@ -1,7 +1,7 @@
 # Raised event in batch creation
 defmodule NewBatchEvent do
-  @enforce_keys [:batchMerkleRoot, :senderAddress, :taskCreatedBlock, :batchDataPointer]
-  defstruct [:batchMerkleRoot, :senderAddress, :taskCreatedBlock, :batchDataPointer]
+  @enforce_keys [:batchMerkleRoot, :senderAddress, :taskCreatedBlock, :batchDataPointer, :maxAggregatorFee]
+  defstruct [:batchMerkleRoot, :senderAddress, :taskCreatedBlock, :batchDataPointer, :maxAggregatorFee]
 
   def extract_merkle_root(event) do
     event.topics_raw |> Enum.at(1)
@@ -31,7 +31,8 @@ defmodule BatchDB do
     :submission_timestamp,
     :proof_hashes,
     :fee_per_proof,
-    :sender_address
+    :sender_address,
+    :max_aggregator_fee
   ]
   defstruct [
     :merkle_root,
@@ -46,6 +47,7 @@ defmodule BatchDB do
     :data_pointer,
     :proof_hashes,
     :fee_per_proof,
-    :sender_address
+    :sender_address,
+    :max_aggregator_fee
   ]
 end

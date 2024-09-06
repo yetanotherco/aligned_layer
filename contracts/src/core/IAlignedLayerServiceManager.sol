@@ -11,15 +11,20 @@ interface IAlignedLayerServiceManager {
         uint32 taskCreatedBlock,
         string batchDataPointer
     );
+    event NewBatchV3(
+        bytes32 indexed batchMerkleRoot,
+        address senderAddress,
+        uint32 taskCreatedBlock,
+        string batchDataPointer,
+        uint256 respondToTaskFeeLimit
+    );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
 
     // ERRORS
     error BatchAlreadySubmitted(bytes32 batchIdentifierHash); // 3102f10c
-    error BatcherBalanceIsEmpty(address batcher); // 40b29316
     error BatchDoesNotExist(bytes32 batchIdentifierHash); // 2396d34e
     error BatchAlreadyResponded(bytes32 batchIdentifierHash); // 9cf1aff2
-    error BatcherHasNoBalance(address batcher); // 48b78e6a
     error InsufficientFunds(
         address batcher,
         uint256 required,
@@ -28,10 +33,12 @@ interface IAlignedLayerServiceManager {
     error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake); // a61eb88a
     error SenderIsNotAggregator(address sender, address alignedAggregator); // 2cbe4195
     error InvalidDepositAmount(uint256 amount); // 412ed242
+    error ExceededMaxRespondFee(uint256 respondToTaskFeeLimit, uint256 txCost); // 86fc507e
 
     function createNewTask(
         bytes32 batchMerkleRoot,
-        string calldata batchDataPointer
+        string calldata batchDataPointer,
+        uint256 respondToTaskFeeLimit
     ) external payable;
 
     function respondToTaskV2(
