@@ -124,7 +124,7 @@ Note that when upgrading the contracts, you must also:
 
 ## Aggregator
 
-To start the [Aggregator](../architecture/components/5_aggregator.md):
+To start the [Aggregator](../2_architecture/components/5_aggregator.md):
 
 ```bash
 make aggregator_start
@@ -143,7 +143,7 @@ make aggregator_start CONFIG_FILE=<path_to_config_file>
 
 ## Operator
 
-To start an [Operator](../architecture/components/4_operator.md)
+To start an [Operator](../2_architecture/components/4_operator.md)
 (note it also registers it):
 
 ```bash
@@ -309,7 +309,7 @@ eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
 
 ## Batcher
 
-To start the [Batcher](../architecture/components/1_batcher.md):
+To start the [Batcher](../2_architecture/components/1_batcher.md):
 
 ```bash
 make batcher_start

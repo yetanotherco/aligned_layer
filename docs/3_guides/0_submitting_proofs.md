@@ -1,6 +1,6 @@
 # Submitting Proofs
 
-Make sure you have Aligned installed as specified [here](../introduction/1_getting_started.md#Quickstart).
+Make sure you have Aligned installed as specified [here](../1_introduction/1_getting_started.md#Quickstart).
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
@@ -15,7 +15,7 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: Halo2 - Plonk/KZG
 - :white_check_mark: Halo2 - Plonk/IPA
 
-Learn more about future verifiers [here](../architecture/0_supported_verifiers.md).
+Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
 
 ## 1. Import/Create Keystore file
 
@@ -99,7 +99,7 @@ These commands allow the usage of the following flags:
 
 ## 3. Submit your proof to the batcher
 
-This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [Aligned SDK guide](../guides/1_SDK.md).
+This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [Aligned SDK guide](../3_guides/2_integrating_aligned_into_your_application.md).
 
 Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are:
 

@@ -9,7 +9,7 @@ This guide assumes that:
 - sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
 - sp1 project to generate the proofs
   (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
-- aligned installed (instructions [here](../introduction/1_getting_started.md#quickstart))
+- aligned installed (instructions [here](../1_introduction/1_getting_started.md#quickstart))
 
 ### How to generate a proof
 
@@ -47,7 +47,7 @@ aligned submit \
 
 Where `proof_path` is the path to the proof file, `vm_program_path` is the path to the ELF file. `proof_generator_addr` is an optional parameter that works as a helper for some applications where you can be frontrunned.
 
-For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
+For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
 
 ## Gnark
 
@@ -98,7 +98,7 @@ aligned submit \
 Where proof path is the path to the proof file, `public_input_path` is the path to the public input file,
 and `verification_key_path` is the path to the verification key file.
 
-For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
+For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
 
 ## Risc0
 
@@ -108,7 +108,7 @@ This guide assumes that:
 
 - Risc0 toolchain installed (instructions [here](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain))
 - Risc0 project to generate the proofs (instructions [here](https://dev.risczero.com/api/zkvm/quickstart#2-create-a-new-project))
-- Aligned installed (instructions [here](../introduction/1_getting_started.md#quickstart))
+- Aligned installed (instructions [here](../1_introduction/1_getting_started.md#quickstart))
 
 ### How to generate a proof
 
@@ -174,7 +174,7 @@ aligned submit \
   --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
-For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
+For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
 
 ## Halo2
 
@@ -184,7 +184,7 @@ This guide assumes that:
 
 - You are using PSE fork of the Halo2 [proof system](https://github.com/privacy-scaling-explorations/halo2).
 - You have a strong understanding of Halo2 circuit development and are familiar with the Halo2 proof system.
-- Aligned installed (instructions [here](../introduction/1_getting_started.md#quickstart)).
+- Aligned installed (instructions [here](../1_introduction/1_getting_started.md#quickstart)).
 
 ### Import the Halo2 fork library
 
@@ -281,4 +281,4 @@ aligned submit \
   --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
-For more instructions on how to submit proofs, check the [Submitting proofs guide](../guides/0_submitting_proofs.md).
+For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
