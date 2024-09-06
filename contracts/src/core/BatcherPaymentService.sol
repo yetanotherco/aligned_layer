@@ -70,10 +70,7 @@ contract BatcherPaymentService is
     // map to user data
     mapping(address => UserInfo) public userData;
 
-    bytes32 private constant NONCED_VERIFICATION_DATA_TYPEHASH =
-        keccak256(
-            "NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce,uint256 max_fee)"
-        );
+    bytes32 public noncedVerificationDataTypeHash;
 
     // storage gap for upgradeability
     // solhint-disable-next-line var-name-mixedcase
@@ -95,7 +92,8 @@ contract BatcherPaymentService is
     function initialize(
         IAlignedLayerServiceManager _alignedLayerServiceManager,
         address _batcherPaymentServiceOwner,
-        address _batcherWallet
+        address _batcherWallet,
+        bytes32 _noncedVerificationDataTypeHash
     ) public initializer {
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
@@ -103,6 +101,19 @@ contract BatcherPaymentService is
 
         alignedLayerServiceManager = _alignedLayerServiceManager;
         batcherWallet = _batcherWallet;
+        noncedVerificationDataTypeHash = _noncedVerificationDataTypeHash;
+    }
+
+    function initializeNoncedVerificationDataTypeHash(
+        bytes32 _noncedVerificationDataTypeHash
+    ) public reinitializer(2) onlyOwner {
+        noncedVerificationDataTypeHash = _noncedVerificationDataTypeHash;
+    }
+
+    function setNoncedVerificationDataTypeHash(
+        bytes32 _newTypeHash
+    ) public onlyOwner {
+        noncedVerificationDataTypeHash = _newTypeHash;
     }
 
     // PAYABLE FUNCTIONS
@@ -297,7 +308,7 @@ contract BatcherPaymentService is
 
         bytes32 structHash = keccak256(
             abi.encode(
-                NONCED_VERIFICATION_DATA_TYPEHASH,
+                noncedVerificationDataTypeHash,
                 leaf,
                 keccak256(abi.encodePacked(signatureData.nonce)),
                 keccak256(abi.encodePacked(signatureData.maxFee))
