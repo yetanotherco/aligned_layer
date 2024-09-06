@@ -12,7 +12,6 @@ source scripts/.env
 
 # Deploy Batcher Payments Contract
 forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
-    $OUTPUT_PATH \
     $BATCHER_PAYMENT_SERVICE_CONFIG_PATH \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
@@ -20,7 +19,7 @@ forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
     --legacy \
     --verify \
     --etherscan-api-key $ETHERSCAN_API_KEY \
-    --sig "run(string memory batcherConfigPath,string memory batcherPaymentServiceConfigFilePath)")
+    --sig "run(string memory batcherConfigPath)")
 
 echo "$forge_output"
 
