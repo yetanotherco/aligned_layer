@@ -29,7 +29,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/zkRust/main/install_zkrus
 or built by cloning the repo
 
 ```sh
-git clone https://github.com/lambdaclass/zkRust
+git clone https://github.com/yetanotherco/zkRust
 cd zkRust
 ```
 
