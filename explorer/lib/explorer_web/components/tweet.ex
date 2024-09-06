@@ -18,14 +18,15 @@ defmodule TweetComponent do
         data-show-count="truefalse"
         data-url=" "
       >
-        <button class={[
-          "bg-black text-neutral-50 hover:bg-neutral-700 px-3 pb-0.5",
-          "font-bold text-sm leading-[18px] tracking-wider rounded-full"
-        ]}>
+        <button class={
+          classes([
+            "bg-black text-neutral-50 hover:bg-neutral-700 px-3 pb-0.5",
+            "font-bold text-sm leading-[18px] tracking-wider rounded-full"
+          ])
+        }>
           <span class="text-xl font-normal">𝕏</span> <span class="tracking-tight">Post</span>
         </button>
       </a>
-      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8" />
     </div>
     """
   end

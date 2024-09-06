@@ -6,12 +6,15 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::{get_commitment, submit_multiple, verify_proof_onchain};
+use aligned_sdk::sdk::{get_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -40,7 +43,7 @@ pub struct AlignedArgs {
 #[derive(Subcommand, Debug)]
 pub enum AlignedCommands {
     #[clap(about = "Submit proof to the batcher")]
-    Submit(SubmitArgs),
+    Submit(Box<SubmitArgs>),
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
@@ -60,20 +63,20 @@ pub enum AlignedCommands {
 #[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
-        name = "Batcher address",
-        long = "conn",
+        name = "Batcher connection address",
+        long = "batcher_url",
         default_value = "ws://localhost:8080"
     )]
-    connect_addr: String,
+    batcher_url: String,
     #[arg(
-        name = "Batcher Eth Address",
-        long = "batcher_addr",
+        name = "Batcher Payment Service Eth Address",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_eth_address: String,
+    payment_service_addr: String,
     #[arg(
-        name = "Ethereum RPC provider address",
-        long = "rpc",
+        name = "Ethereum RPC provider connection address",
+        long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
@@ -109,17 +112,25 @@ pub struct SubmitArgs {
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
+    #[arg(
+        name = "Max Fee",
+        long = "max_fee",
+        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
+    )]
+    max_fee: String, // String because U256 expects hex
+    #[arg(name = "Nonce", long = "nonce")]
+    nonce: Option<String>, // String because U256 expects hex
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
     #[arg(
-        name = "Batcher Eth Address",
-        long = "batcher_addr",
+        name = "Batcher Payment Service Eth Address",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_eth_address: String,
+    payment_service_addr: String,
     #[arg(
         name = "Path to local keystore",
         long = "keystore_path",
@@ -128,7 +139,7 @@ pub struct DepositToBatcherArgs {
     keystore_path: Option<PathBuf>,
     #[arg(
         name = "Ethereum RPC provider address",
-        long = "rpc",
+        long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
@@ -149,7 +160,7 @@ pub struct VerifyProofOnchainArgs {
     batch_inclusion_data: PathBuf,
     #[arg(
         name = "Ethereum RPC provider address",
-        long = "rpc",
+        long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
@@ -159,6 +170,12 @@ pub struct VerifyProofOnchainArgs {
         default_value = "devnet"
     )]
     chain: ChainArg,
+    #[arg(
+        name = "Batcher Payment Service Eth Address",
+        long = "payment_service_addr",
+        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+    )]
+    payment_service_addr: String,
 }
 
 #[derive(Parser, Debug)]
@@ -174,14 +191,14 @@ pub struct GetCommitmentArgs {
 #[command(version, about, long_about = None)]
 pub struct GetUserBalanceArgs {
     #[arg(
-        name = "Batcher Eth Address",
-        long = "batcher_addr",
+        name = "Batcher Payment Service Eth Address",
+        long = "payment_service_addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
-    batcher_eth_address: String,
+    payment_service_addr: String,
     #[arg(
         name = "Ethereum RPC provider address",
-        long = "rpc",
+        long = "rpc_url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
@@ -264,8 +281,11 @@ async fn main() -> Result<(), AlignedError> {
                 SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
             })?;
 
+            let max_fee =
+                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
+
             let repetitions = submit_args.repetitions;
-            let connect_addr = submit_args.connect_addr.clone();
+            let connect_addr = submit_args.batcher_url.clone();
 
             let keystore_path = &submit_args.keystore_path;
             let private_key = &submit_args.private_key;
@@ -275,7 +295,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let wallet = if let Some(keystore_path) = keystore_path {
+            let mut wallet = if let Some(keystore_path) = keystore_path {
                 let password = rpassword::prompt_password("Please enter your keystore password:")
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?;
                 Wallet::decrypt_keystore(keystore_path, password)
@@ -290,59 +310,71 @@ async fn main() -> Result<(), AlignedError> {
             };
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
-            let batcher_eth_address = submit_args.batcher_eth_address.clone();
 
-            let verification_data = verification_data_from_args(submit_args)?;
+            let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
+            wallet = wallet.with_chain_id(chain_id);
+
+            let batcher_eth_address = submit_args.payment_service_addr.clone();
+
+            let nonce = match &submit_args.nonce {
+                Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
+                None => {
+                    get_nonce(
+                        &eth_rpc_url,
+                        wallet.address(),
+                        &batcher_eth_address,
+                        repetitions,
+                    )
+                    .await?
+                }
+            };
+
+            let verification_data = verification_data_from_args(*submit_args)?;
 
             let verification_data_arr = vec![verification_data; repetitions];
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let nonce = get_nonce(
-                &eth_rpc_url,
-                wallet.address(),
-                &batcher_eth_address,
-                repetitions,
+            let max_fees = vec![max_fee; repetitions];
+
+            let aligned_verification_data_vec = match submit_multiple(
+                &connect_addr,
+                &verification_data_arr,
+                &max_fees,
+                wallet.clone(),
+                nonce,
             )
-            .await?;
+            .await
+            {
+                Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
+                Err(e) => {
+                    let nonce_file = format!("nonce_{:?}.bin", wallet.address());
 
-            let aligned_verification_data_vec =
-                match submit_multiple(&connect_addr, &verification_data_arr, wallet.clone(), nonce)
-                    .await
-                {
-                    Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
-                    Err(e) => {
-                        let nonce_file = format!("nonce_{:?}.bin", wallet.address());
-
-                        handle_submit_err(e, nonce_file.as_str()).await;
-                        return Ok(());
-                    }
-                };
-
-            if let Some(aligned_verification_data_vec) = aligned_verification_data_vec {
-                let mut unique_batch_merkle_roots = HashSet::new();
-
-                for aligned_verification_data in aligned_verification_data_vec {
-                    save_response(
-                        batch_inclusion_data_directory_path.clone(),
-                        &aligned_verification_data,
-                    )?;
-                    unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
+                    handle_submit_err(e, nonce_file.as_str()).await;
+                    return Ok(());
                 }
+            };
 
-                match unique_batch_merkle_roots.len() {
-                    1 => info!("Proofs submitted to aligned. See the batch in the explorer:"),
-                    _ => info!("Proofs submitted to aligned. See the batches in the explorer:"),
-                }
+            let mut unique_batch_merkle_roots = HashSet::new();
 
-                for batch_merkle_root in unique_batch_merkle_roots {
-                    info!(
-                        "https://explorer.alignedlayer.com/batches/0x{}",
-                        hex::encode(batch_merkle_root)
-                    );
-                }
-            } else {
-                error!("No batch inclusion data was received from the batcher");
+            for aligned_verification_data in aligned_verification_data_vec {
+                save_response(
+                    batch_inclusion_data_directory_path.clone(),
+                    &aligned_verification_data,
+                )?;
+                unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
+            }
+
+            match unique_batch_merkle_roots.len() {
+                1 => info!("Proofs submitted to aligned. See the batch in the explorer:"),
+                _ => info!("Proofs submitted to aligned. See the batches in the explorer:"),
+            }
+
+            for batch_merkle_root in unique_batch_merkle_roots {
+                info!(
+                    "https://explorer.alignedlayer.com/batches/0x{}",
+                    hex::encode(batch_merkle_root)
+                );
             }
         }
 
@@ -356,13 +388,14 @@ async fn main() -> Result<(), AlignedError> {
             let reader = BufReader::new(batch_inclusion_file);
 
             let aligned_verification_data: AlignedVerificationData =
-                serde_json::from_reader(reader).map_err(SubmitError::SerializationError)?;
+                cbor_deserialize(reader).map_err(SubmitError::SerializationError)?;
 
             info!("Verifying response data matches sent proof data...");
-            let response = verify_proof_onchain(
+            let response = is_proof_verified(
                 &aligned_verification_data,
                 chain,
                 &verify_inclusion_args.eth_rpc_url,
+                &verify_inclusion_args.payment_service_addr,
             )
             .await?;
 
@@ -449,7 +482,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let batcher_addr = Address::from_str(&deposit_to_batcher_args.batcher_eth_address)
+            let batcher_addr = Address::from_str(&deposit_to_batcher_args.payment_service_addr)
                 .map_err(|e| {
                     SubmitError::HexDecodingError(format!(
                         "Error while parsing batcher address: {}",
@@ -508,7 +541,7 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let batcher_addr = Address::from_str(&get_user_balance_args.batcher_eth_address)
+            let batcher_addr = Address::from_str(&get_user_balance_args.payment_service_addr)
                 .map_err(|e| {
                     SubmitError::HexDecodingError(format!(
                         "Error while parsing batcher address: {}",
@@ -683,7 +716,7 @@ fn save_response(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    let data = serde_json::to_vec(&aligned_verification_data)?;
+    let data = cbor_serialize(&aligned_verification_data)?;
 
     let mut file = File::create(&batch_inclusion_data_path)
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
@@ -702,7 +735,7 @@ pub async fn get_user_balance(
     contract_address: Address,
     user_address: Address,
 ) -> Result<U256, ProviderError> {
-    let selector = &ethers::utils::keccak256("UserBalances(address)".as_bytes())[..4];
+    let selector = &ethers::utils::keccak256("user_balances(address)".as_bytes())[..4];
 
     let encoded_params = ethers::abi::encode(&[ethers::abi::Token::Address(user_address)]);
 

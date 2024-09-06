@@ -1,7 +1,7 @@
 # Raised event in batch creation
 defmodule NewBatchEvent do
-  @enforce_keys [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer]
-  defstruct [:batchMerkleRoot, :taskCreatedBlock, :batchDataPointer]
+  @enforce_keys [:batchMerkleRoot, :senderAddress, :taskCreatedBlock, :batchDataPointer]
+  defstruct [:batchMerkleRoot, :senderAddress, :taskCreatedBlock, :batchDataPointer]
 
   def extract_merkle_root(event) do
     event.topics_raw |> Enum.at(1)
@@ -16,8 +16,8 @@ end
 
 # Blockchain Information about the batch response event
 defmodule BatchVerifiedInfo do
-  @enforce_keys [:address, :block_number, :block_timestamp, :transaction_hash, :batch_verified]
-  defstruct [:address, :block_number, :block_timestamp, :transaction_hash, :batch_verified]
+  @enforce_keys [:address, :block_number, :block_timestamp, :transaction_hash, :batch_merkle_root, :sender_address]
+  defstruct [:address, :block_number, :block_timestamp, :transaction_hash, :batch_merkle_root, :sender_address]
 end
 
 # Database model for batches
@@ -30,7 +30,8 @@ defmodule BatchDB do
     :submission_transaction_hash,
     :submission_timestamp,
     :proof_hashes,
-    :cost_per_proof
+    :fee_per_proof,
+    :sender_address
   ]
   defstruct [
     :merkle_root,
@@ -44,6 +45,7 @@ defmodule BatchDB do
     :response_timestamp,
     :data_pointer,
     :proof_hashes,
-    :cost_per_proof
+    :fee_per_proof,
+    :sender_address
   ]
 end

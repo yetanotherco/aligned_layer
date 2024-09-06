@@ -5,6 +5,13 @@ on:
       - master
       - main
   pull_request:
+    paths:
+      - 'operator/**'
+      - 'aggregator/**'
+      - 'common/**'
+      - 'core/**'
+      - 'metrics/**'
+      - '.github/workflows/golangci-lint.yml'
 
 permissions:
   contents: read

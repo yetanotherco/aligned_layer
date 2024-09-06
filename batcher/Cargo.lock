@@ -119,6 +119,7 @@ dependencies = [
  "bincode",
  "bs58 0.5.1",
  "bytes",
+ "ciborium",
  "clap",
  "dotenv",
  "env_logger",
@@ -132,6 +133,7 @@ dependencies = [
  "lazy_static",
  "log",
  "mina_bridge_core",
+ "priority-queue",
  "risc0-zkvm",
  "serde",
  "serde_json",
@@ -146,6 +148,7 @@ dependencies = [
 name = "aligned-sdk"
 version = "0.1.0"
 dependencies = [
+ "ciborium",
  "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "futures-util",
  "hex",
@@ -153,6 +156,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "serde_repr",
  "sha3 0.10.8",
  "tokio",
  "tokio-tungstenite 0.23.1",
@@ -2086,6 +2090,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "ciborium"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42e69ffd6f0917f5c029256a24d0161db17cea3997d185db0d35926308770f0e"
+dependencies = [
+ "ciborium-io",
+ "ciborium-ll",
+ "serde",
+]
+
+[[package]]
+name = "ciborium-io"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05afea1e0a06c9be33d539b876f1ce3692f4afea2cb41f740e7743225ed1c757"
+
+[[package]]
+name = "ciborium-ll"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57663b653d948a338bfb3eeba9bb2fd5fcfaecb9e199e87e1eda4d9e8b240fd9"
+dependencies = [
+ "ciborium-io",
+ "half",
+]
+
+[[package]]
 name = "cipher"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3846,6 +3877,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "half"
+version = "2.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6dd08c532ae367adf81c312a4580bc67f1d0fe8bc9c460520283f4c0ff277888"
+dependencies = [
+ "cfg-if",
+ "crunchy",
+]
+
+[[package]]
 name = "halo2"
 version = "0.1.0-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3857,7 +3898,7 @@ dependencies = [
 [[package]]
 name = "halo2_backend"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=22b5d224f3cbeba917e48ba10c618a165e43cd23#22b5d224f3cbeba917e48ba10c618a165e43cd23"
 dependencies = [
  "blake2b_simd",
  "ff 0.13.0",
@@ -3875,7 +3916,7 @@ dependencies = [
 [[package]]
 name = "halo2_frontend"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=22b5d224f3cbeba917e48ba10c618a165e43cd23#22b5d224f3cbeba917e48ba10c618a165e43cd23"
 dependencies = [
  "blake2b_simd",
  "ff 0.13.0",
@@ -3888,7 +3929,7 @@ dependencies = [
 [[package]]
 name = "halo2_middleware"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=22b5d224f3cbeba917e48ba10c618a165e43cd23#22b5d224f3cbeba917e48ba10c618a165e43cd23"
 dependencies = [
  "ff 0.13.0",
  "halo2curves",
@@ -3913,7 +3954,7 @@ dependencies = [
 [[package]]
 name = "halo2_proofs"
 version = "0.3.0"
-source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=a3a56819d9183ac0b11c8d0543c7673c4a4c71a6#a3a56819d9183ac0b11c8d0543c7673c4a4c71a6"
+source = "git+https://github.com/yetanotherco/yet-another-halo2-fork.git?rev=22b5d224f3cbeba917e48ba10c618a165e43cd23#22b5d224f3cbeba917e48ba10c618a165e43cd23"
 dependencies = [
  "bincode",
  "group 0.13.0",
@@ -3921,6 +3962,7 @@ dependencies = [
  "halo2_frontend",
  "halo2_middleware",
  "halo2curves",
+ "log",
  "rand_core",
  "serde",
 ]
@@ -6196,6 +6238,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "priority-queue"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "560bcab673ff7f6ca9e270c17bf3affd8a05e3bd9207f123b0d45076fd8197e8"
+dependencies = [
+ "autocfg",
+ "equivalent",
+ "indexmap 2.4.0",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7367,6 +7420,17 @@ checksum = "af99884400da37c88f5e9146b7f1fd0fbcae8f6eec4e9da38b67d05486f814a6"
 dependencies = [
  "itoa",
  "serde",
+]
+
+[[package]]
+name = "serde_repr"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c64451ba24fc7a6a2d60fc75dd9c83c90903b19028d4eff35e88fc1e86564e9"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.76",
 ]
 
 [[package]]

@@ -1,3 +1,4 @@
+use ethers::signers::Signer;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
 use log::{debug, error, info};
 use std::sync::Arc;
@@ -8,6 +9,7 @@ use futures_util::future::Ready;
 use futures_util::stream::{SplitSink, TryFilter};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
+use crate::communication::serialization::{cbor_deserialize, cbor_serialize};
 use crate::{
     communication::batch::handle_batch_inclusion_data,
     core::{
@@ -29,6 +31,7 @@ pub async fn send_messages(
     response_stream: Arc<Mutex<ResponseStream>>,
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     verification_data: &[VerificationData],
+    max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     mut nonce: U256,
 ) -> Result<Vec<NoncedVerificationData>, SubmitError> {
@@ -40,16 +43,24 @@ pub async fn send_messages(
 
     let mut response_stream = response_stream.lock().await;
 
-    for verification_data in verification_data.iter() {
+    let chain_id = U256::from(wallet.chain_id());
+
+    for (idx, verification_data) in verification_data.iter().enumerate() {
         nonce.to_big_endian(&mut nonce_bytes);
 
-        let verification_data = NoncedVerificationData::new(verification_data.clone(), nonce_bytes);
+        let verification_data = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_bytes,
+            max_fees[idx],
+            chain_id,
+        );
+
         nonce += U256::one();
 
         let msg = ClientMessage::new(verification_data.clone(), wallet.clone());
-        let msg_str = serde_json::to_string(&msg).map_err(SubmitError::SerializationError)?;
+        let msg_bin = cbor_serialize(&msg).map_err(SubmitError::SerializationError)?;
         ws_write
-            .send(Message::Text(msg_str.clone()))
+            .send(Message::Binary(msg_bin.clone()))
             .await
             .map_err(SubmitError::WebSocketConnectionError)?;
 
@@ -65,7 +76,7 @@ pub async fn send_messages(
             }
         };
 
-        let response_msg = serde_json::from_slice::<ValidityResponseMessage>(&msg.into_data())
+        let response_msg: ValidityResponseMessage = cbor_deserialize(msg.into_data().as_slice())
             .map_err(SubmitError::SerializationError)?;
 
         match response_msg {
@@ -88,9 +99,21 @@ pub async fn send_messages(
                 error!("Invalid Proof!");
                 return Err(SubmitError::InvalidProof);
             }
+            ValidityResponseMessage::InvalidMaxFee => {
+                error!("Invalid Max Fee!");
+                return Err(SubmitError::InvalidMaxFee);
+            }
             ValidityResponseMessage::InsufficientBalance(addr) => {
                 error!("Insufficient balance for address: {}", addr);
                 return Err(SubmitError::InsufficientBalance);
+            }
+            ValidityResponseMessage::InvalidChainId => {
+                error!("Invalid chain id!");
+                return Err(SubmitError::InvalidChainId);
+            }
+            ValidityResponseMessage::InvalidReplacementMessage => {
+                error!("Invalid replacement message!");
+                return Err(SubmitError::InvalidReplacementMessage);
             }
         };
 
@@ -106,7 +129,7 @@ pub async fn receive(
     total_messages: usize,
     num_responses: Arc<Mutex<usize>>,
     verification_data_commitments_rev: &mut Vec<VerificationDataCommitment>,
-) -> Result<Option<Vec<AlignedVerificationData>>, SubmitError> {
+) -> Result<Vec<AlignedVerificationData>, SubmitError> {
     // Responses are filtered to only admit binary or close messages.
     let mut response_stream = response_stream.lock().await;
 
@@ -135,11 +158,13 @@ pub async fn receive(
         if *num_responses.lock().await == total_messages {
             debug!("All messages responded. Closing connection...");
             ws_write.lock().await.close().await?;
-            return Ok(Some(aligned_verification_data));
+            return Ok(aligned_verification_data);
         }
     }
 
-    Ok(None)
+    Err(SubmitError::GenericError(
+        "Connection was closed without close message before receiving all messages".to_string(),
+    ))
 }
 
 async fn process_batch_inclusion_data(
@@ -152,7 +177,7 @@ async fn process_batch_inclusion_data(
     *num_responses_lock += 1;
 
     let data = msg.into_data();
-    match serde_json::from_slice::<ResponseMessage>(&data) {
+    match cbor_deserialize(data.as_slice()) {
         Ok(ResponseMessage::BatchInclusionData(batch_inclusion_data)) => {
             let _ = handle_batch_inclusion_data(
                 batch_inclusion_data,

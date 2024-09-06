@@ -7,6 +7,8 @@ import (
 
 type SignedTaskResponse struct {
 	BatchMerkleRoot [32]byte
+	SenderAddress [20]byte
+	BatchIdentifierHash [32]byte
 	BlsSignature    bls.Signature
 	OperatorId      eigentypes.OperatorId
 }

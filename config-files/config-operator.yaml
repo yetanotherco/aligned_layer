@@ -4,7 +4,9 @@ environment: "production"
 aligned_layer_deployment_config_file_path: "./contracts/script/output/holesky/alignedlayer_deployment_output.json"
 eigen_layer_deployment_config_file_path: "./contracts/script/output/holesky/eigenlayer_deployment_output.json"
 eth_rpc_url: "https://ethereum-holesky-rpc.publicnode.com"
+eth_rpc_url_fallback: "https://ethereum-holesky-rpc.publicnode.com"
 eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
+eth_ws_url_fallback: "wss://ethereum-holesky-rpc.publicnode.com"
 eigen_metrics_ip_port_address: "localhost:9090"
 
 ## ECDSA Configurations
@@ -20,6 +22,7 @@ bls:
 ## Operator Configurations
 operator:
   aggregator_rpc_server_ip_port_address: aggregator.alignedlayer.com:8090
+  operator_tracker_ip_port_address: https://holesky.tracker.alignedlayer.com
   address: "<operator_address>"
   earnings_receiver_address: "<earnings_receiver_address>" #Can be the same as the operator.
   delegation_approver_address: "0x0000000000000000000000000000000000000000"

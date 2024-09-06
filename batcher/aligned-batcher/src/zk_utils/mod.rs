@@ -23,29 +23,43 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             false
         }
         ProvingSystemId::Halo2KZG => {
-            let vk = verification_data
-                .verification_key
-                .as_ref()
-                .expect("Verification key is required");
+            let vk = match verification_data.verification_key.as_ref() {
+                Some(vk) => vk,
+                None => {
+                    warn!("Halo2-KZG verification key missing");
+                    return false;
+                }
+            };
 
-            let pub_input = verification_data
-                .pub_input
-                .as_ref()
-                .expect("Public input is required");
+            let pub_input = match verification_data.pub_input.as_ref() {
+                Some(pub_input) => pub_input,
+                None => {
+                    warn!("Halo2-KZG public input missing");
+                    return false;
+                }
+            };
+
             let is_valid = verify_halo2_kzg(&verification_data.proof, pub_input, vk);
             debug!("Halo2-KZG proof is valid: {}", is_valid);
             is_valid
         }
         ProvingSystemId::Halo2IPA => {
-            let vk = verification_data
-                .verification_key
-                .as_ref()
-                .expect("Verification key is required");
+            let vk = match verification_data.verification_key.as_ref() {
+                Some(vk) => vk,
+                None => {
+                    warn!("Halo2-IPA verification key missing");
+                    return false;
+                }
+            };
 
-            let pub_input = verification_data
-                .pub_input
-                .as_ref()
-                .expect("Public input is required");
+            let pub_input = match verification_data.pub_input.as_ref() {
+                Some(pub_input) => pub_input,
+                None => {
+                    warn!("Halo2-IPA public input missing");
+                    return false;
+                }
+            };
+
             let is_valid = verify_halo2_ipa(&verification_data.proof, pub_input, vk);
             debug!("Halo2-IPA proof is valid: {}", is_valid);
             is_valid
@@ -70,15 +84,22 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
-            let vk = verification_data
-                .verification_key
-                .as_ref()
-                .expect("Verification key is required");
+            let vk = match verification_data.verification_key.as_ref() {
+                Some(vk) => vk,
+                None => {
+                    warn!("Gnark verification key missing");
+                    return false;
+                }
+            };
 
-            let pub_input = verification_data
-                .pub_input
-                .as_ref()
-                .expect("Public input is required");
+            let pub_input = match verification_data.pub_input.as_ref() {
+                Some(pub_input) => pub_input,
+                None => {
+                    warn!("Gnark public input missing");
+                    return false;
+                }
+            };
+
             let is_valid = verify_gnark(
                 &verification_data.proving_system,
                 &verification_data.proof,

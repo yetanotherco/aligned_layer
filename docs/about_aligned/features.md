@@ -35,7 +35,7 @@ The cost of verification depends on the mode chosen when using Aligned. For fast
 
 ## High throughput 
 
-Aligned provides an alternative to significantly reduce costs and increase throughput. This is achieved by two different modes: the fast mode and the aggregation/slow mode. The fast mode works using a subset of Ethereum’s validators via restaking. Validators (also called Operators) receive proofs, verify them using the verification code written in Rust or another higher-level language, and sign messages with BLS signatures. If a two-thirds majority agrees, the results are posted to Ethereum. Since Aligned’s operators only need to run the verification code on bare metal, we have several advantages compared to running it on top of the EVM:
+Aligned provides an alternative to significantly reduce costs and increase throughput. This is achieved by two different modes: the fast mode and the aggregation mode. The fast mode works using a subset of Ethereum’s validators via restaking. Validators (also called Operators) receive proofs, verify them using the verification code written in Rust or another higher-level language, and sign messages with BLS signatures. If a two-thirds majority agrees, the results are posted to Ethereum. Since Aligned’s operators only need to run the verification code on bare metal, we have several advantages compared to running it on top of the EVM:
 The code can be optimized for speed, not gas consumption.
 We can leverage parallelization to increase throughput.
 Since the gas limit does not constrain us, we can verify proof systems that are too expensive for Ethereum, such as Kimchi or [Binius](https://eprint.iacr.org/2023/1784).

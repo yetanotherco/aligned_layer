@@ -5,99 +5,166 @@
     </.card_preheding>
     <.card
       class="relative px-4 py-5 min-h-fit flex flex-col"
-      inner_class="font-semibold inline-flex flex-col text-base gap-y-2 text-muted-foreground [&>p]:text-foreground [&>a]:text-foreground [&>*]:break-all [&>*]:font-normal"
+      inner_class="font-semibold inline-flex flex-col text-base gap-y-4 text-muted-foreground [&>div>p]:text-foreground [&>div>a]:text-foreground [&>div>*]:break-all [&>div>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
     >
-      Batch Hash:
-      <p><%= @merkle_root %></p>
-      Status: <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
-      Amount of Proofs in this Batch:
-      <p><%= @current_batch.amount_of_proofs %></p>
-      <%= if @current_batch.cost_per_proof != nil do %>
-        Cost per Proof:
+      <div>
+        <h3>
+          Batch Hash:
+        </h3>
+        <p class="flex flex-wrap md:items-center md:gap-x-2">
+          <%= @merkle_root %>
+          <.live_component
+            module={CopyToClipboardButtonComponent}
+            text_to_copy={@merkle_root}
+            id={"copy_batch_hash_#{@merkle_root}"}
+            class="inline-flex"
+          />
+        </p>
+      </div>
+      <div>
+        <h3>
+          Status:
+        </h3>
+        <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
+      </div>
+      <div>
+        <h3>
+          Batch sender address:
+        </h3>
+        <p><%= @current_batch.sender_address |> Helpers.binary_to_hex_string() %></p>
+      </div>
+      <div>
+        <h3>
+          Amount of Proofs in this Batch:
+        </h3>
+        <p><%= @current_batch.amount_of_proofs %></p>
+      </div>
+      <div
+        :if={@current_batch.fee_per_proof != 0}
+        class="flex flex-col sm:flex-row"
+      >
+        <h3>
+          Fee per Proof:
+        </h3>
         <p>
-          <%= @current_batch.cost_per_proof |> EthConverter.wei_to_eth() %> ETH
+          <%= @current_batch.fee_per_proof |> EthConverter.wei_to_eth() %> ETH
           <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
             <span class="inline-flex md:inline-block">(<%= @eth_usd_price %> USD)</span>
           <% end %>
         </p>
-      <% end %>
-      Proofs in this batch:
-      <%= if @proof_hashes != :empty do %>
-        <%= if @proof_hashes == :nil do %>
-          <p class="normal-case">
-            Proofs couldn't be shown for this Batch
-          </p>
+      </div>
+      <div>
+        <h3>
+          Proofs in this batch:
+        </h3>
+        <%= if @proof_hashes != :empty do %>
+          <%= if @proof_hashes == :nil do %>
+            <p class="normal-case">
+              Proofs couldn't be shown for this Batch
+            </p>
+          <% else %>
+            <div class="space-y-2 basis-3/4">
+              <div class="h-36 overflow-y-auto text-foreground space-y-2">
+                <p :for={{proof, index} <- Enum.with_index(@proof_hashes)}>
+                  <%= proof %>
+                  <.live_component
+                    module={CopyToClipboardButtonComponent}
+                    text_to_copy={proof}
+                    id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
+                    class="inline-flex"
+                  />
+                </p>
+              </div>
+              <.button class="w-fit text-foreground" phx-click="hide_proofs">
+                <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
+              </.button>
+            </div>
+          <% end %>
         <% else %>
-          <div class="h-36 overflow-y-auto text-foreground space-y-2">
-            <p :for={proof <- @proof_hashes}><%= proof %></p>
-          </div>
-          <.button class="w-fit text-foreground" phx-click="hide_proofs">
-            <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
+          <.button class="w-fit text-foreground font-semibold" phx-click="show_proofs">
+            <.icon name="hero-eye" class="size-4" /> Show Proofs
           </.button>
         <% end %>
-      <% else %>
-        <.button class="w-fit text-foreground font-semibold" phx-click="show_proofs">
-          <.icon name="hero-eye" class="size-4" /> Show Proofs
-        </.button>
-      <% end %>
-      <.divider /> Submission Block Number:
-      <.a
-        target="_blank"
-        rel="noopener"
-        href={
-          "https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.submission_block_number}"
+      </div>
+      <.divider />
+      <div>
+        <h3>
+          Submission Block Number:
+        </h3>
+        <.a
+          target="_blank"
+          rel="noopener"
+          href={
+          "#{Helpers.get_etherescan_url()}/block/#{@current_batch.submission_block_number}"
         }
-        class="hover:text-foreground/80"
-      >
-        <%= @current_batch.submission_block_number |> Utils.format_number() %>
-      </.a>
-      Submission Transaction Hash:
-      <.a
-        target="_blank"
-        rel="noopener"
-        href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.submission_transaction_hash}"}
-        class="hover:text-foreground/80"
-      >
-        <%= @current_batch.submission_transaction_hash %>
-      </.a>
-      Submission Timestamp:
-      <p>
-        <%= @current_batch.submission_timestamp |> Utils.parse_timestamp() %>
-      </p>
-      <%= if @current_batch.is_verified do %>
-        <.divider /> Response Block Number:
+          class="hover:text-foreground/80"
+        >
+          <%= @current_batch.submission_block_number |> Helpers.format_number() %>
+        </.a>
+      </div>
+      <div>
+        <h3>
+          Submission Transaction Hash:
+        </h3>
         <.a
           target="_blank"
           rel="noopener"
-          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/block/#{@current_batch.response_block_number}"}
+          href={"#{Helpers.get_etherescan_url()}/tx/#{@current_batch.submission_transaction_hash}"}
           class="hover:text-foreground/80"
         >
-          <%= @current_batch.response_block_number |> Utils.format_number() %>
+          <%= @current_batch.submission_transaction_hash %>
         </.a>
-        Response Transaction Hash:
-        <.a
-          target="_blank"
-          rel="noopener"
-          href={"https://#{@network |> String.replace(~r/holesky/, "holesky.") |> String.replace(~r/mainnet/, "")}etherscan.io/tx/#{@current_batch.response_transaction_hash}"}
-          class="hover:text-foreground/80"
-        >
-          <%= @current_batch.response_transaction_hash %>
-        </.a>
-        Response Timestamp:
+      </div>
+      <div>
+        <h3>
+          Submission Timestamp:
+        </h3>
         <p>
-          <%= @current_batch.response_timestamp |> Utils.parse_timestamp() %>
+          <%= @current_batch.submission_timestamp |> Helpers.parse_timestamp() %>
         </p>
-        <%!-- 
-          %20 represents a space
-          %23 represents the hash symbol (#)
-          %0A represents a line feed (LF) or Unix-style newline
-         --%>
+      </div>
+      <%= if @current_batch.is_verified do %>
         <.live_component
-          class="absolute top-4 md:-top-12 right-5"
+          class="absolute -top-14 right-2"
           id={"tweet_#{@merkle_root}"}
           module={TweetComponent}
           text={"Just%20submitted%20a%20proof%20via%20@alignedlayer%0AI%20am%20now%20%23aligned%20✅%0A#{@site_url}/batches/#{@merkle_root}"}
         />
+        <.divider />
+        <div>
+          <h3>
+            Response Block Number:
+          </h3>
+          <.a
+            target="_blank"
+            rel="noopener"
+            href={"#{Helpers.get_etherescan_url()}/block/#{@current_batch.response_block_number}"}
+            class="hover:text-foreground/80"
+          >
+            <%= @current_batch.response_block_number |> Helpers.format_number() %>
+          </.a>
+        </div>
+        <div>
+          <h3>
+            Response Transaction Hash:
+          </h3>
+          <.a
+            target="_blank"
+            rel="noopener"
+            href={"#{Helpers.get_etherescan_url()}/tx/#{@current_batch.response_transaction_hash}"}
+            class="hover:text-foreground/80"
+          >
+            <%= @current_batch.response_transaction_hash %>
+          </.a>
+        </div>
+        <div>
+          <h3>
+            Response Timestamp:
+          </h3>
+          <p>
+            <%= @current_batch.response_timestamp |> Helpers.parse_timestamp() %>
+          </p>
+        </div>
       <% end %>
     </.card>
   <% else %>

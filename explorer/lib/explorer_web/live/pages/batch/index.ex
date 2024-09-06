@@ -3,10 +3,8 @@ defmodule ExplorerWeb.Batch.Index do
   use ExplorerWeb, :live_view
 
   @impl true
-  def mount(params, _, socket) do
-    merkle_root = params["merkle_root"]
-
-    Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
+  def mount(%{"merkle_root" => merkle_root}, _, socket) do
+    if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
     current_batch =
       case Batches.get_batch(%{merkle_root: merkle_root}) do
@@ -17,7 +15,7 @@ defmodule ExplorerWeb.Batch.Index do
     eth_price =
       case current_batch do
         :empty -> nil
-        batch -> EthConverter.wei_to_eth(batch.cost_per_proof)
+        batch -> EthConverter.wei_to_eth(batch.fee_per_proof)
       end
 
     {
@@ -28,7 +26,7 @@ defmodule ExplorerWeb.Batch.Index do
         proof_hashes: :empty,
         network: System.get_env("ENVIRONMENT"),
         site_url: System.get_env("PHX_HOST"),
-        page_title: Utils.shorten_hash(merkle_root),
+        page_title: Helpers.shorten_hash(merkle_root),
         eth_usd_price:
           case Cachex.get(:eth_price_cache, :eth_price) do
             {:ok, eth_usd_price} ->
@@ -59,7 +57,7 @@ defmodule ExplorerWeb.Batch.Index do
     eth_price =
       case socket.assigns.current_batch do
         :empty -> nil
-        batch -> EthConverter.wei_to_eth(batch.cost_per_proof)
+        batch -> EthConverter.wei_to_eth(batch.fee_per_proof)
       end
 
     new_batch = Batches.get_batch(%{merkle_root: socket.assigns.merkle_root})
@@ -109,6 +107,4 @@ defmodule ExplorerWeb.Batch.Index do
         nil
     end
   end
-
-  embed_templates "*"
 end
