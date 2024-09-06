@@ -1,6 +1,6 @@
 use mina_bridge_core::proof::account_proof::MerkleNode;
 use mina_curves::pasta::Fp;
-use mina_p2p_messages::v2::{hash_with_kimchi, LedgerHash};
+use mina_p2p_messages::v2::hash_with_kimchi;
 use std::fmt::Write;
 
 /// Based on OpenMina's implementation
@@ -23,7 +23,6 @@ pub fn verify_merkle_proof(merkle_leaf: Fp, merkle_path: Vec<MerkleNode>, merkle
 
                 hash_with_kimchi(param.as_str(), &hashes)
             });
-    println!("{}", LedgerHash::from_fp(calculated_root));
     calculated_root == merkle_root
 }
 
