@@ -7,12 +7,14 @@ import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPS
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "../../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
+import {BatcherPaymentServiceStorage} from "./BatcherPaymentServiceStorage.sol";
 
 contract BatcherPaymentService is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable,
+    BatcherPaymentServiceStorage,
     EIP712
 {
     using ECDSA for bytes32;
