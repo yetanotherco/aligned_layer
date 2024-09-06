@@ -27,8 +27,13 @@ defmodule ReleasesHelper do
   end
 
   defp get_latest_tag do
-    case System.cmd("git", ["describe", "--tags", "--abbrev=0"]) do
-      {tag, 0} -> {:ok, String.trim(tag)}
+    case System.cmd("git", ["rev-list", "--tags", "--max-count=1"]) do
+      {sha, 0} ->
+        sha = String.trim(sha)
+        case System.cmd("git", ["describe", "--tags", sha]) do
+          {tag, 0} -> {:ok, String.trim(tag)}
+          {_, _} -> {:error, "Failed to describe tag"}
+        end
       {_, _} -> {:error, "No tags found or not a git repository"}
     end
   end
