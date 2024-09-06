@@ -32,6 +32,17 @@ defmodule Operators do
     Operators.changeset(%Operators{}, Map.from_struct(operator))
   end
 
+  def generate_new_total_stake_changeset(%{operator_address: operator_address}) do
+    new_total_stake = StakeRegistryManager.get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address})
+    dbg operator_address
+    dbg new_total_stake
+
+    query = from(o in Operators, where: o.address == ^operator_address, select: o)
+    operator = Explorer.Repo.one(query)
+
+    Operators.changeset(operator, %{total_stake: new_total_stake})
+  end
+
   def get_operator_by_address(address) do
     query = from(o in Operators, where: o.address == ^address, select: o)
     Explorer.Repo.one(query)

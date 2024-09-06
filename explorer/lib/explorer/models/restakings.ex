@@ -54,6 +54,9 @@ defmodule Restakings do
           |> Ecto.Multi.update(:update_strategy_total_staked, Strategies.generate_update_total_staked_changeset(%{new_restaking: restaking}))
       end
 
+    multi = multi
+      |> Ecto.Multi.update(:update_operator_total_stake, Operators.generate_new_total_stake_changeset(%{operator_address: restaking.operator_address}))
+
     case Explorer.Repo.transaction(multi) do
       {:ok, _} ->
         "Restaking inserted or updated" |> Logger.debug()
