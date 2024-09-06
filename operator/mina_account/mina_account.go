@@ -2,7 +2,7 @@ package mina_account
 
 /*
 #cgo darwin LDFLAGS: -L./lib -lmina_account_verifier
-#cgo linux LDFLAGS: -L./lib -lmina_account_verifier -ldl -lrt -lm
+#cgo linux LDFLAGS: ${SRCDIR}/lib/libmina_account_verifier.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
 
 #include "lib/mina_account_verifier.h"
 */
