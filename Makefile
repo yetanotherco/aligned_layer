@@ -445,7 +445,7 @@ upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
-upgrade_add_type_hash: ## Add Type Hash to Batcher Payment Service
+upgrade_batcher_payments_add_type_hash: ## Add Type Hash to Batcher Payment Service
 	@echo "Adding Type Hash to Batcher Payment Service..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_type_hash_to_batcher_payment_service.sh
 
