@@ -49,32 +49,6 @@ contract BatcherPaymentService is
     ); // 955c0664
     error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
 
-    struct SignatureData {
-        bytes signature;
-        uint256 nonce;
-        uint256 maxFee;
-    }
-
-    struct UserInfo {
-        uint256 balance;
-        uint256 unlockBlock;
-        uint256 nonce;
-    }
-
-    // STORAGE
-    IAlignedLayerServiceManager public alignedLayerServiceManager;
-
-    address public batcherWallet;
-
-    // map to user data
-    mapping(address => UserInfo) public userData;
-
-    bytes32 public noncedVerificationDataTypeHash;
-
-    // storage gap for upgradeability
-    // solhint-disable-next-line var-name-mixedcase
-    uint256[23] private __GAP;
-
     // CONSTRUCTOR & INITIALIZER
     constructor() EIP712("Aligned", "1") {
         _disableInitializers();
