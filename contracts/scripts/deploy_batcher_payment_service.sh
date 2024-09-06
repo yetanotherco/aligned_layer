@@ -12,14 +12,15 @@ source scripts/.env
 
 # Deploy Batcher Payments Contract
 forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
-    ./script/deploy/config/holesky/batcher-payment-service.holesky.config.json \
+    $OUTPUT_PATH \
+    $BATCHER_PAYMENT_SERVICE_CONFIG_PATH \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
     --broadcast \
     --legacy \
     --verify \
     --etherscan-api-key $ETHERSCAN_API_KEY \
-    --sig "run(string batcherConfigPath)")
+    --sig "run(string memory batcherConfigPath,string memory batcherPaymentServiceConfigFilePath)")
 
 echo "$forge_output"
 
@@ -39,5 +40,3 @@ mv "script/output/holesky/alignedlayer_deployment_output.temp.json" "script/outp
 # Delete the temporary file
 rm -f "script/output/holesky/alignedlayer_deployment_output.temp.json"
 rm -f "script/output/holesky/alignedlayer_deployment_output.temp.temp.json"
-
-
