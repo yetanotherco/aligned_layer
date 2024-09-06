@@ -61,7 +61,7 @@ You can get Holesky ETH from the [faucet](https://cloud.google.com/application/w
 
 The zkRust repo has some predefined examples that can be used to generate a proof.
 You can find them in `zkRust/examples`.
-For example, to generate a proof of a `fibonacci` program with Risc0 or Sp1 and submit it to aligned, run:
+For example, to generate a proof of a `fibonacci` program with Risc0 or SP1 and submit it to aligned, run:
 
 ```sh
 cargo run --release --  prove-risc0 \
