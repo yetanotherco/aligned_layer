@@ -26,7 +26,13 @@ defmodule StrategyInterfaceManager do
       {:ok, name} -> %{strategy | name: name}
       error ->
         "Error fetching token name for #{token_address}: #{inspect(error)}" |> Logger.error()
-        error
+        case error do
+          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | name: ""} # token has no Name, not a common practice but still an ERC20
+          _ ->
+            dbg "hola"
+            dbg error
+            error
+        end
     end
   end
   def fetch_token_name({:error, error}) do
@@ -38,7 +44,13 @@ defmodule StrategyInterfaceManager do
       {:ok, symbol} -> %{strategy | symbol: symbol}
       error ->
         "Error fetching token symbol for #{token_address}: #{inspect(error)}" |> Logger.error()
-        error
+        case error do
+          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | symbol: ""} # token has no Symbol, not a common practice but still an ERC20
+          _ ->
+            dbg "hola"
+            dbg error
+            error
+        end
     end
   end
   def fetch_token_symbol({:error, error}) do
