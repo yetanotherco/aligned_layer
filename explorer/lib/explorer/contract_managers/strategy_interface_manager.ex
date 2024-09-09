@@ -25,12 +25,10 @@ defmodule StrategyInterfaceManager do
     case ERC20InterfaceManager.name(token_address) do
       {:ok, name} -> %{strategy | name: name}
       error ->
-        "Error fetching token name for #{token_address}: #{inspect(error)}" |> Logger.error()
         case error do
-          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | name: ""} # token has no Name, not a common practice but still an ERC20
+          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | name: "no_name"} # token has no Name, not a common practice but still an ERC20
           _ ->
-            dbg "hola"
-            dbg error
+            "Error fetching token name for #{token_address}: #{inspect(error)}" |> Logger.error()
             error
         end
     end
@@ -43,12 +41,10 @@ defmodule StrategyInterfaceManager do
     case ERC20InterfaceManager.symbol(token_address) do
       {:ok, symbol} -> %{strategy | symbol: symbol}
       error ->
-        "Error fetching token symbol for #{token_address}: #{inspect(error)}" |> Logger.error()
         case error do
-          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | symbol: ""} # token has no Symbol, not a common practice but still an ERC20
+          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | symbol: "no_symbol"} # token has no Symbol, not a common practice but still an ERC20
           _ ->
-            dbg "hola"
-            dbg error
+            "Error fetching token symbol for #{token_address}: #{inspect(error)}" |> Logger.error()
             error
         end
     end
