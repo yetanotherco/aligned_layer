@@ -405,6 +405,7 @@ defmodule ExplorerWeb.CoreComponents do
           "secondary" -> "text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
           "destructive" -> "text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
           "foreground" -> "text-background bg-foreground group-hover:bg-foreground/80"
+          "outline" -> "text-foreground/80 border border-foreground/20 group-hover:bg-muted-foreground/80"
           "card" -> "text-card-foreground bg-card group-hover:bg-card/80"
           _ -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
         end,

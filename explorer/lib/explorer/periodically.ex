@@ -81,7 +81,7 @@ defmodule Explorer.Periodically do
 
         {batch_changeset, proofs} =
           batch
-          |> Utils.extract_info_from_data_pointer()
+          |> NetworkStorage.extract_info_from_data_pointer()
           |> Batches.generate_changesets()
 
         Batches.insert_or_update(batch_changeset, proofs)

@@ -633,6 +633,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 
 
 __EXPLORER__:
+
 run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
@@ -679,6 +680,10 @@ explorer_fetch_old_batches:
 explorer_fetch_old_operators_strategies_restakes:
 	@cd explorer && \
 	./scripts/fetch_old_operators_strategies_restakes.sh 0
+
+explorer_gen_migration:
+	@cd explorer && \
+	mix ecto.gen.migration $(MIGRATION_NAME)
 
 __TRACKER__:
 
