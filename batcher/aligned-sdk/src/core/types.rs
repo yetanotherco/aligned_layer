@@ -97,11 +97,11 @@ impl From<VerificationData> for VerificationDataCommitment {
         let proving_system_byte = verification_data.proving_system as u8;
         if let Some(vm_program_code) = &verification_data.vm_program_code {
             hasher.update(vm_program_code);
-            hasher.update(&[proving_system_byte]);
+            hasher.update([proving_system_byte]);
             proving_system_aux_data_commitment = hasher.finalize_reset().into();
         } else if let Some(verification_key) = &verification_data.verification_key {
             hasher.update(verification_key);
-            hasher.update(&[proving_system_byte]);
+            hasher.update([proving_system_byte]);
             proving_system_aux_data_commitment = hasher.finalize_reset().into();
         }
 
