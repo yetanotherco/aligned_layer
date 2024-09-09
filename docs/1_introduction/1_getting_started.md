@@ -51,7 +51,8 @@ Use the link in the response to check the status of your transaction in the Alig
 aligned verify-proof-onchain \
 --aligned-verification-data ~/.aligned/aligned_verification_data/*.json \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---chain holesky
+--chain holesky \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 This is reading the result of the verification of the proof in Ethereum.
