@@ -139,9 +139,9 @@ fn check_pub_inputs(
         &state
             .body
             .blockchain_state
-            .staged_ledger_hash
-            .non_snark
-            .ledger_hash
+            .ledger_proof_statement
+            .target
+            .first_pass_ledger
     });
     if pub_inputs
         .candidate_chain_ledger_hashes
