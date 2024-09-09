@@ -114,6 +114,7 @@ pub async fn submit_and_wait_verification(
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
     nonce: U256,
+    payment_service_addr: &str,
 ) -> Result<AlignedVerificationData, errors::SubmitError>
 ```
 
@@ -125,6 +126,7 @@ pub async fn submit_and_wait_verification(
 - `verification_data` - The verification data for the proof.
 - `wallet` - The wallet used to sign the proof. Should be using correct chain id. See `get_chain_id`.
 - `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+- `payment_service_addr` - The address of the batcher payment service contract.
 
 #### Returns
 
@@ -162,6 +164,7 @@ pub async fn submit_multiple_and_wait_verification(
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
+    payment_service_addr: &str,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError>
 ```
 
@@ -173,6 +176,7 @@ pub async fn submit_multiple_and_wait_verification(
 - `verification_data` - A verification data array.
 - `wallet` - The wallet used to sign the proof. Should be using correct chain id. See `get_chain_id`.
 - `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+- `payment_service_addr` - The address of the batcher payment service contract.
 
 #### Returns
 
@@ -206,6 +210,7 @@ pub async fn is_proof_verified(
     aligned_verification_data: AlignedVerificationData,
     chain: Chain,
     eth_rpc_url: &str,
+    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError>
 ```
 
@@ -214,6 +219,7 @@ pub async fn is_proof_verified(
 - `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
 - `chain` - The chain on which the verification will be done.
 - `eth_rpc_url` - The URL of the Ethereum RPC node.
+- `payment_service_addr` - The address of the batcher payment service contract.
 
 #### Returns
 
