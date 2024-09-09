@@ -23,6 +23,7 @@ type AvsWriter struct {
 	logger              logging.Logger
 	Signer              signer.Signer
 	Client              eth.Client
+	ClientFallback 		eth.Client
 }
 
 func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsWriter, error) {
@@ -64,6 +65,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		logger:              baseConfig.Logger,
 		Signer:              privateKeySigner,
 		Client:              baseConfig.EthRpcClient,
+		ClientFallback: 	 baseConfig.EthRpcClientFallback,
 	}, nil
 }
 
@@ -161,7 +163,7 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 	aggregatorAddress := txOpts.From
 	aggregatorBalance, err := w.Client.BalanceAt(context.TODO(), aggregatorAddress, nil)
 	if err != nil {
-		aggregatorBalance, err = w.Client.BalanceAt(context.TODO(), aggregatorAddress, nil) // There is no fallback client?
+		aggregatorBalance, err = w.ClientFallback.BalanceAt(context.TODO(), aggregatorAddress, nil)
 		if err != nil {
 			// Ignore and continue.
 			w.logger.Error("failed to get aggregator balance: %v", err)
