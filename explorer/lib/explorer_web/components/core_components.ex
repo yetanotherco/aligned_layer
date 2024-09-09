@@ -381,10 +381,8 @@ defmodule ExplorerWeb.CoreComponents do
       }
       {@rest}
     >
-      <span>
-        <%= render_slot(@inner_block) %>
-      </span>
-      <.icon name="hero-arrow-top-right-on-square-solid" class="size-4" />
+      <%= render_slot(@inner_block) %>
+      <.icon name="hero-arrow-top-right-on-square-solid" class="size-4 mb-1" />
     </.link>
     """
   end
@@ -418,7 +416,7 @@ defmodule ExplorerWeb.CoreComponents do
             "text-background bg-foreground group-hover:bg-foreground/80"
 
           "outline" ->
-            "text-foreground/80 border border-foreground/20 group-hover:bg-muted-foreground/80"
+            "text-foreground/80 border border-foreground/20 group-hover:bg-muted-foreground/20"
 
           "card" ->
             "text-card-foreground bg-card group-hover:bg-card/80"
