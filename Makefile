@@ -143,7 +143,7 @@ operator_register_with_eigen_layer:
 
 operator_mint_mock_tokens:
 	@echo "Minting tokens"
-	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
+	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 100000000000000000
 
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
@@ -162,7 +162,7 @@ operator_deposit_into_mock_strategy:
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
-		--amount 1000
+		--amount 100000000000000000
 
 operator_deposit_into_strategy:
 	@echo "Depositing into strategy"

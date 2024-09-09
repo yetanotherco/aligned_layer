@@ -29,6 +29,7 @@ defmodule Restakings do
     Operators.get_operators()
       |> Enum.map(fn operator -> StakeRegistryManager.has_operator_changed_staking(%{fromBlock: from_block, operator_id: operator.id, operator_address: operator.address}) end)
       |> Enum.reject(fn {_operator_id, _operator_address, has_changed_stake} -> not has_changed_stake end)
+      |> Enum.reject(fn {operator_id, _operator_address, _has_changed_stake} -> not Operators.get_operator_by_id(operator_id).is_active end)
       |> Enum.map(fn {operator_id, operator_address, _has_changed_stake} -> DelegationManager.get_operator_all_strategies_shares(%Operators{id: operator_id, address: operator_address}) end)
       |> Enum.each(&insert_or_update_restakings/1)
   end
