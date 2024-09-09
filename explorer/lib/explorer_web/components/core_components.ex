@@ -375,13 +375,15 @@ defmodule ExplorerWeb.CoreComponents do
     <.link
       class={
         classes([
-          "underline underline-offset-4 font-medium flex items-center gap-1 hover:text-foreground/80",
+          "underline underline-offset-4 space-x-0.5 font-medium hover:text-foreground/80",
           @class
         ])
       }
       {@rest}
     >
-      <%= render_slot(@inner_block) %>
+      <span>
+        <%= render_slot(@inner_block) %>
+      </span>
       <.icon name="hero-arrow-top-right-on-square-solid" class="size-4" />
     </.link>
     """
@@ -400,14 +402,29 @@ defmodule ExplorerWeb.CoreComponents do
       classes([
         "px-3 py-1 rounded-full font-semibold",
         case @variant do
-          "accent" -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
-          "primary" -> "text-primary-foreground bg-primary group-hover:bg-primary/80"
-          "secondary" -> "text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
-          "destructive" -> "text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
-          "foreground" -> "text-background bg-foreground group-hover:bg-foreground/80"
-          "outline" -> "text-foreground/80 border border-foreground/20 group-hover:bg-muted-foreground/20"
-          "card" -> "text-card-foreground bg-card group-hover:bg-card/80"
-          _ -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
+          "accent" ->
+            "text-accent-foreground bg-accent group-hover:bg-accent/80"
+
+          "primary" ->
+            "text-primary-foreground bg-primary group-hover:bg-primary/80"
+
+          "secondary" ->
+            "text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
+
+          "destructive" ->
+            "text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
+
+          "foreground" ->
+            "text-background bg-foreground group-hover:bg-foreground/80"
+
+          "outline" ->
+            "text-foreground/80 border border-foreground/20 group-hover:bg-muted-foreground/80"
+
+          "card" ->
+            "text-card-foreground bg-card group-hover:bg-card/80"
+
+          _ ->
+            "text-accent-foreground bg-accent group-hover:bg-accent/80"
         end,
         @class
       ])
