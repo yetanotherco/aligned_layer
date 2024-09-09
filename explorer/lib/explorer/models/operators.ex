@@ -34,8 +34,6 @@ defmodule Operators do
 
   def generate_new_total_stake_changeset(%{operator_address: operator_address}) do
     new_total_stake = StakeRegistryManager.get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address})
-    dbg operator_address
-    dbg new_total_stake
 
     query = from(o in Operators, where: o.address == ^operator_address, select: o)
     operator = Explorer.Repo.one(query)
