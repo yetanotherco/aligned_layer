@@ -115,9 +115,7 @@ defmodule ExplorerWeb.Search.Index do
           <% end %>
         </div>
       <% else %>
-        <.card_background class="overflow-x-auto min-h-[38.45rem] flex flex-col items-center justify-center gap-2">
-          <p class="text-lg text-muted-foreground">No matching batches found.</p>
-        </.card_background>
+        <.empty_card_background text="No matching batches found." />
       <% end %>
     </div>
     """
