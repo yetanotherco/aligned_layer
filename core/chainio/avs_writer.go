@@ -104,10 +104,9 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
+	aggregatorAddress := txOpts.From
 	simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
 	w.logger.Info("Simulated cost", "cost", simulatedCost)
-
-	respondToTaskFeeLimit := big.NewInt(0)
 
 	// Get RespondToTaskFeeLimit
 	batchState, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
@@ -117,50 +116,47 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 		if err != nil {
 			// Ignore and continue.
 			// Would be overkill to stop the transaction if checker fails to get this value
-			w.logger.Error("Failed to get batch state" ,"error", err)
-			respondToTaskFeeLimit = big.NewInt(0)
+			w.logger.Error("Failed to get batch state", "error", err)
 		}
 	}
 	if err == nil {
-		respondToTaskFeeLimit = batchState.RespondToTaskFeeLimit
-	}
+		// Check values against RespondToTaskFeeLimit.
 
-	// check SimulatedCost against RespondToTaskFeeLimit.
-	if respondToTaskFeeLimit != big.NewInt(0) {
+		respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
 		w.logger.Info("Batch RespondToTaskFeeLimit", "RespondToTaskFeeLimit", respondToTaskFeeLimit)
 
-		if batchState.RespondToTaskFeeLimit.Cmp(simulatedCost) < 0 {
+		// check SimulatedCost against RespondToTaskFeeLimit.
+		if respondToTaskFeeLimit.Cmp(simulatedCost) < 0 {
 			return fmt.Errorf("cost of transaction is higher than Batch.RespondToTaskFeeLimit")
 		}
-	}
 
-	// Get batcher balance
-	batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
-	if err != nil {
-		batcherBalance, err = w.AvsContractBindings.ServiceManagerFallback.BatchersBalances(&bind.CallOpts{}, senderAddress)
+		// Check values against RespondToTaskFeeLimit.
+		err = w.compareAggregatorBalance(respondToTaskFeeLimit, aggregatorAddress)
 		if err != nil {
-			// Ignore and continue.
-			w.logger.Error("Failed to get batcherBalance" ,"error", err)
+			return err
+		}
+		err = w.compareBatcherBalance(respondToTaskFeeLimit, senderAddress)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		// Check values against SimulatedCost.
+		err = w.compareAggregatorBalance(simulatedCost, aggregatorAddress)
+		if err != nil {
+			return err
+		}
+		err = w.compareBatcherBalance(simulatedCost, senderAddress)
+		if err != nil {
+			return err
 		}
 	}
-	if err == nil {
-		// Compare against simulatedCost.
-		w.logger.Info("Batcher balance", "balance", batcherBalance)
 
-		if batcherBalance.Cmp(simulatedCost) < 0 {
-			return fmt.Errorf("cost of transaction is higher than Batcher balance")
-		}
+	return nil
+}
 
-		// Compare against RespondToTaskFeeLimit.
-		if respondToTaskFeeLimit != big.NewInt(0) {
-			if batcherBalance.Cmp(respondToTaskFeeLimit) < 0 {
-				return fmt.Errorf("respondToTaskFeeLimit is higher than Batcher balance")
-			}
-		}
-	}
-
+func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress common.Address) (error){
 	// Get Agg wallet balance
-	aggregatorAddress := txOpts.From
 	aggregatorBalance, err := w.Client.BalanceAt(context.TODO(), aggregatorAddress, nil)
 	if err != nil {
 		aggregatorBalance, err = w.ClientFallback.BalanceAt(context.TODO(), aggregatorAddress, nil)
@@ -170,17 +166,29 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 		}
 	}
 	if err == nil {
-		// Compare against simulatedCost.
+		// Compare against amount.
 		w.logger.Info("Aggregator balance", "balance", aggregatorBalance)
-		if aggregatorBalance.Cmp(simulatedCost) < 0 {
-			return fmt.Errorf("cost of transaction is higher than Aggregator balance")
+		if aggregatorBalance.Cmp(amount) < 0 {
+			return fmt.Errorf("cost is higher than Aggregator balance")
 		}
+	}
+	return nil
+}
 
-		// Compare against RespondToTaskFeeLimit.
-		if respondToTaskFeeLimit != big.NewInt(0) {
-			if aggregatorBalance.Cmp(respondToTaskFeeLimit) < 0 {
-				return fmt.Errorf("respondToTaskFeeLimit is higher than Aggregator balance")
-			}
+func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byte) (error){
+	// Get batcher balance
+	batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
+	if err != nil {
+		batcherBalance, err = w.AvsContractBindings.ServiceManagerFallback.BatchersBalances(&bind.CallOpts{}, senderAddress)
+		if err != nil {
+			// Ignore and continue.
+			w.logger.Error("Failed to get batcherBalance", "error", err)
+		}
+	}
+	// Compare against amount.
+	if err == nil {
+		if batcherBalance.Cmp(amount) < 0 {
+			return fmt.Errorf("cost is higher than Batcher balance")
 		}
 	}
 
