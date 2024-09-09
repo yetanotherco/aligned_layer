@@ -134,7 +134,7 @@ defmodule Operators do
 
   def unregister_operator(%Operators{address: address}) do
     query = from(o in Operators, where: o.address == ^address)
-    Explorer.Repo.update_all(query, set: [is_active: false])
+    Explorer.Repo.update_all(query, set: [is_active: false, total_stake: 0])
   end
 
   def get_total_stake(%Operators{} = operator) do
