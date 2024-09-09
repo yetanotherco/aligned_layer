@@ -64,28 +64,25 @@
           <% else %>
             <div class="space-y-2 basis-3/4">
               <section class="h-36 overflow-y-auto text-foreground space-y-2 py-2 lg:py-0">
-                <article
+                <.card_background
                   :for={{proof, index} <- Enum.with_index(@proof_hashes)}
-                  class="space-x-2 group"
+                  class="space-x-2 space-y-1.5 group px-2 py-3 md:mr-3.5"
                 >
                   <%= if @proving_systems |> Enum.at(index) != nil do %>
                     <.badge variant="outline" class="px-1.5">
                       <%= @proving_systems |> Enum.at(index) %>
                     </.badge>
                   <% end %>
-                  <span>
-                    <%= proof |> Helpers.shorten_hash() %>
-                    <.tooltip>
-                      <%= proof %>
-                    </.tooltip>
+                  <span class="block md:inline">
+                    <%= proof %>
+                    <.live_component
+                      module={CopyToClipboardButtonComponent}
+                      text_to_copy={proof}
+                      id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
+                      class="inline-flex"
+                    />
                   </span>
-                  <.live_component
-                    module={CopyToClipboardButtonComponent}
-                    text_to_copy={proof}
-                    id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
-                    class="inline-flex"
-                  />
-                </article>
+                </.card_background>
               </section>
               <.button class="w-fit text-foreground" phx-click="hide_proofs">
                 <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
