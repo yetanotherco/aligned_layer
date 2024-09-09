@@ -56,8 +56,7 @@ defmodule AlignedLayerServiceManager do
 
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
     events =
-      nil
-      |> AlignedLayerServiceManager.EventFilters.new_batch_v2()
+      AlignedLayerServiceManager.EventFilters.new_batch_v3(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
 
     case events do
@@ -93,7 +92,8 @@ defmodule AlignedLayerServiceManager do
       batchMerkleRoot: topics_raw |> Enum.at(1),
       senderAddress: data |> Enum.at(0),
       taskCreatedBlock: data |> Enum.at(1),
-      batchDataPointer: data |> Enum.at(2)
+      batchDataPointer: data |> Enum.at(2),
+      maxAggregatorFee: data |> Enum.at(3),
     }
   end
 
@@ -134,11 +134,9 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
       proof_hashes: nil,
-      fee_per_proof:
-        BatcherPaymentServiceManager.get_fee_per_proof(%{
-          merkle_root: created_batch.batchMerkleRoot
-        }),
-      sender_address: Utils.string_to_bytes32(created_batch.senderAddress)
+      fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot}),
+      sender_address: Utils.string_to_bytes32(created_batch.senderAddress),
+      max_aggregator_fee: created_batch.maxAggregatorFee
     }
   end
 
@@ -167,7 +165,8 @@ defmodule AlignedLayerServiceManager do
           amount_of_proofs: unverified_batch.amount_of_proofs,
           fee_per_proof: unverified_batch.fee_per_proof,
           proof_hashes: nil,
-          sender_address: unverified_batch.sender_address
+          sender_address: unverified_batch.sender_address,
+          max_aggregator_fee: unverified_batch.max_aggregator_fee
         }
     end
   end

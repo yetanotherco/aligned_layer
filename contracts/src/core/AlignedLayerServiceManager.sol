@@ -42,14 +42,26 @@ contract AlignedLayerServiceManager is
     // @param _rewardsInitiator The address which is allowed to create AVS rewards submissions.
     function initialize(
         address _initialOwner,
-        address _rewardsInitiator
+        address _rewardsInitiator,
+        address _alignedAggregator
     ) public initializer {
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
+        alignedAggregator = _alignedAggregator; //can't do setAggregator(aggregator) since caller is not the owner
+    }
+
+    // This function is to be run only on upgrade
+    // If a new contract is deployed, this function should be removed
+    // Because this new value is also added in the initializer
+    function initializeAggregator(
+        address _alignedAggregator
+    ) public reinitializer(2) {
+        setAggregator(_alignedAggregator);
     }
 
     function createNewTask(
         bytes32 batchMerkleRoot,
-        string calldata batchDataPointer
+        string calldata batchDataPointer,
+        uint256 respondToTaskFeeLimit
     ) external payable {
         bytes32 batchIdentifier = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
@@ -67,14 +79,19 @@ contract AlignedLayerServiceManager is
             );
         }
 
-        if (batchersBalances[msg.sender] == 0) {
-            revert BatcherBalanceIsEmpty(msg.sender);
+        if (batchersBalances[msg.sender] < respondToTaskFeeLimit) {
+            revert InsufficientFunds(
+                msg.sender,
+                respondToTaskFeeLimit,
+                batchersBalances[msg.sender]
+            );
         }
 
         BatchState memory batchState;
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
+        batchState.respondToTaskFeeLimit = respondToTaskFeeLimit;
 
         batchesState[batchIdentifier] = batchState;
 
@@ -84,6 +101,13 @@ contract AlignedLayerServiceManager is
             uint32(block.number),
             batchDataPointer
         );
+        emit NewBatchV3(
+            batchMerkleRoot,
+            msg.sender,
+            uint32(block.number),
+            batchDataPointer,
+            respondToTaskFeeLimit
+        );
     }
 
     function respondToTaskV2(
@@ -91,37 +115,42 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
-    ) external {
+    ) external onlyAggregator {
         uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
             abi.encodePacked(batchMerkleRoot, senderAddress)
         );
 
-        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        BatchState storage currentBatch = batchesState[batchIdentifierHash];
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
-        if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
+        if (currentBatch.taskCreatedBlock == 0) {
             revert BatchDoesNotExist(batchIdentifierHash);
         }
 
         // Check task hasn't been responsed yet
-        if (batchesState[batchIdentifierHash].responded) {
+        if (currentBatch.responded) {
             revert BatchAlreadyResponded(batchIdentifierHash);
         }
+        currentBatch.responded = true; 
 
-        if (batchersBalances[senderAddress] == 0) {
-            revert BatcherHasNoBalance(senderAddress);
+        // Check that batcher has enough funds to fund response
+        if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
+            revert InsufficientFunds(
+                senderAddress,
+                currentBatch.respondToTaskFeeLimit,
+                batchersBalances[senderAddress]
+            );
         }
 
-        batchesState[batchIdentifierHash].responded = true;
-
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+
         // check that aggregated BLS signature is valid
         (QuorumStakeTotals memory quorumStakeTotals, ) = checkSignatures(
             batchIdentifierHash,
-            batchesState[batchIdentifierHash].taskCreatedBlock,
+            currentBatch.taskCreatedBlock,
             nonSignerStakesAndSignature
         );
 
@@ -141,27 +170,24 @@ contract AlignedLayerServiceManager is
 
         emit BatchVerified(batchMerkleRoot, senderAddress);
 
-        // Calculate estimation of gas used, check that batcher has sufficient funds
-        // and send transaction cost to aggregator.
-        uint256 finalGasLeft = gasleft();
-
         // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
-        uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
+        uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
-        if (batchersBalances[senderAddress] < txCost) {
-            revert InsufficientFunds(
-                senderAddress,
-                txCost,
-                batchersBalances[senderAddress]
+        if (txCost > currentBatch.respondToTaskFeeLimit) {
+            revert ExceededMaxRespondFee(
+                currentBatch.respondToTaskFeeLimit,
+                txCost
             );
         }
 
+        // Subtract the txCost from the batcher's balance
         batchersBalances[senderAddress] -= txCost;
         emit BatcherBalanceUpdated(
             senderAddress,
             batchersBalances[senderAddress]
         );
-        payable(msg.sender).transfer(txCost);
+        
+        payable(alignedAggregator).transfer(txCost);
     }
 
     function verifyBatchInclusion(
@@ -231,6 +257,10 @@ contract AlignedLayerServiceManager is
         );
     }
 
+    function setAggregator(address _alignedAggregator) public onlyOwner {
+        alignedAggregator = _alignedAggregator;
+    }
+
     function withdraw(uint256 amount) external {
         if (batchersBalances[msg.sender] < amount) {
             revert InsufficientFunds(
@@ -271,5 +301,12 @@ contract AlignedLayerServiceManager is
         bytes32 hash
     ) public pure returns (bool) {
         return keccak256(publicInput) == hash;
+    }
+
+    modifier onlyAggregator() {
+        if (msg.sender != alignedAggregator) {
+            revert SenderIsNotAggregator(msg.sender, alignedAggregator);
+        }
+        _;
     }
 }
