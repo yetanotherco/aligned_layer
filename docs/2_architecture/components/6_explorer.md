@@ -15,8 +15,8 @@ from the Explorer with links to etherscan.
 
 ![Figure 1: Explorer Landing Page](../../images/explorer-landing-page.png)
 
-From here, we can search for a specific batch by its Merkle Root or even proof hash, 
-we can directly jump to any one of the last 5 submitted batches, and we can easily go to the `Batches` page, 
+From here, we can search for a specific batch by its Merkle Root or even find a batch, or if you want to find which batch contains a specific proof, you can also search by proof hash.
+We can also directly jump to any one of the last 5 submitted batches, and we can easily go to the `Batches` page, 
 where we can navigate through the various pages of batches of proofs submitted to aligned, ordered by latest submission, 
 and easily check their on-chain status, timestamp, and block number.
 
