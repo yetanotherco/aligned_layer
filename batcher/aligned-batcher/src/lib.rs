@@ -103,11 +103,7 @@ impl BatchState {
         self.batch_queue
             .iter()
             .map(|(entry, _)| entry)
-            .find(|entry| {
-                entry.sender == sender
-                    && U256::from_big_endian(entry.nonced_verification_data.nonce.as_slice())
-                        == nonce
-            })
+            .find(|entry| entry.sender == sender && entry.nonced_verification_data.nonce == nonce)
     }
 
     /// Checks if the entry is valid
@@ -122,8 +118,7 @@ impl BatchState {
         replacement_entry: BatchQueueEntry,
     ) -> Option<ValidityResponseMessage> {
         let replacement_max_fee = replacement_entry.nonced_verification_data.max_fee;
-        let nonce =
-            U256::from_big_endian(replacement_entry.nonced_verification_data.nonce.as_slice());
+        let nonce = replacement_entry.nonced_verification_data.nonce;
         let sender = replacement_entry.sender;
 
         debug!(
@@ -134,7 +129,7 @@ impl BatchState {
         // it is a valid entry only if there is no entry with the same sender, lower nonce and a lower fee
         let is_valid = !self.batch_queue.iter().any(|(entry, _)| {
             entry.sender == sender
-                && U256::from_big_endian(entry.nonced_verification_data.nonce.as_slice()) < nonce
+                && entry.nonced_verification_data.nonce < nonce
                 && entry.nonced_verification_data.max_fee < replacement_max_fee
         });
 
@@ -439,7 +434,7 @@ impl Batcher {
 
         info!(
             "Received message with nonce: {}",
-            U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
+            client_msg.verification_data.nonce
         );
 
         if client_msg.verification_data.chain_id != self.chain_id {
@@ -495,7 +490,7 @@ impl Batcher {
                 }
 
                 // Nonce and max fee verification
-                let nonce = U256::from_big_endian(nonced_verification_data.nonce.as_slice());
+                let nonce = nonced_verification_data.nonce;
                 let max_fee = nonced_verification_data.max_fee;
 
                 if max_fee < U256::from(MIN_FEE_PER_PROOF) {
@@ -644,7 +639,7 @@ impl Batcher {
             return false;
         }
 
-        let nonce = U256::from_big_endian(&nonced_verification_data.nonce);
+        let nonce = nonced_verification_data.nonce;
 
         batch_state.user_nonces.insert(addr, nonce + U256::one());
         batch_state.user_min_fee.insert(addr, max_fee);
@@ -678,7 +673,7 @@ impl Batcher {
         expected_user_nonce: U256,
     ) -> bool {
         let replacement_max_fee = nonced_verification_data.max_fee;
-        let nonce = U256::from_big_endian(&nonced_verification_data.nonce);
+        let nonce = nonced_verification_data.nonce;
 
         let mut replacement_entry = match batch_state.get_entry(addr, nonce) {
             Some(entry) => {
@@ -761,7 +756,7 @@ impl Batcher {
         info!("Adding verification data to batch...");
 
         let max_fee = verification_data.max_fee;
-        let nonce = U256::from_big_endian(verification_data.nonce.as_slice());
+        let nonce = verification_data.nonce;
 
         batch_state.batch_queue.push(
             BatchQueueEntry::new(
@@ -1254,15 +1249,15 @@ impl Batcher {
                     }
                 };
 
-                debug!("non paying nonce: {:?}", nonpaying_nonce);
+                info!("non paying nonce: {:?}", nonpaying_nonce);
 
-                let mut nonce_bytes = [0u8; 32];
-                nonpaying_nonce.to_big_endian(&mut nonce_bytes);
+                let nonce_value = *nonpaying_nonce;
+
                 *nonpaying_nonce += U256::one();
 
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
-                    nonce_bytes,
+                    nonce_value,
                     DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
                     self.chain_id,
                     self.payment_service.address(),

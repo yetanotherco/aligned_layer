@@ -41,18 +41,14 @@ pub async fn send_messages(
 
     let mut ws_write = ws_write.lock().await;
 
-    let mut nonce_bytes = [0u8; 32];
-
     let mut response_stream = response_stream.lock().await;
 
     let chain_id = U256::from(wallet.chain_id());
 
     for (idx, verification_data) in verification_data.iter().enumerate() {
-        nonce.to_big_endian(&mut nonce_bytes);
-
         let verification_data = NoncedVerificationData::new(
             verification_data.clone(),
-            nonce_bytes,
+            nonce,
             max_fees[idx],
             chain_id,
             payment_service_addr,

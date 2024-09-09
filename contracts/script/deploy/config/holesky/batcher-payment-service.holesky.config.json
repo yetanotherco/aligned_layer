@@ -11,6 +11,6 @@
     "owner": "<owner_address>"
   },
   "eip712": {
-    "noncedVerificationDataTypeHash": "2194895b48bd1793cdc112d96441a9e5291ef6151d5aa0e8e2386c81bdc61624"
+    "noncedVerificationDataTypeHash": "41817b5c5b0c3dcda70ccb43ba175fdcd7e586f9e0484422a2c6bba678fdf4a3"
   }
 }

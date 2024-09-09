@@ -19,7 +19,7 @@ use super::errors::VerifySignatureError;
 // we don't have the fields of VerificationData, we only have the hash of the VerificationData.
 // chain_id is not included in the type because it is now part of the domain.
 const NONCED_VERIFICATION_DATA_TYPE: &[u8] =
-    b"NoncedVerificationData(bytes32 verification_data_hash,bytes32 nonce,uint256 max_fee)";
+    b"NoncedVerificationData(bytes32 verification_data_hash,uint256 nonce,uint256 max_fee)";
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 #[repr(u8)]
@@ -47,7 +47,7 @@ pub struct VerificationData {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
-    pub nonce: [u8; 32],
+    pub nonce: U256,
     pub max_fee: U256,
     pub chain_id: U256,
     pub payment_service_addr: Address,
@@ -56,7 +56,7 @@ pub struct NoncedVerificationData {
 impl NoncedVerificationData {
     pub fn new(
         verification_data: VerificationData,
-        nonce: [u8; 32],
+        nonce: U256,
         max_fee: U256,
         chain_id: U256,
         payment_service_addr: Address,
@@ -218,7 +218,9 @@ impl Eip712 for NoncedVerificationData {
         hasher.update(NONCED_VERIFICATION_DATA_TYPE);
         let nonced_verification_data_type_hash = hasher.finalize_reset();
 
-        hasher.update(self.nonce);
+        let mut nonce_bytes = [0u8; 32];
+        self.nonce.to_big_endian(&mut nonce_bytes);
+        hasher.update(nonce_bytes);
         let nonce_hash = hasher.finalize_reset();
 
         let mut max_fee_bytes = [0u8; 32];
