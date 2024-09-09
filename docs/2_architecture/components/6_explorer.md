@@ -29,7 +29,7 @@ From the details view, we can visualize:
 - The `Batch Hash` Merkle Root and a copy to clipboard button
 - The batch's `Status`, either `Pending` or `Verified`
 - `Batcher Sender Address` which is the address of the batcher that submitted the batch
-- `Number of Proofs in this Batch` the number of proofs included in the batch
+- `Number of Proofs in this Batch`, the number of proofs included in the batch
 - `Fee per Proof`, fee paid per proof in the batch in ETH and USD
 - `Proofs in the Batch`, which when pressed will show a list of all the proof hashes included in the batch
 - Ethereum's `Submission Block Number`, linked to etherscan
