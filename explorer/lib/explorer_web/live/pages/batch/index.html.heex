@@ -62,7 +62,7 @@
           <% else %>
             <div class="space-y-2 basis-3/4">
               <div class="h-36 overflow-y-auto text-foreground space-y-2 py-2 lg:py-0">
-                <div :for={{proof, index} <- Enum.with_index(@proof_hashes)} class="space-x-2">
+                <div :for={{proof, index} <- Enum.with_index(@proof_hashes)} class="space-x-2 group">
                   <%= if @proving_systems |> Enum.at(index) != nil do %>
                     <.badge variant="outline" class="px-1.5">
                       <%= @proving_systems |> Enum.at(index) %>
