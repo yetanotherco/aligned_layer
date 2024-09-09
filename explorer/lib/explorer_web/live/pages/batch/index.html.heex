@@ -11,8 +11,10 @@
         <h3>
           Batch Hash:
         </h3>
-        <p class="flex flex-wrap md:items-center md:gap-x-2">
-          <%= @merkle_root %>
+        <p class="space-x-0.5">
+          <span>
+            <%= @merkle_root %>
+          </span>
           <.live_component
             module={CopyToClipboardButtonComponent}
             text_to_copy={@merkle_root}
@@ -61,14 +63,17 @@
             </p>
           <% else %>
             <div class="space-y-2 basis-3/4">
-              <div class="h-36 overflow-y-auto text-foreground space-y-2 py-2 lg:py-0">
-                <div :for={{proof, index} <- Enum.with_index(@proof_hashes)} class="space-x-2 group">
+              <section class="h-36 overflow-y-auto text-foreground space-y-2 py-2 lg:py-0">
+                <article
+                  :for={{proof, index} <- Enum.with_index(@proof_hashes)}
+                  class="space-x-2 group"
+                >
                   <%= if @proving_systems |> Enum.at(index) != nil do %>
                     <.badge variant="outline" class="px-1.5">
                       <%= @proving_systems |> Enum.at(index) %>
                     </.badge>
                   <% end %>
-                  <span class="">
+                  <span>
                     <%= proof |> Helpers.shorten_hash() %>
                     <.tooltip>
                       <%= proof %>
@@ -80,8 +85,8 @@
                     id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
                     class="inline-flex"
                   />
-                </div>
-              </div>
+                </article>
+              </section>
               <.button class="w-fit text-foreground" phx-click="hide_proofs">
                 <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
               </.button>
