@@ -1,9 +1,9 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.4.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.4.0)
+> Aligned Operator [v0.6.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.6.0)
 
-> **IMPORTANT:** 
+> **IMPORTANT:**
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
 
 ## Supported Verifiers
@@ -41,7 +41,7 @@ Minimum hardware requirements:
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.4.0
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.6.0
 cd aligned_layer
 ```
 
