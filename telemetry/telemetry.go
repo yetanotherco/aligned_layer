@@ -31,6 +31,10 @@ type Telemetry struct {
 	Meter                     metric.Meter
 	TelemetryDataByMerkleRoot map[[32]byte]TraceData
 	dataMutex                 *sync.Mutex
+	initialCtx                context.Context
+	shutdownTracerProvider    func(context.Context) error
+	shutdownMeterProvider     func(context.Context) error
+	logger                    logging.Logger
 }
 
 func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logger) Telemetry {
@@ -51,12 +55,12 @@ func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logge
 		logger.Fatal("err", err)
 	}
 
-	_, err = initTracerProvider(ctx, res, conn)
+	shutdownTracerProvider, err := initTracerProvider(ctx, res, conn)
 	if err != nil {
 		logger.Fatal("err", err)
 	}
 
-	_, err = initMeterProvider(ctx, res, conn)
+	shutdownMeterProvider, err := initMeterProvider(ctx, res, conn)
 	if err != nil {
 		logger.Fatal("err", err)
 	}
@@ -70,6 +74,9 @@ func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logge
 		Meter:                     meter,
 		TelemetryDataByMerkleRoot: make(map[[32]byte]TraceData),
 		dataMutex:                 &sync.Mutex{},
+		initialCtx:                ctx,
+		shutdownTracerProvider:    shutdownTracerProvider,
+		shutdownMeterProvider:     shutdownMeterProvider,
 	}
 }
 
@@ -209,4 +216,14 @@ func initMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.C
 	otel.SetMeterProvider(meterProvider)
 
 	return meterProvider.Shutdown, nil
+}
+
+// Shutdown must be called by the user to make sure resources are freed
+func (t *Telemetry) Shutdown() {
+	if err := t.shutdownTracerProvider(t.initialCtx); err != nil {
+		t.logger.Fatalf("failed to shutdown TracerProvider: %s", err)
+	}
+	if err := t.shutdownMeterProvider(t.initialCtx); err != nil {
+		t.logger.Fatalf("failed to shutdown MeterProvider: %s", err)
+	}
 }

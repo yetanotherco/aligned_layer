@@ -159,6 +159,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	reg := prometheus.NewRegistry()
 	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
 
+	// Telemetry
 	aggregatorTelemetry := telemetry.NewTelemetry("aggregator", "localhost:4317", logger)
 
 	nextBatchIndex := uint32(0)
@@ -205,6 +206,8 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 	} else {
 		metricsErrChan = make(chan error, 1)
 	}
+
+	defer agg.telemetry.Shutdown()
 
 	for {
 		select {
