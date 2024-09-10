@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/yetanotherco/aligned_layer/telemetry"
 	"sync"
 	"time"
 
@@ -86,8 +87,12 @@ type Aggregator struct {
 
 	logger logging.Logger
 
+	// Metrics
 	metricsReg *prometheus.Registry
 	metrics    *metrics.Metrics
+
+	// Telemetry
+	telemetry telemetry.Telemetry
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -154,6 +159,8 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	reg := prometheus.NewRegistry()
 	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
 
+	aggregatorTelemetry := telemetry.NewTelemetry("aggregator", "localhost:4317", logger)
+
 	nextBatchIndex := uint32(0)
 
 	aggregator := Aggregator{
@@ -176,6 +183,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		logger:                logger,
 		metricsReg:            reg,
 		metrics:               aggregatorMetrics,
+		telemetry:             aggregatorTelemetry,
 	}
 
 	return &aggregator, nil
@@ -255,6 +263,9 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
 	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
 
+	span := agg.telemetry.QuorumReachedTrace(batchData.BatchMerkleRoot)
+	defer span.End()
+
 	// Delete the task from the map
 	delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
 
@@ -329,10 +340,13 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 
 	agg.metrics.IncAggregatedResponses()
 
+	agg.telemetry.FinishTrace(batchMerkleRoot)
 	return receipt, nil
 }
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
+	agg.telemetry.InitNewTrace(batchMerkleRoot)
+
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 

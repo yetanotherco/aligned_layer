@@ -49,6 +49,9 @@ func (agg *Aggregator) ServeOperators() error {
 //   - 0: Success
 //   - 1: Error
 func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *types.SignedTaskResponse, reply *uint8) error {
+	span := agg.telemetry.OperatorResponseTrace(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.OperatorId)
+	defer span.End()
+
 	agg.AggregatorConfig.BaseConfig.Logger.Info("New task response",
 		"BatchMerkleRoot", "0x"+hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
 		"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
