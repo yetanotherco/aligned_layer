@@ -156,13 +156,12 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 		if err != nil {
 			// Ignore and continue.
 			w.logger.Error("failed to get aggregator balance: %v", err)
+			return nil
 		}
 	}
-	if err == nil {
-		w.logger.Info("Aggregator balance", "balance", aggregatorBalance)
-		if aggregatorBalance.Cmp(amount) < 0 {
-			return fmt.Errorf("cost is higher than Aggregator balance")
-		}
+	w.logger.Info("Aggregator balance", "balance", aggregatorBalance)
+	if aggregatorBalance.Cmp(amount) < 0 {
+		return fmt.Errorf("cost is higher than Aggregator balance")
 	}
 	return nil
 }
@@ -175,13 +174,12 @@ func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byt
 		if err != nil {
 			// Ignore and continue.
 			w.logger.Error("Failed to get batcherBalance", "error", err)
+			return nil
 		}
 	}
-	if err == nil {
-		if batcherBalance.Cmp(amount) < 0 {
-			return fmt.Errorf("cost is higher than Batcher balance")
-		}
+	w.logger.Info("Batcher balance", "balance", batcherBalance)
+	if batcherBalance.Cmp(amount) < 0 {
+		return fmt.Errorf("cost is higher than Batcher balance")
 	}
-
 	return nil
 }
