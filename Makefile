@@ -503,7 +503,6 @@ build_risc_zero_macos:
 build_risc_zero_linux:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
 	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
-	@ls -la operator/risc_zero/lib
 
 test_risc_zero_rust_ffi:
 	@echo "Testing RISC Zero Rust FFI source code..."
@@ -515,6 +514,7 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
+	@export LD_LIBRARY_PATH=operator/risc_zero/lib:$LD_LIBRARY_PATH
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:
