@@ -61,6 +61,16 @@ Aligned has created a new category in crypto: ZK verification layer. It is the o
 
 Other solutions focus on building a separate L1 for proof verification (which sets them apart from Ethereum and requires bootstrapping the economic security, which can be lowered and subject to volatility, as opposed to that provided by restaking) or focus on the aggregation of proofs from a few proof systems. This last approach adds latency, higher operational costs, and constrains the developer's choice of the proof system.
 
+The following table contains costs estimates for Aligned, assuming a batch size of 20 proofs.
+
+| Proof system | Ethereum | Aligned - Fast mode | Aligned - Aggregation |
+| --------     | -------- | --------            | ----------            |
+| Groth16      | 250,000     | 40,000     | TBD |
+| STARKs       | >1,000,000  | 40,000    | TBD |
+| Kimchi-IPA   | ??????  | 40,000    | TBD |
+| Halo2-KZG    | 350,000 | 40,000    | TBD |
+| Binius.      | ??????  | 40,000    | TBD |
+
 ## Why are we building Aligned?
 
 In recent months, we have witnessed the development and enhancement of general proving virtual machines such as Risc0, Valida, Jolt, and SP1. These innovations allow users to write ordinary code in languages like Rust or C and generate proofs demonstrating the integrity of computations. This evolution is poised to transform application development, provided we have verification networks with high throughput and low cost. This is the core vision of Aligned and the reason we are building it: the future belongs to provable applications.

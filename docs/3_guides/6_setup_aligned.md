@@ -668,6 +668,7 @@ The `.env` file needs to contain the following variables:
 | `DB_HOST`             | The host URL where the postgres database will be running.                                       |
 | `ELIXIR_HOSTNAME`     | The hostname of your running elixir.                                                            |
 | `DEBUG_ERRORS`        | If you want to enable phoenix errors on your browser instead of a 500 page, set this to `true`. |
+| `TRACKER_API_URL`     | The URL of the aligned version each operator is running.                                        |
 
 Then you can run the explorer with this env file config by entering the following command:
 

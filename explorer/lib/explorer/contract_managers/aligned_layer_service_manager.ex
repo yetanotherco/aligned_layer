@@ -60,9 +60,14 @@ defmodule AlignedLayerServiceManager do
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
 
     case events do
-      {:ok, []} -> []
-      {:ok, list} -> Enum.map(list, &extract_new_batch_event_info/1)
-      {:error, reason} -> raise("Error fetching events: #{Map.get(reason, "message")}")
+      {:ok, []} ->
+        []
+
+      {:ok, list} ->
+        Enum.map(list, &extract_new_batch_event_info/1)
+
+      {:error, reason} ->
+        raise("Error fetching events: #{Map.get(reason, "message")}")
     end
   end
 
@@ -94,8 +99,9 @@ defmodule AlignedLayerServiceManager do
 
   def is_batch_responded(merkle_root) do
     event =
-      AlignedLayerServiceManager.EventFilters.batch_verified(Utils.string_to_bytes32(merkle_root))
-        |> Ethers.get_logs(fromBlock: @first_block)
+      Utils.string_to_bytes32(merkle_root)
+      |> AlignedLayerServiceManager.EventFilters.batch_verified()
+      |> Ethers.get_logs(fromBlock: @first_block)
 
     case event do
       {:error, reason} -> {:error, reason}
@@ -189,7 +195,6 @@ defmodule AlignedLayerServiceManager do
     batch_merkle_root = event |> Map.get(:topics_raw) |> Enum.at(1)
     sender_address = event |> Map.get(:data) |> Enum.at(0)
 
-
     {:ok,
      %BatchVerifiedInfo{
        address: event |> Map.get(:address),
@@ -228,5 +233,4 @@ defmodule AlignedLayerServiceManager do
         raise("Error fetching restakeable strategies: #{error}")
     end
   end
-
 end
