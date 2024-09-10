@@ -514,7 +514,7 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
-	@export LD_LIBRARY_PATH=operator/risc_zero/lib:$LD_LIBRARY_PATH
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:

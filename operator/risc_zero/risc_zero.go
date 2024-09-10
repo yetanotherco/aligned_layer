@@ -1,7 +1,7 @@
 package risc_zero
 
 /*
-#cgo linux LDFLAGS: -L${SRCDIR}/lib -lrisc_zero_verifier_ffi -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo linux LDFLAGS: ${SRCDIR}/lib/librisc_zero_verifier_ffi.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
 #cgo darwin LDFLAGS: -L./lib -lrisc_zero_verifier_ffi
 
 #include "lib/risc_zero.h"
@@ -16,7 +16,6 @@ func VerifyRiscZeroReceipt(innerReceiptBuffer []byte, innerReceiptLen uint32, im
 		return false
 	}
 
-	// Test
 	receiptPtr := (*C.uchar)(unsafe.Pointer(&innerReceiptBuffer[0]))
 	imageIdPtr := (*C.uchar)(unsafe.Pointer(&imageIdBuffer[0]))
 
