@@ -33,7 +33,5 @@ jobs:
           toolchain: stable
       - name: Test Risc Zero Rust
         run: make test_risc_zero_rust_ffi
-      - name: Print LD_LIBRARY_PATH
-        run: echo $LD_LIBRARY_PATH
       - name: Test Risc Zero go bindings
         run: make test_risc_zero_go_bindings_linux

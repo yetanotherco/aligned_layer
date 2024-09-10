@@ -1,7 +1,7 @@
 package risc_zero
 
 /*
-#cgo linux LDFLAGS: -L${SRCDIR}/lib/librisc_zero_verifier_ffi.so -lrisc_zero_verifier_ffi -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo linux LDFLAGS: -L${SRCDIR}/lib -lrisc_zero_verifier_ffi -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
 #cgo darwin LDFLAGS: -L./lib -lrisc_zero_verifier_ffi
 
 #include "lib/risc_zero.h"
