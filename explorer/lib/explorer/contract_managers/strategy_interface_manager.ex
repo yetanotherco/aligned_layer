@@ -26,7 +26,7 @@ defmodule StrategyInterfaceManager do
       {:ok, name} -> %{strategy | name: name}
       error ->
         case error do
-          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | name: "no_name"} # token has no Name, not a common practice but still an ERC20
+          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | name: "‎"} # token has no Name (empty char), not a common practice but still an ERC20
           _ ->
             "Error fetching token name for #{token_address}: #{inspect(error)}" |> Logger.error()
             error
@@ -42,7 +42,7 @@ defmodule StrategyInterfaceManager do
       {:ok, symbol} -> %{strategy | symbol: symbol}
       error ->
         case error do
-          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | symbol: "no_symbol"} # token has no Symbol, not a common practice but still an ERC20
+          {:error, %{"code" => 3, "data" => "0x", "message" => "execution reverted"}} -> %{strategy | symbol: "‎"} # token has no Symbol (empty char), not a common practice but still an ERC20
           _ ->
             "Error fetching token symbol for #{token_address}: #{inspect(error)}" |> Logger.error()
             error
