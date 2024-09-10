@@ -99,4 +99,14 @@ defmodule Strategies do
     Strategies.changeset(strategy, %{total_staked: new_stake})
   end
 
+  def discount_restaking(restaking) do
+    query = from(s in Strategies,
+      where: s.strategy_address == ^restaking.strategy_address,
+      select: s)
+    strategy = Explorer.Repo.one(query)
+
+    new_stake = Decimal.sub(strategy.total_staked, restaking.stake)
+    Strategies.changeset(strategy, %{total_staked: new_stake}) |> Explorer.Repo.update()
+  end
+
 end

@@ -68,7 +68,16 @@ defmodule Restakings do
     end
   end
 
-   def get_by_operator_and_strategy(%Restakings{operator_address: operator_address, strategy_address: strategy_address}) do
+  def remove_restakes_of_operator(%{operator_address: operator_address}) do
+    Logger.debug("Removing restakes of operator")
+    query = from(r in Restakings, where: r.operator_address == ^operator_address)
+    restakings = Explorer.Repo.all(query)
+
+    Explorer.Repo.delete_all(query)
+    Enum.each(restakings, &Strategies.discount_restaking/1)
+  end
+
+  def get_by_operator_and_strategy(%Restakings{operator_address: operator_address, strategy_address: strategy_address}) do
     query = from(
       r in Restakings,
       where: r.operator_address == ^operator_address and r.strategy_address == ^strategy_address,
