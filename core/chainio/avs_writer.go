@@ -77,7 +77,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		// Retry with fallback
 		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
-			return nil, err //should return err?
+			return nil, fmt.Errorf("transaction simulation failed: %v", err)
 		}
 	}
 
