@@ -160,7 +160,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
 
 	// Telemetry
-	aggregatorTelemetry := telemetry.NewTelemetry("aggregator", "localhost:4317", logger)
+	aggregatorTelemetry := telemetry.NewTelemetry("aggregator", aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
 
 	nextBatchIndex := uint32(0)
 

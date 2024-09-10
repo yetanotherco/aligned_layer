@@ -40,7 +40,7 @@ type Telemetry struct {
 func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logger) Telemetry {
 	ctx := context.Background()
 
-	conn, err := initConn()
+	conn, err := initConn(ipPortAddress)
 	if err != nil {
 		logger.Fatal("err", err)
 	}
@@ -163,10 +163,9 @@ func (t *Telemetry) getSpan(batchMerkleRoot [32]byte) trace.Span {
 // Initialization functions
 // Initialize a gRPC connection to be used by both the tracer and meter
 // providers.
-func initConn() (*grpc.ClientConn, error) {
+func initConn(ipPortAddress string) (*grpc.ClientConn, error) {
 	// It connects the OpenTelemetry Collector through local gRPC connection.
-	// You may replace `localhost:4317` with your endpoint.
-	conn, err := grpc.NewClient("localhost:4317",
+	conn, err := grpc.NewClient(ipPortAddress,
 		// Note the use of insecure transport here. TLS is recommended in production.
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
