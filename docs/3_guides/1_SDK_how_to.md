@@ -23,37 +23,47 @@ version of the release that has the `latest` badge.
 To get the SDK up and running in your project, you must first import it
 
 ```rust
-use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{submit_and_wait, get_next_nonce};
+use aligned_sdk::sdk::get_next_nonce;
+use std::path::PathBuf;
+use ethers::signers::LocalWallet;
 ```
 
 And then you can do a simple call of, for example, `get_next_nonce`
 ```rust
 const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
+const RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
 
 fn main() {
-    let rpc_url = args.rpc_url.clone();
     let keystore_password = rpassword::prompt_password("Enter keystore password: ")
         .expect("Failed to read keystore password");
-    let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
+    let keystore_path = Some(PathBuf::from("./keystore.json"));
+    let wallet = LocalWallet::decrypt_keystore(keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
         .with_chain_id(17000u64);
 
     // Call to SDK:
-    let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS).await
+    let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_PAYMENTS_ADDRESS).await
     .expect("Failed to get next nonce");
 }
 ```
 
-Or you can make a more complex call to submit a proof: 
+Or you can make a more complex call to submit a proof:
 
 (code extract from [ZKQuiz](../1_introduction/2_zkquiz.md))
 
 ```rust
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
+const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
+const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
 
 fn main() {
-    let rpc_url = args.rpc_url.clone();
+    let keystore_password = rpassword::prompt_password("Enter keystore password: ")
+        .expect("Failed to read keystore password");
+
+    let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
+        .expect("Failed to decrypt keystore")
+        .with_chain_id(17000u64);
+
     let verification_data = VerificationData {
         proving_system: ProvingSystemId::SP1,
         proof,
@@ -62,35 +72,38 @@ fn main() {
         verification_key: None,
         pub_input: None,
     };
-    let keystore_password = rpassword::prompt_password("Enter keystore password: ")
-        .expect("Failed to read keystore password");
-    let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
-        .expect("Failed to decrypt keystore")
-        .with_chain_id(17000u64);
-    
+
     // Call to SDK:
-    match submit_and_wait(
+    let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
+        .await
+        .expect("Failed to get next nonce");
+
+    match submit_and_wait_verification(
         BATCHER_URL,
         &rpc_url,
         Chain::Holesky,
         &verification_data,
         wallet.clone(),
-        nonce
+        nonce,
     )
     .await
     {
-        Ok(maybe_aligned_verification_data) => match maybe_aligned_verification_data {
-            Some(aligned_verification_data) => {
-                println!(
-                    "Proof submitted and verified successfully on batch {}",
-                    hex::encode(aligned_verification_data.batch_merkle_root)
-                );
+        Ok(aligned_verification_data) => {
+            println!(
+                "Proof submitted and verified successfully on batch {}, claiming prize...",
+                hex::encode(aligned_verification_data.batch_merkle_root)
+            );
 
+            if let Err(e) = verify_batch_inclusion(
+                aligned_verification_data.clone(),
+                signer.clone(),
+                args.verifier_contract_address,
+            )
+            .await
+            {
+                println!("Failed to claim prize: {:?}", e);
             }
-            None => {
-                println!("Proof submission failed. No verification data");
-            }
-        },
+        }
         Err(e) => {
             println!("Proof verification failed: {:?}", e);
         }
