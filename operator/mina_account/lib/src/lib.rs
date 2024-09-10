@@ -1,3 +1,4 @@
+use alloy::sol_types::SolValue;
 use merkle_verifier::verify_merkle_proof;
 use mina_bridge_core::{
     proof::account_proof::{MinaAccountProof, MinaAccountPubInputs},
@@ -39,9 +40,17 @@ pub extern "C" fn verify_account_inclusion_ffi(
         }
     };
 
-    let expected_encoded_account = MinaAccountValidation::Account::try_from(&account)?.abi_encode();
+    let expected_encoded_account = match MinaAccountValidation::Account::try_from(&account) {
+        Ok(account) => account,
+        Err(err) => {
+            eprintln!("Failed to convert Mina account to Solidity struct: {}", err);
+            return false;
+        }
+    }
+    .abi_encode();
     if expected_encoded_account != encoded_account {
-        return Err("ABI encoded account in public inputs doesn't match the account on the proof");
+        eprintln!("ABI encoded account in public inputs doesn't match the account on the proof");
+        return false;
     }
 
     // the hash function for MinaBaseAccountBinableArgStableV2 produces a panic every
