@@ -142,7 +142,7 @@ func (t *Telemetry) QuorumReachedTrace(batchMerkleRoot [32]byte) trace.Span {
 	ctx := t.getCtx(batchMerkleRoot)
 	_, span := t.Tracer.Start(
 		ctx,
-		fmt.Sprintf("Quorum reached"),
+		"Quorum reached",
 		trace.WithAttributes(attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])))),
 	) // TODO add quorum %
 	return span
