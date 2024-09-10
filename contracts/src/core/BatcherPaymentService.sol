@@ -100,6 +100,7 @@ contract BatcherPaymentService is
     // PAYABLE FUNCTIONS
     receive() external payable {
         userData[msg.sender].balance += msg.value;
+        userData[msg.sender].unlockBlock = 0;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
