@@ -403,6 +403,11 @@ run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
 
+__TELEMETRY__:
+run_telemetry: ## Run telemetry using telemetry-docker-compose.yaml
+	@echo "Running telemetry..."
+	@docker compose -f telemetry-docker-compose.yaml up -d
+
 __STORAGE__:
 run_storage: ## Run storage using storage-docker-compose.yaml
 	@echo "Running storage..."
