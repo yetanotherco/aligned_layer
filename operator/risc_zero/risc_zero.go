@@ -16,6 +16,7 @@ func VerifyRiscZeroReceipt(innerReceiptBuffer []byte, innerReceiptLen uint32, im
 		return false
 	}
 
+	// Test
 	receiptPtr := (*C.uchar)(unsafe.Pointer(&innerReceiptBuffer[0]))
 	imageIdPtr := (*C.uchar)(unsafe.Pointer(&imageIdBuffer[0]))
 
