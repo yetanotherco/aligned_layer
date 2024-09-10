@@ -36,6 +36,4 @@ jobs:
       - name: Print LD_LIBRARY_PATH
         run: echo $LD_LIBRARY_PATH
       - name: Test Risc Zero go bindings
-        run: |
-          export LD_LIBRARY_PATH=operator/risc_zero/lib:$LD_LIBRARY_PATH
-          make test_risc_zero_go_bindings_linux
+        run: make test_risc_zero_go_bindings_linux
