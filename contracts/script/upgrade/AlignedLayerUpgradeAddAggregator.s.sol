@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 import {Script} from "forge-std/Script.sol";
 import "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
@@ -25,9 +25,7 @@ contract AlignedLayerSetAggregator is Script {
             alignedLayerDeploymentFilePath
         );
 
-        string memory aligned_config_file = vm.readFile(
-            alignedConfigFilePath
-        );
+        string memory aligned_config_file = vm.readFile(alignedConfigFilePath);
 
         ProxyAdmin alignedLayerProxyAdmin = ProxyAdmin(
             stdJson.readAddress(
@@ -103,10 +101,8 @@ contract AlignedLayerSetAggregator is Script {
 
         vm.stopBroadcast();
         vm.startBroadcast();
-        
-        alignedLayerServiceManager.initializeAggregator(
-            alignedLayerAggregator
-        );
+
+        alignedLayerServiceManager.initializeAggregator(alignedLayerAggregator);
 
         vm.stopBroadcast();
 
