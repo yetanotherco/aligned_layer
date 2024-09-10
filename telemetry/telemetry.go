@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"sync"
 )
 
 type TraceData struct {
@@ -29,6 +30,7 @@ type Telemetry struct {
 	Tracer                    trace.Tracer
 	Meter                     metric.Meter
 	TelemetryDataByMerkleRoot map[[32]byte]TraceData
+	dataMutex                 *sync.Mutex
 }
 
 func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logger) Telemetry {
@@ -59,7 +61,7 @@ func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logge
 		logger.Fatal("err", err)
 	}
 
-	name := ""
+	name := "" // Using default name for provider
 	tracer := otel.Tracer(name)
 	meter := otel.Meter(name)
 
@@ -67,6 +69,7 @@ func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logge
 		Tracer:                    tracer,
 		Meter:                     meter,
 		TelemetryDataByMerkleRoot: make(map[[32]byte]TraceData),
+		dataMutex:                 &sync.Mutex{},
 	}
 }
 
@@ -78,9 +81,11 @@ func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
 	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
 	ctx, span := t.Tracer.Start(
 		context.Background(),
-		"Response for 0x"+merkleRootString,
-		trace.WithAttributes(attribute.String("merkle_root", "0x"+merkleRootString)),
+		fmt.Sprintf("Response for 0x%s", merkleRootString),
+		trace.WithAttributes(attribute.String("merkle_root", fmt.Sprintf("0x%s", merkleRootString))),
 	)
+	t.dataMutex.Lock()
+	defer t.dataMutex.Unlock()
 	t.TelemetryDataByMerkleRoot[batchMerkleRoot] = TraceData{
 		Ctx:  ctx,
 		Span: span,
@@ -91,6 +96,8 @@ func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
 func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 	span := t.getSpan(batchMerkleRoot)
 	span.End()
+	t.dataMutex.Lock()
+	defer t.dataMutex.Unlock()
 	delete(t.TelemetryDataByMerkleRoot, batchMerkleRoot)
 }
 
@@ -99,15 +106,19 @@ func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 // For example
 // ```
 //
-//	...
-//	span:= agg.telemetry.OperatorResponseTrace(batchMerkleRoot, operatorId)
+//	span := telemetry.OperatorResponseTrace(batchMerkleRoot, operatorId)
 //	defer span.End()
-//	...
 //
 // ```
 func (t *Telemetry) OperatorResponseTrace(batchMerkleRoot [32]byte, operatorId [32]byte) trace.Span {
 	ctx := t.getCtx(batchMerkleRoot)
-	_, span := t.Tracer.Start(ctx, fmt.Sprintf("Operator ID: %s", hex.EncodeToString(operatorId[:])))
+	operatorIdString := hex.EncodeToString(operatorId[:])
+	_, span := t.Tracer.Start(
+		ctx,
+		fmt.Sprintf("Operator ID: 0x%s", operatorIdString),
+		trace.WithAttributes(attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])))),
+		trace.WithAttributes(attribute.String("operator_id", fmt.Sprintf("0x%s", operatorIdString))),
+	)
 	return span
 }
 
@@ -116,23 +127,29 @@ func (t *Telemetry) OperatorResponseTrace(batchMerkleRoot [32]byte, operatorId [
 // For example
 // ```
 //
-//	...
-//	span:= agg.telemetry.QuorumReachedTrace(batchMerkleRoot)
+//	span := telemetry.QuorumReachedTrace(batchMerkleRoot)
 //	defer span.End()
-//	...
 //
 // ```
 func (t *Telemetry) QuorumReachedTrace(batchMerkleRoot [32]byte) trace.Span {
 	ctx := t.getCtx(batchMerkleRoot)
-	_, span := t.Tracer.Start(ctx, fmt.Sprintf("Quorum reached")) // TODO add quorum %
+	_, span := t.Tracer.Start(
+		ctx,
+		fmt.Sprintf("Quorum reached"),
+		trace.WithAttributes(attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])))),
+	) // TODO add quorum %
 	return span
 }
 
 func (t *Telemetry) getCtx(batchMerkleRoot [32]byte) context.Context {
+	t.dataMutex.Lock()
+	defer t.dataMutex.Unlock()
 	return t.TelemetryDataByMerkleRoot[batchMerkleRoot].Ctx
 }
 
 func (t *Telemetry) getSpan(batchMerkleRoot [32]byte) trace.Span {
+	t.dataMutex.Lock()
+	defer t.dataMutex.Unlock()
 	return t.TelemetryDataByMerkleRoot[batchMerkleRoot].Span
 }
 
