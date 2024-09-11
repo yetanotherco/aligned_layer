@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
@@ -149,10 +150,12 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 }
 
 func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress common.Address) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	// Get Agg wallet balance
-	aggregatorBalance, err := w.Client.BalanceAt(context.TODO(), aggregatorAddress, nil)
+	aggregatorBalance, err := w.Client.BalanceAt(ctx, aggregatorAddress, nil)
 	if err != nil {
-		aggregatorBalance, err = w.ClientFallback.BalanceAt(context.TODO(), aggregatorAddress, nil)
+		aggregatorBalance, err = w.ClientFallback.BalanceAt(ctx, aggregatorAddress, nil)
 		if err != nil {
 			// Ignore and continue.
 			w.logger.Error("failed to get aggregator balance: %v", err)
