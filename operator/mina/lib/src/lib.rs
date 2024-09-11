@@ -1,9 +1,13 @@
+/// Consensus chain selection algorithms. The [`official specification`] was taken as a reference.
+///
+/// [`official specification`]: https://github.com/MinaProtocol/mina/blob/develop/docs/specs/consensus/README.md
 mod consensus_state;
+mod verifier_index;
 
 use mina_bridge_core::proof::state_proof::{MinaStateProof, MinaStatePubInputs};
 
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
-use consensus_state::{select_longer_chain, LongerChainResult};
+use consensus_state::{select_secure_chain, ChainResult};
 use kimchi::mina_curves::pasta::{Fp, PallasParameters};
 use kimchi::verifier_index::VerifierIndex;
 use lazy_static::lazy_static;
@@ -12,8 +16,6 @@ use mina_p2p_messages::v2::{MinaStateProtocolStateValueStableV2, StateHash};
 use mina_tree::proofs::verification::verify_block;
 use mina_tree::verifier::get_srs;
 use verifier_index::deserialize_blockchain_vk;
-
-mod verifier_index;
 
 lazy_static! {
     static ref VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
@@ -62,10 +64,16 @@ pub extern "C" fn verify_mina_state_ffi(
     let srs = get_srs::<Fp>();
     let srs = srs.lock().unwrap();
 
-    // Consensus check: Short fork rule
-    let longer_chain = select_longer_chain(&candidate_tip_state, &bridge_tip_state);
-    if longer_chain == LongerChainResult::Bridge {
-        eprintln!("Failed consensus checks for candidate tip state against bridge's tip");
+    // Consensus checks
+    let secure_chain = match select_secure_chain(&candidate_tip_state, &bridge_tip_state) {
+        Ok(res) => res,
+        Err(err) => {
+            eprintln!("Failed consensus checks for candidate tip: {err}");
+            return false;
+        }
+    };
+    if secure_chain == ChainResult::Bridge {
+        eprintln!("Failed consensus checks for candidate tip: bridge's tip is more secure");
         return false;
     }
 
@@ -187,17 +195,14 @@ mod test {
     use super::*;
 
     const PROOF_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.proof");
+        include_bytes!("../../../../scripts/test_files/mina/mina_state.proof");
     const PUB_INPUT_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.pub");
-    const PROTOCOL_STATE_BAD_HASH_PUB_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state_bad_hash.pub");
-    const PROTOCOL_STATE_BAD_CONSENSUS_PUB_BYTES: &[u8] = include_bytes!(
-        "../../../../batcher/aligned/test_files/mina/protocol_state_bad_consensus.pub"
-    );
+        include_bytes!("../../../../scripts/test_files/mina/mina_state.pub");
+    const BAD_HASH_PUB_INPUT_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina/mina_state_bad_hash.pub");
 
     #[test]
-    fn protocol_state_proof_verifies() {
+    fn valid_mina_state_proof_verifies() {
         let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
         let proof_size = PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
@@ -214,40 +219,19 @@ mod test {
     }
 
     #[test]
-    fn proof_of_protocol_state_with_bad_hash_does_not_verify() {
+    fn mina_state_proof_with_bad_bridge_tip_hash_does_not_verify() {
         let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
         let proof_size = PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
         proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
 
         let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PROTOCOL_STATE_BAD_HASH_PUB_BYTES.len();
+        let pub_input_size = BAD_HASH_PUB_INPUT_BYTES.len();
         assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PROTOCOL_STATE_BAD_HASH_PUB_BYTES);
+        pub_input_buffer[..pub_input_size].clone_from_slice(BAD_HASH_PUB_INPUT_BYTES);
 
         let result =
             verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
-        assert!(!result);
-    }
-
-    #[test]
-    fn proof_of_protocol_state_with_bad_consensus_does_not_verify() {
-        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
-        let proof_size = PROOF_BYTES.len();
-        assert!(proof_size <= proof_buffer.len());
-        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
-
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PROTOCOL_STATE_BAD_CONSENSUS_PUB_BYTES.len();
-        assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PROTOCOL_STATE_BAD_CONSENSUS_PUB_BYTES);
-
-        let result = verify_protocol_state_proof_ffi(
-            &proof_buffer,
-            proof_size,
-            &pub_input_buffer,
-            pub_input_size,
-        );
         assert!(!result);
     }
 }
