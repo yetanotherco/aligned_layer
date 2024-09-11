@@ -743,8 +743,7 @@ impl Batcher {
         }
 
         let sender = replacement_entry.sender;
-        let nonce =
-            U256::from_big_endian(replacement_entry.nonced_verification_data.nonce.as_slice());
+        let nonce = replacement_entry.nonced_verification_data.nonce;
         let replacement_max_fee = replacement_entry.nonced_verification_data.max_fee;
 
         info!(
@@ -1274,7 +1273,7 @@ impl Batcher {
                     }
                 };
 
-                info!("non paying nonce: {:?}", nonpaying_nonce);
+                debug!("non paying nonce: {:?}", nonpaying_nonce);
 
                 let nonce_value = *nonpaying_nonce;
 
