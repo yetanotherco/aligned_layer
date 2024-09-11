@@ -6,7 +6,10 @@ use crate::{
     },
     core::{
         errors,
-        types::{AlignedVerificationData, Chain, VerificationData, VerificationDataCommitment},
+        types::{
+            AlignedVerificationData, Chain, ProvingSystemId, VerificationData,
+            VerificationDataCommitment,
+        },
     },
     eth::{
         aligned_service_manager::aligned_service_manager,
@@ -386,8 +389,13 @@ async fn _is_proof_verified(
 /// * The commitment.
 /// # Errors
 /// * None.
-pub fn get_commitment(content: &[u8]) -> [u8; 32] {
+pub fn get_vk_commitment(verification_data: &VerificationData) -> [u8; 32] {
     let mut hasher = Keccak256::new();
+    match verification_data.proving_system {
+        ProvingSystemId::Groth16Bn254
+        | ProvingSystemId::GnarkPlonkBls12_381
+        | ProvingSystemId::GnarkPlonkBn254 => hasher.update(&verification_data.verification_key),
+    }
     hasher.update(content);
     hasher.finalize().into()
 }

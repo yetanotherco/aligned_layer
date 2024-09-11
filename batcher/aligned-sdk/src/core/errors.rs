@@ -13,6 +13,7 @@ pub enum AlignedError {
     VerificationError(VerificationError),
     NonceError(NonceError),
     ChainIdError(ChainIdError),
+    SerializationError(SerializationError),
 }
 
 impl From<SubmitError> for AlignedError {
@@ -39,6 +40,12 @@ impl From<ChainIdError> for AlignedError {
     }
 }
 
+impl From<SerializationError> for AlignedError {
+    fn from(e: SerializationError) -> Self {
+        AlignedError::SerializationError(e)
+    }
+}
+
 impl fmt::Display for AlignedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -46,6 +53,7 @@ impl fmt::Display for AlignedError {
             AlignedError::VerificationError(e) => write!(f, "Verification error: {}", e),
             AlignedError::NonceError(e) => write!(f, "Nonce error: {}", e),
             AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
+            AlignedError::SerializationError(e) => write!(f, "Serialization error: {}", e),
         }
     }
 }

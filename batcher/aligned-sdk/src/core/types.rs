@@ -95,6 +95,7 @@ impl From<VerificationData> for VerificationDataCommitment {
         // of Groth16 and PLONK, stands for the verification key.
 
         let proving_system_byte = verification_data.proving_system as u8;
+        println!("PROVING SYSTEM BYTE: {:?}", proving_system_byte);
         if let Some(vm_program_code) = &verification_data.vm_program_code {
             hasher.update(vm_program_code);
             hasher.update([proving_system_byte]);

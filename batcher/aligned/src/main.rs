@@ -14,7 +14,7 @@ use aligned_sdk::core::{
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::{get_commitment, is_proof_verified, submit_multiple};
+use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -28,8 +28,8 @@ use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
-use crate::AlignedCommands::GetCommitment;
 use crate::AlignedCommands::GetUserBalance;
+use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
@@ -49,7 +49,7 @@ pub enum AlignedCommands {
 
     // Get commitment for file, command name is get-commitment
     #[clap(about = "Get commitment for file", name = "get-commitment")]
-    GetCommitment(GetCommitmentArgs),
+    GetVkCommitment(GetVkCommitmentArgs),
     #[clap(
         about = "Deposits Ethereum in the batcher to pay for proofs",
         name = "deposit-to-batcher"
@@ -180,7 +180,7 @@ pub struct VerifyProofOnchainArgs {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct GetCommitmentArgs {
+pub struct GetVkCommitmentArgs {
     #[arg(name = "File name", long = "input")]
     input_file: PathBuf,
     #[arg(name = "Output file", long = "output")]
@@ -399,17 +399,19 @@ async fn main() -> Result<(), AlignedError> {
                 info!("Your proof was not included in the batch.");
             }
         }
-        GetCommitment(args) => {
-            let content = read_file(args.input_file)?;
+        GetVkCommitment(args) => {
+            let verification_data_bytes = read_file(args.input_file)?;
+            let verification_data: VerificationData =
+                cbor_deserialize(verification_data_bytes.as_slice())?;
 
-            let hash = get_commitment(&content);
+            let vk_commitment = get_vk_commitment(&verification_data);
 
-            info!("Commitment: {}", hex::encode(hash));
+            info!("Commitment: {}", hex::encode(vk_commitment));
             if let Some(output_file) = args.output_file {
                 let mut file = File::create(output_file.clone())
                     .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
 
-                file.write_all(hex::encode(hash).as_bytes())
+                file.write_all(hex::encode(vk_commitment).as_bytes())
                     .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
             }
         }
