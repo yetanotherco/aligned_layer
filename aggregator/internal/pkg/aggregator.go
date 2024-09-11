@@ -227,6 +227,12 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 const MaxSentTxRetries = 5
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
+	agg.taskMutex.Lock()
+	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
+	batchMerkleRoot := agg.batchDataByIdentifierHash[batchIdentifierHash].BatchMerkleRoot
+	agg.taskMutex.Unlock()
+	defer agg.telemetry.FinishTrace(batchMerkleRoot)
+
 	if blsAggServiceResp.Err != nil {
 		agg.taskMutex.Lock()
 		batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
@@ -262,7 +268,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
-	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
+	batchIdentifierHash = agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
 	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
 	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
 
@@ -343,7 +349,6 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 
 	agg.metrics.IncAggregatedResponses()
 
-	agg.telemetry.FinishTrace(batchMerkleRoot)
 	return receipt, nil
 }
 
