@@ -1,11 +1,17 @@
 package halo2ipa_test
 
 import (
-	"encoding/binary"
-	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
 	"os"
 	"testing"
+
+	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
 )
+
+const MaxProofSize = 8 * 1024
+
+const MaxParamsSize = 8 * 1024
+
+const MaxPublicInputSize = 4 * 1024
 
 const ProofFilePath = "../../scripts/test_files/halo2_ipa/proof.bin"
 
@@ -18,7 +24,7 @@ func TestHalo2IpaProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	proofBytes := make([]byte, halo2ipa.MaxProofSize)
+	proofBytes := make([]byte, MaxProofSize)
 	nReadProofBytes, err := proofFile.Read(proofBytes)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
@@ -29,53 +35,27 @@ func TestHalo2IpaProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	paramsFileBytes := make([]byte, halo2ipa.MaxParamsSize)
-	_, err = paramsFile.Read(paramsFileBytes)
+	paramsBytes := make([]byte, MaxParamsSize)
+	nReadParamsBytes, err := paramsFile.Read(paramsBytes)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
 	defer paramsFile.Close()
 
-	csLenBuffer := make([]byte, 4)
-	vkLenBuffer := make([]byte, 4)
-	ipaParamLenBuffer := make([]byte, 4)
-	csBytes := make([]byte, halo2ipa.MaxConstraintSystemSize)
-	vkBytes := make([]byte, halo2ipa.MaxVerifierKeySize)
-	ipaParamsBytes := make([]byte, halo2ipa.MaxIpaParamsSize)
-
-	// Deserialize lengths of values
-	copy(csLenBuffer, paramsFileBytes[:4])
-	copy(vkLenBuffer, paramsFileBytes[4:8])
-	copy(ipaParamLenBuffer, paramsFileBytes[8:12])
-
-	csLen := binary.LittleEndian.Uint32(csLenBuffer)
-	vkLen := binary.LittleEndian.Uint32(vkLenBuffer)
-	ipaParamsLen := binary.LittleEndian.Uint32(ipaParamLenBuffer)
-
-	// Select bytes
-	csOffset := uint32(12)
-	copy(csBytes, paramsFileBytes[csOffset:(csOffset+csLen)])
-	vkOffset := csOffset + csLen
-	copy(vkBytes, paramsFileBytes[vkOffset:(vkOffset+vkLen)])
-	ipaParamsOffset := vkOffset + vkLen
-	copy(ipaParamsBytes, paramsFileBytes[ipaParamsOffset:])
-
 	publicInputFile, err := os.Open(PublicInputPath)
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	publicInputBytes := make([]byte, halo2ipa.MaxPublicInputSize)
+	publicInputBytes := make([]byte, MaxPublicInputSize)
 	nReadPublicInputBytes, err := publicInputFile.Read(publicInputBytes)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
 
 	if !halo2ipa.VerifyHalo2IpaProof(
-		([halo2ipa.MaxProofSize]byte)(proofBytes), uint32(nReadProofBytes),
-		([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), uint32(csLen),
-		([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), uint32(vkLen),
-		([halo2ipa.MaxIpaParamsSize]byte)(ipaParamsBytes), uint32(ipaParamsLen),
-		([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), uint32(nReadPublicInputBytes),
+		([]byte)(proofBytes), uint32(nReadProofBytes),
+		([]byte)(paramsBytes), uint32(nReadParamsBytes),
+		([]byte)(publicInputBytes), uint32(nReadPublicInputBytes),
 	) {
 		t.Errorf("proof did not verify")
 	}

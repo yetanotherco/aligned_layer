@@ -9,28 +9,37 @@ import (
 )
 
 func TestVerifyMerkleTreeBatch(t *testing.T) {
-	batchFile, err := os.Open("./lib/test_files/5ba2f046e3c1072b96f55728a67d73b4e246a6c27960b0c52d7fafb77981bcb0.json")
+	batchFile, err := os.Open("lib/test_files/merkle_tree_batch.bin")
 	if err != nil {
 		t.Fatalf("Error opening batch file: %v", err)
 	}
 
-	byteValue, err := io.ReadAll(batchFile)
+	batchByteValue, err := io.ReadAll(batchFile)
 	if err != nil {
 		t.Fatalf("Error reading batch file: %v", err)
 	}
 
-	hexMerkleRootStr := "5ba2f046e3c1072b96f55728a67d73b4e246a6c27960b0c52d7fafb77981bcb0"
+	rootFile, err := os.Open("lib/test_files/merkle_root.bin")
+	if err != nil {
+		t.Fatalf("Error opening batch file: %v", err)
+	}
 
-	byteSliceFromMerkleRoot, err := hex.DecodeString(hexMerkleRootStr)
+	rootByteValue, err := io.ReadAll(rootFile)
+	if err != nil {
+		t.Fatalf("Error reading batch file: %v", err)
+	}
+
+	merkle_root := make([]byte, hex.DecodedLen(len(rootByteValue)))
+	_, err = hex.Decode(merkle_root, rootByteValue)
 	if err != nil {
 		fmt.Println("Error decoding hex string:", err)
 		return
 	}
 
 	var merkleRoot [32]byte
-	copy(merkleRoot[:], byteSliceFromMerkleRoot)
+	copy(merkleRoot[:], merkle_root)
 
-	if !VerifyMerkleTreeBatch(byteValue, uint(len(byteValue)), merkleRoot) {
+	if !VerifyMerkleTreeBatch(batchByteValue, uint(len(batchByteValue)), merkleRoot) {
 		t.Errorf("Batch did not verify Merkle Root")
 	}
 

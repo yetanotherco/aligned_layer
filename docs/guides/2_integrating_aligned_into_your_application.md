@@ -10,7 +10,7 @@ This example shows a sample app that generates an SP1 proof that a user knows th
 
 To submit proofs to Aligned and get them verified, first you need to generate those proofs. Every proving system has its own way of generating proofs.
 
-You can find examples on how to generate proofs in the [generating proofs guide](3_generating_proofs.md).
+You can find examples on how to generate proofs in the [generating proofs guide](4_generating_proofs.md).
 
 Also, you can find an example of the ZKQuiz proof [program](../../examples/zkquiz/quiz/program/src/main.rs) as well as the [script](../../examples/zkquiz/quiz/script/src/main.rs) that generates it in the [ZKQuiz example directory](../../examples/zkquiz).
 

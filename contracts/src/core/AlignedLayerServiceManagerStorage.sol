@@ -2,14 +2,14 @@ pragma solidity ^0.8.12;
 
 import "eigenlayer-middleware/interfaces/IServiceManager.sol";
 
-contract AlignedLayerServiceManagerStorage {
+abstract contract AlignedLayerServiceManagerStorage {
     struct BatchState {
         uint32 taskCreatedBlock;
         bool responded;
-        address batcherAddress;
     }
 
     /* STORAGE */
+    // KEY is keccak256(batchMerkleRoot,senderAddress)
     mapping(bytes32 => BatchState) public batchesState;
 
     // Storage for batchers balances. Used by aggregator to pay for respondToTask

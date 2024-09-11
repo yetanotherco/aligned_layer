@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"sync"
@@ -30,7 +30,6 @@ import (
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/event"
 	"github.com/yetanotherco/aligned_layer/common"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -49,6 +48,7 @@ type Operator struct {
 	OperatorId         eigentypes.OperatorId
 	avsSubscriber      chainio.AvsSubscriber
 	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
+	NewTaskCreatedChanV2 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
 	metricsReg         *prometheus.Registry
@@ -56,6 +56,10 @@ type Operator struct {
 	//Socket  string
 	//Timeout time.Duration
 }
+
+const (
+	BatchDownloadTimeout = 1 * time.Minute
+)
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
 	logger := configuration.BaseConfig.Logger
@@ -91,10 +95,11 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		log.Fatalf("Could not create AVS subscriber")
 	}
 	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
+	newTaskCreatedChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create RPC client: %s. Is aggregator running?", err)
+		return nil, fmt.Errorf("could not create RPC client: %s. Is aggregator running?", err)
 	}
 
 	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
@@ -110,6 +115,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		avsSubscriber:      *avsSubscriber,
 		Address:            address,
 		NewTaskCreatedChan: newTaskCreatedChan,
+		NewTaskCreatedChanV2: newTaskCreatedChanV2,
 		aggRpcClient:       *rpcClient,
 		OperatorId:         operatorId,
 		metricsReg:         reg,
@@ -121,12 +127,19 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasks() (event.Subscription, error) {
+func (o *Operator) SubscribeToNewTasks() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
+}
+func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
+	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
 }
 
 func (o *Operator) Start(ctx context.Context) error {
 	sub, err := o.SubscribeToNewTasks()
+	if err != nil {
+		log.Fatal("Could not subscribe to new tasks")
+	}
+	subV2, err := o.SubscribeToNewTasksV2()
 	if err != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
@@ -138,6 +151,8 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
+	var switchBlockNumber = uint32(2_268_375) // 2_268_375 is the block at sep 3th 15:00
+
 	for {
 		select {
 		case <-context.Background().Done():
@@ -145,29 +160,69 @@ func (o *Operator) Start(ctx context.Context) error {
 			return nil
 		case err := <-metricsErrChan:
 			o.Logger.Fatal("Metrics server failed", "err", err)
-		case err := <-sub.Err():
+		case err := <-sub:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
-			sub.Unsubscribe()
+			sub, err = o.SubscribeToNewTasks()
+			if err != nil {
+				o.Logger.Fatal("Could not subscribe to new tasks")
+			}
+		case err := <-subV2:
+			o.Logger.Infof("Error in websocket subscription", "err", err)
 			sub, err = o.SubscribeToNewTasks()
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks")
 			}
 		case newBatchLog := <-o.NewTaskCreatedChan:
-			err := o.ProcessNewBatchLog(newBatchLog)
-			if err != nil {
-				o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
-				continue
-			}
-			responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
+			if newBatchLog.TaskCreatedBlock < switchBlockNumber {
+				o.Logger.Infof("Received new batch log: V1")
+				err := o.ProcessNewBatchLog(newBatchLog)
+				if err != nil {
+					o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
+					continue
+				}
+	
+				responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
+				o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
+	
+				signedTaskResponse := types.SignedTaskResponse{
+					BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+					BlsSignature:    *responseSignature,
+					OperatorId:      o.OperatorId,
+				}
+				o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+					hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+				)
+				go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+			} 
 
-			signedTaskResponse := types.SignedTaskResponse{
-				BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-				BlsSignature:    *responseSignature,
-				OperatorId:      o.OperatorId,
+		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
+			if newBatchLogV2.TaskCreatedBlock >= switchBlockNumber {
+				o.Logger.Infof("Received new batch log: V2")
+				err := o.ProcessNewBatchLogV2(newBatchLogV2)
+				if err != nil {
+					o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLogV2.BatchMerkleRoot, err)
+					continue
+				}
+	
+				batchIdentifier := append(newBatchLogV2.BatchMerkleRoot[:], newBatchLogV2.SenderAddress[:]...)
+				var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+				responseSignature := o.SignTaskResponse(batchIdentifierHash)
+				o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
+	
+				signedTaskResponse := types.SignedTaskResponseV2{
+					BatchIdentifierHash: batchIdentifierHash,
+					BatchMerkleRoot: newBatchLogV2.BatchMerkleRoot,
+					SenderAddress:   newBatchLogV2.SenderAddress,
+					BlsSignature:    *responseSignature,
+					OperatorId:      o.OperatorId,
+				}
+				o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+					hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+					hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+					hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+				)
+				go o.aggRpcClient.SendSignedTaskResponseToAggregatorV2(&signedTaskResponse)
 			}
-
-			o.Logger.Infof("Signed hash: %+v", *responseSignature)
-			go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 		}
 	}
 }
@@ -177,10 +232,54 @@ func (o *Operator) Start(ctx context.Context) error {
 func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
-		"batch merkle root", newBatchLog.BatchMerkleRoot,
+		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
 	)
 
-	verificationDataBatch, err := o.getBatchFromS3(newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
+	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
+	defer cancel()
+
+	verificationDataBatch, err := o.getBatchFromS3(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
+	if err != nil {
+		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
+		return err
+	}
+
+	verificationDataBatchLen := len(verificationDataBatch)
+	results := make(chan bool, verificationDataBatchLen)
+	var wg sync.WaitGroup
+	wg.Add(verificationDataBatchLen)
+	for _, verificationData := range verificationDataBatch {
+		go func(data VerificationData) {
+			defer wg.Done()
+			o.verify(data, results)
+			o.metrics.IncOperatorTaskResponses()
+		}(verificationData)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if !result {
+			return fmt.Errorf("invalid proof")
+		}
+	}
+
+	return nil
+}
+func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
+
+	o.Logger.Info("Received new batch with proofs to verify",
+		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
+		"sender address", "0x"+hex.EncodeToString(newBatchLog.SenderAddress[:]),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
+	defer cancel()
+
+	verificationDataBatch, err := o.getBatchFromS3(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
@@ -240,110 +339,26 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2IPA:
-		// Extract Proof Bytes
-		proofBytes := make([]byte, halo2ipa.MaxProofSize)
-		copy(proofBytes, verificationData.Proof)
 		proofLen := (uint32)(len(verificationData.Proof))
-
-		// Extract Verification Key Bytes
-		paramsBytes := verificationData.VerificationKey
-
-		// Deserialize csLen
-		csLenBuffer := make([]byte, 4)
-		copy(csLenBuffer, paramsBytes[:4])
-		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
-
-		// Deserialize vkLen
-		vkLenBuffer := make([]byte, 4)
-		copy(vkLenBuffer, paramsBytes[4:8])
-		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
-
-		// Deserialize ipaParamLen
-		IpaParamsLenBuffer := make([]byte, 4)
-		copy(IpaParamsLenBuffer, paramsBytes[8:12])
-		IpaParamsLen := (uint32)(binary.LittleEndian.Uint32(IpaParamsLenBuffer))
-
-		// Extract Constraint System Bytes
-		csBytes := make([]byte, halo2ipa.MaxConstraintSystemSize)
-		csOffset := uint32(12)
-		copy(csBytes, paramsBytes[csOffset:(csOffset+csLen)])
-
-		// Extract Verification Key Bytes
-		vkBytes := make([]byte, halo2ipa.MaxVerifierKeySize)
-		vkOffset := csOffset + csLen
-		copy(vkBytes, paramsBytes[vkOffset:(vkOffset+vkLen)])
-
-		// Extract ipa Parameter Bytes
-		IpaParamsBytes := make([]byte, (halo2ipa.MaxIpaParamsSize))
-		IpaParamsOffset := vkOffset + vkLen
-		copy(IpaParamsBytes, paramsBytes[IpaParamsOffset:])
-
-		// Extract Public Input Bytes
-		publicInput := verificationData.PubInput
-		publicInputBytes := make([]byte, halo2ipa.MaxPublicInputSize)
-		copy(publicInputBytes, publicInput)
-		publicInputLen := (uint32)(len(publicInput))
+		paramsLen := (uint32)(len(verificationData.VerificationKey))
+		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2ipa.VerifyHalo2IpaProof(
-			([halo2ipa.MaxProofSize]byte)(proofBytes), proofLen,
-			([halo2ipa.MaxConstraintSystemSize]byte)(csBytes), csLen,
-			([halo2ipa.MaxVerifierKeySize]byte)(vkBytes), vkLen,
-			([halo2ipa.MaxIpaParamsSize]byte)(IpaParamsBytes), IpaParamsLen,
-			([halo2ipa.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen)
+			verificationData.Proof, proofLen,
+			verificationData.VerificationKey, paramsLen,
+			verificationData.PubInput, publicInputLen)
 
 		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2KZG:
-		// Extract Proof Bytes
-		proofBytes := make([]byte, halo2kzg.MaxProofSize)
-		copy(proofBytes, verificationData.Proof)
 		proofLen := (uint32)(len(verificationData.Proof))
-
-		// Extract Verification Key Bytes
-		paramsBytes := verificationData.VerificationKey
-
-		// Deserialize csLen
-		csLenBuffer := make([]byte, 4)
-		copy(csLenBuffer, paramsBytes[:4])
-		csLen := (uint32)(binary.LittleEndian.Uint32(csLenBuffer))
-
-		// Deserialize vkLen
-		vkLenBuffer := make([]byte, 4)
-		copy(vkLenBuffer, paramsBytes[4:8])
-		vkLen := (uint32)(binary.LittleEndian.Uint32(vkLenBuffer))
-
-		// Deserialize kzgParamLen
-		kzgParamsLenBuffer := make([]byte, 4)
-		copy(kzgParamsLenBuffer, paramsBytes[8:12])
-		kzgParamsLen := (uint32)(binary.LittleEndian.Uint32(kzgParamsLenBuffer))
-
-		// Extract Constraint System Bytes
-		csBytes := make([]byte, halo2kzg.MaxConstraintSystemSize)
-		csOffset := uint32(12)
-		copy(csBytes, paramsBytes[csOffset:(csOffset+csLen)])
-
-		// Extract Verification Key Bytes
-		vkBytes := make([]byte, halo2kzg.MaxVerifierKeySize)
-		vkOffset := csOffset + csLen
-		copy(vkBytes, paramsBytes[vkOffset:(vkOffset+vkLen)])
-
-		// Extract Kzg Parameter Bytes
-		kzgParamsBytes := make([]byte, (halo2kzg.MaxKzgParamsSize))
-		kzgParamsOffset := vkOffset + vkLen
-		copy(kzgParamsBytes, paramsBytes[kzgParamsOffset:])
-
-		// Extract Public Input Bytes
-		publicInput := verificationData.PubInput
-		publicInputBytes := make([]byte, halo2kzg.MaxPublicInputSize)
-		copy(publicInputBytes, publicInput)
-		publicInputLen := (uint32)(len(publicInput))
+		paramsLen := (uint32)(len(verificationData.VerificationKey))
+		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
-			([halo2kzg.MaxProofSize]byte)(proofBytes), proofLen,
-			([halo2kzg.MaxConstraintSystemSize]byte)(csBytes), csLen,
-			([halo2kzg.MaxVerifierKeySize]byte)(vkBytes), vkLen,
-			([halo2kzg.MaxKzgParamsSize]byte)(kzgParamsBytes), kzgParamsLen,
-			([halo2kzg.MaxPublicInputSize]byte)(publicInputBytes), publicInputLen)
+			verificationData.Proof, proofLen,
+			verificationData.VerificationKey, paramsLen,
+			verificationData.PubInput, publicInputLen)
 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		results <- verificationResult
@@ -462,7 +477,7 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 	return err == nil
 }
 
-func (o *Operator) SignTaskResponse(batchMerkleRoot [32]byte) *bls.Signature {
-	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchMerkleRoot)
+func (o *Operator) SignTaskResponse(batchIdentifierHash [32]byte) *bls.Signature {
+	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchIdentifierHash)
 	return &responseSignature
 }

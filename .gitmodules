@@ -13,3 +13,6 @@
 [submodule "examples/zkquiz/contracts/lib/openzeppelin-contracts"]
 	path = examples/zkquiz/contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "examples/validating-public-input/contracts/lib/forge-std"]
+	path = examples/validating-public-input/contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std

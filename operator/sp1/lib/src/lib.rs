@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use sp1_sdk::ProverClient;
 use std::slice;
+use log::error;
 
 lazy_static! {
     static ref PROVER_CLIENT: ProverClient = ProverClient::new();
@@ -14,6 +15,12 @@ pub extern "C" fn verify_sp1_proof_ffi(
     elf_len: u32,
 ) -> bool {
     if proof_bytes.is_null() || elf_bytes.is_null() {
+        error!("Input buffer null");
+        return false;
+    }
+
+    if proof_len == 0 || elf_len == 0 {
+        error!("Input buffer length zero size");
         return false;
     }
 

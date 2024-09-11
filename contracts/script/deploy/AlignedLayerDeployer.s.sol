@@ -241,6 +241,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
+                deployer,
                 deployer
             )
         );
@@ -466,6 +467,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
+                deployer,
                 deployer
             )
         );

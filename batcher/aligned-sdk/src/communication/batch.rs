@@ -8,7 +8,7 @@ use crate::{
             VerificationDataCommitment,
         },
     },
-    sdk::verify_proof_onchain,
+    sdk::is_proof_verified,
 };
 
 const RETRIES: u64 = 10;
@@ -46,7 +46,7 @@ pub async fn await_batch_verification(
     chain: Chain,
 ) -> Result<(), errors::SubmitError> {
     for _ in 0..RETRIES {
-        if verify_proof_onchain(aligned_verification_data, chain.clone(), rpc_url)
+        if is_proof_verified(aligned_verification_data, chain.clone(), rpc_url)
             .await
             .is_ok_and(|r| r)
         {
