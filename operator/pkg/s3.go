@@ -5,25 +5,56 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/ugorji/go/codec"
 
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
-func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {
+func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
 	o.Logger.Infof("Getting batch from S3..., batchURL: %s", batchURL)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", batchURL, nil)
+	var resp *http.Response
+	var err error
+	var req *http.Request
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			o.Logger.Infof("Retrying S3 fetch (attempt %d of %d)", attempt+1, maxRetries)
+			select {
+			case <-time.After(retryDelay):
+				// Wait before retrying
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+			retryDelay *= 2 // Exponential backoff. Ex: 5s, 10s, 20s
+		}
+
+		req, err = http.NewRequestWithContext(ctx, "GET", batchURL, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err = http.DefaultClient.Do(req)
+		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+			break // Successful request, exit retry loop
+		}
+
+		if resp != nil {
+			err := resp.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		o.Logger.Warnf("Error fetching batch from S3 (attempt %d): %v", attempt+1, err)
+	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
@@ -58,8 +89,8 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 
 	// Checks if downloaded merkle root is the same as the expected one
 	o.Logger.Infof("Verifying batch merkle tree...")
-	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
-	if !merkle_root_check {
+	merkleRootCheck := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
+	if !merkleRootCheck {
 		return nil, fmt.Errorf("merkle root check failed")
 	}
 	o.Logger.Infof("Batch merkle tree verified")

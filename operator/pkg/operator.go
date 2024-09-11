@@ -55,7 +55,9 @@ type Operator struct {
 }
 
 const (
-	BatchDownloadTimeout = 1 * time.Minute
+	BatchDownloadTimeout    = 1 * time.Minute
+	BatchDownloadMaxRetries = 3
+	BatchDownloadRetryDelay = 5 * time.Second
 )
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
@@ -183,7 +185,7 @@ func (o *Operator) handleNewBatchLog(newBatchLog *servicemanager.ContractAligned
 		hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
 		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 	)
-	
+
 	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 }
 
@@ -199,7 +201,7 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
 	defer cancel()
 
-	verificationDataBatch, err := o.getBatchFromS3(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
+	verificationDataBatch, err := o.getBatchFromS3(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
