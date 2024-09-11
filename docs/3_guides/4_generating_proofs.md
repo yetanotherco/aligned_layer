@@ -188,7 +188,7 @@ This guide assumes that:
 
 ### Import the Halo2 fork library
 
-Aligned supports verification of Halo2 proofs using the IPA and KZG backends. To verify Halo2 proofs on Aligned a description of your Halo2 circuits [constraint system](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/plonk/circuit.rs#L63) must be serialized and sent over the wire to Aligned in addition to the ciruits verification parameters, verification key, and public inputs. 
+Aligned supports verification of Halo2 proofs using the IPA and KZG backends. To verify Halo2 proofs on Aligned a description of your Halo2 circuits [constraint system](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/plonk/circuit.rs#L63) must be serialized and sent over the wire to Aligned in addition to the ciruits verification parameters, verification key, and public inputs.
 
 Aligned maintains its own fork of the PSE's Halo2 repository that provides helper methods to serialize and send Halo2 proofs to Aligned.
 
@@ -276,6 +276,7 @@ aligned submit \
   --public_input <pub_input_file_path> \
   --conn wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr> \
+  --chain holesky \
   --rpc https://ethereum-holesky-rpc.publicnode.com \
   --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```

@@ -18,10 +18,10 @@ use ethers::{
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Middleware, Provider},
     signers::Wallet,
-    types::{Address, U256},
+    types::{Address, H160, U256},
 };
 use sha3::{Digest, Keccak256};
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
@@ -73,8 +73,15 @@ pub async fn submit_multiple_and_wait_verification(
     nonce: U256,
     payment_service_addr: &str,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
-    let aligned_verification_data =
-        submit_multiple(batcher_url, verification_data, max_fees, wallet, nonce).await?;
+    let aligned_verification_data = submit_multiple(
+        batcher_url,
+        chain.clone(),
+        verification_data,
+        max_fees,
+        wallet,
+        nonce,
+    )
+    .await?;
 
     for aligned_verification_data_item in aligned_verification_data.iter() {
         await_batch_verification(
@@ -92,6 +99,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
+/// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
@@ -115,6 +123,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_url: &str,
+    chain: Chain,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -132,6 +141,7 @@ pub async fn submit_multiple(
     _submit_multiple(
         ws_write,
         ws_read,
+        chain.clone(),
         verification_data,
         max_fees,
         wallet,
@@ -143,6 +153,7 @@ pub async fn submit_multiple(
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    chain: Chain,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -163,17 +174,33 @@ async fn _submit_multiple(
 
     let response_stream = Arc::new(Mutex::new(response_stream));
 
-    // The sent verification data will be stored here so that we can calculate
-    // their commitments later.
-    let sent_verification_data = send_messages(
-        response_stream.clone(),
-        ws_write,
-        verification_data,
-        max_fees,
-        wallet,
-        nonce,
-    )
-    .await?;
+    let payment_service_addr = match chain {
+        Chain::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").ok(),
+        Chain::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").ok(),
+        Chain::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").ok(),
+    };
+
+    let sent_verification_data = match payment_service_addr {
+        // The sent verification data will be stored here so that we can calculate
+        // their commitments later.
+        Some(payment_service_addr) => {
+            send_messages(
+                response_stream.clone(),
+                ws_write,
+                payment_service_addr,
+                verification_data,
+                max_fees,
+                wallet,
+                nonce,
+            )
+            .await?
+        }
+        None => {
+            return Err(errors::SubmitError::GenericError(
+                "Invalid chain".to_string(),
+            ))
+        }
+    };
 
     let num_responses = Arc::new(Mutex::new(0));
 
@@ -261,6 +288,7 @@ pub async fn submit_and_wait_verification(
 /// Submits a proof to the batcher to be verified in Aligned.
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
+/// * `chain` - The chain on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
@@ -284,6 +312,7 @@ pub async fn submit_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_url: &str,
+    chain: Chain,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -292,8 +321,15 @@ pub async fn submit(
     let verification_data = vec![verification_data.clone()];
     let max_fees = vec![max_fee];
 
-    let aligned_verification_data =
-        submit_multiple(batcher_url, &verification_data, &max_fees, wallet, nonce).await?;
+    let aligned_verification_data = submit_multiple(
+        batcher_url,
+        chain.clone(),
+        &verification_data,
+        &max_fees,
+        wallet,
+        nonce,
+    )
+    .await?;
 
     Ok(aligned_verification_data[0].clone())
 }
