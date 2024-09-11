@@ -2,8 +2,7 @@
 
 ## Introduction
 
-This program leverages Aligned's ZK verification infrastructure to run a small quiz. 
-If answered correctly, the user receives an NFT.
+This program leverages Aligned's ZK verification infrastructure to run a small quiz. The proof allows any party to check that the quiz was answered right or wrong. If answered correctly, the user receives an NFT.
 
 The process is as follows:
 
@@ -12,7 +11,7 @@ The process is as follows:
 3. The proof is posted on Aligned.
 4. Upon verification, ZKQuiz mints an NFT via a Smart Contract.
 
-The NFT is only granted if the user answers correctly. 
+The NFT is only granted if the user's answers correctly. 
 Incorrect answers or tampering with the ZKQuiz code will result in proof generation failure or mismatched checksums, 
 preventing NFT minting.
 

@@ -1,39 +1,47 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 import {IBLSSignatureChecker} from "eigenlayer-middleware/interfaces/IBLSSignatureChecker.sol";
 
 interface IAlignedLayerServiceManager {
     // EVENTS
-    event NewBatch(
+    event NewBatchV2(
         bytes32 indexed batchMerkleRoot,
         address senderAddress,
         uint32 taskCreatedBlock,
         string batchDataPointer
+    );
+    event NewBatchV3(
+        bytes32 indexed batchMerkleRoot,
+        address senderAddress,
+        uint32 taskCreatedBlock,
+        string batchDataPointer,
+        uint256 respondToTaskFeeLimit
     );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
 
     // ERRORS
     error BatchAlreadySubmitted(bytes32 batchIdentifierHash); // 3102f10c
-    error BatcherBalanceIsEmpty(address batcher); // 40b29316
     error BatchDoesNotExist(bytes32 batchIdentifierHash); // 2396d34e
     error BatchAlreadyResponded(bytes32 batchIdentifierHash); // 9cf1aff2
-    error BatcherHasNoBalance(address batcher); // 48b78e6a
     error InsufficientFunds(
         address batcher,
         uint256 required,
         uint256 available
     ); // 5c54305e
     error InvalidQuorumThreshold(uint256 signedStake, uint256 requiredStake); // a61eb88a
+    error SenderIsNotAggregator(address sender, address alignedAggregator); // 2cbe4195
     error InvalidDepositAmount(uint256 amount); // 412ed242
+    error ExceededMaxRespondFee(uint256 respondToTaskFeeLimit, uint256 txCost); // 86fc507e
 
     function createNewTask(
         bytes32 batchMerkleRoot,
-        string calldata batchDataPointer
+        string calldata batchDataPointer,
+        uint256 respondToTaskFeeLimit
     ) external payable;
 
-    function respondToTask(
+    function respondToTaskV2(
         bytes32 batchMerkleRoot,
         address senderAddress,
         IBLSSignatureChecker.NonSignerStakesAndSignature
@@ -52,4 +60,6 @@ interface IAlignedLayerServiceManager {
     ) external view returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
+
+    function setAggregator(address _aggregator) external;
 }

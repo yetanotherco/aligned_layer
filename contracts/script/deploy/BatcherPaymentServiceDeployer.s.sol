@@ -1,4 +1,4 @@
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 import {BatcherPaymentService} from "../../src/core/BatcherPaymentService.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -29,6 +29,11 @@ contract BatcherPaymentServiceDeployer is Script {
             ".permissions.owner"
         );
 
+        bytes32 noncedVerificationDataTypeHash = stdJson.readBytes32(
+            config_data,
+            ".eip712.noncedVerificationDataTypeHash"
+        );
+
         vm.startBroadcast();
 
         BatcherPaymentService batcherPaymentService = new BatcherPaymentService();
@@ -36,10 +41,11 @@ contract BatcherPaymentServiceDeployer is Script {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(batcherPaymentService),
             abi.encodeWithSignature(
-                "initialize(address,address,address)",
+                "initialize(address,address,address,bytes32)",
                 IAlignedLayerServiceManager(alignedLayerServiceManager),
                 batcherPaymentServiceOwner,
-                batcherWallet
+                batcherWallet,
+                noncedVerificationDataTypeHash
             )
         );
 

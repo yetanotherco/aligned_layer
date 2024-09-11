@@ -51,11 +51,17 @@ pub mod types;
 mod zk_utils;
 
 const AGGREGATOR_GAS_COST: u128 = 400_000;
-const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 100_000;
+const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
 const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
-const CONSTANT_GAS_COST: u128 = AGGREGATOR_GAS_COST + BATCHER_SUBMISSION_BASE_GAS_COST;
+const CONSTANT_GAS_COST: u128 = ((AGGREGATOR_GAS_COST * DEFAULT_AGGREGATOR_FEE_MULTIPLIER)
+    / DEFAULT_AGGREGATOR_FEE_DIVIDER)
+    + BATCHER_SUBMISSION_BASE_GAS_COST;
 const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
 const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // gas_price = 0.1 Gwei = 0.0000000001 ether (low gas price)
+const RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER: u128 = 5; // to set the respondToTaskFeeLimit variable higher than fee_for_aggregator
+const RESPOND_TO_TASK_FEE_LIMIT_DIVIDER: u128 = 2;
+const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
+const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -97,11 +103,7 @@ impl BatchState {
         self.batch_queue
             .iter()
             .map(|(entry, _)| entry)
-            .find(|entry| {
-                entry.sender == sender
-                    && U256::from_big_endian(entry.nonced_verification_data.nonce.as_slice())
-                        == nonce
-            })
+            .find(|entry| entry.sender == sender && entry.nonced_verification_data.nonce == nonce)
     }
 
     /// Checks if the entry is valid
@@ -114,8 +116,7 @@ impl BatchState {
         replacement_entry: &BatchQueueEntry,
     ) -> Option<ValidityResponseMessage> {
         let replacement_max_fee = replacement_entry.nonced_verification_data.max_fee;
-        let nonce =
-            U256::from_big_endian(replacement_entry.nonced_verification_data.nonce.as_slice());
+        let nonce = replacement_entry.nonced_verification_data.nonce;
         let sender = replacement_entry.sender;
 
         debug!(
@@ -126,7 +127,7 @@ impl BatchState {
         // it is a valid entry only if there is no entry with the same sender, lower nonce and a lower fee
         let is_valid = !self.batch_queue.iter().any(|(entry, _)| {
             entry.sender == sender
-                && U256::from_big_endian(entry.nonced_verification_data.nonce.as_slice()) < nonce
+                && entry.nonced_verification_data.nonce < nonce
                 && entry.nonced_verification_data.max_fee < replacement_max_fee
         });
 
@@ -436,7 +437,7 @@ impl Batcher {
 
         info!(
             "Received message with nonce: {}",
-            U256::from_big_endian(client_msg.verification_data.nonce.as_slice())
+            client_msg.verification_data.nonce
         );
 
         if client_msg.verification_data.chain_id != self.chain_id {
@@ -483,7 +484,7 @@ impl Batcher {
                 }
 
                 // Nonce and max fee verification
-                let nonce = U256::from_big_endian(nonced_verification_data.nonce.as_slice());
+                let nonce = nonced_verification_data.nonce;
                 let max_fee = nonced_verification_data.max_fee;
 
                 if max_fee < U256::from(MIN_FEE_PER_PROOF) {
@@ -641,7 +642,7 @@ impl Batcher {
             return false;
         }
 
-        let nonce = U256::from_big_endian(&nonced_verification_data.nonce);
+        let nonce = nonced_verification_data.nonce;
 
         batch_state.user_nonces.insert(addr, nonce + U256::one());
         batch_state.user_min_fee.insert(addr, max_fee);
@@ -675,7 +676,7 @@ impl Batcher {
         expected_user_nonce: U256,
     ) -> bool {
         let replacement_max_fee = nonced_verification_data.max_fee;
-        let nonce = U256::from_big_endian(&nonced_verification_data.nonce);
+        let nonce = nonced_verification_data.nonce;
 
         let mut replacement_entry = match batch_state.get_entry(addr, nonce) {
             Some(entry) => {
@@ -780,7 +781,7 @@ impl Batcher {
         info!("Adding verification data to batch...");
 
         let max_fee = verification_data.max_fee;
-        let nonce = U256::from_big_endian(verification_data.nonce.as_slice());
+        let nonce = verification_data.nonce;
 
         batch_state.batch_queue.push(
             BatchQueueEntry::new(
@@ -1110,9 +1111,19 @@ impl Batcher {
             / num_proofs_in_batch as u128;
 
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
-        let fee_for_aggregator = U256::from(AGGREGATOR_GAS_COST) * gas_price;
-
-        let fee_params = CreateNewTaskFeeParams::new(fee_for_aggregator, fee_per_proof, gas_price);
+        let fee_for_aggregator = (U256::from(AGGREGATOR_GAS_COST)
+            * gas_price
+            * U256::from(DEFAULT_AGGREGATOR_FEE_MULTIPLIER))
+            / U256::from(DEFAULT_AGGREGATOR_FEE_DIVIDER);
+        let respond_to_task_fee_limit = (fee_for_aggregator
+            * U256::from(RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER))
+            / U256::from(RESPOND_TO_TASK_FEE_LIMIT_DIVIDER);
+        let fee_params = CreateNewTaskFeeParams::new(
+            fee_for_aggregator,
+            fee_per_proof,
+            gas_price,
+            respond_to_task_fee_limit,
+        );
 
         let signatures = signatures
             .iter()
@@ -1263,24 +1274,26 @@ impl Batcher {
                     }
                 };
 
-                debug!("non paying nonce: {:?}", nonpaying_nonce);
+                info!("non paying nonce: {:?}", nonpaying_nonce);
 
-                let mut nonce_bytes = [0u8; 32];
-                nonpaying_nonce.to_big_endian(&mut nonce_bytes);
+                let nonce_value = *nonpaying_nonce;
+
                 *nonpaying_nonce += U256::one();
 
                 NoncedVerificationData::new(
                     client_msg.verification_data.verification_data.clone(),
-                    nonce_bytes,
+                    nonce_value,
                     DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
                     self.chain_id,
+                    self.payment_service.address(),
                 )
             };
 
             let client_msg = ClientMessage::new(
                 nonced_verification_data.clone(),
                 non_paying_config.replacement.clone(),
-            );
+            )
+            .await;
 
             let batch_state = self.batch_state.lock().await;
             self.clone()

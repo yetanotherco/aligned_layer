@@ -124,7 +124,7 @@ Note that when upgrading the contracts, you must also:
 
 ## Aggregator
 
-To start the [Aggregator](../architecture/components/5_aggregator.md):
+To start the [Aggregator](../2_architecture/components/5_aggregator.md):
 
 ```bash
 make aggregator_start
@@ -143,7 +143,7 @@ make aggregator_start CONFIG_FILE=<path_to_config_file>
 
 ## Operator
 
-To start an [Operator](../architecture/components/4_operator.md)
+To start an [Operator](../2_architecture/components/4_operator.md)
 (note it also registers it):
 
 ```bash
@@ -309,7 +309,7 @@ eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
 
 ## Batcher
 
-To start the [Batcher](../architecture/components/1_batcher.md):
+To start the [Batcher](../2_architecture/components/1_batcher.md):
 
 ```bash
 make batcher_start
@@ -668,6 +668,7 @@ The `.env` file needs to contain the following variables:
 | `DB_HOST`             | The host URL where the postgres database will be running.                                       |
 | `ELIXIR_HOSTNAME`     | The hostname of your running elixir.                                                            |
 | `DEBUG_ERRORS`        | If you want to enable phoenix errors on your browser instead of a 500 page, set this to `true`. |
+| `TRACKER_API_URL`     | The URL of the aligned version each operator is running.                                        |
 
 Then you can run the explorer with this env file config by entering the following command:
 

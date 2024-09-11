@@ -35,14 +35,11 @@
       </div>
       <div>
         <h3>
-          Amount of Proofs in this Batch:
+          Number of Proofs in this Batch:
         </h3>
         <p><%= @current_batch.amount_of_proofs %></p>
       </div>
-      <div
-        :if={@current_batch.fee_per_proof != 0}
-        class="flex flex-col sm:flex-row"
-      >
+      <div :if={@current_batch.fee_per_proof != 0} class="flex flex-col sm:flex-row">
         <h3>
           Fee per Proof:
         </h3>

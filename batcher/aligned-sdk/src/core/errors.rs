@@ -1,6 +1,8 @@
 use core::fmt;
 use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
+use ethers::types::transaction::eip712::Eip712Error;
+use ethers::types::SignatureError;
 use std::io;
 use std::path::PathBuf;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
@@ -230,6 +232,35 @@ impl fmt::Display for ChainIdError {
                 write!(f, "Ethereum provider error: {}", e)
             }
             ChainIdError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum VerifySignatureError {
+    RecoverTypedDataError(SignatureError),
+    EncodeError(Eip712Error),
+}
+
+impl From<SignatureError> for VerifySignatureError {
+    fn from(e: SignatureError) -> Self {
+        VerifySignatureError::RecoverTypedDataError(e)
+    }
+}
+
+impl From<Eip712Error> for VerifySignatureError {
+    fn from(e: Eip712Error) -> Self {
+        VerifySignatureError::EncodeError(e)
+    }
+}
+
+impl fmt::Display for VerifySignatureError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            VerifySignatureError::RecoverTypedDataError(e) => {
+                write!(f, "Recover typed data error: {}", e)
+            }
+            VerifySignatureError::EncodeError(e) => write!(f, "Encode error: {}", e),
         }
     }
 }
