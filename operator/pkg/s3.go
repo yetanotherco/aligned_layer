@@ -21,7 +21,7 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
-			o.Logger.Infof("Retrying S3 fetch (attempt %d of %d)", attempt+1, maxRetries)
+			o.Logger.Infof("Waiting for %s before retrying S3 fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
 			select {
 			case <-time.After(retryDelay):
 				// Wait before retrying
