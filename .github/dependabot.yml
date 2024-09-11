@@ -5,4 +5,4 @@ updates:
     open-pull-requests-limit: 5
     schedule:
      interval: "weekly"
-    target-branch: "main"
+    target-branch: "staging"
