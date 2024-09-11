@@ -14,6 +14,7 @@ pub enum AlignedError {
     NonceError(NonceError),
     ChainIdError(ChainIdError),
     SerializationError(SerializationError),
+    VkCommitmentError,
 }
 
 impl From<SubmitError> for AlignedError {
@@ -54,6 +55,10 @@ impl fmt::Display for AlignedError {
             AlignedError::NonceError(e) => write!(f, "Nonce error: {}", e),
             AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
             AlignedError::SerializationError(e) => write!(f, "Serialization error: {}", e),
+            AlignedError::VkCommitmentError => write!(
+                f,
+                "Malformed verification data. Could not get verifying key commitment"
+            ),
         }
     }
 }
