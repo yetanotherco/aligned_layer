@@ -105,8 +105,12 @@ defmodule Strategies do
       select: s)
     strategy = Explorer.Repo.one(query)
 
-    new_stake = Decimal.sub(strategy.total_staked, restaking.stake)
+    new_stake =
+      strategy.total_staked
+      |> Decimal.sub(restaking.stake)
+      |> (fn stake -> if Decimal.compare(stake, 0) == :lt, do: Decimal.new(0), else: stake end).()
+      
     Strategies.changeset(strategy, %{total_staked: new_stake}) |> Explorer.Repo.update()
-  end
 
+  end
 end
