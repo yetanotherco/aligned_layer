@@ -46,8 +46,6 @@ pub enum AlignedCommands {
     Submit(Box<SubmitArgs>),
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
-
-    // Get commitment for file, command name is get-commitment
     #[clap(about = "Get commitment for file", name = "get-vk-commitment")]
     GetVkCommitment(GetVkCommitmentArgs),
     #[clap(
