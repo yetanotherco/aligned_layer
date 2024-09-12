@@ -288,6 +288,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
+		--repetitions 4 \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned

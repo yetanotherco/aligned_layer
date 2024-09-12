@@ -389,20 +389,14 @@ async fn _is_proof_verified(
 /// * The commitment.
 /// # Errors
 /// * None.
-pub fn get_vk_commitment(verification_data: &VerificationData) -> Result<[u8; 32], AlignedError> {
+pub fn get_vk_commitment(
+    verification_key_bytes: &[u8],
+    proving_system: ProvingSystemId,
+) -> [u8; 32] {
+    let proving_system_id_byte = proving_system.clone() as u8;
     let mut hasher = Keccak256::new();
-    match verification_data.proving_system {
-        ProvingSystemId::Groth16Bn254
-        | ProvingSystemId::GnarkPlonkBls12_381
-        | ProvingSystemId::GnarkPlonkBn254 => {
-            if let Some(verification_key) = verification_data.verification_key {
-                hasher.update(&verification_key)
-            } else {
-                return Err(AlignedError::VkCommitmentError);
-            }
-        }
-    }
-    hasher.update(content);
+    hasher.update(&verification_key_bytes);
+    hasher.update([proving_system_id_byte]);
     hasher.finalize().into()
 }
 

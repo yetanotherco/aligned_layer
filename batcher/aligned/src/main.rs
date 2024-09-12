@@ -48,7 +48,7 @@ pub enum AlignedCommands {
     VerifyProofOnchain(VerifyProofOnchainArgs),
 
     // Get commitment for file, command name is get-commitment
-    #[clap(about = "Get commitment for file", name = "get-commitment")]
+    #[clap(about = "Get commitment for file", name = "get-vk-commitment")]
     GetVkCommitment(GetVkCommitmentArgs),
     #[clap(
         about = "Deposits Ethereum in the batcher to pay for proofs",
@@ -181,8 +181,10 @@ pub struct VerifyProofOnchainArgs {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct GetVkCommitmentArgs {
-    #[arg(name = "File name", long = "input")]
-    input_file: PathBuf,
+    #[arg(name = "Verification key file path", long = "verification_key_file")]
+    verification_key_file: PathBuf,
+    #[arg(name = "Proving system", long = "proving_system")]
+    proving_system: ProvingSystemArg,
     #[arg(name = "Output file", long = "output")]
     output_file: Option<PathBuf>,
 }
@@ -400,11 +402,10 @@ async fn main() -> Result<(), AlignedError> {
             }
         }
         GetVkCommitment(args) => {
-            let verification_data_bytes = read_file(args.input_file)?;
-            let verification_data: VerificationData =
-                cbor_deserialize(verification_data_bytes.as_slice())?;
+            let verification_key_bytes = read_file(args.verification_key_file)?;
+            let proving_system = args.proving_system.into();
 
-            let vk_commitment = get_vk_commitment(&verification_data);
+            let vk_commitment = get_vk_commitment(&verification_key_bytes, proving_system);
 
             info!("Commitment: {}", hex::encode(vk_commitment));
             if let Some(output_file) = args.output_file {
