@@ -96,17 +96,18 @@ impl From<VerificationData> for VerificationDataCommitment {
         // system is SP1 or Risc0, `proving_system_aux_data` stands for information related to the
         // compiled ELF, while in the rest of the proving systems, stands for the verification key.
         let proving_system_byte = verification_data.proving_system as u8;
-        let proving_system_aux_data_commitment = if let Some(vm_program_code) = &verification_data.vm_program_code {
-            hasher.update(vm_program_code);
-            hasher.update([proving_system_byte]);
-            hasher.finalize_reset().into()
-        } else if let Some(verification_key) = &verification_data.verification_key {
-            hasher.update(verification_key);
-            hasher.update([proving_system_byte]);
-            hasher.finalize_reset().into()
-        } else {
-           [0u8; 32]
-        };
+        let proving_system_aux_data_commitment =
+            if let Some(vm_program_code) = &verification_data.vm_program_code {
+                hasher.update(vm_program_code);
+                hasher.update([proving_system_byte]);
+                hasher.finalize_reset().into()
+            } else if let Some(verification_key) = &verification_data.verification_key {
+                hasher.update(verification_key);
+                hasher.update([proving_system_byte]);
+                hasher.finalize_reset().into()
+            } else {
+                [0u8; 32]
+            };
 
         // Serialize proof generator address to bytes
 
