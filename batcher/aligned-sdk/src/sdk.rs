@@ -382,9 +382,10 @@ async fn _is_proof_verified(
     Ok(result)
 }
 
-/// Returns the commitment for a given input. Input can be verification key, public input, etc.
+/// Returns the commitment for the verification key, taking into account the corresponding proving system.
 /// # Arguments
-/// * `content` - The content for which the commitment will be calculated.
+/// * `verification_key_bytes` - The serialized contents of the verification key.
+/// * `proving_system` - The corresponding proving system ID.
 /// # Returns
 /// * The commitment.
 /// # Errors

@@ -13,8 +13,6 @@ pub enum AlignedError {
     VerificationError(VerificationError),
     NonceError(NonceError),
     ChainIdError(ChainIdError),
-    // SerializationError(SerializationError),
-    // VkCommitmentError,
 }
 
 impl From<SubmitError> for AlignedError {
