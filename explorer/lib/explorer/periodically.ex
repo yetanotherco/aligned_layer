@@ -17,7 +17,7 @@ defmodule Explorer.Periodically do
     seconds_in_an_hour = 60 * 60
 
     :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
-    :timer.send_interval(one_second * 30, :restakings) # every 1 hour
+    :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
   end
 
   # Reads and process last blocks for operators and restaking changes
