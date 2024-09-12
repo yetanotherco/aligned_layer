@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"sync"
+	"time"
 )
 
 type TraceData struct {
@@ -102,12 +103,16 @@ func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
 }
 
 // FinishTrace finishes the trace for the given merkle root and frees resources
+// In order to wait for all operators responses, even if the quorum is reached, this function has a delayed execution
 func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
-	span := t.getSpan(batchMerkleRoot)
-	span.End()
-	t.dataMutex.Lock()
-	defer t.dataMutex.Unlock()
-	delete(t.TelemetryDataByMerkleRoot, batchMerkleRoot)
+	go func() {
+		time.Sleep(10 * time.Second)
+		span := t.getSpan(batchMerkleRoot)
+		span.End()
+		t.dataMutex.Lock()
+		defer t.dataMutex.Unlock()
+		delete(t.TelemetryDataByMerkleRoot, batchMerkleRoot)
+	}()
 }
 
 // OperatorResponseTrace
