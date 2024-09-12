@@ -89,7 +89,9 @@ func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
 	ctx, span := t.Tracer.Start(
 		context.Background(),
 		fmt.Sprintf("Response for 0x%s", merkleRootString),
-		trace.WithAttributes(attribute.String("merkle_root", fmt.Sprintf("0x%s", merkleRootString))),
+		trace.WithAttributes(
+			attribute.String("merkle_root", fmt.Sprintf("0x%s", merkleRootString)),
+		),
 	)
 	t.dataMutex.Lock()
 	defer t.dataMutex.Unlock()
@@ -123,8 +125,10 @@ func (t *Telemetry) OperatorResponseTrace(batchMerkleRoot [32]byte, operatorId [
 	_, span := t.Tracer.Start(
 		ctx,
 		fmt.Sprintf("Operator ID: 0x%s", operatorIdString),
-		trace.WithAttributes(attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])))),
-		trace.WithAttributes(attribute.String("operator_id", fmt.Sprintf("0x%s", operatorIdString))),
+		trace.WithAttributes(
+			attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:]))),
+			attribute.String("operator_id", fmt.Sprintf("0x%s", operatorIdString)),
+		),
 	)
 	return span
 }
@@ -143,8 +147,34 @@ func (t *Telemetry) QuorumReachedTrace(batchMerkleRoot [32]byte) trace.Span {
 	_, span := t.Tracer.Start(
 		ctx,
 		"Quorum reached",
-		trace.WithAttributes(attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])))),
+		trace.WithAttributes(
+			attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:]))),
+			attribute.String("status", "ok"),
+		),
 	) // TODO add quorum %
+	return span
+}
+
+// TaskErrorTrace
+// User must call to `defer span.End()` to make sure the span is correctly finished
+// For example
+// ```
+//
+//	span := telemetry.TaskErrorTrace(batchMerkleRoot, error)
+//	defer span.End()
+//
+// ```
+func (t *Telemetry) TaskErrorTrace(batchMerkleRoot [32]byte, error error) trace.Span {
+	ctx := t.getCtx(batchMerkleRoot)
+	_, span := t.Tracer.Start(
+		ctx,
+		"Batch verification failed",
+		trace.WithAttributes(
+			attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:]))),
+			attribute.String("status", "error"),
+			attribute.String("error", error.Error()),
+		),
+	)
 	return span
 }
 

@@ -228,14 +228,22 @@ const MaxSentTxRetries = 5
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching task data")
 	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
-	batchMerkleRoot := agg.batchDataByIdentifierHash[batchIdentifierHash].BatchMerkleRoot
+	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
+	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
 	agg.taskMutex.Unlock()
-	defer agg.telemetry.FinishTrace(batchMerkleRoot)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching task data")
+
+	// Finish task trace once the task is processed (either successfully or not)
+	defer agg.telemetry.FinishTrace(batchData.BatchMerkleRoot)
 
 	if blsAggServiceResp.Err != nil {
+		// Add error span to task trace
+		span := agg.telemetry.TaskErrorTrace(batchData.BatchMerkleRoot, blsAggServiceResp.Err)
+		defer span.End()
+
 		agg.taskMutex.Lock()
-		batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 
@@ -267,19 +275,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	}
 
 	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
-	batchIdentifierHash = agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
-	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
-	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Freeing task data")
+	// Delete the task from the map
+	delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Freeing task data")
+	agg.taskMutex.Unlock()
 
 	span := agg.telemetry.QuorumReachedTrace(batchData.BatchMerkleRoot)
 	defer span.End()
-
-	// Delete the task from the map
-	delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
-
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
-	agg.taskMutex.Unlock()
 
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
