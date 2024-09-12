@@ -40,6 +40,7 @@ use futures_util::{
 /// * `verification_data` - An array of verification data of each proof.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `payment_service_addr` - The address of the payment service contract.
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -66,13 +67,19 @@ pub async fn submit_multiple_and_wait_verification(
     verification_data: &[VerificationData],
     wallet: Wallet<SigningKey>,
     nonce: U256,
+    payment_service_addr: &str,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     let aligned_verification_data =
         submit_multiple(batcher_url, verification_data, wallet, nonce).await?;
 
     for aligned_verification_data_item in aligned_verification_data.iter() {
-        await_batch_verification(aligned_verification_data_item, eth_rpc_url, chain.clone())
-            .await?;
+        await_batch_verification(
+            aligned_verification_data_item,
+            eth_rpc_url,
+            chain.clone(),
+            payment_service_addr,
+        )
+        .await?;
     }
 
     Ok(aligned_verification_data)
@@ -182,6 +189,7 @@ async fn _submit_multiple(
 /// * `verification_data` - The verification data of the proof.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See `get_next_nonce`.
+/// * `payment_service_addr` - The address of the payment service contract.
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
 /// # Errors
@@ -208,6 +216,7 @@ pub async fn submit_and_wait_verification(
     verification_data: &VerificationData,
     wallet: Wallet<SigningKey>,
     nonce: U256,
+    payment_service_addr: &str,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
@@ -218,6 +227,7 @@ pub async fn submit_and_wait_verification(
         &verification_data,
         wallet,
         nonce,
+        payment_service_addr,
     )
     .await?;
 
@@ -265,6 +275,7 @@ pub async fn submit(
 /// * `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
 /// * `chain` - The chain on which the verification will be done.
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `payment_service_addr` - The address of the payment service.
 /// # Returns
 /// * A boolean indicating whether the proof was verified on-chain and is included in the batch.
 /// # Errors
@@ -275,18 +286,27 @@ pub async fn is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
     chain: Chain,
     eth_rpc_url: &str,
+    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError> {
     let eth_rpc_provider =
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
             errors::VerificationError::EthereumProviderError(e.to_string())
         })?;
-    _is_proof_verified(aligned_verification_data, chain, eth_rpc_provider).await
+
+    _is_proof_verified(
+        aligned_verification_data,
+        chain,
+        eth_rpc_provider,
+        payment_service_addr,
+    )
+    .await
 }
 
 async fn _is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
     chain: Chain,
     eth_rpc_provider: Provider<Http>,
+    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError> {
     let contract_address = match chain {
         Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
@@ -294,6 +314,10 @@ async fn _is_proof_verified(
         Chain::Holesky => "0x0584313310bD52B77CF0b81b350Ca447B97Df5DF",
         Chain::HoleskyStage => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
     };
+
+    let payment_service_addr = payment_service_addr
+        .parse::<Address>()
+        .map_err(|e| errors::VerificationError::HexDecodingError(e.to_string()))?;
 
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data
@@ -318,6 +342,7 @@ async fn _is_proof_verified(
         aligned_verification_data.batch_merkle_root,
         merkle_proof.into(),
         aligned_verification_data.index_in_batch.into(),
+        payment_service_addr,
     );
 
     let result = call
@@ -406,6 +431,8 @@ mod test {
 
     use ethers::signers::LocalWallet;
 
+    const BATCHER_PAYMENT_SERVICE_ADDR: &str = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0";
+
     #[tokio::test]
     async fn test_submit_success() {
         let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -439,6 +466,7 @@ mod test {
             &verification_data,
             wallet,
             U256::zero(),
+            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
@@ -472,6 +500,7 @@ mod test {
             &verification_data,
             wallet,
             U256::zero(),
+            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await;
 
@@ -513,6 +542,7 @@ mod test {
             &verification_data,
             wallet,
             U256::zero(),
+            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
@@ -523,6 +553,7 @@ mod test {
             &aligned_verification_data[0],
             Chain::Devnet,
             "http://localhost:8545",
+            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
@@ -563,6 +594,7 @@ mod test {
             &verification_data,
             wallet,
             U256::zero(),
+            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
@@ -578,6 +610,7 @@ mod test {
             &aligned_verification_data_modified,
             Chain::Devnet,
             "http://localhost:8545",
+            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
