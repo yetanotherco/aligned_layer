@@ -5,7 +5,7 @@ use crate::{
         protocol::check_protocol_version,
     },
     core::{
-        errors::{self, AlignedError},
+        errors,
         types::{
             AlignedVerificationData, Chain, ProvingSystemId, VerificationData,
             VerificationDataCommitment,
