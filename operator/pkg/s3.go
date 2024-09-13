@@ -12,8 +12,8 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
-func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
-	o.Logger.Infof("Getting batch from S3..., batchURL: %s", batchURL)
+func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
+	o.Logger.Infof("Getting batch from data service, batchURL: %s", batchURL)
 
 	var resp *http.Response
 	var err error
@@ -21,7 +21,7 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
-			o.Logger.Infof("Waiting for %s before retrying S3 fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
+			o.Logger.Infof("Waiting for %s before retrying data fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
 			select {
 			case <-time.After(retryDelay):
 				// Wait before retrying
@@ -37,7 +37,7 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 		}
 
 		resp, err = http.DefaultClient.Do(req)
-		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+		if err == nil && resp.StatusCode == http.StatusOK {
 			break // Successful request, exit retry loop
 		}
 
@@ -48,12 +48,14 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 			}
 		}
 
-		o.Logger.Warnf("Error fetching batch from S3 (attempt %d): %v", attempt+1, err)
+		o.Logger.Warnf("Error fetching batch from data service - (attempt %d): %v", attempt+1, err)
 	}
 
 	if err != nil {
 		return nil, err
 	}
+
+	// At this point, the HTTP request was successfull.
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -64,7 +66,7 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 
 	// Check if the response is OK
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error getting Proof Head from S3: %s", resp.Status)
+		return nil, fmt.Errorf("error getting batch from data service: %s", resp.Status)
 	}
 
 	contentLength := resp.ContentLength
