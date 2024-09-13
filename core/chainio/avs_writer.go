@@ -1,7 +1,6 @@
 package chainio
 
 import (
-
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
@@ -38,7 +37,14 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		return nil, err
 	}
 
-	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.EthRpcClientFallback, baseConfig.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr,
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
+		baseConfig.EthRpcClient,
+		baseConfig.EthRpcClientFallback,
+		baseConfig.Logger,
+	)
 
 	if err != nil {
 		baseConfig.Logger.Error("Cannot create avs service bindings", "err", err)
@@ -61,7 +67,6 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		Client:              baseConfig.EthRpcClient,
 	}, nil
 }
-
 
 func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
 	txOpts := *w.Signer.GetTxOpts()

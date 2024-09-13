@@ -50,8 +50,12 @@ type AvsSubscriber struct {
 func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, error) {
 	avsContractBindings, err := NewAvsServiceBindings(
 		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerRegistryCoordinatorAddr,
 		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr,
-		baseConfig.EthWsClient, baseConfig.EthWsClientFallback, baseConfig.Logger)
+		baseConfig.EthWsClient,
+		baseConfig.EthWsClientFallback,
+		baseConfig.Logger,
+	)
 
 	if err != nil {
 		baseConfig.Logger.Errorf("Failed to create contract bindings", "err", err)
@@ -64,7 +68,7 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 		logger:                         baseConfig.Logger,
 	}, nil
 }
-	
+
 func (s *AvsSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) (chan error, error) {
 	// Create a new channel to receive new tasks
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
@@ -164,9 +168,9 @@ func (s *AvsSubscriber) processNewBatch(batch *servicemanager.ContractAlignedLay
 
 	if _, ok := batchesSet[batchIdentifierHash]; !ok {
 		s.logger.Info("Received new task",
-		"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
-		"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
-		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]),)
+			"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
+			"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
+			"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
 		batchesSet[batchIdentifierHash] = struct{}{}
 		newTaskCreatedChan <- batch

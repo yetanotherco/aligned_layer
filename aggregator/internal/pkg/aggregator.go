@@ -93,9 +93,12 @@ type Aggregator struct {
 
 	// Telemetry
 	telemetry telemetry.Telemetry
+
+	operators map[eigentypes.OperatorId]types.OperatorData
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
+	logger := aggregatorConfig.BaseConfig.Logger
 	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
@@ -129,7 +132,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 
 	aggregatorPrivateKey := aggregatorConfig.EcdsaConfig.PrivateKey
 
-	logger := aggregatorConfig.BaseConfig.Logger
 	clients, err := clients.BuildAll(chainioConfig, aggregatorPrivateKey, logger)
 	if err != nil {
 		logger.Errorf("Cannot create sdk clients", "err", err)
@@ -154,6 +156,16 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, logger)
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
+
+	logger.Info("Getting operators registered...")
+	operators, err := avsReader.GetOperators()
+	if err != nil {
+		return nil, err
+	}
+	// Print operators
+	for _, op := range operators {
+		logger.Info(op.String())
+	}
 
 	// Metrics
 	reg := prometheus.NewRegistry()
