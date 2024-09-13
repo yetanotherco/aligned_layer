@@ -13,8 +13,6 @@ import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces
 import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @title Primary entrypoint for procuring services from Aligned.
  */
@@ -56,7 +54,6 @@ contract AlignedLayerServiceManager is
 
     function createNewTask(bytes32 batchMerkleRoot, string calldata batchDataPointer) external payable {
         bytes32 batchIdentifier;
-        console.log("block.number: %s", block.number);
         if (
             block.number < 2_268_375 // TODO set number of blocks
         ) {
@@ -204,8 +201,15 @@ contract AlignedLayerServiceManager is
         uint256 verificationDataBatchIndex,
         address senderAddress
     ) external view returns (bool) {
-        // bytes32 batchIdentifierHash = keccak256(abi.encodePacked(batchMerkleRoot, senderAddress));
-        bytes32 batchIdentifierHash = batchMerkleRoot;
+        // Temporary solution: Add the same condition than `createNewTask` to define a batch identifier.
+        bytes32 batchIdentifierHash;
+        if (
+            block.number < 2_268_375 // TODO set number of blocks
+        ) {
+            batchIdentifierHash = batchMerkleRoot;
+        } else {
+            batchIdentifierHash = keccak256(abi.encodePacked(batchMerkleRoot, msg.sender));
+        }
 
         if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
             return false;
