@@ -65,8 +65,8 @@ The root of the Merkle tree is posted to Ethereum together with a pointer to whe
 Each leaf contains the following information:
 
 - A commitment to the public input of the proof.
-- A commitment to the proof and information about the proof system.
-- A commitment to the program or a commitment to the verification key (depending on the proof system used).
+- A commitment to the proof
+- A commitment to the program or a commitment to the verification key, plus the Proving System/verifier used.
 - The address of the proof’s generator/submitter (optional).
 
 A diagram for the batch is shown on the figure below:

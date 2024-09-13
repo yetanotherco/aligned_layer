@@ -6,7 +6,10 @@ use crate::{
     },
     core::{
         errors,
-        types::{AlignedVerificationData, Chain, VerificationData, VerificationDataCommitment},
+        types::{
+            AlignedVerificationData, Chain, ProvingSystemId, VerificationData,
+            VerificationDataCommitment,
+        },
     },
     eth::{
         aligned_service_manager::aligned_service_manager,
@@ -415,16 +418,22 @@ async fn _is_proof_verified(
     Ok(result)
 }
 
-/// Returns the commitment for a given input. Input can be verification key, public input, etc.
+/// Returns the commitment for the verification key, taking into account the corresponding proving system.
 /// # Arguments
-/// * `content` - The content for which the commitment will be calculated.
+/// * `verification_key_bytes` - The serialized contents of the verification key.
+/// * `proving_system` - The corresponding proving system ID.
 /// # Returns
 /// * The commitment.
 /// # Errors
 /// * None.
-pub fn get_commitment(content: &[u8]) -> [u8; 32] {
+pub fn get_vk_commitment(
+    verification_key_bytes: &[u8],
+    proving_system: ProvingSystemId,
+) -> [u8; 32] {
+    let proving_system_id_byte = proving_system.clone() as u8;
     let mut hasher = Keccak256::new();
-    hasher.update(content);
+    hasher.update(verification_key_bytes);
+    hasher.update([proving_system_id_byte]);
     hasher.finalize().into()
 }
 
