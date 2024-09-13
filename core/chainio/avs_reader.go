@@ -94,8 +94,8 @@ func (r *AvsReader) GetOperators() (map[eigentypes.OperatorId]types.OperatorData
 	operators := make(map[eigentypes.OperatorId]types.OperatorData)
 	for _, operator := range operatorsByQuorum[0] { // We only use one quorum (0x00)
 		operators[operator.OperatorId] = types.OperatorData{
-			Address: hex.EncodeToString(operator.Operator[:]),
-			Id:      hex.EncodeToString(operator.OperatorId[:]),
+			Address: "0x" + hex.EncodeToString(operator.Operator[:]),
+			Id:      "0x" + hex.EncodeToString(operator.OperatorId[:]),
 			Name:    "dummy name", // TODO get the name from Metadata
 			Stake:   operator.Stake,
 		}

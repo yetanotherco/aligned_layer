@@ -197,6 +197,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		metricsReg:            reg,
 		metrics:               aggregatorMetrics,
 		telemetry:             aggregatorTelemetry,
+		operators:             operators,
 	}
 
 	return &aggregator, nil

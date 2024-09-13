@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Layr-Labs/eigensdk-go/logging"
+	"github.com/yetanotherco/aligned_layer/core/types"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -78,6 +79,7 @@ func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logge
 		initialCtx:                ctx,
 		shutdownTracerProvider:    shutdownTracerProvider,
 		shutdownMeterProvider:     shutdownMeterProvider,
+		logger:                    logger,
 	}
 }
 
@@ -124,15 +126,17 @@ func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 //	defer span.End()
 //
 // ```
-func (t *Telemetry) OperatorResponseTrace(batchMerkleRoot [32]byte, operatorId [32]byte) trace.Span {
+func (t *Telemetry) OperatorResponseTrace(batchMerkleRoot [32]byte, operator types.OperatorData) trace.Span {
 	ctx := t.getCtx(batchMerkleRoot)
-	operatorIdString := hex.EncodeToString(operatorId[:])
 	_, span := t.Tracer.Start(
 		ctx,
-		fmt.Sprintf("Operator ID: 0x%s", operatorIdString),
+		fmt.Sprintf("Operator: %s (%s)", operator.Name, operator.Address),
 		trace.WithAttributes(
 			attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:]))),
-			attribute.String("operator_id", fmt.Sprintf("0x%s", operatorIdString)),
+			attribute.String("operator_id", fmt.Sprintf("0x%s", operator.Id)),
+			attribute.String("operator_name", operator.Name),
+			attribute.String("operator_address", operator.Address),
+			attribute.Int64("operator_stake", operator.Stake.Int64()),
 		),
 	)
 	return span
