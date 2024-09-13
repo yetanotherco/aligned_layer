@@ -55,6 +55,10 @@ anvil_upgrade_aligned_contracts:
 	@echo "Upgrading Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_aligned_contracts.sh
 
+anvil_upgrade_batcher_payment_service:
+	@echo "Upgrading BatcherPayments contract..."
+	. contracts/scripts/anvil/upgrade_batcher_payment_service.sh
+
 anvil_upgrade_registry_coordinator:
 	@echo "Upgrading Registry Coordinator Contracts..."
 	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
@@ -74,6 +78,10 @@ anvil_upgrade_index_registry:
 anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
+
+anvil_add_type_hash_to_batcher_payment_service:
+	@echo "Adding Type Hash to Batcher Payment Service..."
+	. contracts/scripts/anvil/upgrade_add_type_hash_to_batcher_payment_service.sh
 
 lint_contracts:
 	@cd contracts && npm run lint:sol
@@ -288,6 +296,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
+		--repetitions 4 \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
@@ -437,6 +446,10 @@ upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
+upgrade_batcher_payments_add_type_hash: ## Add Type Hash to Batcher Payment Service
+	@echo "Adding Type Hash to Batcher Payment Service..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_type_hash_to_batcher_payment_service.sh
+
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
@@ -514,6 +527,7 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:

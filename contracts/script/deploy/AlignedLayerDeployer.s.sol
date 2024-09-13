@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 /*
     This script is a modified version of the Mainnet_Deploy.s.sol script used by EigenDA:

@@ -14,7 +14,7 @@ use aligned_sdk::core::{
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::{get_commitment, is_proof_verified, submit_multiple};
+use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -28,8 +28,8 @@ use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
-use crate::AlignedCommands::GetCommitment;
 use crate::AlignedCommands::GetUserBalance;
+use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
 
@@ -40,16 +40,15 @@ pub struct AlignedArgs {
     pub command: AlignedCommands,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Debug)]
 pub enum AlignedCommands {
     #[clap(about = "Submit proof to the batcher")]
-    Submit(Box<SubmitArgs>),
+    Submit(SubmitArgs),
     #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
-
-    // Get commitment for file, command name is get-commitment
-    #[clap(about = "Get commitment for file", name = "get-commitment")]
-    GetCommitment(GetCommitmentArgs),
+    #[clap(about = "Get commitment for file", name = "get-vk-commitment")]
+    GetVkCommitment(GetVkCommitmentArgs),
     #[clap(
         about = "Deposits Ethereum in the batcher to pay for proofs",
         name = "deposit-to-batcher"
@@ -120,6 +119,12 @@ pub struct SubmitArgs {
     max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
+    #[arg(
+        name = "The Ethereum network's name",
+        long = "chain",
+        default_value = "devnet"
+    )]
+    chain: ChainArg,
 }
 
 #[derive(Parser, Debug)]
@@ -180,9 +185,11 @@ pub struct VerifyProofOnchainArgs {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct GetCommitmentArgs {
-    #[arg(name = "File name", long = "input")]
-    input_file: PathBuf,
+pub struct GetVkCommitmentArgs {
+    #[arg(name = "Verification key file path", long = "verification_key_file")]
+    verification_key_file: PathBuf,
+    #[arg(name = "Proving system", long = "proving_system")]
+    proving_system: ProvingSystemArg,
     #[arg(name = "Output file", long = "output")]
     output_file: Option<PathBuf>,
 }
@@ -323,7 +330,9 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            let verification_data = verification_data_from_args(*submit_args)?;
+            let verification_data = verification_data_from_args(&submit_args)?;
+
+            let chain = submit_args.chain.clone().into();
 
             let verification_data_arr = vec![verification_data; repetitions];
 
@@ -333,6 +342,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let aligned_verification_data_vec = match submit_multiple(
                 &connect_addr,
+                chain,
                 &verification_data_arr,
                 &max_fees,
                 wallet.clone(),
@@ -399,17 +409,18 @@ async fn main() -> Result<(), AlignedError> {
                 info!("Your proof was not included in the batch.");
             }
         }
-        GetCommitment(args) => {
-            let content = read_file(args.input_file)?;
+        GetVkCommitment(args) => {
+            let verification_key_bytes = read_file(args.verification_key_file)?;
+            let proving_system = args.proving_system.into();
 
-            let hash = get_commitment(&content);
+            let vk_commitment = get_vk_commitment(&verification_key_bytes, proving_system);
 
-            info!("Commitment: {}", hex::encode(hash));
+            info!("Commitment: {}", hex::encode(vk_commitment));
             if let Some(output_file) = args.output_file {
                 let mut file = File::create(output_file.clone())
                     .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
 
-                file.write_all(hex::encode(hash).as_bytes())
+                file.write_all(hex::encode(vk_commitment).as_bytes())
                     .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
             }
         }
@@ -563,11 +574,11 @@ async fn main() -> Result<(), AlignedError> {
     Ok(())
 }
 
-fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, SubmitError> {
-    let proving_system = args.proving_system_flag.into();
+fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, SubmitError> {
+    let proving_system = args.proving_system_flag.clone().into();
 
     // Read proof file
-    let proof = read_file(args.proof_file_name)?;
+    let proof = read_file(args.proof_file_name.clone())?;
 
     let mut pub_input: Option<Vec<u8>> = None;
     let mut verification_key: Option<Vec<u8>> = None;
@@ -577,17 +588,17 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         ProvingSystemId::SP1 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
-                args.vm_program_code_file_name,
+                args.vm_program_code_file_name.clone(),
             )?);
         }
         ProvingSystemId::Risc0 => {
             vm_program_code = Some(read_file_option(
                 "--vm_program",
-                args.vm_program_code_file_name,
+                args.vm_program_code_file_name.clone(),
             )?);
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.clone(),
             )?);
         }
         ProvingSystemId::Halo2KZG
@@ -595,10 +606,13 @@ fn verification_data_from_args(args: SubmitArgs) -> Result<VerificationData, Sub
         | ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
-            verification_key = Some(read_file_option("--vk", args.verification_key_file_name)?);
+            verification_key = Some(read_file_option(
+                "--vk",
+                args.verification_key_file_name.clone(),
+            )?);
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.clone(),
             )?);
         }
     }

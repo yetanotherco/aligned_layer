@@ -1,17 +1,21 @@
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {EIP712} from "../../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
+import {BatcherPaymentServiceStorage} from "./BatcherPaymentServiceStorage.sol";
 
 contract BatcherPaymentService is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
-    UUPSUpgradeable
+    UUPSUpgradeable,
+    BatcherPaymentServiceStorage,
+    EIP712
 {
     using ECDSA for bytes32;
 
@@ -47,32 +51,8 @@ contract BatcherPaymentService is
     ); // 955c0664
     error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
 
-    struct SignatureData {
-        bytes signature;
-        uint256 nonce;
-        uint256 maxFee;
-    }
-
-    struct UserInfo {
-        uint256 balance;
-        uint256 unlockBlock;
-        uint256 nonce;
-    }
-
-    // STORAGE
-    IAlignedLayerServiceManager public alignedLayerServiceManager;
-
-    address public batcherWallet;
-
-    // map to user data
-    mapping(address => UserInfo) public userData;
-
-    // storage gap for upgradeability
-    // solhint-disable-next-line var-name-mixedcase
-    uint256[24] private __GAP;
-
     // CONSTRUCTOR & INITIALIZER
-    constructor() {
+    constructor() EIP712("Aligned", "1") {
         _disableInitializers();
     }
 
@@ -87,7 +67,8 @@ contract BatcherPaymentService is
     function initialize(
         IAlignedLayerServiceManager _alignedLayerServiceManager,
         address _batcherPaymentServiceOwner,
-        address _batcherWallet
+        address _batcherWallet,
+        bytes32 _noncedVerificationDataTypeHash
     ) public initializer {
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
@@ -95,11 +76,25 @@ contract BatcherPaymentService is
 
         alignedLayerServiceManager = _alignedLayerServiceManager;
         batcherWallet = _batcherWallet;
+        noncedVerificationDataTypeHash = _noncedVerificationDataTypeHash;
+    }
+
+    function initializeNoncedVerificationDataTypeHash(
+        bytes32 _noncedVerificationDataTypeHash
+    ) public reinitializer(2) onlyOwner {
+        noncedVerificationDataTypeHash = _noncedVerificationDataTypeHash;
+    }
+
+    function setNoncedVerificationDataTypeHash(
+        bytes32 _newTypeHash
+    ) public onlyOwner {
+        noncedVerificationDataTypeHash = _newTypeHash;
     }
 
     // PAYABLE FUNCTIONS
     receive() external payable {
         userData[msg.sender].balance += msg.value;
+        userData[msg.sender].unlockBlock = 0;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
@@ -277,7 +272,7 @@ contract BatcherPaymentService is
     }
 
     function _verifySignatureAndDecreaseBalance(
-        bytes32 hash,
+        bytes32 leaf,
         SignatureData calldata signatureData,
         uint256 feePerProof
     ) private {
@@ -285,16 +280,18 @@ contract BatcherPaymentService is
             revert InvalidMaxFee(signatureData.maxFee, feePerProof);
         }
 
-        bytes32 noncedHash = keccak256(
-            abi.encodePacked(
-                hash,
-                signatureData.nonce,
-                signatureData.maxFee,
-                block.chainid
+        bytes32 structHash = keccak256(
+            abi.encode(
+                noncedVerificationDataTypeHash,
+                leaf,
+                keccak256(abi.encodePacked(signatureData.nonce)),
+                keccak256(abi.encodePacked(signatureData.maxFee))
             )
         );
 
-        address signer = noncedHash.recover(signatureData.signature);
+        bytes32 hash = _hashTypedDataV4(structHash);
+
+        address signer = ECDSA.recover(hash, signatureData.signature);
 
         if (signer == address(0)) {
             revert InvalidSignature();
