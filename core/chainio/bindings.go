@@ -5,9 +5,9 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	operatorStateRetriever "github.com/Layr-Labs/eigensdk-go/contracts/bindings/OperatorStateRetriever"
+	stakeregistry "github.com/Layr-Labs/eigensdk-go/contracts/bindings/StakeRegistry"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	gethcommon "github.com/ethereum/go-ethereum/common"
-
 	csservicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 )
 
@@ -15,6 +15,7 @@ type AvsServiceBindings struct {
 	ServiceManager         *csservicemanager.ContractAlignedLayerServiceManager
 	ServiceManagerFallback *csservicemanager.ContractAlignedLayerServiceManager
 	OperatorStateRetriever *operatorStateRetriever.ContractOperatorStateRetriever
+	StakeRegistry          *stakeregistry.ContractStakeRegistry
 	DelegationManager      *DelegationManager.DelegationManager
 	ContractBindings       *avsregistry.ContractBindings
 	ethClient              eth.Client
@@ -57,6 +58,7 @@ func NewAvsServiceBindings(
 		ServiceManager:         contractServiceManager,
 		ServiceManagerFallback: contractServiceManagerFallback,
 		OperatorStateRetriever: contractBindings.OperatorStateRetriever,
+		StakeRegistry:          contractBindings.StakeRegistry,
 		DelegationManager:      delegationManager,
 		ContractBindings:       contractBindings,
 		ethClient:              ethClient,

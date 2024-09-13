@@ -12,6 +12,7 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/types"
 	"io"
 	"log"
+	"math/big"
 	"net/http"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -76,6 +77,15 @@ func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mo
 
 func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, error) {
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
+}
+
+func (r *AvsReader) GetTotalStake() *big.Int {
+	totalStake, err := r.AvsContractBindings.StakeRegistry.GetCurrentTotalStake(&bind.CallOpts{}, 0x00)
+	if err != nil {
+		r.logger.Error("Failed to fetch total stake", "err", err)
+		return nil
+	}
+	return totalStake
 }
 
 func (r *AvsReader) GetOperators() (map[eigentypes.OperatorId]types.OperatorData, error) {

@@ -19,13 +19,15 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"math/big"
 	"sync"
 	"time"
 )
 
 type TraceData struct {
-	Ctx  context.Context
-	Span trace.Span
+	Ctx        context.Context
+	Span       trace.Span
+	TotalStake *big.Int
 }
 
 type Telemetry struct {
@@ -87,20 +89,22 @@ func NewTelemetry(serviceName string, ipPortAddress string, logger logging.Logge
 
 // InitNewTrace Init a new trace for the given batchMerkleRoot
 // User must make sure to call FinishTrace()
-func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
+func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte, totalStake *big.Int) {
 	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
 	ctx, span := t.Tracer.Start(
 		context.Background(),
 		fmt.Sprintf("Response for 0x%s", merkleRootString),
 		trace.WithAttributes(
 			attribute.String("merkle_root", fmt.Sprintf("0x%s", merkleRootString)),
+			attribute.Int64("total_stake", totalStake.Int64()),
 		),
 	)
 	t.dataMutex.Lock()
 	defer t.dataMutex.Unlock()
 	t.TelemetryDataByMerkleRoot[batchMerkleRoot] = TraceData{
-		Ctx:  ctx,
-		Span: span,
+		Ctx:        ctx,
+		Span:       span,
+		TotalStake: totalStake,
 	}
 }
 

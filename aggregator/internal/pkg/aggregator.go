@@ -369,7 +369,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, senderAd
 }
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
-	agg.telemetry.InitNewTrace(batchMerkleRoot)
+	agg.telemetry.InitNewTrace(batchMerkleRoot, agg.avsReader.GetTotalStake())
 
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
