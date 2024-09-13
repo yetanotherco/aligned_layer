@@ -130,12 +130,12 @@ func (t *Telemetry) OperatorResponseTrace(batchMerkleRoot [32]byte, operator typ
 	ctx := t.getCtx(batchMerkleRoot)
 	_, span := t.Tracer.Start(
 		ctx,
-		fmt.Sprintf("Operator: %s (%s)", operator.Name, operator.Address),
+		fmt.Sprintf("Operator: %s (%s)", operator.Name, operator.AddressString),
 		trace.WithAttributes(
 			attribute.String("merkle_root", fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:]))),
-			attribute.String("operator_id", fmt.Sprintf("0x%s", operator.Id)),
+			attribute.String("operator_id", fmt.Sprintf("0x%s", operator.IdString)),
 			attribute.String("operator_name", operator.Name),
-			attribute.String("operator_address", operator.Address),
+			attribute.String("operator_address", operator.AddressString),
 			attribute.Int64("operator_stake", operator.Stake.Int64()),
 		),
 	)

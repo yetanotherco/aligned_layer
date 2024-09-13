@@ -3,12 +3,16 @@ package chainio
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/types"
+	"io"
+	"log"
+	"net/http"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
 	sdkavsregistry "github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
@@ -93,12 +97,64 @@ func (r *AvsReader) GetOperators() (map[eigentypes.OperatorId]types.OperatorData
 
 	operators := make(map[eigentypes.OperatorId]types.OperatorData)
 	for _, operator := range operatorsByQuorum[0] { // We only use one quorum (0x00)
+		operatorMetadata := r.getOperatorMetadata([]gethcommon.Address{operator.Operator})
 		operators[operator.OperatorId] = types.OperatorData{
-			Address: "0x" + hex.EncodeToString(operator.Operator[:]),
-			Id:      "0x" + hex.EncodeToString(operator.OperatorId[:]),
-			Name:    "dummy name", // TODO get the name from Metadata
-			Stake:   operator.Stake,
+			Address:       operator.Operator,
+			Id:            operator.OperatorId,
+			AddressString: "0x" + hex.EncodeToString(operator.Operator[:]),
+			IdString:      "0x" + hex.EncodeToString(operator.OperatorId[:]),
+			Name:          operatorMetadata.Name, // User must set this getting it from the Metadata event
+			Stake:         operator.Stake,
 		}
 	}
+
 	return operators, nil
+}
+
+func (r *AvsReader) getOperatorMetadata(operatorAddresses []gethcommon.Address) OperatorMetadata {
+	//FilterOperatorMetadataURIUpdated
+	iterator, err := r.AvsContractBindings.DelegationManager.FilterOperatorMetadataURIUpdated(&bind.FilterOpts{}, operatorAddresses)
+	if err != nil {
+		r.logger.Error("Failed to filter OperatorMetadataURIUpdated", "err", err)
+		return OperatorMetadata{}
+	}
+
+	operatorMetadata := OperatorMetadata{}
+	for iterator.Next() {
+		metadataURI := iterator.Event.MetadataURI
+		r.logger.Info("MetadataURI", "metadataURI", metadataURI)
+		operatorMetadata = r.getOperatorMetadataFromUri(metadataURI)
+	}
+	return operatorMetadata
+}
+
+type OperatorMetadata struct {
+	Name        string `json:"name"`
+	Website     string `json:"website"`
+	Description string `json:"description"`
+	Logo        string `json:"logo"`
+	Twitter     string `json:"twitter"`
+}
+
+func (r *AvsReader) getOperatorMetadataFromUri(uri string) OperatorMetadata {
+	resp, err := http.Get(uri)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var metadata OperatorMetadata
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			r.logger.Error("Failed to close response body", "err", err)
+		}
+	}(resp.Body)
+
+	err = json.NewDecoder(resp.Body).Decode(&metadata)
+	if err != nil {
+		r.logger.Error("Failed to decode response body", "err", err)
+		return OperatorMetadata{}
+	}
+
+	return metadata
 }

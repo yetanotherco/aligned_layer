@@ -1,6 +1,7 @@
 package chainio
 
 import (
+	"github.com/Layr-Labs/eigenlayer-contracts/pkg/bindings/DelegationManager"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/avsregistry"
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	operatorStateRetriever "github.com/Layr-Labs/eigensdk-go/contracts/bindings/OperatorStateRetriever"
@@ -14,6 +15,7 @@ type AvsServiceBindings struct {
 	ServiceManager         *csservicemanager.ContractAlignedLayerServiceManager
 	ServiceManagerFallback *csservicemanager.ContractAlignedLayerServiceManager
 	OperatorStateRetriever *operatorStateRetriever.ContractOperatorStateRetriever
+	DelegationManager      *DelegationManager.DelegationManager
 	ContractBindings       *avsregistry.ContractBindings
 	ethClient              eth.Client
 	ethClientFallback      eth.Client
@@ -45,10 +47,17 @@ func NewAvsServiceBindings(
 		return nil, err
 	}
 
+	delegationManager, err := DelegationManager.NewDelegationManager(contractBindings.DelegationManagerAddr, ethClient)
+	if err != nil {
+		logger.Error("Failed to fetch DelegationManager contract", "err", err)
+		return nil, err
+	}
+
 	return &AvsServiceBindings{
 		ServiceManager:         contractServiceManager,
 		ServiceManagerFallback: contractServiceManagerFallback,
 		OperatorStateRetriever: contractBindings.OperatorStateRetriever,
+		DelegationManager:      delegationManager,
 		ContractBindings:       contractBindings,
 		ethClient:              ethClient,
 		ethClientFallback:      ethClientFallback,
