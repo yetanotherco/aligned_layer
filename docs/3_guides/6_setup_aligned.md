@@ -1,21 +1,25 @@
-# Setup Aligned Infrastructure Locally
+# Aligned Infrastructure Deployment Guide
 
 ## Dependencies
 
 Ensure you have the following installed:
 
-* [Go](https://go.dev/doc/install)
-* [Rust](https://www.rust-lang.org/tools/install)
-* [Foundry](https://book.getfoundry.sh/getting-started/installation)
-* [zap-pretty](https://github.com/maoueh/zap-pretty)
-* [abigen](https://geth.ethereum.org/docs/tools/abigen)
-* [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git)
-* [jq](https://jqlang.github.io/jq/)
-* [yq](https://github.com/mikefarah/yq)
+- [Go](https://go.dev/doc/install)
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+- [zap-pretty](https://github.com/maoueh/zap-pretty)
+- [abigen](https://geth.ethereum.org/docs/tools/abigen)
+- [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git)
+- [jq](https://jqlang.github.io/jq/)
+- [yq](https://github.com/mikefarah/yq)
 
-To install [Go](https://go.dev/doc/install), [Rust](https://www.rust-lang.org/tools/install), [jq](https://jqlang.github.io/jq/) and [yq](https://github.com/mikefarah/yq) go to the provided links and follow the instructions.
+To
+install [Go](https://go.dev/doc/install),
+[Rust](https://www.rust-lang.org/tools/install), [jq](https://jqlang.github.io/jq/)
+and [yq](https://github.com/mikefarah/yq) go to the provided links and follow the instructions.
 
-Install Go dependencies ([zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git)):
+Install Go
+dependencies ([zap-pretty](https://github.com/maoueh/zap-pretty), [abigen](https://geth.ethereum.org/docs/tools/abigen), [eigenlayer-cli](https://github.com/Layr-Labs/eigenlayer-cli.git)):
 
 ```bash
 make go_deps
@@ -46,27 +50,27 @@ Before starting, you need to set up an S3 bucket. More data storage will be test
 
 You need to fill the data in:
 
-`batcher/aligned-batcher/.env`
+```batcher/aligned-batcher/.env```
 
 And you can use this file as an example of how to fill it:
 
-`batcher/aligned-batcher/.env.example`
+```batcher/aligned-batcher/.env.example```
 
 After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
 ## Anvil
 
-To start anvil, a local Ethereum devnet with all necessary contracts already deployed and ready to be interacted with, run:
+To start anvil, a local Ethereum devnet with all necessary contracts already deployed and ready to be interacted with,
+run:
 
 ```bash
 make anvil_start_with_block_time
 ```
 
 <details>
-
 <summary>More information on deploying the smart contracts on anvil:</summary>
 
-#### EigenLayer Contracts
+### EigenLayer Contracts
 
 If EigenLayer contracts change, the anvil state needs to be updated with:
 
@@ -80,7 +84,7 @@ You will also need to redeploy the MockStrategy & MockERC20 contracts:
 make anvil_deploy_mock_strategy
 ```
 
-#### Aligned Contracts
+### Aligned Contracts
 
 When changing Aligned contracts, the anvil state needs to be updated with:
 
@@ -102,12 +106,13 @@ make anvil_upgrade_registry_coordinator
 
 Note that when upgrading the contracts, you must also:
 
-1.  Re-generate the Go smart contract bindings:
+1. Re-generate the Go smart contract bindings:
 
     ```bash
     make bindings
     ```
-2.  Rebuild Aggregator and Operator Go binaries:
+
+2. Rebuild Aggregator and Operator Go binaries:
 
     ```bash
     make build_binaries
@@ -115,18 +120,17 @@ Note that when upgrading the contracts, you must also:
 
 </details>
 
-***
+---
 
 ## Aggregator
 
-To start the [Aggregator](../2\_architecture/components/5\_aggregator.md):
+To start the [Aggregator](../2_architecture/components/5_aggregator.md):
 
 ```bash
 make aggregator_start
 ```
 
 <details>
-
 <summary>To start the aggregator with a custom configuration:</summary>
 
 ```bash
@@ -135,11 +139,12 @@ make aggregator_start CONFIG_FILE=<path_to_config_file>
 
 </details>
 
-***
+---
 
 ## Operator
 
-To start an [Operator](../2\_architecture/components/4\_operator.md) (note it also registers it):
+To start an [Operator](../2_architecture/components/4_operator.md)
+(note it also registers it):
 
 ```bash
 make operator_register_and_start
@@ -152,12 +157,11 @@ make operator_start
 ```
 
 <details>
-
 <summary>More information about Operator registration:</summary>
 
 Operator needs to register in both EigenLayer and Aligned. Then it can start verifying proofs.
 
-#### Register into EigenLayer
+### Register into EigenLayer
 
 To register an operator in EigenLayer Devnet with the default configuration, run:
 
@@ -171,7 +175,7 @@ To register an operator in EigenLayer with a custom configuration, run:
 make operator_register_with_eigen_layer CONFIG_FILE=<path_to_config_file>
 ```
 
-#### Register into Aligned
+### Register into Aligned
 
 To register an operator in Aligned with the default configuration, run:
 
@@ -185,21 +189,23 @@ To register an operator in Aligned with a custom configuration, run:
 make operator_register_with_aligned_layer CONFIG_FILE=<path_to_config_file>
 ```
 
-#### Full Registration in Anvil with one command
+### Full Registration in Anvil with one command
 
-To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with the default configuration, run:
+To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with the default
+configuration, run:
 
 ```bash
 make operator_full_registration
 ```
 
-To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with a custom configuration, run:
+To register an operator in EigenLayer and Aligned and deposit strategy tokens in EigenLayer with a custom configuration,
+run:
 
 ```bash
 make operator_full_registration CONFIG_FILE=<path_to_config_file>
 ```
 
-#### Deposit Strategy Tokens in Anvil local devnet
+### Deposit Strategy Tokens in Anvil local devnet
 
 There is an ERC20 token deployed in the Anvil chain to use as a strategy token with EigenLayer.
 
@@ -217,17 +223,21 @@ make operator_mint_mock_tokens CONFIG_FILE=<path_to_config_file>
 make operator_deposit_into_mock_strategy CONFIG_FILE=<path_to_config_file>
 ```
 
-#### Deposit Strategy tokens in Holesky/Mainnet
+### Deposit Strategy tokens in Holesky/Mainnet
 
 EigenLayer strategies are available in [eigenlayer-strategies](https://holesky.eigenlayer.xyz/restake).
 
 For Holesky, we are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
-To get HolETH and swap it for different strategies, you can use the following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
+To get HolETH and swap it for different strategies, you can use the
+following [guide](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/testnet/obtaining-testnet-eth-and-liquid-staking-tokens-lsts).
 
-#### Config
+### Config
 
-There is a default configuration for devnet purposes in `config-files/config.yaml`. Also, there are three different configurations for the operator in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml` and `config-files/devnet/operator-3.yaml`.
+There is a default configuration for devnet purposes in `config-files/config.yaml`.
+Also, there are three different configurations for the operator
+in `config-files/devnet/operator-1.yaml`, `config-files/devnet/operator-2.yaml`
+and `config-files/devnet/operator-3.yaml`.
 
 The configuration file has the following structure:
 
@@ -295,23 +305,31 @@ eigenlayer operator keys import --key-type bls <keystore-name> <private-key>
 
 </details>
 
-***
+---
 
 ## Batcher
 
-To start the [Batcher](../2\_architecture/components/1\_batcher.md):
+To start the [Batcher](../2_architecture/components/1_batcher.md):
 
 ```bash
 make batcher_start
 ```
 
 <details>
-
 <summary>More information about Batcher configuration:</summary>
 
-To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the batcher (`batcher/aligned-batcher/`).
+To run the batcher, you will need to set environment variables in a `.env` file in the same directory as the
+batcher (`batcher/aligned-batcher/`).
 
 The necessary environment variables are:
+
+| Variable Name         | Description                                                                                                                    |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
+| AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
+| AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
+| AWS_BUCKET_NAME       | Name of the AWS S3 Bucket.                                                                                                     |
+| RUST_LOG              | Rust log level (info, debug, error, warn, etc.).                                                                               |
 
 You can find an example `.env` file in [.env.example](../../batcher/aligned-batcher/.env.example)
 
@@ -338,7 +356,7 @@ ecdsa:
   private_key_store_password: <ecdsa_private_key_store_password>
 ```
 
-#### Run
+### Run
 
 ```bash
 make batcher_start
@@ -346,14 +364,15 @@ make batcher_start
 
 </details>
 
-***
+---
 
 ## Send test proofs
 
-Next, you can use some of the send proofs make targets. All these proofs are pre-generated and for testing purposes, feel free to generate your own tests to submit to Aligned.
+Next, you can use some of the send proofs make targets.
+All these proofs are pre-generated and for testing purposes,
+feel free to generate your own tests to submit to Aligned.
 
 <details>
-
 <summary>SP1</summary>
 
 Send an individual proof:
@@ -377,7 +396,6 @@ make batcher_send_infinite_sp1
 </details>
 
 <details>
-
 <summary>Risc0</summary>
 
 Send an individual proof:
@@ -395,7 +413,6 @@ make batcher_send_risc0_burst
 </details>
 
 <details>
-
 <summary>Plonk</summary>
 
 Send an individual bn254 proof:
@@ -425,7 +442,6 @@ make batcher_send_plonk_bls12_381_burst
 </details>
 
 <details>
-
 <summary>Groth16</summary>
 
 Send an individual bn254 proof:
@@ -449,7 +465,6 @@ make batcher_send_burst_groth16
 </details>
 
 <details>
-
 <summary>Halo2</summary>
 
 Send an individual IPA proof:
@@ -479,7 +494,6 @@ make batcher_send_halo2_kzg_task_burst_5
 </details>
 
 <details>
-
 <summary>Send a specific proof:</summary>
 
 To install the Aligned client to send a specific proof, run:
@@ -488,7 +502,11 @@ To install the Aligned client to send a specific proof, run:
 make install_aligned_compiling
 ```
 
-The SP1 and Risc0 proofs need the proof file and the vm program file. The current SP1 version used in Aligned is `v1.0.1` and the current Risc0 version used in Aligned is v1.0.1. The GnarkPlonkBn254, GnarkPlonkBls12\_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
+The SP1 and Risc0 proofs need the proof file and the vm program file.
+The current SP1 version used in Aligned is
+`v1.0.1` and the current Risc0 version used in Aligned is v1.0.1.
+The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the
+verification key file.
 
 ```bash
 aligned submit \
@@ -508,19 +526,21 @@ aligned submit \
 
 ## Explorer
 
-If you also want to start the explorer for the devnet, to clearly visualize your submitted and verified batches, see how to run it using the following documentation:
+If you also want to start the explorer for the devnet, to clearly visualize your submitted and verified batches, see how
+to run it using the following documentation:
 
 ### Minimum Requirements
 
-* [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
-* [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
-* [Docker](https://docs.docker.com/get-docker/)
+- [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
+- [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
+- [Docker](https://docs.docker.com/get-docker/)
 
 ### DB Setup
 
 To set up the explorer, an installation of the DB is necessary.
 
-First, you'll need to install docker if you don't have it already. You can follow the instructions [here](https://docs.docker.com/get-docker/).
+First, you'll need to install docker if you don't have it already.
+You can follow the instructions [here](https://docs.docker.com/get-docker/).
 
 The explorer uses a PostgreSQL database. To build and start the DB using docker, run:
 
@@ -530,21 +550,23 @@ make explorer_build_db
 
 <details>
 
-<summary>(Optional) The steps to manually execute the database are as follows...</summary>
+<summary>
+  (Optional) The steps to manually execute the database are as follows...
+</summary>
 
-* Run the database container, opening port `5432`:
+- Run the database container, opening port `5432`:
 
 ```bash
 make explorer_run_db
 ```
 
-* Configure the database with ecto running `ecto.create` and `ecto.migrate`:
+- Configure the database with ecto running `ecto.create` and `ecto.migrate`:
 
 ```bash
 make explorer_ecto_setup_db
 ```
 
-* Start the explorer:
+- Start the explorer:
 
 ```bash
 make run_explorer
@@ -572,15 +594,17 @@ Data can be recovered from a `dump.$date.sql` using the following command:
 make explorer_recover_db
 ```
 
-Then you'll be requested to enter the file name of the dump you want to recover already positioned in the `/explorer` directory.
+Then you'll be requested to enter the file name of the dump you want to recover already positioned in the `/explorer`
+directory.
 
 This will update your database with the dumped database data.
 
 <details>
-
 <summary>Extra Explorer script to fetch past batches</summary>
 
-If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure you have the ELIXIR\_HOSTNAME .env variable configured. You can get the hostname of your elixir by running :
+If you want to fetch past batches that for any reason were not inserted into the DB, you will first need to make sure
+you have the ELIXIR_HOSTNAME .env variable configured.
+You can get the hostname of your elixir by running :
 
 ```bash
 elixir -e 'IO.puts(:inet.gethostname() |> elem(1))'
@@ -592,7 +616,8 @@ Then you can run:
 make explorer_fetch_old_batches
 ```
 
-You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being received
+You can modify which blocks are being fetched by modify the parameters the `explorer_fetch_old_batches.sh` is being
+received
 
 </details>
 
@@ -600,7 +625,8 @@ You can modify which blocks are being fetched by modify the parameters the `expl
 
 To run the explorer for the local devnet, you'll need to have the devnet running and the DB already setup.
 
-Additionally, you'll need to have the `.env` file in the `/explorer` directory of the project. A base example of the `.env` file can be found in `/explorer/.env.dev`.
+Additionally, you'll need to have the `.env` file in the `/explorer` directory of the project.
+A base example of the `.env` file can be found in `/explorer/.env.dev`.
 
 Use the following command to start the Explorer:
 
@@ -608,10 +634,10 @@ Use the following command to start the Explorer:
 make run_explorer
 ```
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser. You can access to a tasks' information by visiting `localhost:4000/batches/:merkle_root`.
+Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+You can access to a tasks' information by visiting `localhost:4000/batches/:merkle_root`.
 
 <details>
-
 <summary>There's an additional Explorer script to fetch past operators and restake</summary>
 
 If you want to fetch past operators, strategies and restake, you will need to run:
@@ -620,16 +646,18 @@ If you want to fetch past operators, strategies and restake, you will need to ru
 make explorer_fetch_old_operators_strategies_restakes
 ```
 
-This will run the script `explorer_fetch_old_operators_strategies_restakes.sh` that will fetch the operators, strategies and restake which will later insert into the DB.
+This will run the script `explorer_fetch_old_operators_strategies_restakes.sh` that will fetch the operators, strategies
+and restake which will later insert into the DB.
 
 </details>
 
 ### Run with custom env / other devnets
 
-Create a `.env` file in the `/explorer` directory of the project. The `.env` file needs to contain the following variables:
+Create a `.env` file in the `/explorer` directory of the project.
+The `.env` file needs to contain the following variables:
 
 | Variable              | Description                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
+|-----------------------|-------------------------------------------------------------------------------------------------|
 | `RPC_URL`             | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT`         | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
 | `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information                            |
@@ -648,7 +676,8 @@ Then you can run the explorer with this env file config by entering the followin
 make run_explorer
 ```
 
-This will start the explorer with the configuration set in the `.env` file on port 4000. Visit [`localhost:4000`](http://localhost:4000) from your browser.
+This will start the explorer with the configuration set in the `.env` file on port 4000.
+Visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 ## Metrics
 
@@ -668,9 +697,11 @@ Then you can access Grafana on `http://localhost:3000` with the default credenti
 
 If you want to install Prometheus and Grafana manually, you can follow the instructions below.
 
-To install Prometheus, you can follow the instructions on the [official website](https://prometheus.io/docs/prometheus/latest/getting\_started/).
+To install Prometheus, you can follow the instructions on
+the [official website](https://prometheus.io/docs/prometheus/latest/getting_started/).
 
-To install Grafana, you can follow the instructions on the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
+To install Grafana, you can follow the instructions on
+the [official website](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
 
 ## Notes on project creation
 
@@ -683,18 +714,20 @@ forge init . --no-commit
 forge install Layr-Labs/eigenlayer-middleware@mainnet
 ```
 
-Then, to solve the issue[https://github.com/Layr-Labs/eigenlayer-middleware/issues/229](https://github.com/Layr-Labs/eigenlayer-middleware/issues/229), we changed it to:
+Then, to solve the issue<https://github.com/Layr-Labs/eigenlayer-middleware/issues/229>, we changed it to:
 
-`forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit`
+```forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit```
 
 As soon as it gets fixed in mainnet, we can revert it.
 
-Base version of middleware used is `7229f2b`.
+Base version of middleware used is ```7229f2b```.
 
-The script to initialize the devnet can be found on `contracts/scripts/anvil`.
+The script to initialize the devnet can be found on  ```contracts/scripts/anvil```.
 
-The addresses of the relevant contracts after running the anvil script are dumped on `contracts/script/output/devnet`.
+The addresses of the relevant contracts after running the anvil script are dumped
+on ```contracts/script/output/devnet```.
 
-The state is backed up on `contracts/scripts/anvil/state`.
+The state is backed up on ```contracts/scripts/anvil/state```.
 
-EigenLayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet. Changes are described in the file.
+EigenLayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet.
+Changes are described in the file.

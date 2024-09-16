@@ -1,56 +1,56 @@
-# Table of contents
+# Summary
 
 ## Introduction
 
-* [About Aligned](README.md)
-* [Getting started](1\_introduction/1\_getting\_started.md)
-* [Example - ZKquiz](1\_introduction/2\_zkquiz.md)
-* [Use cases](1\_introduction/3\_use\_cases.md)
-* [FAQ](1\_introduction/4\_faq.md)
-* [Why ZK and Aligned?](1\_introduction/5\_why\_zk.md)
+* [About Aligned](1_introduction/0_about_aligned.md)
+* [Getting started](1_introduction/1_getting_started.md)
+* [Example - ZKquiz](1_introduction/2_zkquiz.md)
+* [Use cases](1_introduction/3_use_cases.md)
+* [FAQ](1_introduction/4_faq.md)
+* [Why ZK and Aligned?](1_introduction/5_why_zk.md)
 
 ## Architecture
 
-* [Supported Verifiers](2\_architecture/0\_supported\_verifiers.md)
-* [Key Terms](2\_architecture/0b\_key\_terms.md)
-* [Fast mode](2\_architecture/1\_fast\_mode.md)
-  * [Batcher](2\_architecture/components/1\_batcher.md)
-  * [Payment Service Contract](2\_architecture/components/2\_payment\_service\_contract.md)
-  * [Service Manager Contract](2\_architecture/components/3\_service\_manager\_contract.md)
-  * [Operator](2\_architecture/components/4\_operator.md)
-  * [Aggregator](2\_architecture/components/5\_aggregator.md)
-  * [Explorer](2\_architecture/components/6\_explorer.md)
-* [Aggregation mode](2\_architecture/2\_aggregation\_mode.md)
+* [Supported Verifiers](2_architecture/0_supported_verifiers.md)
+* [Key Terms](2_architecture/0b_key_terms.md)
+* [Fast mode](2_architecture/1_fast_mode.md)
+    * [Batcher](./2_architecture/components/1_batcher.md)
+    * [Payment Service Contract](./2_architecture/components/2_payment_service_contract.md)
+    * [Service Manager Contract](./2_architecture/components/3_service_manager_contract.md)
+    * [Operator](./2_architecture/components/4_operator.md)
+    * [Aggregator](./2_architecture/components/5_aggregator.md)
+    * [Explorer](./2_architecture/components/6_explorer.md)
+* [Aggregation mode](2_architecture/2_aggregation_mode.md)
 
 ## Guides
 
-* [Submitting proofs](3\_guides/0\_submitting\_proofs.md)
-* [Integrating Aligned into your Application](3\_guides/2\_integrating\_aligned\_into\_your\_application.md)
-* [Validating public input](3\_guides/3\_validating\_public\_input.md)
-* [SDK Intro](3\_guides/1\_SDK\_how\_to.md)
-* [SDK API Reference](3\_guides/1.2\_SDK\_api\_reference.md)
-* [Generating proofs for Aligned](3\_guides/4\_generating\_proofs.md)
-* [Generating & submitting proofs of Rust code with ZKRust](3\_guides/5\_using\_zkrust.md)
-* [Setup Aligned Infrastructure Locally](3\_guides/6\_setup\_aligned.md)
-* [Contract Addresses](3\_guides/7\_contract\_addresses.md)
+* [Submitting proofs](3_guides/0_submitting_proofs.md)
+* [Integrating Aligned into your Application](3_guides/2_integrating_aligned_into_your_application.md)
+* [Validating public input](3_guides/3_validating_public_input.md)
+* [SDK Intro](3_guides/1_SDK_how_to.md)
+* [SDK API Reference](3_guides/1.2_SDK_api_reference.md)
+* [Generating proofs for Aligned](3_guides/4_generating_proofs.md)
+* [Generating & submitting proofs of Rust code with ZKRust](3_guides/5_using_zkrust.md)
+* [Setup Aligned Infrastructure Locally](3_guides/6_setup_aligned.md)
+* [Contract Addresses](3_guides/7_contract_addresses.md)
 
 ## Operators
 
-* [Running an operator](operator\_guides/0\_running\_an\_operator.md)
-* [Operator FAQ](operator\_guides/1\_operator\_FAQ.md)
-* [Troubleshooting](operator\_guides/2\_troubleshooting.md)
+* [Running an operator](operator_guides/0_running_an_operator.md)
+* [Operator FAQ](operator_guides/1_operator_FAQ.md)
+* [Troubleshooting](operator_guides/2_troubleshooting.md)
 
 ## Useful links
 
 * [All the proof aggregation solutions will use RISC-V zkvms](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901/5JfikCrjdHsyqGCpqvbakrA8DZHIgj0d90i9tVOTink)
-* [Manifesto](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901/rOya8TwZvj\_8kTpjDPVwTuNc1UcS0VLUr1t2nhCxYj8)
+* [Manifesto](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901/rOya8TwZvj_8kTpjDPVwTuNc1UcS0VLUr1t2nhCxYj8)
 
 ## Socials
 
-* [Telegram Group](https://t.me/aligned\_layer)
+* [Telegram Group](https://t.me/aligned_layer)
 * [Twitter/X](https://x.com/alignedlayer)
 * [Discord](https://discord.gg/alignedlayer)
 * [Blog](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901)
 * [Website](https://alignedlayer.com)
-* [Github](https://github.com/yetanotherco/aligned\_layer)
+* [Github](https://github.com/yetanotherco/aligned_layer)
 * [YouTube](https://www.youtube.com/@alignedlayer)
