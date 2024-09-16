@@ -207,7 +207,7 @@ func (s *AvsSubscriber) getLatestTaskFromEthereum() (*servicemanager.ContractAli
 	}
 
 	// We just care about the NewBatch event
-	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatchV3"]
+	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatch"]
 	if newBatchEvent.ID == (ethcommon.Hash{}) {
 		return nil, fmt.Errorf("NewBatch event not found in ABI")
 	}
@@ -234,7 +234,7 @@ func (s *AvsSubscriber) getLatestTaskFromEthereum() (*servicemanager.ContractAli
 	lastLog := logs[len(logs)-1]
 
 	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatchV3", lastLog.Data)
+	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatch", lastLog.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unpack log data: %w", err)
 	}

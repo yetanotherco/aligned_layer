@@ -116,13 +116,12 @@ The proof submission and verification can be done either with the SDK or by usin
 
 #### Using the SDK
 
-To submit a proof using the SDK, you can use the `submit_and_wait_verification` function.
-This function submits the proof to aligned and waits for it to be verified in Aligned.
-Alternatively you can call `submit` if you dont want to wait for proof verification.
+To submit a proof using the SDK, you can use the `submit` function, and then you can use the `verify_proof_onchain` function to check if the proof was correctly verified in Aligned.
+
 The following code is an example of how to submit a proof using the SDK:
 
 ```rust
-use aligned_sdk::sdk::{submit_and_wait_verification, get_next_nonce};
+use aligned_sdk::sdk::{submit, get_next_nonce};
 use aligned_sdk::types::{ProvingSystemId, VerificationData};
 use ethers::prelude::*;
 
@@ -148,27 +147,52 @@ async fn submit_proof_to_aligned(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to get next nonce: {:?}", e))?;
 
-    match submit_and_wait_verification(
-        BATCHER_URL,
-        RPC_URL,
-        Chain::Holesky,
-        &verification_data,
-        wallet,
-        nonce,
-        BATCHER_CONTRACT_ADDRESS
-    ).await.map_err(|e| anyhow::anyhow!("Failed to submit proof: {:?}", e))
+    submit(BATCHER_URL, &verification_data, wallet, nonce).await
+        .map_err(|e| anyhow::anyhow!("Failed to submit proof: {:?}", e))
 }
 
 #[tokio::main]
 async fn main() {
     let wallet = // Initialize wallet
-
-    let wallet = wallet.with_chain_id(17000u64)
-
     let proof = // Generate or obtain proof
 
     match submit_proof_to_aligned(proof, wallet).await {
         Ok(aligned_verification_data) => println!("Proof submitted successfully"),
+        Err(err) => println!("Error: {:?}", err),
+    }
+}
+```
+
+The following code is an example of how to verify the proof was correctly verified in Aligned using the SDK:
+
+```rust
+use aligned_sdk::sdk::verify_proof_onchain;
+use aligned_sdk::types::{AlignedVerificationData, Chain};
+use ethers::prelude::*;
+use tokio::time::{sleep, Duration};
+
+async fn wait_for_proof_verification(
+    aligned_verification_data: AlignedVerificationData,
+    rpc_url: String,
+) -> Result<(), anyhow::Error> {
+    for _ in 0..10 {
+        if verify_proof_onchain(aligned_verification_data.clone(), Chain::Holesky, rpc_url.as_str()).await.is_ok_and(|r| r) {
+            println!("Proof verified successfully.");
+            return Ok(());
+        }
+        println!("Proof not verified yet. Waiting 10 seconds before checking again...");
+        sleep(Duration::from_secs(10)).await;
+    }
+    anyhow::bail!("Proof verification failed")
+}
+
+#[tokio::main]
+async fn main() {
+    let aligned_verification_data = // Obtain aligned verification data
+    let rpc_url = "https://ethereum-holesky-rpc.publicnode.com".to_string();
+
+    match wait_for_proof_verification(aligned_verification_data, rpc_url).await {
+        Ok(_) => println!("Proof verified"),
         Err(err) => println!("Error: {:?}", err),
     }
 }

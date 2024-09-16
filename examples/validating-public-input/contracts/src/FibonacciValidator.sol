@@ -3,7 +3,6 @@ pragma solidity ^0.8.12;
 
 contract FibonacciValidator {
     address public alignedServiceManager;
-    address public paymentServiceAddr;
     bytes32 public fibonacciProgramId;
 
     bytes32 public fibonacciProgramIdCommitment =
@@ -11,9 +10,8 @@ contract FibonacciValidator {
 
     event FibonacciNumbers(uint32 fibN, uint32 fibNPlusOne);
 
-    constructor(address _alignedServiceManager, address _paymentServiceAddr) {
+    constructor(address _alignedServiceManager) {
         alignedServiceManager = _alignedServiceManager;
-        paymentServiceAddr = _paymentServiceAddr;
     }
 
     function verifyBatchInclusion(
@@ -41,15 +39,14 @@ contract FibonacciValidator {
             bytes memory proofIsIncluded
         ) = alignedServiceManager.staticcall(
                 abi.encodeWithSignature(
-                    "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address)",
+                    "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
                     proofCommitment,
                     pubInputCommitment,
                     programIdCommitment,
                     proofGeneratorAddr,
                     batchMerkleRoot,
                     merkleProof,
-                    verificationDataBatchIndex,
-                    paymentServiceAddr
+                    verificationDataBatchIndex
                 )
             );
 

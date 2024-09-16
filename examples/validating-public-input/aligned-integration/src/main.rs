@@ -67,7 +67,6 @@ async fn main() -> Result<(), SubmitError> {
         &verification_data,
         wallet,
         nonce,
-        BATCHER_PAYMENTS_ADDRESS,
     )
     .await?;
 

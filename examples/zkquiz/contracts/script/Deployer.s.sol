@@ -7,16 +7,10 @@ import {VerifierContract} from "../src/VerifierContract.sol";
 contract CounterScript is Script {
     function setUp() public {}
 
-    function run(
-        address _alignedServiceManager,
-        address _paymentService
-    ) external returns (address) {
+    function run(address _targetContract) external returns (address) {
         vm.startBroadcast();
 
-        VerifierContract verifyBatchInclusionCaller = new VerifierContract(
-            _alignedServiceManager,
-            _paymentService
-        );
+        VerifierContract verifyBatchInclusionCaller = new VerifierContract(_targetContract);
 
         vm.stopBroadcast();
 
