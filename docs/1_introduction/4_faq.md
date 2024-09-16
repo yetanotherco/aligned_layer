@@ -6,7 +6,7 @@ Aligned’s mission is to extend Ethereum’s zero-knowledge capabilities. We ar
     
 ### What is the throughput of Aligned?
     
-Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. Current testnet can verify more than 2500 proofs per second.
+Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. Current testnet can verify more than 4000 proofs per second.
     
 ### How does the throughput of Aligned compare with Ethereum?
     
@@ -30,7 +30,7 @@ $$
     
 ### Why do you have a fast and aggregation mode?
     
-The fast mode is designed to offer very cheap verification costs and low latency. It uses crypto-economic guarantees provided by restaking; costs can be as low as 2100 gas. The aggregation mode works with proof aggregation, with higher fees and latency, and achieves the complete security of Ethereum. We verify an aggregated BLS signature (around 113,000 gas) in the fast mode. We verify an aggregated proof (around 300,000 gas) in the aggregation mode.
+The fast mode is designed to offer very cheap verification costs and low latency. It uses crypto-economic guarantees provided by restaking; costs can be as low as 21000 gas. The aggregation mode works with proof aggregation, with higher fees and latency, and achieves the complete security of Ethereum. We verify an aggregated BLS signature (around 113,000 gas) in the fast mode. We verify an aggregated proof (around 300,000 gas) in the aggregation mode.
     
 ### Why don’t you run Aligned on top of a virtual machine?
     
@@ -164,3 +164,7 @@ Aligned is just a network of decentralized verifiers renting security from Ether
 ### Why do we need a ZK verification layer?
 
 Verifiable computation allows developers to build applications that help Ethereum scale or even create applications that were not possible before, with enhanced privacy properties. We believe the future of Ethereum will be shaped by zero-knowledge proofs and help it increase its capabilities.
+
+### How about Aligned and TEE?
+
+We want Aligned to verify TEE attestations. We think TEEs provide an alternative to ZK in some applications where ZK is too computationally intensive or as an additional mechanism to provide integrity (the case of multiproofs).
