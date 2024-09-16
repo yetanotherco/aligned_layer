@@ -150,16 +150,6 @@ async fn submit_proof_to_aligned(
 
     match submit_and_wait_verification(
         BATCHER_URL,
-        &rpc_url,
-        Chain::Holesky,
-        &verification_data,
-        wallet.clone(),
-        nonce,
-        BATCHER_PAYMENTS_ADDRESS
-    )
-
-    submit_and_wait_verification(
-        BATCHER_URL,
         RPC_URL,
         Chain::Holesky,
         &verification_data,
