@@ -1,5 +1,9 @@
+use alloy::sol_types::SolValue;
 use merkle_verifier::verify_merkle_proof;
-use mina_bridge_core::proof::account_proof::{MinaAccountProof, MinaAccountPubInputs};
+use mina_bridge_core::{
+    proof::account_proof::{MinaAccountProof, MinaAccountPubInputs},
+    sol::account::MinaAccountValidation,
+};
 use mina_tree::Account;
 
 mod merkle_verifier;
@@ -25,14 +29,29 @@ pub extern "C" fn verify_account_inclusion_ffi(
             return false;
         }
     };
-    let MinaAccountPubInputs { ledger_hash, .. } =
-        match bincode::deserialize(&pub_input_buffer[..pub_input_len]) {
-            Ok(pub_inputs) => pub_inputs,
-            Err(err) => {
-                eprintln!("Failed to deserialize account pub inputs: {}", err);
-                return false;
-            }
-        };
+    let MinaAccountPubInputs {
+        ledger_hash,
+        encoded_account,
+    } = match bincode::deserialize(&pub_input_buffer[..pub_input_len]) {
+        Ok(pub_inputs) => pub_inputs,
+        Err(err) => {
+            eprintln!("Failed to deserialize account pub inputs: {}", err);
+            return false;
+        }
+    };
+
+    let expected_encoded_account = match MinaAccountValidation::Account::try_from(&account) {
+        Ok(account) => account,
+        Err(err) => {
+            eprintln!("Failed to convert Mina account to Solidity struct: {}", err);
+            return false;
+        }
+    }
+    .abi_encode();
+    if expected_encoded_account != encoded_account {
+        eprintln!("ABI encoded account in public inputs doesn't match the account on the proof");
+        return false;
+    }
 
     // the hash function for MinaBaseAccountBinableArgStableV2 produces a panic every
     // time it's called. So we use Account's one.
