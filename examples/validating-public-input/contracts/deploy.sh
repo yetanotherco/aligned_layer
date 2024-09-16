@@ -11,6 +11,11 @@ if [ -z "$ALIGNED_SERVICE_MANAGER_ADDRESS" ]; then
     exit 1
 fi
 
+if [ -z "$PAYMENT_SERVICE_ADDRESS" ]; then
+    echo "PAYMENT_SERVICE_ADDRESS is not set. Please set it in .env"
+    exit 1
+fi
+
 if [ -z "$RPC_URL" ]; then
     echo "RPC_URL is not set. Please set it in .env"
     exit 1
@@ -25,7 +30,8 @@ forge install
 
 forge script script/Deployer.s.sol \
     "$ALIGNED_SERVICE_MANAGER_ADDRESS" \
+    "$PAYMENT_SERVICE_ADDRESS" \
     --rpc-url "$RPC_URL" \
     --private-key "$PRIVATE_KEY" \
     --broadcast \
-    --sig "run(address _alignedServiceManager)"
+    --sig "run(address _alignedServiceManager,address _paymentServiceAddr)"
