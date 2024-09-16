@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
+use aligned_sdk::sdk::{submit_and_wait_verification, get_next_nonce};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -72,7 +72,7 @@ async fn main() {
 
     let client = ProverClient::new();
     let (pk, vk) = client.setup(ELF);
-    match client.prove(&pk, stdin).compressed().run() {
+    match client.prove(&pk, stdin).run() {
         Ok(proof) => {
             println!("Proof generated successfully. Verifying proof...");
 
@@ -117,6 +117,7 @@ async fn main() {
                 &verification_data,
                 wallet.clone(),
                 nonce,
+                BATCHER_PAYMENTS_ADDRESS,
             )
             .await
             {
@@ -135,7 +136,7 @@ async fn main() {
                     {
                         println!("Failed to claim prize: {:?}", e);
                     }
-                }
+                },
                 Err(e) => {
                     println!("Proof verification failed: {:?}", e);
                 }

@@ -173,10 +173,10 @@ func (o *Operator) handleNewBatchLog(newBatchLog *servicemanager.ContractAligned
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
-		SenderAddress:       newBatchLog.SenderAddress,
-		BlsSignature:        *responseSignature,
-		OperatorId:          o.OperatorId,
+		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+		SenderAddress:   newBatchLog.SenderAddress,
+		BlsSignature:    *responseSignature,
+		OperatorId:      o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
