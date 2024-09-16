@@ -26,17 +26,10 @@ contract AlignedLayerServiceManager is
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
 
     //old NewBatch event, for smooth Operator upgradeability
-    event NewBatch(
-        bytes32 indexed batchMerkleRoot,
-        uint32 taskCreatedBlock,
-        string batchDataPointer
-    );
+    event NewBatch(bytes32 indexed batchMerkleRoot, uint32 taskCreatedBlock, string batchDataPointer);
     // EVENTS
     event NewBatchV2(
-        bytes32 indexed batchMerkleRoot,
-        address senderAddress,
-        uint32 taskCreatedBlock,
-        string batchDataPointer
+        bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer
     );
 
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
@@ -49,45 +42,31 @@ contract AlignedLayerServiceManager is
         IStakeRegistry __stakeRegistry
     )
         BLSSignatureChecker(__registryCoordinator)
-        ServiceManagerBase(
-            __avsDirectory,
-            __rewardsCoordinator,
-            __registryCoordinator,
-            __stakeRegistry
-        )
+        ServiceManagerBase(__avsDirectory, __rewardsCoordinator, __registryCoordinator, __stakeRegistry)
     {
         _disableInitializers();
     }
 
     // @param _rewardsInitiator The address which is allowed to create AVS rewards submissions.
-    function initialize(
-        address _initialOwner,
-        address _rewardsInitiator
-    ) public initializer {
+    function initialize(address _initialOwner, address _rewardsInitiator) public initializer {
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
     }
 
-    function createNewTask(
-        bytes32 batchMerkleRoot,
-        string calldata batchDataPointer
-    ) external payable {
+    function createNewTask(bytes32 batchMerkleRoot, string calldata batchDataPointer) external payable {
         bytes32 batchIdentifier;
-        if (block.number < 2_268_375) // TODO set number of blocks
+        if (
+            block.number < 2_268_375 // TODO set number of blocks
+        ) {
             batchIdentifier = batchMerkleRoot;
-        else 
+        } else {
             batchIdentifier = keccak256(abi.encodePacked(batchMerkleRoot, msg.sender));
+        }
 
-        require(
-            batchesState[batchIdentifier].taskCreatedBlock == 0,
-            "Batch was already submitted"
-        );
+        require(batchesState[batchIdentifier].taskCreatedBlock == 0, "Batch was already submitted");
 
         if (msg.value > 0) {
             batchersBalances[msg.sender] += msg.value;
-            emit BatcherBalanceUpdated(
-                msg.sender,
-                batchersBalances[msg.sender]
-            );
+            emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
         }
 
         require(batchersBalances[msg.sender] > 0, "Batcher balance is empty");
@@ -100,17 +79,8 @@ contract AlignedLayerServiceManager is
         batchesState[batchIdentifier] = batchState;
 
         // old event for smooth Operator upgradeability:
-        emit NewBatch(
-            batchMerkleRoot,
-            uint32(block.number),
-            batchDataPointer
-        );
-        emit NewBatchV2(
-            batchMerkleRoot,
-            msg.sender,
-            uint32(block.number),
-            batchDataPointer
-        );
+        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
+        emit NewBatchV2(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer);
     }
 
     // previous version of this function, for smooth upgradeability
@@ -129,40 +99,25 @@ contract AlignedLayerServiceManager is
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
-        require(
-            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
-            "Batch doesn't exists"
-        );
+        require(batchesState[batchMerkleRoot].taskCreatedBlock != 0, "Batch doesn't exists");
 
         // Check task hasn't been responsed yet
-        require(
-            batchesState[batchMerkleRoot].responded == false,
-            "Batch already responded"
-        );
+        require(batchesState[batchMerkleRoot].responded == false, "Batch already responded");
 
-        require(
-            batchersBalances[batcherAddress] > 0,
-            "Batcher has no balance"
-        );
+        require(batchersBalances[batcherAddress] > 0, "Batcher has no balance");
 
         batchesState[batchMerkleRoot].responded = true;
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
-        (
-            QuorumStakeTotals memory quorumStakeTotals,
-            bytes32 _hashOfNonSigners
-        ) = checkSignatures(
-                batchMerkleRoot,
-                batchesState[batchMerkleRoot].taskCreatedBlock,
-                nonSignerStakesAndSignature
-            );
+        (QuorumStakeTotals memory quorumStakeTotals, bytes32 _hashOfNonSigners) = checkSignatures(
+            batchMerkleRoot, batchesState[batchMerkleRoot].taskCreatedBlock, nonSignerStakesAndSignature
+        );
 
         // check that signatories own at least a threshold percentage of each quourm
         require(
-            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR >=
-                quorumStakeTotals.totalStakeForQuorum[0] *
-                    QUORUM_THRESHOLD_PERCENTAGE,
+            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR
+                >= quorumStakeTotals.totalStakeForQuorum[0] * QUORUM_THRESHOLD_PERCENTAGE,
             "Signatories do not own at least threshold percentage of a quorum"
         );
 
@@ -175,14 +130,10 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
         require(
-            batchersBalances[batcherAddress] >=
-                txCost,
-            "Batcher has not sufficient funds for paying this transaction"
+            batchersBalances[batcherAddress] >= txCost, "Batcher has not sufficient funds for paying this transaction"
         );
 
-        batchersBalances[
-            batcherAddress
-        ] -= txCost;
+        batchersBalances[batcherAddress] -= txCost;
         payable(msg.sender).transfer(txCost);
     }
 
@@ -194,24 +145,16 @@ contract AlignedLayerServiceManager is
     ) external {
         uint256 initialGasLeft = gasleft();
 
-        bytes32 batchIdentifierHash = keccak256(
-            abi.encodePacked(batchMerkleRoot, senderAddress)
-        );
+        bytes32 batchIdentifierHash = keccak256(abi.encodePacked(batchMerkleRoot, senderAddress));
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
-        require(
-            batchesState[batchIdentifierHash].taskCreatedBlock != 0,
-            "Batch doesn't exists"
-        );
+        require(batchesState[batchIdentifierHash].taskCreatedBlock != 0, "Batch doesn't exists");
 
         // Check task hasn't been responsed yet
-        require(
-            batchesState[batchIdentifierHash].responded == false,
-            "Batch already responded"
-        );
+        require(batchesState[batchIdentifierHash].responded == false, "Batch already responded");
 
         require(batchersBalances[senderAddress] > 0, "Batcher has no balance");
 
@@ -219,20 +162,14 @@ contract AlignedLayerServiceManager is
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
         // check that aggregated BLS signature is valid
-        (
-            QuorumStakeTotals memory quorumStakeTotals,
-            bytes32 _hashOfNonSigners
-        ) = checkSignatures(
-                batchIdentifierHash,
-                batchesState[batchIdentifierHash].taskCreatedBlock,
-                nonSignerStakesAndSignature
-            );
+        (QuorumStakeTotals memory quorumStakeTotals, bytes32 _hashOfNonSigners) = checkSignatures(
+            batchIdentifierHash, batchesState[batchIdentifierHash].taskCreatedBlock, nonSignerStakesAndSignature
+        );
 
         // check that signatories own at least a threshold percentage of each quourm
         require(
-            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR >=
-                quorumStakeTotals.totalStakeForQuorum[0] *
-                    QUORUM_THRESHOLD_PERCENTAGE,
+            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR
+                >= quorumStakeTotals.totalStakeForQuorum[0] * QUORUM_THRESHOLD_PERCENTAGE,
             "Signatories do not own at least threshold percentage of a quorum"
         );
 
@@ -246,15 +183,11 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - finalGasLeft + 70000) * tx.gasprice;
 
         require(
-            batchersBalances[senderAddress] >= txCost,
-            "Batcher has not sufficient funds for paying this transaction"
+            batchersBalances[senderAddress] >= txCost, "Batcher has not sufficient funds for paying this transaction"
         );
 
         batchersBalances[senderAddress] -= txCost;
-        emit BatcherBalanceUpdated(
-            senderAddress,
-            batchersBalances[senderAddress]
-        );
+        emit BatcherBalanceUpdated(senderAddress, batchersBalances[senderAddress]);
         payable(msg.sender).transfer(txCost);
     }
 
@@ -268,9 +201,15 @@ contract AlignedLayerServiceManager is
         uint256 verificationDataBatchIndex,
         address senderAddress
     ) external view returns (bool) {
-        bytes32 batchIdentifierHash = keccak256(
-            abi.encodePacked(batchMerkleRoot, senderAddress)
-        );
+        // Temporary solution: Add the same condition than `createNewTask` to define a batch identifier.
+        bytes32 batchIdentifierHash;
+        if (
+            block.number < 2_268_375 // TODO set number of blocks
+        ) {
+            batchIdentifierHash = batchMerkleRoot;
+        } else {
+            batchIdentifierHash = keccak256(abi.encodePacked(batchMerkleRoot, msg.sender));
+        }
 
         if (batchesState[batchIdentifierHash].taskCreatedBlock == 0) {
             return false;
@@ -280,22 +219,12 @@ contract AlignedLayerServiceManager is
             return false;
         }
 
-        bytes memory leaf = abi.encodePacked(
-            proofCommitment,
-            pubInputCommitment,
-            provingSystemAuxDataCommitment,
-            proofGeneratorAddr
-        );
+        bytes memory leaf =
+            abi.encodePacked(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr);
 
         bytes32 hashedLeaf = keccak256(leaf);
 
-        return
-            Merkle.verifyInclusionKeccak(
-                merkleProof,
-                batchIdentifierHash,
-                hashedLeaf,
-                verificationDataBatchIndex
-            );
+        return Merkle.verifyInclusionKeccak(merkleProof, batchIdentifierHash, hashedLeaf, verificationDataBatchIndex);
     }
 
     function balanceOf(address account) public view returns (uint256) {
@@ -307,10 +236,7 @@ contract AlignedLayerServiceManager is
         emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
     }
 
-    function checkPublicInput(
-        bytes calldata publicInput,
-        bytes32 hash
-    ) public pure returns (bool) {
+    function checkPublicInput(bytes calldata publicInput, bytes32 hash) public pure returns (bool) {
         return keccak256(publicInput) == hash;
     }
 }

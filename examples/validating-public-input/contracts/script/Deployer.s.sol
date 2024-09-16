@@ -7,11 +7,15 @@ import {FibonacciValidator} from "../src/FibonacciValidator.sol";
 contract FibonacciDeployer is Script {
     function setUp() public {}
 
-    function run(address _targetContract) external returns (address) {
+    function run(
+        address _alignedServiceManager,
+        address _paymentServiceAddr
+    ) external returns (address) {
         vm.startBroadcast();
 
         FibonacciValidator fibonacciContract = new FibonacciValidator(
-            _targetContract
+            _alignedServiceManager,
+            _paymentServiceAddr
         );
 
         vm.stopBroadcast();

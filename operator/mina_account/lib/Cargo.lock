@@ -73,8 +73,9 @@ dependencies = [
 [[package]]
 name = "aligned-sdk"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/aligned_layer.git?branch=mina#a85d7f994a81678ced56168369dd54bdf0b446e1"
+source = "git+https://github.com/lambdaclass/aligned_layer.git?branch=update_to_0_5#590dd191aa9e68c3fbea76687b8518150df8cde3"
 dependencies = [
+ "ciborium",
  "ethers",
  "futures-util",
  "hex",
@@ -82,6 +83,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "serde_repr",
  "sha3",
  "tokio",
  "tokio-tungstenite 0.23.1",
@@ -1352,6 +1354,33 @@ dependencies = [
  "serde",
  "wasm-bindgen",
  "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "ciborium"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42e69ffd6f0917f5c029256a24d0161db17cea3997d185db0d35926308770f0e"
+dependencies = [
+ "ciborium-io",
+ "ciborium-ll",
+ "serde",
+]
+
+[[package]]
+name = "ciborium-io"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05afea1e0a06c9be33d539b876f1ce3692f4afea2cb41f740e7743225ed1c757"
+
+[[package]]
+name = "ciborium-ll"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57663b653d948a338bfb3eeba9bb2fd5fcfaecb9e199e87e1eda4d9e8b240fd9"
+dependencies = [
+ "ciborium-io",
+ "half",
 ]
 
 [[package]]
@@ -2716,6 +2745,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "half"
+version = "2.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6dd08c532ae367adf81c312a4580bc67f1d0fe8bc9c460520283f4c0ff277888"
+dependencies = [
+ "cfg-if",
+ "crunchy",
+]
+
+[[package]]
 name = "hash32"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3613,7 +3652,7 @@ dependencies = [
 [[package]]
 name = "mina_bridge_core"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/mina_bridge?branch=account_keccak_hash#d64d6cfdd5b6f4cd37c5fedb4cbf03319f1b3882"
+source = "git+https://github.com/lambdaclass/mina_bridge?branch=aligned#ce3d4b1d4d38ee413ed33e81cf2ab4a6987e7df1"
 dependencies = [
  "aligned-sdk",
  "alloy",
@@ -5154,6 +5193,17 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_repr"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c64451ba24fc7a6a2d60fc75dd9c83c90903b19028d4eff35e88fc1e86564e9"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.77",
 ]
 
 [[package]]
