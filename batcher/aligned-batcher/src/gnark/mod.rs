@@ -47,7 +47,7 @@ pub fn verify_gnark(
         ProvingSystemId::Groth16Bn254 => unsafe {
             VerifyGroth16ProofBN254(proof, public_input, verification_key)
         },
-        _ => panic!("Unsupported proving system"),
+        _ => false,
     }
 }
 

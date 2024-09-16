@@ -91,32 +91,40 @@ impl From<VerificationData> for VerificationDataCommitment {
     fn from(verification_data: VerificationData) -> Self {
         let mut hasher = Keccak256::new();
 
-        // compute proof commitment
+        // Compute proof commitment
+
         hasher.update(verification_data.proof.as_slice());
         let proof_commitment = hasher.finalize_reset().into();
 
-        // compute public input commitment
+        // Compute public input commitment
+
         let mut pub_input_commitment = [0u8; 32];
         if let Some(pub_input) = &verification_data.pub_input {
             hasher.update(pub_input);
             pub_input_commitment = hasher.finalize_reset().into();
         }
 
-        // compute proving system auxiliary data commitment
-        let mut proving_system_aux_data_commitment = [0u8; 32];
+        // Compute proving system auxiliary data commitment
+
         // FIXME(marian): This should probably be reworked, for the moment when the proving
-        // system is SP1, `proving_system_aux_data` stands for the compiled ELF, while in the case
-        // of Groth16 and PLONK, stands for the verification key.
+        // system is SP1 or Risc0, `proving_system_aux_data` stands for information related to the
+        // compiled ELF, while in the rest of the proving systems, stands for the verification key.
+        let proving_system_byte = verification_data.proving_system as u8;
+        let proving_system_aux_data_commitment =
+            if let Some(vm_program_code) = &verification_data.vm_program_code {
+                hasher.update(vm_program_code);
+                hasher.update([proving_system_byte]);
+                hasher.finalize_reset().into()
+            } else if let Some(verification_key) = &verification_data.verification_key {
+                hasher.update(verification_key);
+                hasher.update([proving_system_byte]);
+                hasher.finalize_reset().into()
+            } else {
+                [0u8; 32]
+            };
 
-        if let Some(vm_program_code) = &verification_data.vm_program_code {
-            hasher.update(vm_program_code);
-            proving_system_aux_data_commitment = hasher.finalize_reset().into();
-        } else if let Some(verification_key) = &verification_data.verification_key {
-            hasher.update(verification_key);
-            proving_system_aux_data_commitment = hasher.finalize_reset().into();
-        }
+        // Serialize proof generator address to bytes
 
-        // serialize proof generator address to bytes
         let proof_generator_addr = verification_data.proof_generator_addr.into();
 
         VerificationDataCommitment {

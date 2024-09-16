@@ -53,7 +53,8 @@ Use the link in the response to check the status of your transaction in the Alig
 aligned verify-proof-onchain \
 --aligned-verification-data ~/.aligned/aligned_verification_data/*.json \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---chain holesky
+--chain holesky \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 This is reading the result of the proof verification in Ethereum.
@@ -76,4 +77,4 @@ Aligned works in:
 
 If you don't meet these requirements, you can compile the binaries yourself following the [README](https://github.com/yetanotherco/aligned_layer)
 
-To try Aligned with other proving systems, check [this](../3_guides/0_submitting_proofs) guide
+To try Aligned with other proving systems, check [this](../3_guides/0_submitting_proofs.md) guide 
