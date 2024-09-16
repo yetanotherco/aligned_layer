@@ -185,12 +185,10 @@ If you are developing applications using Aligned, we offer a [Rust-SDK](docs/3_g
 
 ## Versioning and Networks
 
-Testnet code and documentation is always in sync with the default branch:
+Testnet code and documentation is always in sync with the default [Testnet Branch](https://github.com/yetanotherco/aligned_layer/tree/feat/testnet)
 
-[Testnet](https://github.com/yetanotherco/aligned_layer/tree/feat/testnet)
+[Testnet branch](https://github.com/yetanotherco/aligned_layer/tree/feat/testnet)
 
 Releases are provided for each version of the testnet.
 
-Latest version of the code, deployed on staging network, is always on:
-
-[Staging](https://github.com/yetanotherco/aligned_layer/tree/feat/staging)
+Latest version of the code, deployed on staging network, is always on [Staging Branch](https://github.com/yetanotherco/aligned_layer/tree/feat/staging)
