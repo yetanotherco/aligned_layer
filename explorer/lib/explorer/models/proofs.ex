@@ -4,9 +4,9 @@ defmodule Proofs do
   import Ecto.Query
 
   schema "proofs" do
-    field(:batch_merkle_root, :string)
-    field(:proof_hash, :binary)
-    field(:proving_system, :binary)
+    field :batch_merkle_root, :string
+    field :proof_hash, :binary
+    field :proving_system, :binary
 
     timestamps()
   end
@@ -30,9 +30,9 @@ defmodule Proofs do
           %{
             batch_merkle_root: batch.merkle_root,
             proof_hash: proof_hash,
-            proving_system: proving_system,
-            inserted_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second),
-            updated_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
+            proving_system: proving_system
+            # inserted_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second),
+            # updated_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
           }
         end)
     end
