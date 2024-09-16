@@ -10,7 +10,7 @@ This guide assumes you are in the `examples/validating-public-input` directory.
 
 ## Generate your ZK Proof
 
-> [!IMPORTANT]
+> [!IMPORTANT]  
 > To generate the proof ensure you have [docker](https://www.docker.com/get-started/) installed and the docker daemon running.
 > This is necessary to ensure deterministic builds of the binary we want to generate a proof of. If not used, builds may differ depending on the system you are running on. To know more about this, check [this link](https://dev.risczero.com/terminology#deterministic-builds) from RiscZero docs.
 
@@ -42,7 +42,6 @@ pragma solidity ^0.8.12;
 
 contract FibonacciValidator {
     address public alignedServiceManager;
-    address public paymentServiceAddr;
     bytes32 public fibonacciProgramId;
 
     bytes32 public fibonacciProgramIdCommitment =
@@ -50,9 +49,8 @@ contract FibonacciValidator {
 
     event FibonacciNumbers(uint32 fibN, uint32 fibNPlusOne);
 
-    constructor(address _alignedServiceManager, address _paymentServiceAddr) {
+    constructor(address _alignedServiceManager) {
         alignedServiceManager = _alignedServiceManager;
-        paymentServiceAddr = _paymentServiceAddr;
     }
 
     function verifyBatchInclusion(
@@ -80,15 +78,14 @@ contract FibonacciValidator {
             bytes memory proofIsIncluded
         ) = alignedServiceManager.staticcall(
                 abi.encodeWithSignature(
-                    "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address)",
+                    "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
                     proofCommitment,
                     pubInputCommitment,
                     programIdCommitment,
                     proofGeneratorAddr,
                     batchMerkleRoot,
                     merkleProof,
-                    verificationDataBatchIndex,
-                    paymentServiceAddr
+                    verificationDataBatchIndex
                 )
             );
 
@@ -119,7 +116,6 @@ contract FibonacciValidator {
         return (first, second);
     }
 }
-
 ```
 
 ### Explanation
@@ -150,15 +146,14 @@ require(
     bytes memory proofIsIncluded
 ) = alignedServiceManager.staticcall(
     abi.encodeWithSignature(
-        "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address)",
+        "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
         proofCommitment,
         pubInputCommitment,
         programIdCommitment,
         proofGeneratorAddr,
         batchMerkleRoot,
         merkleProof,
-        verificationDataBatchIndex,
-        paymentServiceAddr
+        verificationDataBatchIndex
         )
 );
 
@@ -197,7 +192,6 @@ To deploy the contract, first you will need to set up the `.env` file in the con
 RPC_URL=<rpc_url> #You can use publicnode RPC: https://ethereum-holesky-rpc.publicnode.com
 PRIVATE_KEY=<private_key>
 ALIGNED_SERVICE_MANAGER_ADDRESS=<service_manager_address> #0x58F280BeBE9B34c9939C3C39e0890C81f163B623 for Holesky
-PAYMENT_SERVICE_ADDRESS=<payment_service_address> #0x815aeCA64a974297942D2Bbf034ABEe22a38A003 for Holesky
 ```
 
 Then, run `make deploy_fibonacci_validator`.

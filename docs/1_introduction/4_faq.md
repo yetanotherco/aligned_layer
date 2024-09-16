@@ -2,11 +2,11 @@
 
 ### What is the objective of Aligned?
     
-Aligned’s mission is to extend Ethereum’s zero-knowledge capabilities. We are certain the zero-knowledge proofs will have a key role in the future of blockchains and computation. We don’t know what that future will look like, but we are certain it will be in Ethereum. The question we want to share is: If we are certain zero-knowledge proofs are the future of Ethereum but we are not certain which of the many possible zero-knowledge futures will win. How can we build an infrastructure for Ethereum to be compatible with any future zero-knowledge proving system?
+Aligned’s mission is to extend Ethereum’s zero-knowledge capabilities. We are certain the zero-knowledge proofs will have a key role in the future of blockchains and computation. We don’t know what that future will look like, but we are certain it will be in Ethereum. The question we want to share is: If we are certain zero-knowledge proofs are the future of Ethereum, but we are not certain which of the many possible zero-knowledge futures will win. How can we build an infrastructure for Ethereum to be compatible with any future zero-knowledge proving system?
     
 ### What is the throughput of Aligned?
     
-Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. Current testnet can verify more than 2500 proofs per second.
+Aligned runs the verifier’s code natively. The verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run in the order of ms on consumer-end hardware. We can optimize the code for speed and leverage parallelization by running it natively. Current testnet can verify more than 4000 proofs per second.
     
 ### How does the throughput of Aligned compare with Ethereum?
     
@@ -30,7 +30,7 @@ $$
     
 ### Why do you have a fast and aggregation mode?
     
-The fast mode is designed to offer very cheap verification costs and low latency. It uses crypto-economic guarantees provided by restaking; costs can be as low as 2100 gas. The aggregation mode works with proof aggregation, with higher fees and latency, and achieves the complete security of Ethereum. We verify an aggregated BLS signature (around 113,000 gas) in the fast mode. We verify an aggregated proof (around 300,000 gas) in the aggregation mode.
+The fast mode is designed to offer very cheap verification costs and low latency. It uses crypto-economic guarantees provided by restaking; costs can be as low as 21000 gas. The aggregation mode works with proof aggregation, with higher fees and latency, and achieves the complete security of Ethereum. We verify an aggregated BLS signature (around 113,000 gas) in the fast mode. We verify an aggregated proof (around 300,000 gas) in the aggregation mode.
     
 ### Why don’t you run Aligned on top of a virtual machine?
     
@@ -70,7 +70,7 @@ Aligned is designed to make adding new proof systems easy. The only thing needed
     
 ### What are BLS signatures?
     
-[Boneh-Lynn-Shacham](https://en.wikipedia.org/wiki/BLS_digital_signature) is a cryptographic signature that allows a user to verify that a signer is authentic. It relies on elliptic curve pairings and is used by Ethereum due to its aggregation properties.
+[Boneh-Lynn-Shacham (BLS)](https://en.wikipedia.org/wiki/BLS_digital_signature) is a cryptographic signature that allows a user to verify that a signer is authentic. It relies on elliptic curve pairings and is used by Ethereum due to its aggregation properties.
     
 ### How does Aligned work?
     
@@ -120,11 +120,11 @@ Yes!
     
 Aligned is an infrastructure that offers fast and cheap verification for zero-knowledge and validity proofs. It can take any proof system and verify it cheaply and fast.
     
-This means that what Aligned wants to achieve is to allow anyone to build zk applications. This can only be achieved by:
+This means that what Aligned wants to achieve is to allow anyone to build ZK applications. This can only be achieved by:
     
-- Reducing operational costs when maintaining a zk application -> anyone can afford to build zk apps.
+- Reducing operational costs when maintaining a ZK application -> anyone can afford to build ZK apps.
 - Offering more options so developers can choose how they want to build their protocols -> everyone can choose their tools.
-- Offer the latest zk that allows anyone to build zk applications by just proving rust -> anyone can code a zk application.
+- Offer the latest ZK technology that allows anyone to build ZK applications by just proving rust -> anyone can code a ZK application.
     
 ### What’s the role of Aligned in Ethereum?
     
@@ -164,3 +164,7 @@ Aligned is just a network of decentralized verifiers renting security from Ether
 ### Why do we need a ZK verification layer?
 
 Verifiable computation allows developers to build applications that help Ethereum scale or even create applications that were not possible before, with enhanced privacy properties. We believe the future of Ethereum will be shaped by zero-knowledge proofs and help it increase its capabilities.
+
+### How about Aligned and TEE?
+
+We want Aligned to verify TEE attestations. We think TEEs provide an alternative to ZK in some applications where ZK is too computationally intensive or as an additional mechanism to provide integrity (the case of multiproofs).
