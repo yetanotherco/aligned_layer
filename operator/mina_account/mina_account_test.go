@@ -10,7 +10,7 @@ import (
 
 func TestMinaStateProofVerifies(t *testing.T) {
 	fmt.Println(os.Getwd())
-	proofFile, err := os.Open("../../scripts/test_files/mina_account/account_B62qrQKS9ghd91shs73TCmBJRW9GzvTJK443DPx2YbqcyoLc56g1ny9.proof")
+	proofFile, err := os.Open("../../scripts/test_files/mina_account/mina_account.proof")
 	if err != nil {
 		t.Errorf("could not open mina account proof file")
 	}
@@ -21,7 +21,7 @@ func TestMinaStateProofVerifies(t *testing.T) {
 		t.Errorf("could not read bytes from mina account proof file")
 	}
 
-	pubInputFile, err := os.Open("../../scripts/test_files/mina_account/account_B62qrQKS9ghd91shs73TCmBJRW9GzvTJK443DPx2YbqcyoLc56g1ny9.pub")
+	pubInputFile, err := os.Open("../../scripts/test_files/mina_account/mina_account.pub")
 	if err != nil {
 		t.Errorf("could not open mina account pub inputs file")
 	}

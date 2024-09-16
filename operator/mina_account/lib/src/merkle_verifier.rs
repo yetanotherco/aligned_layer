@@ -1,11 +1,11 @@
+use mina_bridge_core::proof::account_proof::MerkleNode;
 use mina_curves::pasta::Fp;
 use mina_p2p_messages::v2::hash_with_kimchi;
-use mina_tree::MerklePath;
 use std::fmt::Write;
 
 /// Based on OpenMina's implementation
 /// https://github.com/openmina/openmina/blob/d790af59a8bd815893f7773f659351b79ed87648/ledger/src/account/account.rs#L1444
-pub fn verify_merkle_proof(merkle_leaf: Fp, merkle_path: Vec<MerklePath>, merkle_root: Fp) -> bool {
+pub fn verify_merkle_proof(merkle_leaf: Fp, merkle_path: Vec<MerkleNode>, merkle_root: Fp) -> bool {
     let mut param = String::with_capacity(16);
 
     let calculated_root =
@@ -14,8 +14,8 @@ pub fn verify_merkle_proof(merkle_leaf: Fp, merkle_path: Vec<MerklePath>, merkle
             .enumerate()
             .fold(merkle_leaf, |accum, (depth, path)| {
                 let hashes = match path {
-                    MerklePath::Left(right) => [accum, *right],
-                    MerklePath::Right(left) => [*left, accum],
+                    MerkleNode::Left(right) => [accum, *right],
+                    MerkleNode::Right(left) => [*left, accum],
                 };
 
                 param.clear();
@@ -36,8 +36,8 @@ mod test {
     fn test_verify_merkle_proof() {
         let merkle_leaf = Fp::from(0);
         let merkle_path = vec![
-            MerklePath::Left(Fp::from(0)),
-            MerklePath::Right(Fp::from(0)),
+            MerkleNode::Left(Fp::from(0)),
+            MerkleNode::Right(Fp::from(0)),
         ];
         let merkle_root = Fp::deserialize(
             &[
