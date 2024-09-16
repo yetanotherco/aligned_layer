@@ -349,7 +349,6 @@ async fn _is_proof_verified(
         info!("err: {}", e.to_string());
         errors::VerificationError::EthereumCallError(e.to_string())
     })?;
-    info!("result: {result}");
 
     Ok(result)
 }
