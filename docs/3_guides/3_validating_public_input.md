@@ -42,6 +42,7 @@ pragma solidity ^0.8.12;
 
 contract FibonacciValidator {
     address public alignedServiceManager;
+    address public paymentServiceAddr;
     bytes32 public fibonacciProgramId;
 
     bytes32 public fibonacciProgramIdCommitment =
@@ -49,8 +50,9 @@ contract FibonacciValidator {
 
     event FibonacciNumbers(uint32 fibN, uint32 fibNPlusOne);
 
-    constructor(address _alignedServiceManager) {
+    constructor(address _alignedServiceManager, address _paymentServiceAddr) {
         alignedServiceManager = _alignedServiceManager;
+        paymentServiceAddr = _paymentServiceAddr;
     }
 
     function verifyBatchInclusion(
@@ -78,14 +80,15 @@ contract FibonacciValidator {
             bytes memory proofIsIncluded
         ) = alignedServiceManager.staticcall(
                 abi.encodeWithSignature(
-                    "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
+                    "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address)",
                     proofCommitment,
                     pubInputCommitment,
                     programIdCommitment,
                     proofGeneratorAddr,
                     batchMerkleRoot,
                     merkleProof,
-                    verificationDataBatchIndex
+                    verificationDataBatchIndex,
+                    paymentServiceAddr
                 )
             );
 
@@ -146,14 +149,15 @@ require(
     bytes memory proofIsIncluded
 ) = alignedServiceManager.staticcall(
     abi.encodeWithSignature(
-        "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
+        "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address)",
         proofCommitment,
         pubInputCommitment,
         programIdCommitment,
         proofGeneratorAddr,
         batchMerkleRoot,
         merkleProof,
-        verificationDataBatchIndex
+        verificationDataBatchIndex,
+        paymentServiceAddr
         )
 );
 
@@ -192,6 +196,7 @@ To deploy the contract, first you will need to set up the `.env` file in the con
 RPC_URL=<rpc_url> #You can use publicnode RPC: https://ethereum-holesky-rpc.publicnode.com
 PRIVATE_KEY=<private_key>
 ALIGNED_SERVICE_MANAGER_ADDRESS=<service_manager_address> #0x58F280BeBE9B34c9939C3C39e0890C81f163B623 for Holesky
+PAYMENT_SERVICE_ADDRESS=<payment_service_address> #0x815aeCA64a974297942D2Bbf034ABEe22a38A003 for Holesky
 ```
 
 Then, run `make deploy_fibonacci_validator`.
