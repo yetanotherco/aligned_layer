@@ -95,12 +95,14 @@ contract AlignedLayerServiceManager is
 
         batchesState[batchIdentifier] = batchState;
 
+        // For operators:
         emit NewBatchV2(
             batchMerkleRoot,
             msg.sender,
             uint32(block.number),
             batchDataPointer
         );
+        // For aggregator:
         emit NewBatchV3(
             batchMerkleRoot,
             msg.sender,
