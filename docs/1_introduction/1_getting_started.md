@@ -77,4 +77,4 @@ Aligned works in:
 
 If you don't meet these requirements, you can compile the binaries yourself following the [README](https://github.com/yetanotherco/aligned_layer)
 
-To try Aligned with other proving systems, check [this](../3_guides/0_submitting_proofs) guide
+To try Aligned with other proving systems, check [this](../3_guides/0_submitting_proofs.md) guide 
