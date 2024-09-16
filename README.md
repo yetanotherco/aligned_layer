@@ -72,7 +72,8 @@ You can use the link to the explorer to check the status of your transaction.
 aligned verify-proof-onchain \
 --aligned-verification-data ~/.aligned/aligned_verification_data/*.json \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---chain holesky
+--chain holesky \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 This is reading the result of the verification of the proof in Ethereum.
@@ -92,7 +93,7 @@ If the proof wasn't verified you should get this result:
 Aligned works in:
 - MacOS Arm64 (M1 or higher)
 - Linux x86 with GLIBC_2.32 or superior (For example, Ubuntu 22.04 or higher)
-If you don't meet these requirements, clone the repository, install rust, and then run:
+  If you don't meet these requirements, clone the repository, install rust, and then run:
 
 ```bash
 make uninstall_aligned
