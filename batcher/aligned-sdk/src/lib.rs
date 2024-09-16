@@ -7,6 +7,7 @@ pub mod communication {
     pub(crate) mod batch;
     pub(crate) mod messaging;
     pub mod protocol;
+    pub mod serialization;
 }
 
 pub mod eth {

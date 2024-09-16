@@ -8,7 +8,7 @@ import (
 )
 
 func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
-	receiptBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof")
+	innerReceiptBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
@@ -23,7 +23,7 @@ func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
 		t.Errorf("could not open public input file: %s", err)
 	}
 
-	if !risc_zero.VerifyRiscZeroReceipt(receiptBytes, uint32(len(receiptBytes)), imageIdBytes, uint32(len(imageIdBytes)), publicInputBytes, uint32(len(publicInputBytes))) {
+	if !risc_zero.VerifyRiscZeroReceipt(innerReceiptBytes, uint32(len(innerReceiptBytes)), imageIdBytes, uint32(len(imageIdBytes)), publicInputBytes, uint32(len(publicInputBytes))) {
 		t.Errorf("proof did not verify")
 	}
 }

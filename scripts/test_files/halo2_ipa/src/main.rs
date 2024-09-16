@@ -3,7 +3,7 @@ use halo2_proofs::{
     circuit::{Layouter, SimpleFloorPlanner, Value},
     plonk::{
         create_proof, keygen_pk, keygen_vk_custom, Advice, Circuit, Column,
-        ConstraintSystem, ErrorFront, Fixed, Instance
+        ConstraintSystem, ErrorFront, Fixed, Instance, write_params
     },
     poly::{
         commitment::ParamsProver,
@@ -157,7 +157,7 @@ fn main() {
     std::fs::write("proof.bin", &proof[..])
     .expect("should succeed to write new proof");
 
-    //write instances
+    //write public inputs
     let f = File::create("pub_input.bin").unwrap();
     let mut writer = BufWriter::new(f);
     instances.to_vec().into_iter().flatten().for_each(|fp| { writer.write(&fp.to_repr()).unwrap(); });
@@ -165,22 +165,9 @@ fn main() {
 
     let mut vk_buf = Vec::new();
     vk.write(&mut vk_buf, SerdeFormat::RawBytes).unwrap();
-    let vk_len = vk_buf.len();
+
     let mut ipa_params_buf = Vec::new();
     params.write(&mut ipa_params_buf).unwrap();
-    let ipa_params_len = ipa_params_buf.len();
 
-    //Write everything to parameters file
-    let params_file = File::create("params.bin").unwrap();
-    let mut writer = BufWriter::new(params_file);
-    let cs_buf = bincode::serialize(&cs).unwrap();
-    //Write Parameter Lengths as u32
-    writer.write_all(&(cs_buf.len() as u32).to_le_bytes()).unwrap();
-    writer.write_all(&(vk_len as u32).to_le_bytes()).unwrap();
-    writer.write_all(&(ipa_params_len as u32).to_le_bytes()).unwrap();
-    //Write Parameters
-    writer.write_all(&cs_buf).unwrap();
-    writer.write_all(&vk_buf).unwrap();
-    writer.write_all(&ipa_params_buf).unwrap();
-    writer.flush().unwrap();
+    write_params(&ipa_params_buf, cs, &vk_buf, "params.bin").unwrap();
 }

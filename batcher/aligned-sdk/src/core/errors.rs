@@ -5,11 +5,14 @@ use std::io;
 use std::path::PathBuf;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
+use crate::communication::serialization::SerializationError;
+
 #[derive(Debug)]
 pub enum AlignedError {
     SubmitError(SubmitError),
     VerificationError(VerificationError),
     NonceError(NonceError),
+    ChainIdError(ChainIdError),
 }
 
 impl From<SubmitError> for AlignedError {
@@ -30,12 +33,19 @@ impl From<NonceError> for AlignedError {
     }
 }
 
+impl From<ChainIdError> for AlignedError {
+    fn from(e: ChainIdError) -> Self {
+        AlignedError::ChainIdError(e)
+    }
+}
+
 impl fmt::Display for AlignedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             AlignedError::SubmitError(e) => write!(f, "Submit error: {}", e),
             AlignedError::VerificationError(e) => write!(f, "Verification error: {}", e),
             AlignedError::NonceError(e) => write!(f, "Nonce error: {}", e),
+            AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
         }
     }
 }
@@ -45,7 +55,7 @@ pub enum SubmitError {
     WebSocketConnectionError(tokio_tungstenite::tungstenite::Error),
     WebSocketClosedUnexpectedlyError(CloseFrame<'static>),
     IoError(PathBuf, io::Error),
-    SerializationError(serde_json::Error),
+    SerializationError(SerializationError),
     EthereumProviderError(String),
     HexDecodingError(String),
     WalletSignerError(String),
@@ -62,6 +72,7 @@ pub enum SubmitError {
     InvalidNonce,
     ProofQueueFlushed,
     InvalidSignature,
+    InvalidChainId,
     InvalidProof,
     ProofTooLarge,
     InsufficientBalance,
@@ -75,8 +86,8 @@ impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
     }
 }
 
-impl From<serde_json::Error> for SubmitError {
-    fn from(e: serde_json::Error) -> Self {
+impl From<SerializationError> for SubmitError {
+    fn from(e: SerializationError) -> Self {
         SubmitError::SerializationError(e)
     }
 }
@@ -157,6 +168,7 @@ impl fmt::Display for SubmitError {
             ),
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
             SubmitError::InvalidSignature => write!(f, "Invalid Signature"),
+            SubmitError::InvalidChainId => write!(f, "Invalid chain Id"),
             SubmitError::InvalidProof => write!(f, "Invalid proof"),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
@@ -197,6 +209,23 @@ impl fmt::Display for NonceError {
                 write!(f, "Ethereum provider error: {}", e)
             }
             NonceError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ChainIdError {
+    EthereumProviderError(String),
+    EthereumCallError(String),
+}
+
+impl fmt::Display for ChainIdError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ChainIdError::EthereumProviderError(e) => {
+                write!(f, "Ethereum provider error: {}", e)
+            }
+            ChainIdError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
         }
     }
 }

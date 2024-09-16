@@ -25,18 +25,20 @@ pub async fn batcher_payment_service(
 
 impl SignatureData {
     pub fn new(signature: &Signature, nonce: [u8; 32]) -> Self {
-        let mut r = [0u8; 32];
-        signature.r.to_big_endian(&mut r);
+        let mut signature_bytes = [0u8; 65];
 
-        let mut s = [0u8; 32];
-        signature.s.to_big_endian(&mut s);
+        signature.r.to_big_endian(&mut signature_bytes[0..32]);
+
+        signature.s.to_big_endian(&mut signature_bytes[32..64]);
+
+        signature_bytes[64] = signature.v as u8;
 
         let nonce = U256::from_big_endian(nonce.as_slice());
 
+        let signature_bytes = Bytes::from(signature_bytes);
+
         SignatureData {
-            v: signature.v as u8,
-            r,
-            s,
+            signature: signature_bytes,
             nonce,
         }
     }

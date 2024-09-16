@@ -40,7 +40,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		return nil, err
 	}
 
-	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.EthRpcClientFallback, baseConfig.Logger)
 
 	if err != nil {
 		baseConfig.Logger.Error("Cannot create avs service bindings", "err", err)
@@ -91,7 +91,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerSt
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
-		return nil, err
+		// Retry with fallback
+		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Send the transaction
@@ -99,7 +103,40 @@ func (w *AvsWriter) SendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerSt
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
 	tx, err = w.AvsContractBindings.ServiceManager.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
 	if err != nil {
-		return nil, err
+		// Retry with fallback
+		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTask(&txOpts, batchMerkleRoot, nonSignerStakesAndSignature)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	txHash := tx.Hash()
+
+	return &txHash, nil
+}
+
+func (w *AvsWriter) SendAggregatedResponseV2(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
+	txOpts := *w.Signer.GetTxOpts()
+	txOpts.NoSend = true // simulate the transaction
+	tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	if err != nil {
+		// Retry with fallback
+		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Send the transaction
+	txOpts.NoSend = false
+	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
+	tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	if err != nil {
+		// Retry with fallback
+		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	txHash := tx.Hash()
