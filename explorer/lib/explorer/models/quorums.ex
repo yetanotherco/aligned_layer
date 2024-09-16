@@ -16,7 +16,7 @@ defmodule Quorums do
   def handle_quorum(%Quorums{} = quorum) do
     strategy_addresses = StakeRegistryManager.get_strategies_of_quorum(quorum.id)
 
-    insert_quorum_if_not_present(quorum)
+    insert_quorum_if_not_present(quorum) # Only for new Quorums inserted by running Quorums.handle_quorum(%Quorums{id: 0})
 
     Enum.each(strategy_addresses,
       fn strategy_address ->

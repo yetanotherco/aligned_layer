@@ -29,6 +29,7 @@ defmodule Restakings do
     Operators.get_operators()
       |> Enum.map(fn operator -> StakeRegistryManager.has_operator_changed_staking(%{fromBlock: from_block, operator_id: operator.id, operator_address: operator.address}) end)
       |> Enum.reject(fn {_operator_id, _operator_address, has_changed_stake} -> not has_changed_stake end)
+      |> Enum.reject(fn {operator_id, _operator_address, _has_changed_stake} -> not Operators.get_operator_by_id(operator_id).is_active end)
       |> Enum.map(fn {operator_id, operator_address, _has_changed_stake} -> DelegationManager.get_operator_all_strategies_shares(%Operators{id: operator_id, address: operator_address}) end)
       |> Enum.each(&insert_or_update_restakings/1)
   end
@@ -54,6 +55,9 @@ defmodule Restakings do
           |> Ecto.Multi.update(:update_strategy_total_staked, Strategies.generate_update_total_staked_changeset(%{new_restaking: restaking}))
       end
 
+    multi = multi
+      |> Ecto.Multi.update(:update_operator_total_stake, Operators.generate_new_total_stake_changeset(%{operator_address: restaking.operator_address}))
+
     case Explorer.Repo.transaction(multi) do
       {:ok, _} ->
         "Restaking inserted or updated" |> Logger.debug()
@@ -64,7 +68,16 @@ defmodule Restakings do
     end
   end
 
-   def get_by_operator_and_strategy(%Restakings{operator_address: operator_address, strategy_address: strategy_address}) do
+  def remove_restakes_of_operator(%{operator_address: operator_address}) do
+    Logger.debug("Removing restakes of operator")
+    query = from(r in Restakings, where: r.operator_address == ^operator_address)
+    restakings = Explorer.Repo.all(query)
+
+    Explorer.Repo.delete_all(query)
+    Enum.each(restakings, &Strategies.discount_restaking/1)
+  end
+
+  def get_by_operator_and_strategy(%Restakings{operator_address: operator_address, strategy_address: strategy_address}) do
     query = from(
       r in Restakings,
       where: r.operator_address == ^operator_address and r.strategy_address == ^strategy_address,

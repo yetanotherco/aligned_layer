@@ -59,7 +59,11 @@ defmodule ExplorerWeb.Restakes.Index do
                 alt={asset.name}
                 class="size-5 rounded-full object-scale-down text-xs truncate text-center"
               />
-              <%= asset.name %>
+              <%= if asset.name != "‎" do %>
+                <%= asset.name %>
+              <% else %>
+                <%= asset.strategy_address %>
+              <% end %>
               <p class="text-muted-foreground text-sm">
                 <%= asset.symbol %>
               </p>
