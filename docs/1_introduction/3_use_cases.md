@@ -13,3 +13,7 @@
 - Encrypted Mempools using SNARKs to show the correctness of the encryption.
 - Protocols against misinformation and fake news: you can generate proofs that an image or audio comes from a given device, and show that a published image is the result of certain transformations performed on the original image.  
 - On-chain gaming.
+
+## Projects built using Aligned
+
+- The Mina <> Ethereum bridge (in development) uses Aligned's fast mode for ZK proof verification. See the [github repo](https://github.com/lambdaclass/mina_bridge) for more information.
