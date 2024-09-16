@@ -10,7 +10,7 @@ This guide assumes you are in the `examples/validating-public-input` directory.
 
 ## Generate your ZK Proof
 
-> [!IMPORTANT]
+> [!IMPORTANT]  
 > To generate the proof ensure you have [docker](https://www.docker.com/get-started/) installed and the docker daemon running.
 > This is necessary to ensure deterministic builds of the binary we want to generate a proof of. If not used, builds may differ depending on the system you are running on. To know more about this, check [this link](https://dev.risczero.com/terminology#deterministic-builds) from RiscZero docs.
 
@@ -119,7 +119,6 @@ contract FibonacciValidator {
         return (first, second);
     }
 }
-
 ```
 
 ### Explanation
