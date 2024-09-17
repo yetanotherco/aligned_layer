@@ -9,6 +9,7 @@ import (
 	"github.com/ugorji/go/codec"
 
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
+	merkle_tree_old "github.com/yetanotherco/aligned_layer/operator/merkle_tree_old"
 )
 
 func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte) ([]VerificationData, error) {
@@ -60,7 +61,11 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 	o.Logger.Infof("Verifying batch merkle tree...")
 	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
 	if !merkle_root_check {
-		return nil, fmt.Errorf("merkle root check failed")
+		// try old merkle tree
+		merkle_root_check = merkle_tree_old.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
+		if !merkle_root_check {
+			return nil, fmt.Errorf("merkle root check failed")
+		}
 	}
 	o.Logger.Infof("Batch merkle tree verified")
 
