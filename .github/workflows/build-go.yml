@@ -36,6 +36,7 @@ jobs:
       - name: Build Merkle Tree bindings
         run: make build_merkle_tree_linux
       - name: Build operator
-        run: go build operator/cmd/main.go
+        run: 
+          LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib && go build operator/cmd/main.go
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
