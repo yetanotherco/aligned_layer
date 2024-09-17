@@ -560,6 +560,10 @@ test_merkle_tree_rust_ffi:
 	@echo "Testing Merkle Tree Rust FFI source code..."
 	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
 
+test_merkle_tree_rust_ffi_old:
+	@echo "Testing Old Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree_old/lib && RUST_MIN_STACK=83886080 cargo t --release
+
 test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
@@ -567,6 +571,14 @@ test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
+	@echo "Testing Old Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree_old/... -v
+
+test_merkle_tree_go_bindings_linux: build_merkle_tree_linux_old
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree_old/... -v
 
 __HALO2_KZG_FFI__: ##
 build_halo2_kzg_macos:
