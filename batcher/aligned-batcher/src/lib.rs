@@ -3,7 +3,7 @@ extern crate core;
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use priority_queue::PriorityQueue;
