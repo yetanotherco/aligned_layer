@@ -62,6 +62,7 @@ func (o *Operator) getBatchFromS3(ctx context.Context, batchURL string, expected
 	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
 	if !merkle_root_check {
 		// try old merkle tree
+		o.Logger.Infof("Batch merkle tree verification failed. Trying old merkle tree...")
 		merkle_root_check = merkle_tree_old.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
 		if !merkle_root_check {
 			return nil, fmt.Errorf("merkle root check failed")
