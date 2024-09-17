@@ -859,12 +859,12 @@ impl Batcher {
         batch_queue_copy: &mut PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
+        let mut batch = vec![];
         let mut finalized_batch = vec![];
-        let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
-        let mut finalized_batch_works = false;
+        let mut batch_size = 2; // at most two extra bytes for cbor encoding array markers
 
         while let Some((entry, _)) = batch_queue_copy.peek() {
-            let serialized_vd_size =
+            let serialized_verification_data_size =
                 match cbor_serialize(&entry.nonced_verification_data.verification_data) {
                     Ok(val) => val.len(),
                     Err(e) => {
@@ -873,11 +873,8 @@ impl Batcher {
                     }
                 };
 
-            if finalized_batch_size + serialized_vd_size > self.max_batch_size {
-                break;
-            }
-
-            let num_proofs = finalized_batch.len() + 1;
+            let num_proofs = batch.len() + 1;
+            debug!("num_proofs {}", num_proofs,);
 
             let gas_per_proof = (CONSTANT_GAS_COST
                 + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs as u128)
@@ -890,29 +887,37 @@ impl Batcher {
                 fee_per_proof, entry.nonced_verification_data.max_fee, entry.sender,
             );
 
-            // it is sufficient to check this max fee because it will be the lowest since its sorted
-            if fee_per_proof < entry.nonced_verification_data.max_fee && num_proofs >= 2 {
-                finalized_batch_works = true;
-            } else if finalized_batch_works {
-                // Can not add latest element since it is not willing to pay the corresponding fee
-                // Could potentially still find another working solution later with more elements,
-                // maybe we can explore all lengths in a future version
-                // or do the reverse from this, try with whole batch,
-                // then with whole batch minus last element, etc
+            debug!(
+                "new_batch_size {}",
+                batch_size + serialized_verification_data_size
+            );
+            if batch_size + serialized_verification_data_size > self.max_batch_size {
                 break;
             }
 
-            // Either max fee is insufficient but we have not found a working solution yet,
-            // or we can keep adding to a working batch,
-            // Either way we need to keep iterating
-            finalized_batch_size += serialized_vd_size;
+            batch_size += serialized_verification_data_size;
 
-            // We can unwrap here because we have already peeked to check there is a value
-            let (entry, _) = batch_queue_copy.pop().unwrap();
-            finalized_batch.push(entry);
+            // If we find a working batch we add the current entry and save it to the final batch and continue adding entries. This maximizes space and amortizes cost in the batch.
+            if fee_per_proof < entry.nonced_verification_data.max_fee && num_proofs >= 2 {
+                // If the current batch is valid we update the final batch. Final batch is empty if no valid batch can be constructed.
+                //TODO(pat): Can we remove this clone and just track the elements to copy from the priority queue.
+                let (entry, _) = batch_queue_copy.pop().unwrap();
+                batch.push(entry);
+
+                finalized_batch = batch.clone();
+            } else {
+                // If entry.max_fee is not enough we keep adding entries to amortize the cost.
+                // Either max fee is insufficient but we have not found a working solution yet,
+                // or we can keep adding to a working batch,
+                // Either way we need to keep iterating
+
+                // We can unwrap here because we have already peeked to check there is a value
+                let (entry, _) = batch_queue_copy.pop().unwrap();
+                batch.push(entry);
+            }
         }
 
-        if finalized_batch_works {
+        if !finalized_batch.is_empty() {
             Some(finalized_batch)
         } else {
             None
@@ -1391,4 +1396,16 @@ async fn send_message<T: Serialize>(
         }
         Err(e) => error!("Error while serializing message: {}", e),
     }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn batching_alg_works_basic() {}
+
+    #[test]
+    fn batching_alg_over_multiple_valid_batches() {}
+
+    #[test]
+    fn batching_alg_works_basic() {}
 }
