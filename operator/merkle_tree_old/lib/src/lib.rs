@@ -5,7 +5,7 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::error;
 
 #[no_mangle]
-pub extern "C" fn verify_merkle_tree_batch_ffi(
+pub extern "C" fn verify_merkle_tree_batch_old_ffi(
     batch_ptr: *const u8,
     batch_len: usize,
     merkle_root: &[u8; 32],
@@ -72,7 +72,7 @@ mod tests {
         );
 
         let result =
-            verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
+            verify_merkle_tree_batch_old_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
 
         assert_eq!(result, true);
     }
@@ -92,7 +92,7 @@ mod tests {
         );
 
         let result =
-            verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
+            verify_merkle_tree_batch_old_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
 
         assert_eq!(result, false);
     }
@@ -112,7 +112,7 @@ mod tests {
         );
 
         let result =
-            verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
+            verify_merkle_tree_batch_old_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
 
         assert_eq!(result, false);
     }

@@ -1,4 +1,4 @@
-package merkle_tree
+package merkle_tree_old
 
 /*
 #cgo linux LDFLAGS: ${SRCDIR}/lib/libmerkle_tree.a -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
@@ -9,12 +9,12 @@ package merkle_tree
 import "C"
 import "unsafe"
 
-func VerifyMerkleTreeBatch(batchBuffer []byte, batchLen uint, merkleRootBuffer [32]byte) bool {
+func VerifyMerkleTreeBatchOld(batchBuffer []byte, batchLen uint, merkleRootBuffer [32]byte) bool {
 	if len(batchBuffer) == 0 {
 		return false
 	}
 
 	batchPtr := (*C.uchar)(unsafe.Pointer(&batchBuffer[0]))
 	merkleRootPtr := (*C.uchar)(unsafe.Pointer(&merkleRootBuffer[0]))
-	return (bool)(C.verify_merkle_tree_batch_ffi(batchPtr, (C.uint)(batchLen), merkleRootPtr))
+	return (bool)(C.verify_merkle_tree_batch_old_ffi(batchPtr, (C.uint)(batchLen), merkleRootPtr))
 }

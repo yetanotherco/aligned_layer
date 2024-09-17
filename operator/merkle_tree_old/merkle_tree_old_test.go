@@ -1,4 +1,4 @@
-package merkle_tree
+package merkle_tree_old
 
 import (
 	"encoding/hex"
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestVerifyMerkleTreeBatch(t *testing.T) {
+func TestVerifyMerkleTreeBatchOld(t *testing.T) {
 	batchFile, err := os.Open("lib/test_files/merkle_tree_batch.bin")
 	if err != nil {
 		t.Fatalf("Error opening batch file: %v", err)
@@ -39,7 +39,7 @@ func TestVerifyMerkleTreeBatch(t *testing.T) {
 	var merkleRoot [32]byte
 	copy(merkleRoot[:], merkle_root)
 
-	if !VerifyMerkleTreeBatch(batchByteValue, uint(len(batchByteValue)), merkleRoot) {
+	if !VerifyMerkleTreeBatchOld(batchByteValue, uint(len(batchByteValue)), merkleRoot) {
 		t.Errorf("Batch did not verify Merkle Root")
 	}
 
