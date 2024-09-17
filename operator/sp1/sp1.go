@@ -14,6 +14,11 @@ func VerifySp1Proof(proofBuffer []byte, proofLen uint32, elfBuffer []byte, elfLe
 		return false
 	}
 
+	// Validate buffer are supplied lengths
+	if len(proofBuffer) != int(proofLen) || len(elfBuffer) != int(elfLen) {
+		return false
+	}
+
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
 

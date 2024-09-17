@@ -22,6 +22,11 @@ func VerifyHalo2KzgProof(
 		return false
 	}
 
+	// Validate buffer are supplied lengths
+	if len(proofBuffer) != int(proofLen) || len(paramsBuffer) != int(paramsLen) || len(publicInputBuffer) != int(publicInputLen) {
+		return false
+	}
+
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	paramsPtr := (*C.uchar)(unsafe.Pointer(&paramsBuffer[0]))
 	publicInputPtr := (*C.uchar)(unsafe.Pointer(&publicInputBuffer[0]))

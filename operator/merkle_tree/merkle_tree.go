@@ -14,6 +14,11 @@ func VerifyMerkleTreeBatch(batchBuffer []byte, batchLen uint, merkleRootBuffer [
 		return false
 	}
 
+	// Validate buffer are supplied lengths
+	if len(batchBuffer) != int(batchLen) {
+		return false
+	}
+
 	batchPtr := (*C.uchar)(unsafe.Pointer(&batchBuffer[0]))
 	merkleRootPtr := (*C.uchar)(unsafe.Pointer(&merkleRootBuffer[0]))
 	return (bool)(C.verify_merkle_tree_batch_ffi(batchPtr, (C.uint)(batchLen), merkleRootPtr))
