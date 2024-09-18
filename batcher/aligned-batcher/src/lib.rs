@@ -833,7 +833,6 @@ impl Batcher {
                 // Set the batch queue to batch queue copy
                 batch_state.batch_queue = resulting_batch_queue;
                 batch_state.update_user_proofs_in_batch_and_min_fee();
-
                 Some(finalized_batch)
             }
             Err(BatcherError::BatchCostTooHigh) => {
@@ -1323,16 +1322,6 @@ async fn send_message<T: Serialize>(
     }
 }
 
-/// Tries to build a batch from the current batch queue.
-/// The function iterates over the batch queue and tries to build a batch that satisfies the gas price
-/// and the max_fee set by the users.
-/// If a working batch is found, the function tries to make it as big as possible by adding more proofs,
-/// until a user is not willing to pay the required fee.
-/// The extra check is that the batch size does not surpass the maximum batch size.
-/// Note that the batch queue is sorted descending by the max_fee set by the users.
-/// We use a copy of the batch queue because we might not find a working batch,
-/// and we want to keep the original batch queue intact.
-/// Returns Some(working_batch) if found, None otherwise.
 fn try_build_batch(
     batch_queue_copy: &mut BatchQueue,
     gas_price: U256,
@@ -1344,20 +1333,18 @@ fn try_build_batch(
 
     while let Some((entry, _)) = batch_queue_copy.peek() {
         let batch_len = batch_queue_copy.len();
-        let gas_per_proof = (CONSTANT_GAS_COST
-            + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
-            / batch_len as u128;
-        let fee_per_proof = U256::from(gas_per_proof) * gas_price;
+        let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
 
         if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee {
             // Update the state for the next iteration
 
             // It is safe to call `.unwrap()` here since any serialization error should have been caught
-            // when calculating the total size of the batch
+            // when calculating the total size of the batch (calculate_batch_size function)
             let verification_data_size =
                 cbor_serialize(&entry.nonced_verification_data.verification_data)
                     .unwrap()
                     .len();
+
             batch_size -= verification_data_size;
 
             let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
@@ -1365,10 +1352,15 @@ fn try_build_batch(
 
             continue;
         }
+
+        // At this point, we break since we found a batch that can be submitted
         break;
     }
 
     let batch = batch_queue_copy.clone().into_sorted_vec();
+
+    // If `batch` is empty, this means that all the batch queue was traversed and we didn't find
+    // any user willing to pay fot the fee per proof.
     if batch.is_empty() {
         return Err(BatcherError::BatchCostTooHigh);
     }
@@ -1377,4 +1369,11 @@ fn try_build_batch(
         resulting_priority_queue,
         batch_queue_copy.clone().into_sorted_vec(),
     ))
+}
+
+fn calculate_fee_per_proof(batch_len: usize, gas_price: U256) -> U256 {
+    let gas_per_proof = (CONSTANT_GAS_COST
+        + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
+        / batch_len as u128;
+    U256::from(gas_per_proof) * gas_price
 }
