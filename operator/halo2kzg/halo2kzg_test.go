@@ -1,20 +1,12 @@
 package halo2kzg_test
 
 import (
+	"io"
 	"os"
 	"testing"
 
 	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 )
-
-// MaxProofSize 4KB
-const MaxProofSize = 8 * 1024
-
-// MaxProofSize 4KB
-const MaxParamsSize = 8 * 1024
-
-// MaxPublicInputSize 4KB
-const MaxPublicInputSize = 4 * 1024
 
 const ProofFilePath = "../../scripts/test_files/halo2_kzg/proof.bin"
 
@@ -27,8 +19,7 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	proofBytes := make([]byte, MaxProofSize)
-	nReadProofBytes, err := proofFile.Read(proofBytes)
+	proofBytes, err := io.ReadAll(proofFile)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
@@ -38,8 +29,7 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	paramsBytes := make([]byte, MaxParamsSize)
-	nReadParamsBytes, err := paramsFile.Read(paramsBytes)
+	paramsBytes, err := io.ReadAll(paramsFile)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
@@ -49,16 +39,15 @@ func TestHalo2KzgProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	publicInputBytes := make([]byte, MaxPublicInputSize)
-	nReadPublicInputBytes, err := publicInputFile.Read(publicInputBytes)
+	publicInputBytes, err := io.ReadAll(publicInputFile)
 	if err != nil {
 		t.Errorf("could not read bytes from file")
 	}
 
 	if !halo2kzg.VerifyHalo2KzgProof(
-		([]byte)(proofBytes), uint32(nReadProofBytes),
-		([]byte)(paramsBytes), uint32(nReadParamsBytes),
-		([]byte)(publicInputBytes), uint32(nReadPublicInputBytes),
+		([]byte)(proofBytes), uint32(len(proofBytes)),
+		([]byte)(paramsBytes), uint32(len(paramsBytes)),
+		([]byte)(publicInputBytes), uint32(len(publicInputBytes)),
 	) {
 		t.Errorf("proof did not verify")
 	}

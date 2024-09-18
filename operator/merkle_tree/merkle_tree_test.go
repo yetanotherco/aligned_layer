@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+const BatchFilePath = "lib/test_files/merkle_tree_batch.bin"
+
+const RootFilePath = "lib/test_files/merkle_root.bin"
+
 func TestVerifyMerkleTreeBatch(t *testing.T) {
 	batchFile, err := os.Open("lib/test_files/merkle_tree_batch.bin")
 	if err != nil {
@@ -42,5 +46,4 @@ func TestVerifyMerkleTreeBatch(t *testing.T) {
 	if !VerifyMerkleTreeBatch(batchByteValue, uint(len(batchByteValue)), merkleRoot) {
 		t.Errorf("Batch did not verify Merkle Root")
 	}
-
 }

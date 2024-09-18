@@ -1,38 +1,36 @@
 package sp1_test
 
 import (
+	"io"
 	"os"
 	"testing"
 
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
 )
 
-const MaxProofSize = 2 * 1024 * 1024
-const MaxElfSize = 2 * 1024 * 1024
+const ProofFile = "../../scripts/test_files/sp1/sp1_fibonacci.proof"
+const ElfFile = "../../scripts/test_files/sp1/sp1_fibonacci.elf"
 
 func TestFibonacciSp1ProofVerifies(t *testing.T) {
-	proofFile, err := os.Open("../../scripts/test_files/sp1/sp1_fibonacci.proof")
+	proofFile, err := os.Open(ProofFile)
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-	proofBytes := make([]byte, MaxProofSize)
-	nReadProofBytes, err := proofFile.Read(proofBytes)
+	proofBytes, err := io.ReadAll(proofFile)
 	if err != nil {
-		t.Errorf("could not read bytes from file")
+		t.Fatalf("Error reading batch file: %v", err)
 	}
 
-	elfFile, err := os.Open("../../scripts/test_files/sp1/sp1_fibonacci.elf")
+	elfFile, err := os.Open(ElfFile)
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
-
-	elfBytes := make([]byte, MaxElfSize)
-	nReadElfBytes, err := elfFile.Read(elfBytes)
+	elfBytes, err := io.ReadAll(elfFile)
 	if err != nil {
-		t.Errorf("could not read bytes from file")
+		t.Fatalf("Error reading batch file: %v", err)
 	}
 
-	if !sp1.VerifySp1Proof(proofBytes, uint32(nReadProofBytes), elfBytes, uint32(nReadElfBytes)) {
+	if !sp1.VerifySp1Proof(proofBytes, uint32(len(proofBytes)), elfBytes, uint32(len(elfBytes))) {
 		t.Errorf("proof did not verify")
 	}
 }
