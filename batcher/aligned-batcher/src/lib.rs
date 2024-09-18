@@ -14,7 +14,6 @@ use std::collections::HashMap;
 use std::env;
 use std::iter::repeat;
 use std::net::SocketAddr;
-use std::ops::ControlFlow;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{
@@ -880,9 +879,6 @@ impl Batcher {
 
             if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee
             {
-                let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
-                resulting_priority_queue.push(not_working_entry, not_woring_priority);
-
                 // It is safe to call `.unwrap()` here since any serialization error should have been caught
                 // when calculating the total size of the batch
                 let verification_data_size =
@@ -891,6 +887,9 @@ impl Batcher {
                         .len();
 
                 batch_size -= verification_data_size;
+
+                let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
+                resulting_priority_queue.push(not_working_entry, not_woring_priority);
 
                 continue;
             }
