@@ -307,7 +307,16 @@ async fn main() -> Result<(), AlignedError> {
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
                 warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-                LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet")
+                match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
+                    Ok(wallet) => wallet,
+                    Err(e) => {
+                        warn!(
+                            "Failed to create wallet from anvil private key: {}",
+                            e.to_string()
+                        );
+                        return Ok(());
+                    }
+                }
             };
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
