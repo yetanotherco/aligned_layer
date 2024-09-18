@@ -61,7 +61,7 @@ type Aggregator struct {
 	// and can start from zero
 	batchesIdxByIdentifierHash map[[32]byte]uint32
 
-	// Stores the taskCreatedBlock for each batch bt batch index
+	// Stores the taskCreatedBlock for each batch but batch index
 	batchCreatedBlockByIdx map[uint32]uint64
 
 	// Stores the TaskResponse for each batch by batchIdentifierHash
@@ -282,7 +282,18 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 			agg.logger.Info("Aggregator successfully responded to task",
 				"taskIndex", blsAggServiceResp.TaskIndex,
 				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-				
+
+			// If Aggregator successfully responds to task we acquire the task mutex and
+			// remove task information from the aggregator maps to prevent memory growth.
+			agg.taskMutex.Lock()
+			agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
+			delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
+			delete(agg.batchCreatedBlockByIdx, blsAggServiceResp.TaskIndex)
+			delete(agg.batchesIdentifierHashByIdx, blsAggServiceResp.TaskIndex)
+			delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
+			agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
+			agg.taskMutex.Unlock()
+
 			return
 		}
 
@@ -296,6 +307,16 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", "0x"+hex.EncodeToString(batchData.BatchMerkleRoot[:]),
 		"senderAddress", "0x"+hex.EncodeToString(batchData.SenderAddress[:]),
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+
+	// If the aggregator fails to respond to the task we remove the batch information as well.
+	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
+	delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
+	delete(agg.batchCreatedBlockByIdx, blsAggServiceResp.TaskIndex)
+	delete(agg.batchesIdentifierHashByIdx, blsAggServiceResp.TaskIndex)
+	delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
+	agg.taskMutex.Unlock()
 }
 
 // / Sends response to contract and waits for transaction receipt
@@ -365,6 +386,11 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 		BatchMerkleRoot: batchMerkleRoot,
 		SenderAddress:   senderAddress,
 	}
+	agg.logger.Info(
+		"Task Info added in aggregator:",
+		"Task", batchIndex,
+		"batchIdentifierHash", batchIdentifierHash,
+	)
 	agg.nextBatchIndex += 1
 
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
