@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use std::sync::Arc;
 
 use ethers::prelude::*;
@@ -14,13 +13,11 @@ pub type BatcherPaymentService = BatcherPaymentServiceContract<Provider<Http>>;
 
 pub async fn batcher_payment_service(
     provider: Provider<Http>,
-    contract_address: &str,
+    contract_address: H160,
 ) -> Result<BatcherPaymentService, VerificationError> {
     let client = Arc::new(provider);
-    let contract_addr = H160::from_str(contract_address)
-        .map_err(|e| VerificationError::HexDecodingError(e.to_string()))?;
 
-    Ok(BatcherPaymentService::new(contract_addr, client))
+    Ok(BatcherPaymentService::new(contract_address, client))
 }
 
 impl SignatureData {

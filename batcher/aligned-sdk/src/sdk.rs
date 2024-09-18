@@ -7,8 +7,7 @@ use crate::{
     core::{
         errors,
         types::{
-            AlignedVerificationData, Chain, ProvingSystemId, VerificationData,
-            VerificationDataCommitment,
+            AlignedVerificationData, Environment, ProvingSystemId, VerificationData, VerificationDataCommitment
         },
     },
     eth::{
@@ -69,16 +68,15 @@ use futures_util::{
 pub async fn submit_multiple_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
-    chain: Chain,
+    environment: &Environment,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-    payment_service_addr: &str,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     let aligned_verification_data = submit_multiple(
         batcher_url,
-        chain.clone(),
+        environment,
         verification_data,
         max_fees,
         wallet,
@@ -90,8 +88,7 @@ pub async fn submit_multiple_and_wait_verification(
         await_batch_verification(
             aligned_verification_data_item,
             eth_rpc_url,
-            chain.clone(),
-            payment_service_addr,
+            environment,
         )
         .await?;
     }
@@ -126,7 +123,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_url: &str,
-    chain: Chain,
+    environment: &Environment,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -144,7 +141,7 @@ pub async fn submit_multiple(
     _submit_multiple(
         ws_write,
         ws_read,
-        chain.clone(),
+        environment,
         verification_data,
         max_fees,
         wallet,
@@ -153,10 +150,30 @@ pub async fn submit_multiple(
     .await
 }
 
+pub fn get_payment_service_address(
+    environment: &Environment,
+) -> ethers::types::H160 {
+    match environment {
+        Environment::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
+        Environment::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
+        Environment::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap(),
+    }
+}
+
+pub fn get_aligned_service_manager_address(
+    environment: &Environment,
+) -> ethers::types::H160 {
+    match environment {
+        Environment::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
+        Environment::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
+        Environment::HoleskyStage => H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap(),
+    }
+}
+
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    chain: Chain,
+    environment: &Environment,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -177,16 +194,11 @@ async fn _submit_multiple(
 
     let response_stream = Arc::new(Mutex::new(response_stream));
 
-    let payment_service_addr = match chain {
-        Chain::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").ok(),
-        Chain::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").ok(),
-        Chain::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").ok(),
-    };
+    let payment_service_addr = get_payment_service_address(environment);
 
-    let sent_verification_data = match payment_service_addr {
+    let sent_verification_data = {
         // The sent verification data will be stored here so that we can calculate
         // their commitments later.
-        Some(payment_service_addr) => {
             send_messages(
                 response_stream.clone(),
                 ws_write,
@@ -197,12 +209,6 @@ async fn _submit_multiple(
                 nonce,
             )
             .await?
-        }
-        None => {
-            return Err(errors::SubmitError::GenericError(
-                "Invalid chain".to_string(),
-            ))
-        }
     };
 
     let num_responses = Arc::new(Mutex::new(0));
@@ -262,12 +268,12 @@ async fn _submit_multiple(
 pub async fn submit_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
-    chain: Chain,
+    environment: &Environment,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-    payment_service_addr: &str,
+    // payment_service_addr: &str, //removed, get from environment
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
@@ -276,12 +282,11 @@ pub async fn submit_and_wait_verification(
     let aligned_verification_data = submit_multiple_and_wait_verification(
         batcher_url,
         eth_rpc_url,
-        chain,
+        environment,
         &verification_data,
         &max_fees,
         wallet,
         nonce,
-        payment_service_addr,
     )
     .await?;
 
@@ -315,7 +320,7 @@ pub async fn submit_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_url: &str,
-    chain: Chain,
+    environment: &Environment,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -326,7 +331,7 @@ pub async fn submit(
 
     let aligned_verification_data = submit_multiple(
         batcher_url,
-        chain.clone(),
+        environment,
         &verification_data,
         &max_fees,
         wallet,
@@ -351,9 +356,8 @@ pub async fn submit(
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 pub async fn is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    chain: Chain,
+    environment: &Environment,
     eth_rpc_url: &str,
-    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError> {
     let eth_rpc_provider =
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
@@ -362,28 +366,19 @@ pub async fn is_proof_verified(
 
     _is_proof_verified(
         aligned_verification_data,
-        chain,
+        environment,
         eth_rpc_provider,
-        payment_service_addr,
     )
     .await
 }
 
 async fn _is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    chain: Chain,
+    environment: &Environment,
     eth_rpc_provider: Provider<Http>,
-    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError> {
-    let contract_address = match chain {
-        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
-        Chain::HoleskyStage => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
-    };
-
-    let payment_service_addr = payment_service_addr
-        .parse::<Address>()
-        .map_err(|e| errors::VerificationError::HexDecodingError(e.to_string()))?;
+    let contract_address = get_aligned_service_manager_address(environment); 
+    let payment_service_addr = get_payment_service_address(environment);
 
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data
@@ -450,12 +445,14 @@ pub fn get_vk_commitment(
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
     submitter_addr: Address,
-    payment_service_addr: &str,
+    environment: &Environment,
 ) -> Result<U256, errors::NonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
 
-    match batcher_payment_service(eth_rpc_provider, payment_service_addr).await {
+    let payment_service_address = get_payment_service_address(environment);
+
+    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
         Ok(contract) => {
             let call = contract.user_nonces(submitter_addr);
 
@@ -537,12 +534,11 @@ mod test {
         let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
-            Chain::Devnet,
+            &Environment::Devnet,
             &verification_data,
             &max_fees,
             wallet,
             U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
@@ -574,12 +570,11 @@ mod test {
         let result = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
-            Chain::Devnet,
+            &Environment::Devnet,
             &verification_data,
             &max_fees,
             wallet,
             U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await;
 
@@ -619,12 +614,11 @@ mod test {
         let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
-            Chain::Devnet,
+            &Environment::Devnet,
             &verification_data,
             &max_fees,
             wallet,
             U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
@@ -633,9 +627,8 @@ mod test {
 
         let result = is_proof_verified(
             &aligned_verification_data[0],
-            Chain::Devnet,
+            &Environment::Devnet,
             "http://localhost:8545",
-            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
@@ -672,12 +665,11 @@ mod test {
         let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
-            Chain::Devnet,
+            &Environment::Devnet,
             &verification_data,
             &[MAX_FEE],
             wallet,
             U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();
@@ -691,9 +683,8 @@ mod test {
 
         let result = is_proof_verified(
             &aligned_verification_data_modified,
-            Chain::Devnet,
+            &Environment::Devnet,
             "http://localhost:8545",
-            BATCHER_PAYMENT_SERVICE_ADDR,
         )
         .await
         .unwrap();

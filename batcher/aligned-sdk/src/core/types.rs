@@ -325,7 +325,7 @@ pub enum ResponseMessage {
 }
 
 #[derive(Debug, Clone)]
-pub enum Chain {
+pub enum Environment {
     Devnet,
     Holesky,
     HoleskyStage,

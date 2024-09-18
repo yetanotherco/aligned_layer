@@ -439,7 +439,7 @@ impl Batcher {
 
         if client_msg.verification_data.chain_id != self.chain_id {
             warn!(
-                "Received message with incorrect chain id: {}", //Beware, This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
+                "Received message with incorrect chain id: {}", //This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
                 client_msg.verification_data.chain_id
             );
 
