@@ -3,12 +3,18 @@ use futures_util::stream::SplitSink;
 use priority_queue::PriorityQueue;
 use std::{
     hash::{Hash, Hasher},
+    ops::ControlFlow,
     sync::Arc,
 };
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
-use aligned_sdk::core::types::{NoncedVerificationData, VerificationDataCommitment};
+use aligned_sdk::{
+    communication::serialization::cbor_serialize,
+    core::types::{NoncedVerificationData, VerificationDataCommitment},
+};
+
+use super::errors::BatcherError;
 
 #[derive(Clone)]
 pub(crate) struct BatchQueueEntry {
@@ -59,7 +65,6 @@ impl PartialEq for BatchQueueEntry {
     }
 }
 
-// We consider two entries to be equal if they have the same sender and nonce
 impl Hash for BatchQueueEntry {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.sender.hash(state);
@@ -87,9 +92,32 @@ impl Ord for BatchQueueEntryPriority {
         if ord == std::cmp::Ordering::Equal {
             self.nonce.cmp(&other.nonce).reverse()
         } else {
-            ord
+            ord.reverse()
         }
     }
 }
 
 pub(crate) type BatchQueue = PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>;
+
+pub(crate) fn calculate_batch_size(
+    batch_queue: &PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
+) -> Result<usize, BatcherError> {
+    let folded_result = batch_queue.iter().try_fold(0, |acc, (entry, _)| {
+        if let Ok(verification_data_bytes) =
+            cbor_serialize(&entry.nonced_verification_data.verification_data)
+        {
+            let current_batch_size = acc + verification_data_bytes.len();
+            ControlFlow::Continue(current_batch_size)
+        } else {
+            ControlFlow::Break(())
+        }
+    });
+
+    if let ControlFlow::Continue(batch_size) = folded_result {
+        Ok(batch_size)
+    } else {
+        Err(BatcherError::SerializationError(String::from(
+            "Could not calculate size of batch",
+        )))
+    }
+}

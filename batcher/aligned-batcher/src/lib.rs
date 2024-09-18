@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::env;
 use std::iter::repeat;
 use std::net::SocketAddr;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{
@@ -35,7 +36,9 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
-use types::batch_queue::{BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
+use types::batch_queue::{
+    calculate_batch_size, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority,
+};
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -855,68 +858,51 @@ impl Batcher {
     /// and we want to keep the original batch queue intact.
     /// Returns Some(working_batch) if found, None otherwise.
     fn try_build_batch(
-        &self,
-        batch_queue_copy: &mut PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
+        batch_queue_copy: &mut BatchQueue,
         gas_price: U256,
-    ) -> Option<Vec<BatchQueueEntry>> {
-        let mut finalized_batch = vec![];
-        let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
-        let mut finalized_batch_works = false;
+        max_batch_size: usize,
+    ) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
+        // let mut finalized_batch = vec![];
+        // let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
+        // let mut finalized_batch_works = false;
+
+        // if we change this ordering, we should fix what happens when there is a nonce replacement message
+        let mut batch_size = calculate_batch_size(batch_queue_copy)?;
+        let mut resulting_priority_queue =
+            PriorityQueue::<BatchQueueEntry, BatchQueueEntryPriority>::new();
 
         while let Some((entry, _)) = batch_queue_copy.peek() {
-            let serialized_vd_size =
-                match cbor_serialize(&entry.nonced_verification_data.verification_data) {
-                    Ok(val) => val.len(),
-                    Err(e) => {
-                        warn!("Serialization error: {:?}", e);
-                        break;
-                    }
-                };
-
-            if finalized_batch_size + serialized_vd_size > self.max_batch_size {
-                break;
-            }
-
-            let num_proofs = finalized_batch.len() + 1;
-
+            let batch_len = batch_queue_copy.len();
             let gas_per_proof = (CONSTANT_GAS_COST
-                + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs as u128)
-                / num_proofs as u128;
-
+                + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
+                / batch_len as u128;
             let fee_per_proof = U256::from(gas_per_proof) * gas_price;
 
-            debug!(
-                "Validating that batch submission fee {} is less than max fee {} for sender {}",
-                fee_per_proof, entry.nonced_verification_data.max_fee, entry.sender,
-            );
+            if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee
+            {
+                let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
+                resulting_priority_queue.push(not_working_entry, not_woring_priority);
 
-            // it is sufficient to check this max fee because it will be the lowest since its sorted
-            if fee_per_proof < entry.nonced_verification_data.max_fee && num_proofs >= 2 {
-                finalized_batch_works = true;
-            } else if finalized_batch_works {
-                // Can not add latest element since it is not willing to pay the corresponding fee
-                // Could potentially still find another working solution later with more elements,
-                // maybe we can explore all lengths in a future version
-                // or do the reverse from this, try with whole batch,
-                // then with whole batch minus last element, etc
-                break;
+                // It is safe to call `.unwrap()` here since any serialization error should have been caught
+                // when calculating the total size of the batch
+                let verification_data_size =
+                    cbor_serialize(&entry.nonced_verification_data.verification_data)
+                        .unwrap()
+                        .len();
+
+                batch_size -= verification_data_size;
+
+                continue;
             }
 
-            // Either max fee is insufficient but we have not found a working solution yet,
-            // or we can keep adding to a working batch,
-            // Either way we need to keep iterating
-            finalized_batch_size += serialized_vd_size;
-
-            // We can unwrap here because we have already peeked to check there is a value
-            let (entry, _) = batch_queue_copy.pop().unwrap();
-            finalized_batch.push(entry);
+            break;
+            // return Ok((resulting_priority_queue, batch_queue_copy.into_sorted_vec()));
         }
 
-        if finalized_batch_works {
-            Some(finalized_batch)
-        } else {
-            None
-        }
+        Ok((
+            resulting_priority_queue,
+            batch_queue_copy.clone().into_sorted_vec(),
+        ))
     }
 
     /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
