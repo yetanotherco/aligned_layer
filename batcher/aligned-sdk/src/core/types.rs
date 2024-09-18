@@ -312,6 +312,7 @@ pub enum ValidityResponseMessage {
     InvalidReplacementMessage,
     ProofTooLarge,
     InsufficientBalance(Address),
+    InvalidPaymentServiceAddress
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
