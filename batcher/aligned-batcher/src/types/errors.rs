@@ -14,6 +14,7 @@ pub enum BatcherError {
     MaxRetriesReachedError,
     SerializationError(String),
     GasPriceError,
+    BatchCostTooHigh,
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -63,6 +64,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::GasPriceError => {
                 write!(f, "Gas price error")
+            }
+            BatcherError::BatchCostTooHigh => {
+                write!(f, "No user in batch willing to pay the fee per proof. Checking again when another block arrives")
             }
         }
     }

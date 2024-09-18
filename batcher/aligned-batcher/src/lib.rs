@@ -828,80 +828,25 @@ impl Batcher {
         *batch_posting = true;
 
         let mut batch_queue_copy = batch_state.batch_queue.clone();
-
-        match self.try_build_batch(&mut batch_queue_copy, gas_price) {
-            Some(finalized_batch) => {
+        match try_build_batch(&mut batch_queue_copy, gas_price, self.max_batch_size) {
+            Ok((resulting_batch_queue, finalized_batch)) => {
                 // Set the batch queue to batch queue copy
-                batch_state.batch_queue = batch_queue_copy;
+                batch_state.batch_queue = resulting_batch_queue;
                 batch_state.update_user_proofs_in_batch_and_min_fee();
 
                 Some(finalized_batch)
             }
-            None => {
+            Err(BatcherError::BatchCostTooHigh) => {
                 // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
                 info!("No working batch found. Waiting for more proofs...");
                 *batch_posting = false;
                 None
             }
-        }
-    }
-
-    /// Tries to build a batch from the current batch queue.
-    /// The function iterates over the batch queue and tries to build a batch that satisfies the gas price
-    /// and the max_fee set by the users.
-    /// If a working batch is found, the function tries to make it as big as possible by adding more proofs,
-    /// until a user is not willing to pay the required fee.
-    /// The extra check is that the batch size does not surpass the maximum batch size.
-    /// Note that the batch queue is sorted descending by the max_fee set by the users.
-    /// We use a copy of the batch queue because we might not find a working batch,
-    /// and we want to keep the original batch queue intact.
-    /// Returns Some(working_batch) if found, None otherwise.
-    fn try_build_batch(
-        batch_queue_copy: &mut BatchQueue,
-        gas_price: U256,
-        max_batch_size: usize,
-    ) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
-        // let mut finalized_batch = vec![];
-        // let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
-        // let mut finalized_batch_works = false;
-
-        // if we change this ordering, we should fix what happens when there is a nonce replacement message
-        let mut batch_size = calculate_batch_size(batch_queue_copy)?;
-        let mut resulting_priority_queue =
-            PriorityQueue::<BatchQueueEntry, BatchQueueEntryPriority>::new();
-
-        while let Some((entry, _)) = batch_queue_copy.peek() {
-            let batch_len = batch_queue_copy.len();
-            let gas_per_proof = (CONSTANT_GAS_COST
-                + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
-                / batch_len as u128;
-            let fee_per_proof = U256::from(gas_per_proof) * gas_price;
-
-            if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee
-            {
-                // It is safe to call `.unwrap()` here since any serialization error should have been caught
-                // when calculating the total size of the batch
-                let verification_data_size =
-                    cbor_serialize(&entry.nonced_verification_data.verification_data)
-                        .unwrap()
-                        .len();
-
-                batch_size -= verification_data_size;
-
-                let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
-                resulting_priority_queue.push(not_working_entry, not_woring_priority);
-
-                continue;
+            Err(e) => {
+                error!("Unexpected error: {:?}", e);
+                None
             }
-
-            break;
-            // return Ok((resulting_priority_queue, batch_queue_copy.into_sorted_vec()));
         }
-
-        Ok((
-            resulting_priority_queue,
-            batch_queue_copy.clone().into_sorted_vec(),
-        ))
     }
 
     /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
@@ -1376,4 +1321,60 @@ async fn send_message<T: Serialize>(
         }
         Err(e) => error!("Error while serializing message: {}", e),
     }
+}
+
+/// Tries to build a batch from the current batch queue.
+/// The function iterates over the batch queue and tries to build a batch that satisfies the gas price
+/// and the max_fee set by the users.
+/// If a working batch is found, the function tries to make it as big as possible by adding more proofs,
+/// until a user is not willing to pay the required fee.
+/// The extra check is that the batch size does not surpass the maximum batch size.
+/// Note that the batch queue is sorted descending by the max_fee set by the users.
+/// We use a copy of the batch queue because we might not find a working batch,
+/// and we want to keep the original batch queue intact.
+/// Returns Some(working_batch) if found, None otherwise.
+fn try_build_batch(
+    batch_queue_copy: &mut BatchQueue,
+    gas_price: U256,
+    max_batch_size: usize,
+) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
+    let mut batch_size = calculate_batch_size(batch_queue_copy)?;
+    let mut resulting_priority_queue =
+        PriorityQueue::<BatchQueueEntry, BatchQueueEntryPriority>::new();
+
+    while let Some((entry, _)) = batch_queue_copy.peek() {
+        let batch_len = batch_queue_copy.len();
+        let gas_per_proof = (CONSTANT_GAS_COST
+            + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
+            / batch_len as u128;
+        let fee_per_proof = U256::from(gas_per_proof) * gas_price;
+
+        if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee {
+            // Update the state for the next iteration
+
+            // It is safe to call `.unwrap()` here since any serialization error should have been caught
+            // when calculating the total size of the batch
+            let verification_data_size =
+                cbor_serialize(&entry.nonced_verification_data.verification_data)
+                    .unwrap()
+                    .len();
+            batch_size -= verification_data_size;
+
+            let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
+            resulting_priority_queue.push(not_working_entry, not_woring_priority);
+
+            continue;
+        }
+        break;
+    }
+
+    let batch = batch_queue_copy.clone().into_sorted_vec();
+    if batch.is_empty() {
+        return Err(BatcherError::BatchCostTooHigh);
+    }
+
+    Ok((
+        resulting_priority_queue,
+        batch_queue_copy.clone().into_sorted_vec(),
+    ))
 }
