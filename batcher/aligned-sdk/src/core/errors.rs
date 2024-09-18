@@ -80,6 +80,7 @@ pub enum SubmitError {
     ProofTooLarge,
     InvalidReplacementMessage,
     InsufficientBalance,
+    InvalidPaymentServiceAddress,
     BatchSubmissionFailed(String),
     GenericError(String),
 }
@@ -178,6 +179,7 @@ impl fmt::Display for SubmitError {
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
+            SubmitError::InvalidPaymentServiceAddress => write!(f, "Invalid payment service address"),
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }
     }

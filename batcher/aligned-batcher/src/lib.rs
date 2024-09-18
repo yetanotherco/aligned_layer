@@ -452,6 +452,21 @@ impl Batcher {
             return Ok(());
         }
 
+        if client_msg.verification_data.payment_service_addr != self.payment_service.address() {
+            warn!(
+                "Received message with incorrect payment service address: {}",
+                client_msg.verification_data.payment_service_addr
+            );
+
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidPaymentServiceAddress,
+            )
+            .await;
+
+            return Ok(());
+        }
+
         info!("Verifying message signature...");
         if let Ok(addr) = client_msg.verify_signature() {
             info!("Message signature verified");
@@ -459,6 +474,7 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
+                info!("Handling paying message");
                 if !self
                     .check_user_balance_and_increment_proof_count(&addr)
                     .await
@@ -471,6 +487,7 @@ impl Batcher {
 
                     return Ok(());
                 }
+                info!("Handling paying message 2");
 
                 let nonced_verification_data = client_msg.verification_data;
                 if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
@@ -598,6 +615,7 @@ impl Batcher {
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
     async fn check_user_balance_and_increment_proof_count(&self, addr: &Address) -> bool {
+        info!("Checking user balance and incrementing proof count for address {}", addr);
         if self.user_balance_is_unlocked(addr).await {
             return false;
         }
@@ -606,6 +624,12 @@ impl Batcher {
         let user_proofs_in_batch = batch_state.get_user_proof_count(addr) + 1;
 
         let user_balance = self.get_user_balance(addr).await;
+
+        info!(
+            "User balance for address {addr} is {balance}",
+            addr = addr,
+            balance = user_balance
+        );
 
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
         if user_balance < min_balance {

@@ -114,6 +114,10 @@ pub async fn send_messages(
                 error!("Invalid replacement message!");
                 return Err(SubmitError::InvalidReplacementMessage);
             }
+            ValidityResponseMessage::InvalidPaymentServiceAddress => {
+                error!("Invalid payment service address!");
+                return Err(SubmitError::InvalidPaymentServiceAddress);
+            }
         };
 
         sent_verification_data.push(verification_data.clone());

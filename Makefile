@@ -94,6 +94,10 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
+anvil_start_with_block_time_as_holesky:
+	@echo "Starting Anvil..."
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 --chain-id 17000
+
 aggregator_start:
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
