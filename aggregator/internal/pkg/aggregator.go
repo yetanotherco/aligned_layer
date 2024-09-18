@@ -284,7 +284,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 			// If Aggregator successfully responds to task we acquire the task mutex and
-			// remove task information from the aggregator maps to prevent memory growth.
+			// remove task information from the aggregator maps to prevent a memory leak.
 			agg.taskMutex.Lock()
 			agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
 			delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
