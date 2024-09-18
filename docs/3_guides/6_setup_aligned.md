@@ -415,25 +415,25 @@ make batcher_send_risc0_burst
 <details>
 <summary>Plonk</summary>
 
-Send an individual bn254 proof:
+Send an individual BN254 proof:
 
 ```bash
 make batcher_send_plonk_bn254_task
 ```
 
-Send a burst of 15 bn254 proofs:
+Send a burst of 15 BN254 proofs:
 
 ```bash
 make batcher_send_plonk_bn254_burst
 ```
 
-Send an individual bl12 proof:
+Send an individual BLS12-381 proof:
 
 ```bash
 make batcher_send_plonk_bls12_381_task
 ```
 
-Send a burst of 15 bl12 proofs:
+Send a burst of 15 BLS12-381 proofs:
 
 ```bash
 make batcher_send_plonk_bls12_381_burst
@@ -444,19 +444,19 @@ make batcher_send_plonk_bls12_381_burst
 <details>
 <summary>Groth16</summary>
 
-Send an individual bn254 proof:
+Send an individual BN254 proof:
 
 ```bash
 make batcher_send_groth16_bn254_task
 ```
 
-Send bn254 proofs indefinitely:
+Send BN254 proofs indefinitely:
 
 ```bash
 make batcher_send_infinite_groth16
 ```
 
-Send bn254 proof bursts indefinitely:
+Send BN254 proof bursts indefinitely:
 
 ```bash
 make batcher_send_burst_groth16
