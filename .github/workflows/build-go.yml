@@ -35,8 +35,9 @@ jobs:
         run: make build_halo2_ipa_linux
       - name: Build Merkle Tree bindings
         run: make build_merkle_tree_linux
+      - name: Build Old Merkle Tree bindings
+        run: make build_merkle_tree_linux_old
       - name: Build operator
-        run: 
-          LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib && go build operator/cmd/main.go
+        run: go build operator/cmd/main.go
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
