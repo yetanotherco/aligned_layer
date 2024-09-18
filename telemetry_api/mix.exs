@@ -41,7 +41,9 @@ defmodule TelemetryApi.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      {:ex_keccak, "~> 0.7.5"},
+      {:ex_secp256k1, "~> 0.7"},
     ]
   end
 

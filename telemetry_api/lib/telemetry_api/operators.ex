@@ -50,6 +50,9 @@ defmodule TelemetryApi.Operators do
 
   """
   def create_operator(attrs \\ %{}) do
+    # Get address from the signature
+    address = SignatureVerifier.get_address(attrs["version"], attrs["signature"])
+    attrs = Map.put(attrs, "address", address)
     %Operator{}
     |> Operator.changeset(attrs)
     |> Repo.insert()
