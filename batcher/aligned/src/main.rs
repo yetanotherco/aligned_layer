@@ -218,7 +218,7 @@ pub struct GetUserBalanceArgs {
 }
 
 #[derive(Debug, Clone, ValueEnum)]
-pub enum ChainArg {
+enum ChainArg {
     Devnet,
     Holesky,
     HoleskyStage,
@@ -631,7 +631,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     })
 }
 
-pub async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
+async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
     match err {
         SubmitError::InvalidNonce => {
             error!("Invalid nonce. try again");
@@ -651,30 +651,27 @@ pub async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
     });
 }
 
-pub fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
+fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
     std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
 }
 
-pub fn read_file_option(
-    param_name: &str,
-    file_name: Option<PathBuf>,
-) -> Result<Vec<u8>, SubmitError> {
+fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<u8>, SubmitError> {
     let file_name = file_name.ok_or(SubmitError::MissingRequiredParameter(
         param_name.to_string(),
     ))?;
     read_file(file_name)
 }
 
-pub fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
+fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
     std::fs::write(file_name, content)
         .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
 }
 
-pub fn delete_file(file_name: &str) -> Result<(), io::Error> {
+fn delete_file(file_name: &str) -> Result<(), io::Error> {
     std::fs::remove_file(file_name)
 }
 
-pub async fn get_nonce(
+async fn get_nonce(
     eth_rpc_url: &str,
     address: Address,
     batcher_contract_addr: &str,
@@ -729,7 +726,7 @@ fn save_response(
     Ok(())
 }
 
-pub async fn get_user_balance(
+async fn get_user_balance(
     provider: Provider<Http>,
     contract_address: Address,
     user_address: Address,
