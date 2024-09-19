@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.1" }
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", rev = "6908110aaa04ec3107f15ab8a8bb2603e7bbead9" }
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag = "v0.6.0" }
 ethers = { tag = "v2.0.15-fix-reconnections", features = [
     "ws",
     "rustls",

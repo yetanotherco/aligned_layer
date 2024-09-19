@@ -1,4 +1,5 @@
 defmodule Explorer.Periodically do
+  require Logger
   alias Phoenix.PubSub
   use GenServer
 
@@ -52,7 +53,7 @@ defmodule Explorer.Periodically do
   end
 
   def process_batches(fromBlock, toBlock) do
-    "Processing from block #{fromBlock} to block #{toBlock}..." |> IO.inspect()
+    "Processing from block #{fromBlock} to block #{toBlock}..." |> Logger.debug()
 
     try do
       AlignedLayerServiceManager.get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock})
@@ -60,23 +61,23 @@ defmodule Explorer.Periodically do
       # This function will avoid processing a batch taken by another process
       |> Enum.map(&process_batch_if_not_in_other_process/1)
     rescue
-      error -> IO.puts("An error occurred during batch processing:\n#{inspect(error)}")
+      error -> Logger.error("An error occurred during batch processing:\n#{inspect(error)}")
     end
 
-    IO.inspect("Done processing from block #{fromBlock} to block #{toBlock}")
+    Logger.debug("Done processing from block #{fromBlock} to block #{toBlock}")
   end
 
   def process_batch_if_not_in_other_process(%BatchDB{} = batch) do
-    "Starting batch: #{batch.merkle_root}" |> IO.inspect()
+    "Starting batch: #{batch.merkle_root}" |> Logger.debug()
     # Don't process same twice concurrently
     # one lock for each batch
     case Mutex.lock(BatchMutex, {batch.merkle_root}) do
       {:error, :busy} ->
-        "Batch already being processed: #{batch.merkle_root}" |> IO.inspect()
+        "Batch already being processed: #{batch.merkle_root}" |> Logger.debug()
         nil
 
       {:ok, lock} ->
-        "Processing batch: #{batch.merkle_root}" |> IO.inspect()
+        "Processing batch: #{batch.merkle_root}" |> Logger.debug()
 
         {batch_changeset, proofs} =
           batch
@@ -95,21 +96,20 @@ defmodule Explorer.Periodically do
             })
 
           {:error, error} ->
-            IO.puts("Some error in DB operation, not broadcasting update_views")
-            IO.inspect(error)
+            Logger.error("Some error in DB operation, not broadcasting update_views: #{inspect(error)}")
 
           # no changes in DB
           nil ->
             nil
         end
 
-        "Done processing batch: #{batch.merkle_root}" |> IO.inspect()
+        "Done processing batch: #{batch.merkle_root}" |> Logger.debug()
         Mutex.release(BatchMutex, lock)
     end
   end
 
   defp process_unverified_batches() do
-    "Verifying previous unverified batches..." |> IO.inspect()
+    "Verifying previous unverified batches..." |> Logger.debug()
     unverified_batches = Batches.get_unverified_batches()
 
     array_of_changest_tuples =
@@ -127,18 +127,18 @@ defmodule Explorer.Periodically do
   end
 
   def process_quorum_strategy_changes() do
-    "Processing strategy changes..." |> IO.inspect()
+    "Processing strategy changes..." |> Logger.debug()
     AlignedLayerServiceManager.update_restakeable_strategies()
     Quorums.process_quorum_changes()
   end
 
   def process_operators(fromBlock) do
-    "Processing operators..." |> IO.inspect()
+    "Processing operators..." |> Logger.debug()
     AVSDirectoryManager.process_and_store_operator_data(%{fromBlock: fromBlock})
   end
 
   def process_restaking_changes(read_from_block) do
-    "Processing restaking changes..." |> IO.inspect()
+    "Processing restaking changes..." |> Logger.debug()
     Restakings.process_restaking_changes(%{fromBlock: read_from_block})
   end
 end

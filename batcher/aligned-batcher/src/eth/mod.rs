@@ -24,6 +24,30 @@ const INITIAL_BACKOFF: u64 = 1000; // Initial backoff for the retry client in mi
 const GAS_MULTIPLIER: f64 = 1.125; // Multiplier for the gas price for gas escalator
 const GAS_ESCALATOR_INTERVAL: u64 = 12; // Time in seconds between gas escalations
 
+#[derive(Debug, Clone)]
+pub struct CreateNewTaskFeeParams {
+    pub fee_for_aggregator: U256,
+    pub fee_per_proof: U256,
+    pub gas_price: U256,
+    pub respond_to_task_fee_limit: U256,
+}
+
+impl CreateNewTaskFeeParams {
+    pub fn new(
+        fee_for_aggregator: U256,
+        fee_per_proof: U256,
+        gas_price: U256,
+        respond_to_task_fee_limit: U256,
+    ) -> Self {
+        CreateNewTaskFeeParams {
+            fee_for_aggregator,
+            fee_per_proof,
+            gas_price,
+            respond_to_task_fee_limit,
+        }
+    }
+}
+
 pub fn get_provider(eth_rpc_url: String) -> Result<Provider<RetryClient<Http>>, anyhow::Error> {
     let provider = Http::from_str(eth_rpc_url.as_str())
         .map_err(|e| anyhow::Error::msg(format!("Failed to create provider: {}", e)))?;
@@ -69,18 +93,20 @@ pub async fn try_create_new_task(
     batch_data_pointer: String,
     padded_leaves: Vec<[u8; 32]>,
     signatures: Vec<SignatureData>,
-    gas_for_aggregator: U256,
-    gas_per_proof: U256,
+    fee_params: CreateNewTaskFeeParams,
     payment_service: &BatcherPaymentService,
 ) -> Result<TransactionReceipt, BatcherSendError> {
-    let call = payment_service.create_new_task(
-        batch_merkle_root,
-        batch_data_pointer,
-        padded_leaves,
-        signatures,
-        gas_for_aggregator,
-        gas_per_proof,
-    );
+    let call = payment_service
+        .create_new_task(
+            batch_merkle_root,
+            batch_data_pointer,
+            padded_leaves,
+            signatures,
+            fee_params.fee_for_aggregator,
+            fee_params.fee_per_proof,
+            fee_params.respond_to_task_fee_limit,
+        )
+        .gas_price(fee_params.gas_price);
 
     info!("Creating task for: {}", hex::encode(batch_merkle_root));
 

@@ -8,9 +8,9 @@ defmodule ContractsComponent do
     {:ok,
      assign(socket,
        service_manager_address:
-         AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
+          AlignedLayerServiceManager.get_aligned_layer_service_manager_address(),
        batcher_payment_service_address:
-         AlignedLayerServiceManager.get_batcher_payment_service_address(),
+          BatcherPaymentServiceManager.get_batcher_payment_service_address(),
        network: System.get_env("ENVIRONMENT")
      )}
   end

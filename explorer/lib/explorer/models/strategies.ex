@@ -1,4 +1,5 @@
 defmodule Strategies do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -58,7 +59,7 @@ defmodule Strategies do
   end
 
   def add_strategy(%Strategies{} = new_strategy) do
-    dbg "adding strategy"
+    "Adding strategy" |> Logger.debug()
     Strategies.generate_changeset(new_strategy) |> Explorer.Repo.insert()
   end
   def add_strategy({:error, _error}) do
@@ -98,4 +99,18 @@ defmodule Strategies do
     Strategies.changeset(strategy, %{total_staked: new_stake})
   end
 
+  def discount_restaking(restaking) do
+    query = from(s in Strategies,
+      where: s.strategy_address == ^restaking.strategy_address,
+      select: s)
+    strategy = Explorer.Repo.one(query)
+
+    new_stake =
+      strategy.total_staked
+      |> Decimal.sub(restaking.stake)
+      |> (fn stake -> if Decimal.compare(stake, 0) == :lt, do: Decimal.new(0), else: stake end).()
+      
+    Strategies.changeset(strategy, %{total_staked: new_stake}) |> Explorer.Repo.update()
+
+  end
 end

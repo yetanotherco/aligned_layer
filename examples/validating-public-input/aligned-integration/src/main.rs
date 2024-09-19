@@ -50,6 +50,7 @@ async fn main() -> Result<(), SubmitError> {
         proof_generator_addr,
     };
 
+    // Create a wallet and set chain id to holesky
     let wallet = LocalWallet::from_str(WALLET_PRIVATE_KEY)
         .expect("Failed to create wallet")
         .with_chain_id(17000u64);
@@ -70,11 +71,18 @@ async fn main() -> Result<(), SubmitError> {
     )
     .await?;
 
-    let batch_inclusion_data_directory_path = PathBuf::from("./batch_inclusion_data");
+    let batch_inclusion_data_directory_path = PathBuf::from("batch_inclusion_data");
 
     info!(
         "Saving verification data to {:?}",
         batch_inclusion_data_directory_path
+    );
+
+    info!("Proof submitted to aligned. See the batch in the explorer:");
+
+    info!(
+        "https://explorer.alignedlayer.com/batches/0x{}",
+        hex::encode(aligned_verification_data.batch_merkle_root)
     );
 
     save_response(

@@ -276,6 +276,7 @@ aligned submit \
   --public_input <pub_input_file_path> \
   --conn wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr> \
+  --chain holesky \
   --rpc https://ethereum-holesky-rpc.publicnode.com \
   --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```

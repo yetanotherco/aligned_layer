@@ -193,8 +193,9 @@ pub async fn get_operator_version(
         return Err(OperatorVersionError::BadRequest);
     }
 
+    let lowercase_address = address.to_lowercase();
     sqlx::query_as::<_, OperatorVersion>("SELECT * FROM operator_versions WHERE address = $1")
-        .bind(address)
+        .bind(lowercase_address)
         .fetch_optional(db)
         .await
         .map_err(|_| OperatorVersionError::InternalServerError)
