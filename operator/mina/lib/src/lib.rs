@@ -234,4 +234,34 @@ mod test {
             verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
         assert!(!result);
     }
+
+    #[test]
+    fn empty_mina_state_proof_does_not_verify() {
+        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let proof_size = PROOF_BYTES.len();
+
+        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
+        let pub_input_size = PUB_INPUT_BYTES.len();
+        assert!(pub_input_size <= pub_input_buffer.len());
+        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
+
+        let result =
+            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
+        assert!(!result);
+    }
+
+    #[test]
+    fn valid_mina_state_proof_with_empty_pub_input_does_not_verify() {
+        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let proof_size = PROOF_BYTES.len();
+        assert!(proof_size <= proof_buffer.len());
+        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
+
+        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
+        let pub_input_size = PUB_INPUT_BYTES.len();
+
+        let result =
+            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
+        assert!(!result);
+    }
 }
