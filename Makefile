@@ -576,7 +576,7 @@ test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
 	@echo "Testing Old Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree_old/... -v
 
-test_merkle_tree_go_bindings_linux: build_merkle_tree_linux_old
+test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree_old/... -v
 
