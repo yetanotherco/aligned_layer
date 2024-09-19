@@ -27,7 +27,10 @@ go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 # Set default values for RPC and BATCHER if they are not set
 RPC=${RPC:-http://localhost:8545}
 BATCHER_CONN=${BATCHER_CONN:-ws://localhost:8080}
-NETWORK="devnet"
+if [ -z "$NETWORK" ]; then
+    echo "NETWORK is not set. Setting it to devnet"
+    NETWORK="devnet"
+fi
 
 cmd=(
     ./batcher/target/release/aligned
