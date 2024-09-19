@@ -109,15 +109,16 @@ async fn main() {
             let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
                 .await
                 .expect("Failed to get next nonce");
-
+            let max_fee: U256 = U256::from(10000000000000000u128);
+            
             match submit_and_wait_verification(
                 BATCHER_URL,
                 &rpc_url,
                 Chain::Holesky,
                 &verification_data,
+                max_fee,
                 wallet.clone(),
                 nonce,
-                BATCHER_PAYMENTS_ADDRESS,
             )
             .await
             {

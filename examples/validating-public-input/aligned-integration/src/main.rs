@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::core::errors::SubmitError;
-use aligned_sdk::core::types::Chain::Holesky;
+use aligned_sdk::core::types::Network;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
 use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use env_logger::Env;
@@ -13,9 +13,9 @@ use ethers::signers::{LocalWallet, Signer};
 use ethers::types::Address;
 use ethers::utils::hex;
 use log::info;
+use ethers::types::U256;
 
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
-const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
 const RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
 const PROOF_FILE_PATH: &str = "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof";
 const PUB_INPUT_FILE_PATH: &str = "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub";
@@ -24,6 +24,7 @@ const IMAGE_ID_FILE_PATH: &str =
 const PROOF_GENERATOR_ADDRESS: &str = "0x66f9664f97F2b50F62D13eA064982f936dE76657";
 // Set to the 9th address of anvil that doesn't pay for the proof submission
 const WALLET_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
+const NETWORK: Network = Network::Holesky;
 
 #[tokio::main]
 async fn main() -> Result<(), SubmitError> {
@@ -55,20 +56,23 @@ async fn main() -> Result<(), SubmitError> {
         .expect("Failed to create wallet")
         .with_chain_id(17000u64);
 
-    let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
+    let nonce = get_next_nonce(RPC_URL, wallet.address(), &NETWORK)
         .await
         .expect("Failed to get next nonce");
+
+    let max_fee: U256 = U256::from(10000000000000000u128);
 
     info!("Submitting Fibonacci proof to Aligned and waiting for verification...");
     let aligned_verification_data = submit_and_wait_verification(
         BATCHER_URL,
         RPC_URL,
-        Holesky,
+        &NETWORK,
         &verification_data,
+        max_fee,
         wallet,
         nonce,
-        BATCHER_PAYMENTS_ADDRESS,
     )
+
     .await?;
 
     let batch_inclusion_data_directory_path = PathBuf::from("batch_inclusion_data");

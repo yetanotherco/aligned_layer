@@ -67,6 +67,7 @@ fn main() {
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
         .with_chain_id(17000u64);
+    let max_fee: U256 = 10000000000000000; //0.01 ETH
 
     // Call to SDK:
     match submit_and_wait_verification(
@@ -74,6 +75,7 @@ fn main() {
         &rpc_url,
         Network::Holesky,
         &verification_data,
+        max_fee,
         wallet.clone(),
         nonce
     )
