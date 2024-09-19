@@ -249,7 +249,6 @@ batcher_send_sp1_burst:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-# TODO is compatible with new params?
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
 	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
@@ -334,13 +333,11 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-# TODO is compatible with new params?
 batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
 	@./batcher/aligned/send_infinite_tasks.sh 4
 
-# TODO is compatible with new params?
 batcher_send_burst_groth16: batcher/target/release/aligned
 	@echo "Sending a burst of tasks to Batcher..."
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
