@@ -201,7 +201,7 @@ pub struct GetUserBalanceArgs {
 }
 
 #[derive(Debug, Clone, ValueEnum)]
-enum ChainArg {
+pub enum ChainArg {
     Devnet,
     Holesky,
     HoleskyStage,
@@ -601,7 +601,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     })
 }
 
-async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
+pub async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
     match err {
         SubmitError::InvalidNonce => {
             error!("Invalid nonce. try again");
@@ -621,27 +621,30 @@ async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
     });
 }
 
-fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
+pub fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
     std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
 }
 
-fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<u8>, SubmitError> {
+pub fn read_file_option(
+    param_name: &str,
+    file_name: Option<PathBuf>,
+) -> Result<Vec<u8>, SubmitError> {
     let file_name = file_name.ok_or(SubmitError::MissingRequiredParameter(
         param_name.to_string(),
     ))?;
     read_file(file_name)
 }
 
-fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
+pub fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
     std::fs::write(file_name, content)
         .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
 }
 
-fn delete_file(file_name: &str) -> Result<(), io::Error> {
+pub fn delete_file(file_name: &str) -> Result<(), io::Error> {
     std::fs::remove_file(file_name)
 }
 
-async fn get_nonce(
+pub async fn get_nonce(
     eth_rpc_url: &str,
     address: Address,
     network: Network,
