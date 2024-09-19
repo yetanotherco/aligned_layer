@@ -121,3 +121,133 @@ pub(crate) fn calculate_batch_size(
         )))
     }
 }
+
+pub(crate) fn try_build_batch(
+    batch_queue_copy: &mut BatchQueue,
+    gas_price: U256,
+    max_batch_size: usize,
+) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
+    let mut batch_size = calculate_batch_size(batch_queue_copy)?;
+    let mut resulting_priority_queue =
+        PriorityQueue::<BatchQueueEntry, BatchQueueEntryPriority>::new();
+
+    while let Some((entry, _)) = batch_queue_copy.peek() {
+        let batch_len = batch_queue_copy.len();
+        let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
+
+        if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee {
+            // Update the state for the next iteration
+
+            // It is safe to call `.unwrap()` here since any serialization error should have been caught
+            // when calculating the total size of the batch with the `calculate_batch_size` function
+            let verification_data_size =
+                cbor_serialize(&entry.nonced_verification_data.verification_data)
+                    .unwrap()
+                    .len();
+
+            batch_size -= verification_data_size;
+
+            let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
+            resulting_priority_queue.push(not_working_entry, not_woring_priority);
+
+            continue;
+        }
+
+        // At this point, we break since we found a batch that can be submitted
+        break;
+    }
+
+    let batch = batch_queue_copy.clone().into_sorted_vec();
+
+    // If `batch` is empty, this means that all the batch queue was traversed and we didn't find
+    // any user willing to pay fot the fee per proof.
+    if batch.is_empty() {
+        return Err(BatcherError::BatchCostTooHigh);
+    }
+
+    Ok((
+        resulting_priority_queue,
+        batch_queue_copy.clone().into_sorted_vec(),
+    ))
+}
+
+fn calculate_fee_per_proof(batch_len: usize, gas_price: U256) -> U256 {
+    let gas_per_proof = (crate::CONSTANT_GAS_COST
+        + crate::ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
+        / batch_len as u128;
+
+    U256::from(gas_per_proof) * gas_price
+}
+
+#[cfg(test)]
+mod test {
+    use aligned_sdk::core::types::ProvingSystemId;
+    use aligned_sdk::core::types::VerificationData;
+    use ethers::core::rand::thread_rng;
+    use ethers::signers::LocalWallet;
+    use ethers::signers::Signer;
+    use futures_util::StreamExt;
+    use tokio::net::UnixStream;
+
+    use super::*;
+
+    #[tokio::test]
+    fn batch_finalization_algorithm_works_from_same_sender() {
+        // let stream = TcpStream::connect("test_stream").await.unwrap();
+        let stream = TcpStream::connect(addr);
+        let ws_conn = tokio_tungstenite::accept_async(stream).await.unwrap();
+        let (sink, _) = ws_conn.split(););
+
+        let mut batch_queue = BatchQueue::new();
+        // The following information will be the same for each entry, it is just some dummy data to see
+        // algorithm working.
+        let proof_generator_addr = LocalWallet::new(&mut thread_rng()).address();
+        let payment_service_addr = LocalWallet::new(&mut thread_rng()).address();
+        let sender_addr = LocalWallet::new(&mut thread_rng()).address();
+        let some_bytes = vec![42_u8; 10];
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Risc0,
+            proof: some_bytes.clone(),
+            pub_input: Some(some_bytes.clone()),
+            verification_key: Some(some_bytes.clone()),
+            vm_program_code: Some(some_bytes),
+            proof_generator_addr: proof_generator_addr,
+        };
+        let chain_id = U256::from(42);
+
+        // Here we create different entries for the batch queue.
+
+        // Entry 1
+        let nonce_1 = U256::from(1);
+        let max_fee_1 = U256::from(10);
+        let nonced_verification_data_1 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_1,
+            max_fee_1,
+            chain_id,
+            payment_service_addr,
+        );
+
+        // Entry 2
+        let nonce_2 = U256::from(2);
+        let max_fee_2 = U256::from(8);
+        let nonced_verification_data_2 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_2,
+            max_fee_2,
+            chain_id,
+            payment_service_addr,
+        );
+
+        // Entry 3
+        let nonce_3 = U256::from(3);
+        let max_fee_3 = U256::from(5);
+        let nonced_verification_data_3 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_3,
+            max_fee_3,
+            chain_id,
+            payment_service_addr,
+        );
+    }
+}
