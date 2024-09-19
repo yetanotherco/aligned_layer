@@ -19,20 +19,20 @@ pub extern "C" fn verify_account_inclusion_ffi(
     pub_input_buffer: &[u8; MAX_PUB_INPUT_SIZE],
     pub_input_len: usize,
 ) -> bool {
-    if proof_len > MAX_PROOF_SIZE {
+    let Some(proof_buffer_slice) = proof_buffer.get(..proof_len) else {
         eprintln!("Proof length argument is greater than max proof size");
         return false;
-    }
+    };
 
-    if pub_input_len > MAX_PUB_INPUT_SIZE {
+    let Some(pub_input_buffer_slice) = pub_input_buffer.get(..pub_input_len) else {
         eprintln!("Public input length argument is greater than max public input size");
         return false;
-    }
+    };
 
     let MinaAccountProof {
         merkle_path,
         account,
-    } = match bincode::deserialize(&proof_buffer[..proof_len]) {
+    } = match bincode::deserialize(proof_buffer_slice) {
         Ok(proof) => proof,
         Err(err) => {
             eprintln!("Failed to deserialize account proof: {}", err);
@@ -42,7 +42,7 @@ pub extern "C" fn verify_account_inclusion_ffi(
     let MinaAccountPubInputs {
         ledger_hash,
         encoded_account,
-    } = match bincode::deserialize(&pub_input_buffer[..pub_input_len]) {
+    } = match bincode::deserialize(pub_input_buffer_slice) {
         Ok(pub_inputs) => pub_inputs,
         Err(err) => {
             eprintln!("Failed to deserialize account pub inputs: {}", err);
