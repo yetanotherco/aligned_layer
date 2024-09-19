@@ -10,7 +10,7 @@ use aligned_sdk::communication::serialization::cbor_deserialize;
 use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
-    types::{AlignedVerificationData, Environment, ProvingSystemId, VerificationData},
+    types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
@@ -115,11 +115,11 @@ pub struct SubmitArgs {
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
     #[arg(
-        name = "The working environment's name",
-        long = "environment",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    environment: EnvironmentArg,
+    network: NetworkArg,
 }
 
 #[derive(Parser, Debug)]
@@ -138,11 +138,11 @@ pub struct DepositToBatcherArgs {
     )]
     eth_rpc_url: String,
     #[arg(
-        name = "The working environment's name",
-        long = "environment",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    environment: EnvironmentArg,
+    network: NetworkArg,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
     amount: String,
 }
@@ -159,11 +159,11 @@ pub struct VerifyProofOnchainArgs {
     )]
     eth_rpc_url: String,
     #[arg(
-        name = "The working environment's name",
-        long = "environment",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    environment: EnvironmentArg,
+    network: NetworkArg,
 }
 
 #[derive(Parser, Debug)]
@@ -181,11 +181,11 @@ pub struct GetVkCommitmentArgs {
 #[command(version, about, long_about = None)]
 pub struct GetUserBalanceArgs {
     #[arg(
-        name = "The working environment's name",
-        long = "environment",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    environment: EnvironmentArg,
+    network: NetworkArg,
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
@@ -201,28 +201,28 @@ pub struct GetUserBalanceArgs {
 }
 
 #[derive(Debug, Clone, ValueEnum)]
-enum EnvironmentArg {
+enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
 }
 
-impl From<EnvironmentArg> for Environment {
-    fn from(env_arg: EnvironmentArg) -> Self {
+impl From<NetworkArg> for Network {
+    fn from(env_arg: NetworkArg) -> Self {
         match env_arg {
-            EnvironmentArg::Devnet => Environment::Devnet,
-            EnvironmentArg::Holesky => Environment::Holesky,
-            EnvironmentArg::HoleskyStage => Environment::HoleskyStage,
+            NetworkArg::Devnet => Network::Devnet,
+            NetworkArg::Holesky => Network::Holesky,
+            NetworkArg::HoleskyStage => Network::HoleskyStage,
         }
     }
 }
 
-impl From<&EnvironmentArg> for Environment {
-    fn from(env_arg: &EnvironmentArg) -> Self {
+impl From<&NetworkArg> for Network {
+    fn from(env_arg: &NetworkArg) -> Self {
         match env_arg {
-            EnvironmentArg::Devnet => Environment::Devnet,
-            EnvironmentArg::Holesky => Environment::Holesky,
-            EnvironmentArg::HoleskyStage => Environment::HoleskyStage,
+            NetworkArg::Devnet => Network::Devnet,
+            NetworkArg::Holesky => Network::Holesky,
+            NetworkArg::HoleskyStage => Network::HoleskyStage,
         }
     }
 }
@@ -314,7 +314,7 @@ async fn main() -> Result<(), AlignedError> {
                     get_nonce(
                         &eth_rpc_url,
                         wallet.address(),
-                        &(&submit_args.environment).into(),
+                        &(&submit_args.network).into(),
                         repetitions
                     )
                     .await?
@@ -331,7 +331,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let aligned_verification_data_vec = match submit_multiple(
                 &connect_addr,
-                &(&submit_args.environment).into(),
+                &(&submit_args.network).into(),
                 &verification_data_arr,
                 &max_fees,
                 wallet.clone(),
@@ -385,7 +385,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Verifying response data matches sent proof data...");
             let response = is_proof_verified(
                 &aligned_verification_data,
-                &verify_inclusion_args.environment.into(),
+                &verify_inclusion_args.network.into(),
                 &verify_inclusion_args.eth_rpc_url,
             )
             .await?;
@@ -469,7 +469,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let batcher_addr = get_payment_service_address(&deposit_to_batcher_args.environment.into());
+            let batcher_addr = get_payment_service_address(&deposit_to_batcher_args.network.into());
 
             let tx = TransactionRequest::new()
                 .to(batcher_addr)
@@ -522,7 +522,7 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let batcher_addr = get_payment_service_address(&get_user_balance_args.environment.into());
+            let batcher_addr = get_payment_service_address(&get_user_balance_args.network.into());
 
             let balance = get_user_balance(eth_rpc_provider, batcher_addr, user_address)
                 .await
@@ -644,10 +644,10 @@ fn delete_file(file_name: &str) -> Result<(), io::Error> {
 async fn get_nonce(
     eth_rpc_url: &str,
     address: Address,
-    environment: &Environment,
+    network: &Network,
     proof_count: usize,
 ) -> Result<U256, AlignedError> {
-    let nonce = get_next_nonce(eth_rpc_url, address, environment).await?;
+    let nonce = get_next_nonce(eth_rpc_url, address, network).await?;
 
     let nonce_file = format!("nonce_{:?}.bin", address);
 
