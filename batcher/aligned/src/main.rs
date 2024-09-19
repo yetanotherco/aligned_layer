@@ -14,8 +14,8 @@ use aligned_sdk::core::{
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use aligned_sdk::sdk::get_payment_service_address;
+use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -315,7 +315,7 @@ async fn main() -> Result<(), AlignedError> {
                         &eth_rpc_url,
                         wallet.address(),
                         &(&submit_args.network).into(),
-                        repetitions
+                        repetitions,
                     )
                     .await?
                 }
@@ -421,12 +421,13 @@ async fn main() -> Result<(), AlignedError> {
 
             let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
-            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url.clone()).map_err(|e| {
-                SubmitError::EthereumProviderError(format!(
-                    "Error while connecting to Ethereum: {}",
-                    e
-                ))
-            })?;
+            let eth_rpc_provider =
+                Provider::<Http>::try_from(eth_rpc_url.clone()).map_err(|e| {
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while connecting to Ethereum: {}",
+                        e
+                    ))
+                })?;
 
             let keystore_path = &deposit_to_batcher_args.keystore_path;
 

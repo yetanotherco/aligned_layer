@@ -4,7 +4,8 @@ use crate::{
     core::{
         errors,
         types::{
-            AlignedVerificationData, BatchInclusionData, Network, VerificationCommitmentBatch, VerificationDataCommitment
+            AlignedVerificationData, BatchInclusionData, Network, VerificationCommitmentBatch,
+            VerificationDataCommitment,
         },
     },
     sdk::is_proof_verified,
@@ -45,13 +46,9 @@ pub async fn await_batch_verification(
     network: &Network,
 ) -> Result<(), errors::SubmitError> {
     for _ in 0..RETRIES {
-        if is_proof_verified(
-            aligned_verification_data,
-            network,
-            rpc_url,
-        )
-        .await
-        .is_ok_and(|r| r)
+        if is_proof_verified(aligned_verification_data, network, rpc_url)
+            .await
+            .is_ok_and(|r| r)
         {
             return Ok(());
         }

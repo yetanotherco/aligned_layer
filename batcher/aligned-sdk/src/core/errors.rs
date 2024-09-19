@@ -115,7 +115,9 @@ impl From<VerificationError> for SubmitError {
             VerificationError::HexDecodingError(e) => SubmitError::HexDecodingError(e.to_string()),
             VerificationError::EthereumProviderError(e) => SubmitError::EthereumProviderError(e),
             VerificationError::EthereumCallError(e) => SubmitError::EthereumProviderError(e),
-            VerificationError::EthereumNotAContract(address) => {SubmitError::InvalidEthereumAddress(address.to_string())}
+            VerificationError::EthereumNotAContract(address) => {
+                SubmitError::InvalidEthereumAddress(address.to_string())
+            }
         }
     }
 }
@@ -180,7 +182,9 @@ impl fmt::Display for SubmitError {
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
-            SubmitError::InvalidPaymentServiceAddress => write!(f, "Invalid payment service address"),
+            SubmitError::InvalidPaymentServiceAddress => {
+                write!(f, "Invalid payment service address")
+            }
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }
     }

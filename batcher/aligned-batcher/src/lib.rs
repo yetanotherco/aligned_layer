@@ -615,7 +615,10 @@ impl Batcher {
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
     async fn check_user_balance_and_increment_proof_count(&self, addr: &Address) -> bool {
-        info!("Checking user balance and incrementing proof count for address {}", addr);
+        info!(
+            "Checking user balance and incrementing proof count for address {}",
+            addr
+        );
         if self.user_balance_is_unlocked(addr).await {
             return false;
         }

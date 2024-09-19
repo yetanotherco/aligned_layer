@@ -7,7 +7,8 @@ use crate::{
     core::{
         errors,
         types::{
-            AlignedVerificationData, Network, ProvingSystemId, VerificationData, VerificationDataCommitment
+            AlignedVerificationData, Network, ProvingSystemId, VerificationData,
+            VerificationDataCommitment,
         },
     },
     eth::{
@@ -85,12 +86,7 @@ pub async fn submit_multiple_and_wait_verification(
     .await?;
 
     for aligned_verification_data_item in aligned_verification_data.iter() {
-        await_batch_verification(
-            aligned_verification_data_item,
-            eth_rpc_url,
-            network,
-        )
-        .await?;
+        await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await?;
     }
 
     Ok(aligned_verification_data)
@@ -150,23 +146,23 @@ pub async fn submit_multiple(
     .await
 }
 
-pub fn get_payment_service_address(
-    network: &Network,
-) -> ethers::types::H160 {
+pub fn get_payment_service_address(network: &Network) -> ethers::types::H160 {
     match network {
         Network::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
         Network::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
-        Network::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap(),
+        Network::HoleskyStage => {
+            H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
+        }
     }
 }
 
-pub fn get_aligned_service_manager_address(
-    network: &Network,
-) -> ethers::types::H160 {
+pub fn get_aligned_service_manager_address(network: &Network) -> ethers::types::H160 {
     match network {
         Network::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
         Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
-        Network::HoleskyStage => H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap(),
+        Network::HoleskyStage => {
+            H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
+        }
     }
 }
 
@@ -199,16 +195,16 @@ async fn _submit_multiple(
     let sent_verification_data = {
         // The sent verification data will be stored here so that we can calculate
         // their commitments later.
-            send_messages(
-                response_stream.clone(),
-                ws_write,
-                payment_service_addr,
-                verification_data,
-                max_fees,
-                wallet,
-                nonce,
-            )
-            .await?
+        send_messages(
+            response_stream.clone(),
+            ws_write,
+            payment_service_addr,
+            verification_data,
+            max_fees,
+            wallet,
+            nonce,
+        )
+        .await?
     };
 
     let num_responses = Arc::new(Mutex::new(0));
@@ -363,12 +359,7 @@ pub async fn is_proof_verified(
             errors::VerificationError::EthereumProviderError(e.to_string())
         })?;
 
-    _is_proof_verified(
-        aligned_verification_data,
-        network,
-        eth_rpc_provider,
-    )
-    .await
+    _is_proof_verified(aligned_verification_data, network, eth_rpc_provider).await
 }
 
 async fn _is_proof_verified(
@@ -376,7 +367,7 @@ async fn _is_proof_verified(
     network: &Network,
     eth_rpc_provider: Provider<Http>,
 ) -> Result<bool, errors::VerificationError> {
-    let contract_address = get_aligned_service_manager_address(network); 
+    let contract_address = get_aligned_service_manager_address(network);
     let payment_service_addr = get_payment_service_address(network);
 
     // All the elements from the merkle proof have to be concatenated
