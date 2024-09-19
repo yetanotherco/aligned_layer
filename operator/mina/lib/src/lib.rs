@@ -237,7 +237,7 @@ mod test {
 
     #[test]
     fn empty_mina_state_proof_does_not_verify() {
-        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let proof_buffer = [0u8; super::MAX_PROOF_SIZE];
         let proof_size = PROOF_BYTES.len();
 
         let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
@@ -257,7 +257,7 @@ mod test {
         assert!(proof_size <= proof_buffer.len());
         proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
 
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
+        let pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
         let pub_input_size = PUB_INPUT_BYTES.len();
 
         let result =
