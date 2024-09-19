@@ -181,6 +181,15 @@ func (o *Operator) Start(ctx context.Context) error {
 	}
 }
 
+// Currently, Operator can handle NewBatchV2 and NewBatchV3 events.
+
+// The difference between these events do not affect the operator
+// So if you read below, handleNewBatchLogV2 and handleNewBatchLogV3
+// are identical.
+
+// This structure may help for future upgrades. Having different logics under
+// different events enables the smooth operator upgradeability
+
 // Process of handling batches from V2 events:
 func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
 	o.Logger.Infof("Received new batch log V2")
