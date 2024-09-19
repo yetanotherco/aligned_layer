@@ -541,14 +541,28 @@ build_merkle_tree_macos:
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
+build_merkle_tree_macos_old:
+	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree_old/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
+
 build_merkle_tree_linux:
 	@cd operator/merkle_tree/lib && cargo build $(RELEASE_FLAG)
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
+build_merkle_tree_linux_old:
+	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree_old/lib/libmerkle_tree.so
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
+
 test_merkle_tree_rust_ffi:
 	@echo "Testing Merkle Tree Rust FFI source code..."
 	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_merkle_tree_rust_ffi_old:
+	@echo "Testing Old Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree_old/lib && RUST_MIN_STACK=83886080 cargo t --release
 
 test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 	@echo "Testing Merkle Tree Go bindings..."
@@ -557,6 +571,14 @@ test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
+	@echo "Testing Old Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree_old/... -v
+
+test_merkle_tree_go_bindings_linux: build_merkle_tree_linux_old
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree_old/... -v
 
 __HALO2_KZG_FFI__: ##
 build_halo2_kzg_macos:
@@ -632,6 +654,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_merkle_tree_macos_old
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
 	@echo "All macOS FFIs built successfully."
@@ -641,6 +664,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_merkle_tree_linux_old
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
 	@echo "All Linux FFIs built successfully."
