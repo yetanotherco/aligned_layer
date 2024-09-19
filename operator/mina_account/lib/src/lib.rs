@@ -19,6 +19,16 @@ pub extern "C" fn verify_account_inclusion_ffi(
     pub_input_buffer: &[u8; MAX_PUB_INPUT_SIZE],
     pub_input_len: usize,
 ) -> bool {
+    if proof_len > MAX_PROOF_SIZE {
+        eprintln!("Proof length argument is greater than max proof size");
+        return false;
+    }
+
+    if pub_input_len > MAX_PUB_INPUT_SIZE {
+        eprintln!("Public input length argument is greater than max public input size");
+        return false;
+    }
+
     let MinaAccountProof {
         merkle_path,
         account,
@@ -130,6 +140,46 @@ mod test {
             proof_size,
             &pub_input_buffer,
             pub_input_size,
+        );
+        assert!(!result);
+    }
+
+    #[test]
+    fn valid_account_state_proof_with_greater_proof_size_does_not_verify() {
+        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let wrong_proof_size = MAX_PROOF_SIZE + 1;
+        proof_buffer[..PROOF_BYTES.len()].clone_from_slice(PROOF_BYTES);
+
+        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
+        let pub_input_size = PUB_INPUT_BYTES.len();
+        assert!(pub_input_size <= pub_input_buffer.len());
+        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
+
+        let result = verify_account_inclusion_ffi(
+            &proof_buffer,
+            wrong_proof_size,
+            &pub_input_buffer,
+            pub_input_size,
+        );
+        assert!(!result);
+    }
+
+    #[test]
+    fn valid_account_state_proof_with_greater_pub_input_size_does_not_verify() {
+        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let proof_size = PROOF_BYTES.len();
+        assert!(proof_size <= proof_buffer.len());
+        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
+
+        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
+        let wrong_pub_input_size = MAX_PUB_INPUT_SIZE + 1;
+        pub_input_buffer[..PUB_INPUT_BYTES.len()].clone_from_slice(PUB_INPUT_BYTES);
+
+        let result = verify_account_inclusion_ffi(
+            &proof_buffer,
+            proof_size,
+            &pub_input_buffer,
+            wrong_pub_input_size,
         );
         assert!(!result);
     }
