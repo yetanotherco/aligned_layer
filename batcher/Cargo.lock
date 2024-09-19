@@ -143,6 +143,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "aligned-task-sender"
+version = "0.1.0"
+dependencies = [
+ "aligned",
+ "aligned-sdk",
+ "clap",
+ "env_logger",
+ "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "futures-util",
+ "log",
+ "rpassword",
+ "serde",
+ "serde_json",
+ "sha3 0.10.8",
+ "tokio",
+ "tokio-tungstenite 0.24.0",
+ "url",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7342,9 +7362,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-width"
-version = "0.1.13"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0336d538f7abc86d282a4189614dfaa90810dfc2c6f6427eaf88e16311dd225d"
+checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
 
 [[package]]
 name = "unicode-xid"

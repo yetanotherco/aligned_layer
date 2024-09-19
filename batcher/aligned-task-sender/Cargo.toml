@@ -1,5 +1,5 @@
 [package]
-name = "aligned"
+name = "aligned-task-sender"
 version = "0.1.0"
 edition = "2021"
 
@@ -14,8 +14,9 @@ tokio = { version = "1.37.0", features = [
     "rt",
     "rt-multi-thread",
     "sync",
+    "process",
 ] }
-tokio-tungstenite = { version = "0.23.1", features = [
+tokio-tungstenite = { version = "0.24.0", features = [
     "rustls-tls-webpki-roots",
     "native-tls",
 ] }
@@ -23,11 +24,11 @@ url = "2.5.0"
 log = "0.4.21"
 env_logger = "0.11.3"
 clap = { version = "4.5.4", features = ["derive"] }
-lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
 ethers = { tag = "v2.0.15-fix-reconnections", features = [
     "ws",
     "rustls",
 ], git = "https://github.com/yetanotherco/ethers-rs.git" }
 aligned-sdk = { path = "../aligned-sdk" }
+aligned = { path = "../aligned" }
 rpassword = "7.3.1"
 sha3 = { version = "0.10.8" }
