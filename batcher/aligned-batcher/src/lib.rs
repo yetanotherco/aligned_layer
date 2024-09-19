@@ -487,7 +487,6 @@ impl Batcher {
 
                     return Ok(());
                 }
-                info!("Handling paying message 2");
 
                 let nonced_verification_data = client_msg.verification_data;
                 if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
