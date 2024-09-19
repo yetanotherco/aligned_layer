@@ -22,9 +22,9 @@ mod test {
     use super::verify_proof_integrity;
 
     const PROTOCOL_STATE_PROOF_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.proof");
+        include_bytes!("../../../../scripts/test_files/mina/mina_state.proof");
     const PROTOCOL_STATE_PUB_BYTES: &[u8] =
-        include_bytes!("../../../../batcher/aligned/test_files/mina/protocol_state.pub");
+        include_bytes!("../../../../scripts/test_files/mina/mina_state.pub");
 
     #[test]
     fn verify_proof_integrity_does_not_fail() {
@@ -32,5 +32,15 @@ mod test {
             PROTOCOL_STATE_PROOF_BYTES,
             PROTOCOL_STATE_PUB_BYTES,
         ));
+    }
+
+    #[test]
+    fn verify_empty_proof() {
+        assert!(!verify_proof_integrity(&[], PROTOCOL_STATE_PUB_BYTES));
+    }
+
+    #[test]
+    fn verify_empty_pub_inputs() {
+        assert!(!verify_proof_integrity(PROTOCOL_STATE_PROOF_BYTES, &[]));
     }
 }
