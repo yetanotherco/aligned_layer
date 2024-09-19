@@ -116,12 +116,14 @@ The proof submission and verification can be done either with the SDK or by usin
 
 #### Using the SDK
 
-To submit a proof using the SDK, you can use the `submit` function, and then you can use the `verify_proof_onchain` function to check if the proof was correctly verified in Aligned.
+To submit a proof using the SDK, you can use the `submit_and_wait_verification` function.
+This function submits the proof to aligned and waits for it to be verified in Aligned.
+Alternatively you can call `submit` if you don't want to wait for proof verification.
 
 The following code is an example of how to submit a proof using the SDK:
 
 ```rust
-use aligned_sdk::sdk::{submit, get_next_nonce};
+use aligned_sdk::sdk::{submit_and_wait_verification, get_next_nonce};
 use aligned_sdk::types::{ProvingSystemId, VerificationData};
 use ethers::prelude::*;
 
@@ -147,8 +149,15 @@ async fn submit_proof_to_aligned(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to get next nonce: {:?}", e))?;
 
-    submit(BATCHER_URL, &verification_data, wallet, nonce).await
-        .map_err(|e| anyhow::anyhow!("Failed to submit proof: {:?}", e))
+    match submit_and_wait_verification(
+        BATCHER_URL,
+        RPC_URL,
+        Chain::Holesky,
+        &verification_data,
+        wallet,
+        nonce,
+        BATCHER_CONTRACT_ADDRESS
+    ).await.map_err(|e| anyhow::anyhow!("Failed to submit proof: {:?}", e))
 }
 
 #[tokio::main]

@@ -1,4 +1,5 @@
 defmodule Operators do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -31,6 +32,15 @@ defmodule Operators do
     Operators.changeset(%Operators{}, Map.from_struct(operator))
   end
 
+  def generate_new_total_stake_changeset(%{operator_address: operator_address}) do
+    new_total_stake = StakeRegistryManager.get_stake_of_quorum_for_operator(%Restakings{operator_address: operator_address})
+
+    query = from(o in Operators, where: o.address == ^operator_address, select: o)
+    operator = Explorer.Repo.one(query)
+
+    Operators.changeset(operator, %{total_stake: new_total_stake})
+  end
+
   def get_operator_by_address(address) do
     query = from(o in Operators, where: o.address == ^address, select: o)
     Explorer.Repo.one(query)
@@ -47,13 +57,23 @@ defmodule Operators do
   end
 
   def get_operators_with_their_weights() do
-    total_stake = Explorer.Repo.one(from(o in Operators, select: sum(o.total_stake)))
+    total_stake = Explorer.Repo.one(
+      from(
+        o in Operators,
+        where: o.is_active == true,
+        select: sum(o.total_stake))
+    )
 
     get_operators() |>
       Enum.map(
         fn operator ->
-          weight = Decimal.div(operator.total_stake, total_stake)
-          Map.from_struct(operator) |> Map.put(:weight, weight)
+          case operator.is_active do
+            false ->
+              Map.from_struct(operator) |> Map.put(:weight, 0)
+            true ->
+              weight = Decimal.div(operator.total_stake, total_stake)
+              Map.from_struct(operator) |> Map.put(:weight, weight)
+          end
         end
       )
   end
@@ -70,18 +90,18 @@ defmodule Operators do
   def register_or_update_operator(%Operators{} = operator) do
     changeset = case Operators.generate_changeset(operator) do
       %Ecto.Changeset{valid?: false} = changeset ->
-        dbg("Invalid changeset: #{inspect(changeset)}")
+        "Invalid changeset: #{inspect(changeset)}" |> Logger.error()
         :nil
       changeset ->
         changeset
     end
     case Explorer.Repo.get_by(Operators, address: operator.address) do
       nil ->
-        dbg("Inserting new operator")
+        "Inserting new operator" |> Logger.debug()
         Explorer.Repo.insert(changeset)
 
       existing_operator ->
-        dbg("Updating operator")
+        "Updating operator" |> Logger.debug()
         Ecto.Changeset.change(existing_operator, changeset.changes)
         |> Explorer.Repo.update()
     end
@@ -98,9 +118,9 @@ defmodule Operators do
       {:error, reason} ->
         case reason do
           %Jason.DecodeError{} ->
-            dbg("Error decoding operator metadata: operator link does not contain a JSON")
+            "Error decoding operator metadata: operator link does not contain a JSON" |> Logger.error()
           _ ->
-            dbg("Error fetching operator metadata:", reason)
+            "Error fetching operator metadata: #{inspect(reason)}" |> Logger.error()
         end
         %EigenOperatorMetadataStruct{name: nil, website: nil, description: nil, logo: nil, twitter: nil}
     end
@@ -114,7 +134,8 @@ defmodule Operators do
 
   def unregister_operator(%Operators{address: address}) do
     query = from(o in Operators, where: o.address == ^address)
-    Explorer.Repo.update_all(query, set: [is_active: false])
+    Explorer.Repo.update_all(query, set: [is_active: false, total_stake: 0])
+    Restakings.remove_restakes_of_operator(%{operator_address: address})
   end
 
   def get_total_stake(%Operators{} = operator) do

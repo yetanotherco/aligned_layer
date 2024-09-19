@@ -35,23 +35,21 @@
       </div>
       <div>
         <h3>
-          Amount of Proofs in this Batch:
+          Number of Proofs in this Batch:
         </h3>
         <p><%= @current_batch.amount_of_proofs %></p>
       </div>
-      <%= if @current_batch.cost_per_proof != nil do %>
-        <div class="flex flex-col sm:flex-row">
-          <h3>
-            Cost per Proof:
-          </h3>
-          <p>
-            <%= @current_batch.cost_per_proof |> EthConverter.wei_to_eth() %> ETH
-            <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
-              <span class="inline-flex md:inline-block">(<%= @eth_usd_price %> USD)</span>
-            <% end %>
-          </p>
-        </div>
-      <% end %>
+      <div :if={@current_batch.fee_per_proof != 0} class="flex flex-col sm:flex-row">
+        <h3>
+          Fee per Proof:
+        </h3>
+        <p>
+          <%= @current_batch.fee_per_proof |> EthConverter.wei_to_eth() %> ETH
+          <%= if @eth_usd_price != :empty and @eth_usd_price != "0.00000" do %>
+            <span class="inline-flex md:inline-block">(<%= @eth_usd_price %> USD)</span>
+          <% end %>
+        </p>
+      </div>
       <div>
         <h3>
           Proofs in this batch:
@@ -64,7 +62,15 @@
           <% else %>
             <div class="space-y-2 basis-3/4">
               <div class="h-36 overflow-y-auto text-foreground space-y-2">
-                <p :for={proof <- @proof_hashes}><%= proof %></p>
+                <p :for={{proof, index} <- Enum.with_index(@proof_hashes)}>
+                  <%= proof %>
+                  <.live_component
+                    module={CopyToClipboardButtonComponent}
+                    text_to_copy={proof}
+                    id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
+                    class="inline-flex"
+                  />
+                </p>
               </div>
               <.button class="w-fit text-foreground" phx-click="hide_proofs">
                 <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
