@@ -64,3 +64,73 @@ pub extern "C" fn verify_account_inclusion_ffi(
 
     verify_merkle_proof(leaf_hash, merkle_path, ledger_hash)
 }
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    const PROOF_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina_account/mina_account.proof");
+    const PUB_INPUT_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina_account/mina_account.pub");
+
+    #[test]
+    fn valid_account_state_proof_verifies() {
+        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let proof_size = PROOF_BYTES.len();
+        assert!(proof_size <= proof_buffer.len());
+        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
+
+        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
+        let pub_input_size = PUB_INPUT_BYTES.len();
+        assert!(pub_input_size <= pub_input_buffer.len());
+        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
+
+        let result = verify_account_inclusion_ffi(
+            &proof_buffer,
+            proof_size,
+            &pub_input_buffer,
+            pub_input_size,
+        );
+        assert!(result);
+    }
+
+    #[test]
+    fn empty_account_state_proof_does_not_verify() {
+        let proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let proof_size = PROOF_BYTES.len();
+
+        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
+        let pub_input_size = PUB_INPUT_BYTES.len();
+        assert!(pub_input_size <= pub_input_buffer.len());
+        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
+
+        let result = verify_account_inclusion_ffi(
+            &proof_buffer,
+            proof_size,
+            &pub_input_buffer,
+            pub_input_size,
+        );
+        assert!(!result);
+    }
+
+    #[test]
+    fn valid_account_state_proof_with_empty_pub_input_does_not_verify() {
+        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let proof_size = PROOF_BYTES.len();
+        assert!(proof_size <= proof_buffer.len());
+        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
+
+        let pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
+        let pub_input_size = PUB_INPUT_BYTES.len();
+
+        let result = verify_account_inclusion_ffi(
+            &proof_buffer,
+            proof_size,
+            &pub_input_buffer,
+            pub_input_size,
+        );
+        assert!(!result);
+    }
+}
