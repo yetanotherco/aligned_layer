@@ -1,8 +1,9 @@
 # Getting started!
 
-In this tutorial you will learn how to send your first SP1 proofs to get verified in Aligned in under 3 minutes.
+In this tutorial, you will learn how to send your first SP1 proofs to get verified in Aligned in under 3 minutes.
 
 ## Quickstart
+
 We will download a previously generated SP1 proof, send it to Aligned for verification, and retrieve the results from Ethereum Holesky testnet.
 
 1. Download and install Aligned to send proofs in the testnet:
@@ -51,10 +52,10 @@ Use the link in the response to check the status of your transaction in the Alig
 aligned verify-proof-onchain \
 --aligned-verification-data ~/.aligned/aligned_verification_data/*.json \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---chain holesky
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
-This is reading the result of the verification of the proof in Ethereum.
+This is reading the result of the proof verification in Ethereum.
 
 7. You should get this result:
 
@@ -62,16 +63,16 @@ This is reading the result of the verification of the proof in Ethereum.
 [2024-06-17T21:58:43Z INFO  aligned] Your proof was verified in Aligned and included in the batch!
 ```
 
-If the proof wasn't verified you should get this result:
+If the proof wasn't verified, you should get this result:
 
 ```bash
 [2024-06-17T21:59:09Z INFO  aligned] Your proof was not included in the batch.
 ```
 
 Aligned works in:
-- MacOS Arm64 (M1 or higher)
+- macOS Arm64 (M1 or higher)
 - Linux x86 with GLIBC_2.32 or superior (For example, Ubuntu 22.04 or higher)
 
 If you don't meet these requirements, you can compile the binaries yourself following the [README](https://github.com/yetanotherco/aligned_layer)
 
-To try Aligned with other proving systems, check [this](https://docs.alignedlayer.com/guides/0_submitting_proofs) guide
+To try Aligned with other proving systems, check [this](../3_guides/0_submitting_proofs.md) guide 
