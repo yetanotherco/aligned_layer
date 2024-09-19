@@ -20,7 +20,7 @@ use super::errors::BatcherError;
 pub(crate) struct BatchQueueEntry {
     pub(crate) nonced_verification_data: NoncedVerificationData,
     pub(crate) verification_data_commitment: VerificationDataCommitment,
-    pub(crate) messaging_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+    pub(crate) messaging_sink: Option<Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>>,
     pub(crate) signature: Signature,
     pub(crate) sender: Address,
 }
@@ -42,7 +42,22 @@ impl BatchQueueEntry {
         BatchQueueEntry {
             nonced_verification_data,
             verification_data_commitment,
-            messaging_sink,
+            messaging_sink: Some(messaging_sink),
+            signature,
+            sender,
+        }
+    }
+
+    pub fn new_for_testing(
+        nonced_verification_data: NoncedVerificationData,
+        verification_data_commitment: VerificationDataCommitment,
+        signature: Signature,
+        sender: Address,
+    ) -> Self {
+        BatchQueueEntry {
+            nonced_verification_data,
+            verification_data_commitment,
+            messaging_sink: None,
             signature,
             sender,
         }
@@ -186,17 +201,12 @@ mod test {
     use ethers::core::rand::thread_rng;
     use ethers::signers::LocalWallet;
     use ethers::signers::Signer;
-    use futures_util::StreamExt;
-    use tokio::net::UnixStream;
 
     use super::*;
 
     #[tokio::test]
     fn batch_finalization_algorithm_works_from_same_sender() {
         // let stream = TcpStream::connect("test_stream").await.unwrap();
-        let stream = TcpStream::connect(addr);
-        let ws_conn = tokio_tungstenite::accept_async(stream).await.unwrap();
-        let (sink, _) = ws_conn.split(););
 
         let mut batch_queue = BatchQueue::new();
         // The following information will be the same for each entry, it is just some dummy data to see

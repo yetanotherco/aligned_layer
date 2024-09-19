@@ -36,7 +36,7 @@ use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::{
-    calculate_batch_size, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority,
+    self, calculate_batch_size, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority,
 };
 use types::errors::{BatcherError, BatcherSendError};
 
@@ -829,7 +829,7 @@ impl Batcher {
         *batch_posting = true;
 
         let mut batch_queue_copy = batch_state.batch_queue.clone();
-        match try_build_batch(&mut batch_queue_copy, gas_price, self.max_batch_size) {
+        match batch_queue::try_build_batch(&mut batch_queue_copy, gas_price, self.max_batch_size) {
             Ok((resulting_batch_queue, finalized_batch)) => {
                 // Set the batch queue to batch queue copy
                 batch_state.batch_queue = resulting_batch_queue;
