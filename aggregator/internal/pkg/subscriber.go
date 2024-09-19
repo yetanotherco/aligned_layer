@@ -24,7 +24,7 @@ func (agg *Aggregator) SubscribeToNewTasks() error {
 func (agg *Aggregator) subscribeToNewTasks() error {
 	var err error
 
-	agg.taskSubscriber, err = agg.avsSubscriber.SubscribeToNewTasks(agg.NewBatchChan)
+	agg.taskSubscriber, err = agg.avsSubscriber.SubscribeToNewTasksV3(agg.NewBatchChan)
 
 	if err != nil {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to create task subscriber", "err", err)
