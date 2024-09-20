@@ -275,6 +275,7 @@ impl ClientMessage {
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
     pub fn verify_signature(&self) -> Result<Address, VerifySignatureError> {
+        // Recovers the address from the signed data
         let recovered = self.signature.recover_typed_data(&self.verification_data)?;
 
         let hashed_data = self.verification_data.encode_eip712()?;
