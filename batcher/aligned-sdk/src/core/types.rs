@@ -218,7 +218,6 @@ impl Eip712 for NoncedVerificationData {
     }
 
     fn struct_hash(&self) -> Result<[u8; 32], Self::Error> {
-
         //EIP requires big endian for u256
         let mut nonce_bytes = [0u8; 32];
         self.nonce.to_big_endian(&mut nonce_bytes);
@@ -342,18 +341,20 @@ pub enum Chain {
 
 #[cfg(test)]
 mod tests {
+    use ethers::signers::LocalWallet;
     use std::str::FromStr;
 
     use super::*;
 
     #[tokio::test]
     async fn eip_712_recovers_same_address_as_signed() {
-        const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
-        let wallet = ethers::signers::LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet");
+        const ANVIL_PRIVATE_KEY: &str =
+            "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
+        let wallet = LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet");
 
-        let proof = [42,42,42,42].to_vec();
-        let pub_input = Some([32,32,32,32].to_vec());
-        let verification_key = Some([8,8,8,8].to_vec());
+        let proof = [42, 42, 42, 42].to_vec();
+        let pub_input = Some([32, 32, 32, 32].to_vec());
+        let verification_key = Some([8, 8, 8, 8].to_vec());
         let proving_system = ProvingSystemId::Groth16Bn254;
 
         let verification_data = VerificationData {
@@ -373,9 +374,14 @@ mod tests {
             wallet.address(),
         );
 
-        let signed_data = wallet.sign_typed_data(&nonced_verification_data).await.unwrap();
+        let signed_data = wallet
+            .sign_typed_data(&nonced_verification_data)
+            .await
+            .unwrap();
 
-        let recovered_address = signed_data.recover_typed_data(&nonced_verification_data).unwrap();
+        let recovered_address = signed_data
+            .recover_typed_data(&nonced_verification_data)
+            .unwrap();
 
         assert_eq!(recovered_address, wallet.address())
     }
