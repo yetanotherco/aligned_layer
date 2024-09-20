@@ -228,6 +228,7 @@ mod test {
         let chain_id = U256::from(42);
 
         // Here we create different entries for the batch queue.
+        // Since we are sending with the same address, the low nonces should have higher max fees.
 
         // Entry 1
         let nonce_1 = U256::from(1);
@@ -328,9 +329,13 @@ mod test {
         };
         let chain_id = U256::from(42);
 
+        // Here we create different entries for the batch queue.
+        // Since we are sending from different addresses, there is no restriction on the max fee and
+        // nonces of the batch queue entries.
+
         // Entry 1
         let nonce_1 = U256::from(10);
-        let max_fee_1 = U256::from(1300000000000002u128);
+        let max_fee_1 = U256::from(1300000000000001u128);
         let nonced_verification_data_1 = NoncedVerificationData::new(
             verification_data.clone(),
             nonce_1,
@@ -349,7 +354,7 @@ mod test {
 
         // Entry 2
         let nonce_2 = U256::from(20);
-        let max_fee_2 = U256::from(1_300_000_000_000_001u128);
+        let max_fee_2 = U256::from(1_300_000_000_000_002u128);
         let nonced_verification_data_2 = NoncedVerificationData::new(
             verification_data.clone(),
             nonce_2,
@@ -391,14 +396,26 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, batch) =
+        let (resulting_batch_queue, finalized_batch) =
             try_build_batch(&mut batch_queue, gas_price, 5000000).unwrap();
 
+        // The resulting batch queue (entries from the old batch queue that were not willing to pay
+        // in this batch), should be empty and hence, all entries from the batch queue should be in
+        // the finalized batch.
         assert!(resulting_batch_queue.is_empty());
-        assert_eq!(batch.len(), 3);
-        assert_eq!(batch[0].nonced_verification_data.max_fee, max_fee_3);
-        assert_eq!(batch[1].nonced_verification_data.max_fee, max_fee_2);
-        assert_eq!(batch[2].nonced_verification_data.max_fee, max_fee_1);
+        assert_eq!(finalized_batch.len(), 3);
+        assert_eq!(
+            finalized_batch[0].nonced_verification_data.max_fee,
+            max_fee_3
+        );
+        assert_eq!(
+            finalized_batch[1].nonced_verification_data.max_fee,
+            max_fee_1
+        );
+        assert_eq!(
+            finalized_batch[2].nonced_verification_data.max_fee,
+            max_fee_2
+        );
     }
 
     #[test]
@@ -490,12 +507,22 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, batch) =
+        let (resulting_batch_queue, finalized_batch) =
             try_build_batch(&mut batch_queue, gas_price, 5000000).unwrap();
 
+        // The resulting batch queue (entries from the old batch queue that were not willing to pay
+        // in this batch), should be empty and hence, all entries from the batch queue should be in
+        // the finalized batch.
+
         assert_eq!(resulting_batch_queue.len(), 1);
-        assert_eq!(batch.len(), 2);
-        assert_eq!(batch[0].nonced_verification_data.max_fee, max_fee_2);
-        assert_eq!(batch[1].nonced_verification_data.max_fee, max_fee_1);
+        assert_eq!(finalized_batch.len(), 2);
+        assert_eq!(
+            finalized_batch[0].nonced_verification_data.max_fee,
+            max_fee_2
+        );
+        assert_eq!(
+            finalized_batch[1].nonced_verification_data.max_fee,
+            max_fee_1
+        );
     }
 }
