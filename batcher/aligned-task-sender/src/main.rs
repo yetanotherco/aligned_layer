@@ -368,7 +368,7 @@ async fn get_nonce(
     Ok(nonce)
 }
 
-//TODO: Much of this code is duplicated from `batcher/aligned`.
+//TODO: Duplicated from `batcher/aligned`.
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
     std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
 }
