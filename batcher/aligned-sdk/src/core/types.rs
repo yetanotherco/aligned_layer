@@ -338,3 +338,44 @@ pub enum Chain {
     Holesky,
     HoleskyStage,
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn eip_712_recovers_same_address_as_signed() {
+        const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
+        let wallet = ethers::signers::LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet");
+
+        let proof = [42,42,42,42].to_vec();
+        let pub_input = Some([32,32,32,32].to_vec());
+        let verification_key = Some([8,8,8,8].to_vec());
+        let proving_system = ProvingSystemId::Groth16Bn254;
+
+        let verification_data = VerificationData {
+            proving_system,
+            proof,
+            pub_input,
+            verification_key,
+            vm_program_code: None,
+            proof_generator_addr: wallet.address(),
+        };
+
+        let nonced_verification_data = NoncedVerificationData::new(
+            verification_data,
+            1.into(),
+            2.into(),
+            3.into(),
+            wallet.address(),
+        );
+
+        let signed_data = wallet.sign_typed_data(&nonced_verification_data).await.unwrap();
+
+        let recovered_address = signed_data.recover_typed_data(&nonced_verification_data).unwrap();
+
+        assert_eq!(recovered_address, wallet.address())
+    }
+}
