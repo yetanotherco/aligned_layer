@@ -238,6 +238,10 @@ batcher_send_infinite_burst:
 	@echo "Sending Sending Infinite Groth16 Task to Batcher..."
 	@cd batcher/aligned-task-sender/ && cargo run --release -- send-infinite
 
+send_infinite:
+	@echo "Sending Sending Infinite Groth16 Task to Batcher..."
+	@cd batcher/aligned-task-sender/ && cargo run --release -- send-infinite
+
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
