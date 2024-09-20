@@ -4,9 +4,8 @@ defmodule SignatureVerifier do
   alias :binary, as: Binary
 
   # Hash the version string using Keccak256
-  def hash_version(version) do
-    version
-    |> ExKeccak.hash_256()
+  defp hash_version(version) do
+    ExKeccak.hash_256(version)
   end
 
   # Recover the public key from the signature and hashed version
@@ -30,17 +29,25 @@ defmodule SignatureVerifier do
     address
   end
 
-  # Main function to get the address from the version and signature
+  @doc """
+  Get the address from the version and signature
+
+  Examples
+      iex> version = "v0.7.0"
+      iex> signature = N1UJOvjJT1W39MdQUYAOsKZj4aQ1Sjkwp31NJgafpjoUniGt24tSaLw6TlTKP68AkLtsIFoVEaJcJDj7TyvhLQA=
+      iex> get_address(version, signature)
+      "0x..."
+  """
   def get_address(version, signature) do
     version_hash = hash_version(version)
+    # Signature contains r, s and v (recovery_id)
+    # r<>s is 64 bytes.
+    # v is the last byte of the signature and have to be converted to integer
     {:ok, binary_signature} = Base.decode64(signature)
-    byte_size = byte_size(binary_signature)
-    IO.inspect(byte_size)
-    # r<>s is 64 bytes. Get r and s from the signature
-    rs = binary_part(binary_signature, 0, byte_size - 1)
-    # v is the last byte of the signature
-    recovery_id = Binary.decode_unsigned(binary_part(binary_signature, byte_size - 1, 1))
-    IO.inspect(recovery_id)
+    signature_len = byte_size(binary_signature)
+    rs = binary_part(binary_signature, 0, signature_len - 1)
+    recovery_id = Binary.decode_unsigned(binary_part(binary_signature, signature_len - 1, 1))
+
     recover_public_key(version_hash, rs, recovery_id)
     |> public_key_to_address()
     |> Base.encode16()
