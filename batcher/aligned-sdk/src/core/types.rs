@@ -1,14 +1,25 @@
 use ethers::core::k256::ecdsa::SigningKey;
+use ethers::signers::Signer;
 use ethers::signers::Wallet;
+use ethers::types::transaction::eip712::EIP712Domain;
+use ethers::types::transaction::eip712::Eip712;
+use ethers::types::transaction::eip712::Eip712Error;
 use ethers::types::Address;
 use ethers::types::Signature;
-use ethers::types::SignatureError;
 use ethers::types::U256;
 use lambdaworks_crypto::merkle_tree::{
     merkle::MerkleTree, proof::Proof, traits::IsMerkleTreeBackend,
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+
+use super::errors::VerifySignatureError;
+
+// VerificationData is a bytes32 instead of a VerificationData struct because in the BatcherPaymentService contract
+// we don't have the fields of VerificationData, we only have the hash of the VerificationData.
+// chain_id is not included in the type because it is now part of the domain.
+const NONCED_VERIFICATION_DATA_TYPE: &[u8] =
+    b"NoncedVerificationData(bytes32 verification_data_hash,uint256 nonce,uint256 max_fee)";
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 #[repr(u8)]
@@ -38,16 +49,26 @@ pub struct VerificationData {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
-    pub nonce: [u8; 32],
+    pub nonce: U256,
+    pub max_fee: U256,
     pub chain_id: U256,
+    pub payment_service_addr: Address,
 }
 
 impl NoncedVerificationData {
-    pub fn new(verification_data: VerificationData, nonce: [u8; 32], chain_id: U256) -> Self {
+    pub fn new(
+        verification_data: VerificationData,
+        nonce: U256,
+        max_fee: U256,
+        chain_id: U256,
+        payment_service_addr: Address,
+    ) -> Self {
         Self {
             verification_data,
             nonce,
+            max_fee,
             chain_id,
+            payment_service_addr,
         }
     }
 }
@@ -72,32 +93,40 @@ impl From<VerificationData> for VerificationDataCommitment {
     fn from(verification_data: VerificationData) -> Self {
         let mut hasher = Keccak256::new();
 
-        // compute proof commitment
+        // Compute proof commitment
+
         hasher.update(verification_data.proof.as_slice());
         let proof_commitment = hasher.finalize_reset().into();
 
-        // compute public input commitment
+        // Compute public input commitment
+
         let mut pub_input_commitment = [0u8; 32];
         if let Some(pub_input) = &verification_data.pub_input {
             hasher.update(pub_input);
             pub_input_commitment = hasher.finalize_reset().into();
         }
 
-        // compute proving system auxiliary data commitment
-        let mut proving_system_aux_data_commitment = [0u8; 32];
+        // Compute proving system auxiliary data commitment
+
         // FIXME(marian): This should probably be reworked, for the moment when the proving
-        // system is SP1, `proving_system_aux_data` stands for the compiled ELF, while in the case
-        // of Groth16 and PLONK, stands for the verification key.
+        // system is SP1 or Risc0, `proving_system_aux_data` stands for information related to the
+        // compiled ELF, while in the rest of the proving systems, stands for the verification key.
+        let proving_system_byte = verification_data.proving_system as u8;
+        let proving_system_aux_data_commitment =
+            if let Some(vm_program_code) = &verification_data.vm_program_code {
+                hasher.update(vm_program_code);
+                hasher.update([proving_system_byte]);
+                hasher.finalize_reset().into()
+            } else if let Some(verification_key) = &verification_data.verification_key {
+                hasher.update(verification_key);
+                hasher.update([proving_system_byte]);
+                hasher.finalize_reset().into()
+            } else {
+                [0u8; 32]
+            };
 
-        if let Some(vm_program_code) = &verification_data.vm_program_code {
-            hasher.update(vm_program_code);
-            proving_system_aux_data_commitment = hasher.finalize_reset().into();
-        } else if let Some(verification_key) = &verification_data.verification_key {
-            hasher.update(verification_key);
-            proving_system_aux_data_commitment = hasher.finalize_reset().into();
-        }
+        // Serialize proof generator address to bytes
 
-        // serialize proof generator address to bytes
         let proof_generator_addr = verification_data.proof_generator_addr.into();
 
         VerificationDataCommitment {
@@ -172,14 +201,62 @@ pub struct ClientMessage {
     pub signature: Signature,
 }
 
+impl Eip712 for NoncedVerificationData {
+    type Error = Eip712Error;
+    fn domain(&self) -> Result<EIP712Domain, Self::Error> {
+        Ok(EIP712Domain {
+            name: Some("Aligned".into()),
+            version: Some("1".into()),
+            chain_id: Some(self.chain_id),
+            verifying_contract: Some(self.payment_service_addr),
+            salt: None,
+        })
+    }
+
+    fn type_hash() -> Result<[u8; 32], Self::Error> {
+        let mut hasher = Keccak256::new();
+        hasher.update(NONCED_VERIFICATION_DATA_TYPE);
+        Ok(hasher.finalize().into())
+    }
+
+    fn struct_hash(&self) -> Result<[u8; 32], Self::Error> {
+        let verification_data_hash =
+            VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
+
+        let mut hasher = Keccak256::new();
+
+        hasher.update(NONCED_VERIFICATION_DATA_TYPE);
+        let nonced_verification_data_type_hash = hasher.finalize_reset();
+
+        let mut nonce_bytes = [0u8; 32];
+        self.nonce.to_big_endian(&mut nonce_bytes);
+        hasher.update(nonce_bytes);
+        let nonce_hash = hasher.finalize_reset();
+
+        let mut max_fee_bytes = [0u8; 32];
+        self.max_fee.to_big_endian(&mut max_fee_bytes);
+        hasher.update(max_fee_bytes);
+        let max_fee_hash = hasher.finalize_reset();
+
+        hasher.update(nonced_verification_data_type_hash.as_slice());
+        hasher.update(verification_data_hash.as_slice());
+        hasher.update(nonce_hash.as_slice());
+        hasher.update(max_fee_hash.as_slice());
+
+        Ok(hasher.finalize().into())
+    }
+}
+
 impl ClientMessage {
     /// Client message is a wrap around verification data and its signature.
     /// The signature is obtained by calculating the commitments and then hashing them.
-    pub fn new(verification_data: NoncedVerificationData, wallet: Wallet<SigningKey>) -> Self {
-        let hashed_data = ClientMessage::hash_with_nonce_and_chain_id(&verification_data);
-
+    pub async fn new(
+        verification_data: NoncedVerificationData,
+        wallet: Wallet<SigningKey>,
+    ) -> Self {
         let signature = wallet
-            .sign_hash(hashed_data.into())
+            .sign_typed_data(&verification_data)
+            .await
             .expect("Failed to sign the verification data");
 
         ClientMessage {
@@ -190,28 +267,13 @@ impl ClientMessage {
 
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
-    pub fn verify_signature(&self) -> Result<Address, SignatureError> {
-        let hashed_data: [u8; 32] =
-            ClientMessage::hash_with_nonce_and_chain_id(&self.verification_data);
+    pub fn verify_signature(&self) -> Result<Address, VerifySignatureError> {
+        let recovered = self.signature.recover_typed_data(&self.verification_data)?;
 
-        let recovered = self.signature.recover(hashed_data)?;
+        let hashed_data = self.verification_data.encode_eip712()?;
+
         self.signature.verify(hashed_data, recovered)?;
         Ok(recovered)
-    }
-
-    fn hash_with_nonce_and_chain_id(verification_data: &NoncedVerificationData) -> [u8; 32] {
-        let hashed_leaf = VerificationCommitmentBatch::hash_data(&verification_data.into());
-
-        let mut chain_id_bytes = [0u8; 32];
-        verification_data
-            .chain_id
-            .to_big_endian(&mut chain_id_bytes);
-
-        let mut hasher = Keccak256::new();
-        hasher.update(hashed_leaf);
-        hasher.update(verification_data.nonce);
-        hasher.update(chain_id_bytes);
-        hasher.finalize().into()
     }
 }
 
@@ -248,6 +310,8 @@ pub enum ValidityResponseMessage {
     InvalidSignature,
     InvalidChainId,
     InvalidProof,
+    InvalidMaxFee,
+    InvalidReplacementMessage,
     ProofTooLarge,
     InsufficientBalance(Address),
 }

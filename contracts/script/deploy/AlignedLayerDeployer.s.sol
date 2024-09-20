@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 /*
     This script is a modified version of the Mainnet_Deploy.s.sol script used by EigenDA:
@@ -34,6 +34,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
     address public pauser;
     uint256 public initalPausedStatus;
     address public deployer;
+    address public alignedLayerAggregator;
 
     BLSApkRegistry public apkRegistry;
     AlignedLayerServiceManager public alignedLayerServiceManager;
@@ -94,6 +95,11 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             "Deployer address must be the same as the tx.origin"
         );
         emit log_named_address("You are deploying from", deployer);
+
+        alignedLayerAggregator = stdJson.readAddress(
+            config_data,
+            ".permissions.aggregator"
+        );
 
         vm.startBroadcast();
 
@@ -242,7 +248,8 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
                 deployer,
-                deployer
+                deployer,
+                alignedLayerAggregator
             )
         );
 
@@ -792,6 +799,10 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             config_data,
             ".permissions.ejector"
         );
+        address alignedLayerAggregator = stdJson.readAddress(
+            config_data,
+            ".permissions.aggregator"
+        );
         string memory permissions = "permissions";
         vm.serializeAddress(
             permissions,
@@ -804,7 +815,11 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             alignedLayerUpgrader
         );
         vm.serializeAddress(permissions, "alignedLayerChurner", churner);
+
         vm.serializeAddress(permissions, "pauserRegistry", pauser);
+
+        vm.serializeAddress(permissions, "alignedLayerAggregator", alignedLayerAggregator);
+
         string memory permissions_output = vm.serializeAddress(
             permissions,
             "alignedLayerEjector",

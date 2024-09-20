@@ -42,8 +42,7 @@ type BatchData struct {
 
 type Aggregator struct {
 	AggregatorConfig      *config.AggregatorConfig
-	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
-	NewBatchChanV2        chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewBatchChan          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
@@ -92,8 +91,7 @@ type Aggregator struct {
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
-	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
-	newBatchChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
+	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
 	avsReader, err := chainio.NewAvsReaderFromConfig(aggregatorConfig.BaseConfig, aggregatorConfig.EcdsaConfig)
 	if err != nil {
@@ -164,7 +162,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		avsSubscriber:    avsSubscriber,
 		avsWriter:        avsWriter,
 		NewBatchChan:     newBatchChan,
-		NewBatchChanV2:   newBatchChanV2,
 
 		batchesIdentifierHashByIdx: batchesIdentifierHashByIdx,
 		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
@@ -217,8 +214,6 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 }
 
 const MaxSentTxRetries = 5
-
-var switchBlockNumber = uint64(2_268_375) // 2_268_375 is the block at sep 3th 15:00
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
 	if blsAggServiceResp.Err != nil {
@@ -281,39 +276,19 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-	current_task_block := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
 	for i := 0; i < MaxSentTxRetries; i++ {
-		if current_task_block < switchBlockNumber {
-			agg.logger.Info("agg if V1")
-			receipt, err := agg.sendAggregatedResponse(batchData.BatchMerkleRoot, nonSignerStakesAndSignature)
-			if err == nil {
-				agg.logger.Info("Gas cost used to send aggregated response", "gasUsed", receipt.GasUsed)
+		receipt, err := agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+		if err == nil {
+			agg.logger.Info("Gas cost used to send aggregated response", "gasUsed", receipt.GasUsed)
+			agg.logger.Info("Aggregator successfully responded to task",
+				"taskIndex", blsAggServiceResp.TaskIndex,
+				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
-				agg.logger.Info("Aggregator successfully responded to task",
-					"taskIndex", blsAggServiceResp.TaskIndex,
-					"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-
-				return
-			}
-
-			// Sleep for a bit before retrying
-			time.Sleep(2 * time.Second)
-
-		} else {
-			agg.logger.Info("agg if V2")
-			_, err = agg.sendAggregatedResponseV2(batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
-			if err == nil {
-				agg.logger.Info("Aggregator successfully responded to task",
-					"taskIndex", blsAggServiceResp.TaskIndex,
-					"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-
-				return
-			}
-
-			// Sleep for a bit before retrying
-			time.Sleep(2 * time.Second)
+			return
 		}
 
+		// Sleep for a bit before retrying
+		time.Sleep(2 * time.Second)
 	}
 
 	agg.logger.Error("Aggregator failed to respond to task, this batch will be lost",
@@ -326,34 +301,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 // / Sends response to contract and waits for transaction receipt
 // / Returns error if it fails to send tx or receipt is not found
-func (agg *Aggregator) sendAggregatedResponse(batchMerkleRoot [32]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-	agg.walletMutex.Lock()
-	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch",
-		"merkleRoot", hex.EncodeToString(batchMerkleRoot[:]))
-
-	txHash, err := agg.avsWriter.SendAggregatedResponse(batchMerkleRoot, nonSignerStakesAndSignature)
-	if err != nil {
-		agg.walletMutex.Unlock()
-		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchMerkleRoot[:]), err)
-		return nil, err
-	}
-
-	agg.walletMutex.Unlock()
-	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchMerkleRoot[:]))
-
-	receipt, err := utils.WaitForTransactionReceipt(
-		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	agg.metrics.IncAggregatedResponses()
-
-	return receipt, nil
-}
-func (agg *Aggregator) sendAggregatedResponseV2(batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
-	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
-	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*gethtypes.Receipt, error) {
 
 	agg.walletMutex.Lock()
 	agg.logger.Infof("- Locked Wallet Resources: Sending aggregated response for batch",
@@ -361,7 +309,7 @@ func (agg *Aggregator) sendAggregatedResponseV2(batchMerkleRoot [32]byte, sender
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
-	txHash, err := agg.avsWriter.SendAggregatedResponseV2(batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	txHash, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
@@ -382,53 +330,7 @@ func (agg *Aggregator) sendAggregatedResponseV2(batchMerkleRoot [32]byte, sender
 	return receipt, nil
 }
 
-func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, taskCreatedBlock uint32) {
-	agg.AggregatorConfig.BaseConfig.Logger.Info("Adding new task",
-		"Batch merkle root", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
-
-	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Adding new task")
-
-	// --- UPDATE BATCH - INDEX CACHES ---
-	batchIndex := agg.nextBatchIndex
-	if _, ok := agg.batchesIdxByIdentifierHash[batchMerkleRoot]; ok {
-		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchIdentifierHash (actually batchMerkleRoot)", batchMerkleRoot)
-		agg.taskMutex.Unlock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
-		return
-	}
-
-	// This shouldn't happen, since both maps are updated together
-	if _, ok := agg.batchesIdentifierHashByIdx[batchIndex]; ok {
-		agg.logger.Warn("Batch already exists", "batchIndex", batchIndex, "batchIdentifierHash (actually batchMerkleRoot)", batchMerkleRoot)
-		agg.taskMutex.Unlock()
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
-		return
-	}
-
-	agg.batchesIdxByIdentifierHash[batchMerkleRoot] = batchIndex
-	agg.batchCreatedBlockByIdx[batchIndex] = uint64(taskCreatedBlock)
-	agg.batchesIdentifierHashByIdx[batchIndex] = batchMerkleRoot
-	agg.batchDataByIdentifierHash[batchMerkleRoot] = BatchData{
-		BatchMerkleRoot: batchMerkleRoot,
-		SenderAddress:   [20]byte{},
-	}
-	agg.nextBatchIndex += 1
-
-	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
-	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
-
-	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
-	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
-	if err != nil {
-		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
-	}
-
-	agg.taskMutex.Unlock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
-	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash (actually batchMerkleRoot)", "0x"+hex.EncodeToString(batchMerkleRoot[:]))
-}
-func (agg *Aggregator) AddNewTaskV2(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
+func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 

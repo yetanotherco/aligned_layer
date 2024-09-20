@@ -47,8 +47,8 @@ type Operator struct {
 	KeyPair            *bls.KeyPair
 	OperatorId         eigentypes.OperatorId
 	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch
 	NewTaskCreatedChanV2 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewTaskCreatedChanV3 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 	Logger             logging.Logger
 	aggRpcClient       AggregatorRpcClient
 	metricsReg         *prometheus.Registry
@@ -58,7 +58,9 @@ type Operator struct {
 }
 
 const (
-	BatchDownloadTimeout = 1 * time.Minute
+	BatchDownloadTimeout    = 1 * time.Minute
+	BatchDownloadMaxRetries = 3
+	BatchDownloadRetryDelay = 5 * time.Second
 )
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
@@ -94,8 +96,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatch)
 	newTaskCreatedChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
+	newTaskCreatedChanV3 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
@@ -114,8 +116,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		Logger:             logger,
 		avsSubscriber:      *avsSubscriber,
 		Address:            address,
-		NewTaskCreatedChan: newTaskCreatedChan,
 		NewTaskCreatedChanV2: newTaskCreatedChanV2,
+		NewTaskCreatedChanV3: newTaskCreatedChanV3,
 		aggRpcClient:       *rpcClient,
 		OperatorId:         operatorId,
 		metricsReg:         reg,
@@ -127,19 +129,22 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasks() (chan error, error) {
-	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
-}
+
 func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
 }
 
+func (o *Operator) SubscribeToNewTasksV3() (chan error, error) {
+	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3)
+}
+
 func (o *Operator) Start(ctx context.Context) error {
-	sub, err := o.SubscribeToNewTasks()
+	subV2, err := o.SubscribeToNewTasksV2()
 	if err != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
-	subV2, err := o.SubscribeToNewTasksV2()
+
+	subV3, err := o.SubscribeToNewTasksV3()
 	if err != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
@@ -151,8 +156,6 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	var switchBlockNumber = uint32(2_268_375) // 2_268_375 is the block at sep 3th 15:00
-
 	for {
 		select {
 		case <-context.Background().Done():
@@ -160,85 +163,75 @@ func (o *Operator) Start(ctx context.Context) error {
 			return nil
 		case err := <-metricsErrChan:
 			o.Logger.Fatal("Metrics server failed", "err", err)
-		case err := <-sub:
-			o.Logger.Infof("Error in websocket subscription", "err", err)
-			sub, err = o.SubscribeToNewTasks()
-			if err != nil {
-				o.Logger.Fatal("Could not subscribe to new tasks")
-			}
 		case err := <-subV2:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
-			sub, err = o.SubscribeToNewTasks()
+			subV2, err = o.SubscribeToNewTasksV2()
 			if err != nil {
-				o.Logger.Fatal("Could not subscribe to new tasks")
+				o.Logger.Fatal("Could not subscribe to new tasks V2")
 			}
-		case newBatchLog := <-o.NewTaskCreatedChan:
-			if newBatchLog.TaskCreatedBlock < switchBlockNumber {
-				o.Logger.Infof("Received new batch log: V1")
-				err := o.ProcessNewBatchLog(newBatchLog)
-				if err != nil {
-					o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
-					continue
-				}
-	
-				responseSignature := o.SignTaskResponse(newBatchLog.BatchMerkleRoot)
-				o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
-	
-				signedTaskResponse := types.SignedTaskResponse{
-					BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-					BlsSignature:    *responseSignature,
-					OperatorId:      o.OperatorId,
-				}
-				o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
-					hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
-				)
-				go o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
-			} 
-
+		case err := <-subV3:
+			o.Logger.Infof("Error in websocket subscription", "err", err)
+			subV2, err = o.SubscribeToNewTasksV3()
+			if err != nil {
+				o.Logger.Fatal("Could not subscribe to new tasks V3")
+			}
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
-			if newBatchLogV2.TaskCreatedBlock >= switchBlockNumber {
-				o.Logger.Infof("Received new batch log: V2")
-				err := o.ProcessNewBatchLogV2(newBatchLogV2)
-				if err != nil {
-					o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLogV2.BatchMerkleRoot, err)
-					continue
-				}
-	
-				batchIdentifier := append(newBatchLogV2.BatchMerkleRoot[:], newBatchLogV2.SenderAddress[:]...)
-				var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-				responseSignature := o.SignTaskResponse(batchIdentifierHash)
-				o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
-	
-				signedTaskResponse := types.SignedTaskResponseV2{
-					BatchIdentifierHash: batchIdentifierHash,
-					BatchMerkleRoot: newBatchLogV2.BatchMerkleRoot,
-					SenderAddress:   newBatchLogV2.SenderAddress,
-					BlsSignature:    *responseSignature,
-					OperatorId:      o.OperatorId,
-				}
-				o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
-					hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
-					hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
-					hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
-				)
-				go o.aggRpcClient.SendSignedTaskResponseToAggregatorV2(&signedTaskResponse)
-			}
+			go o.handleNewBatchLogV2(newBatchLogV2)
+		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
+			go o.handleNewBatchLogV3(newBatchLogV3)
 		}
 	}
 }
 
-// Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
-// The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
-func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatch) error {
+// Currently, Operator can handle NewBatchV2 and NewBatchV3 events.
+
+// The difference between these events do not affect the operator
+// So if you read below, handleNewBatchLogV2 and handleNewBatchLogV3
+// are identical.
+
+// This structure may help for future upgrades. Having different logics under
+// different events enables the smooth operator upgradeability
+
+// Process of handling batches from V2 events:
+func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
+	o.Logger.Infof("Received new batch log V2")
+	err := o.ProcessNewBatchLogV2(newBatchLog)
+	if err != nil {
+		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
+		return
+	}
+
+	batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
+	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	responseSignature := o.SignTaskResponse(batchIdentifierHash)
+	o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
+
+	signedTaskResponse := types.SignedTaskResponse{
+		BatchIdentifierHash: batchIdentifierHash,
+		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+		SenderAddress:   newBatchLog.SenderAddress,
+		BlsSignature:    *responseSignature,
+		OperatorId:      o.OperatorId,
+	}
+	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+		hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+	)
+
+	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+}
+func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
+		"sender address", "0x"+hex.EncodeToString(newBatchLog.SenderAddress[:]),
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
 	defer cancel()
 
-	verificationDataBatch, err := o.getBatchFromS3(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
+	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
@@ -269,7 +262,37 @@ func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAligne
 
 	return nil
 }
-func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
+
+// Process of handling batches from V3 events:
+func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
+	o.Logger.Infof("Received new batch log V3")
+	err := o.ProcessNewBatchLogV3(newBatchLog)
+	if err != nil {
+		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
+		return
+	}
+
+	batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
+	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	responseSignature := o.SignTaskResponse(batchIdentifierHash)
+	o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
+
+	signedTaskResponse := types.SignedTaskResponse{
+		BatchIdentifierHash: batchIdentifierHash,
+		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
+		SenderAddress:   newBatchLog.SenderAddress,
+		BlsSignature:    *responseSignature,
+		OperatorId:      o.OperatorId,
+	}
+	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+		hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+	)
+
+	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+}
+func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
@@ -279,7 +302,7 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
 	defer cancel()
 
-	verificationDataBatch, err := o.getBatchFromS3(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot)
+	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err

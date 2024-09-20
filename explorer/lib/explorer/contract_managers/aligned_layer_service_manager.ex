@@ -18,11 +18,7 @@ defmodule AlignedLayerServiceManager do
       file -> file
     end
 
-  payment_service_path =
-    "../contracts/script/deploy/config/#{@environment}/batcher-payment-service.#{@environment}.config.json"
-
   {status_aligned_config, config_json_string} = File.read(config_file_path)
-  {status_payment_service, payment_service_json_string} = File.read(payment_service_path)
 
   case status_aligned_config do
     :ok ->
@@ -34,28 +30,9 @@ defmodule AlignedLayerServiceManager do
       )
   end
 
-  case status_payment_service do
-    :ok ->
-      Logger.debug("Payment service file read successfully")
-
-    :error ->
-      raise(
-        "Payment service file not read successfully, did you run make create-env? If you did,\n make sure Alignedlayer config file is correctly stored"
-      )
-  end
-
   @aligned_layer_service_manager_address Jason.decode!(config_json_string)
                                          |> Map.get("addresses")
                                          |> Map.get("alignedLayerServiceManager")
-
-  @batcher_payment_service_address Jason.decode!(config_json_string)
-                                         |> Map.get("addresses")
-                                         |> Map.get("batcherPaymentService")
-
-
-  @gas_per_proof Jason.decode!(payment_service_json_string)
-                 |> Map.get("amounts")
-                 |> Map.get("gasPerProof")
 
   @first_block (case @environment do
                   "devnet" -> 0
@@ -72,10 +49,6 @@ defmodule AlignedLayerServiceManager do
     @aligned_layer_service_manager_address
   end
 
-  def get_batcher_payment_service_address() do
-    @batcher_payment_service_address
-  end
-
   def get_latest_block_number() do
     {:ok, num} = Ethers.current_block_number()
     num
@@ -83,13 +56,18 @@ defmodule AlignedLayerServiceManager do
 
   def get_new_batch_events(%{fromBlock: fromBlock, toBlock: toBlock}) do
     events =
-      AlignedLayerServiceManager.EventFilters.new_batch_v2(nil)
-      |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
+      AlignedLayerServiceManager.EventFilters.new_batch_v3(nil)
+        |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
 
     case events do
-      {:ok, []} -> []
-      {:ok, list} -> Enum.map(list, &extract_new_batch_event_info/1)
-      {:error, reason} -> raise("Error fetching events: #{Map.get(reason, "message")}")
+      {:ok, []} ->
+        []
+
+      {:ok, list} ->
+        Enum.map(list, &extract_new_batch_event_info/1)
+
+      {:error, reason} ->
+        raise("Error fetching events: #{Map.get(reason, "message")}")
     end
   end
 
@@ -114,14 +92,16 @@ defmodule AlignedLayerServiceManager do
       batchMerkleRoot: topics_raw |> Enum.at(1),
       senderAddress: data |> Enum.at(0),
       taskCreatedBlock: data |> Enum.at(1),
-      batchDataPointer: data |> Enum.at(2)
+      batchDataPointer: data |> Enum.at(2),
+      maxAggregatorFee: data |> Enum.at(3),
     }
   end
 
   def is_batch_responded(merkle_root) do
     event =
-      AlignedLayerServiceManager.EventFilters.batch_verified(Utils.string_to_bytes32(merkle_root))
-        |> Ethers.get_logs(fromBlock: @first_block)
+      Utils.string_to_bytes32(merkle_root)
+      |> AlignedLayerServiceManager.EventFilters.batch_verified()
+      |> Ethers.get_logs(fromBlock: @first_block)
 
     case event do
       {:error, reason} -> {:error, reason}
@@ -154,8 +134,9 @@ defmodule AlignedLayerServiceManager do
       response_timestamp: batch_response.block_timestamp,
       amount_of_proofs: nil,
       proof_hashes: nil,
-      cost_per_proof: get_cost_per_proof(),
-      sender_address: Utils.string_to_bytes32(created_batch.senderAddress)
+      fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot}),
+      sender_address: Utils.string_to_bytes32(created_batch.senderAddress),
+      max_aggregator_fee: created_batch.maxAggregatorFee
     }
   end
 
@@ -182,9 +163,10 @@ defmodule AlignedLayerServiceManager do
           response_transaction_hash: batch_response.transaction_hash,
           response_timestamp: batch_response.block_timestamp,
           amount_of_proofs: unverified_batch.amount_of_proofs,
-          cost_per_proof: unverified_batch.cost_per_proof,
-          proof_hashes: nil, #don't need this value to update an existing but unverified batch, it is on another table
-          sender_address: unverified_batch.sender_address
+          fee_per_proof: unverified_batch.fee_per_proof,
+          proof_hashes: nil,
+          sender_address: unverified_batch.sender_address,
+          max_aggregator_fee: unverified_batch.max_aggregator_fee
         }
     end
   end
@@ -213,7 +195,6 @@ defmodule AlignedLayerServiceManager do
     batch_merkle_root = event |> Map.get(:topics_raw) |> Enum.at(1)
     sender_address = event |> Map.get(:data) |> Enum.at(0)
 
-
     {:ok,
      %BatchVerifiedInfo{
        address: event |> Map.get(:address),
@@ -236,14 +217,9 @@ defmodule AlignedLayerServiceManager do
     case Ethers.current_gas_price() do
       {:ok, gas_price} ->
         gas_price
-      {:error, error} -> raise("Error fetching gas price: #{error}")
-    end
-  end
 
-  def get_cost_per_proof() do
-    case Integer.parse(@gas_per_proof) do
-      {value, _} -> value * get_current_gas_price()
-      :error -> raise("Error parsing @gas_per_proof")
+      {:error, error} ->
+        raise("Error fetching gas price: #{error}")
     end
   end
 
@@ -251,8 +227,9 @@ defmodule AlignedLayerServiceManager do
     case AlignedLayerServiceManager.get_restakeable_strategies() |> Ethers.call() do
       {:ok, restakeable_strategies} ->
         Strategies.update(restakeable_strategies)
+
       {:error, error} ->
-        dbg("Error fetching restakeable strategies: #{error}")
+        Logger.error("Error fetching restakeable strategies: #{error}")
         raise("Error fetching restakeable strategies: #{error}")
     end
   end

@@ -388,6 +388,35 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+    Renders a badge component.
+  """
+  attr :class, :string, default: nil
+  attr :variant, :string, default: "accent"
+  slot :inner_block, default: nil
+
+  def badge(assigns) do
+    ~H"""
+    <span class={
+      classes([
+        "px-3 py-1 rounded-full font-semibold",
+        case @variant do
+          "accent" -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
+          "primary" -> "text-primary-foreground bg-primary group-hover:bg-primary/80"
+          "secondary" -> "text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
+          "destructive" -> "text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
+          "foreground" -> "text-background bg-foreground group-hover:bg-foreground/80"
+          "card" -> "text-card-foreground bg-card group-hover:bg-card/80"
+          _ -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
+        end,
+        @class
+      ])
+    }>
+      <%= render_slot(@inner_block) %>
+    </span>
+    """
+  end
+
+  @doc """
     Renders a dynamic badge compoent.
   """
   attr :class, :string, default: nil
@@ -398,22 +427,25 @@ defmodule ExplorerWeb.CoreComponents do
 
   def dynamic_badge(assigns) do
     ~H"""
-    <span class={
-      classes([
-        "px-3 py-1 rounded-full",
+    <.badge
+      variant={
         case @status do
-          true -> "text-accent-foreground bg-accent group-hover:bg-primary/80"
-          false -> "text-background bg-foreground group-hover:bg-foreground/80"
-        end,
-        @class
-      ])
-    }>
+          true -> "accent"
+          false -> "foreground"
+        end
+      }
+      class={
+        classes([
+          @class
+        ])
+      }
+    >
       <%= case @status do
         true -> @truthy_text
         false -> @falsy_text
       end %>
       <%= render_slot(@inner_block) %>
-    </span>
+    </.badge>
     """
   end
 
@@ -709,6 +741,43 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+  Renders an empty card background.
+
+  ## Examples
+
+      <.empty_card_background text="No users found" />
+
+  """
+  attr :class, :string, default: nil
+  attr :inner_text_class, :string, default: nil
+  attr :text, :string, default: nil
+  slot :inner_block
+
+  def empty_card_background(assigns) do
+    ~H"""
+    <.card_background class={
+      classes([
+        "overflow-x-auto min-h-[38.45rem] flex flex-col items-center justify-center gap-2",
+        @class
+      ])
+    }>
+      <p
+        :if={@text != nil}
+        class={
+          classes([
+            "text-lg text-muted-foreground",
+            @inner_text_class
+          ])
+        }
+      >
+        <%= @text %>
+      </p>
+      <%= render_slot(@inner_block) %>
+    </.card_background>
+    """
+  end
+
+  @doc """
   Renders a data list.
 
   ## Examples
@@ -731,30 +800,6 @@ defmodule ExplorerWeb.CoreComponents do
           <dd class="text-zinc-700"><%= render_slot(item) %></dd>
         </div>
       </dl>
-    </div>
-    """
-  end
-
-  @doc """
-  Renders a back navigation link.
-
-  ## Examples
-
-      <.back navigate={~p"/posts"}>Back to posts</.back>
-  """
-  attr :navigate, :any, required: true
-  slot :inner_block, required: true
-
-  def back(assigns) do
-    ~H"""
-    <div class="mt-16">
-      <.link
-        navigate={@navigate}
-        class="text-sm font-semibold leading-6 text-zinc-900 hover:text-zinc-700"
-      >
-        <.icon name="hero-arrow-left-solid" class="h-3 w-3" />
-        <%= render_slot(@inner_block) %>
-      </.link>
     </div>
     """
   end

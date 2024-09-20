@@ -16,7 +16,16 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
     using stdStorage for StdStorage;
 
-    event NewBatch(bytes32 indexed batchMerkleRoot, uint32 taskCreatedBlock, string batchDataPointer);
+    event NewBatchV2(
+        bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer
+    );
+    event NewBatchV3(
+        bytes32 indexed batchMerkleRoot,
+        address senderAddress,
+        uint32 taskCreatedBlock,
+        string batchDataPointer,
+        uint256 maxFeeToRespond
+    );
 
     struct BatchIdentifier {
         bytes32 batchMerkleRoot;
@@ -43,29 +52,31 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
     //     assertEq(alignedLayerServiceManager.isAggregator(aggregator), true);
     // }
 
-    function testCreateNewTask(string memory root, string memory batchDataPointer) public {
+    function testCreateNewTask(string memory root, string memory batchDataPointer, uint256 maxFeeToRespond) public {
         vm.assume(bytes(batchDataPointer).length > 50);
         bytes32 batchMerkleRoot = keccak256(abi.encodePacked(root));
 
         address batcher = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
-        hoax(batcher, 1 ether);
+        hoax(batcher, maxFeeToRespond);
 
         // transfer to serviceManager
-        address(alignedLayerServiceManager).call{value: 0.1 ether}("");
+        address(alignedLayerServiceManager).call{value: maxFeeToRespond}("");
 
         vm.expectEmit(true, true, true, true);
-        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
+        emit NewBatchV3(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer, maxFeeToRespond);
 
         vm.prank(batcher);
-        alignedLayerServiceManager.createNewTask(batchMerkleRoot, batchDataPointer);
+        alignedLayerServiceManager.createNewTask(batchMerkleRoot, batchDataPointer, maxFeeToRespond);
 
         // Temporary solution: Use Merkle root because block number is low when running tests.
         // bytes32 batchIdentifierHash = keccak256(abi.encodePacked(batchMerkleRoot, batcher));
         bytes32 batchIdentifierHash = batchMerkleRoot;
 
-        (uint32 taskCreatedBlock, bool responded) = alignedLayerServiceManager.batchesState(batchIdentifierHash);
+        (uint32 taskCreatedBlock, bool responded, uint256 _maxFeeToRespond) =
+            alignedLayerServiceManager.batchesState(batchIdentifierHash);
 
         assertEq(taskCreatedBlock, uint32(block.number));
         assertEq(responded, false);
+        assertEq(_maxFeeToRespond, maxFeeToRespond);
     }
 }

@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.5.2
+OPERATOR_VERSION=v0.7.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -55,6 +55,10 @@ anvil_upgrade_aligned_contracts:
 	@echo "Upgrading Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_aligned_contracts.sh
 
+anvil_upgrade_batcher_payment_service:
+	@echo "Upgrading BatcherPayments contract..."
+	. contracts/scripts/anvil/upgrade_batcher_payment_service.sh
+
 anvil_upgrade_registry_coordinator:
 	@echo "Upgrading Registry Coordinator Contracts..."
 	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
@@ -70,6 +74,17 @@ anvil_upgrade_stake_registry:
 anvil_upgrade_index_registry:
 	@echo "Upgrading Index Registry Contracts..."
 	. contracts/scripts/anvil/upgrade_index_registry.sh
+
+anvil_upgrade_add_aggregator:
+	@echo "Adding Aggregator to Aligned Contracts..."
+	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
+
+anvil_add_type_hash_to_batcher_payment_service:
+	@echo "Adding Type Hash to Batcher Payment Service..."
+	. contracts/scripts/anvil/upgrade_add_type_hash_to_batcher_payment_service.sh
+
+lint_contracts:
+	@cd contracts && npm run lint:sol
 
 anvil_start:
 	@echo "Starting Anvil..."
@@ -136,7 +151,7 @@ operator_register_with_eigen_layer:
 
 operator_mint_mock_tokens:
 	@echo "Minting tokens"
-	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 1000
+	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 100000000000000000
 
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
@@ -155,7 +170,7 @@ operator_deposit_into_mock_strategy:
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
-		--amount 1000
+		--amount 100000000000000000
 
 operator_deposit_into_strategy:
 	@echo "Depositing into strategy"
@@ -229,7 +244,7 @@ batcher_send_sp1_burst:
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
-		--repetitions 15 \
+		--repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
@@ -256,7 +271,7 @@ batcher_send_risc0_burst:
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
-        --repetitions 15 \
+        --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
@@ -281,6 +296,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
+		--repetitions 4 \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
@@ -468,6 +484,14 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 	@echo "Upgrading Stake Registry..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_stake_registry.sh
 
+upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
+	@echo "Adding Aggregator to Aligned Contracts..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
+
+upgrade_batcher_payments_add_type_hash: ## Add Type Hash to Batcher Payment Service
+	@echo "Adding Type Hash to Batcher Payment Service..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_type_hash_to_batcher_payment_service.sh
+
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
@@ -482,6 +506,12 @@ upgrade_batcher_payment_service:
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
+
+show_aligned_error_codes:
+	@echo "\nAlignedLayerServiceManager errors:"
+	@cd contracts/src/core && forge inspect IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@echo "\nBatcherPaymentService errors:"
+	@cd contracts/src/core && forge inspect BatcherPaymentService.sol:BatcherPaymentService errors
 
 __BUILD__:
 build_binaries:
@@ -539,6 +569,7 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:
@@ -552,14 +583,28 @@ build_merkle_tree_macos:
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
+build_merkle_tree_macos_old:
+	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree_old/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
+
 build_merkle_tree_linux:
 	@cd operator/merkle_tree/lib && cargo build $(RELEASE_FLAG)
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
+build_merkle_tree_linux_old:
+	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree_old/lib/libmerkle_tree.so
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
+
 test_merkle_tree_rust_ffi:
 	@echo "Testing Merkle Tree Rust FFI source code..."
 	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_merkle_tree_rust_ffi_old:
+	@echo "Testing Old Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree_old/lib && RUST_MIN_STACK=83886080 cargo t --release
 
 test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 	@echo "Testing Merkle Tree Go bindings..."
@@ -568,6 +613,14 @@ test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
+	@echo "Testing Old Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree_old/... -v
+
+test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree_old/... -v
 
 __HALO2_KZG_FFI__: ##
 build_halo2_kzg_macos:
@@ -684,6 +737,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_merkle_tree_macos_old
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
 	@$(MAKE) build_mina_macos
@@ -695,6 +749,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_merkle_tree_linux_old
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
 	@$(MAKE) build_mina_linux
@@ -703,39 +758,39 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 
 
 __EXPLORER__:
-run_explorer: run_db ecto_setup_db
+run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
 		mix setup && \
 		./start.sh
 
-build_db:
+explorer_build_db:
 	@cd explorer && \
 		docker build -t explorer-postgres-image .
 
-run_db: remove_db_container
+explorer_run_db: explorer_remove_db_container
 	@cd explorer && \
 		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
 
-ecto_setup_db:
+explorer_ecto_setup_db:
 		@cd explorer/ && \
 		./ecto_setup_db.sh
 
-remove_db_container:
+explorer_remove_db_container:
 	@cd explorer && \
 		docker stop explorer-postgres-container || true  && \
 		docker rm explorer-postgres-container || true
 
-clean_db: remove_db_container
+explorer_clean_db: explorer_remove_db_container
 	@cd explorer && \
 		docker volume rm explorer-postgres-data || true
 
-dump_db:
+explorer_dump_db:
 	@cd explorer && \
 		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /explorer"
 
-recover_db: run_db
+explorer_recover_db: explorer_run_db
 	@read -p $$'\e[32mEnter the dump file to recover (e.g., dump.20230607_123456.sql): \e[0m' DUMP_FILE && \
 	cd explorer && \
 	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
