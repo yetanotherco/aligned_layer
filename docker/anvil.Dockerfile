@@ -1,5 +1,5 @@
 FROM foundry
 
-COPY contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json .
+COPY contracts/scripts/anvil/state/* .
 
 CMD ["anvil", "--load-state", "alignedlayer-deployed-anvil-state.json", "--block-time", "7", "--host", "0.0.0.0"]
