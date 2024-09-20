@@ -238,7 +238,7 @@ batcher_send_infinite_burst:
 	@echo "Sending Sending Infinite Groth16 Task to Batcher..."
 	@cd batcher/aligned-task-sender/ && cargo run --release -- send-infinite
 
-send_infinite:
+batcher_send_infinite_burst:
 	@echo "Sending Sending Infinite Groth16 Task to Batcher..."
 	@cd batcher/aligned-task-sender/ && cargo run --release -- send-infinite
 
