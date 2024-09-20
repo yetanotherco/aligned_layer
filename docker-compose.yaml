@@ -1,0 +1,87 @@
+services:
+
+  anvil:
+    image: anvil
+    build:
+      context: .
+      dockerfile: docker/anvil.Dockerfile
+
+  aggregator:
+    image: aggregator
+    build:
+      context: .
+      dockerfile: docker/aggregator.Dockerfile
+    depends_on:
+      - anvil
+
+  fund-operator:
+    image: foundry
+    command: ["cast", "send", "--from", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "--value", "1ether", "--private-key", "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", "--rpc-url", "http://anvil:8545", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    depends_on:
+      - anvil
+
+  register-operator-eigenlayer:
+    image: eigenlayer-cli
+    command: ["sh", "-c", "sleep 10 && echo '' | eigenlayer operator register config-files/config-docker.yaml"]
+    build:
+      context: .
+      dockerfile: docker/eigenlayer-cli.Dockerfile
+    depends_on:
+      - fund-operator
+
+  mint-mock-tokens:
+    image: foundry
+    command: ["sh", "-c", "sleep 15 && mock_token_address=$(cast call 0xc5a5C42992dECbae36851359345FE25997F5C42d \"underlyingToken()\" --rpc-url http://anvil:8545) cast send $mock_token_address \"mint(address, uint256)\" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545"]
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    depends_on:
+      - register-operator-eigenlayer
+
+  operator-deposit-into-mock-strategy:
+    image: operator
+    command: ["sh", "-c", "sleep 20 && aligned-layer-operator deposit-into-strategy --config ./config-files/config-docker.yaml --strategy-address 0xc5a5C42992dECbae36851359345FE25997F5C42d --amount 100000000000000000"]
+    build:
+      context: .
+      dockerfile: docker/operator.Dockerfile
+    depends_on:
+      - mint-mock-tokens
+
+  operator-whitelist-devnet:
+    image: foundry
+    command: ["sh", "-c", "sleep 35 && cast send --rpc-url=http://anvil:8545 --private-key=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 0x851356ae760d987E095750cCeb3bC6014560891C \"add(address)\" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    depends_on:
+      - operator-deposit-into-mock-strategy
+
+  operator-register-with-aligned-layer:
+    image: operator
+    command: ["sh", "-c", "sleep 50 && aligned-layer-operator register --config ./config-files/config-docker.yaml"]
+    build:
+      context: .
+      dockerfile: docker/operator.Dockerfile
+    depends_on:
+      - operator-whitelist-devnet
+
+  operator:
+    image: operator
+    command: ["sh", "-c", "sleep 60 && aligned-layer-operator start --config ./config-files/config-docker.yaml"]
+    build:
+      context: .
+      dockerfile: docker/operator.Dockerfile
+    depends_on:
+      - operator-register-with-aligned-layer
+
+  user-fund-payment-service-devnet:
+    image: foundry
+    command: ["sh", "-c", "sleep 70 && cast send --from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --value 100ether --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"]
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    depends_on:
+      - operator
