@@ -284,8 +284,8 @@ contract BatcherPaymentService is
             abi.encode(
                 noncedVerificationDataTypeHash,
                 leaf,
-                keccak256(abi.encodePacked(signatureData.nonce)),
-                keccak256(abi.encodePacked(signatureData.maxFee))
+                signatureData.nonce,
+                signatureData.maxFee
             )
         );
 

@@ -218,30 +218,39 @@ impl Eip712 for NoncedVerificationData {
     }
 
     fn struct_hash(&self) -> Result<[u8; 32], Self::Error> {
+
+        //EIP requires big endian for u256
+        let mut nonce_bytes = [0u8; 32];
+        self.nonce.to_big_endian(&mut nonce_bytes);
+
+        let mut max_fee_bytes = [0u8; 32];
+        self.max_fee.to_big_endian(&mut max_fee_bytes);
+
+        // This hashes the data of the task the user wants solved
+        // This is the data that is the leaf on the batch merkle tree
         let verification_data_hash =
             VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
 
         let mut hasher = Keccak256::new();
 
+        // As per the EIP, first we generate the type hash
+        // hashStruct(s : 𝕊) = keccak256(typeHash ‖ encodeData(s))
         hasher.update(NONCED_VERIFICATION_DATA_TYPE);
-        let nonced_verification_data_type_hash = hasher.finalize_reset();
+        let type_hash = hasher.finalize_reset();
 
-        let mut nonce_bytes = [0u8; 32];
-        self.nonce.to_big_endian(&mut nonce_bytes);
+        // Then hash is resetted, so we start hashing the second term of the encodedData(s)
+        hasher.update(verification_data_hash);
         hasher.update(nonce_bytes);
-        let nonce_hash = hasher.finalize_reset();
-
-        let mut max_fee_bytes = [0u8; 32];
-        self.max_fee.to_big_endian(&mut max_fee_bytes);
         hasher.update(max_fee_bytes);
-        let max_fee_hash = hasher.finalize_reset();
+        let encoded_data_hash = hasher.finalize_reset();
 
-        hasher.update(nonced_verification_data_type_hash.as_slice());
-        hasher.update(verification_data_hash.as_slice());
-        hasher.update(nonce_hash.as_slice());
-        hasher.update(max_fee_hash.as_slice());
+        // Now we do the actual final
+        // keccak256(typeHash ‖ encodeData(s))
+        hasher.update(type_hash);
+        hasher.update(encoded_data_hash);
+        let hash_struct = hasher.finalize_reset();
 
-        Ok(hasher.finalize().into())
+        Ok(hash_struct.into())
     }
 }
 
