@@ -138,21 +138,32 @@ pub(crate) fn calculate_batch_size(
     }
 }
 
+/// This function tries to build a batch to be submitted to Aligned.
+/// Given a copy of the current batch queue, , and applyies an algorithm to find the biggest batch
+/// of proofs from users that are willing to pay for it:
+/// 1. Traverse each batch priority queue, starting from the one with minimum max fee.
+/// 2. Calculate the `fee_per_proof` for the whole batch and compare with the `max_fee` of the entry.
+/// 3. If `fee_per_proof` is less than the `max_fee` of the current entry, submit the batch. If not, pop this entry
+/// from the queue and push it to `resulting_priority_queue`, then repeat step 1.
+///
+/// `resulting_priority_queue` will be the batch queue composed of all entries that were not willing to pay for the batch.
+/// This is outputted in along with the finalized batch.
 pub(crate) fn try_build_batch(
     batch_queue_copy: &mut BatchQueue,
     gas_price: U256,
     max_batch_size: usize,
 ) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
     let mut batch_size = calculate_batch_size(batch_queue_copy)?;
-    let mut resulting_priority_queue =
-        PriorityQueue::<BatchQueueEntry, BatchQueueEntryPriority>::new();
+    let mut resulting_priority_queue = BatchQueue::new();
 
     while let Some((entry, _)) = batch_queue_copy.peek() {
         let batch_len = batch_queue_copy.len();
         let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
 
         if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee {
-            // Update the state for the next iteration
+            // Update the state for the next iteration:
+            // * Subtract this entry size to the size of the batch size.
+            // * Push the current entry to the resulting batch queue.
 
             // It is safe to call `.unwrap()` here since any serialization error should have been caught
             // when calculating the total size of the batch with the `calculate_batch_size` function
@@ -160,7 +171,6 @@ pub(crate) fn try_build_batch(
                 cbor_serialize(&entry.nonced_verification_data.verification_data)
                     .unwrap()
                     .len();
-
             batch_size -= verification_data_size;
 
             let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
@@ -177,6 +187,7 @@ pub(crate) fn try_build_batch(
 
     // If `batch` is empty, this means that all the batch queue was traversed and we didn't find
     // any user willing to pay fot the fee per proof.
+
     if batch.is_empty() {
         return Err(BatcherError::BatchCostTooHigh);
     }
