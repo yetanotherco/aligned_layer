@@ -244,6 +244,36 @@ async fn main() -> Result<(), AlignedError> {
     Ok(())
 }
 
+/*
+async fn get_verification_data(
+    burst_size: usize,
+    count: usize,
+    max_fee: U256,
+    proof_generator_addr: Address,
+    base_dir: &Path,
+) -> Result<(Vec<U256>, Vec<VerificationData>), AlignedError> {
+    let proof = read_file(base_dir.join(format!(
+        "{}/ineq_{}_groth16.proof",
+        GROTH_16_PROOF_DIR, count
+    )))?;
+    let public_input =
+        read_file(base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count)))?;
+    let vk = read_file(base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count)))?;
+    let verification_data = VerificationData {
+        proving_system: ProvingSystemId::Groth16Bn254,
+        proof,
+        pub_input: Some(public_input),
+        verification_key: Some(vk),
+        vm_program_code: None,
+        proof_generator_addr,
+    };
+    Ok((
+        vec![max_fee; burst_size],
+        vec![verification_data; burst_size],
+    ))
+}
+*/
+
 async fn get_verification_data(
     burst_size: usize,
     count: usize,
