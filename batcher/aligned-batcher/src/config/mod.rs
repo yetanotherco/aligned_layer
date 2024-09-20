@@ -1,9 +1,38 @@
+use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet, types::Address};
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ECDSAConfig {
     pub private_key_store_path: String,
     pub private_key_store_password: String,
+}
+
+#[derive(Debug)]
+pub struct NonPayingConfig {
+    pub address: Address,
+    pub replacement: Wallet<SigningKey>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NonPayingConfigFromYaml {
+    pub address: Address,
+    pub replacement_private_key: String,
+}
+
+impl NonPayingConfig {
+    pub async fn from_yaml_config(config: NonPayingConfigFromYaml) -> Self {
+        let replacement = Wallet::from_bytes(
+            hex::decode(config.replacement_private_key)
+                .expect("Failed to decode replacement private key")
+                .as_slice(),
+        )
+        .expect("Failed to create replacement wallet");
+
+        NonPayingConfig {
+            address: config.address,
+            replacement,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,12 +43,15 @@ pub struct BatcherConfigFromYaml {
     pub max_batch_size: usize,
     pub eth_ws_reconnects: usize,
     pub pre_verification_is_enabled: bool,
+    pub non_paying: Option<NonPayingConfigFromYaml>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigFromYaml {
     pub eth_rpc_url: String,
+    pub eth_rpc_url_fallback: String,
     pub eth_ws_url: String,
+    pub eth_ws_url_fallback: String,
     pub ecdsa: ECDSAConfig,
     pub aligned_layer_deployment_config_file_path: String,
     pub batcher: BatcherConfigFromYaml,
@@ -34,8 +66,8 @@ impl ConfigFromYaml {
 
 #[derive(Debug, Deserialize)]
 pub struct Addresses {
-    #[serde(rename = "alignedLayerServiceManager")]
-    pub aligned_layer_service_manager: String,
+    #[serde(rename = "batcherPaymentService")]
+    pub batcher_payment_service: String,
 }
 
 #[derive(Debug, Deserialize)]

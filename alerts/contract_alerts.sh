@@ -20,6 +20,12 @@ function send_telegram_message() {
       -d disable_notification=true
 }
 
+# Function to send PagerDuty alert
+# @param message
+function send_pagerduty_alert() {
+  . pagerduty.sh "$1"
+}
+
 # Flags to avoid sending multiple alerts
 no_new_batches_alert=false
 no_verified_batches_alert=false
@@ -38,6 +44,7 @@ do
       message="🚨 ALERT: No new batches in Service Manager since block $from_block"
       send_slack_message "$message"
       send_telegram_message "$message"
+      send_pagerduty_alert "$message"
     fi
     no_new_batches_alert=true
   else
@@ -57,6 +64,7 @@ do
       message="🚨 ALERT: No verified batches in Service Manager since block $from_block"
       send_slack_message "$message"
       send_telegram_message "$message"
+      send_pagerduty_alert "$message"
     fi
     no_verified_batches_alert=true
   else

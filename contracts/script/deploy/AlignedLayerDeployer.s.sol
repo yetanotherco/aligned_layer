@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 /*
     This script is a modified version of the Mainnet_Deploy.s.sol script used by EigenDA:
@@ -34,6 +34,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
     address public alignedLayerPauser;
     uint256 public initalPausedStatus;
     address public deployer;
+    address public alignedLayerAggregator;
 
     BLSApkRegistry public apkRegistry;
     AlignedLayerServiceManager public alignedLayerServiceManager;
@@ -98,6 +99,11 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             "Deployer address must be the same as the tx.origin"
         );
         emit log_named_address("You are deploying from", deployer);
+
+        alignedLayerAggregator = stdJson.readAddress(
+            config_data,
+            ".permissions.aggregator"
+        );
 
         vm.startBroadcast();
 
@@ -253,10 +259,18 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
                 deployer,
+                deployer,
+                alignedLayerAggregator,
                 pauserRegistry,
                 initalPausedStatus
             )
         );
+
+        // address _initialOwner,
+        // address _rewardsInitiator,
+        // address _alignedAggregator
+        // IPauserRegistry _pauserRegistry,
+        // uint256 _initialPausedStatus
 
         string memory metadataURI = stdJson.readString(config_data, ".uri");
         alignedLayerServiceManager.updateAVSMetadataURI(metadataURI);
@@ -481,6 +495,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         //upgrade the alignedLayer service manager proxy to implementation
+        // TODO check is OK
         alignedLayerProxyAdmin.upgradeAndCall(
             TransparentUpgradeableProxy(
                 payable(address(alignedLayerServiceManager))
@@ -488,6 +503,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             address(alignedLayerServiceManagerImplementation),
             abi.encodeWithSelector(
                 AlignedLayerServiceManager.initialize.selector,
+                deployer,
                 deployer,
                 pauserRegistry,
                 initalPausedStatus
@@ -819,10 +835,17 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             config_data,
             ".permissions.ejector"
         );
+
+        address alignedLayerAggregator = stdJson.readAddress(
+            config_data,
+            ".permissions.aggregator"
+        );
+
         address pauserAddress = stdJson.readAddress(
             config_data,
             ".permissions.pauser"
         );
+
         string memory permissions = "permissions";
         vm.serializeAddress(
             permissions,
@@ -836,7 +859,9 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
         vm.serializeAddress(permissions, "alignedLayerChurner", churner);
         vm.serializeAddress(permissions, "alignedLayerPauser", pauserAddress);
-//        vm.serializeAddress(permissions, "pauserRegistry", pauser);
+        vm.serializeAddress(permissions, "pauserRegistry", pauser);
+        vm.serializeAddress(permissions, "alignedLayerAggregator", alignedLayerAggregator);
+
         string memory permissions_output = vm.serializeAddress(
             permissions,
             "alignedLayerEjector",

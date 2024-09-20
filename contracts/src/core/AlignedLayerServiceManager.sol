@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.12;
-
-import {Pausable} from "eigenlayer-core/contracts/permissions/Pausable.sol";
-import {IPauserRegistry} from "eigenlayer-core/contracts/interfaces/IPauserRegistry.sol";
+pragma solidity ^0.8.12;
 
 import {ServiceManagerBase, IAVSDirectory} from "eigenlayer-middleware/ServiceManagerBase.sol";
 import {BLSSignatureChecker} from "eigenlayer-middleware/BLSSignatureChecker.sol";
@@ -11,11 +8,13 @@ import {IStakeRegistry} from "eigenlayer-middleware/interfaces/IStakeRegistry.so
 import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
+import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 
 /**
  * @title Primary entrypoint for procuring services from Aligned.
  */
 contract AlignedLayerServiceManager is
+    IAlignedLayerServiceManager,
     ServiceManagerBase,
     BLSSignatureChecker,
     AlignedLayerServiceManagerStorage,
@@ -23,15 +22,6 @@ contract AlignedLayerServiceManager is
 {
     uint256 internal constant THRESHOLD_DENOMINATOR = 100;
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
-
-    // EVENTS
-    event NewBatch(
-        bytes32 indexed batchMerkleRoot,
-        uint32 taskCreatedBlock,
-        string batchDataPointer
-    );
-
-    event BatchVerified(bytes32 indexed batchMerkleRoot);
 
     constructor(
         IAVSDirectory __avsDirectory,
@@ -53,16 +43,31 @@ contract AlignedLayerServiceManager is
     /**
     * @notice Initializes the contract with the initial owner.
     * @param _initialOwner The initial owner of the contract.
+    * @param _rewardsInitiator The address which is allowed to create AVS rewards submissions.
+    * @param _alignedAggregator The address of the aggregator.
     * @param _pauserRegistry a registry of addresses that can pause the contract
     * @param _initialPausedStatus pause status after calling initialize
     */
     function initialize(
         address _initialOwner,
+        address _rewardsInitiator,
+        address _alignedAggregator
         IPauserRegistry _pauserRegistry,
         uint256 _initialPausedStatus
     ) public initializer {
-        _transferOwnership(_initialOwner);
+        __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
+        alignedAggregator = _alignedAggregator; //can't do setAggregator(aggregator) since caller is not the owner
+        _transferOwnership(_initialOwner); // TODO check is this needed? is it not called in __ServiceManagerBase_init ?
         _initializePauser(_pauserRegistry, _initialPausedStatus);
+    }
+
+    // This function is to be run only on upgrade
+    // If a new contract is deployed, this function should be removed
+    // Because this new value is also added in the initializer
+    function initializeAggregator(
+        address _alignedAggregator
+    ) public reinitializer(2) {
+        setAggregator(_alignedAggregator);
     }
 
     // Just to be used to upgrade contracts without the pausable functionality
@@ -70,103 +75,135 @@ contract AlignedLayerServiceManager is
     function initializePauser(
         IPauserRegistry _pauserRegistry,
         uint256 _initialPausedStatus
-    ) public reinitializer(2) {
+    ) public reinitializer(3) {
         _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
     function createNewTask(
         bytes32 batchMerkleRoot,
-        string calldata batchDataPointer
+        string calldata batchDataPointer,
+        uint256 respondToTaskFeeLimit
     ) external payable whenNotPaused {
-        require(
-            batchesState[batchMerkleRoot].taskCreatedBlock == 0,
-            "Batch was already submitted"
+        bytes32 batchIdentifier = keccak256(
+            abi.encodePacked(batchMerkleRoot, msg.sender)
         );
+
+        if (batchesState[batchIdentifier].taskCreatedBlock != 0) {
+            revert BatchAlreadySubmitted(batchIdentifier);
+        }
 
         if (msg.value > 0) {
             batchersBalances[msg.sender] += msg.value;
+            emit BatcherBalanceUpdated(
+                msg.sender,
+                batchersBalances[msg.sender]
+            );
         }
 
-        require(batchersBalances[msg.sender] > 0, "Batcher balance is empty");
+        if (batchersBalances[msg.sender] < respondToTaskFeeLimit) {
+            revert InsufficientFunds(
+                msg.sender,
+                respondToTaskFeeLimit,
+                batchersBalances[msg.sender]
+            );
+        }
 
         BatchState memory batchState;
 
         batchState.taskCreatedBlock = uint32(block.number);
         batchState.responded = false;
-        batchState.batcherAddress = msg.sender;
+        batchState.respondToTaskFeeLimit = respondToTaskFeeLimit;
 
-        batchesState[batchMerkleRoot] = batchState;
+        batchesState[batchIdentifier] = batchState;
 
-        emit NewBatch(batchMerkleRoot, uint32(block.number), batchDataPointer);
+        // For aggregator and operators in v0.7.0
+        emit NewBatchV3(
+            batchMerkleRoot,
+            msg.sender,
+            uint32(block.number),
+            batchDataPointer,
+            respondToTaskFeeLimit
+        );
     }
 
-    function respondToTask(
-        // Root is signed as a way to verify the batch was right
+    function respondToTaskV2(
+        // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
+        address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
-    ) external whenNotPaused {
+    ) external onlyAggregator whenNotPaused {
         uint256 initialGasLeft = gasleft();
 
-        /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encodePacked(batchMerkleRoot, senderAddress)
+        );
+
+        BatchState storage currentBatch = batchesState[batchIdentifierHash];
 
         // Note: This is a hacky solidity way to see that the element exists
         // Value 0 would mean that the task is in block 0 so this can't happen.
-        require(
-            batchesState[batchMerkleRoot].taskCreatedBlock != 0,
-            "Batch doesn't exists"
-        );
+        if (currentBatch.taskCreatedBlock == 0) {
+            revert BatchDoesNotExist(batchIdentifierHash);
+        }
 
         // Check task hasn't been responsed yet
-        require(
-            batchesState[batchMerkleRoot].responded == false,
-            "Batch already responded"
-        );
+        if (currentBatch.responded) {
+            revert BatchAlreadyResponded(batchIdentifierHash);
+        }
+        currentBatch.responded = true; 
 
-        require(
-            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] > 0,
-            "Batcher has no balance"
-        );
-
-        batchesState[batchMerkleRoot].responded = true;
+        // Check that batcher has enough funds to fund response
+        if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
+            revert InsufficientFunds(
+                senderAddress,
+                currentBatch.respondToTaskFeeLimit,
+                batchersBalances[senderAddress]
+            );
+        }
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
+
         // check that aggregated BLS signature is valid
-        (
-            QuorumStakeTotals memory quorumStakeTotals,
-            bytes32 _hashOfNonSigners
-        ) = checkSignatures(
-                batchMerkleRoot,
-                batchesState[batchMerkleRoot].taskCreatedBlock,
-                nonSignerStakesAndSignature
-            );
+        (QuorumStakeTotals memory quorumStakeTotals, ) = checkSignatures(
+            batchIdentifierHash,
+            currentBatch.taskCreatedBlock,
+            nonSignerStakesAndSignature
+        );
 
         // check that signatories own at least a threshold percentage of each quourm
-        require(
-            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR >=
+        if (
+            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR <
+            quorumStakeTotals.totalStakeForQuorum[0] *
+                QUORUM_THRESHOLD_PERCENTAGE
+        ) {
+            revert InvalidQuorumThreshold(
+                quorumStakeTotals.signedStakeForQuorum[0] *
+                    THRESHOLD_DENOMINATOR,
                 quorumStakeTotals.totalStakeForQuorum[0] *
-                    QUORUM_THRESHOLD_PERCENTAGE,
-            "Signatories do not own at least threshold percentage of a quorum"
+                    QUORUM_THRESHOLD_PERCENTAGE
+            );
+        }
+
+        emit BatchVerified(batchMerkleRoot, senderAddress);
+
+        // 70k was measured by trial and error until the aggregator got paid a bit over what it needed
+        uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
+
+        if (txCost > currentBatch.respondToTaskFeeLimit) {
+            revert ExceededMaxRespondFee(
+                currentBatch.respondToTaskFeeLimit,
+                txCost
+            );
+        }
+
+        // Subtract the txCost from the batcher's balance
+        batchersBalances[senderAddress] -= txCost;
+        emit BatcherBalanceUpdated(
+            senderAddress,
+            batchersBalances[senderAddress]
         );
-
-        emit BatchVerified(batchMerkleRoot);
-
-        // Calculate estimation of gas used, check that batcher has sufficient funds
-        // and send transaction cost to aggregator.
-        uint256 finalGasLeft = gasleft();
-
-        // FIXME: should we add 21000 gas from the transfer + some additional for the other steps (~40k gas)?
-        uint256 txCost = (initialGasLeft - finalGasLeft + 21000) * tx.gasprice;
-
-        require(
-            batchersBalances[batchesState[batchMerkleRoot].batcherAddress] >=
-                txCost,
-            "Batcher has not sufficient funds for paying this transaction"
-        );
-
-        batchersBalances[
-            batchesState[batchMerkleRoot].batcherAddress
-        ] -= txCost;
-        payable(msg.sender).transfer(txCost);
+        
+        payable(alignedAggregator).transfer(txCost);
     }
 
     function verifyBatchInclusion(
@@ -176,13 +213,23 @@ contract AlignedLayerServiceManager is
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint256 verificationDataBatchIndex
+        uint256 verificationDataBatchIndex,
+        address senderAddress
     ) external view returns (bool) {
-        if (batchesState[batchMerkleRoot].taskCreatedBlock == 0) {
+        bytes32 batchIdentifier;
+        if (senderAddress == address(0)) {
+            batchIdentifier = batchMerkleRoot;
+        } else {
+            batchIdentifier = keccak256(
+                abi.encodePacked(batchMerkleRoot, senderAddress)
+            );
+        }
+
+        if (batchesState[batchIdentifier].taskCreatedBlock == 0) {
             return false;
         }
 
-        if (!batchesState[batchMerkleRoot].responded) {
+        if (!batchesState[batchIdentifier].responded) {
             return false;
         }
 
@@ -204,11 +251,78 @@ contract AlignedLayerServiceManager is
             );
     }
 
+    // Old function signature for backwards compatibility
+    function verifyBatchInclusion(
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
+        bytes32 batchMerkleRoot,
+        bytes memory merkleProof,
+        uint256 verificationDataBatchIndex
+    ) external view returns (bool) {
+        return this.verifyBatchInclusion(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr,
+            batchMerkleRoot,
+            merkleProof,
+            verificationDataBatchIndex,
+            address(0)
+        );
+    }
+
+    function setAggregator(address _alignedAggregator) public onlyOwner {
+        alignedAggregator = _alignedAggregator;
+    }
+
+    function withdraw(uint256 amount) external {
+        if (batchersBalances[msg.sender] < amount) {
+            revert InsufficientFunds(
+                msg.sender,
+                amount,
+                batchersBalances[msg.sender]
+            );
+        }
+
+        batchersBalances[msg.sender] -= amount;
+        emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
+
+        payable(msg.sender).transfer(amount);
+    }
+
     function balanceOf(address account) public view returns (uint256) {
         return batchersBalances[account];
     }
 
+    function depositToBatcher(address account) external payable {
+        _depositToBatcher(account, msg.value);
+    }
+
+    function _depositToBatcher(address account, uint256 amount) internal {
+        if (amount == 0) {
+            revert InvalidDepositAmount(amount);
+        }
+        batchersBalances[account] += amount;
+        emit BatcherBalanceUpdated(account, batchersBalances[account]);
+    }
+
     receive() external payable {
-        batchersBalances[msg.sender] += msg.value;
+        _depositToBatcher(msg.sender, msg.value);
+    }
+
+    function checkPublicInput(
+        bytes calldata publicInput,
+        bytes32 hash
+    ) public pure returns (bool) {
+        return keccak256(publicInput) == hash;
+    }
+
+    modifier onlyAggregator() {
+        if (msg.sender != alignedAggregator) {
+            revert SenderIsNotAggregator(msg.sender, alignedAggregator);
+        }
+        _;
     }
 }

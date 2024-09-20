@@ -6,6 +6,9 @@ on:
     branches: [main]
   pull_request:
     branches: ["*"]
+    paths:
+      - 'operator/sp1/**'
+      - '.github/workflows/test-sp1.yml'
 
 jobs:
     test:
@@ -16,6 +19,9 @@ jobs:
           with:
             go-version: '1.22'
             cache: false
+        - uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
         - name: Test SP1 Rust
           run: make test_sp1_rust_ffi
         - name: Test SP1 go bindings

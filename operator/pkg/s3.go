@@ -1,33 +1,63 @@
 package operator
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/ugorji/go/codec"
+
+	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
+	merkle_tree_old "github.com/yetanotherco/aligned_layer/operator/merkle_tree_old"
 )
 
-func (o *Operator) getBatchFromS3(proofUrl string) ([]VerificationData, error) {
-	o.Logger.Infof("Getting batch from S3..., proofUrl: %s", proofUrl)
-	resp, err := http.Head(proofUrl)
+func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
+	o.Logger.Infof("Getting batch from data service, batchURL: %s", batchURL)
+
+	var resp *http.Response
+	var err error
+	var req *http.Request
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			o.Logger.Infof("Waiting for %s before retrying data fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
+			select {
+			case <-time.After(retryDelay):
+				// Wait before retrying
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+			retryDelay *= 2 // Exponential backoff. Ex: 5s, 10s, 20s
+		}
+
+		req, err = http.NewRequestWithContext(ctx, "GET", batchURL, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err = http.DefaultClient.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			break // Successful request, exit retry loop
+		}
+
+		if resp != nil {
+			err := resp.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		o.Logger.Warnf("Error fetching batch from data service - (attempt %d): %v", attempt+1, err)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if the response is OK
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error getting Proof Head from S3: %s", resp.Status)
-	}
+	// At this point, the HTTP request was successfull.
 
-	if resp.ContentLength > o.Config.Operator.MaxBatchSize {
-		return nil, fmt.Errorf("proof size %d exceeds max batch size %d",
-			resp.ContentLength, o.Config.Operator.MaxBatchSize)
-	}
-
-	resp, err = http.Get(proofUrl)
-	if err != nil {
-		return nil, err
-	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
@@ -35,16 +65,57 @@ func (o *Operator) getBatchFromS3(proofUrl string) ([]VerificationData, error) {
 		}
 	}(resp.Body)
 
-	proof, err := io.ReadAll(resp.Body)
+	// Check if the response is OK
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error getting batch from data service: %s", resp.Status)
+	}
+
+	contentLength := resp.ContentLength
+	if contentLength > o.Config.Operator.MaxBatchSize {
+		return nil, fmt.Errorf("proof size %d exceeds max batch size %d",
+			contentLength, o.Config.Operator.MaxBatchSize)
+	}
+
+	// Use io.LimitReader to limit the size of the response body
+	// This is to prevent the operator from downloading a larger than expected file
+	// + 1 is added to the contentLength to check if the response body is larger than expected
+	reader := io.LimitedReader{R: resp.Body, N: contentLength + 1}
+	batchBytes, err := io.ReadAll(&reader)
 	if err != nil {
 		return nil, err
 	}
 
+	// Check if the response body is larger than expected
+	if reader.N <= 0 {
+		return nil, fmt.Errorf("batch size exceeds max batch size %d", o.Config.Operator.MaxBatchSize)
+	}
+
+	// Checks if downloaded merkle root is the same as the expected one
+	o.Logger.Infof("Verifying batch merkle tree...")
+	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
+	if !merkle_root_check {
+		// try old merkle tree
+		o.Logger.Infof("Batch merkle tree verification failed. Trying old merkle tree...")
+		merkle_root_check = merkle_tree_old.VerifyMerkleTreeBatchOld(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
+		if !merkle_root_check {
+			return nil, fmt.Errorf("merkle root check failed")
+		}
+	}
+	o.Logger.Infof("Batch merkle tree verified")
+
 	var batch []VerificationData
 
-	err = json.Unmarshal(proof, &batch)
+	decoder := codec.NewDecoderBytes(batchBytes, new(codec.CborHandle))
+
+	err = decoder.Decode(&batch)
 	if err != nil {
-		return nil, err
+		o.Logger.Infof("Error decoding batch as CBOR: %s. Trying JSON decoding...", err)
+		// try json
+		decoder = codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
+		err = decoder.Decode(&batch)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return batch, nil

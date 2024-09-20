@@ -9,6 +9,7 @@ defmodule Explorer.Application do
   def start(_type, _args) do
     children = [
       ExplorerWeb.Telemetry,
+      {Cachex, name: :eth_price_cache},
       {DNSCluster, query: Application.get_env(:explorer, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Explorer.PubSub},
       # Start the Ecto db repository
@@ -21,14 +22,17 @@ defmodule Explorer.Application do
       ExplorerWeb.Endpoint
     ]
 
-    # Start the periodic task, with its own supervisor and mutex
+    # Start the main supervisor
     opts = [strategy: :one_for_one, name: Explorer.Supervisor]
     Supervisor.start_link(children, opts)
 
+    # Start the periodic task, with its own supervisor and mutex
     periodic_children = [
       {Explorer.Periodically, []},
-      {Mutex, name: BatchMutex, meta: "Used to prevent concurrent downloads"}
+      Supervisor.child_spec({Mutex, [name: BatchMutex, meta: "Used to prevent concurrent downloads"]}, id: :batch_mutex),
+      Supervisor.child_spec({Mutex, [name: OperatorMutex, meta: "Used to prevent concurrent operator processing"]}, id: :operator_mutex)
     ]
+
     periodic_opts = [strategy: :one_for_all, name: Explorer.Periodically.Supervisor]
     Supervisor.start_link(periodic_children, periodic_opts)
   end

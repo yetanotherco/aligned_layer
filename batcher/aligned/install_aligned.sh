@@ -8,11 +8,12 @@ BASE_DIR=$HOME
 ALIGNED_DIR="${ALIGNED_DIR-"$BASE_DIR/.aligned"}"
 ALIGNED_BIN_DIR="$ALIGNED_DIR/bin"
 ALIGNED_BIN_PATH="$ALIGNED_BIN_DIR/aligned"
-CURRENT_TAG=$(curl -s -L \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  https://api.github.com/repos/yetanotherco/aligned_layer/releases/latest \
-  | grep '"tag_name":' | awk -F'"' '{print $4}')
+#CURRENT_TAG=$(curl -s -L \
+#  -H "Accept: application/vnd.github+json" \
+#  -H "X-GitHub-Api-Version: 2022-11-28" \
+#  https://api.github.com/repos/yetanotherco/aligned_layer/releases/latest \
+#  | grep '"tag_name":' | awk -F'"' '{print $4}')
+CURRENT_TAG=v0.6.0
 RELEASE_URL="https://github.com/yetanotherco/aligned_layer/releases/download/$CURRENT_TAG/"
 
 ARCH=$(uname -m)
@@ -28,7 +29,7 @@ fi
 
 mkdir -p "$ALIGNED_BIN_DIR"
 if curl -sSf -L "$RELEASE_URL$FILE" -o "$ALIGNED_BIN_PATH"; then
-    echo "Aligned download successful, installing..."
+    echo "Aligned download successful, installing $CURRENT_TAG release..."
 else
     echo "Error: Failed to download $RELEASE_URL$FILE"
     exit 1
@@ -69,6 +70,6 @@ if [[ ":$PATH:" != *":${ALIGNED_BIN_DIR}:"* ]]; then
     fi
 fi
 
-echo "Aligned installed successfully in $ALIGNED_BIN_PATH."
+echo "Aligned $CURRENT_TAG installed successfully in $ALIGNED_BIN_PATH."
 echo "Detected your preferred shell is $PREF_SHELL and added aligned to PATH."
 echo "Run 'source $PROFILE' or start a new terminal session to use aligned."

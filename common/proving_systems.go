@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 )
 
 type ProvingSystemId uint16
@@ -81,4 +82,21 @@ func (t ProvingSystemId) MarshalJSON() ([]byte, error) {
 	}
 	// If not, return an error
 	return nil, fmt.Errorf("invalid ProvingSystemId value: %d", t)
+}
+
+func (t *ProvingSystemId) UnmarshalBinary(data []byte) error {
+	// get string from bytes
+	str := string(data[:])
+	log.Printf("ProvingSystemId.UnmarshalBinary: %s\n", str)
+
+	// get enum from string
+	var err error
+	*t, err = ProvingSystemIdFromString(str)
+
+	return err
+}
+
+func (t ProvingSystemId) MarshalBinary() ([]byte, error) {
+	// needs to be defined but should never be called
+	return nil, fmt.Errorf("not implemented")
 }

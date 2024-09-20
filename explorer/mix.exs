@@ -19,7 +19,7 @@ defmodule Explorer.MixProject do
   def application do
     [
       mod: {Explorer.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :cachex]
     ]
   end
 
@@ -51,14 +51,18 @@ defmodule Explorer.MixProject do
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.20"},
+      {:httpoison, "~> 2.0"},
       {:jason, "~> 1.2"},
+      {:cbor, "~> 1.0.1"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.2"},
       {:ethers, "~> 0.4.4"},
       {:ethereumex, "~> 0.10"},
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"},
-      {:mutex, "~> 2.0"}
+      {:cachex, "~> 3.6"},
+      {:mutex, "~> 2.0"},
+      {:tails, "~> 0.1.5"}
     ]
   end
 

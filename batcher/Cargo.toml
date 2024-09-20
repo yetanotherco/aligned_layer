@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "aligned-batcher",
-    "aligned-batcher-lib",
+    "aligned-sdk",
     "aligned"
 ]
 resolver = "2"

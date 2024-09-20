@@ -12,7 +12,7 @@ import (
 )
 
 type AvsReader struct {
-	sdkavsregistry.AvsRegistryReader
+	*sdkavsregistry.ChainReader
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 }
@@ -33,15 +33,15 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		return nil, err
 	}
 
-	avsRegistryReader := clients.AvsRegistryChainReader
+	chainReader := clients.AvsRegistryChainReader
 
-	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.EthRpcClientFallback, baseConfig.Logger)
 	if err != nil {
 		return nil, err
 	}
 
 	return &AvsReader{
-		AvsRegistryReader:   avsRegistryReader,
+		ChainReader:         chainReader,
 		AvsContractBindings: avsServiceBindings,
 		logger:              baseConfig.Logger,
 	}, nil
@@ -50,12 +50,15 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mock.ContractERC20Mock, error) {
 	erc20Mock, err := contractERC20Mock.NewContractERC20Mock(tokenAddr, r.AvsContractBindings.ethClient)
 	if err != nil {
-		r.logger.Error("Failed to fetch ERC20Mock contract", "err", err)
-		return nil, err
+		// Retry with fallback client
+		erc20Mock, err = contractERC20Mock.NewContractERC20Mock(tokenAddr, r.AvsContractBindings.ethClientFallback)
+		if err != nil {
+			r.logger.Error("Failed to fetch ERC20Mock contract", "err", err)
+		}
 	}
 	return erc20Mock, nil
 }
 
 func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, error) {
-	return r.AvsRegistryReader.IsOperatorRegistered(&bind.CallOpts{}, address)
+	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }

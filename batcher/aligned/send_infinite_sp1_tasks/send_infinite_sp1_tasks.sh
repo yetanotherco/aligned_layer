@@ -22,8 +22,8 @@ do
 
     aligned submit \
     --proving_system SP1 \
-    --proof test_files/sp1/sp1_fibonacci.proof \
-    --vm_program test_files/sp1/sp1_fibonacci-elf \
+    --proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
+    --vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
     --proof_generator_addr "$random_addr"
 
     sleep "$timer"
