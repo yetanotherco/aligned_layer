@@ -89,4 +89,12 @@ services:
       context: .
       dockerfile: docker/foundry.Dockerfile
     depends_on:
-      - operator
+      - operator-register-with-aligned-layer
+
+  batcher:
+    image: batcher
+    build:
+      context: .
+      dockerfile: docker/batcher.Dockerfile
+    depends_on:
+      - user-fund-payment-service-devnet
