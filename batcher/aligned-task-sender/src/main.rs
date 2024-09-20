@@ -204,7 +204,7 @@ async fn main() -> Result<(), AlignedError> {
                 .map_err(|e| SubmitError::IoError(PathBuf::from(GROTH_16_PROOF_DIR), e))?;
 
             let mut count = 1;
-            //TODO: sort out errors
+            //TODO: sort out error messages
             if let Err(e) = tokio::spawn(async move {
                 loop {
                     info!("Generating proof {} != 0", count);
