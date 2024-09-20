@@ -51,7 +51,7 @@ contract AlignedLayerServiceManager is
     function initialize(
         address _initialOwner,
         address _rewardsInitiator,
-        address _alignedAggregator
+        address _alignedAggregator,
         IPauserRegistry _pauserRegistry,
         uint256 _initialPausedStatus
     ) public initializer {

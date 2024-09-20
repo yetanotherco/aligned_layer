@@ -836,7 +836,7 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             ".permissions.ejector"
         );
 
-        address alignedLayerAggregator = stdJson.readAddress(
+        alignedLayerAggregator = stdJson.readAddress(
             config_data,
             ".permissions.aggregator"
         );
