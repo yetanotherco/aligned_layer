@@ -16,11 +16,13 @@ use aligned_sdk::{
 
 use super::errors::BatcherError;
 
+type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
+
 #[derive(Clone)]
 pub(crate) struct BatchQueueEntry {
     pub(crate) nonced_verification_data: NoncedVerificationData,
     pub(crate) verification_data_commitment: VerificationDataCommitment,
-    pub(crate) messaging_sink: Option<Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>>,
+    pub(crate) messaging_sink: Option<WsMessageSink>,
     pub(crate) signature: Signature,
     pub(crate) sender: Address,
 }
@@ -35,7 +37,7 @@ impl BatchQueueEntry {
     pub fn new(
         nonced_verification_data: NoncedVerificationData,
         verification_data_commitment: VerificationDataCommitment,
-        messaging_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+        messaging_sink: WsMessageSink,
         signature: Signature,
         sender: Address,
     ) -> Self {
@@ -143,7 +145,7 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
 /// 1. Traverse each batch priority queue, starting from the one with minimum max fee.
 /// 2. Calculate the `fee_per_proof` for the whole batch and compare with the `max_fee` of the entry.
 /// 3. If `fee_per_proof` is less than the `max_fee` of the current entry, submit the batch. If not, pop this entry
-/// from the queue and push it to `resulting_priority_queue`, then repeat step 1.
+///     from the queue and push it to `resulting_priority_queue`, then repeat step 1.
 ///
 /// `resulting_priority_queue` will be the batch queue composed of all entries that were not willing to pay for the batch.
 /// This is outputted in along with the finalized batch.
@@ -182,12 +184,9 @@ pub(crate) fn try_build_batch(
         break;
     }
 
-    let batch = batch_queue_copy.clone().into_sorted_vec();
-
-    // If `batch` is empty, this means that all the batch queue was traversed and we didn't find
+    // If `resulting_priority_queue` is empty, this means that all the batch queue was traversed and we didn't find
     // any user willing to pay fot the fee per proof.
-
-    if batch.is_empty() {
+    if resulting_priority_queue.is_empty() {
         return Err(BatcherError::BatchCostTooHigh);
     }
 
