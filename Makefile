@@ -228,7 +228,7 @@ batcher/target/release/aligned:
 RPC_URL=http://localhost:8545
 BATCHER_PAYMENTS_CONTRACT_ADDRESS=0x7969c5eD335650692Bc04293B07F5BF2e7A673C0
 
-send_infinite:
+batcher_send_infinite_burst:
 	@echo "Sending Sending Infinite Groth16 Task to Batcher..."
 	@cd batcher/aligned-task-sender/ && cargo run --release -- send-infinite
 

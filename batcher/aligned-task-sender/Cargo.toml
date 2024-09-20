@@ -29,6 +29,5 @@ ethers = { tag = "v2.0.15-fix-reconnections", features = [
     "rustls",
 ], git = "https://github.com/yetanotherco/ethers-rs.git" }
 aligned-sdk = { path = "../aligned-sdk" }
-aligned = { path = "../aligned" }
 rpassword = "7.3.1"
 sha3 = { version = "0.10.8" }

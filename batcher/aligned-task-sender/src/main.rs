@@ -1,14 +1,11 @@
 use std::collections::HashSet;
-use std::fs::File;
 use std::io;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
-    types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
+    types::{Chain, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
@@ -48,7 +45,7 @@ pub enum TaskSenderCommands {
     SendInfinite(SubmitArgs),
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct SubmitArgs {
     #[arg(
@@ -71,11 +68,11 @@ pub struct SubmitArgs {
     eth_rpc_url: String,
     #[arg(
         name = "Number of proofs per burst",
-        long = "repetitions",
-        default_value = "8"
+        long = "burst_size",
+        default_value = "10"
     )]
     burst_size: usize,
-    #[arg(name = "Burst Time", long = "burst", default_value = "3")]
+    #[arg(name = "Burst Time", long = "burst_time", default_value = "3")]
     burst_time: usize,
     #[arg(
         name = "Proof generator address",
@@ -83,12 +80,6 @@ pub struct SubmitArgs {
         default_value = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     )] // defaults to anvil address 1
     proof_generator_addr: String,
-    #[arg(
-        name = "Aligned verification data directory Path",
-        long = "aligned_verification_data_path",
-        default_value = "./aligned_verification_data/"
-    )]
-    batch_inclusion_data_directory_path: String,
     #[arg(name = "Path to local keystore", long = "keystore_path")]
     keystore_path: Option<PathBuf>,
     #[arg(name = "Private key", long = "private_key")]
@@ -134,13 +125,6 @@ async fn main() -> Result<(), AlignedError> {
 
     match args.command {
         SendInfinite(submit_args) => {
-            let batch_inclusion_data_directory_path =
-                PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
-
-            std::fs::create_dir_all(&batch_inclusion_data_directory_path).map_err(|e| {
-                SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
-            })?;
-
             let max_fee =
                 U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
 
@@ -179,16 +163,15 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            let eth_rpc_url = submit_args.eth_rpc_url;
+            let eth_rpc_url = submit_args.eth_rpc_url.clone();
 
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await.map_err(|e| {
                     SubmitError::GenericError(format!(
-                        "Failed to retrieve chain id, verify `eth_rpc_url` is correct or local testnet is running on \"http://localhost:8545\": {}", e
+                        "Failed to retrieve chain id, verify `eth_rpc_url` is cor/rect or local testnet is running on \"http://localhost:8545\": {}", e
                     ))
             })?;
             wallet = wallet.with_chain_id(chain_id);
 
-            let chain: Chain = submit_args.chain.clone().into();
             let proof_generator_addr = Address::from_str(&submit_args.proof_generator_addr)
                 .map_err(|e| {
                     SubmitError::InvalidEthereumAddress(format!(
@@ -196,10 +179,6 @@ async fn main() -> Result<(), AlignedError> {
                         e
                     ))
                 })?;
-            let batcher_url: String = submit_args.batcher_url;
-
-            let batcher_eth_address = submit_args.payment_service_addr.clone();
-
             std::fs::create_dir_all(GROTH_16_PROOF_DIR)
                 .map_err(|e| SubmitError::IoError(PathBuf::from(GROTH_16_PROOF_DIR), e))?;
 
@@ -215,24 +194,30 @@ async fn main() -> Result<(), AlignedError> {
                         .status()
                     {
                         error!("Failed to generate Groth16 Proofs: {:?}", e);
+                        return Ok::<(), AlignedError>(());
                     }
-                    send_burst(
+                    let (max_fees, verification_data) = match get_verification_data(
                         burst_size,
                         count,
                         max_fee,
                         proof_generator_addr,
                         &base_dir,
-                        &eth_rpc_url,
-                        wallet.clone(),
-                        &batcher_url,
-                        &batcher_eth_address,
-                        chain.clone(),
-                        &batch_inclusion_data_directory_path,
                     )
                     .await
-                    .unwrap_or_else(|e| {
+                    {
+                        Ok(value) => value,
+                        Err(e) => {
+                            error!("Failed to create Verification Data: {:?}", e);
+                            return Ok(());
+                        }
+                    };
+                    if let Err(e) =
+                        send_burst(&max_fees, &verification_data, &wallet, submit_args.clone())
+                            .await
+                    {
                         error!("Failed to send Proof Burst: {:?}", e);
-                    });
+                        return Ok(());
+                    };
                     // To prevent continously creating proofs we clear the directory after sending a burst.
                     std::fs::remove_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
                         error!("Failed to send Clear Proof Directory: {:?}", e);
@@ -246,7 +231,7 @@ async fn main() -> Result<(), AlignedError> {
             })
             .await
             {
-                error!("Proof Loop exited: {:?}", e);
+                error!("Proof Stream Exited: {:?}", e);
             }
 
             //Clean infinite_proofs directory on exit
@@ -259,7 +244,6 @@ async fn main() -> Result<(), AlignedError> {
     Ok(())
 }
 
-/*
 async fn get_verification_data(
     burst_size: usize,
     count: usize,
@@ -287,44 +271,36 @@ async fn get_verification_data(
         vec![verification_data; burst_size],
     ))
 }
-*/
 
 async fn send_burst(
-    burst_size: usize,
-    count: usize,
-    max_fee: U256,
-    proof_generator_addr: Address,
-    base_dir: &Path,
-    eth_rpc_url: &str,
-    wallet: Wallet<SigningKey>,
-    batcher_url: &str,
-    batcher_contract_addr: &str,
-    chain: Chain,
-    batch_inclusion_data_directory_path: &Path,
+    max_fees: &[U256],
+    verification_data: &[VerificationData],
+    wallet: &Wallet<SigningKey>,
+    args: SubmitArgs,
 ) -> Result<(), AlignedError> {
-    let proof = read_file(base_dir.join(format!(
-        "{}/ineq_{}_groth16.proof",
-        GROTH_16_PROOF_DIR, count
-    )))?;
-    let public_input =
-        read_file(base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count)))?;
-    let vk = read_file(base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count)))?;
-    let verification_data = VerificationData {
-        proving_system: ProvingSystemId::Groth16Bn254,
-        proof,
-        pub_input: Some(public_input),
-        verification_key: Some(vk),
-        vm_program_code: None,
-        proof_generator_addr,
-    };
-    let max_fees = vec![max_fee; burst_size];
-    let verification_data = vec![verification_data; burst_size];
-    let nonce = get_nonce(eth_rpc_url, wallet.address(), batcher_contract_addr, count).await?;
+    let chain: Chain = args.chain.clone().into();
+    let eth_rpc_url = args.eth_rpc_url.clone();
+    let batcher_url: String = args.batcher_url;
+
+    let batcher_addr = args.payment_service_addr.clone();
+
+    let nonce = get_nonce(
+        &eth_rpc_url,
+        wallet.address(),
+        &batcher_addr,
+        verification_data.len(),
+    )
+    .await?;
+    info!(
+        "Sending {:?} Proofs to {:?} Aligned Batcher",
+        verification_data.len(),
+        chain
+    );
     let aligned_verification_data_vec = match submit_multiple(
-        batcher_url,
+        &batcher_url,
         chain,
-        &verification_data,
-        &max_fees,
+        verification_data,
+        max_fees,
         wallet.clone(),
         nonce,
     )
@@ -332,9 +308,12 @@ async fn send_burst(
     {
         Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
         Err(e) => {
+            error!("Error submitting proofs to aligned: {:?}", e);
             let nonce_file = format!("nonce_{:?}.bin", wallet.address());
 
-            handle_submit_err(e, nonce_file.as_str()).await;
+            delete_file(&nonce_file).unwrap_or_else(|e| {
+                error!("Error while deleting nonce file: {}", e);
+            });
             return Ok(());
         }
     };
@@ -342,10 +321,6 @@ async fn send_burst(
     let mut unique_batch_merkle_roots = HashSet::new();
 
     for aligned_verification_data in aligned_verification_data_vec {
-        save_response(
-            batch_inclusion_data_directory_path.to_path_buf().clone(),
-            &aligned_verification_data,
-        )?;
         unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
     }
 
@@ -362,20 +337,6 @@ async fn send_burst(
     }
 
     Ok(())
-}
-
-//TODO: A lot of this code is duplicated from `batcher/aligned`. I thought this would be prudent given the previous task sender used it.Extrapolating and deduplicating would be prudent.
-fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
-    std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
-}
-
-fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
-    std::fs::write(file_name, content)
-        .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
-}
-
-fn delete_file(file_name: &str) -> Result<(), io::Error> {
-    std::fs::remove_file(file_name)
 }
 
 //Persits and extrapolate this to sdk
@@ -407,51 +368,16 @@ async fn get_nonce(
     Ok(nonce)
 }
 
-//TODO: can probably delete this and just delete the nonce file if need be.
-async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
-    match err {
-        SubmitError::InvalidNonce => {
-            error!("Invalid nonce. try again");
-        }
-        SubmitError::ProofQueueFlushed => {
-            error!("Batch was reset. try resubmitting the proof");
-        }
-        SubmitError::InvalidProof => error!("Submitted proof is invalid"),
-        SubmitError::InsufficientBalance => {
-            error!("Insufficient balance to pay for the transaction")
-        }
-        _ => {}
-    }
-
-    delete_file(nonce_file).unwrap_or_else(|e| {
-        error!("Error while deleting nonce file: {}", e);
-    });
+//TODO: Much of this code is duplicated from `batcher/aligned`.
+fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
+    std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
 }
 
-//TODO: persist this for testing purposes.
-fn save_response(
-    batch_inclusion_data_directory_path: PathBuf,
-    aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), SubmitError> {
-    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
-    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
-        + "_"
-        + &aligned_verification_data.index_in_batch.to_string()
-        + ".json";
+fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
+    std::fs::write(file_name, content)
+        .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
+}
 
-    let batch_inclusion_data_path =
-        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
-
-    let data = cbor_serialize(&aligned_verification_data)?;
-
-    let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    file.write_all(data.as_slice())
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
-
-    Ok(())
+fn delete_file(file_name: &str) -> Result<(), io::Error> {
+    std::fs::remove_file(file_name)
 }
