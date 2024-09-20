@@ -68,9 +68,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         vm.prank(batcher);
         alignedLayerServiceManager.createNewTask(batchMerkleRoot, batchDataPointer, maxFeeToRespond);
 
-        // Temporary solution: Use Merkle root because block number is low when running tests.
-        // bytes32 batchIdentifierHash = keccak256(abi.encodePacked(batchMerkleRoot, batcher));
-        bytes32 batchIdentifierHash = batchMerkleRoot;
+        bytes32 batchIdentifierHash = keccak256(abi.encodePacked(batchMerkleRoot, batcher));
 
         (uint32 taskCreatedBlock, bool responded, uint256 _maxFeeToRespond) =
             alignedLayerServiceManager.batchesState(batchIdentifierHash);
