@@ -6,7 +6,6 @@ use config::NonPayingConfig;
 use dotenv::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use priority_queue::PriorityQueue;
 use serde::Serialize;
 
 use std::collections::hash_map::Entry;
@@ -35,9 +34,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
-use types::batch_queue::{
-    self, calculate_batch_size, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority,
-};
+use types::batch_queue::{self, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -718,14 +715,20 @@ impl Batcher {
 
         // close old sink and replace with new one
         {
-            let mut old_sink = replacement_entry.messaging_sink.write().await;
-            if let Err(e) = old_sink.close().await {
-                // we dont want to exit here, just log the error
-                warn!("Error closing sink: {:?}", e);
-            }
+            if let Some(messaging_sink) = replacement_entry.messaging_sink {
+                let mut old_sink = messaging_sink.write().await;
+                if let Err(e) = old_sink.close().await {
+                    // we dont want to exit here, just log the error
+                    warn!("Error closing sink: {:?}", e);
+                }
+            } else {
+                warn!(
+                    "Old websocket sink was empty. This should only happen in testing environments"
+                )
+            };
         }
-        replacement_entry.messaging_sink = ws_conn_sink.clone();
 
+        replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
         if let Some(msg) = batch_state.validate_and_increment_max_fee(replacement_entry) {
             warn!("Invalid max fee");
             send_message(ws_conn_sink.clone(), msg).await;
@@ -907,13 +910,17 @@ impl Batcher {
             )
             .await
         {
-            for entry in finalized_batch.iter() {
-                let merkle_root = hex::encode(batch_merkle_tree.root);
-                send_message(
-                    entry.messaging_sink.clone(),
-                    ResponseMessage::CreateNewTaskError(merkle_root),
-                )
-                .await
+            for entry in finalized_batch.into_iter() {
+                if let Some(ws_sink) = entry.messaging_sink {
+                    let merkle_root = hex::encode(batch_merkle_tree.root);
+                    send_message(
+                        ws_sink.clone(),
+                        ResponseMessage::CreateNewTaskError(merkle_root),
+                    )
+                    .await
+                } else {
+                    warn!("Websocket sink was found empty. This should only happen in tests");
+                }
             }
 
             self.flush_queue_and_clear_nonce_cache().await;
@@ -929,7 +936,11 @@ impl Batcher {
         let mut batch_state = self.batch_state.lock().await;
 
         for (entry, _) in batch_state.batch_queue.iter() {
-            send_message(entry.messaging_sink.clone(), ResponseMessage::BatchReset).await;
+            if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
+            } else {
+                warn!("Websocket sink was found empty. This should only happen in tests");
+            }
         }
 
         batch_state.batch_queue.clear();
@@ -1285,8 +1296,11 @@ async fn send_batch_inclusion_data_responses(
         let serialized_response = cbor_serialize(&response)
             .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
 
-        let sending_result = entry
-            .messaging_sink
+        let Some(ws_sink) = entry.messaging_sink.as_ref() else {
+            return Err(BatcherError::WsSinkEmpty);
+        };
+
+        let sending_result = ws_sink
             .write()
             .await
             .send(Message::binary(serialized_response))

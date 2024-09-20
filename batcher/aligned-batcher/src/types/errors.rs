@@ -15,6 +15,7 @@ pub enum BatcherError {
     SerializationError(String),
     GasPriceError,
     BatchCostTooHigh,
+    WsSinkEmpty,
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -67,6 +68,12 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::BatchCostTooHigh => {
                 write!(f, "No user in batch willing to pay the fee per proof. Checking again when another block arrives")
+            }
+            BatcherError::WsSinkEmpty => {
+                write!(
+                    f,
+                    "Websocket sink was found empty. This should only happen in tests"
+                )
             }
         }
     }

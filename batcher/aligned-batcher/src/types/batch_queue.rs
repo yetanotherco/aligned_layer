@@ -47,21 +47,6 @@ impl BatchQueueEntry {
             sender,
         }
     }
-
-    pub fn new_for_testing(
-        nonced_verification_data: NoncedVerificationData,
-        verification_data_commitment: VerificationDataCommitment,
-        signature: Signature,
-        sender: Address,
-    ) -> Self {
-        BatchQueueEntry {
-            nonced_verification_data,
-            verification_data_commitment,
-            messaging_sink: None,
-            signature,
-            sender,
-        }
-    }
 }
 
 impl BatchQueueEntryPriority {
@@ -206,8 +191,6 @@ mod test {
 
     #[tokio::test]
     fn batch_finalization_algorithm_works_from_same_sender() {
-        // let stream = TcpStream::connect("test_stream").await.unwrap();
-
         let mut batch_queue = BatchQueue::new();
         // The following information will be the same for each entry, it is just some dummy data to see
         // algorithm working.
