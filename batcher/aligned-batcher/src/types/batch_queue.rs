@@ -115,9 +115,8 @@ impl Ord for BatchQueueEntryPriority {
 
 pub(crate) type BatchQueue = PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>;
 
-pub(crate) fn calculate_batch_size(
-    batch_queue: &PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
-) -> Result<usize, BatcherError> {
+/// Calculates the size of the batch represented by the given batch queue.
+pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, BatcherError> {
     let folded_result = batch_queue.iter().try_fold(0, |acc, (entry, _)| {
         if let Ok(verification_data_bytes) =
             cbor_serialize(&entry.nonced_verification_data.verification_data)
