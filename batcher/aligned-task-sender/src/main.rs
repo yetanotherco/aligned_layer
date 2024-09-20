@@ -244,7 +244,6 @@ async fn main() -> Result<(), AlignedError> {
     Ok(())
 }
 
-/*
 async fn get_verification_data(
     burst_size: usize,
     count: usize,
@@ -272,7 +271,6 @@ async fn get_verification_data(
         vec![verification_data; burst_size],
     ))
 }
-*/
 
 async fn get_verification_data(
     burst_size: usize,
