@@ -1,5 +1,10 @@
 services:
 
+  localstack:
+    extends:
+      file: storage-docker-compose.yaml
+      service: localstack
+
   anvil:
     image: anvil
     build:
