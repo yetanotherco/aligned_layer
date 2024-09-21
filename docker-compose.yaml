@@ -4,12 +4,16 @@ services:
     extends:
       file: storage-docker-compose.yaml
       service: localstack
+    profiles:
+      - base
 
   anvil:
     image: anvil
     build:
       context: .
       dockerfile: docker/anvil.Dockerfile
+    profiles:
+      - base
 
   aggregator:
     image: aggregator
@@ -18,6 +22,8 @@ services:
       dockerfile: docker/aggregator.Dockerfile
     depends_on:
       - anvil
+    profiles:
+      - base
 
   fund-operator:
     image: foundry
@@ -25,8 +31,8 @@ services:
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
-    depends_on:
-      - anvil
+    profiles:
+      - excluded
 
   register-operator-eigenlayer:
     image: eigenlayer-cli
@@ -34,8 +40,8 @@ services:
     build:
       context: .
       dockerfile: docker/eigenlayer-cli.Dockerfile
-    depends_on:
-      - fund-operator
+    profiles:
+      - excluded
 
   mint-mock-tokens:
     image: foundry
@@ -43,8 +49,8 @@ services:
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
-    depends_on:
-      - register-operator-eigenlayer
+    profiles:
+      - excluded
 
   operator-deposit-into-mock-strategy:
     image: operator
@@ -52,8 +58,8 @@ services:
     build:
       context: .
       dockerfile: docker/operator.Dockerfile
-    depends_on:
-      - mint-mock-tokens
+    profiles:
+      - excluded
 
   operator-whitelist-devnet:
     image: foundry
@@ -61,8 +67,8 @@ services:
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
-    depends_on:
-      - operator-deposit-into-mock-strategy
+    profiles:
+      - excluded
 
   operator-register-with-aligned-layer:
     image: operator
@@ -70,8 +76,8 @@ services:
     build:
       context: .
       dockerfile: docker/operator.Dockerfile
-    depends_on:
-      - operator-whitelist-devnet
+    profiles:
+      - excluded
 
   operator:
     image: operator
@@ -79,8 +85,8 @@ services:
     build:
       context: .
       dockerfile: docker/operator.Dockerfile
-    depends_on:
-      - operator-register-with-aligned-layer
+    profiles:
+      - operator
 
   user-fund-payment-service-devnet:
     image: foundry
@@ -88,8 +94,8 @@ services:
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
-    depends_on:
-      - operator-register-with-aligned-layer
+    profiles:
+      - excluded
 
   batcher:
     image: batcher
@@ -105,5 +111,5 @@ services:
     build:
       context: .
       dockerfile: docker/batcher.Dockerfile
-    depends_on:
-      - user-fund-payment-service-devnet
+    profiles:
+      - batcher
