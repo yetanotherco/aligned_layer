@@ -184,9 +184,9 @@ pub(crate) fn try_build_batch(
         break;
     }
 
-    // If `resulting_priority_queue` is empty, this means that all the batch queue was traversed and we didn't find
+    // If `batch_queue_copy` is empty, this means that all the batch queue was traversed and we didn't find
     // any user willing to pay fot the fee per proof.
-    if resulting_priority_queue.is_empty() {
+    if batch_queue_copy.is_empty() {
         return Err(BatcherError::BatchCostTooHigh);
     }
 
