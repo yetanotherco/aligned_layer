@@ -14,6 +14,6 @@ COPY ./config-files/config-batcher-docker.yaml ./config-files/
 COPY ./batcher/aligned-batcher/.env.docker ./
 
 RUN apt update -y
-RUN apt install -y libssl-dev
+RUN apt install -y libssl-dev ca-certificates
 
 CMD ["sh", "-c", "sleep 80 && aligned-batcher --config ./config-files/config-batcher-docker.yaml"]
