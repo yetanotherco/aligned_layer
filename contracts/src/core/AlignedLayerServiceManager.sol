@@ -9,6 +9,8 @@ import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
+import {IPauserRegistry} from "eigenlayer-core/contracts/interfaces/IPauserRegistry.sol";
+import {Pausable} from "eigenlayer-core/contracts/permissions/Pausable.sol";
 
 /**
  * @title Primary entrypoint for procuring services from Aligned.
