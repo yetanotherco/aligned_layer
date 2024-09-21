@@ -746,3 +746,23 @@ tracker_dump_db:
 	@cd operator_tracker && \
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
+
+docker-up:
+	docker compose -f docker-compose.yaml --profile base up -d
+	docker compose -f docker-compose.yaml run --rm fund-operator
+	docker compose -f docker-compose.yaml run --rm register-operator-eigenlayer
+	docker compose -f docker-compose.yaml run --rm mint-mock-tokens
+	docker compose -f docker-compose.yaml run --rm operator-deposit-into-mock-strategy
+	docker compose -f docker-compose.yaml run --rm operator-whitelist-devnet
+	docker compose -f docker-compose.yaml run --rm operator-register-with-aligned-layer
+	docker compose -f docker-compose.yaml --profile operator up -d
+	docker compose -f docker-compose.yaml run --rm user-fund-payment-service-devnet
+	docker compose -f docker-compose.yaml --profile batcher up -d
+	@echo "Up and running"
+
+docker-down:
+	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile operator down
+	docker compose -f docker-compose.yaml --profile base down
+	@echo "Everything down"
+	docker ps
