@@ -113,3 +113,19 @@ services:
       dockerfile: docker/batcher.Dockerfile
     profiles:
       - batcher
+
+  aligned_base:
+    image: aligned_base
+    build:
+      context: .
+      dockerfile: docker/aligned_base.Dockerfile
+    profiles:
+      - aligned_base
+
+  foundry:
+    image: foundry
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    profiles:
+      - foundry
