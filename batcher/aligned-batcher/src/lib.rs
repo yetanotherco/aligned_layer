@@ -845,8 +845,11 @@ impl Batcher {
                 *batch_posting = false;
                 None
             }
+            // FIXME: We should refactor this code and instead of returning None, return an error.
+            // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
             Err(e) => {
                 error!("Unexpected error: {:?}", e);
+                *batch_posting = false;
                 None
             }
         }
