@@ -99,6 +99,10 @@ fn relative_min_window_density(candidate: &MinaProtocolState, tip: &MinaProtocol
         return candidate.min_window_density.as_u32();
     }
 
+    // Added input checks to compute `shift_count` and `i` safely.
+    // We don't take into account how to compute consensus checks in those border cases since
+    // we assume those cases happen when candidate and tip states aren't taken from a Mina node
+    // but built to perform a DoS attack.
     let projected_window = {
         let shift_count = max_slot
             .checked_sub(candidate.global_slot())
