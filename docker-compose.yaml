@@ -129,3 +129,11 @@ services:
       dockerfile: docker/foundry.Dockerfile
     profiles:
       - foundry
+
+  eigenlayer-cli:
+    image: eigenlayer-cli
+    build:
+      context: .
+      dockerfile: docker/eigenlayer-cli.Dockerfile
+    profiles:
+      - eigenlayer-cli

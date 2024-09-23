@@ -757,7 +757,7 @@ endif
 docker-build:
 	@echo "Host architecture: $(GOARCH)"
 	docker compose -f docker-compose.yaml --profile aligned_base build
-	docker compose -f docker-compose.yaml --profile excluded build
+	docker compose -f docker-compose.yaml --profile eigenlayer-cli build
 	docker compose -f docker-compose.yaml --profile foundry build
 	docker compose -f docker-compose.yaml --profile base build
 	docker compose -f docker-compose.yaml --profile operator build --build-arg GOARCH=$(GOARCH)
