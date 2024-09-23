@@ -197,7 +197,7 @@ mod test {
         let new_tip = valid_proof.bridge_tip_state;
         let mut old_tip = valid_proof.candidate_chain_states.last().unwrap().clone();
 
-        // Force checking longe fork rule:
+        // Force checking long fork rule:
         // Set both `epoch_count` to be the same but set new `lock_checkpoint` of older one to be one less than newer one
         old_tip.body.consensus_state.epoch_count = new_tip.body.consensus_state.epoch_count;
         old_tip
@@ -251,7 +251,7 @@ mod test {
         let mut new_tip = valid_proof.bridge_tip_state;
         let mut old_tip = valid_proof.candidate_chain_states.last().unwrap().clone();
 
-        // Force checking longe fork rule:
+        // Force checking long fork rule:
         // Set both `epoch_count` to be the same but set new `lock_checkpoint` of older one to be one less than newer one
         old_tip.body.consensus_state.epoch_count = new_tip.body.consensus_state.epoch_count;
         old_tip
