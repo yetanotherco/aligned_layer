@@ -93,7 +93,6 @@ fn relative_min_window_density(candidate: &MinaProtocolState, tip: &MinaProtocol
     let tip = &tip.body.consensus_state;
 
     let max_slot = max(candidate.global_slot(), tip.global_slot());
-    println!("max_slot: {}", max_slot);
 
     if max_slot < GRACE_PERIOD_END {
         return candidate.min_window_density.as_u32();
