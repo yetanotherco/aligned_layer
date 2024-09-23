@@ -110,7 +110,8 @@ pub async fn submit_multiple_and_wait_verification(
 }
 
 /*
-Returns the estimated `max_fee` depending on the batch inclusion preference of the user.
+Returns the estimated `max_fee` depending on the batch inclusion preference of the user, based on the max priority gas price.
+NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
 
 For batch cost estimates we estimate a batch will have ~32 proofs present.
 The `max_fee` estimates therefore are:
@@ -146,7 +147,8 @@ pub async fn estimate_max_fee(
 
 /*
    Returns the compute `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
-   number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`)
+   number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
+   NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
 */
 pub async fn compute_max_fee(
     eth_rpc_url: &str,
@@ -168,7 +170,8 @@ pub async fn compute_max_fee(
 
 /*
    Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
-   i.e. (1 / `num_proofs_per_batch`)
+   i.e. (1 / `num_proofs_per_batch`).
+   NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
 */
 pub async fn fee_per_proof(
     eth_rpc_url: &str,
