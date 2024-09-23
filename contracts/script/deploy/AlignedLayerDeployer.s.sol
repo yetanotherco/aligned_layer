@@ -266,12 +266,6 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             )
         );
 
-        // address _initialOwner,
-        // address _rewardsInitiator,
-        // address _alignedAggregator
-        // IPauserRegistry _pauserRegistry,
-        // uint256 _initialPausedStatus
-
         string memory metadataURI = stdJson.readString(config_data, ".uri");
         alignedLayerServiceManager.updateAVSMetadataURI(metadataURI);
         alignedLayerServiceManager.transferOwnership(alignedLayerOwner);
@@ -495,7 +489,6 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
 
         //upgrade the alignedLayer service manager proxy to implementation
-        // TODO check is OK
         alignedLayerProxyAdmin.upgradeAndCall(
             TransparentUpgradeableProxy(
                 payable(address(alignedLayerServiceManager))
