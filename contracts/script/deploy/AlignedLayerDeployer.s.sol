@@ -859,7 +859,6 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         );
         vm.serializeAddress(permissions, "alignedLayerChurner", churner);
         vm.serializeAddress(permissions, "alignedLayerPauser", pauserAddress);
-        vm.serializeAddress(permissions, "pauserRegistry", pauser);
         vm.serializeAddress(permissions, "alignedLayerAggregator", alignedLayerAggregator);
 
         string memory permissions_output = vm.serializeAddress(

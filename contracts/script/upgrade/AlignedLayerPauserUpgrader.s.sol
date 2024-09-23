@@ -80,36 +80,41 @@ contract AlignedLayerPauserUpgrader is Script {
         vm.startBroadcast();
 
         AlignedLayerServiceManager alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
-            avsDirectory,
-            rewardsCoordinator,
-            registryCoordinator,
-            stakeRegistry
-        );
+                avsDirectory,
+                rewardsCoordinator,
+                registryCoordinator,
+                stakeRegistry
+            );
 
         vm.stopBroadcast();
+        vm.startBroadcast();
 
         // alignedLayerServiceManager is the proxy
         AlignedLayerServiceManager alignedLayerServiceManager = AlignedLayerServiceManager(
-            payable(
-                stdJson.readAddress(
+                payable(
+                    stdJson.readAddress(
                         aligned_deployment_file,
                         ".addresses.alignedLayerServiceManager"
+                    )
                 )
-            )
-        );
+            );
 
+        vm.stopBroadcast();
         vm.startBroadcast();
 
-        alignedLayerProxyAdmin.upgradeAndCall(
+        alignedLayerProxyAdmin.upgrade(
             TransparentUpgradeableProxy(
                 payable(address(alignedLayerServiceManager))
             ),
-            address(alignedLayerServiceManagerImplementation),
-            abi.encodeWithSelector(
-                AlignedLayerServiceManager.initializePauser.selector,
-                pauserRegistry,
-                initialPausedStatus
-            )
+            address(alignedLayerServiceManagerImplementation)
+        );
+
+        vm.stopBroadcast();
+        vm.startBroadcast();
+
+        alignedLayerServiceManager.initializePauser(
+            pauserRegistry,
+            initialPausedStatus
         );
 
         vm.stopBroadcast();

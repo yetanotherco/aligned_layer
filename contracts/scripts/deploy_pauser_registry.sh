@@ -18,3 +18,6 @@ forge script script/deploy/PauserRegistryDeployer.s.sol \
     --broadcast \
     --sig "run(string memory existingDeploymentInfoPath, string memory deployConfigPath, string memory outputPath)" \
     --slow
+
+# TODO fix: this deploy is overwritting the whole deployment output file,
+# it should only add the new contract value
