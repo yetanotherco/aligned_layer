@@ -46,7 +46,11 @@ async fn main() -> Result<(), BatcherError> {
     // spawn task to listening for incoming blocks
     tokio::spawn({
         let app = batcher.clone();
-        async move { app.listen_new_blocks().await }
+        async move {
+            if let Err(e) = app.listen_new_blocks().await {
+                log::error!("Error listening for new blocks: {:?}", e);
+            }
+        }
     });
 
     batcher.listen_connections(&addr).await?;

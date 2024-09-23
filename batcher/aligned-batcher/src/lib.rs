@@ -329,7 +329,7 @@ impl Batcher {
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address)
             .await
-            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+            .map_err(|e| BatcherError::TcpListenderError(e.to_string()))?;
         info!("Listening on: {}", address);
 
         // Let's spawn the handling of each connection in a separate task.

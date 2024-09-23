@@ -4,7 +4,7 @@ use ethers::types::SignatureError;
 use tokio_tungstenite::tungstenite;
 
 pub enum BatcherError {
-    TcpListenderError(tungstenite::Error),
+    TcpListenderError(String),
     ConnectionError(tungstenite::Error),
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
