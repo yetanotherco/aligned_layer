@@ -232,12 +232,13 @@ impl Eip712 for NoncedVerificationData {
 
         let mut hasher = Keccak256::new();
 
-        // As per the EIP, first we generate the type hash
         // hashStruct(s : 𝕊) = keccak256(typeHash ‖ encodeData(s))
+
+        // We first generate the type hash
         hasher.update(NONCED_VERIFICATION_DATA_TYPE);
         let type_hash = hasher.finalize_reset();
 
-        // Then hash is resetted, so we start hashing the second term of the encodedData(s)
+        // Then we hash it with the rest of the data in the struct
         hasher.update(type_hash);
         hasher.update(verification_data_hash);
         hasher.update(nonce_bytes);
