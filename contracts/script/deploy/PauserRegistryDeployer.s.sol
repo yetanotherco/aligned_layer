@@ -21,7 +21,7 @@ contract PauserRegistryDeployer is ExistingDeploymentParser {
         string memory existingDeploymentInfoPath,
         string memory deployConfigPath,
         string memory outputPath
-    ) external {
+    ) external returns (address, address) {
         // get info on all the already-deployed contracts
         _parseDeployedContracts(existingDeploymentInfoPath);
 
@@ -68,51 +68,6 @@ contract PauserRegistryDeployer is ExistingDeploymentParser {
         vm.stopPrank();
 
         //write output
-        _writeOutput(config_data, outputPath);
-    }
-
-    function _writeOutput(string memory config_data, string memory outputPath) internal {
-        string memory parent_object = "parent object";
-
-        string memory deployed_addresses = "addresses";
-
-        string memory deployed_addresses_output = vm.serializeAddress(
-            deployed_addresses,
-            "pauserRegistry",
-            address(pauserRegistry)
-        );
-
-        string memory chain_info = "chainInfo";
-        vm.serializeUint(chain_info, "deploymentBlock", block.number);
-        string memory chain_info_output = vm.serializeUint(
-            chain_info,
-            "chainId",
-            block.chainid
-        );
-
-        address pauserAddress = stdJson.readAddress(
-            config_data,
-            ".permissions.pauser"
-        );
-        string memory permissions = "permissions";
-
-        string memory permissions_output = vm.serializeAddress(
-            permissions,
-            "alignedLayerPauser",
-            pauserAddress
-        );
-
-        vm.serializeString(parent_object, chain_info, chain_info_output);
-        vm.serializeString(
-            parent_object,
-            deployed_addresses,
-            deployed_addresses_output
-        );
-        string memory finalJson = vm.serializeString(
-            parent_object,
-            permissions,
-            permissions_output
-        );
-        vm.writeJson(finalJson, outputPath);
+        return(address(pauserRegistry), address(pauser));
     }
 }
