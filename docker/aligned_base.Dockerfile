@@ -8,7 +8,8 @@ RUN apt install -y wget \
                    tar \
                    curl \
                    git \
-                   build-essential \
+                   make \
+                   clang \
                    pkg-config \
                    openssl \
                    libssl-dev \
