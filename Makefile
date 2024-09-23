@@ -747,6 +747,14 @@ tracker_dump_db:
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
 
+docker-build:
+	docker compose -f docker-compose.yaml --profile excluded build
+	docker compose -f docker-compose.yaml --profile foundry build
+	docker compose -f docker-compose.yaml --profile aligned_base build
+	docker compose -f docker-compose.yaml --profile base build
+	docker compose -f docker-compose.yaml --profile operator build
+	docker compose -f docker-compose.yaml --profile batcher build
+
 docker-up:
 	docker compose -f docker-compose.yaml --profile base up -d
 	docker compose -f docker-compose.yaml run --rm fund-operator
