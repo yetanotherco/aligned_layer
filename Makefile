@@ -432,7 +432,7 @@ upgrade_aligned_contracts: ## Upgrade Aligned Contracts
 
 upgrade_pauser_aligned_contracts: ## Upgrade Aligned Contracts with Pauser initialization
 	@echo "Upgrading Aligned Contracts with Pauser initialization..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_pauser_aligned_contracts.sh
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_pausable_to_service_manager.sh
 
 upgrade_registry_coordinator: ## Upgrade Registry Coordinator
 	@echo "Upgrading Registry Coordinator..."
