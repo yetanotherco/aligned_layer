@@ -106,11 +106,11 @@ impl PartialOrd for BatchQueueEntryPriority {
 
 impl Ord for BatchQueueEntryPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let ord = self.max_fee.cmp(&other.max_fee);
+        let ord = other.max_fee.cmp(&self.max_fee);
         if ord == std::cmp::Ordering::Equal {
             self.nonce.cmp(&other.nonce).reverse()
         } else {
-            ord.reverse()
+            ord
         }
     }
 }
