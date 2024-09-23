@@ -171,7 +171,7 @@ pub async fn compute_max_fee(
 /*
    Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
    i.e. (1 / `num_proofs_per_batch`).
-   NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+   NOTE: The `fee_per_proof` is computed from an rpc nodes max priority gas price.
 */
 pub async fn fee_per_proof(
     eth_rpc_url: &str,
