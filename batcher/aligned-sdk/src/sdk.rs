@@ -35,6 +35,9 @@ use futures_util::{
     StreamExt, TryStreamExt,
 };
 
+//Public constants for convenience
+pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
+
 const AGGREGATOR_GAS_COST: u128 = 400_000;
 const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
 const CONSTANT_GAS_COST: u128 = ((AGGREGATOR_GAS_COST * DEFAULT_AGGREGATOR_FEE_MULTIPLIER)
@@ -144,11 +147,9 @@ pub async fn estimate_max_fee(
     Ok(proof_price)
 }
 
-/*
-   Returns the compute `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
-   number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
-   NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
-*/
+/// Returns the compute `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
+/// number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
+// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
 pub async fn compute_max_fee(
     eth_rpc_url: &str,
     num_proofs: usize,
@@ -167,15 +168,8 @@ pub async fn compute_max_fee(
     Ok(fee_per_proof * num_proofs)
 }
 
-/*
-   Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
-   i.e. (1 / `num_proofs_per_batch`).
-   NOTE: The `fee_per_proof` is computed from an rpc nodes max priority gas price.
-*/
-pub async fn fee_per_proof(
-    eth_rpc_url: &str,
-    num_proofs_per_batch: usize,
-) -> Result<U256, errors::SubmitError> {
+/// Retrieves the  `gas_price` from an rpc nodes. Specifically, it returns the max priority gas price.
+async fn fetch_gas_price(eth_rpc_url: &str) -> Result<U256, errors::SubmitError> {
     let eth_rpc_provider =
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
             errors::VerificationError::EthereumProviderError(e.to_string())
@@ -190,6 +184,18 @@ pub async fn fee_per_proof(
             )))
         }
     };
+
+    Ok(gas_price)
+}
+
+/// Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
+/// i.e. (1 / `num_proofs_per_batch`).
+// NOTE: The `fee_per_proof` is computed from an rpc nodes max priority gas price.
+pub async fn fee_per_proof(
+    eth_rpc_url: &str,
+    num_proofs_per_batch: usize,
+) -> Result<U256, errors::SubmitError> {
+    let gas_price = fetch_gas_price(eth_rpc_url).await?;
 
     // Cost for estimate 32 proofs
     let estimated_gas_per_proof = (CONSTANT_GAS_COST
@@ -591,4 +597,260 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
         .map_err(|e| errors::ChainIdError::EthereumCallError(e.to_string()))?;
 
     Ok(chain_id.as_u64())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::core::{errors::SubmitError, types::ProvingSystemId};
+    use ethers::types::Address;
+    use ethers::types::H160;
+
+    use std::path::PathBuf;
+    use std::str::FromStr;
+    use tokio::time::sleep;
+
+    use ethers::signers::LocalWallet;
+
+    const BATCHER_PAYMENT_SERVICE_ADDR: &str = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0";
+    const MAX_FEE: U256 = U256::max_value();
+
+    #[tokio::test]
+    async fn test_submit_success() {
+        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
+        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci.elf")).unwrap());
+
+        let proof_generator_addr =
+            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
+
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::SP1,
+            proof,
+            pub_input: None,
+            verification_key: None,
+            vm_program_code: elf,
+            proof_generator_addr,
+        };
+
+        let verification_data = vec![verification_data];
+
+        let max_fees = vec![MAX_FEE];
+
+        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))
+            .unwrap();
+
+        let aligned_verification_data = submit_multiple_and_wait_verification(
+            "ws://localhost:8080",
+            "http://localhost:8545",
+            Chain::Devnet,
+            &verification_data,
+            &max_fees,
+            wallet,
+            U256::zero(),
+            BATCHER_PAYMENT_SERVICE_ADDR,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(aligned_verification_data.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_submit_failure() {
+        //Create an erroneous verification data vector
+        let contract_addr = H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap();
+
+        let verification_data = vec![VerificationData {
+            proving_system: ProvingSystemId::SP1,
+            proof: vec![],
+            pub_input: None,
+            verification_key: None,
+            vm_program_code: None,
+            proof_generator_addr: contract_addr,
+        }];
+
+        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))
+            .unwrap();
+
+        let max_fees = vec![MAX_FEE];
+
+        let result = submit_multiple_and_wait_verification(
+            "ws://localhost:8080",
+            "http://localhost:8545",
+            Chain::Devnet,
+            &verification_data,
+            &max_fees,
+            wallet,
+            U256::zero(),
+            BATCHER_PAYMENT_SERVICE_ADDR,
+        )
+        .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_verify_proof_onchain_success() {
+        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+        let proof = read_file(base_dir.join("test_files/groth16_bn254/plonk.proof")).unwrap();
+        let pub_input =
+            read_file(base_dir.join("test_files/groth16_bn254/plonk_pub_input.pub")).ok();
+        let vk = read_file(base_dir.join("test_files/groth16_bn254/plonk.vk")).ok();
+
+        let proof_generator_addr =
+            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
+
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Groth16Bn254,
+            proof,
+            pub_input,
+            verification_key: vk,
+            vm_program_code: None,
+            proof_generator_addr,
+        };
+
+        let verification_data = vec![verification_data];
+
+        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))
+            .unwrap();
+
+        let max_fees = vec![MAX_FEE];
+
+        let aligned_verification_data = submit_multiple_and_wait_verification(
+            "ws://localhost:8080",
+            "http://localhost:8545",
+            Chain::Devnet,
+            &verification_data,
+            &max_fees,
+            wallet,
+            U256::zero(),
+            BATCHER_PAYMENT_SERVICE_ADDR,
+        )
+        .await
+        .unwrap();
+
+        sleep(std::time::Duration::from_secs(20)).await;
+
+        let result = is_proof_verified(
+            &aligned_verification_data[0],
+            Chain::Devnet,
+            "http://localhost:8545",
+            BATCHER_PAYMENT_SERVICE_ADDR,
+        )
+        .await
+        .unwrap();
+
+        assert!(result, "Proof was not verified on-chain");
+    }
+
+    #[tokio::test]
+    async fn test_verify_proof_onchain_failure() {
+        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
+        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci.elf")).unwrap());
+
+        let proof_generator_addr =
+            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
+
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::SP1,
+            proof,
+            pub_input: None,
+            verification_key: None,
+            vm_program_code: elf,
+            proof_generator_addr,
+        };
+
+        let verification_data = vec![verification_data];
+
+        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))
+            .unwrap();
+
+        let aligned_verification_data = submit_multiple_and_wait_verification(
+            "ws://localhost:8080",
+            "http://localhost:8545",
+            Chain::Devnet,
+            &verification_data,
+            &[MAX_FEE],
+            wallet,
+            U256::zero(),
+            BATCHER_PAYMENT_SERVICE_ADDR,
+        )
+        .await
+        .unwrap();
+
+        sleep(std::time::Duration::from_secs(20)).await;
+
+        let mut aligned_verification_data_modified = aligned_verification_data[0].clone();
+
+        // Modify the batch merkle root so that the verification fails
+        aligned_verification_data_modified.batch_merkle_root[0] = 0;
+
+        let result = is_proof_verified(
+            &aligned_verification_data_modified,
+            Chain::Devnet,
+            "http://localhost:8545",
+            BATCHER_PAYMENT_SERVICE_ADDR,
+        )
+        .await
+        .unwrap();
+
+        assert!(!result, "Proof verified on chain");
+    }
+
+    fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
+        std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
+    }
+
+    #[tokio::test]
+    async fn computed_max_fee_for_larger_batch_is_smaller() {
+        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 2, 10)
+            .await
+            .unwrap();
+        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
+            .await
+            .unwrap();
+
+        assert!(small_fee < large_fee);
+    }
+
+    #[tokio::test]
+    async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
+        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 20)
+            .await
+            .unwrap();
+        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
+            .await
+            .unwrap();
+
+        assert!(small_fee < large_fee);
+    }
+
+    #[tokio::test]
+    async fn estimate_max_fee_are_larger_than_one_another() {
+        let min_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Min)
+            .await
+            .unwrap();
+        let default_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Default)
+            .await
+            .unwrap();
+        let instant_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Instant)
+            .await
+            .unwrap();
+
+        assert!(min_fee < default_fee);
+        assert!(default_fee < instant_fee);
+    }
 }
