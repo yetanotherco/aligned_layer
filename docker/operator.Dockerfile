@@ -1,5 +1,10 @@
 FROM aligned_base AS builder
 
+RUN apt update -y
+RUN apt install -y gcc
+ENV GOOS=linux
+ENV GOARCH=arm64
+ENV CGO_ENABLED=1
 RUN go build -o /aligned_layer/aligned-layer-operator operator/cmd/main.go
 
 FROM debian:bookworm-slim
