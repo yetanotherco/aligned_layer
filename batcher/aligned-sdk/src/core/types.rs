@@ -238,11 +238,10 @@ impl Eip712 for NoncedVerificationData {
         let type_hash = hasher.finalize_reset();
 
         // Then hash is resetted, so we start hashing the second term of the encodedData(s)
+        hasher.update(type_hash);
         hasher.update(verification_data_hash);
         hasher.update(nonce_bytes);
         hasher.update(max_fee_bytes);
-        hasher.update(type_hash);
-        hasher.update(encoded_data_hash);
         let hash_struct = hasher.finalize_reset();
 
         Ok(hash_struct.into())
