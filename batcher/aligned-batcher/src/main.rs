@@ -47,9 +47,9 @@ async fn main() -> Result<(), BatcherError> {
     tokio::spawn({
         let app = batcher.clone();
         async move {
-            if let Err(e) = app.listen_new_blocks().await {
-                log::error!("Error listening for new blocks: {:?}", e);
-            }
+            app.listen_new_blocks()
+                .await
+                .expect("Error listening for new blocks exiting")
         }
     });
 
