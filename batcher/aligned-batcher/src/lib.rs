@@ -831,8 +831,8 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
 
-        let mut batch_queue_copy = batch_state.batch_queue.clone();
-        match batch_queue::try_build_batch(&mut batch_queue_copy, gas_price, self.max_batch_size) {
+        let batch_queue_copy = batch_state.batch_queue.clone();
+        match batch_queue::try_build_batch(batch_queue_copy, gas_price, self.max_batch_size) {
             Ok((resulting_batch_queue, finalized_batch)) => {
                 // Set the batch queue to batch queue copy
                 batch_state.batch_queue = resulting_batch_queue;

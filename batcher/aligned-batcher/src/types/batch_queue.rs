@@ -150,15 +150,16 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
 /// `resulting_priority_queue` will be the batch queue composed of all entries that were not willing to pay for the batch.
 /// This is outputted in along with the finalized batch.
 pub(crate) fn try_build_batch(
-    batch_queue_copy: &mut BatchQueue,
+    batch_queue: BatchQueue,
     gas_price: U256,
     max_batch_size: usize,
 ) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
-    let mut batch_size = calculate_batch_size(batch_queue_copy)?;
+    let mut batch_queue = batch_queue;
+    let mut batch_size = calculate_batch_size(&batch_queue)?;
     let mut resulting_priority_queue = BatchQueue::new();
 
-    while let Some((entry, _)) = batch_queue_copy.peek() {
-        let batch_len = batch_queue_copy.len();
+    while let Some((entry, _)) = batch_queue.peek() {
+        let batch_len = batch_queue.len();
         let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
 
         if batch_size > max_batch_size || fee_per_proof > entry.nonced_verification_data.max_fee {
@@ -174,7 +175,7 @@ pub(crate) fn try_build_batch(
                     .len();
             batch_size -= verification_data_size;
 
-            let (not_working_entry, not_working_priority) = batch_queue_copy.pop().unwrap();
+            let (not_working_entry, not_working_priority) = batch_queue.pop().unwrap();
             resulting_priority_queue.push(not_working_entry, not_working_priority);
 
             continue;
@@ -186,13 +187,13 @@ pub(crate) fn try_build_batch(
 
     // If `batch_queue_copy` is empty, this means that all the batch queue was traversed and we didn't find
     // any user willing to pay fot the fee per proof.
-    if batch_queue_copy.is_empty() {
+    if batch_queue.is_empty() {
         return Err(BatcherError::BatchCostTooHigh);
     }
 
     Ok((
         resulting_priority_queue,
-        batch_queue_copy.clone().into_sorted_vec(),
+        batch_queue.clone().into_sorted_vec(),
     ))
 }
 
@@ -303,7 +304,7 @@ mod test {
 
         let gas_price = U256::from(1);
         let (resulting_batch_queue, batch) =
-            try_build_batch(&mut batch_queue, gas_price, 5000000).unwrap();
+            try_build_batch(batch_queue, gas_price, 5000000).unwrap();
 
         assert!(resulting_batch_queue.is_empty());
 
@@ -406,7 +407,7 @@ mod test {
 
         let gas_price = U256::from(1);
         let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(&mut batch_queue, gas_price, 5000000).unwrap();
+            try_build_batch(batch_queue, gas_price, 5000000).unwrap();
 
         // The resulting batch queue (entries from the old batch queue that were not willing to pay
         // in this batch), should be empty and hence, all entries from the batch queue should be in
@@ -517,7 +518,7 @@ mod test {
 
         let gas_price = U256::from(1);
         let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(&mut batch_queue, gas_price, 5000000).unwrap();
+            try_build_batch(batch_queue, gas_price, 5000000).unwrap();
 
         // The resulting batch queue (entries from the old batch queue that were not willing to pay
         // in this batch), should be empty and hence, all entries from the batch queue should be in
