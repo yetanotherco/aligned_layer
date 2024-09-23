@@ -6,8 +6,7 @@ RUN apt install -y gcc
 WORKDIR /aligned_layer/batcher/aligned-batcher
 
 ENV GOOS=linux
-RUN GOARCH="$(uname -m | awk '{if ($1 == "x86_64") print "linux/amd64"; else if ($1 == "aarch64") print "linux/arm64"}')"
-ENV GOARCH=$GOARCH
+ARG GOARCH
 ENV CGO_ENABLED=1
 RUN go build -buildmode=c-archive -o libverifier.a ./gnark/verifier.go
 

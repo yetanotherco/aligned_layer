@@ -747,13 +747,21 @@ tracker_dump_db:
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
 
+ARCH := $(shell uname -m)
+ifeq ($(ARCH), x86_64)
+  GOARCH := amd64
+else ifeq ($(ARCH), arm64)
+  GOARCH := arm64
+endif
+
 docker-build:
+	@echo "Host architecture: $(GOARCH)"
 	docker compose -f docker-compose.yaml --profile aligned_base build
 	docker compose -f docker-compose.yaml --profile excluded build
 	docker compose -f docker-compose.yaml --profile foundry build
 	docker compose -f docker-compose.yaml --profile base build
-	docker compose -f docker-compose.yaml --profile operator build
-	docker compose -f docker-compose.yaml --profile batcher build
+	docker compose -f docker-compose.yaml --profile operator build --build-arg GOARCH=$(GOARCH)
+	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
 
 docker-up:
 	docker compose -f docker-compose.yaml --profile base up -d
