@@ -203,7 +203,7 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 
 batcher_start_local: user_fund_payment_service
 	@echo "Starting Batcher..."
-	@$(MAKE) run_storage
+	@$(MAKE) run_storage &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
 
 install_batcher:
@@ -415,7 +415,7 @@ run_metrics: ## Run metrics using metrics-docker-compose.yaml
 __STORAGE__:
 run_storage: ## Run storage using storage-docker-compose.yaml
 	@echo "Running storage..."
-	@docker compose -f storage-docker-compose.yaml up -d
+	@docker compose -f storage-docker-compose.yaml up
 
 __DEPLOYMENT__:
 deploy_aligned_contracts: ## Deploy Aligned Contracts
