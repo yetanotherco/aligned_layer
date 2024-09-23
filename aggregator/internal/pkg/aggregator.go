@@ -309,14 +309,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	// If the aggregator fails to respond to the task we remove the batch information as well.
-	agg.taskMutex.Lock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
+	agg.taskMutex.Lock()
 	delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
 	delete(agg.batchCreatedBlockByIdx, blsAggServiceResp.TaskIndex)
 	delete(agg.batchesIdentifierHashByIdx, blsAggServiceResp.TaskIndex)
 	delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
 	agg.taskMutex.Unlock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
 }
 
 // / Sends response to contract and waits for transaction receipt
