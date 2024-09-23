@@ -21,6 +21,7 @@ use crate::{
     },
 };
 
+use core::num;
 use ethers::{
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Middleware, Provider},
@@ -38,6 +39,15 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     StreamExt, TryStreamExt,
 };
+
+const AGGREGATOR_GAS_COST: u128 = 400_000;
+const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
+const CONSTANT_GAS_COST: u128 = ((AGGREGATOR_GAS_COST * DEFAULT_AGGREGATOR_FEE_MULTIPLIER)
+    / DEFAULT_AGGREGATOR_FEE_DIVIDER)
+    + BATCHER_SUBMISSION_BASE_GAS_COST;
+const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
+const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
+const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
