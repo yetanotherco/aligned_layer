@@ -782,3 +782,49 @@ docker-down:
 	docker compose -f docker-compose.yaml --profile base down
 	@echo "Everything down"
 	docker ps
+
+docker_batcher_send_sp1_burst:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --batcher_url 'ws://[::1]:8080' \
+              --proving_system SP1 \
+              --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
+              --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
+              --repetitions 5 \
+              --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+              --rpc_url http://anvil:8545 \
+              --payment_service_addr 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0
+docker_batcher_send_risc0_burst:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --batcher_url 'ws://[::1]:8080' \
+              --proving_system Risc0 \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+              --repetitions $(BURST_SIZE) \
+              --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+              --rpc_url http://anvil:8545 \
+              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_batcher_send_plonk_bn254_burst:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --batcher_url 'ws://[::1]:8080' \
+              --proving_system GnarkPlonkBn254 \
+              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
+              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+              --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+              --rpc_url http://anvil:8545 \
+              --repetitions 4 \
+              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_batcher_send_plonk_bls12_381_burst:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --batcher_url 'ws://[::1]:8080' \
+              --proving_system GnarkPlonkBls12_381 \
+              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
+              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+              --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+              --repetitions 15 \
+              --rpc_url http://anvil:8545 \
+              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
