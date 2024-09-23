@@ -234,7 +234,7 @@ batcher/target/release/aligned:
 
 
 RPC_URL=http://localhost:8545
-BATCHER_PAYMENTS_CONTRACT_ADDRESS=0x7969c5eD335650692Bc04293B07F5BF2e7A673C0
+BATCHER_PAYMENTS_CONTRACT_ADDRESS=0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."

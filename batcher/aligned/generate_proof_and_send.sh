@@ -27,7 +27,7 @@ go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 # Set default values for RPC and BATCHER if they are not set
 RPC=${RPC:-http://localhost:8545}
 BATCHER_CONN=${BATCHER_CONN:-ws://localhost:8080}
-BATCHER_ADDR=${BATCHER_ADDR:-0x7969c5eD335650692Bc04293B07F5BF2e7A673C0}
+BATCHER_ADDR=${BATCHER_ADDR:-0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650}
 
 cmd=(
     ./batcher/target/release/aligned

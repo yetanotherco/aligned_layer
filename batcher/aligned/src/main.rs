@@ -70,7 +70,7 @@ pub struct SubmitArgs {
     #[arg(
         name = "Batcher Payment Service Eth Address",
         long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+        default_value = "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650"
     )]
     payment_service_addr: String,
     #[arg(
@@ -133,7 +133,7 @@ pub struct DepositToBatcherArgs {
     #[arg(
         name = "Batcher Payment Service Eth Address",
         long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+        default_value = "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650"
     )]
     payment_service_addr: String,
     #[arg(
@@ -178,7 +178,7 @@ pub struct VerifyProofOnchainArgs {
     #[arg(
         name = "Batcher Payment Service Eth Address",
         long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+        default_value = "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650"
     )]
     payment_service_addr: String,
 }
@@ -200,7 +200,7 @@ pub struct GetUserBalanceArgs {
     #[arg(
         name = "Batcher Payment Service Eth Address",
         long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+        default_value = "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650"
     )]
     payment_service_addr: String,
     #[arg(

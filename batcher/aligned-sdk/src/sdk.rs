@@ -178,7 +178,7 @@ async fn _submit_multiple(
     let response_stream = Arc::new(Mutex::new(response_stream));
 
     let payment_service_addr = match chain {
-        Chain::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").ok(),
+        Chain::Devnet => H160::from_str("0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650").ok(),
         Chain::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").ok(),
         Chain::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").ok(),
     };
@@ -503,7 +503,7 @@ mod test {
 
     use ethers::signers::LocalWallet;
 
-    const BATCHER_PAYMENT_SERVICE_ADDR: &str = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0";
+    const BATCHER_PAYMENT_SERVICE_ADDR: &str = "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650";
     const MAX_FEE: U256 = U256::max_value();
 
     #[tokio::test]
