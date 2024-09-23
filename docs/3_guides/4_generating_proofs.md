@@ -57,9 +57,10 @@ This guide assumes that:
 
 - Gnark library is installed. If not, install it using the following command inside your Go module:
 
- ```bash
- go get github.com/consensys/gnark@v0.10.0
- ```
+```bash
+go get github.com/consensys/gnark@v0.11.0
+go get github.com/consensys/gnark-crypto@v0.14.0
+```
 
 - Gnark project to generate the proofs' instructions [here](https://docs.gnark.consensys.io/category/how-to)
 
@@ -67,9 +68,9 @@ This guide assumes that:
 
 Open a terminal and navigate to the Gnark project directory. Then, run the following command to generate the proof:
 
- ```bash
- go run circuit.go
- ```
+```bash
+go run circuit.go
+```
 
 ### How to get the proof verified by Aligned
 
@@ -248,6 +249,7 @@ cargo run --release
 ```
 
 The files will be saved within a `proof_files/` directory containing:
+
 - `proof.bin`
 - `params.bin`
 - `public_input.bin`
