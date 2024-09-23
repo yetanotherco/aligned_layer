@@ -241,10 +241,6 @@ impl Eip712 for NoncedVerificationData {
         hasher.update(verification_data_hash);
         hasher.update(nonce_bytes);
         hasher.update(max_fee_bytes);
-        let encoded_data_hash = hasher.finalize_reset();
-
-        // Now we do the actual final
-        // keccak256(typeHash ‖ encodeData(s))
         hasher.update(type_hash);
         hasher.update(encoded_data_hash);
         let hash_struct = hasher.finalize_reset();

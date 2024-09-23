@@ -280,15 +280,12 @@ contract BatcherPaymentService is
             revert InvalidMaxFee(signatureData.maxFee, feePerProof);
         }
 
-        bytes32 encodedDataHash = keccak256(
-            abi.encode(
-                leaf,
-                signatureData.nonce,
-                signatureData.maxFee
-            )
+        bytes32 structHash =  abi.encode(
+            noncedVerificationDataTypeHash,
+            leaf,
+            signatureData.nonce,
+            signatureData.maxFee
         );
-
-        bytes32 structHash = keccak256(abi.encode(noncedVerificationDataTypeHash, encodedDataHash));
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
