@@ -81,11 +81,21 @@ contract AlignedLayerServiceManager is
         _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
+    // function test0() public onlyWhenNotPaused(0) returns(bool){
+    //     return true;
+    // }
+    // function test1() public onlyWhenNotPaused(1) returns(bool){
+    //     return true;
+    // }
+    // function test2() public onlyWhenNotPaused(2) returns(bool){
+    //     return true;
+    // }
+
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
         uint256 respondToTaskFeeLimit
-    ) external payable whenNotPaused {
+    ) external payable onlyWhenNotPaused(0) {
         bytes32 batchIdentifier = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
         );
@@ -133,7 +143,7 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
-    ) external onlyAggregator whenNotPaused {
+    ) external onlyAggregator onlyWhenNotPaused(1) {
         uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
@@ -217,7 +227,7 @@ contract AlignedLayerServiceManager is
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex,
         address senderAddress
-    ) external view returns (bool) {
+    ) external view onlyWhenNotPaused(2) returns (bool) {
         bytes32 batchIdentifier;
         if (senderAddress == address(0)) {
             batchIdentifier = batchMerkleRoot;
@@ -262,7 +272,7 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
-    ) external view returns (bool) {
+    ) external view onlyWhenNotPaused(3) returns (bool) {
         return this.verifyBatchInclusion(
             proofCommitment,
             pubInputCommitment,
@@ -275,11 +285,11 @@ contract AlignedLayerServiceManager is
         );
     }
 
-    function setAggregator(address _alignedAggregator) public onlyOwner {
+    function setAggregator(address _alignedAggregator) public onlyOwner onlyWhenNotPaused(4) {
         alignedAggregator = _alignedAggregator;
     }
 
-    function withdraw(uint256 amount) external {
+    function withdraw(uint256 amount) external onlyWhenNotPaused(5) {
         if (batchersBalances[msg.sender] < amount) {
             revert InsufficientFunds(
                 msg.sender,
@@ -298,7 +308,7 @@ contract AlignedLayerServiceManager is
         return batchersBalances[account];
     }
 
-    function depositToBatcher(address account) external payable {
+    function depositToBatcher(address account) external payable onlyWhenNotPaused(6) {
         _depositToBatcher(account, msg.value);
     }
 
@@ -310,7 +320,7 @@ contract AlignedLayerServiceManager is
         emit BatcherBalanceUpdated(account, batchersBalances[account]);
     }
 
-    receive() external payable {
+    receive() external payable onlyWhenNotPaused(7) {
         _depositToBatcher(msg.sender, msg.value);
     }
 

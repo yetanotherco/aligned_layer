@@ -83,6 +83,14 @@ anvil_add_type_hash_to_batcher_payment_service:
 	@echo "Adding Type Hash to Batcher Payment Service..."
 	. contracts/scripts/anvil/upgrade_add_type_hash_to_batcher_payment_service.sh
 
+anvil_pause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/pause.sh all
+
+anvil_unpause_all_aligned_service_manager:
+	@echo "Pausing all contracts..."
+	. contracts/scripts/unpause.sh all
+
 lint_contracts:
 	@cd contracts && npm run lint:sol
 
