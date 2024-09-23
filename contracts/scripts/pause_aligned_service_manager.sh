@@ -7,10 +7,25 @@ if  [ -z "$1" ]; then
     exit 1
 fi
 
+if  [ -z "$ALIGNED_SERVICE_MANAGER" ]; then
+    echo "ALIGNED_SERVICE_MANAGER env var is not set"
+    exit 1
+fi
+
+if  [ -z "$PRIVATE_KEY" ]; then
+    echo "PRIVATE_KEY env var is not set"
+    exit 1
+fi
+
+if  [ -z "$RPC_URL" ]; then
+    echo "RPC_URL env var is not set"
+    exit 1
+fi
+
 if [[ "$1" == "all" ]]; then
-    echo "Unpausing whole contract"
+    echo "Pausing whole contract"
     cast send $ALIGNED_SERVICE_MANAGER \
-        "unpause(uint256)()" 0 \
+        "pauseAll()()" \
         --rpc-url $RPC_URL \
         --private-key $PRIVATE_KEY
     return
@@ -26,8 +41,6 @@ done
 echo "New pause state: $result"
 
 cast send $ALIGNED_SERVICE_MANAGER \
-    "unpause(uint256)()" "$result" \
+    "pause(uint256)()" "$result" \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY
-
-    
