@@ -748,9 +748,9 @@ tracker_dump_db:
 	@echo "Dumped database successfully to /operator_tracker"
 
 docker-build:
+	docker compose -f docker-compose.yaml --profile aligned_base build
 	docker compose -f docker-compose.yaml --profile excluded build
 	docker compose -f docker-compose.yaml --profile foundry build
-	docker compose -f docker-compose.yaml --profile aligned_base build
 	docker compose -f docker-compose.yaml --profile base build
 	docker compose -f docker-compose.yaml --profile operator build
 	docker compose -f docker-compose.yaml --profile batcher build
