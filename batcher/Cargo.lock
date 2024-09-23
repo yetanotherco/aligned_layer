@@ -126,6 +126,7 @@ dependencies = [
  "lambdaworks-crypto",
  "lazy_static",
  "log",
+ "mina-state-verifier-ffi",
  "mina_bridge_core",
  "priority-queue",
  "risc0-zkvm",
@@ -5059,6 +5060,33 @@ dependencies = [
  "rand",
  "sha2 0.10.8",
  "thiserror",
+]
+
+[[package]]
+name = "mina-state-verifier-ffi"
+version = "0.1.0"
+dependencies = [
+ "ark-ec 0.3.0",
+ "ark-ff 0.3.0",
+ "ark-poly 0.3.0",
+ "ark-serialize 0.3.0",
+ "base64 0.22.1",
+ "bincode",
+ "blake2",
+ "bs58 0.5.1",
+ "hex",
+ "kimchi",
+ "lazy_static",
+ "mina-curves",
+ "mina-p2p-messages",
+ "mina-tree",
+ "mina_bridge_core",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
+ "once_cell",
+ "poly-commitment",
+ "rmp-serde",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
