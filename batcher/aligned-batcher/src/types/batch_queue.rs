@@ -174,8 +174,8 @@ pub(crate) fn try_build_batch(
                     .len();
             batch_size -= verification_data_size;
 
-            let (not_working_entry, not_woring_priority) = batch_queue_copy.pop().unwrap();
-            resulting_priority_queue.push(not_working_entry, not_woring_priority);
+            let (not_working_entry, not_working_priority) = batch_queue_copy.pop().unwrap();
+            resulting_priority_queue.push(not_working_entry, not_working_priority);
 
             continue;
         }
