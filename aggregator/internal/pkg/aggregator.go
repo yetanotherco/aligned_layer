@@ -285,14 +285,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 			// If Aggregator successfully responds to task we acquire the task mutex and
 			// remove task information from the aggregator maps to prevent a memory leak.
-			agg.taskMutex.Lock()
 			agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
+			agg.taskMutex.Lock()
 			delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
 			delete(agg.batchCreatedBlockByIdx, blsAggServiceResp.TaskIndex)
 			delete(agg.batchesIdentifierHashByIdx, blsAggServiceResp.TaskIndex)
 			delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
-			agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
 			agg.taskMutex.Unlock()
+			agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
 
 			return
 		}
