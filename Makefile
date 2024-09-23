@@ -121,6 +121,12 @@ update_operator:
 	@make build_operator
 	@./operator/build/aligned-operator --version
 
+operator_verification_data_fuzz_macos:
+	@cd operator/pkg && go test -fuzz=FuzzMarshalUnmarshal -ldflags=-extldflags=-Wl,-ld_classic
+
+operator_verification_data_fuzz_linux:
+	@cd operator/pkg && go test -fuzz=FuzzMarshalUnmarshal
+
 bindings:
 	cd contracts && ./generate-go-bindings.sh
 
