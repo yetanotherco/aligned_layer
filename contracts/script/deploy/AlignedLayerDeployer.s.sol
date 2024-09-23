@@ -656,8 +656,16 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
             alignedLayerServiceManager.owner() == alignedLayerOwner,
             "alignedLayerServiceManager.owner() != alignedLayerOwner"
         );
-        // require(alignedLayerServiceManager.pauserRegistry() == IPauserRegistry(pauser), "alignedLayerServiceManager: pauser registry not set correctly");
-        // require(alignedLayerServiceManager.paused() == initalPausedStatus, "alignedLayerServiceManager: init paused status set incorrectly");
+
+        require(
+            alignedLayerServiceManager.pauserRegistry() == IPauserRegistry(pauserRegistry),
+            "alignedLayerServiceManager: pauser registry not set correctly"
+        );
+        require(
+            alignedLayerServiceManager.paused() == initalPausedStatus,
+            "alignedLayerServiceManager: init paused status set incorrectly"
+        );
+
 
         require(
             registryCoordinator.owner() == alignedLayerOwner,
