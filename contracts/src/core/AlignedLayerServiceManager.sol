@@ -81,16 +81,6 @@ contract AlignedLayerServiceManager is
         _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
-    // function test0() public onlyWhenNotPaused(0) returns(bool){
-    //     return true;
-    // }
-    // function test1() public onlyWhenNotPaused(1) returns(bool){
-    //     return true;
-    // }
-    // function test2() public onlyWhenNotPaused(2) returns(bool){
-    //     return true;
-    // }
-
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
