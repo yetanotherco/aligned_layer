@@ -12,6 +12,7 @@ RUN go build -buildmode=c-archive -o libverifier.a ./gnark/verifier.go
 
 WORKDIR /aligned_layer
 RUN cargo build --manifest-path ./batcher/aligned-batcher/Cargo.toml --release
+RUN cargo build --manifest-path ./batcher/aligned/Cargo.toml --release
 
 #FROM debian:bookworm-slim
 
