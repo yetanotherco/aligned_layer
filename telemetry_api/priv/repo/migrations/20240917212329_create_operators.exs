@@ -3,10 +3,12 @@ defmodule TelemetryApi.Repo.Migrations.CreateOperators do
 
   def change do
     create table(:operators) do
-      add :address, :string
+      add :address, :string, primary_key: true
       add :version, :string
 
       timestamps(type: :utc_datetime)
     end
+
+    create unique_index(:operators, [:address])
   end
 end
