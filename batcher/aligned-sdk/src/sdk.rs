@@ -69,7 +69,7 @@ use futures_util::{
 pub async fn submit_multiple_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
-    network: &Network,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -119,7 +119,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_url: &str,
-    network: &Network,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -146,7 +146,7 @@ pub async fn submit_multiple(
     .await
 }
 
-pub fn get_payment_service_address(network: &Network) -> ethers::types::H160 {
+pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
     match network {
         Network::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
         Network::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
@@ -156,7 +156,7 @@ pub fn get_payment_service_address(network: &Network) -> ethers::types::H160 {
     }
 }
 
-pub fn get_aligned_service_manager_address(network: &Network) -> ethers::types::H160 {
+pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H160 {
     match network {
         Network::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
         Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
@@ -169,7 +169,7 @@ pub fn get_aligned_service_manager_address(network: &Network) -> ethers::types::
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    network: &Network,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -264,7 +264,7 @@ async fn _submit_multiple(
 pub async fn submit_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
-    network: &Network,
+    network: Network,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -315,7 +315,7 @@ pub async fn submit_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_url: &str,
-    network: &Network,
+    network: Network,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -351,7 +351,7 @@ pub async fn submit(
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 pub async fn is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    network: &Network,
+    network: Network,
     eth_rpc_url: &str,
 ) -> Result<bool, errors::VerificationError> {
     let eth_rpc_provider =
@@ -364,7 +364,7 @@ pub async fn is_proof_verified(
 
 async fn _is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    network: &Network,
+    network: Network,
     eth_rpc_provider: Provider<Http>,
 ) -> Result<bool, errors::VerificationError> {
     let contract_address = get_aligned_service_manager_address(network);
@@ -435,7 +435,7 @@ pub fn get_vk_commitment(
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
     submitter_addr: Address,
-    network: &Network,
+    network: Network,
 ) -> Result<U256, errors::NonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
@@ -524,7 +524,7 @@ mod test {
         let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
-            &Network::Devnet,
+            Network::Devnet,
             &verification_data,
             &max_fees,
             wallet,
@@ -560,7 +560,7 @@ mod test {
         let result = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
-            &Network::Devnet,
+            Network::Devnet,
             &verification_data,
             &max_fees,
             wallet,
@@ -604,7 +604,7 @@ mod test {
         let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
-            &Network::Devnet,
+            Network::Devnet,
             &verification_data,
             &max_fees,
             wallet,
@@ -617,7 +617,7 @@ mod test {
 
         let result = is_proof_verified(
             &aligned_verification_data[0],
-            &Network::Devnet,
+            Network::Devnet,
             "http://localhost:8545",
         )
         .await
@@ -655,7 +655,7 @@ mod test {
         let aligned_verification_data = submit_multiple_and_wait_verification(
             "ws://localhost:8080",
             "http://localhost:8545",
-            &Network::Devnet,
+            Network::Devnet,
             &verification_data,
             &[MAX_FEE],
             wallet,
@@ -673,7 +673,7 @@ mod test {
 
         let result = is_proof_verified(
             &aligned_verification_data_modified,
-            &Network::Devnet,
+            Network::Devnet,
             "http://localhost:8545",
         )
         .await

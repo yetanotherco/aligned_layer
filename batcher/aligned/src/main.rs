@@ -200,7 +200,7 @@ pub struct GetUserBalanceArgs {
     user_address: String,
 }
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, ValueEnum, Copy)]
 enum NetworkArg {
     Devnet,
     Holesky,
@@ -314,7 +314,7 @@ async fn main() -> Result<(), AlignedError> {
                     get_nonce(
                         &eth_rpc_url,
                         wallet.address(),
-                        &(&submit_args.network).into(),
+                        submit_args.network.into(),
                         repetitions,
                     )
                     .await?
@@ -331,7 +331,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let aligned_verification_data_vec = match submit_multiple(
                 &connect_addr,
-                &(&submit_args.network).into(),
+                submit_args.network.into(),
                 &verification_data_arr,
                 &max_fees,
                 wallet.clone(),
@@ -385,7 +385,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Verifying response data matches sent proof data...");
             let response = is_proof_verified(
                 &aligned_verification_data,
-                &verify_inclusion_args.network.into(),
+                verify_inclusion_args.network.into(),
                 &verify_inclusion_args.eth_rpc_url,
             )
             .await?;
@@ -470,7 +470,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let batcher_addr = get_payment_service_address(&deposit_to_batcher_args.network.into());
+            let batcher_addr = get_payment_service_address(deposit_to_batcher_args.network.into());
 
             let tx = TransactionRequest::new()
                 .to(batcher_addr)
@@ -523,7 +523,7 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let batcher_addr = get_payment_service_address(&get_user_balance_args.network.into());
+            let batcher_addr = get_payment_service_address(get_user_balance_args.network.into());
 
             let balance = get_user_balance(eth_rpc_provider, batcher_addr, user_address)
                 .await
@@ -645,7 +645,7 @@ fn delete_file(file_name: &str) -> Result<(), io::Error> {
 async fn get_nonce(
     eth_rpc_url: &str,
     address: Address,
-    network: &Network,
+    network: Network,
     proof_count: usize,
 ) -> Result<U256, AlignedError> {
     let nonce = get_next_nonce(eth_rpc_url, address, network).await?;

@@ -329,7 +329,7 @@ pub enum ResponseMessage {
     Error(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Network {
     Devnet,
     Holesky,

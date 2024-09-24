@@ -56,7 +56,7 @@ async fn main() -> Result<(), SubmitError> {
         .expect("Failed to create wallet")
         .with_chain_id(17000u64);
 
-    let nonce = get_next_nonce(RPC_URL, wallet.address(), &NETWORK)
+    let nonce = get_next_nonce(RPC_URL, wallet.address(), Network)
         .await
         .expect("Failed to get next nonce");
 
@@ -66,7 +66,7 @@ async fn main() -> Result<(), SubmitError> {
     let aligned_verification_data = submit_and_wait_verification(
         BATCHER_URL,
         RPC_URL,
-        &NETWORK,
+        Network,
         &verification_data,
         max_fee,
         wallet,
