@@ -754,6 +754,15 @@ else ifeq ($(ARCH), arm64)
   GOARCH := arm64
 endif
 
+docker-build-aggregator:
+	docker compose -f docker-compose.yaml --profile aggregator build
+
+docker-build-operator:
+	docker compose -f docker-compose.yaml --profile operator build --build-arg GOARCH=$(GOARCH)
+
+docker-build-batcher:
+	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
+
 docker-build:
 	@echo "Host architecture: $(GOARCH)"
 	docker compose -f docker-compose.yaml --profile aligned_base build

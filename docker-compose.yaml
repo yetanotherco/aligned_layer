@@ -24,6 +24,7 @@ services:
       - anvil
     profiles:
       - base
+      - aggregator
 
   fund-operator:
     image: foundry
