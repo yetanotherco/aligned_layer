@@ -754,16 +754,16 @@ else ifeq ($(ARCH), arm64)
   GOARCH := arm64
 endif
 
-docker-build-aggregator:
+docker_build_aggregator:
 	docker compose -f docker-compose.yaml --profile aggregator build
 
-docker-build-operator:
+docker_build_operator:
 	docker compose -f docker-compose.yaml --profile operator build --build-arg GOARCH=$(GOARCH)
 
-docker-build-batcher:
+docker_build_batcher:
 	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
 
-docker-build:
+docker_build:
 	@echo "Host architecture: $(GOARCH)"
 	docker compose -f docker-compose.yaml --profile aligned_base build
 	docker compose -f docker-compose.yaml --profile eigenlayer-cli build
@@ -772,7 +772,7 @@ docker-build:
 	docker compose -f docker-compose.yaml --profile operator build --build-arg GOARCH=$(GOARCH)
 	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
 
-docker-up:
+docker_up:
 	docker compose -f docker-compose.yaml --profile base up -d
 	docker compose -f docker-compose.yaml run --rm fund-operator
 	docker compose -f docker-compose.yaml run --rm register-operator-eigenlayer
@@ -785,7 +785,7 @@ docker-up:
 	docker compose -f docker-compose.yaml --profile batcher up -d
 	@echo "Up and running"
 
-docker-down:
+docker_down:
 	docker compose -f docker-compose.yaml --profile batcher down
 	docker compose -f docker-compose.yaml --profile operator down
 	docker compose -f docker-compose.yaml --profile base down
