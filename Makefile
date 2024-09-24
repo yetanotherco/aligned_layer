@@ -729,9 +729,13 @@ open_telemetry_start: ## Run open telemetry services using telemetry-docker-comp
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
 
-telemetry_start: ## Run Telemetry API
+telemetry_start: telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
 	 	mix phx.server
+
+telemetry_ecto_migrate: ##
+		@cd telemetry_api && \
+    	 	mix ecto.migrate
 
 telemetry_build_db:
 	@cd telemetry_api && \
