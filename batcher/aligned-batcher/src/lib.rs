@@ -327,7 +327,9 @@ impl Batcher {
 
     pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
         // Create the event loop and TCP listener we'll accept connections on.
-        let listener = TcpListener::bind(address).await.expect("Failed to build");
+        let listener = TcpListener::bind(address)
+            .await
+            .map_err(|e| BatcherError::TcpListenerError(e.to_string()))?;
         info!("Listening on: {}", address);
 
         // Let's spawn the handling of each connection in a separate task.
