@@ -452,7 +452,7 @@ impl Batcher {
         }
 
         info!("Verifying message signature...");
-        let Ok(addr) = client_msg.verify_signature() else {
+        let Ok(mut addr) = client_msg.verify_signature() else {
             error!("Signature verification error");
             send_message(
                 ws_conn_sink.clone(),
@@ -466,12 +466,18 @@ impl Batcher {
         let is_non_paying = self.is_nonpaying(&addr);
         if is_non_paying {
             debug!("Non paying message");
+            // if the message is nonpaying we want to use the configured batcher address
+            // to pay for the verification
+            addr = self
+                .non_paying_config
+                .as_ref()
+                .unwrap()
+                .replacement
+                .address();
         }
 
         debug!("Verifying balance");
         if is_non_paying {
-            let non_paying_config = self.non_paying_config.as_ref().unwrap();
-            let addr = non_paying_config.replacement.address();
             let user_balance = self.get_user_balance(&addr).await;
 
             if user_balance == U256::from(0) {
@@ -772,6 +778,7 @@ impl Batcher {
         );
 
         let non_paying_config = self.non_paying_config.as_ref().unwrap();
+        let addr = non_paying_config.replacement.address();
         let client_msg = ClientMessage::new(
             nonced_verification_data.clone(),
             non_paying_config.replacement.clone(),
@@ -780,7 +787,7 @@ impl Batcher {
 
         batch_state
             .user_nonces
-            .insert(non_paying_config.address, nonce_value + U256::one());
+            .insert(addr, nonce_value + U256::one());
 
         self.add_to_batch(
             batch_state,
