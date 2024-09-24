@@ -14,7 +14,7 @@ func FuzzMarshalUnmarshal(f *testing.F) {
 
 		var marshalled VerificationData
 		decoder := codec.NewDecoderBytes(data, new(codec.CborHandle))
-		err := decoder.Decode(marshalled)
+		err := decoder.Decode(&marshalled)
 		if err != nil {
 			return
 		}
