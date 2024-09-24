@@ -35,8 +35,7 @@ defmodule TelemetryApiWeb.OperatorController do
   defp update(conn, operator, operator_params) do
     with {:ok, %Operator{} = operator} <- Operators.update_operator(operator, operator_params) do
       conn
-      |> put_status(:updated)
-      |> put_resp_header("location", ~p"/api/operators/#{operator}")
+      |> put_status(:ok)
       |> render(:show, operator: operator)
     end
   end
