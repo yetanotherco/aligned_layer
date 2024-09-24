@@ -217,16 +217,6 @@ impl From<NetworkArg> for Network {
     }
 }
 
-impl From<&NetworkArg> for Network {
-    fn from(env_arg: &NetworkArg) -> Self {
-        match env_arg {
-            NetworkArg::Devnet => Network::Devnet,
-            NetworkArg::Holesky => Network::Holesky,
-            NetworkArg::HoleskyStage => Network::HoleskyStage,
-        }
-    }
-}
-
 #[derive(Debug, Clone, ValueEnum)]
 pub enum ProvingSystemArg {
     #[clap(name = "GnarkPlonkBls12_381")]
