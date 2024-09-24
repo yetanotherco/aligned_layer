@@ -22,20 +22,38 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Gets a single operator.
+  Gets a single operator by id.
 
   Raises `Ecto.NoResultsError` if the Operator does not exist.
 
   ## Examples
 
-      iex> get_operator!(123)
+      iex> get_operator_by_id!(123)
       %Operator{}
 
-      iex> get_operator!(456)
+      iex> get_operator_by_id!(456)
       ** (Ecto.NoResultsError)
 
   """
-  def get_operator!(id), do: Repo.get!(Operator, id)
+  def get_operator_by_id!(id), do: Repo.get!(Operator, id)
+
+  @doc """
+  Gets an operator by address.
+
+  ## Examples
+
+      iex> get_operator(%{field: value})
+      %Operator{}
+
+      iex> get_operator(%{field: value})
+      nil
+
+  """
+  def get_operator(attrs \\ %{}) do
+    address = SignatureVerifier.get_address(attrs["version"], attrs["signature"])
+    query = from o in Operator, where: o.address == ^address
+    Repo.one(query)
+  end
 
   @doc """
   Creates a operator.
@@ -53,6 +71,7 @@ defmodule TelemetryApi.Operators do
     # Get address from the signature
     address = SignatureVerifier.get_address(attrs["version"], attrs["signature"])
     attrs = Map.put(attrs, "address", address)
+
     %Operator{}
     |> Operator.changeset(attrs)
     |> Repo.insert()
