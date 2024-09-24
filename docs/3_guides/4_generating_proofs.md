@@ -57,9 +57,9 @@ This guide assumes that:
 
 - Gnark library is installed. If not, install it using the following command inside your Go module:
 
- ```bash
- go get github.com/consensys/gnark@v0.10.0
- ```
+```bash
+go get github.com/consensys/gnark@v0.10.0
+```
 
 - Gnark project to generate the proofs' instructions [here](https://docs.gnark.consensys.io/category/how-to)
 
@@ -67,9 +67,9 @@ This guide assumes that:
 
 Open a terminal and navigate to the Gnark project directory. Then, run the following command to generate the proof:
 
- ```bash
- go run circuit.go
- ```
+```bash
+go run circuit.go
+```
 
 ### How to get the proof verified by Aligned
 
@@ -248,6 +248,7 @@ cargo run --release
 ```
 
 The files will be saved within a `proof_files/` directory containing:
+
 - `proof.bin`
 - `params.bin`
 - `public_input.bin`
@@ -282,3 +283,124 @@ aligned submit \
 ```
 
 For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
+
+## ZkRust
+
+`zkRust` is a CLI tool maintained by Aligned that aims to simplify the developing applications in Rust using zkVM's such as SP1 or Risc0.
+
+zkRust can then be installed directly by downloading the latest release binaries.
+
+```sh
+curl -L https://raw.githubusercontent.com/yetanotherco/zkRust/main/install_zkrust.sh | bash
+```
+
+To get started you can create a workspace for your project in zkRust by running:
+
+```sh
+cargo new <PROGRAM_DIRECTORY>
+```
+
+It is that simple.
+
+## Usage
+
+To use zkRust, To use zkRust users specify a `fn main()` whose execution is proven within the zkVM. This function must be defined within a `main.rs` file in a directory with the following structure:
+
+```
+.
+└── <PROGRAM_DIRECTORY>
+    ├── Cargo.toml
+    └── src
+        └── main.rs
+```
+
+For using more complex programs you can import a separate lib/ crate into the .
+
+```
+.
+└── <PROGRAM_DIRECTORY>
+    ├── Cargo.toml
+    ├── lib/
+    └── src
+        └── lib
+```
+
+The user may also define a `input()`, `output()`, in addition to the `main()`. The `fn input()` and `fn output()` function which defines code that runs outside of the zkVM before and after the VM executes. The `input()` function executes before the zkVM code is executed and allows the user to define inputs passed to the vm such as a deserialized Tx or data fetched from an external source at runtime. Within the `main()` (guest) function the user may write information from the computation performed in the zkVM to an output buffer to be used after proof generation. The `output()` defines code that allows the user to read the information written to that buffer of the and perform post-processing of that data.
+
+The user may specify inputs into the VM (guest) code using `zk_rust_io::write()` as long on the type of rust object they are writing implements `Serializable`. Within there `main()` function (guest) the user may read in the inputs by specifying `zk_rust_io::read()` and output data computed during the execution phase of the code within the VM (guest) program by specifying `zk_rust_io::commit()`. To read the output of the output of the VM (guest) program you declare `zk_rust_io::out()`. The `zk_rust_io` crate defines function headers that are not inlined and are purely used as compile time symbols to ensure a user can compile there rust code before running it within one of the zkVM available in zkRust.
+
+To use the I/O imports import the `zk_rust_io` crate by adding the following to the `Cargo.toml` in your project directory.
+
+````sh
+zk_rust_io = { git = "https://github.com/yetanotherco/zkRust.git", version = "v0.1.0" }
+```
+
+### input.rs
+
+```rust
+use zk_rust_io;
+
+pub fn input() {
+    let pattern = "a+".to_string();
+    let target_string = "an era of truth, not trust".to_string();
+
+    // Write in a simple regex pattern.
+    zk_rust_io::write(&pattern);
+    zk_rust_io::write(&target_string);
+}
+````
+
+### main.rs
+
+```rust
+use regex::Regex;
+use zk_rust_io;
+
+pub fn main() {
+    // Read two inputs from the prover: a regex pattern and a target string.
+    let pattern: String = zk_rust_io::read();
+    let target_string: String = zk_rust_io::read();
+
+    // Try to compile the regex pattern. If it fails, write `false` as output and return.
+    let regex = match Regex::new(&pattern) {
+        Ok(regex) => regex,
+        Err(_) => {
+            panic!("Invalid regex pattern");
+        }
+    };
+
+    // Perform the regex search on the target string.
+    let result = regex.is_match(&target_string);
+
+    // Write the result (true or false) to the output.
+    zk_rust_io::commit(&result);
+}
+```
+
+### output.rs
+
+```rust
+use zk_rust_io;
+
+pub fn output() {
+    // Read the output.
+    let res: bool = zk_rust_io::out();
+    println!("res: {}", res);
+}
+```
+
+To generate a proof of the execution of your code run the following:
+
+- **Sp1**:
+
+```sh
+  cargo run --release -- prove-sp1 <PROGRAM_DIRECTORY_PATH> .
+```
+
+- **Risc0**:
+  ```sh
+  cargo run --release -- prove-risc0  <PROGRAM_DIRECTORY_PATH> .
+  ```
+  Make sure to have [Risc0](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain) installed with version `v1.0.1`
+
+For additional information on using zkRust and using it to submit proofs to Aligned see the [zkRust](https://github.com/yetanotherco/zkRust) Github Repository.
