@@ -65,7 +65,7 @@ func operatorMain(ctx *cli.Context) error {
 	}
 
 	// send version to operator tracker server
-	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/versions"
+	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/api/operators"
 	operator.Logger.Info("Sending version to operator tracker server: ", "endpoint", endpoint)
 
 	res, err := http.Post(endpoint, "application/json",
