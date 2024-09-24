@@ -81,20 +81,20 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		agg.operatorRespondedBatch[taskIndex] = batchResponses
 	}
 
-	if _, ok := batchResponses[signedTaskResponse.OperatorId]; ok {
-		*reply = 0
-		agg.logger.Warn("Operator already responded, ignoring",
-			"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]),
-			"taskIndex", taskIndex, "batchMerkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]))
+	/*
+		if _, ok := batchResponses[signedTaskResponse.OperatorId]; ok {
+			*reply = 0
+			agg.logger.Warn("Operator already responded, ignoring",
+				"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]),
+				"taskIndex", taskIndex, "batchMerkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]))
 
-		agg.taskMutex.Unlock()
-		return nil
-	}
+			agg.taskMutex.Unlock()
+			return nil
+		}
+	*/
 
 	// Never clear aggregator responses allowing them to sign twice
-	/*
-		batchResponses[signedTaskResponse.OperatorId] = struct{}{}
-	*/
+	//batchResponses[signedTaskResponse.OperatorId] = struct{}{}
 
 	// Don't wait infinitely if it can't answer
 	// Create a context with a timeout of 5 seconds

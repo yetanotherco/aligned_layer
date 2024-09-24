@@ -217,9 +217,7 @@ func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlign
 	)
 
 	// Double send
-	/*
-		o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
-	*/
+	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 }
 func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
@@ -291,6 +289,7 @@ func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlign
 		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 	)
 
+	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 }
 func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) error {
