@@ -8,8 +8,8 @@ If you run the examples below, make sure you are in Aligned's repository root.
 
 The following is the list of the verifiers currently supported by Aligned:
 
-- :white_check_mark: gnark - Groth16 (with BN254)
-- :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
+- :white_check_mark: gnark [(v0.11.0)](https://github.com/Consensys/gnark/releases/tag/v0.11.0) - Groth16 (with BN254)
+- :white_check_mark: gnark [(v0.11.0)](https://github.com/Consensys/gnark/releases/tag/v0.11.0) - Plonk (with BN254 and BLS12-381)
 - :white_check_mark: SP1 [(v1.0.1)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.1)
 - :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
 - :white_check_mark: Halo2 - Plonk/KZG
@@ -27,28 +27,28 @@ You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/
 
 - If you are creating a new account, create a private key with:
 
-    ```bash
-    cast wallet new-mnemonic --words 12
-    ```
+  ```bash
+  cast wallet new-mnemonic --words 12
+  ```
 
-    It will show you a new mnemonic phrase and a public-private key pair, similar to the following example:
+  It will show you a new mnemonic phrase and a public-private key pair, similar to the following example:
 
-    ```
-    Phrase:
-    test test test test test test test test test test test test
+  ```
+  Phrase:
+  test test test test test test test test test test test test
 
-    Accounts:
-    - Account 0:
-    Address:     0xabcd...1234
-    Private key: 0x1234...abcd
-    ```
+  Accounts:
+  - Account 0:
+  Address:     0xabcd...1234
+  Private key: 0x1234...abcd
+  ```
 
 - Import the wallet using the private key previously generated, or whichever you want to use, and write a password to use it.
 
-    ```bash
-    mkdir -p ~/.aligned_keystore/
-    cast wallet import ~/.aligned_keystore/keystore0 --interactive
-    ```
+  ```bash
+  mkdir -p ~/.aligned_keystore/
+  cast wallet import ~/.aligned_keystore/keystore0 --interactive
+  ```
 
   You have to paste your private key and set a password for the keystore file.
 
@@ -103,16 +103,16 @@ This guide will focus on how to submit proofs using the Aligned CLI. To integrat
 
 Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are:
 
-* `proving_system`: The proving system corresponding to the proof you want to submit.
-* `proof`: The path of the proof associated to the computation to be verified.
-* `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
-* `pub_input`: The path to the file with the public input associated with the proof.
-* `batcher_url`: The batcher websocket URL.
-* `chain` to specify the chain id to be used. Could be holesky or devnet.
-* `rpc_url`: The RPC Ethereum node URL.
-* `payment_service_addr`: The Ethereum address of the Batcher Payments System contract.
-* `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
-* `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
+- `proving_system`: The proving system corresponding to the proof you want to submit.
+- `proof`: The path of the proof associated to the computation to be verified.
+- `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
+- `pub_input`: The path to the file with the public input associated with the proof.
+- `batcher_url`: The batcher websocket URL.
+- `chain` to specify the chain id to be used. Could be holesky or devnet.
+- `rpc_url`: The RPC Ethereum node URL.
+- `payment_service_addr`: The Ethereum address of the Batcher Payments System contract.
+- `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
+- `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
 
 ### SP1 proof
 
