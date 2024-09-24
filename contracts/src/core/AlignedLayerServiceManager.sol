@@ -262,7 +262,7 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
-    ) external view onlyWhenNotPaused(3) returns (bool) {
+    ) external view onlyWhenNotPaused(2) returns (bool) {
         return this.verifyBatchInclusion(
             proofCommitment,
             pubInputCommitment,
@@ -275,11 +275,11 @@ contract AlignedLayerServiceManager is
         );
     }
 
-    function setAggregator(address _alignedAggregator) public onlyOwner onlyWhenNotPaused(4) {
+    function setAggregator(address _alignedAggregator) public onlyOwner {
         alignedAggregator = _alignedAggregator;
     }
 
-    function withdraw(uint256 amount) external onlyWhenNotPaused(5) {
+    function withdraw(uint256 amount) external onlyWhenNotPaused(3) {
         if (batchersBalances[msg.sender] < amount) {
             revert InsufficientFunds(
                 msg.sender,
@@ -298,7 +298,7 @@ contract AlignedLayerServiceManager is
         return batchersBalances[account];
     }
 
-    function depositToBatcher(address account) external payable onlyWhenNotPaused(6) {
+    function depositToBatcher(address account) external payable onlyWhenNotPaused(4) {
         _depositToBatcher(account, msg.value);
     }
 
@@ -310,7 +310,7 @@ contract AlignedLayerServiceManager is
         emit BatcherBalanceUpdated(account, batchersBalances[account]);
     }
 
-    receive() external payable onlyWhenNotPaused(7) {
+    receive() external payable onlyWhenNotPaused(5) {
         _depositToBatcher(msg.sender, msg.value);
     }
 
