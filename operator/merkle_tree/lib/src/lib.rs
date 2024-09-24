@@ -44,7 +44,13 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
         batch.into_iter().map(|v| v.into()).collect();
 
     let computed_batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-        MerkleTree::build(&batch_data_comm);
+        match MerkleTree::build(&batch_data_comm) {
+            Some(computed_batch_merkle_tree) => computed_batch_merkle_tree,
+            None => {
+                error!("Failed to build merkle tree, batch data commitment is empty");
+                return false;
+            }
+        };
 
     computed_batch_merkle_tree.root == *merkle_root
 }
@@ -66,10 +72,7 @@ mod tests {
         merkle_root_file.read_to_end(&mut root_vec).unwrap();
 
         let mut merkle_root = [0; 32];
-        merkle_root.copy_from_slice(
-            &hex::decode(&root_vec)
-                .unwrap(),
-        );
+        merkle_root.copy_from_slice(&hex::decode(&root_vec).unwrap());
 
         let result =
             verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
@@ -86,10 +89,7 @@ mod tests {
         merkle_root_file.read_to_end(&mut root_vec).unwrap();
 
         let mut merkle_root = [0; 32];
-        merkle_root.copy_from_slice(
-            &hex::decode(&root_vec)
-                .unwrap(),
-        );
+        merkle_root.copy_from_slice(&hex::decode(&root_vec).unwrap());
 
         let result =
             verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
@@ -106,10 +106,7 @@ mod tests {
         merkle_root_file.read_to_end(&mut root_vec).unwrap();
 
         let mut merkle_root = [0; 32];
-        merkle_root.copy_from_slice(
-            &hex::decode(&root_vec)
-                .unwrap(),
-        );
+        merkle_root.copy_from_slice(&hex::decode(&root_vec).unwrap());
 
         let result =
             verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);

@@ -806,7 +806,7 @@ impl Batcher {
 
         // FIXME(marian): This condition should be changed to current_batch_size == 0
         // once the bug in Lambdaworks merkle tree is fixed.
-        if current_batch_len < 2 {
+        if current_batch_len == 0 {
             info!("Current batch is empty or length 1. Waiting for more proofs...");
             return None;
         }
@@ -888,7 +888,14 @@ impl Batcher {
             .collect();
 
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-            MerkleTree::build(&batch_data_comm);
+            match MerkleTree::build(&batch_data_comm) {
+                Some(batch_merkle_tree) => batch_merkle_tree,
+                None => {
+                    return Err(BatcherError::TaskCreationError(
+                        "Failed to Build Merkle Tree: Empty Batch".to_string(),
+                    ))
+                }
+            };
 
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
