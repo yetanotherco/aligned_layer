@@ -28,6 +28,8 @@ operator:
   delegation_approver_address: "0x0000000000000000000000000000000000000000"
   staker_opt_out_window_blocks: 0
   metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+  enable_metrics: true
+  metrics_ip_port_address: localhost:9092
   max_batch_size: 268435456 # 256 MiB
 
 # Operators variables needed for register it in EigenLayer
