@@ -91,10 +91,10 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 			agg.taskMutex.Unlock()
 			return nil
 		}
-	*/
 
-	// Never clear aggregator responses allowing them to sign twice
-	//batchResponses[signedTaskResponse.OperatorId] = struct{}{}
+		// Never clear aggregator responses allowing them to sign twice
+		batchResponses[signedTaskResponse.OperatorId] = struct{}{}
+	*/
 
 	// Don't wait infinitely if it can't answer
 	// Create a context with a timeout of 5 seconds
