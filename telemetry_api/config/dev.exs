@@ -6,7 +6,7 @@ config :telemetry_api, TelemetryApi.Repo,
   password: "telemetry_pass",
   database: "telemetry_db",
   hostname: "localhost",
-  port: 5432,
+  port: 5434,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
