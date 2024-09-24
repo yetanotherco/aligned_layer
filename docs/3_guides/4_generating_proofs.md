@@ -288,13 +288,13 @@ For more instructions on how to submit proofs, check the [Submitting proofs guid
 
 `zkRust` is a CLI tool maintained by Aligned that aims to simplify the developing applications in Rust using zkVM's such as SP1 or Risc0.
 
-zkRust can then be installed directly by downloading the latest release binaries.
+zkRust can be installed directly by downloading the latest release binaries:
 
 ```sh
 curl -L https://raw.githubusercontent.com/yetanotherco/zkRust/main/install_zkrust.sh | bash
 ```
 
-To get started you can create a workspace for your project in zkRust by running:
+Then, to get started you can create a workspace for your project in zkRust by running:
 
 ```sh
 cargo new <PROGRAM_DIRECTORY>
@@ -304,7 +304,7 @@ It is that simple.
 
 ## Usage
 
-To use zkRust, To use zkRust users specify a `fn main()` whose execution is proven within the zkVM. This function must be defined within a `main.rs` file in a directory with the following structure:
+To use zkRust, users specify a `fn main()` whose execution is proven within the zkVM. This function must be defined in a `main.rs` file in a directory with the following structure:
 
 ```
 .
@@ -314,7 +314,7 @@ To use zkRust, To use zkRust users specify a `fn main()` whose execution is prov
         └── main.rs
 ```
 
-For using more complex programs you can import a separate lib/ crate into the .
+For using more complex programs you can import a separate lib/ crate into the `PROGRAM_DIRECTORY`
 
 ```
 .
@@ -325,15 +325,27 @@ For using more complex programs you can import a separate lib/ crate into the .
         └── lib
 ```
 
-The user may also define a `input()`, `output()`, in addition to the `main()`. The `fn input()` and `fn output()` function which defines code that runs outside of the zkVM before and after the VM executes. The `input()` function executes before the zkVM code is executed and allows the user to define inputs passed to the vm such as a deserialized Tx or data fetched from an external source at runtime. Within the `main()` (guest) function the user may write information from the computation performed in the zkVM to an output buffer to be used after proof generation. The `output()` defines code that allows the user to read the information written to that buffer of the and perform post-processing of that data.
+### Inputs and Outputs
 
-The user may specify inputs into the VM (guest) code using `zk_rust_io::write()` as long on the type of rust object they are writing implements `Serializable`. Within there `main()` function (guest) the user may read in the inputs by specifying `zk_rust_io::read()` and output data computed during the execution phase of the code within the VM (guest) program by specifying `zk_rust_io::commit()`. To read the output of the output of the VM (guest) program you declare `zk_rust_io::out()`. The `zk_rust_io` crate defines function headers that are not inlined and are purely used as compile time symbols to ensure a user can compile there rust code before running it within one of the zkVM available in zkRust.
+The user may also define a `input()` and `output()` functions in addition to `main()`, that define code that runs outside of the zkVM, before and after the VM executes
+
+- The `input()` function executes before the zkVM code is executed and allows the user to define inputs passed to the vm such as a deserialized Tx or data fetched from an external source at runtime.
+- Within the `main()` (guest) function the user may write information from the computation performed in the zkVM to an output buffer to be used after proof generation.
+- The `output()` defines code that allows the user to read the information written to that buffer of the and perform post-processing of that data.
+
+The user may specify inputs into the VM (guest) code using `zk_rust_io::write()` as long on the type of rust object they are writing implements `Serializable`. 
+
+Within the `main()` function (guest) the user may read in the inputs by specifying `zk_rust_io::read()` and output data computed during the execution phase of the code within the VM (guest) program by specifying `zk_rust_io::commit()`.
+
+To read the output of the output of the VM (guest) program you declare `zk_rust_io::out()`. The `zk_rust_io` crate defines function headers that are not inlined and are purely used as compile time symbols to ensure a user can compile their rust code before running it within one of the zkVMs available in zkRust.
 
 To use the I/O imports import the `zk_rust_io` crate by adding the following to the `Cargo.toml` in your project directory.
 
-````sh
+```sh
 zk_rust_io = { git = "https://github.com/yetanotherco/zkRust.git", version = "v0.1.0" }
 ```
+
+## Example
 
 ### input.rs
 
