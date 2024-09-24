@@ -39,22 +39,22 @@ import (
 )
 
 type Operator struct {
-	Config                        config.OperatorConfig
-	Address                       ethcommon.Address
-	Socket                        string
-	Timeout                       time.Duration
-	PrivKey                       *ecdsa.PrivateKey
-	KeyPair                       *bls.KeyPair
-	OperatorId                    eigentypes.OperatorId
-	avsSubscriber                 chainio.AvsSubscriber
-	NewTaskCreatedChanV2          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
-	NewTaskCreatedChanV3          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	Logger                        logging.Logger
-	aggRpcClient                  AggregatorRpcClient
-	metricsReg                    *prometheus.Registry
-	metrics                       *metrics.Metrics
-	last_processed_batch          OperatorLastProcessedBatch
-	last_processed_batch_log_file string
+	Config                    config.OperatorConfig
+	Address                   ethcommon.Address
+	Socket                    string
+	Timeout                   time.Duration
+	PrivKey                   *ecdsa.PrivateKey
+	KeyPair                   *bls.KeyPair
+	OperatorId                eigentypes.OperatorId
+	avsSubscriber             chainio.AvsSubscriber
+	NewTaskCreatedChanV2      chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewTaskCreatedChanV3      chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+	Logger                    logging.Logger
+	aggRpcClient              AggregatorRpcClient
+	metricsReg                *prometheus.Registry
+	metrics                   *metrics.Metrics
+	lastProcessedBatch        OperatorLastProcessedBatch
+	lastProcessedBatchLogFile string
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -115,18 +115,18 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:                        configuration,
-		Logger:                        logger,
-		avsSubscriber:                 *avsSubscriber,
-		Address:                       address,
-		NewTaskCreatedChanV2:          newTaskCreatedChanV2,
-		NewTaskCreatedChanV3:          newTaskCreatedChanV3,
-		aggRpcClient:                  *rpcClient,
-		OperatorId:                    operatorId,
-		metricsReg:                    reg,
-		metrics:                       operatorMetrics,
-		last_processed_batch_log_file: lastProcessedBatchLogFile,
-		last_processed_batch: OperatorLastProcessedBatch{
+		Config:                    configuration,
+		Logger:                    logger,
+		avsSubscriber:             *avsSubscriber,
+		Address:                   address,
+		NewTaskCreatedChanV2:      newTaskCreatedChanV2,
+		NewTaskCreatedChanV3:      newTaskCreatedChanV3,
+		aggRpcClient:              *rpcClient,
+		OperatorId:                operatorId,
+		metricsReg:                reg,
+		metrics:                   operatorMetrics,
+		lastProcessedBatchLogFile: lastProcessedBatchLogFile,
+		lastProcessedBatch: OperatorLastProcessedBatch{
 			BlockNumber: 0,
 		},
 
@@ -152,13 +152,13 @@ type OperatorLastProcessedBatch struct {
 }
 
 func (o *Operator) LoadLastProcessedBatch() error {
-	file, err := os.ReadFile(o.last_processed_batch_log_file)
+	file, err := os.ReadFile(o.lastProcessedBatchLogFile)
 
 	if err != nil {
 		return fmt.Errorf("failed read from file: %v", err)
 	}
 
-	err = json.Unmarshal(file, &o.last_processed_batch)
+	err = json.Unmarshal(file, &o.lastProcessedBatch)
 
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal batch: %v", err)
@@ -168,16 +168,16 @@ func (o *Operator) LoadLastProcessedBatch() error {
 }
 
 func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
-	o.last_processed_batch = OperatorLastProcessedBatch{BlockNumber: blockNumber}
+	o.lastProcessedBatch = OperatorLastProcessedBatch{BlockNumber: blockNumber}
 
 	// write to a file so it can be recovered in case of operator outage
-	json, err := json.Marshal(o.last_processed_batch)
+	json, err := json.Marshal(o.lastProcessedBatch)
 
 	if err != nil {
 		return fmt.Errorf("failed to marshal batch: %v", err)
 	}
 
-	err = os.WriteFile(o.last_processed_batch_log_file, json, os.ModePerm)
+	err = os.WriteFile(o.lastProcessedBatchLogFile, json, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed to write to file: %v", err)
 	}
@@ -245,7 +245,7 @@ func (o *Operator) Start(ctx context.Context) error {
 // So getting the last five accounts for that case
 func (o *Operator) ProcessMissedBatchesWhileOffline(c chan int) {
 	// this means there was no file or no batches have been verified
-	if o.last_processed_batch.BlockNumber == 0 {
+	if o.lastProcessedBatch.BlockNumber == 0 {
 		c <- 0
 		return
 	}
