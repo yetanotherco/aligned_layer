@@ -8,7 +8,6 @@ import (
 	"time"
 
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
-
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
@@ -92,7 +91,10 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		return nil
 	}
 
-	batchResponses[signedTaskResponse.OperatorId] = struct{}{}
+	// Never clear aggregator responses allowing them to sign twice
+	/*
+		batchResponses[signedTaskResponse.OperatorId] = struct{}{}
+	*/
 
 	// Don't wait infinitely if it can't answer
 	// Create a context with a timeout of 5 seconds
