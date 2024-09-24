@@ -126,6 +126,9 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		metricsReg:                    reg,
 		metrics:                       operatorMetrics,
 		last_processed_batch_log_file: lastProcessedBatchLogFile,
+		last_processed_batch: OperatorLastProcessedBatch{
+			BlockNumber: 0,
+		},
 
 		// Timeout
 		// Socket
@@ -202,6 +205,10 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
+	processMissingBlocksChan := make(chan int)
+
+	go o.ProcessMissedBatchesWhileOffline(processMissingBlocksChan)
+
 	for {
 		select {
 		case <-context.Background().Done():
@@ -221,12 +228,37 @@ func (o *Operator) Start(ctx context.Context) error {
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
+		case blocksProcessed := <-processMissingBlocksChan:
+			o.Logger.Info("All missed processed have been addressed, number of baches: %v", blocksProcessed)
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
 			go o.handleNewBatchLogV2(newBatchLogV2)
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
 			go o.handleNewBatchLogV3(newBatchLogV3)
 		}
 	}
+}
+
+// Here we query all the batches that have not yet been verified starting from
+// the latest verified batch by the operator. We also get the prior 5 and check if we need to verify them as well
+// This last thing of getting the last 5 is to make sure we have not missed a batch since they are process in parallel
+// and a higher batch number might have been processed first than the lower one.
+// So getting the last five accounts for that case
+func (o *Operator) ProcessMissedBatchesWhileOffline(c chan int) {
+	// this means there was no file or no batches have been verified
+	if o.last_processed_batch.BlockNumber == 0 {
+		c <- 0
+		return
+	}
+
+	logs := []*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3{}
+
+	o.Logger.Info("Starting to verify missed batches while offline")
+	for i := range logs {
+		o.handleNewBatchLogV3(logs[i])
+	}
+	o.Logger.Info("Finished verifying all batches missed while offline")
+
+	c <- len(logs)
 }
 
 // Currently, Operator can handle NewBatchV2 and NewBatchV3 events.
