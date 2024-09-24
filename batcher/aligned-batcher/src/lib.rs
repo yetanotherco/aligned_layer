@@ -1092,7 +1092,6 @@ impl Batcher {
         signatures: Vec<SignatureData>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
-        // pad leaves to next power of 2
         let padded_leaves = Self::pad_leaves(leaves);
 
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
