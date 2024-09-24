@@ -9,6 +9,7 @@ pub enum BatcherError {
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
     SignatureError(SignatureError),
+    BatchUploadError(String),
     TaskCreationError(String),
     ReceiptNotFoundError,
     TransactionSendError,
@@ -48,6 +49,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::SignatureError(e) => {
                 write!(f, "Message signature verification error: {}", e)
+            }
+            BatcherError::BatchUploadError(e) => {
+                write!(f, "Uploading Batch was not successful: {}", e)
             }
             BatcherError::TaskCreationError(e) => {
                 write!(f, "Task creation error: {}", e)

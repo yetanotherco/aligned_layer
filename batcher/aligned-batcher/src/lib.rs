@@ -1018,7 +1018,7 @@ impl Batcher {
             &file_name,
         )
         .await
-        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 
