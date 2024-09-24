@@ -31,3 +31,4 @@ operator:
   enable_metrics: true
   metrics_ip_port_address: localhost:9092
   max_batch_size: 268435456 # 256 MiB
+  last_processed_batch_filepath: "operator.json"

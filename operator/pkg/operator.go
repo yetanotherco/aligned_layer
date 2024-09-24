@@ -5,8 +5,10 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -37,20 +39,22 @@ import (
 )
 
 type Operator struct {
-	Config             config.OperatorConfig
-	Address            ethcommon.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
-	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChanV2 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
-	NewTaskCreatedChanV3 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	Logger             logging.Logger
-	aggRpcClient       AggregatorRpcClient
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+	Config                        config.OperatorConfig
+	Address                       ethcommon.Address
+	Socket                        string
+	Timeout                       time.Duration
+	PrivKey                       *ecdsa.PrivateKey
+	KeyPair                       *bls.KeyPair
+	OperatorId                    eigentypes.OperatorId
+	avsSubscriber                 chainio.AvsSubscriber
+	NewTaskCreatedChanV2          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewTaskCreatedChanV3          chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+	Logger                        logging.Logger
+	aggRpcClient                  AggregatorRpcClient
+	metricsReg                    *prometheus.Registry
+	metrics                       *metrics.Metrics
+	last_processed_batch          OperatorLastProcessedBatch
+	last_processed_batch_log_file string
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -104,29 +108,33 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 
 	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
 	address := configuration.Operator.Address
+	lastProcessedBatchLogFile := configuration.Operator.LastProcessedBatchFilePath
 
 	// Metrics
 	reg := prometheus.NewRegistry()
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:             configuration,
-		Logger:             logger,
-		avsSubscriber:      *avsSubscriber,
-		Address:            address,
-		NewTaskCreatedChanV2: newTaskCreatedChanV2,
-		NewTaskCreatedChanV3: newTaskCreatedChanV3,
-		aggRpcClient:       *rpcClient,
-		OperatorId:         operatorId,
-		metricsReg:         reg,
-		metrics:            operatorMetrics,
+		Config:                        configuration,
+		Logger:                        logger,
+		avsSubscriber:                 *avsSubscriber,
+		Address:                       address,
+		NewTaskCreatedChanV2:          newTaskCreatedChanV2,
+		NewTaskCreatedChanV3:          newTaskCreatedChanV3,
+		aggRpcClient:                  *rpcClient,
+		OperatorId:                    operatorId,
+		metricsReg:                    reg,
+		metrics:                       operatorMetrics,
+		last_processed_batch_log_file: lastProcessedBatchLogFile,
+
 		// Timeout
 		// Socket
 	}
 
+	operator.LoadLastProcessedBatch()
+
 	return operator, nil
 }
-
 
 func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
@@ -134,6 +142,46 @@ func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
 
 func (o *Operator) SubscribeToNewTasksV3() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3)
+}
+
+type OperatorLastProcessedBatch struct {
+	BlockNumber uint32 `json:"block_number"`
+}
+
+func (o *Operator) LoadLastProcessedBatch() error {
+	file, err := os.ReadFile(o.last_processed_batch_log_file)
+
+	if err != nil {
+		return fmt.Errorf("failed read from file: %v", err)
+	}
+
+	err = json.Unmarshal(file, &o.last_processed_batch)
+
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal batch: %v", err)
+	}
+
+	return nil
+}
+
+func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
+	o.last_processed_batch = OperatorLastProcessedBatch{BlockNumber: blockNumber}
+
+	// write to a file so it can be recovered in case of operator outage
+	json, err := json.Marshal(o.last_processed_batch)
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal batch: %v", err)
+	}
+
+	err = os.WriteFile(o.last_processed_batch_log_file, json, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to write to file: %v", err)
+	}
+
+	o.Logger.Info("Updated latest block json file")
+
+	return nil
 }
 
 func (o *Operator) Start(ctx context.Context) error {
@@ -194,6 +242,7 @@ func (o *Operator) Start(ctx context.Context) error {
 func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
 	o.Logger.Infof("Received new batch log V2")
 	err := o.ProcessNewBatchLogV2(newBatchLog)
+	o.UpdateLastProcessBatch(newBatchLog.TaskCreatedBlock)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 		return
@@ -206,10 +255,10 @@ func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlign
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
@@ -265,6 +314,7 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
 	o.Logger.Infof("Received new batch log V3")
 	err := o.ProcessNewBatchLogV3(newBatchLog)
+	o.UpdateLastProcessBatch(newBatchLog.TaskCreatedBlock)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 		return
@@ -277,10 +327,10 @@ func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlign
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
