@@ -80,7 +80,7 @@ pub enum SubmitError {
     ProofTooLarge,
     InvalidReplacementMessage,
     InsufficientBalance,
-    InvalidPaymentServiceAddress,
+    InvalidPaymentServiceAddress(H160, H160),
     BatchSubmissionFailed(String),
     GenericError(String),
 }
@@ -182,8 +182,8 @@ impl fmt::Display for SubmitError {
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
-            SubmitError::InvalidPaymentServiceAddress => {
-                write!(f, "Invalid payment service address")
+            SubmitError::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
+                write!(f, "Invalid payment service address, received: {}, expected: {}", received_addr, expected_addr)
             }
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }

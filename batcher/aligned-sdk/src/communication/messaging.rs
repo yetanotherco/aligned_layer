@@ -114,9 +114,9 @@ pub async fn send_messages(
                 error!("Invalid replacement message!");
                 return Err(SubmitError::InvalidReplacementMessage);
             }
-            ValidityResponseMessage::InvalidPaymentServiceAddress => {
-                error!("Invalid payment service address!");
-                return Err(SubmitError::InvalidPaymentServiceAddress);
+            ValidityResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
+                error!("Invalid payment service address, received: {}, expected: {}", received_addr, expected_addr);
+                return Err(SubmitError::InvalidPaymentServiceAddress(received_addr, expected_addr));
             }
         };
 

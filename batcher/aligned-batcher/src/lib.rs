@@ -460,7 +460,10 @@ impl Batcher {
 
             send_message(
                 ws_conn_sink.clone(),
-                ValidityResponseMessage::InvalidPaymentServiceAddress,
+                ValidityResponseMessage::InvalidPaymentServiceAddress(
+                    client_msg.verification_data.payment_service_addr,
+                    self.payment_service.address(),
+                ),
             )
             .await;
 
