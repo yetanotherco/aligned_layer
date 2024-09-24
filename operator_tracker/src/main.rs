@@ -46,9 +46,9 @@ async fn main() {
     let args: Args = argh::from_env();
 
     if let Some(env_file) = args.env_file {
-        dotenv::from_filename(env_file).expect("Failed to load env file");
+        dotenvy::from_filename(env_file).expect("Failed to load env file");
     } else {
-        dotenv::dotenv().expect("Failed to load env file");
+        dotenvy::dotenv().expect("Failed to load env file");
     }
 
     env_logger::init();

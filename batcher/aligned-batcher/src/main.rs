@@ -1,4 +1,4 @@
-extern crate dotenv;
+extern crate dotenvy;
 
 use std::sync::Arc;
 
@@ -32,8 +32,8 @@ async fn main() -> Result<(), BatcherError> {
     let port = cli.port.unwrap_or(8080);
 
     match cli.env_file {
-        Some(env_file) => dotenv::from_filename(env_file).ok(),
-        None => dotenv::dotenv().ok(),
+        Some(env_file) => dotenvy::from_filename(env_file).ok(),
+        None => dotenvy::dotenv().ok(),
     };
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
