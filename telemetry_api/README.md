@@ -10,6 +10,9 @@ make telemetry_run_db
 
 This will create and run the container using the credentials set in `Dockerfile`
 
+> [!CAUTION]
+> Do not use default credentials in Production environments.
+
 ### Delete database
 
 If you want to delete the container:
@@ -34,7 +37,19 @@ To start your Phoenix server:
 make telemetry_start
 ```
 
+On startup, it will run ecto migrations.
+
   * Run `mix setup` to install and setup dependencies
   * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+
+## Database Migrations
+
+This API uses Ecto for migrations. To apply migrations, run:
+
+```shell
+make telemetry_ecto_migrate
+```
+
+
