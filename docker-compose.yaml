@@ -46,7 +46,7 @@ services:
 
   mint-mock-tokens:
     image: foundry
-    command: ["sh", "-c", "cast send 09635f643e140090a9a8dcd712ed6285858cebef \"mint(address, uint256)\" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 100000000000000000 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545"]
+    command: ["cast", "send", "09635f643e140090a9a8dcd712ed6285858cebef", "mint(address, uint256)", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "100000000000000000", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "--rpc-url", "http://anvil:8545"]
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
@@ -55,7 +55,7 @@ services:
 
   operator-deposit-into-mock-strategy:
     image: operator
-    command: ["sh", "-c", "aligned-layer-operator deposit-into-strategy --config ./config-files/config-docker.yaml --strategy-address 0xc5a5C42992dECbae36851359345FE25997F5C42d --amount 100000000000000000"]
+    command: ["aligned-layer-operator", "deposit-into-strategy", "--config", "./config-files/config-docker.yaml", "--strategy-address", "0xc5a5C42992dECbae36851359345FE25997F5C42d", "--amount", "100000000000000000"]
     build:
       context: .
       dockerfile: docker/operator.Dockerfile
@@ -64,7 +64,7 @@ services:
 
   operator-whitelist-devnet:
     image: foundry
-    command: ["sh", "-c", "cast send --rpc-url=http://anvil:8545 --private-key=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 0x851356ae760d987E095750cCeb3bC6014560891C \"add(address)\" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+    command: ["cast", "send", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x851356ae760d987E095750cCeb3bC6014560891C", "add(address)", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "--rpc-url", "http://anvil:8545"]
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
@@ -73,7 +73,7 @@ services:
 
   operator-register-with-aligned-layer:
     image: operator
-    command: ["sh", "-c", "aligned-layer-operator register --config ./config-files/config-docker.yaml"]
+    command: ["aligned-layer-operator", "register", "--config", "./config-files/config-docker.yaml"]
     build:
       context: .
       dockerfile: docker/operator.Dockerfile
@@ -82,7 +82,7 @@ services:
 
   operator:
     image: operator
-    command: ["sh", "-c", "aligned-layer-operator start --config ./config-files/config-docker.yaml"]
+    command: ["aligned-layer-operator", "start", "--config", "./config-files/config-docker.yaml"]
     build:
       context: .
       dockerfile: docker/operator.Dockerfile
@@ -91,7 +91,7 @@ services:
 
   user-fund-payment-service-devnet:
     image: foundry
-    command: ["sh", "-c", "cast send --from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --value 100ether --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"]
+    command: ["cast", "send", "--from", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "--value", "100ether", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "--rpc-url", "http://anvil:8545", "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"]
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
