@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: aligned-runner
+    runs-on: ubuntu-custom
     
     steps:
       - uses: actions/checkout@v4
