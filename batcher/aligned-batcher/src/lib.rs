@@ -7,6 +7,7 @@ use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use serde::Serialize;
+use types::user_state::UserState;
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -65,22 +66,12 @@ const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
 
 struct BatchState {
     batch_queue: BatchQueue,
-    user_nonces: HashMap<Address, U256>,
-    /// The minimum fee of a pending proof for a user.
-    /// This should always be the fee of the biggest pending nonce by the user.
-    /// This is used to check if a user is submitting a proof with a higher nonce and higher fee,
-    /// which is invalid and should be rejected.
-    user_min_fee: HashMap<Address, U256>,
-    user_proof_count_in_batch: HashMap<Address, u64>,
 }
 
 impl BatchState {
     fn new() -> Self {
         Self {
             batch_queue: BatchQueue::new(),
-            user_nonces: HashMap::new(),
-            user_min_fee: HashMap::new(),
-            user_proof_count_in_batch: HashMap::new(),
         }
     }
 
@@ -212,6 +203,7 @@ pub struct Batcher {
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
+    user_states: HashMap<Address, Mutex<UserState>>,
 }
 
 impl Batcher {
@@ -322,6 +314,7 @@ impl Batcher {
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
             posting_batch: Mutex::new(false),
+            user_states: HashMap::new(),
         }
     }
 
@@ -419,6 +412,8 @@ impl Batcher {
         Ok(())
     }
 
+    async fn get_or_insert(&self) -> Mutex<>
+
     /// Handle an individual message from the client.
     async fn handle_message(
         self: Arc<Self>,
@@ -461,6 +456,14 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
+                // Check that we had a user state entry for this user and insert it if not.
+                if !self.user_states.contains_key(&addr) {
+                    let new_user_state = Mutex::new(UserState::new());
+                    self.user_states.insert(addr.clone(), new_user_state);
+                }
+
+
+
                 if !self
                     .check_user_balance_and_increment_proof_count(&addr)
                     .await
