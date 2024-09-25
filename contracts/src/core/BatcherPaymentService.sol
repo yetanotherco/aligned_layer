@@ -19,14 +19,14 @@ contract BatcherPaymentService is
 {
     using ECDSA for bytes32;
 
-    // CONSTANTS
-    uint256 public constant UNLOCK_BLOCK_COUNT = 100;
+    // CONSTANTS = 100 Blocks * 12 second block time.
+    uint256 public constant UNLOCK_BLOCK_TIME = 1200 seconds;
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
     event BalanceLocked(address indexed user);
-    event BalanceUnlocked(address indexed user, uint256 unlockBlock);
+    event BalanceUnlocked(address indexed user, uint256 unlockBlockTime);
     event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
 
     // ERRORS
@@ -40,7 +40,7 @@ contract BatcherPaymentService is
     error UserHasNoFundsToUnlock(address user); // b38340cf
     error UserHasNoFundsToLock(address user); // 6cc12bc2
     error PayerInsufficientBalance(uint256 balance, uint256 amount); // 21c3d50f
-    error FundsLocked(uint256 unlockBlock, uint256 currentBlock); // bedc4e5a
+    error FundsLocked(uint256 unlockBlock, uint256 currentBlockTime); // bedc4e5a
     error InvalidSignature(); // 8baa579f
     error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
     error InvalidMaxFee(uint256 maxFee, uint256 actualFee); // f59adf4a
@@ -96,7 +96,7 @@ contract BatcherPaymentService is
     // PAYABLE FUNCTIONS
     receive() external payable {
         userData[msg.sender].balance += msg.value;
-        userData[msg.sender].unlockBlock = 0;
+        userData[msg.sender].unlockBlockTime = 0;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
@@ -167,15 +167,17 @@ contract BatcherPaymentService is
             revert UserHasNoFundsToUnlock(msg.sender);
         }
 
-        userData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
-        emit BalanceUnlocked(msg.sender, userData[msg.sender].unlockBlock);
+        userData[msg.sender].unlockBlockTime =
+            block.timestamp +
+            UNLOCK_BLOCK_TIME;
+        emit BalanceUnlocked(msg.sender, userData[msg.sender].unlockBlockTime);
     }
 
     function lock() external whenNotPaused {
         if (userData[msg.sender].balance == 0) {
             revert UserHasNoFundsToLock(msg.sender);
         }
-        userData[msg.sender].unlockBlock = 0;
+        userData[msg.sender].unlockBlockTime = 0;
         emit BalanceLocked(msg.sender);
     }
 
@@ -186,13 +188,14 @@ contract BatcherPaymentService is
         }
 
         if (
-            senderData.unlockBlock == 0 || senderData.unlockBlock > block.number
+            senderData.unlockBlockTime == 0 ||
+            senderData.unlockBlockTime > block.timestamp
         ) {
-            revert FundsLocked(senderData.unlockBlock, block.number);
+            revert FundsLocked(senderData.unlockBlockTime, block.timestamp);
         }
 
         senderData.balance -= amount;
-        senderData.unlockBlock = 0;
+        senderData.unlockBlockTime = 0;
         emit BalanceLocked(msg.sender);
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
@@ -282,12 +285,14 @@ contract BatcherPaymentService is
             revert InvalidMaxFee(signatureData.maxFee, feePerProof);
         }
 
-        bytes32 structHash =  keccak256(abi.encode(
-            noncedVerificationDataTypeHash,
-            leaf,
-            signatureData.nonce,
-            signatureData.maxFee
-        ));
+        bytes32 structHash = keccak256(
+            abi.encode(
+                noncedVerificationDataTypeHash,
+                leaf,
+                signatureData.nonce,
+                signatureData.maxFee
+            )
+        );
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
