@@ -253,7 +253,6 @@ func (o *Operator) Start(ctx context.Context) error {
 func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
 	// this means there was no file or no batches have been verified
 	if o.lastProcessedBatch.BlockNumber == 0 {
-		c <- 0
 		o.Logger.Info("Processing batch default value, not continuing...")
 		return
 	}
@@ -261,14 +260,13 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
 	o.Logger.Info("Getting missed tasks")
 	logs, err := o.avsReader.GetNotRespondedTasksFrom(uint64(o.lastProcessedBatch.BlockNumber - 100))
 	if err != nil {
-		c <- 0
 		return
 	}
 	o.Logger.Info(fmt.Sprintf("Missed tasks retrieved, total tasks to process: %v", len(logs)))
 
 	o.Logger.Info("Starting to verify missed batches while offline")
 	for _, logEntry := range logs {
-		o.handleNewBatchLogV3(&logEntry, c)
+		go o.handleNewBatchLogV3(&logEntry, c)
 	}
 	o.Logger.Info("Finished verifying all batches missed while offline")
 }
