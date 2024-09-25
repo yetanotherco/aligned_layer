@@ -807,7 +807,7 @@ impl Batcher {
         // FIXME(marian): This condition should be changed to current_batch_size == 0
         // once the bug in Lambdaworks merkle tree is fixed.
         if current_batch_len == 0 {
-            info!("Current batch is empty or length 1. Waiting for more proofs...");
+            info!("Current batch is empty. Waiting for more proofs...");
             return None;
         }
 
@@ -1092,6 +1092,7 @@ impl Batcher {
         signatures: Vec<SignatureData>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
+        // pad leaves to next power of 2
         let padded_leaves = Self::pad_leaves(leaves);
 
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
