@@ -247,13 +247,14 @@ func (o *Operator) Start(ctx context.Context) error {
 
 // Here we query all the batches that have not yet been verified starting from
 // the latest verified batch by the operator. We also get the prior 5 and check if we need to verify them as well
-// This last thing of getting the last 5 is to make sure we have not missed a batch since they are process in parallel
+// This last thing of getting the last 100 is to make sure we have not missed a batch since they are process in parallel
 // and a higher batch number might have been processed first than the lower one.
-// So getting the last five accounts for that case
+// So getting the last 100 accounts for such cases
 func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
-	// this means there was no file or no batches have been verified
+	// this is the default value
+	// and it means there was no file so no batches have been verified
 	if o.lastProcessedBatch.BlockNumber == 0 {
-		o.Logger.Info("Processing batch default value, not continuing...")
+		o.Logger.Info("Not continuing with missed batch processing, as operator hasn't verified anything yet...")
 		return
 	}
 

@@ -74,7 +74,7 @@ func (r *AvsReader) IsOperatorRegistered(address ethcommon.Address) (bool, error
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }
 
-// Returns the latest logs starting from the given block
+// Returns all the "NewBatchV3" logs that have not been responded starting from the given block number
 func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
 	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
