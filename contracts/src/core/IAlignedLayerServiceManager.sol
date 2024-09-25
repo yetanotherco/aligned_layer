@@ -20,6 +20,8 @@ interface IAlignedLayerServiceManager {
     );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
+    event VerifierBlacklisted(uint256 indexed verifierIdx);
+    event VerifierWhitelisted(uint256 indexed verifierIdx);
 
     // ERRORS
     error BatchAlreadySubmitted(bytes32 batchIdentifierHash); // 3102f10c
@@ -34,6 +36,7 @@ interface IAlignedLayerServiceManager {
     error SenderIsNotAggregator(address sender, address alignedAggregator); // 2cbe4195
     error InvalidDepositAmount(uint256 amount); // 412ed242
     error ExceededMaxRespondFee(uint256 respondToTaskFeeLimit, uint256 txCost); // 86fc507e
+    error VerifierIdxOutOfBounds(); // 0x089628ee
 
     function createNewTask(
         bytes32 batchMerkleRoot,
@@ -62,4 +65,11 @@ interface IAlignedLayerServiceManager {
     function balanceOf(address account) external view returns (uint256);
 
     function setAggregator(address _aggregator) external;
+
+    function isVerifierBlacklisted(
+        uint256 verifierIdx
+    ) external view returns (bool);
+    function blacklistVerifier(uint256 verifierIdx) external;
+    function whitelistVerifier(uint256 verifierIdx) external;
+    function setVerifiersBlacklist(uint256 bitmap) external;
 }

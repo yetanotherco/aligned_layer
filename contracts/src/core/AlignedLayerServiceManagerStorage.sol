@@ -11,6 +11,9 @@ abstract contract AlignedLayerServiceManagerStorage {
     // KEY is keccak256(batchMerkleRoot,senderAddress)
     mapping(bytes32 => BatchState) public batchesState;
 
+    // stores blacklisted verifiers
+    uint256 public blacklistedVerifiers;
+
     // Storage for batchers balances. Used by aggregator to pay for respondToTask
     mapping(address => uint256) public batchersBalances;
 

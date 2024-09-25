@@ -129,10 +129,12 @@ contract AlignedLayerServiceManager is
         if (currentBatch.responded) {
             revert BatchAlreadyResponded(batchIdentifierHash);
         }
-        currentBatch.responded = true; 
+        currentBatch.responded = true;
 
         // Check that batcher has enough funds to fund response
-        if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
+        if (
+            batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit
+        ) {
             revert InsufficientFunds(
                 senderAddress,
                 currentBatch.respondToTaskFeeLimit,
@@ -181,8 +183,32 @@ contract AlignedLayerServiceManager is
             senderAddress,
             batchersBalances[senderAddress]
         );
-        
         payable(alignedAggregator).transfer(txCost);
+    }
+
+    function isVerifierBlacklisted(
+        uint256 verifierIdx
+    ) external view validVerifierIdx(verifierIdx) returns (bool) {
+        uint256 bit = blacklistedVerifiers & (1 << verifierIdx);
+        return bit > 0;
+    }
+
+    function blacklistVerifier(
+        uint256 verifierIdx
+    ) external validVerifierIdx(verifierIdx) onlyOwner {
+        blacklistedVerifiers |= (1 << verifierIdx);
+        emit VerifierBlacklisted(verifierIdx);
+    }
+
+    function whitelistVerifier(
+        uint256 verifierIdx
+    ) external validVerifierIdx(verifierIdx) onlyOwner {
+        blacklistedVerifiers &= ~(1 << verifierIdx);
+        emit VerifierWhitelisted(verifierIdx);
+    }
+
+    function setVerifiersBlacklist(uint256 bitmap) external onlyOwner {
+        blacklistedVerifiers = bitmap;
     }
 
     function verifyBatchInclusion(
@@ -240,16 +266,17 @@ contract AlignedLayerServiceManager is
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
     ) external view returns (bool) {
-        return this.verifyBatchInclusion(
-            proofCommitment,
-            pubInputCommitment,
-            provingSystemAuxDataCommitment,
-            proofGeneratorAddr,
-            batchMerkleRoot,
-            merkleProof,
-            verificationDataBatchIndex,
-            address(0)
-        );
+        return
+            this.verifyBatchInclusion(
+                proofCommitment,
+                pubInputCommitment,
+                provingSystemAuxDataCommitment,
+                proofGeneratorAddr,
+                batchMerkleRoot,
+                merkleProof,
+                verificationDataBatchIndex,
+                address(0)
+            );
     }
 
     function setAggregator(address _alignedAggregator) public onlyOwner {
@@ -301,6 +328,13 @@ contract AlignedLayerServiceManager is
     modifier onlyAggregator() {
         if (msg.sender != alignedAggregator) {
             revert SenderIsNotAggregator(msg.sender, alignedAggregator);
+        }
+        _;
+    }
+
+    modifier validVerifierIdx(uint256 verifierIdx) {
+        if (verifierIdx >= 256) {
+            revert VerifierIdxOutOfBounds();
         }
         _;
     }
