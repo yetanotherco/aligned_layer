@@ -17,6 +17,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
+	"github.com/Layr-Labs/eigensdk-go/services/operatorsinfo"
 	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorsinfo"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -146,7 +147,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return taskResponseDigest, nil
 	}
 
-	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, logger)
+	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, operatorsinfo.Opts{}, logger)
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
 
@@ -282,7 +283,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 			agg.logger.Info("Aggregator successfully responded to task",
 				"taskIndex", blsAggServiceResp.TaskIndex,
 				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-				
+
 			return
 		}
 

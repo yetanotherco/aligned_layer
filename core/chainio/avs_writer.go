@@ -23,8 +23,8 @@ type AvsWriter struct {
 	AvsContractBindings *AvsServiceBindings
 	logger              logging.Logger
 	Signer              signer.Signer
-	Client              eth.Client
-	ClientFallback      eth.Client
+	Client              eth.InstrumentedClient
+	ClientFallback      eth.InstrumentedClient
 }
 
 func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsWriter, error) {
@@ -119,7 +119,7 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 			// Proceed to check values against simulated costs
 			w.logger.Error("Failed to get batch state", "error", err)
 			w.logger.Info("Proceeding with simulated cost checks")
-			
+
 			return w.compareBalances(simulatedCost, aggregatorAddress, senderAddress)
 		}
 	}

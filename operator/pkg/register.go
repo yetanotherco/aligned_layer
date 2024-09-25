@@ -32,7 +32,7 @@ func RegisterOperator(
 
 	_, err = writer.RegisterOperatorInQuorumWithAVSRegistryCoordinator(ctx, configuration.EcdsaConfig.PrivateKey,
 		operatorToAvsRegistrationSigSalt, operatorToAvsRegistrationSigExpiry, configuration.BlsConfig.KeyPair,
-		quorumNumbers, socket)
+		quorumNumbers, socket, true)
 
 	if err != nil {
 		configuration.BaseConfig.Logger.Error("Failed to register operator", "err", err)
