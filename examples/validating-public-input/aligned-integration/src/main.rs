@@ -65,7 +65,7 @@ async fn main() -> Result<(), SubmitError> {
         proof_generator_addr,
     };
 
-    // Set a fee of 0.5 Eth
+    // Set a fee of 0.1 Eth
     let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
 
     let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
