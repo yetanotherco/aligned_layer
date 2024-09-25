@@ -170,6 +170,11 @@ func (o *Operator) LoadLastProcessedBatch() error {
 }
 
 func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
+	// we want to store the latest block number
+	if blockNumber < o.lastProcessedBatch.BlockNumber {
+		return nil
+	}
+
 	o.lastProcessedBatch = OperatorLastProcessedBatch{BlockNumber: blockNumber}
 
 	// write to a file so it can be recovered in case of operator outage
@@ -207,9 +212,8 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	processMissingBlocksChan := make(chan int)
-
-	go o.ProcessMissedBatchesWhileOffline(processMissingBlocksChan)
+	batchProcessorChan := make(chan uint32)
+	go o.ProcessMissedBatchesWhileOffline(batchProcessorChan)
 
 	for {
 		select {
@@ -230,12 +234,13 @@ func (o *Operator) Start(ctx context.Context) error {
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
-		case blocksProcessed := <-processMissingBlocksChan:
-			o.Logger.Info("All missed processed have been addressed, number of baches: %v", blocksProcessed)
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
-			go o.handleNewBatchLogV2(newBatchLogV2)
+			go o.handleNewBatchLogV2(newBatchLogV2, batchProcessorChan)
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
-			go o.handleNewBatchLogV3(newBatchLogV3)
+			go o.handleNewBatchLogV3(newBatchLogV3, batchProcessorChan)
+		case bacthProcessed := <-batchProcessorChan:
+			o.UpdateLastProcessBatch(bacthProcessed)
+
 		}
 	}
 }
@@ -245,7 +250,7 @@ func (o *Operator) Start(ctx context.Context) error {
 // This last thing of getting the last 5 is to make sure we have not missed a batch since they are process in parallel
 // and a higher batch number might have been processed first than the lower one.
 // So getting the last five accounts for that case
-func (o *Operator) ProcessMissedBatchesWhileOffline(c chan int) {
+func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
 	// this means there was no file or no batches have been verified
 	if o.lastProcessedBatch.BlockNumber == 0 {
 		c <- 0
@@ -263,11 +268,9 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan int) {
 
 	o.Logger.Info("Starting to verify missed batches while offline")
 	for _, logEntry := range logs {
-		o.handleNewBatchLogV3(&logEntry)
+		o.handleNewBatchLogV3(&logEntry, c)
 	}
 	o.Logger.Info("Finished verifying all batches missed while offline")
-
-	c <- len(logs)
 }
 
 // Currently, Operator can handle NewBatchV2 and NewBatchV3 events.
@@ -280,10 +283,16 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan int) {
 // different events enables the smooth operator upgradeability
 
 // Process of handling batches from V2 events:
-func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
+func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchProcessedChan chan uint32) {
+	var err error
+	defer func() {
+		if err == nil {
+			batchProcessedChan <- uint32(newBatchLog.Raw.BlockNumber)
+		}
+	}()
+
 	o.Logger.Infof("Received new batch log V2")
-	err := o.ProcessNewBatchLogV2(newBatchLog)
-	o.UpdateLastProcessBatch(newBatchLog.TaskCreatedBlock)
+	err = o.ProcessNewBatchLogV2(newBatchLog)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 		return
@@ -352,9 +361,15 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 }
 
 // Process of handling batches from V3 events:
-func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
+func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, batchProcessedChan chan uint32) {
+	var err error
+	defer func() {
+		if err == nil {
+			batchProcessedChan <- uint32(newBatchLog.Raw.BlockNumber)
+		}
+	}()
 	o.Logger.Infof("Received new batch log V3")
-	err := o.ProcessNewBatchLogV3(newBatchLog)
+	err = o.ProcessNewBatchLogV3(newBatchLog)
 	o.UpdateLastProcessBatch(newBatchLog.TaskCreatedBlock)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
