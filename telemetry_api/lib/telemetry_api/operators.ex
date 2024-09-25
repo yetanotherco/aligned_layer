@@ -22,14 +22,14 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Gets an operator by address.
+  Gets a single operator.
 
   ## Examples
 
-      iex> get_operator_by_address("some_address"})
+      iex> get_operator("some_address"})
       %Operator{}
 
-      iex> get_operator_by_address("non_existent_address")
+      iex> get_operator("non_existent_address")
       nil
 
   """
@@ -51,7 +51,7 @@ defmodule TelemetryApi.Operators do
   """
   def create_operator(attrs \\ %{}) do
     # Get address from the signature
-    address = SignatureVerifier.get_address(attrs["version"], attrs["signature"])
+    address = "0x" <> SignatureVerifier.get_address(attrs["version"], attrs["signature"])
     attrs = Map.put(attrs, "address", address)
 
     # We handle updates here as there is no patch method available at the moment.

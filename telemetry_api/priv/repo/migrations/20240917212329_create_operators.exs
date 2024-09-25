@@ -2,7 +2,7 @@ defmodule TelemetryApi.Repo.Migrations.CreateOperators do
   use Ecto.Migration
 
   def change do
-    create table(:operators) do
+    create table(:operators, primary_key: false) do
       add :address, :string, primary_key: true
       add :version, :string
 
