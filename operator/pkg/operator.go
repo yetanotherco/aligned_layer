@@ -47,6 +47,7 @@ type Operator struct {
 	KeyPair                   *bls.KeyPair
 	OperatorId                eigentypes.OperatorId
 	avsSubscriber             chainio.AvsSubscriber
+	avsReader                 chainio.AvsReader
 	NewTaskCreatedChanV2      chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	NewTaskCreatedChanV3      chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 	Logger                    logging.Logger
@@ -118,6 +119,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		Config:                    configuration,
 		Logger:                    logger,
 		avsSubscriber:             *avsSubscriber,
+		avsReader:                 *avsReader,
 		Address:                   address,
 		NewTaskCreatedChanV2:      newTaskCreatedChanV2,
 		NewTaskCreatedChanV3:      newTaskCreatedChanV3,
@@ -247,14 +249,21 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan int) {
 	// this means there was no file or no batches have been verified
 	if o.lastProcessedBatch.BlockNumber == 0 {
 		c <- 0
+		o.Logger.Info("Processing batch default value, not continuing...")
 		return
 	}
 
-	logs := []*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3{}
+	o.Logger.Info("Getting missed tasks")
+	logs, err := o.avsReader.GetTasksStartingFrom(uint64(o.lastProcessedBatch.BlockNumber))
+	if err != nil {
+		c <- 0
+		return
+	}
+	o.Logger.Info("Missed tasks retrieved, total tasks to process: %v", len(logs))
 
 	o.Logger.Info("Starting to verify missed batches while offline")
-	for i := range logs {
-		o.handleNewBatchLogV3(logs[i])
+	for _, logEntry := range logs {
+		o.handleNewBatchLogV3(&logEntry)
 	}
 	o.Logger.Info("Finished verifying all batches missed while offline")
 
