@@ -1,5 +1,5 @@
-use risc0_zkvm::{InnerReceipt, Receipt};
 use log::error;
+use risc0_zkvm::{InnerReceipt, Receipt};
 
 #[no_mangle]
 pub extern "C" fn verify_risc_zero_receipt_ffi(
@@ -20,13 +20,11 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
         return false;
     }
 
-    let mut public_input: *const u8 = public_input;
-    let mut public_input_len: u32 = public_input_len;
-    if public_input.is_null() || public_input_len == 0 {
-        // set public input to pointer to empty slice
-        let empty_slice: &[u8] = &[];
-        public_input = empty_slice.as_ptr();
-        public_input_len = 0;
+    //NOTE: We allow the public input for risc0 to be empty.
+    let mut public_input_slice = &[];
+    if !public_input.is_null() && public_input_len > 0 {
+        public_input_slice =
+            unsafe { std::slice::from_raw_parts(public_input, public_input_len as usize) };
     }
 
     let inner_receipt_bytes =
