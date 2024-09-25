@@ -43,14 +43,12 @@ pub extern "C" fn verify_merkle_tree_batch_ffi(
     let batch_data_comm: Vec<VerificationDataCommitment> =
         batch.into_iter().map(|v| v.into()).collect();
 
-    let computed_batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-        match MerkleTree::build(&batch_data_comm) {
-            Some(computed_batch_merkle_tree) => computed_batch_merkle_tree,
-            None => {
-                error!("Failed to build merkle tree, batch data commitment is empty");
-                return false;
-            }
-        };
+    let Some(computed_batch_merkle_tree) =
+        MerkleTree::<VerificationCommitmentBatch>::build(&batch_data_comm)
+    else {
+        error!("Failed to build merkle tree, batch data commitment is empty");
+        return false;
+    };
 
     computed_batch_merkle_tree.root == *merkle_root
 }
