@@ -8,7 +8,7 @@ defmodule TelemetryApi.RegistryCoordinatorManager do
 
 
   use Ethers.Contract,
-    abi_file: "lib/abi/IRegistryCoordinator.json",
+    abi_file: "priv/abi/IRegistryCoordinator.json",
     default_address: System.get_env("REGISTRY_COORDINATOR_ADDRESS")
 
   def get_registry_coordinator_address() do
