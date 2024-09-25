@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	gethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
 	"github.com/yetanotherco/aligned_layer/core/config"
@@ -58,7 +58,7 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mock.ContractERC20Mock, error) {
+func (r *AvsReader) GetErc20Mock(tokenAddr ethcommon.Address) (*contractERC20Mock.ContractERC20Mock, error) {
 	erc20Mock, err := contractERC20Mock.NewContractERC20Mock(tokenAddr, r.AvsContractBindings.ethClient)
 	if err != nil {
 		// Retry with fallback client
@@ -70,12 +70,12 @@ func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mo
 	return erc20Mock, nil
 }
 
-func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, error) {
+func (r *AvsReader) IsOperatorRegistered(address ethcommon.Address) (bool, error) {
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }
 
 // Returns the latest logs starting from the given block
-func (r *AvsReader) GetTasksStartingFrom(fromBlock uint64) ([]servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
 	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
@@ -122,7 +122,20 @@ func (r *AvsReader) GetTasksStartingFrom(fromBlock uint64) ([]servicemanager.Con
 		// The second topic is the batch merkle root, as it is an indexed variable in the contract
 		task.BatchMerkleRoot = logEntry.Topics[1]
 
-		tasks = append(tasks, task)
+		// now check if its finalized or not before appending
+		batchIdentifier := append(task.BatchMerkleRoot[:], task.SenderAddress[:]...)
+		batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+		state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+
+		if err != nil {
+			return nil, fmt.Errorf("err while getting batch state: %w", err)
+		}
+
+		// append the task if not responded yet
+		if !state.Responded {
+			tasks = append(tasks, task)
+		}
+
 	}
 
 	return tasks, nil

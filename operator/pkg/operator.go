@@ -259,12 +259,12 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
 	}
 
 	o.Logger.Info("Getting missed tasks")
-	logs, err := o.avsReader.GetTasksStartingFrom(uint64(o.lastProcessedBatch.BlockNumber))
+	logs, err := o.avsReader.GetNotRespondedTasksFrom(uint64(o.lastProcessedBatch.BlockNumber))
 	if err != nil {
 		c <- 0
 		return
 	}
-	o.Logger.Info("Missed tasks retrieved, total tasks to process: %v", len(logs))
+	o.Logger.Info(fmt.Sprintf("Missed tasks retrieved, total tasks to process: %v", len(logs)))
 
 	o.Logger.Info("Starting to verify missed batches while offline")
 	for _, logEntry := range logs {
