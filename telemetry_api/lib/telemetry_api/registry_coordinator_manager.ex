@@ -1,7 +1,11 @@
 defmodule TelemetryApi.RegistryCoordinatorManager do
   alias TelemetryApi.RegistryCoordinatorManager
 
-  @registry_coordinator_address System.get_env("REGISTRY_COORDINATOR_ADDRESS")
+  @registry_coordinator_address System.get_env("REGISTRY_COORDINATOR_ADDRESS") || 
+    raise """
+    environment variable REGISTRY_COORDINATOR_ADDRESS is missing.
+    """
+
 
   use Ethers.Contract,
     abi_file: "lib/abi/IRegistryCoordinator.json",
