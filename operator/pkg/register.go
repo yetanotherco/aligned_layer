@@ -29,7 +29,7 @@ func RegisterOperator(
 
 	_, err = writer.RegisterOperator(ctx, configuration.EcdsaConfig.PrivateKey,
 		configuration.BlsConfig.KeyPair,
-		quorumNumbers, socket, false)
+		quorumNumbers, socket, true)
 
 	if err != nil {
 		configuration.BaseConfig.Logger.Error("Failed to register operator", "err", err)
