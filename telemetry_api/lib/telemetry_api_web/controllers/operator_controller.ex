@@ -20,16 +20,24 @@ defmodule TelemetryApiWeb.OperatorController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
-    operator = Operators.get_operator!(id)
-    render(conn, :show, operator: operator)
+  def show(conn, %{"id" => address}) do
+    case Operators.get_operator(address) do
+      %Operator{} = operator ->
+        render(conn, :show, operator: operator)
+
+      nil ->
+        conn
+        |> put_status(:not_found)
+        |> put_view(TelemetryApiWeb.ErrorJSON)
+        |> render("404.json", %{})
+    end
   end
 
-  # def update(conn, %{"id" => id, "operator" => operator_params}) do
-  #   operator = Operators.get_operator!(id)
-
+  # defp update(conn, operator, operator_params) do
   #   with {:ok, %Operator{} = operator} <- Operators.update_operator(operator, operator_params) do
-  #     render(conn, :show, operator: operator)
+  #     conn
+  #     |> put_status(:ok)
+  #     |> render(:show, operator: operator)
   #   end
   # end
 
