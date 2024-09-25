@@ -60,7 +60,6 @@ defmodule TelemetryApi.Operators do
         %Operator{}
         |> Operator.changeset(attrs)
         |> Repo.insert()
-        # |> Enum.map(fn addr -> {:ok, addr} end)
       else
         {:error, "Provided address does not correspond to any registered operator"}
       end
