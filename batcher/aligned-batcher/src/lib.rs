@@ -412,8 +412,6 @@ impl Batcher {
         Ok(())
     }
 
-    async fn get_or_insert(&self) -> Mutex<>
-
     /// Handle an individual message from the client.
     async fn handle_message(
         self: Arc<Self>,
@@ -462,18 +460,28 @@ impl Batcher {
                     self.user_states.insert(addr.clone(), new_user_state);
                 }
 
+                // At this point, we will have a user state for sure, since we have inserted it
+                // if not already present
 
+                let user_state = self.user_states.get(&addr).unwrap().lock().await;
 
-                if !self
-                    .check_user_balance_and_increment_proof_count(&addr)
-                    .await
-                {
+                // Perform validations on user state
+                if self.user_balance_is_unlocked(&addr).await {
                     send_message(
                         ws_conn_sink.clone(),
                         ValidityResponseMessage::InsufficientBalance(addr),
                     )
                     .await;
+                    return Ok(());
+                }
 
+                let updated_user_proofs = user_state.proofs_in_batch + 1;
+                if !self.check_user_balance(&addr, updated_user_proofs).await {
+                    send_message(
+                        ws_conn_sink.clone(),
+                        ValidityResponseMessage::InsufficientBalance(addr),
+                    )
+                    .await;
                     return Ok(());
                 }
 
@@ -497,7 +505,6 @@ impl Batcher {
                 // Nonce and max fee verification
                 let nonce = nonced_verification_data.nonce;
                 let max_fee = nonced_verification_data.max_fee;
-
                 if max_fee < U256::from(MIN_FEE_PER_PROOF) {
                     error!("The max fee signed in the message is less than the accepted minimum fee to be included in the batch.");
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee)
@@ -505,29 +512,51 @@ impl Batcher {
                     return Ok(());
                 }
 
-                let mut batch_state = self.batch_state.lock().await;
+                let expected_nonce = if let Some(cached_nonce) = user_state.nonce {
+                    cached_nonce
+                } else {
+                    let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+                        Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                        Err(e) => {
+                            error!(
+                                "Failed to get user nonce from Ethereum for address {:?}. Error: {:?}",
+                                addr, e
+                            );
+                            send_message(
+                                ws_conn_sink.clone(),
+                                ValidityResponseMessage::InvalidNonce,
+                            )
+                            .await;
 
-                let expected_user_nonce = match batch_state.user_nonces.get(&addr) {
-                    Some(nonce) => *nonce,
-                    None => {
-                        let user_nonce = match self.get_user_nonce(addr).await {
-                            Ok(nonce) => nonce,
-                            Err(e) => {
-                                error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
-                                send_message(
-                                    ws_conn_sink.clone(),
-                                    ValidityResponseMessage::InvalidNonce,
-                                )
-                                .await;
+                            return Ok(());
+                        }
+                    };
 
-                                return Ok(());
-                            }
-                        };
-
-                        batch_state.user_nonces.insert(addr, user_nonce);
-                        user_nonce
-                    }
+                    user_state.nonce = Some(ethereum_user_nonce);
+                    ethereum_user_nonce
                 };
+
+                // let expected_user_nonce = match user_state.nonce {
+                //     Some(nonce) => nonce,
+                //     None => {
+                //         let user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+                //             Ok(nonce) => nonce,
+                //             Err(e) => {
+                //                 error!("Failed to get user nonce for address {:?}: {:?}", addr, e);
+                //                 send_message(
+                //                     ws_conn_sink.clone(),
+                //                     ValidityResponseMessage::InvalidNonce,
+                //                 )
+                //                 .await;
+
+                //                 return Ok(());
+                //             }
+                //         };
+
+                //         batch_state.user_nonces.insert(addr, user_nonce);
+                //         user_nonce
+                //     }
+                // };
 
                 let min_fee = match batch_state.user_min_fee.get(&addr) {
                     Some(fee) => *fee,
@@ -602,22 +631,12 @@ impl Batcher {
 
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance_and_increment_proof_count(&self, addr: &Address) -> bool {
-        if self.user_balance_is_unlocked(addr).await {
-            return false;
-        }
-        let mut batch_state = self.batch_state.lock().await;
-
-        let user_proofs_in_batch = batch_state.get_user_proof_count(addr) + 1;
-
+    async fn check_user_balance(&self, addr: &Address, user_proofs_in_batch: u64) -> bool {
         let user_balance = self.get_user_balance(addr).await;
-
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
         if user_balance < min_balance {
             return false;
         }
-
-        batch_state.increment_user_proof_count(addr);
         true
     }
 
@@ -743,7 +762,7 @@ impl Batcher {
         true
     }
 
-    async fn get_user_nonce(
+    async fn get_user_nonce_from_ethereum(
         &self,
         addr: Address,
     ) -> Result<U256, ContractError<SignerMiddlewareT>> {
