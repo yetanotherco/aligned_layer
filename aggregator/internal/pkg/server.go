@@ -75,21 +75,10 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	}
 
 	// Note: we already have lock here
-	agg.logger.Debug("- Checking if operator already responded")
 	batchResponses, ok := agg.operatorRespondedBatch[taskIndex]
 	if !ok {
 		batchResponses = make(map[eigentypes.Bytes32]struct{})
 		agg.operatorRespondedBatch[taskIndex] = batchResponses
-	}
-
-	if _, ok := batchResponses[signedTaskResponse.OperatorId]; ok {
-		*reply = 0
-		agg.logger.Warn("Operator already responded, ignoring",
-			"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]),
-			"taskIndex", taskIndex, "batchMerkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]))
-
-		agg.taskMutex.Unlock()
-		return nil
 	}
 
 	batchResponses[signedTaskResponse.OperatorId] = struct{}{}
