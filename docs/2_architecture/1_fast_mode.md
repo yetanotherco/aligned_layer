@@ -66,7 +66,7 @@ Each leaf contains the following information:
 
 - A commitment to the public input of the proof.
 - A commitment to the proof
-- A commitment to the program or a commitment to the verification key, plus the Proving System/verifier used.
+- A commitment to the program or a commitment to the verification key, plus the Proving System/verifier used and Proof that was verified using this verification key.
 - The address of the proof’s generator/submitter (optional).
 
 A diagram for the batch is shown on the figure below:

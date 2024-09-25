@@ -418,9 +418,10 @@ async fn _is_proof_verified(
     Ok(result)
 }
 
-/// Returns the commitment for the verification key, taking into account the corresponding proving system.
+/// Returns the commitment for the verification key, taking into account the corresponding proving system, and proof it verifies.
 /// # Arguments
 /// * `verification_key_bytes` - The serialized contents of the verification key.
+/// * `verification_key_bytes` - The serialized contents of the proof.
 /// * `proving_system` - The corresponding proving system ID.
 /// # Returns
 /// * The commitment.
@@ -428,12 +429,19 @@ async fn _is_proof_verified(
 /// * None.
 pub fn get_vk_commitment(
     verification_key_bytes: &[u8],
+    proof_bytes: &[u8],
     proving_system: ProvingSystemId,
 ) -> [u8; 32] {
     let proving_system_id_byte = proving_system.clone() as u8;
     let mut hasher = Keccak256::new();
+
+    //
+    hasher.update(proof_bytes);
+    let proof_commitment: [u8; 32] = hasher.finalize_reset().into();
+
     hasher.update(verification_key_bytes);
     hasher.update([proving_system_id_byte]);
+    hasher.update(proof_commitment);
     hasher.finalize().into()
 }
 

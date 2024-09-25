@@ -104,7 +104,12 @@ impl From<VerificationData> for VerificationDataCommitment {
             pub_input_commitment = hasher.finalize_reset().into();
         }
 
-        // Compute proving system auxiliary data commitment
+        // Compute proving system auxiliary data commitment (verification_key | vm_program_code)
+        // This commitment ties the specific proof system data to its respective proof system,
+        // And the proof is verifies. Its correctness is enforced by the merkle root verification
+        // check in the Batcher and Operator. The `proof_commitment` is hashed in favor of the
+        // `proof` itself to avoid re-hashing the proof.
+        // This creates a downside for the user however as they must now supply the proof with there verification key when retrieving the vk_commitment.
 
         // FIXME(marian): This should probably be reworked, for the moment when the proving
         // system is SP1 or Risc0, `proving_system_aux_data` stands for information related to the
@@ -114,10 +119,12 @@ impl From<VerificationData> for VerificationDataCommitment {
             if let Some(vm_program_code) = &verification_data.vm_program_code {
                 hasher.update(vm_program_code);
                 hasher.update([proving_system_byte]);
+                hasher.update(proof_commitment);
                 hasher.finalize_reset().into()
             } else if let Some(verification_key) = &verification_data.verification_key {
                 hasher.update(verification_key);
                 hasher.update([proving_system_byte]);
+                hasher.update(proof_commitment);
                 hasher.finalize_reset().into()
             } else {
                 [0u8; 32]

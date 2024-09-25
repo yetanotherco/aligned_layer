@@ -25,7 +25,7 @@ The Aligned CLI provides a way for you to get the verification key commitment wi
 You can do this by running the following command:
 
 ```bash
-aligned get-vk-commitment --verification_key_file <path_to_input_file> --proving_system <proving_system_id>
+aligned get-vk-commitment --verification_key_file <path_to_verification_key_file> --proof_file <path_to_proof_file> --proving_system <proving_system_id>
 ```
 
 The following is an example of how to call the `verifyBatchInclusionMethod` from the `AlignedServiceManager` contract in your smart contract.

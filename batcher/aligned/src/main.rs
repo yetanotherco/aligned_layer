@@ -188,6 +188,8 @@ pub struct VerifyProofOnchainArgs {
 pub struct GetVkCommitmentArgs {
     #[arg(name = "Verification key file path", long = "verification_key_file")]
     verification_key_file: PathBuf,
+    #[arg(name = "Proof file path", long = "proof_file")]
+    proof_file: PathBuf,
     #[arg(name = "Proving system", long = "proving_system")]
     proving_system: ProvingSystemArg,
     #[arg(name = "Output file", long = "output")]
@@ -420,9 +422,11 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetVkCommitment(args) => {
             let verification_key_bytes = read_file(args.verification_key_file)?;
+            let proof_bytes = read_file(args.proof_file)?;
             let proving_system = args.proving_system.into();
 
-            let vk_commitment = get_vk_commitment(&verification_key_bytes, proving_system);
+            let vk_commitment =
+                get_vk_commitment(&verification_key_bytes, &proof_bytes, proving_system);
 
             info!("Commitment: {}", hex::encode(vk_commitment));
             if let Some(output_file) = args.output_file {
