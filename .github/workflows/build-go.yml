@@ -26,6 +26,12 @@ jobs:
         with:
           go-version: '1.22'
           cache: false
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
       - name: Build SP1 bindings
         run: make build_sp1_linux
       - name: Build Risc Zero go bindings
