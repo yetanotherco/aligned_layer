@@ -329,6 +329,6 @@ contract BatcherPaymentService is
     }
 
     function user_unlock_block(address account) public view returns (uint256) {
-        return userData[account].unlockBlock;
+        return userData[account].unlockBlockTime;
     }
 }
