@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -132,7 +133,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 
 	return errorChannel, nil
 }
-	
+
 func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) (chan error, error) {
 	// Create a new channel to receive new tasks
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
@@ -254,9 +255,9 @@ func (s *AvsSubscriber) processNewBatchV2(batch *servicemanager.ContractAlignedL
 
 	if _, ok := batchesSet[batchIdentifierHash]; !ok {
 		s.logger.Info("Received new task",
-		"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
-		"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
-		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]),)
+			"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
+			"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
+			"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
 		batchesSet[batchIdentifierHash] = struct{}{}
 		newTaskCreatedChan <- batch
@@ -280,9 +281,9 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 
 	if _, ok := batchesSet[batchIdentifierHash]; !ok {
 		s.logger.Info("Received new task",
-		"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
-		"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
-		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]),)
+			"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
+			"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
+			"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
 		batchesSet[batchIdentifierHash] = struct{}{}
 		newTaskCreatedChan <- batch

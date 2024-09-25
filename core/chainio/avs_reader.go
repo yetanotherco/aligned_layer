@@ -1,8 +1,17 @@
 package chainio
 
 import (
+	"context"
+	"fmt"
+	"math/big"
+	"strings"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	gethcommon "github.com/ethereum/go-ethereum/common"
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
@@ -13,8 +22,9 @@ import (
 
 type AvsReader struct {
 	*sdkavsregistry.ChainReader
-	AvsContractBindings *AvsServiceBindings
-	logger              logging.Logger
+	AvsContractBindings            *AvsServiceBindings
+	AlignedLayerServiceManagerAddr ethcommon.Address
+	logger                         logging.Logger
 }
 
 func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsReader, error) {
@@ -41,9 +51,10 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}
 
 	return &AvsReader{
-		ChainReader:         chainReader,
-		AvsContractBindings: avsServiceBindings,
-		logger:              baseConfig.Logger,
+		ChainReader:                    chainReader,
+		AvsContractBindings:            avsServiceBindings,
+		AlignedLayerServiceManagerAddr: baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+		logger:                         baseConfig.Logger,
 	}, nil
 }
 
@@ -61,4 +72,58 @@ func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mo
 
 func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, error) {
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
+}
+
+// Returns the latest logs starting from the given block
+func (r *AvsReader) GetTasksStartingFrom(fromBlock uint64) ([]servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
+	if err != nil {
+		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get latest block number: %w", err)
+		}
+	}
+
+	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ABI: %w", err)
+	}
+
+	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatchV3"]
+	if newBatchEvent.ID == (ethcommon.Hash{}) {
+		return nil, fmt.Errorf("NewBatch event not found in ABI")
+	}
+
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(int64(fromBlock)),
+		ToBlock:   big.NewInt(int64(latestBlock)),
+		Addresses: []ethcommon.Address{r.AlignedLayerServiceManagerAddr},
+		Topics:    [][]ethcommon.Hash{{newBatchEvent.ID, {}}},
+	}
+
+	logs, err := r.AvsContractBindings.ethClient.FilterLogs(context.Background(), query)
+	if err != nil {
+		logs, err = r.AvsContractBindings.ethClientFallback.FilterLogs(context.Background(), query)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get logs: %w", err)
+		}
+	}
+
+	var tasks []servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+
+	for _, logEntry := range logs {
+		var task servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+
+		err := alignedLayerServiceManagerABI.UnpackIntoInterface(&task, "NewBatchV3", logEntry.Data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unpack log data: %w", err)
+		}
+
+		// The second topic is the batch merkle root, as it is an indexed variable in the contract
+		task.BatchMerkleRoot = logEntry.Topics[1]
+
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
 }
