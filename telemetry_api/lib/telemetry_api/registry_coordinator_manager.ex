@@ -20,7 +20,7 @@ defmodule TelemetryApi.RegistryCoordinatorManager do
 
     case RegistryCoordinatorManager.get_operator_status(operator_address)
       |> Ethers.call() do
-        {:ok, response} -> response == 1
+        {:ok, response} -> {:ok, response == 1}
         error ->
           {:error, error}
       end

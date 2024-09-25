@@ -52,15 +52,18 @@ defmodule TelemetryApi.Operators do
   """
   def create_operator(attrs \\ %{}) do
     # Get address from the signature
-    address = SignatureVerifier.get_address(attrs["version"], attrs["signature"])
-    # Verify operator is registered
-    if RegistryCoordinatorManager.is_operator_registered?(address) do
-      attrs = Map.put(attrs, "address", address)
-      %Operator{}
-      |> Operator.changeset(attrs)
-      |> Repo.insert()
-    else
-      {:error, "Provided address does not correspond to any registered operator"}
+    with {:ok, address} <- SignatureVerifier.get_address(attrs["version"], attrs["signature"]),
+      {:ok, is_registered?} <- RegistryCoordinatorManager.is_operator_registered?(address) do
+      # Verify operator is registered
+      if is_registered? do
+        attrs = Map.put(attrs, "address", address)
+        %Operator{}
+        |> Operator.changeset(attrs)
+        |> Repo.insert()
+        # |> Enum.map(fn addr -> {:ok, addr} end)
+      else
+        {:error, "Provided address does not correspond to any registered operator"}
+      end
     end
   end
 
