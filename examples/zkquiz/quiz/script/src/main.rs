@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{submit_and_wait_verification, get_next_nonce};
+use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -106,7 +106,11 @@ async fn main() {
                 pub_input: None,
             };
 
-            let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS).await
+            // Set a `max_fee` of 0.5 Eth
+            let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
+
+            let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
+                .await
                 .expect("Failed to get next nonce");
 
             match submit_and_wait_verification(
@@ -114,9 +118,10 @@ async fn main() {
                 &rpc_url,
                 Chain::Holesky,
                 &verification_data,
+                max_fee,
                 wallet.clone(),
                 nonce,
-                BATCHER_PAYMENTS_ADDRESS
+                BATCHER_PAYMENTS_ADDRESS,
             )
             .await
             {
@@ -134,7 +139,7 @@ async fn main() {
                     {
                         println!("Failed to claim prize: {:?}", e);
                     }
-                },
+                }
                 Err(e) => {
                     println!("Proof verification failed: {:?}", e);
                 }

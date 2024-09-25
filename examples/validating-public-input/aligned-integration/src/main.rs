@@ -8,9 +8,10 @@ use aligned_sdk::core::errors::SubmitError;
 use aligned_sdk::core::types::Chain::Holesky;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
 use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
+use clap::Parser;
 use env_logger::Env;
 use ethers::signers::{LocalWallet, Signer};
-use ethers::types::Address;
+use ethers::types::{Address, U256};
 use ethers::utils::hex;
 use log::info;
 
@@ -22,12 +23,26 @@ const PUB_INPUT_FILE_PATH: &str = "../risc_zero/fibonacci_proof_generator/risc_z
 const IMAGE_ID_FILE_PATH: &str =
     "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin";
 const PROOF_GENERATOR_ADDRESS: &str = "0x66f9664f97F2b50F62D13eA064982f936dE76657";
-// Set to the 9th address of anvil that doesn't pay for the proof submission
-const WALLET_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    keystore_path: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), SubmitError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
+    let args = Args::parse();
+
+    let keystore_password = rpassword::prompt_password("Enter keystore password: ")
+        .expect("Failed to read keystore password");
+
+    let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
+        .expect("Failed to decrypt keystore")
+        .with_chain_id(17000u64);
 
     let proof = read_file(PathBuf::from(PROOF_FILE_PATH)).unwrap_or_default();
 
@@ -50,9 +65,8 @@ async fn main() -> Result<(), SubmitError> {
         proof_generator_addr,
     };
 
-    let wallet = LocalWallet::from_str(WALLET_PRIVATE_KEY)
-        .expect("Failed to create wallet")
-        .with_chain_id(17000u64);
+    // Set a fee of 0.5 Eth
+    let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
 
     let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
         .await
@@ -64,6 +78,7 @@ async fn main() -> Result<(), SubmitError> {
         RPC_URL,
         Holesky,
         &verification_data,
+        max_fee,
         wallet,
         nonce,
         BATCHER_PAYMENTS_ADDRESS,
