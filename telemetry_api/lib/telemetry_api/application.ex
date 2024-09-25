@@ -8,6 +8,7 @@ defmodule TelemetryApi.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      TraceStore,
       TelemetryApiWeb.Telemetry,
       TelemetryApi.Repo,
       {DNSCluster, query: Application.get_env(:telemetry_api, :dns_cluster_query) || :ignore},

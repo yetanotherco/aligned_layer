@@ -725,7 +725,6 @@ tracker_dump_db:
 
 __TELEMETRY__:
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
-	## TODO(juarce) ADD DOCKER COMPOSE
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
 

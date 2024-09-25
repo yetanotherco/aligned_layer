@@ -62,3 +62,6 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
+
+# For development, we use the stdout exporter to ensure everything is working properly
+# config :opentelemetry, traces_exporter: {:otel_exporter_stdout, []}

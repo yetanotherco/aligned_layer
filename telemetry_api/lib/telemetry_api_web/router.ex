@@ -8,6 +8,9 @@ defmodule TelemetryApiWeb.Router do
   scope "/api", TelemetryApiWeb do
     pipe_through :api
     resources "/operators", OperatorController, only: [:index, :show, :create]
+
+    post "/initTaskTrace", TraceController, :create_task_trace
+    post "/finishTaskTrace", TraceController, :finish_task_trace
   end
 
   # Enable LiveDashboard in development
