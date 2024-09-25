@@ -72,7 +72,8 @@ defmodule ExplorerWeb.Home.Index do
           }
 
         _ ->
-          IO.puts("Other transport error: #{inspect(e)}")
+          "Other transport error: #{inspect(e)}" |> Logger.error()
+          {:ok, socket |> put_flash(:error, "Something went wrong, please try again later.")}
       end
 
     e in FunctionClauseError ->

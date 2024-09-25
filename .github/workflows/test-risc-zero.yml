@@ -7,31 +7,31 @@ on:
   pull_request:
     branches: ["*"]
     paths:
-      - 'operator/risc_zero/**'
-      - '.github/workflows/test-risc-zero.yml'
+      - "operator/risc_zero/**"
+      - ".github/workflows/test-risc-zero.yml"
 
 jobs:
-    test:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Clear device space
-          run: |
-            sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-            sudo rm -rf /usr/local/lib/android
-            sudo rm -rf /opt/ghc
-            sudo rm -rf /usr/local/.ghcup
-            sudo rm -rf /usr/share/dotnet
-            sudo rm -rf /opt/ghc
-            sudo rm -rf "/usr/local/share/boost"
-        - uses: actions/checkout@v4
-        - uses: actions/setup-go@v5
-          with:
-            go-version: '1.22'
-            cache: false
-        - uses: actions-rs/toolchain@v1
-          with:
-            toolchain: stable
-        - name: Test Risc Zero Rust
-          run: make test_risc_zero_rust_ffi
-        - name: Test Risc Zero go bindings
-          run: make test_risc_zero_go_bindings_linux
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clear device space
+        run: |
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: false
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Test Risc Zero Rust
+        run: make test_risc_zero_rust_ffi
+      - name: Test Risc Zero go bindings
+        run: make test_risc_zero_go_bindings_linux

@@ -15,7 +15,7 @@ defmodule ExplorerWeb.Batch.Index do
     eth_price =
       case current_batch do
         :empty -> nil
-        batch -> EthConverter.wei_to_eth(batch.cost_per_proof)
+        batch -> EthConverter.wei_to_eth(batch.fee_per_proof)
       end
 
     {
@@ -57,7 +57,7 @@ defmodule ExplorerWeb.Batch.Index do
     eth_price =
       case socket.assigns.current_batch do
         :empty -> nil
-        batch -> EthConverter.wei_to_eth(batch.cost_per_proof)
+        batch -> EthConverter.wei_to_eth(batch.fee_per_proof)
       end
 
     new_batch = Batches.get_batch(%{merkle_root: socket.assigns.merkle_root})

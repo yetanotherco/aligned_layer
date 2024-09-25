@@ -14,7 +14,7 @@ defmodule AssetsCTAComponent do
         <.link navigate={~p"/operators"} class="flex flex-col justify-start gap-0.5 group">
           <div class="text-muted-foreground font-semibold flex gap-2 items-center">
             <h2>
-              Total Active Operators
+              Registered Active Operators
             </h2>
             <.right_arrow />
           </div>

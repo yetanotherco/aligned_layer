@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 // The original script used as the base of this one is:
 // https://github.com/Layr-Labs/eigenlayer-contracts/blob/7229f2b426b6f2a24c7795b1a4687a010eac8ef2/script/deploy/devnet/M2_Deploy_From_Scratch.s.sol

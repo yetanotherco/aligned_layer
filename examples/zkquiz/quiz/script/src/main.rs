@@ -108,7 +108,6 @@ async fn main() {
 
             // Set a `max_fee` of 0.5 Eth
             let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
-
             let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
                 .await
                 .expect("Failed to get next nonce");
@@ -130,6 +129,7 @@ async fn main() {
                         "Proof submitted and verified successfully on batch {}, claiming prize...",
                         hex::encode(aligned_verification_data.batch_merkle_root)
                     );
+
                     if let Err(e) = verify_batch_inclusion(
                         aligned_verification_data.clone(),
                         signer.clone(),
