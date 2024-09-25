@@ -35,17 +35,7 @@ use futures_util::{
     StreamExt, TryStreamExt,
 };
 
-//Public constants for convenience
-pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
-
-const AGGREGATOR_GAS_COST: u128 = 400_000;
-const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
-const CONSTANT_GAS_COST: u128 = ((AGGREGATOR_GAS_COST * DEFAULT_AGGREGATOR_FEE_MULTIPLIER)
-    / DEFAULT_AGGREGATOR_FEE_DIVIDER)
-    + BATCHER_SUBMISSION_BASE_GAS_COST;
-const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
-const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
-const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
+use aligned_batcher::CONSTANT_GAS_COST;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
@@ -601,6 +591,10 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
 
 #[cfg(test)]
 mod test {
+
+    //Public constants for convenience
+    pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
+
     use super::*;
     use crate::core::{errors::SubmitError, types::ProvingSystemId};
     use ethers::types::Address;
@@ -813,6 +807,8 @@ mod test {
     fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
         std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
     }
+
+    //TODO: fetch historical gas price.
 
     #[tokio::test]
     async fn computed_max_fee_for_larger_batch_is_smaller() {
