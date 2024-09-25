@@ -885,14 +885,11 @@ impl Batcher {
             .collect();
 
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-            match MerkleTree::build(&batch_data_comm) {
-                Some(batch_merkle_tree) => batch_merkle_tree,
-                None => {
-                    return Err(BatcherError::TaskCreationError(
-                        "Failed to Build Merkle Tree: Empty Batch".to_string(),
-                    ))
-                }
-            };
+            MerkleTree::build(&batch_data_comm).ok_or_else(|| {
+                BatcherError::TaskCreationError(
+                    "Failed to Build Merkle Tree: Empty Batch".to_string(),
+                )
+            })?;
 
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
