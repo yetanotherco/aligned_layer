@@ -32,14 +32,11 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
 
     let image_id = unsafe { std::slice::from_raw_parts(image_id, image_id_len as usize) };
 
-    let public_input =
-        unsafe { std::slice::from_raw_parts(public_input, public_input_len as usize) };
-
     let mut image_id_array = [0u8; 32];
     image_id_array.copy_from_slice(image_id);
 
     if let Ok(inner_receipt) = bincode::deserialize::<InnerReceipt>(inner_receipt_bytes) {
-        let receipt = Receipt::new(inner_receipt, public_input.to_vec());
+        let receipt = Receipt::new(inner_receipt, public_input_slice.to_vec());
 
         return receipt.verify(image_id_array).is_ok();
     }
