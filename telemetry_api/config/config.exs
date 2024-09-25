@@ -7,6 +7,9 @@
 # General application configuration
 import Config
 
+config :ethereumex,
+  url: "http://localhost:8545"
+
 config :telemetry_api,
   ecto_repos: [TelemetryApi.Repo],
   generators: [timestamp_type: :utc_datetime]

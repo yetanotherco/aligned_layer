@@ -7,6 +7,7 @@ defmodule TelemetryApi.Operators do
   alias TelemetryApi.Repo
 
   alias TelemetryApi.Operators.Operator
+  alias TelemetryApi.RegistryCoordinatorManager
 
   @doc """
   Returns the list of operators.
@@ -52,10 +53,15 @@ defmodule TelemetryApi.Operators do
   def create_operator(attrs \\ %{}) do
     # Get address from the signature
     address = SignatureVerifier.get_address(attrs["version"], attrs["signature"])
-    attrs = Map.put(attrs, "address", address)
-    %Operator{}
-    |> Operator.changeset(attrs)
-    |> Repo.insert()
+    # Verify operator is registered
+    if RegistryCoordinatorManager.is_operator_registered?(address) do
+      attrs = Map.put(attrs, "address", address)
+      %Operator{}
+      |> Operator.changeset(attrs)
+      |> Repo.insert()
+    else
+      {:error, "Provided address does not correspond to any registered operator"}
+    end
   end
 
   @doc """
