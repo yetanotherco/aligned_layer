@@ -25,18 +25,18 @@ defmodule TelemetryApi.Operators do
   @doc """
   Gets a single operator.
 
-  Raises `Ecto.NoResultsError` if the Operator does not exist.
-
   ## Examples
 
-      iex> get_operator!(123)
+      iex> get_operator("some_address"})
       %Operator{}
 
-      iex> get_operator!(456)
-      ** (Ecto.NoResultsError)
+      iex> get_operator("non_existent_address")
+      nil
 
   """
-  def get_operator!(id), do: Repo.get!(Operator, id)
+  def get_operator(address) do
+    Repo.get(Operator, address)
+  end
 
   @doc """
   Creates a operator.
@@ -54,15 +54,21 @@ defmodule TelemetryApi.Operators do
     # Get address from the signature
     with {:ok, address} <- SignatureVerifier.get_address(attrs["version"], attrs["signature"]),
       {:ok, is_registered?} <- RegistryCoordinatorManager.is_operator_registered?(address) do
-      # Verify operator is registered
-      if is_registered? do
-        attrs = Map.put(attrs, "address", address)
-        %Operator{}
-        |> Operator.changeset(attrs)
-        |> Repo.insert()
-      else
-        {:error, "Provided address does not correspond to any registered operator"}
-      end
+        # Verify operator is registered
+        if is_registered? do
+          address = "0x" <> address 
+          attrs = Map.put(attrs, "address", address)
+
+          # We handle updates here as there is no patch method available at the moment.
+          case Repo.get(Operator, address) do
+            nil -> %Operator{}
+            operator -> operator
+          end
+          |> Operator.changeset(attrs)
+          |> Repo.insert_or_update()
+        else
+          {:error, "Provided address does not correspond to any registered operator"}
+        end
     end
   end
 
