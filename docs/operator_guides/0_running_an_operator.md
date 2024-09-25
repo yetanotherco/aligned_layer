@@ -152,6 +152,65 @@ If you don't have Holesky ETH, these are some useful faucets:
 ./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
 ```
 
+### Run Operator using Systemd
+
+To manage the Operator process on Linux systems, we recommend use Systemd with the following configuration:
+
+```shell
+# aligned-operator.service
+
+[Unit]
+Description=Aligned Operator
+After=network.target
+
+[Service]
+Type=simple
+User=<user>
+WorkingDirectory=<path_to_aligned_layer_repository>
+ExecStart=<path_to_aligned_layer_repository>/operator/build/aligned-operator start --config <path_to_operator_config>
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target
+```
+
+{% hint style="info" %}
+`aligned-operator.service` is just an arbitrary name. You can name your service as you wish, following the format `<service-name>.service`.
+{% endhint %}
+
+Once you have configured the `aligned-operator.service` file, you need to run the following commands:
+
+```shell
+sudo ln -s <path_to_service_file>/aligned-operator.service /etc/systemd/system/aligned-operator.service
+sudo systemctl enable --now aligned-operator.service
+```
+
+{% hint style="warning" %}
+All paths must be absolute.
+{% endhint %}
+
+Those commands will link the service to Systemd directory and then, will start the Operator service.
+
+Also, if the server running the operator goes down, Systemd will start automatically the Operator on server startup.
+
+#### Restart operator
+
+If you want to restart the operator, you can use the following command:
+
+```shell
+sudo systemctl restart aligned-operator.service
+```
+
+#### Get Operators logs
+
+Once you are running your operator using Systemd, you can get its logs using Journalctl as follows:
+
+```shell
+journalctl -xfeu aligned-operator.service
+```
+
 ## Unregistering the operator
 
 To unregister the Aligned operator, run:
