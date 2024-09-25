@@ -21,7 +21,7 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
     }
 
     //NOTE: We allow the public input for risc0 to be empty.
-    let mut public_input_slice = &[];
+    let mut public_input_slice: &[u8] = &[];
     if !public_input.is_null() && public_input_len > 0 {
         public_input_slice =
             unsafe { std::slice::from_raw_parts(public_input, public_input_len as usize) };
@@ -88,6 +88,23 @@ mod tests {
             IMAGE_ID.len() as u32,
             public_input,
             PUBLIC_INPUT.len() as u32,
+        );
+        assert!(!result)
+    }
+
+    #[test]
+    fn verify_risc_zero_input_valid() {
+        let receipt_bytes = RECEIPT.as_ptr();
+        let image_id = IMAGE_ID.as_ptr();
+        let public_input = [].as_ptr();
+
+        let result = verify_risc_zero_receipt_ffi(
+            receipt_bytes,
+            (RECEIPT.len() - 1) as u32,
+            image_id,
+            IMAGE_ID.len() as u32,
+            public_input,
+            0,
         );
         assert!(!result)
     }
