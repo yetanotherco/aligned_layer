@@ -462,7 +462,7 @@ impl Batcher {
                     .await
             } else {
                 if !self
-                    .check_user_balance_and_increment_proof_count(&addr)
+                    .check_user_balance(&addr)
                     .await
                 {
                     send_message(
@@ -599,11 +599,11 @@ impl Batcher {
 
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance_and_increment_proof_count(&self, addr: &Address) -> bool {
+    async fn check_user_balance(&self, addr: &Address) -> bool {
         if self.user_balance_is_unlocked(addr).await {
             return false;
         }
-        let mut batch_state = self.batch_state.lock().await;
+        let batch_state = self.batch_state.lock().await;
 
         let user_proofs_in_batch = batch_state.get_user_proof_count(addr) + 1;
 
@@ -614,7 +614,6 @@ impl Batcher {
             return false;
         }
 
-        batch_state.increment_user_proof_count(addr);
         true
     }
 
@@ -645,6 +644,7 @@ impl Batcher {
 
         batch_state.user_nonces.insert(addr, nonce + U256::one());
         batch_state.user_min_fee.insert(addr, max_fee);
+        batch_state.increment_user_proof_count(&addr);
 
         self.add_to_batch(
             batch_state,
