@@ -800,23 +800,20 @@ impl Batcher {
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
         let mut batch_state = self.batch_state.lock().await;
-        let current_batch_len = batch_state.batch_queue.len();
 
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        // FIXME(marian): This condition should be changed to current_batch_size == 0
-        // once the bug in Lambdaworks merkle tree is fixed.
-        if current_batch_len == 0 {
+        if batch_state.batch_queue.is_empty() {
             info!("Current batch is empty. Waiting for more proofs...");
             return None;
         }
 
-        if current_batch_len < self.min_batch_len
+        if batch_state.batch_queue.len() < self.min_batch_len
             && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
         {
             info!(
                 "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
-                block_number, *last_uploaded_batch_block_lock, current_batch_len, self.min_batch_len
+                block_number, *last_uploaded_batch_block_lock, batch_state.batch_queue.len(), self.min_batch_len
             );
             return None;
         }
