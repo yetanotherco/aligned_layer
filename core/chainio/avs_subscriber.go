@@ -103,7 +103,9 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
 				}
-				s.processNewBatchV2(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				if latestBatch != nil {
+					s.processNewBatchV2(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				}
 			}
 		}
 
@@ -171,7 +173,9 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
 				}
-				s.processNewBatchV3(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				if latestBatch != nil {
+					s.processNewBatchV3(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				}
 			}
 		}
 
@@ -359,6 +363,19 @@ func (s *AvsSubscriber) getLatestTaskFromEthereumV2() (*servicemanager.ContractA
 	// The second topic is the batch merkle root, as it is an indexed variable in the contract
 	latestTask.BatchMerkleRoot = lastLog.Topics[1]
 
+	// return the task if has not been responded only
+	batchIdentifier := append(latestTask.BatchMerkleRoot[:], latestTask.SenderAddress[:]...)
+	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+
+	if err != nil {
+		return nil, fmt.Errorf("err while getting batch state: %w", err)
+	}
+
+	if state.Responded {
+		return nil, nil
+	}
+
 	return &latestTask, nil
 }
 
@@ -422,6 +439,19 @@ func (s *AvsSubscriber) getLatestTaskFromEthereumV3() (*servicemanager.ContractA
 
 	// The second topic is the batch merkle root, as it is an indexed variable in the contract
 	latestTask.BatchMerkleRoot = lastLog.Topics[1]
+
+	// return the task if has not been responded only
+	batchIdentifier := append(latestTask.BatchMerkleRoot[:], latestTask.SenderAddress[:]...)
+	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+
+	if err != nil {
+		return nil, fmt.Errorf("err while getting batch state: %w", err)
+	}
+
+	if state.Responded {
+		return nil, nil
+	}
 
 	return &latestTask, nil
 }
