@@ -136,7 +136,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		// Socket
 	}
 
-	operator.LoadLastProcessedBatch()
+	_ = operator.LoadLastProcessedBatch()
 
 	return operator, nil
 }
@@ -239,7 +239,7 @@ func (o *Operator) Start(ctx context.Context) error {
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
 			go o.handleNewBatchLogV3(newBatchLogV3, batchProcessorChan)
 		case bacthProcessed := <-batchProcessorChan:
-			o.UpdateLastProcessBatch(bacthProcessed)
+			_ = o.UpdateLastProcessBatch(bacthProcessed)
 
 		}
 	}
@@ -259,7 +259,7 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
 	}
 
 	o.Logger.Info("Getting missed tasks")
-	logs, err := o.avsReader.GetNotRespondedTasksFrom(uint64(o.lastProcessedBatch.BlockNumber))
+	logs, err := o.avsReader.GetNotRespondedTasksFrom(uint64(o.lastProcessedBatch.BlockNumber - 100))
 	if err != nil {
 		c <- 0
 		return
@@ -370,7 +370,6 @@ func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlign
 	}()
 	o.Logger.Infof("Received new batch log V3")
 	err = o.ProcessNewBatchLogV3(newBatchLog)
-	o.UpdateLastProcessBatch(newBatchLog.TaskCreatedBlock)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 		return
