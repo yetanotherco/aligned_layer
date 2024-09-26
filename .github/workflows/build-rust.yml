@@ -5,15 +5,14 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: ["*"]
+    branches: ['*']
     paths:
-        - 'batcher/**'
-        - '.github/workflows/build-rust.yml'
+      - 'batcher/**'
+      - '.github/workflows/build-rust.yml'
 
 jobs:
   build:
     runs-on: aligned-runner
-    
     steps:
       - uses: actions/checkout@v4
 
@@ -45,3 +44,7 @@ jobs:
         run: |
           cd batcher
           cargo build --all
+      - name: Test Rust projects
+        run: |
+          cd batcher
+          cargo test

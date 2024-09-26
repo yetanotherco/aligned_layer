@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: ["*"]
+    branches: ['*']
     paths:
       - 'operator/**'
       - 'aggregator/**'
@@ -18,7 +18,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -39,5 +39,9 @@ jobs:
         run: make build_merkle_tree_linux_old
       - name: Build operator
         run: go build operator/cmd/main.go
+      - name: Test operator
+        run: go test ./...
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
+      - name: Test aggregator
+        run: go test ./...

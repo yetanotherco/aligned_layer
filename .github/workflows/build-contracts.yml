@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: ["*"]
+    branches: ['*']
     paths:
       - 'contracts/**'
       - 'foundry.toml'
@@ -21,3 +21,8 @@ jobs:
 
       - name: Build AlignedServiceManager
         run: make build_aligned_contracts
+
+      - name: Test AlignedServiceManager
+        run: |
+          cd contracts/test
+          forge test
