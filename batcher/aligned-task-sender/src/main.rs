@@ -85,10 +85,10 @@ pub struct SubmitArgs {
     #[arg(name = "Private key", long = "private_key")]
     private_key: Option<String>,
     #[arg(
-                           name = "Max Fee",
-                           long = "max_fee",
-                           default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
-                       )]
+        name = "Max Fee",
+        long = "max_fee",
+        default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
+    )]
     max_fee: String, // String because U256 expects hex
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
