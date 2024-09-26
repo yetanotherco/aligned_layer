@@ -15,9 +15,10 @@ on:
       - '.github/workflows/build-go.yml'
 env:
   FFI_FOR_RELEASE: false
+  HOME: ${{ github.workspace }}
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-custom
     
     steps:
       - uses: actions/checkout@v4
@@ -25,6 +26,22 @@ jobs:
         with:
           go-version: '1.22'
           cache: false
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            batcher/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
       - name: Build SP1 bindings
         run: make build_sp1_linux
       - name: Build Risc Zero go bindings
@@ -35,15 +52,12 @@ jobs:
         run: make build_halo2_ipa_linux
       - name: Build Merkle Tree bindings
         run: make build_merkle_tree_linux
-<<<<<<< HEAD
       - name: Build Mina bindings
         run: make build_mina_linux
       - name: Build Mina Account bindings
         run: make build_mina_account_linux
-=======
       - name: Build Old Merkle Tree bindings
         run: make build_merkle_tree_linux_old
->>>>>>> v0.7.0
       - name: Build operator
         run: go build operator/cmd/main.go
       - name: Build aggregator
