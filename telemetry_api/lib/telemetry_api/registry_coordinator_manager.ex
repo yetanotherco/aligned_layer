@@ -1,15 +1,33 @@
 defmodule TelemetryApi.RegistryCoordinatorManager do
   alias TelemetryApi.RegistryCoordinatorManager
 
-  @registry_coordinator_address System.get_env("REGISTRY_COORDINATOR_ADDRESS") || 
-    raise """
-    environment variable REGISTRY_COORDINATOR_ADDRESS is missing.
-    """
+  require Logger
 
+  @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")
+
+  config_file_path =
+    case @aligned_config_file do
+      nil -> raise("ALIGNED_CONFIG_FILE not set in .env")
+      file -> file
+    end
+
+  {status, config_json_string} = File.read(config_file_path)
+
+  case status do
+    :ok ->
+      Logger.debug("Aligned deployment file read successfully")
+
+    :error ->
+      raise("Config file not read successfully")
+  end
+
+  @registry_coordinator_address Jason.decode!(config_json_string)
+                         |> Map.get("addresses")
+                         |> Map.get("registryCoordinator")
 
   use Ethers.Contract,
     abi_file: "priv/abi/IRegistryCoordinator.json",
-    default_address: System.get_env("REGISTRY_COORDINATOR_ADDRESS")
+    default_address: @registry_coordinator_address
 
   def get_registry_coordinator_address() do
     @registry_coordinator_address

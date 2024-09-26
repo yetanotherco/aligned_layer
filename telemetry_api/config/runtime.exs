@@ -77,9 +77,9 @@ if config_env() == :prod do
   config :ethereumex, url: rpc_url
 
   # Contract RegistryCoordinatorManager address
-  System.get_env("REGISTRY_COORDINATOR_ADDRESS") ||
+  System.get_env("ALIGNED_CONFIG_FILE") ||
     raise """
-    environment variable REGISTRY_COORDINATOR_ADDRESS is missing.
+    environment variable ALIGNED_CONFIG_FILE is missing.
     """
 
 
