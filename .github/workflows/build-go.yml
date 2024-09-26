@@ -27,11 +27,13 @@ jobs:
           cache: false
       - name: Build all ffi
         run: make build_all_ffi
-      - name: Build operator
-        run: go build operator/cmd/main.go
+      - name: Test all ffi
+        run: make test_all_ffi
       - name: Test operator
-        run: go test ./...
+        run: |
+          go test ./operator/cmd/...
+          go test ./operator/pkg/...
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
       - name: Test aggregator
-        run: go test ./...
+        run: go test ./aggregator/...
