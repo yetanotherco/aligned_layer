@@ -507,6 +507,7 @@ test_sp1_go_bindings_macos: build_sp1_macos
 
 test_sp1_go_bindings_linux: build_sp1_linux
 	@echo "Testing SP1 Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/sp1/lib \
 	go test ./operator/sp1/... -v
 
 # @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.elf scripts/test_files/sp1/
@@ -578,6 +579,7 @@ test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 
 test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/merkle_tree/lib \
 	go test ./operator/merkle_tree/... -v
 
 test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
@@ -586,6 +588,7 @@ test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
 
 test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
 	@echo "Testing Merkle Tree Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/merkle_tree_old/lib \
 	go test ./operator/merkle_tree_old/... -v
 
 __HALO2_KZG_FFI__: ##
@@ -609,6 +612,7 @@ test_halo2_kzg_go_bindings_macos: build_halo2_kzg_macos
 
 test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
 	@echo "Testing Halo2-KZG Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/halo2kzg/lib \
 	go test ./operator/halo2kzg/... -v
 
 generate_halo2_kzg_proof:
@@ -640,6 +644,7 @@ test_halo2_ipa_go_bindings_macos: build_halo2_ipa_macos
 
 test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
 	@echo "Testing Halo2-KZG Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/halo2ipa/lib \
 	go test ./operator/halo2ipa/... -v
 
 generate_halo2_ipa_proof:
@@ -688,6 +693,7 @@ test_all_ffi_macos: ## Test all FFIs for macOS
 	$(MAKE) test_sp1_go_bindings_macos
 	$(MAKE) test_risc_zero_go_bindings_macos
 	$(MAKE) test_merkle_tree_go_bindings_macos
+	$(MAKE) test_merkle_tree_old_go_bindings_macos
 	$(MAKE) test_halo2_kzg_go_bindings_macos
 	$(MAKE) test_halo2_ipa_go_bindings_macos
 	@echo "All macOS FFIs tested successfully."
@@ -697,6 +703,7 @@ test_all_ffi_linux: ## Test all FFIs for Linux
 	$(MAKE) test_sp1_go_bindings_linux
 	$(MAKE) test_risc_zero_go_bindings_linux
 	$(MAKE) test_merkle_tree_go_bindings_linux
+	$(MAKE) test_merkle_tree_go_bindings_linux_old
 	$(MAKE) test_halo2_kzg_go_bindings_linux
 	$(MAKE) test_halo2_ipa_go_bindings_linux
 	@echo "All Linux FFIs tested successfully."
