@@ -10,8 +10,9 @@ contract VerifierContract is ERC721URIStorage {
     address public alignedServiceManager;
     address public paymentServiceAddr;
 
-    bytes32 public elfCommitment =
-        0x35dd40ab04e180712996495caec915b8a7c488433acbb50c4d8d912cb55bf1f1;
+    bytes32 public elfCommitment = 0x3f99615fdf3b67a01e41b38eee75a32c778ee2fa631bd74e01c89afc2f70f5de;
+        
+    error InvalidElf(bytes32 submittedElf); // c6d95066
 
     // map to check if proof has already been submitted
     mapping(bytes32 => bool) public mintedProofs;
@@ -33,10 +34,9 @@ contract VerifierContract is ERC721URIStorage {
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
     ) external returns (uint256) {
-        require(
-            elfCommitment == provingSystemAuxDataCommitment,
-            "ELF does not match"
-        );
+        if (elfCommitment != provingSystemAuxDataCommitment) {
+            revert InvalidElf(provingSystemAuxDataCommitment);
+        }
         require(
             address(proofGeneratorAddr) == msg.sender,
             "proofGeneratorAddr does not match"
