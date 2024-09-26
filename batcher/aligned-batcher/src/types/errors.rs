@@ -4,10 +4,12 @@ use ethers::types::SignatureError;
 use tokio_tungstenite::tungstenite;
 
 pub enum BatcherError {
+    TcpListenerError(String),
     ConnectionError(tungstenite::Error),
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
     SignatureError(SignatureError),
+    BatchUploadError(String),
     TaskCreationError(String),
     ReceiptNotFoundError,
     TransactionSendError,
@@ -33,6 +35,9 @@ impl From<SignatureError> for BatcherError {
 impl fmt::Debug for BatcherError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            BatcherError::TcpListenerError(e) => {
+                write!(f, "TCP Listener error: {}", e)
+            }
             BatcherError::ConnectionError(e) => {
                 write!(f, "Web Socket Connection error: {}", e)
             }
@@ -44,6 +49,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::SignatureError(e) => {
                 write!(f, "Message signature verification error: {}", e)
+            }
+            BatcherError::BatchUploadError(e) => {
+                write!(f, "Uploading Batch was not successful: {}", e)
             }
             BatcherError::TaskCreationError(e) => {
                 write!(f, "Task creation error: {}", e)

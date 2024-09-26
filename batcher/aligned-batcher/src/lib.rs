@@ -3,7 +3,7 @@ extern crate core;
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use serde::Serialize;
@@ -327,7 +327,9 @@ impl Batcher {
 
     pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
         // Create the event loop and TCP listener we'll accept connections on.
-        let listener = TcpListener::bind(address).await.expect("Failed to build");
+        let listener = TcpListener::bind(address)
+            .await
+            .map_err(|e| BatcherError::TcpListenerError(e.to_string()))?;
         info!("Listening on: {}", address);
 
         // Let's spawn the handling of each connection in a separate task.
@@ -1035,7 +1037,7 @@ impl Batcher {
             &file_name,
         )
         .await
-        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 
