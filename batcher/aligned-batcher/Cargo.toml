@@ -38,3 +38,5 @@ ciborium = "=0.2.2"
 base64 = "0.22.1"
 bs58 = "0.5.1"
 priority-queue = "2.1.0"
+mina-state-verifier-ffi = { path = "../../operator/mina/lib" }
+mina-account-verifier-ffi = { path = "../../operator/mina_account/lib" }

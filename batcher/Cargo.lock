@@ -126,6 +126,8 @@ dependencies = [
  "lambdaworks-crypto",
  "lazy_static",
  "log",
+ "mina-account-verifier-ffi",
+ "mina-state-verifier-ffi",
  "mina_bridge_core",
  "priority-queue",
  "risc0-zkvm",
@@ -4978,6 +4980,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
+name = "mina-account-verifier-ffi"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "ark-ec 0.3.0",
+ "ark-ff 0.3.0",
+ "ark-poly 0.3.0",
+ "ark-serialize 0.3.0",
+ "base64 0.22.1",
+ "bincode",
+ "blake2",
+ "bs58 0.5.1",
+ "hex",
+ "kimchi",
+ "lazy_static",
+ "mina-curves",
+ "mina-p2p-messages",
+ "mina-tree",
+ "mina_bridge_core",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
+ "once_cell",
+ "poly-commitment",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+ "sha3 0.10.8",
+]
+
+[[package]]
 name = "mina-curves"
 version = "0.1.0"
 source = "git+https://github.com/openmina/proof-systems?branch=ledger-newtypes-rampup4-vrf#44e0d3b98b8747de54e595f53d97c035ff43167c"
@@ -5059,6 +5090,33 @@ dependencies = [
  "rand",
  "sha2 0.10.8",
  "thiserror",
+]
+
+[[package]]
+name = "mina-state-verifier-ffi"
+version = "0.1.0"
+dependencies = [
+ "ark-ec 0.3.0",
+ "ark-ff 0.3.0",
+ "ark-poly 0.3.0",
+ "ark-serialize 0.3.0",
+ "base64 0.22.1",
+ "bincode",
+ "blake2",
+ "bs58 0.5.1",
+ "hex",
+ "kimchi",
+ "lazy_static",
+ "mina-curves",
+ "mina-p2p-messages",
+ "mina-tree",
+ "mina_bridge_core",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
+ "once_cell",
+ "poly-commitment",
+ "rmp-serde",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
