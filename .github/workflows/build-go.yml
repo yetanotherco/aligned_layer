@@ -27,9 +27,9 @@ jobs:
           cache: false
       - name: Build all ffi
         run: |
-          LD_LIBRARY_PATH=/usr/lib:/usr/local/lib make build_all_ffi
+          make build_all_ffi
       - name: Test all ffi
-        run: make test_all_ffi
+        run: LD_LIBRARY_PATH=/usr/lib:/usr/local/lib make test_all_ffi
       - name: Test operator
         run: |
           go test ./operator/cmd/...
