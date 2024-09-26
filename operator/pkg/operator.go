@@ -37,20 +37,21 @@ import (
 )
 
 type Operator struct {
-	Config             config.OperatorConfig
-	Address            ethcommon.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
-	avsSubscriber      chainio.AvsSubscriber
+	Config               config.OperatorConfig
+	Address              ethcommon.Address
+	Socket               string
+	Timeout              time.Duration
+	PrivKey              *ecdsa.PrivateKey
+	KeyPair              *bls.KeyPair
+	OperatorId           eigentypes.OperatorId
+	avsSubscriber        chainio.AvsSubscriber
+	avsReader            chainio.AvsReader
 	NewTaskCreatedChanV2 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	NewTaskCreatedChanV3 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	Logger             logging.Logger
-	aggRpcClient       AggregatorRpcClient
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+	Logger               logging.Logger
+	aggRpcClient         AggregatorRpcClient
+	metricsReg           *prometheus.Registry
+	metrics              *metrics.Metrics
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -110,23 +111,23 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:             configuration,
-		Logger:             logger,
-		avsSubscriber:      *avsSubscriber,
-		Address:            address,
+		Config:               configuration,
+		Logger:               logger,
+		avsSubscriber:        *avsSubscriber,
+		avsReader:            *avsReader,
+		Address:              address,
 		NewTaskCreatedChanV2: newTaskCreatedChanV2,
 		NewTaskCreatedChanV3: newTaskCreatedChanV3,
-		aggRpcClient:       *rpcClient,
-		OperatorId:         operatorId,
-		metricsReg:         reg,
-		metrics:            operatorMetrics,
+		aggRpcClient:         *rpcClient,
+		OperatorId:           operatorId,
+		metricsReg:           reg,
+		metrics:              operatorMetrics,
 		// Timeout
 		// Socket
 	}
 
 	return operator, nil
 }
-
 
 func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
@@ -206,10 +207,10 @@ func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlign
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
@@ -277,10 +278,10 @@ func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlign
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
@@ -332,7 +333,25 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	return nil
 }
 
+func (o *Operator) CheckVerifierStatus(blacklisted_verifiers_bitmap uint64, verifierId common.ProvingSystemId) bool {
+	verifierIdInt := uint64(verifierId)
+	bit := blacklisted_verifiers_bitmap & (1 << verifierIdInt)
+	return bit == 0
+}
+
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
+	blacklisted_verifiers_bitmap, err := o.avsReader.GetBlacklistedVerifiers()
+	if err != nil {
+		o.Logger.Errorf("Could not check verifier status: %s", err)
+		results <- false
+		return
+	}
+	is_verifier_valid := o.CheckVerifierStatus(blacklisted_verifiers_bitmap, verificationData.ProvingSystemId)
+	if !is_verifier_valid {
+		o.Logger.Infof("Verifier %s is not available", verificationData.ProvingSystemId.String())
+		results <- false
+		return
+	}
 	switch verificationData.ProvingSystemId {
 	case common.GnarkPlonkBls12_381:
 		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
