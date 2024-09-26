@@ -44,6 +44,8 @@ defmodule TelemetryApi.MixProject do
       {:bandit, "~> 1.5"},
       {:ex_keccak, "~> 0.7.5"},
       {:ex_secp256k1, "~> 0.7"},
+      {:ethers, "~> 0.4.4"},
+      {:ethereumex, "~> 0.10"},
     ]
   end
 

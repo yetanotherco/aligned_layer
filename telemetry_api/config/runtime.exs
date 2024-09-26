@@ -65,6 +65,24 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
+  # ## Ethereum RPC calls configuration
+
+  # Node RPC URL
+  rpc_url = System.get_env("RPC_URL") ||
+    raise """
+    environment variable RPC_URL is missing.
+    """
+
+  # Configure ethereumex url
+  config :ethereumex, url: rpc_url
+
+  # Contract RegistryCoordinatorManager address
+  System.get_env("ALIGNED_CONFIG_FILE") ||
+    raise """
+    environment variable ALIGNED_CONFIG_FILE is missing.
+    """
+
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

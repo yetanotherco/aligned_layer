@@ -731,11 +731,11 @@ open_telemetry_start: ## Run open telemetry services using telemetry-docker-comp
 
 telemetry_start: telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
-	 	mix phx.server
+	 	./start.sh	
 
 telemetry_ecto_migrate: ##
 		@cd telemetry_api && \
-    	 	mix ecto.migrate
+			./ecto_setup_db.sh	
 
 telemetry_build_db:
 	@cd telemetry_api && \
