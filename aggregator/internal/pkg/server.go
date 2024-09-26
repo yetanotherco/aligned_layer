@@ -89,6 +89,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 		if err != nil {
 			agg.logger.Warnf("BLS aggregation service error: %s", err)
+			// todo shouldn't we here close the channel with a reply = 1?
 		} else {
 			agg.logger.Info("BLS process succeeded")
 		}
