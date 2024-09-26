@@ -1238,7 +1238,7 @@ impl Batcher {
         Ok(())
     }
 
-    async fn get_user_balance(&self, addr: &Address) -> U256 {
+    pub async fn get_user_balance(&self, addr: &Address) -> U256 {
         match self.payment_service.user_balances(*addr).call().await {
             Ok(val) => val,
             Err(_) => match self
