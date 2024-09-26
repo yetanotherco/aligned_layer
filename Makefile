@@ -15,6 +15,14 @@ ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
 
+ifeq ($(OS),Linux)
+	TEST_ALL_FFI = $(MAKE) test_all_ffi_linux
+endif
+
+ifeq ($(OS),Darwin)
+	TEST_ALL_FFI = $(MAKE) test_all_ffi_macos
+endif
+
 FFI_FOR_RELEASE ?= true
 
 ifeq ($(FFI_FOR_RELEASE),true)
@@ -669,6 +677,29 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_halo2_kzg_linux
 	@echo "All Linux FFIs built successfully."
 
+__TEST_ALL_FFI__:
+
+test_all_ffi: ## Test all FFIs
+	$(TEST_ALL_FFI)
+	@echo "All FFIs tested successfully."
+
+test_all_ffi_macos: ## Test all FFIs for macOS
+	@echo "Testing all FFIs for macOS..."
+	$(MAKE) test_sp1_go_bindings_macos
+	$(MAKE) test_risc_zero_go_bindings_macos
+	$(MAKE) test_merkle_tree_go_bindings_macos
+	$(MAKE) test_halo2_kzg_go_bindings_macos
+	$(MAKE) test_halo2_ipa_go_bindings_macos
+	@echo "All macOS FFIs tested successfully."
+
+test_all_ffi_linux: ## Test all FFIs for Linux
+	@echo "Testing all FFIs for Linux..."
+	$(MAKE) test_sp1_go_bindings_linux
+	$(MAKE) test_risc_zero_go_bindings_linux
+	$(MAKE) test_merkle_tree_go_bindings_linux
+	$(MAKE) test_halo2_kzg_go_bindings_linux
+	$(MAKE) test_halo2_ipa_go_bindings_linux
+	@echo "All Linux FFIs tested successfully."
 
 __EXPLORER__:
 run_explorer: explorer_run_db explorer_ecto_setup_db
