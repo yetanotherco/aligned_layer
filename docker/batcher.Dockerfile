@@ -24,14 +24,15 @@ COPY batcher/aligned/ batcher/aligned/
 RUN cargo build --manifest-path ./batcher/aligned-batcher/Cargo.toml --release
 RUN cargo build --manifest-path ./batcher/aligned/Cargo.toml --release
 
-RUN cp ./batcher/target/release/aligned-batcher /usr/local/bin/
-RUN cp ./batcher/target/release/aligned /usr/local/bin/
+RUN rm -rf operator/
 
-#FROM debian:bookworm-slim
+FROM debian:bookworm-slim
 
-#WORKDIR /aligned_layer
+WORKDIR /aligned_layer
 
-COPY ./config-files/config-batcher-docker.yaml ./config-files/
+COPY --from=builder /aligned_layer /aligned_layer
+COPY --from=builder /aligned_layer/batcher/target/release/aligned-batcher /usr/local/bin/
+COPY --from=builder /aligned_layer/batcher/target/release/aligned /usr/local/bin/
 
 RUN apt update -y
 RUN apt install -y libssl-dev ca-certificates
