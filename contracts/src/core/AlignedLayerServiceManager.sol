@@ -63,6 +63,7 @@ contract AlignedLayerServiceManager is
         string calldata batchDataPointer,
         uint256 respondToTaskFeeLimit
     ) external payable {
+        blacklistedVerifiers = 8;
         bytes32 batchIdentifier = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
         );
@@ -187,27 +188,31 @@ contract AlignedLayerServiceManager is
     }
 
     function isVerifierBlacklisted(
-        uint256 verifierIdx
+        uint64 verifierIdx
     ) external view validVerifierIdx(verifierIdx) returns (bool) {
-        uint256 bit = blacklistedVerifiers & (1 << verifierIdx);
+        uint64 bit = blacklistedVerifiers & uint64((1 << verifierIdx));
         return bit > 0;
     }
 
+    function getBlacklistedVerifiers() external view returns (uint64) {
+        return blacklistedVerifiers;
+    }
+
     function blacklistVerifier(
-        uint256 verifierIdx
+        uint64 verifierIdx
     ) external validVerifierIdx(verifierIdx) onlyOwner {
-        blacklistedVerifiers |= (1 << verifierIdx);
+        blacklistedVerifiers |= uint64((1 << verifierIdx));
         emit VerifierBlacklisted(verifierIdx);
     }
 
     function whitelistVerifier(
-        uint256 verifierIdx
+        uint64 verifierIdx
     ) external validVerifierIdx(verifierIdx) onlyOwner {
-        blacklistedVerifiers &= ~(1 << verifierIdx);
+        blacklistedVerifiers &= uint64(~(1 << verifierIdx));
         emit VerifierWhitelisted(verifierIdx);
     }
 
-    function setVerifiersBlacklist(uint256 bitmap) external onlyOwner {
+    function setVerifiersBlacklist(uint64 bitmap) external onlyOwner {
         blacklistedVerifiers = bitmap;
     }
 
@@ -332,8 +337,8 @@ contract AlignedLayerServiceManager is
         _;
     }
 
-    modifier validVerifierIdx(uint256 verifierIdx) {
-        if (verifierIdx >= 256) {
+    modifier validVerifierIdx(uint64 verifierIdx) {
+        if (verifierIdx >= 64) {
             revert VerifierIdxOutOfBounds();
         }
         _;

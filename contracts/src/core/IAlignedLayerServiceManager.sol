@@ -67,9 +67,10 @@ interface IAlignedLayerServiceManager {
     function setAggregator(address _aggregator) external;
 
     function isVerifierBlacklisted(
-        uint256 verifierIdx
+        uint64 verifierIdx
     ) external view returns (bool);
-    function blacklistVerifier(uint256 verifierIdx) external;
-    function whitelistVerifier(uint256 verifierIdx) external;
-    function setVerifiersBlacklist(uint256 bitmap) external;
+    function blacklistVerifier(uint64 verifierIdx) external;
+    function whitelistVerifier(uint64 verifierIdx) external;
+    function setVerifiersBlacklist(uint64 bitmap) external;
+    function getBlacklistedVerifiers() external view returns (uint64);
 }
