@@ -189,7 +189,7 @@ func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
 		return fmt.Errorf("failed to write to file: %v", err)
 	}
 
-	o.Logger.Info("Updated latest block json file")
+	o.Logger.Info("Updated latest block json file, new block: %v", blockNumber)
 
 	return nil
 }
@@ -239,14 +239,15 @@ func (o *Operator) Start(ctx context.Context) error {
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
 			go o.handleNewBatchLogV3(newBatchLogV3, batchProcessorChan)
 		case bacthProcessed := <-batchProcessorChan:
-			_ = o.UpdateLastProcessBatch(bacthProcessed)
+			err = o.UpdateLastProcessBatch(bacthProcessed)
+			o.Logger.Errorf("Error while updating last process batch", "err", err)
 
 		}
 	}
 }
 
 // Here we query all the batches that have not yet been verified starting from
-// the latest verified batch by the operator. We also get the prior 5 and check if we need to verify them as well
+// the latest verified batch by the operator. We also get the prior 100 and check if we need to verify them as well
 // This last thing of getting the last 100 is to make sure we have not missed a batch since they are process in parallel
 // and a higher batch number might have been processed first than the lower one.
 // So getting the last 100 accounts for such cases
