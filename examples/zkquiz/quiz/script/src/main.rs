@@ -18,7 +18,6 @@ use aligned_sdk::sdk::get_payment_service_address;
 abigen!(VerifierContract, "VerifierContract.json",);
 
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
-const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
 
 const NETWORK: Network = Network::Holesky;
