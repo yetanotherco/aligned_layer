@@ -686,11 +686,11 @@ generate_halo2_ipa_proof:
 
 __MINA_FFI__: ##
 build_mina_macos:
-	@cd operator/mina/lib && cargo build --release
+	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
 	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.dylib operator/mina/lib/libmina_state_verifier.dylib
 
 build_mina_linux:
-	@cd operator/mina/lib && cargo build --release
+	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
 	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.so operator/mina/lib/libmina_state_verifier.so
 
 test_mina_rust_ffi:

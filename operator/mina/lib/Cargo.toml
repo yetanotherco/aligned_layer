@@ -6,6 +6,9 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
 
+[features]
+devnet = []
+
 [dependencies]
 kimchi = { git = "https://github.com/openmina/proof-systems", branch = "ledger-newtypes-rampup4-vrf" }
 poly-commitment = { git = "https://github.com/openmina/proof-systems", branch = "ledger-newtypes-rampup4-vrf" }
