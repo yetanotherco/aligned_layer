@@ -15,9 +15,10 @@ on:
       - '.github/workflows/build-go.yml'
 env:
   FFI_FOR_RELEASE: false
+  HOME: ${{ github.workspace }}
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-custom
     
     steps:
       - uses: actions/checkout@v4
@@ -25,6 +26,22 @@ jobs:
         with:
           go-version: '1.22'
           cache: false
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            batcher/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
       - name: Build SP1 bindings
         run: make build_sp1_linux
       - name: Build Risc Zero go bindings
