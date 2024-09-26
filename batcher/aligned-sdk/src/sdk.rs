@@ -5,7 +5,11 @@ use crate::{
         protocol::check_protocol_version,
     },
     core::{
-        errors::{self, SubmitError},
+        constants::{
+            ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
+            MAX_FEE_DEFAULT_BATCH_SIZE, MAX_FEE_INSTANT_BATCH_SIZE,
+        },
+        errors::{self, MaxFeeEstimateError},
         types::{
             AlignedVerificationData, Chain, PriceEstimate, ProvingSystemId, VerificationData,
             VerificationDataCommitment,
@@ -34,8 +38,6 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     StreamExt, TryStreamExt,
 };
-
-use aligned_batcher::CONSTANT_GAS_COST;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
@@ -101,93 +103,78 @@ pub async fn submit_multiple_and_wait_verification(
     Ok(aligned_verification_data)
 }
 
-/*
-Returns the estimated `max_fee` depending on the batch inclusion preference of the user, based on the max priority gas price.
-NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
-
-For batch cost estimates we estimate a batch will have ~32 proofs present.
-The `max_fee` estimates therefore are:
-    - Min: Specifies a `max_fee` equivalent to the cost of 1 proof in a 32 proof batch.
-        This estimates the lowest possible cost the user should specify for there proof with lowest priority.
-    - Default: Specifies a `max_fee` equivalent to the cost of 10 proofs in a 32 proof batch.
-        This estimates the cost the user should specify for inclusion within the batch.
-    - Instant: specifies a `max_fee` equivalent to the cost of all proofs within in a 32 proof batch.
-        This estimates the cost the user should specify to pay for the entire batch of proofs and have there proof included instantly.
-*/
+/// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, based on the max priority gas price.
+/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+/// To estimate the `max_fee` of a batch we use a compute the `max_fee` with respect to a batch of ~32 proofs present.
+/// The `max_fee` estimates therefore are:
+/// * `Min`: Specifies a `max_fee` equivalent to the cost of 1 proof in a 32 proof batch.
+///        This estimates the lowest possible `max_fee` the user should specify for there proof with lowest priority.
+/// * `Default`: Specifies a `max_fee` equivalent to the cost of 10 proofs in a 32 proof batch.
+///        This estimates the `max_fee` the user should specify for inclusion within the batch.
+/// * `Instant`: specifies a `max_fee` equivalent to the cost of all proofs within in a 32 proof batch.
+///        This estimates the `max_fee` the user should specify to pay for the entire batch of proofs and have there proof included instantly.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `estimate` - Enum specifying the type of price estimate: MIN, DEFAULT, INSTANT.
+/// # Returns
+/// The estimated `max_fee` in gas for a proof based on the users `PriceEstimate` as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn estimate_max_fee(
     eth_rpc_url: &str,
     estimate: PriceEstimate,
-) -> Result<U256, errors::SubmitError> {
+) -> Result<U256, MaxFeeEstimateError> {
     // Price of 1 proof in 32 proof batch
-    let fee_per_proof = match fee_per_proof(eth_rpc_url, 32).await {
-        Ok(price) => price,
-        Err(e) => {
-            return Err(SubmitError::GenericError(format!(
-                "Failed to compute `fee_per_proof`: {:?}",
-                e
-            )))
-        }
-    };
+    let fee_per_proof = fee_per_proof(eth_rpc_url, MAX_FEE_INSTANT_BATCH_SIZE).await?;
 
     let proof_price = match estimate {
         PriceEstimate::Min => fee_per_proof,
-        PriceEstimate::Default => U256::from(10) * fee_per_proof,
-        PriceEstimate::Instant => U256::from(32) * fee_per_proof,
+        PriceEstimate::Default => U256::from(MAX_FEE_DEFAULT_BATCH_SIZE) * fee_per_proof,
+        PriceEstimate::Instant => U256::from(MAX_FEE_INSTANT_BATCH_SIZE) * fee_per_proof,
     };
     Ok(proof_price)
 }
 
 /// Returns the compute `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
 /// number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
-// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
+/// * `num_proofs` - number of proofs in a batch the user would pay for.
+/// * `num_proofs_per_batch` - number of proofs within a batch.
+/// # Returns
+/// * The calculated `max_fee` as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn compute_max_fee(
     eth_rpc_url: &str,
     num_proofs: usize,
     num_proofs_per_batch: usize,
-) -> Result<U256, errors::SubmitError> {
-    let fee_per_proof = match fee_per_proof(eth_rpc_url, num_proofs_per_batch).await {
-        Ok(price) => price,
-        Err(e) => {
-            return Err(SubmitError::GenericError(format!(
-                "Failed to compute `fee_per_proof`: {:?}",
-                e
-            )))
-        }
-    };
-
+) -> Result<U256, MaxFeeEstimateError> {
+    let fee_per_proof = fee_per_proof(eth_rpc_url, num_proofs_per_batch).await?;
     Ok(fee_per_proof * num_proofs)
-}
-
-/// Retrieves the  `gas_price` from an rpc nodes. Specifically, it returns the max priority gas price.
-async fn fetch_gas_price(eth_rpc_url: &str) -> Result<U256, errors::SubmitError> {
-    let eth_rpc_provider =
-        Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
-            errors::VerificationError::EthereumProviderError(e.to_string())
-        })?;
-
-    let gas_price = match eth_rpc_provider.get_gas_price().await {
-        Ok(price) => price,
-        Err(e) => {
-            return Err(SubmitError::GenericError(format!(
-                "Failed to fetch gas price: {:?}",
-                e
-            )))
-        }
-    };
-
-    Ok(gas_price)
 }
 
 /// Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
 /// i.e. (1 / `num_proofs_per_batch`).
 // NOTE: The `fee_per_proof` is computed from an rpc nodes max priority gas price.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
+/// * `num_proofs_per_batch` - number of proofs within a batch.
+/// # Returns
+/// * The fee per proof of a batch as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn fee_per_proof(
     eth_rpc_url: &str,
     num_proofs_per_batch: usize,
-) -> Result<U256, errors::SubmitError> {
+) -> Result<U256, MaxFeeEstimateError> {
     let gas_price = fetch_gas_price(eth_rpc_url).await?;
 
-    // Cost for estimate 32 proofs
+    // Cost for estimate `num_proofs_per_batch` proofs
     let estimated_gas_per_proof = (CONSTANT_GAS_COST
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_per_batch as u128)
         / num_proofs_per_batch as u128;
@@ -196,6 +183,18 @@ pub async fn fee_per_proof(
     let fee_per_proof = U256::from(estimated_gas_per_proof) * gas_price;
 
     Ok(fee_per_proof)
+}
+
+async fn fetch_gas_price(eth_rpc_url: &str) -> Result<U256, MaxFeeEstimateError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e: url::ParseError| MaxFeeEstimateError::EthereumProviderError(e.to_string()))?;
+
+    let gas_price = match eth_rpc_provider.get_gas_price().await {
+        Ok(price) => price,
+        Err(e) => return Err(MaxFeeEstimateError::EthereumGasPriceError(e.to_string())),
+    };
+
+    Ok(gas_price)
 }
 
 /// Submits multiple proofs to the batcher to be verified in Aligned.

@@ -15,6 +15,7 @@ pub enum AlignedError {
     VerificationError(VerificationError),
     NonceError(NonceError),
     ChainIdError(ChainIdError),
+    MaxFeeEstimateError(MaxFeeEstimateError),
 }
 
 impl From<SubmitError> for AlignedError {
@@ -41,6 +42,12 @@ impl From<ChainIdError> for AlignedError {
     }
 }
 
+impl From<MaxFeeEstimateError> for AlignedError {
+    fn from(e: MaxFeeEstimateError) -> Self {
+        AlignedError::MaxFeeEstimateError(e)
+    }
+}
+
 impl fmt::Display for AlignedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -48,6 +55,7 @@ impl fmt::Display for AlignedError {
             AlignedError::VerificationError(e) => write!(f, "Verification error: {}", e),
             AlignedError::NonceError(e) => write!(f, "Nonce error: {}", e),
             AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
+            AlignedError::MaxFeeEstimateError(e) => write!(f, "Max fee estimate error: {}", e),
         }
     }
 }
@@ -232,6 +240,25 @@ impl fmt::Display for ChainIdError {
                 write!(f, "Ethereum provider error: {}", e)
             }
             ChainIdError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum MaxFeeEstimateError {
+    EthereumProviderError(String),
+    EthereumGasPriceError(String),
+}
+
+impl fmt::Display for MaxFeeEstimateError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MaxFeeEstimateError::EthereumProviderError(e) => {
+                write!(f, "Ethereum provider error: {}", e)
+            }
+            MaxFeeEstimateError::EthereumGasPriceError(e) => {
+                write!(f, "Failed to retreive the current gas price: {}", e)
+            }
         }
     }
 }

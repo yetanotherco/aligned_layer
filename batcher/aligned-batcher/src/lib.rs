@@ -15,10 +15,18 @@ use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use aligned_sdk::core::types::{
-    BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+use aligned_sdk::core::{
+    constants::{
+        ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST,
+        BATCHER_SUBMISSION_BASE_GAS_COST, CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_DIVIDER,
+        DEFAULT_AGGREGATOR_FEE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF, MIN_FEE_PER_PROOF,
+        RESPOND_TO_TASK_FEE_LIMIT_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER,
+    },
+    types::{
+        BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
+        ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+        VerificationDataCommitment,
+    },
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
