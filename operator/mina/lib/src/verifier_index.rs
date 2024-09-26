@@ -17,7 +17,10 @@ use kimchi::{
 };
 use serde::Deserialize;
 
+#[cfg(feature = "devnet")]
 const BLOCKCHAIN_VK_JSON: &str = include_str!("devnet_vk.json");
+#[cfg(not(feature = "devnet"))]
+const BLOCKCHAIN_VK_JSON: &str = include_str!("mainnet_vk.json");
 
 #[derive(Deserialize)]
 struct BlockchainVerificationKey {
