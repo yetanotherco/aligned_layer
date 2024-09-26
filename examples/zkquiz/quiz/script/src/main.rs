@@ -106,7 +106,8 @@ async fn main() {
                 pub_input: None,
             };
 
-            let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS).await
+            let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
+                .await
                 .expect("Failed to get next nonce");
 
             match submit_and_wait_verification(
@@ -116,7 +117,7 @@ async fn main() {
                 &verification_data,
                 wallet.clone(),
                 nonce,
-                BATCHER_PAYMENTS_ADDRESS
+                BATCHER_PAYMENTS_ADDRESS,
             )
             .await
             {
@@ -125,6 +126,7 @@ async fn main() {
                         "Proof submitted and verified successfully on batch {}, claiming prize...",
                         hex::encode(aligned_verification_data.batch_merkle_root)
                     );
+
                     if let Err(e) = verify_batch_inclusion(
                         aligned_verification_data.clone(),
                         signer.clone(),

@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 tokio-tungstenite = "0.21.0"
-mina_bridge_core = { git = "https://github.com/lambdaclass/mina_bridge.git", branch = "relative_finalization" }
+mina_bridge_core = { git = "https://github.com/lambdaclass/mina_bridge.git", branch = "aligned" }
 futures-util = "0.3.30"
 tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros"] }
 log = "0.4.21"
@@ -37,3 +37,4 @@ aligned-sdk = { path = "../aligned-sdk" }
 ciborium = "=0.2.2"
 base64 = "0.22.1"
 bs58 = "0.5.1"
+priority-queue = "2.1.0"

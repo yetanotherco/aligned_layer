@@ -60,7 +60,8 @@ fn main() {
 
     println!("Verification result: {}", verification_result);
 
-    let serialized = bincode::serialize(&receipt).unwrap();
+    // Note that we serialize receipt.inner to avoid serializing the public inputs along with the proof
+    let serialized = bincode::serialize(&receipt.inner).unwrap();
 
     std::fs::write(PROOF_FILE_PATH, serialized).expect("Failed to write proof file");
 

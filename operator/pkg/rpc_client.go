@@ -39,32 +39,6 @@ func NewAggregatorRpcClient(aggregatorIpPortAddr string, logger logging.Logger) 
 func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregator(signedTaskResponse *types.SignedTaskResponse) {
 	var reply uint8
 	for retries := 0; retries < MaxRetries; retries++ {
-		err := c.rpcClient.Call("Aggregator.ProcessOperatorSignedTaskResponse", signedTaskResponse, &reply)
-		if err != nil {
-			c.logger.Error("Received error from aggregator", "err", err)
-			if errors.Is(err, rpc.ErrShutdown) {
-				c.logger.Error("Aggregator is shutdown. Reconnecting...")
-				client, err := rpc.DialHTTP("tcp", c.aggregatorIpPortAddr)
-				if err != nil {
-					c.logger.Error("Could not reconnect to aggregator", "err", err)
-					time.Sleep(RetryInterval)
-				} else {
-					c.rpcClient = client
-					c.logger.Info("Reconnected to aggregator")
-				}
-			} else {
-				c.logger.Infof("Received error from aggregator: %s. Retrying ProcessOperatorSignedTaskResponse RPC call...", err)
-				time.Sleep(RetryInterval)
-			}
-		} else {
-			c.logger.Info("Signed task response header accepted by aggregator.", "reply", reply)
-			return
-		}
-	}
-}
-func (c *AggregatorRpcClient) SendSignedTaskResponseToAggregatorV2(signedTaskResponse *types.SignedTaskResponseV2) {
-	var reply uint8
-	for retries := 0; retries < MaxRetries; retries++ {
 		err := c.rpcClient.Call("Aggregator.ProcessOperatorSignedTaskResponseV2", signedTaskResponse, &reply)
 		if err != nil {
 			c.logger.Error("Received error from aggregator", "err", err)

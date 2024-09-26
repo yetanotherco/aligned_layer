@@ -1,25 +1,10 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.4.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.4.0)
+> Aligned Operator [v0.7.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.7.0)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
-
-## Supported Verifiers
-
-The following is the list of the verifiers currently supported by Aligned:
-
-- :white_check_mark: gnark - Groth16 (with BN254)
-- :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
-- :white_check_mark: SP1 [(v1.0.1)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.1)
-- :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
-
-The following proof systems are going to be added soon:
-
-- :black_square_button: Kimchi
-- :black_square_button: Halo2 - Plonk/KZG
-- :black_square_button: Halo2 - Plonk/IPA
 
 ## Requirements
 
@@ -30,7 +15,7 @@ This guide assumes you are already [registered as an operator with EigenLayer](h
 Minimum hardware requirements:
 
 | Component     | Specification     |
-| ------------- | ----------------- |
+|---------------|-------------------|
 | **CPU**       | 16 cores          |
 | **Memory**    | 32 GB RAM         |
 | **Bandwidth** | 1 Gbps            |
@@ -41,7 +26,7 @@ Minimum hardware requirements:
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.4.0
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.7.0
 cd aligned_layer
 ```
 
@@ -107,13 +92,24 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
 
+The default configuration uses the public nodes RPC, but we suggest you use your own nodes for better performance and reliability.
+Also, from v0.5.2 there is a fallback mechanism to have two RPCs, so you can add a second RPC for redundancy.
+
+```yaml
+eth_rpc_url: "https://ethereum-holesky-rpc.publicnode.com"
+eth_rpc_url_fallback: "https://ethereum-holesky-rpc.publicnode.com"
+eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
+eth_ws_url_fallback: "wss://ethereum-holesky-rpc.publicnode.com"
+```
+
+
 ## Step 4 - Deposit Strategy Tokens
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
-To do so there are 2 options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
+To do so, there are two options, either doing it through EigenLayer's website, and following their guide, or running the commands specified by us below.
 
-You will need to stake a minimum of a 1000 Wei in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
+You will need to stake a minimum of 1000 WEI in WETH. We recommend to stake a maximum amount of 10 WETH. If you are staking more than 10 WETH please unstake any surplus over 10.
 
 ### Option 1
 
@@ -122,7 +118,7 @@ EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/re
 ### Option 2
 
 If you have ETH and need to convert it to WETH you can use the following command, that will convert 1 ETH to WETH.
-Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) installed.
+Make sure to have [foundry](https://book.getfoundry.sh/getting-started/installation) already installed.
 Change the parameter in ```---value``` if you want to wrap a different amount:
 
 ```bash
@@ -142,7 +138,7 @@ as shown in the EigenLayer guide.
   ```bash
   ./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9 --amount 1000000000000000000
   ```
-  </summary>
+
 </details>
 
 If you don't have Holesky ETH, these are some useful faucets:

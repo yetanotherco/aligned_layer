@@ -1,4 +1,5 @@
 defmodule EigenOperatorMetadataStruct do
+  require Logger
   defstruct [:name, :website, :description, :logo, :twitter]
 
   def map_to_struct(%{
@@ -18,7 +19,7 @@ defmodule EigenOperatorMetadataStruct do
   end
 
   def map_to_struct(other) do
-    dbg(other)
+    Logger.error("Error mapping operator metadata to struct: #{inspect(other)}")
     {:error, :invalid_format}
   end
 
