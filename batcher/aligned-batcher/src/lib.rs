@@ -761,6 +761,7 @@ impl Batcher {
             ),
             BatchQueueEntryPriority::new(max_fee, nonce),
         );
+
         info!(
             "Current batch queue length: {}",
             batch_state.batch_queue.len()
@@ -1147,7 +1148,7 @@ impl Batcher {
         if client_msg.verification_data.verification_data.proof.len() > self.max_proof_size {
             error!("Proof is too large");
             send_message(ws_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
-            return Ok(()); // Send error message to the client and return
+            return Ok(());
         }
 
         let replacement_addr = non_paying_config.replacement.address();
@@ -1159,7 +1160,7 @@ impl Batcher {
                 ValidityResponseMessage::InsufficientBalance(replacement_addr),
             )
             .await;
-            return Ok(()); // Send error message to the client and return
+            return Ok(());
         }
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
@@ -1173,16 +1174,17 @@ impl Batcher {
 
         let user_states = self.user_states.read().await;
 
-        // Safe to unwrap here since at this point we have a non-paying configuration loaded for sure
-        // and the non-paying address nonce cached in the user states.
-        let non_paying_user_state = user_states.get(&replacement_addr).unwrap();
-        let non_paying_nonce = non_paying_user_state.lock().await.nonce.unwrap();
-        debug!("Non-paying nonce: {:?}", non_paying_nonce);
-        let updated_non_paying_nonce = non_paying_nonce + U256::one();
+        // Safe to call `unwrap()` here since at this point we have a non-paying configuration loaded
+        // for sure and the non-paying address nonce cached in the user states.
+        let non_paying_user_state_lock = user_states.get(&replacement_addr).unwrap();
+        let mut non_paying_user_state = non_paying_user_state_lock.lock().await;
+        let non_paying_nonce = non_paying_user_state.nonce.unwrap();
+
+        info!("Non-paying nonce: {:?}", non_paying_nonce);
 
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
-            updated_non_paying_nonce,
+            non_paying_nonce,
             DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
             self.chain_id,
             self.payment_service.address(),
@@ -1202,7 +1204,9 @@ impl Batcher {
         )
         .await;
 
-        info!("Verification data message handled");
+        // Non-paying user nonce is updated
+        (*non_paying_user_state).nonce = Some(non_paying_nonce + U256::one());
+        info!("Non-paying verification data message handled");
         send_message(ws_sink, ValidityResponseMessage::Valid).await;
 
         Ok(())
