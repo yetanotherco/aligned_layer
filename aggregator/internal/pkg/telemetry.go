@@ -42,17 +42,21 @@ func NewTelemetry(serverAddress string, logger logging.Logger) *Telemetry {
 
 // Initializes a new trace for the given batchMerkleRoot.
 // User must call FinishTrace() to complete the trace.
-func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) error {
+func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
 	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
 	body := Trace{
 		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
 	}
 	encodedBody, err := json.Marshal(body)
 	if err != nil {
-		return err
+		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
+		return
 	}
 	t.logger.Info("[Telemetry] Sending init task trace with merkle root", "merkle_root", body.MerkleRoot)
-	return t.sendAndReceiveResponse("/api/initTaskTrace", encodedBody)
+	if err := t.sendAndReceiveResponse("/api/initTaskTrace", encodedBody); err != nil {
+
+		t.logger.Error("[Telemetry] Error sending init task trace: %v", err)
+	}
 }
 
 // Finishes the trace for the given merkle root and frees resources
