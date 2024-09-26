@@ -62,3 +62,7 @@ func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mo
 func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, error) {
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }
+
+func (r *AvsReader) GetBlacklistedVerifiers() (uint64, error) {
+	return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.GetBlacklistedVerifiers(&bind.CallOpts{})
+}
