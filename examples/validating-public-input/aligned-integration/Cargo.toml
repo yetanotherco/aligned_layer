@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", rev = "a41a854bb1350cc3be68b41b8028a1e687f68c51" }
+aligned-sdk = { path = "../../../batcher/aligned-sdk" }
 tokio = { version = "1.37.0", features = [
     "io-std",
     "time",

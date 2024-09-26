@@ -14,7 +14,6 @@ use ethers::signers::{LocalWallet, Signer};
 use ethers::types::{Address, U256};
 use ethers::utils::hex;
 use log::info;
-use ethers::types::U256;
 
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
 const RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
@@ -69,17 +68,16 @@ async fn main() -> Result<(), SubmitError> {
     // Set a fee of 0.1 Eth
     let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
 
-    let nonce = get_next_nonce(RPC_URL, wallet.address(), Network)
+    let nonce = get_next_nonce(RPC_URL, wallet.address(), NETWORK)
         .await
         .expect("Failed to get next nonce");
 
-    let max_fee: U256 = U256::from(10000000000000000u128);
 
     info!("Submitting Fibonacci proof to Aligned and waiting for verification...");
     let aligned_verification_data = submit_and_wait_verification(
         BATCHER_URL,
         RPC_URL,
-        Network,
+        NETWORK,
         &verification_data,
         max_fee,
         wallet,

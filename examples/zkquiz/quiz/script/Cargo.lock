@@ -73,7 +73,6 @@ dependencies = [
 [[package]]
 name = "aligned-sdk"
 version = "0.1.0"
-source = "git+https://github.com/yetanotherco/aligned_layer?tag=v0.6.0#bdda0d2efdb563c5d49a2562bebb27d52182807d"
 dependencies = [
  "ciborium",
  "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
