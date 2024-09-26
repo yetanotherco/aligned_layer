@@ -27,8 +27,7 @@ jobs:
           cache: false
       - name: Build all ffi
         run: |
-          export LD_LIBRARY_PATH=/usr/lib:/usr/local/lib # needs to set a default value, as the make command expects it
-          make build_all_ffi
+          LD_LIBRARY_PATH=/usr/lib:/usr/local/lib make build_all_ffi
       - name: Test all ffi
         run: make test_all_ffi
       - name: Test operator
