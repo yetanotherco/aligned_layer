@@ -85,7 +85,7 @@ func depositIntoStrategyMain(ctx *cli.Context) error {
 		return err
 	}
 
-	_, err = eigenLayerWriter.DepositERC20IntoStrategy(context.Background(), strategyAddr, amount, false)
+	_, err = eigenLayerWriter.DepositERC20IntoStrategy(context.Background(), strategyAddr, amount, true)
 	if err != nil {
 		config.BaseConfig.Logger.Errorf("Error depositing into strategy")
 		return err
