@@ -179,7 +179,11 @@ async fn _submit_multiple(
 
     let payment_service_addr = match chain {
         Chain::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").ok(),
-        Chain::Holesky => H160::from_str("0xe1Fc7039Bf46f0C34350909f20b011173390dD2a").ok(),
+        Chain::Holesky => H160::from_str(
+            &std::env::var("BATCHER_PAYMENT_SERVICE_ADDR")
+                .map_err(|err| errors::SubmitError::GenericError(err.to_string()))?,
+        )
+        .ok(),
         Chain::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").ok(),
     };
 
@@ -378,7 +382,8 @@ async fn _is_proof_verified(
     let contract_address = match chain {
         Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
         // If we re-deploy the Aligned SM contract we need to change this value to the new contract address
-        Chain::Holesky => "0x39cFAb7498d73d75F3cb38a3d321de451779989D",
+        Chain::Holesky => &std::env::var("ALIGNED_SERVICE_MANAGER_ADDR")
+            .map_err(|err| errors::VerificationError::HexDecodingError(err.to_string()))?,
         Chain::HoleskyStage => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
     };
 
