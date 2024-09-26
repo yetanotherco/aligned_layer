@@ -98,8 +98,16 @@ fn relative_min_window_density(candidate: &MinaProtocolState, tip: &MinaProtocol
         return candidate.min_window_density.as_u32();
     }
 
+    // Added input checks to compute `shift_count` and `i` safely.
+    // We don't take into account how to compute consensus checks in those border cases since
+    // we assume those cases happen when candidate and tip states aren't taken from a Mina node
+    // but built to perform a DoS attack.
     let projected_window = {
-        let shift_count = (max_slot - candidate.global_slot() - 1).clamp(0, SUB_WINDOWS_PER_WINDOW);
+        let shift_count = max_slot
+            .checked_sub(candidate.global_slot())
+            .and_then(|result| result.checked_sub(1))
+            .unwrap_or(0)
+            .clamp(0, SUB_WINDOWS_PER_WINDOW);
         let mut projected_window: Vec<_> = candidate
             .sub_window_densities
             .iter()
@@ -109,7 +117,9 @@ fn relative_min_window_density(candidate: &MinaProtocolState, tip: &MinaProtocol
         let mut i = relative_sub_window(candidate);
         for _ in 0..shift_count {
             i = (i + 1) % SUB_WINDOWS_PER_WINDOW;
-            projected_window[i as usize] = 0
+            if let Some(projected_window_i) = projected_window.get_mut(i as usize) {
+                *projected_window_i = 0
+            }
         }
 
         projected_window
@@ -141,7 +151,16 @@ fn hash_state(chain: &MinaProtocolState) -> String {
 
 #[cfg(test)]
 mod test {
+    use ark_ff::Fp256;
     use mina_bridge_core::proof::state_proof::MinaStateProof;
+    use mina_p2p_messages::{
+        bigint::BigInt,
+        number::Number,
+        v2::{
+            DataHashLibStateHashStableV1, MinaNumbersGlobalSlotSinceHardForkMStableV1,
+            UnsignedExtendedUInt32StableV1,
+        },
+    };
 
     use super::*;
 
@@ -168,6 +187,117 @@ mod test {
 
         assert_eq!(
             select_secure_chain(&old_tip, new_tip).unwrap(),
+            ChainResult::Bridge
+        );
+    }
+
+    #[test]
+    fn test_candidate_state_with_smaller_global_slot_than_tip_state() {
+        let valid_proof: MinaStateProof = bincode::deserialize(PROOF_BYTES).unwrap();
+        let new_tip = valid_proof.bridge_tip_state;
+        let mut old_tip = valid_proof.candidate_chain_states.last().unwrap().clone();
+
+        // Force checking long fork rule:
+        // Set both `epoch_count` to be the same but set new `lock_checkpoint` of older one to be one less than newer one
+        old_tip.body.consensus_state.epoch_count = new_tip.body.consensus_state.epoch_count;
+        old_tip
+            .body
+            .consensus_state
+            .staking_epoch_data
+            .lock_checkpoint = DataHashLibStateHashStableV1(BigInt::from(
+            new_tip
+                .body
+                .consensus_state
+                .staking_epoch_data
+                .lock_checkpoint
+                .to_fp()
+                .unwrap()
+                - Fp256::from(1),
+        ))
+        .into();
+        old_tip.body.consensus_state.sub_window_densities.pop_back();
+        old_tip
+            .body
+            .consensus_state
+            .sub_window_densities
+            .push_back(UnsignedExtendedUInt32StableV1(Number(1)));
+
+        // Set new `global_slot` to be `SUB_WINDOWS_PER_WINDOW + 2` less than older one
+        old_tip
+            .body
+            .consensus_state
+            .curr_global_slot_since_hard_fork
+            .slot_number = MinaNumbersGlobalSlotSinceHardForkMStableV1::SinceHardFork(
+            UnsignedExtendedUInt32StableV1(Number(
+                new_tip
+                    .body
+                    .consensus_state
+                    .curr_global_slot_since_hard_fork
+                    .slot_number
+                    .as_u32()
+                    - (SUB_WINDOWS_PER_WINDOW + 2),
+            )),
+        );
+
+        assert_eq!(
+            select_secure_chain(&new_tip, &old_tip).unwrap(),
+            ChainResult::Bridge
+        );
+    }
+
+    #[test]
+    fn test_candidate_state_with_less_sub_windows_densities_than_sub_windows_per_window() {
+        let valid_proof: MinaStateProof = bincode::deserialize(PROOF_BYTES).unwrap();
+        let mut new_tip = valid_proof.bridge_tip_state;
+        let mut old_tip = valid_proof.candidate_chain_states.last().unwrap().clone();
+
+        // Force checking long fork rule:
+        // Set both `epoch_count` to be the same but set new `lock_checkpoint` of older one to be one less than newer one
+        old_tip.body.consensus_state.epoch_count = new_tip.body.consensus_state.epoch_count;
+        old_tip
+            .body
+            .consensus_state
+            .staking_epoch_data
+            .lock_checkpoint = DataHashLibStateHashStableV1(BigInt::from(
+            new_tip
+                .body
+                .consensus_state
+                .staking_epoch_data
+                .lock_checkpoint
+                .to_fp()
+                .unwrap()
+                - Fp256::from(1),
+        ))
+        .into();
+        old_tip.body.consensus_state.sub_window_densities.pop_back();
+        old_tip
+            .body
+            .consensus_state
+            .sub_window_densities
+            .push_back(UnsignedExtendedUInt32StableV1(Number(1)));
+
+        // Set new `global_slot` to be `SUB_WINDOWS_PER_WINDOW` less than newer one
+        old_tip
+            .body
+            .consensus_state
+            .curr_global_slot_since_hard_fork
+            .slot_number = MinaNumbersGlobalSlotSinceHardForkMStableV1::SinceHardFork(
+            UnsignedExtendedUInt32StableV1(Number(
+                new_tip
+                    .body
+                    .consensus_state
+                    .curr_global_slot_since_hard_fork
+                    .slot_number
+                    .as_u32()
+                    + SUB_WINDOWS_PER_WINDOW,
+            )),
+        );
+
+        new_tip.body.consensus_state.sub_window_densities.pop_back();
+        new_tip.body.consensus_state.sub_window_densities.pop_back();
+
+        assert_eq!(
+            select_secure_chain(&new_tip, &old_tip).unwrap(),
             ChainResult::Bridge
         );
     }

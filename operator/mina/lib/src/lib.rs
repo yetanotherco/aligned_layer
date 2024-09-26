@@ -11,15 +11,18 @@ use consensus_state::{select_secure_chain, ChainResult};
 use kimchi::mina_curves::pasta::{Fp, PallasParameters};
 use kimchi::verifier_index::VerifierIndex;
 use lazy_static::lazy_static;
+use mina_curves::pasta::{Fq, Vesta};
 use mina_p2p_messages::hash::MinaHash;
 use mina_p2p_messages::v2::{MinaStateProtocolStateValueStableV2, StateHash};
+use mina_tree::proofs::field::FieldWitness as _;
 use mina_tree::proofs::verification::verify_block;
-use mina_tree::verifier::get_srs;
+use poly_commitment::srs::SRS;
 use verifier_index::deserialize_blockchain_vk;
 
 lazy_static! {
     static ref VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
         deserialize_blockchain_vk().unwrap();
+    static ref MINA_SRS: SRS<Vesta> = SRS::<Vesta>::create(Fq::SRS_DEPTH);
 }
 
 // TODO(xqft): check proof size
@@ -68,11 +71,6 @@ pub extern "C" fn verify_mina_state_ffi(
             }
         };
 
-    // TODO(xqft): srs should be a static, but can't make it so because it doesn't have all its
-    // parameters initialized.
-    let srs = get_srs::<Fp>();
-    let srs = srs.lock().unwrap();
-
     // Consensus checks
     let secure_chain = match select_secure_chain(&candidate_tip_state, &bridge_tip_state) {
         Ok(res) => res,
@@ -92,7 +90,7 @@ pub extern "C" fn verify_mina_state_ffi(
         &proof.candidate_tip_proof,
         candidate_tip_state_hash,
         &VERIFIER_INDEX,
-        &srs,
+        &MINA_SRS,
     )
 }
 

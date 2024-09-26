@@ -624,13 +624,13 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
         ProvingSystemId::Mina => {
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.clone(),
             )?)
         }
         ProvingSystemId::MinaAccount => {
             pub_input = Some(read_file_option(
                 "--public_input",
-                args.pub_input_file_name,
+                args.pub_input_file_name.clone(),
             )?)
         }
     }
