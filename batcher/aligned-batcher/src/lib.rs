@@ -463,7 +463,7 @@ impl Batcher {
                 // At this point, we will have a user state for sure, since we have inserted it
                 // if not already present
 
-                let user_state = self.user_states.get(&addr).unwrap().lock().await;
+                let mut user_state = self.user_states.get(&addr).unwrap().lock().await;
 
                 // Perform validations on user state
                 if self.user_balance_is_unlocked(&addr).await {
@@ -564,7 +564,6 @@ impl Batcher {
                 // };
 
                 let min_fee = user_state.min_fee;
-
                 if expected_nonce < msg_nonce {
                     warn!(
                         "Invalid nonce for address {addr}, had nonce {:?} < {:?}",
@@ -600,12 +599,12 @@ impl Batcher {
                     // get the entry with the same sender and nonce
                     if !self
                         .handle_replacement_message(
-                            batch_state,
+                            // batch_state,
                             nonced_verification_data,
                             ws_conn_sink.clone(),
                             client_msg.signature,
                             addr,
-                            expected_user_nonce,
+                            expected_nonce,
                         )
                         .await
                     {
@@ -665,7 +664,6 @@ impl Batcher {
                 // }
 
                 info!("Verification data message handled");
-
                 send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
                 Ok(())
             }
@@ -740,7 +738,7 @@ impl Batcher {
     /// Returns true if the message was replaced in the batch, false otherwise
     async fn handle_replacement_message(
         &self,
-        mut batch_state: tokio::sync::MutexGuard<'_, BatchState>,
+        // mut batch_state: tokio::sync::MutexGuard<'_, BatchState>,
         nonced_verification_data: NoncedVerificationData,
         ws_conn_sink: Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
         signature: Signature,
@@ -749,6 +747,7 @@ impl Batcher {
     ) -> bool {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
+        let mut batch_state = self.batch_state.lock().await;
 
         let mut replacement_entry = match batch_state.get_entry(addr, nonce) {
             Some(entry) => {
