@@ -79,6 +79,8 @@ contract BatcherPaymentService is
         noncedVerificationDataTypeHash = _noncedVerificationDataTypeHash;
     }
 
+    // Defined in types.rs
+    // keccak256("NoncedVerificationData(bytes32 verification_data_hash,uint256 nonce,uint256 max_fee)")
     function initializeNoncedVerificationDataTypeHash(
         bytes32 _noncedVerificationDataTypeHash
     ) public reinitializer(2) onlyOwner {
@@ -284,18 +286,14 @@ contract BatcherPaymentService is
             abi.encode(
                 noncedVerificationDataTypeHash,
                 leaf,
-                keccak256(abi.encodePacked(signatureData.nonce)),
-                keccak256(abi.encodePacked(signatureData.maxFee))
+                signatureData.nonce,
+                signatureData.maxFee
             )
         );
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
         address signer = ECDSA.recover(hash, signatureData.signature);
-
-        if (signer == address(0)) {
-            revert InvalidSignature();
-        }
 
         UserInfo storage signerData = userData[signer];
 
