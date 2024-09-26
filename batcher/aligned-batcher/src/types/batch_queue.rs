@@ -2,7 +2,6 @@ use ethers::types::{Address, Signature, U256};
 use futures_util::stream::SplitSink;
 use priority_queue::PriorityQueue;
 use std::{
-    collections::HashMap,
     hash::{Hash, Hasher},
     ops::ControlFlow,
     sync::Arc,

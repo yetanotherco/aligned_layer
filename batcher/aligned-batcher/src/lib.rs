@@ -577,7 +577,7 @@ impl Batcher {
 
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance(&self, addr: &Address, user_proofs_in_batch: u64) -> bool {
+    async fn check_user_balance(&self, addr: &Address, user_proofs_in_batch: usize) -> bool {
         let user_balance = self.get_user_balance(addr).await;
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
         if user_balance < min_balance {
@@ -668,45 +668,19 @@ impl Batcher {
             return false;
         }
 
-        // let mut replacement_entry = match batch_state.get_entry(addr, msg_nonce) {
-        //     Some(entry) => {
-        //         if entry.nonced_verification_data.max_fee < replacement_max_fee {
-        //             entry.clone()
-        //         } else {
-        //             warn!(
-        //                 "Invalid replacement message for address {addr}, had fee {:?} < {:?}",
-        //                 entry.nonced_verification_data.max_fee, replacement_max_fee
-        //             );
-        //             send_message(
-        //                 ws_conn_sink.clone(),
-        //                 ValidityResponseMessage::InvalidReplacementMessage,
-        //             )
-        //             .await;
-
-        //             return false;
-        //         }
-        //     }
-        //     None => {
-        //         warn!(
-        //             "Invalid nonce for address {addr} Expected: {:?}, got: {:?}",
-        //             expected_user_nonce, msg_nonce
-        //         );
-        //         send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
-        //         return false;
-        //     }
-        // };
-
         info!(
             "Replacing message for address {} with nonce {} and max fee {}",
             addr, msg_nonce, replacement_max_fee
         );
 
+        // The replacement entry is built from the old entry and validated for then to be replaced
+        let mut replacement_entry = entry.clone();
         replacement_entry.signature = signature;
         replacement_entry.verification_data_commitment =
             nonced_verification_data.verification_data.clone().into();
         replacement_entry.nonced_verification_data = nonced_verification_data;
 
-        // close old sink and replace with new one
+        // Close old sink in old entry replace it with new one
         {
             if let Some(messaging_sink) = replacement_entry.messaging_sink {
                 let mut old_sink = messaging_sink.write().await;
@@ -722,11 +696,30 @@ impl Batcher {
         }
 
         replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
-        if let Some(msg) = batch_state.validate_and_increment_max_fee(replacement_entry) {
+        if !batch_state.replacement_entry_is_valid(&replacement_entry) {
             warn!("Invalid max fee");
-            send_message(ws_conn_sink.clone(), msg).await;
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidReplacementMessage,
+            )
+            .await;
             return false;
         }
+
+        info!(
+            "Replacement entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
+            replacement_entry.sender, replacement_entry.nonced_verification_data.nonce, replacement_max_fee
+        );
+
+        // remove the old entry and insert the new one
+        // note that the entries are considered equal for the priority queue
+        // if they have the same nonce and sender, so we can remove the old entry
+        // by calling remove with the new entry
+        batch_state.batch_queue.remove(&replacement_entry);
+        batch_state.batch_queue.push(
+            replacement_entry.clone(),
+            BatchQueueEntryPriority::new(replacement_max_fee, msg_nonce),
+        );
 
         true
     }
