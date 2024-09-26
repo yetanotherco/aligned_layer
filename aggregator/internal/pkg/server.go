@@ -86,15 +86,14 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
-
+		res := uint8(0)
 		if err != nil {
 			agg.logger.Warnf("BLS aggregation service error: %s", err)
-			done <- 1
-			close(done)
+			res = 1
 		} else {
 			agg.logger.Info("BLS process succeeded")
 		}
-		done <- 0
+		done <- res
 		close(done)
 	}()
 
