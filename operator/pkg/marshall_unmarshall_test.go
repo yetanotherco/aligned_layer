@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ugorji/go/codec"
+	"github.com/fxamacker/cbor/v2"
 )
 
 // Test roundtrip of cbor serialization used in Aligned.
@@ -13,14 +13,14 @@ func FuzzMarshalUnmarshal(f *testing.F) {
 		// MarshalUnmarshal
 
 		var marshalled VerificationData
-		decoder := codec.NewDecoderBytes(data, new(codec.CborHandle))
+		decoder := cbor.NewDecoder(bytes.NewReader(data))
 		err := decoder.Decode(&marshalled)
 		if err != nil {
 			return
 		}
 
 		var unmarshalled []byte
-		encoder := codec.NewEncoderBytes(&unmarshalled, new(codec.CborHandle))
+		encoder := cbor.NewEncoder(bytes.NewBuffer(unmarshalled))
 		err = encoder.Encode(marshalled)
 		if err != nil {
 			return
