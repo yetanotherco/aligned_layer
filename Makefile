@@ -125,6 +125,7 @@ operator_verification_data_fuzz_macos:
 	@cd operator/pkg && go test -fuzz=FuzzMarshalUnmarshal -ldflags=-extldflags=-Wl,-ld_classic
 
 operator_verification_data_fuzz_linux:
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib
 	@cd operator/pkg && go test -fuzz=FuzzMarshalUnmarshal
 
 bindings:
