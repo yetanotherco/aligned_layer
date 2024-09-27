@@ -274,6 +274,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Freeing task data")
 	agg.taskMutex.Unlock()
 
+	defer agg.telemetry.LogQuorumReached(batchData.BatchMerkleRoot)
+
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 

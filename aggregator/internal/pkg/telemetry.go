@@ -13,7 +13,15 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 )
 
-type Trace struct {
+type TraceMessage struct {
+	MerkleRoot string `json:"merkle_root"`
+}
+
+type OperatorResponseMessage struct {
+	MerkleRoot string `json:"merkle_root"`
+	OperatorId string `json:"operator_id"`
+}
+type QuorumReachedMessage struct {
 	MerkleRoot string `json:"merkle_root"`
 }
 
@@ -30,7 +38,7 @@ func NewTelemetry(serverAddress string, logger logging.Logger) *Telemetry {
 		Scheme: "http",
 		Host:   serverAddress,
 	}
-	logger.Info("[Telemetry] Starting Telemetry client with server address", "server_address",
+	logger.Info("[Telemetry] Starting Telemetry client.", "server_address",
 		serverAddress)
 
 	return &Telemetry{
@@ -44,7 +52,7 @@ func NewTelemetry(serverAddress string, logger logging.Logger) *Telemetry {
 // User must call FinishTrace() to complete the trace.
 func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
 	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
-	body := Trace{
+	body := TraceMessage{
 		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
 	}
 	encodedBody, err := json.Marshal(body)
@@ -52,10 +60,50 @@ func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
 		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
 		return
 	}
-	t.logger.Info("[Telemetry] Sending init task trace with merkle root", "merkle_root", body.MerkleRoot)
+	t.logger.Info("[Telemetry] Sending init task trace.", "merkle_root", body.MerkleRoot)
 	if err := t.sendAndReceiveResponse("/api/initTaskTrace", encodedBody); err != nil {
 
 		t.logger.Error("[Telemetry] Error sending init task trace: %v", err)
+	}
+}
+
+// Logs an operator response.
+// The response is added as an event in the corresponding trace.
+func (t *Telemetry) LogOperatorResponse(batchMerkleRoot [32]byte, operatorId [32]byte) {
+	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
+	operatorIdString := hex.EncodeToString(operatorId[:])
+	body := OperatorResponseMessage{
+		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
+		OperatorId: fmt.Sprintf("0x%s", operatorIdString),
+	}
+	encodedBody, err := json.Marshal(body)
+	if err != nil {
+		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
+		return
+	}
+	t.logger.Info("[Telemetry] Sending operator response.", "merkle_root", body.MerkleRoot, "operator_resonse", body.OperatorId)
+	if err := t.sendAndReceiveResponse("/api/operatorResponse", encodedBody); err != nil {
+
+		t.logger.Error("[Telemetry] Error sending operator response: %v", err)
+	}
+}
+
+// Logs quorum reached.
+// Emits an event in the corresponding trace.
+func (t *Telemetry) LogQuorumReached(batchMerkleRoot [32]byte) {
+	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
+	body := QuorumReachedMessage{
+		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
+	}
+	encodedBody, err := json.Marshal(body)
+	if err != nil {
+		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
+		return
+	}
+	t.logger.Info("[Telemetry] Logging quorum reached", "merkle_root", body.MerkleRoot)
+	if err := t.sendAndReceiveResponse("/api/quorumReached", encodedBody); err != nil {
+
+		t.logger.Error("[Telemetry] Error sending QuorumReached: %v", err)
 	}
 }
 
@@ -65,7 +113,7 @@ func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 	go func() {
 		time.Sleep(10 * time.Second)
 		merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
-		body := Trace{
+		body := TraceMessage{
 			MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
 		}
 		encodedBody, err := json.Marshal(body)
@@ -73,7 +121,7 @@ func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 			t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
 			return
 		}
-		t.logger.Info("[Telemetry] Sending finish task trace with merkle root", "merkle_root", body.MerkleRoot)
+		t.logger.Info("[Telemetry] Sending finish task trace.", "merkle_root", body.MerkleRoot)
 
 		if err := t.sendAndReceiveResponse("/api/finishTaskTrace", encodedBody); err != nil {
 
@@ -97,8 +145,7 @@ func (t *Telemetry) sendAndReceiveResponse(endpoint string, body []byte) error {
 		return fmt.Errorf("error reading response body: %w", err)
 	}
 
-	t.logger.Info("[Telemetry] Response Status", "status", resp.Status)
-	t.logger.Info("[Telemetry] Response Body", "response_body", string(respBody))
+	t.logger.Info("[Telemetry] Response Status", "status", resp.Status, "response_body", string(respBody))
 
 	return nil
 }

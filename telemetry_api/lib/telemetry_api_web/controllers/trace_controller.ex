@@ -13,7 +13,34 @@ defmodule TelemetryApiWeb.TraceController do
     with {:ok, merkle_root} <- Traces.create_task_trace(merkle_root) do
       conn
       |> put_status(:created)
-      |> render(:show, merkle_root: merkle_root)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  @doc """
+  Register an operator response in the trace of the given merkle_root
+  Method: POST operatorResponse
+  """
+  def register_operator_response(conn, %{
+        "merkle_root" => merkle_root,
+        "operator_id" => operator_id
+      }) do
+    with {:ok, operator_id} <- Traces.register_operator_response(merkle_root, operator_id) do
+      conn
+      |> put_status(:ok)
+      |> render(:show_operator, operator_id: operator_id)
+    end
+  end
+
+  @doc """
+  Registers a reached quorum in the trace of the given merkle_root
+  Method: POST quorumReached
+  """
+  def quorum_reached(conn, %{"merkle_root" => merkle_root}) do
+    with {:ok, merkle_root} <- Traces.quorum_reached(merkle_root) do
+      conn
+      |> put_status(:ok)
+      |> render(:show_merkle, merkle_root: merkle_root)
     end
   end
 
@@ -25,7 +52,7 @@ defmodule TelemetryApiWeb.TraceController do
     with :ok <- Traces.finish_task_trace(merkle_root) do
       conn
       |> put_status(:ok)
-      |> render(:show, merkle_root: merkle_root)
+      |> render(:show_merkle, merkle_root: merkle_root)
     end
   end
 end
