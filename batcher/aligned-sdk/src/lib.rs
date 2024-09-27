@@ -11,7 +11,7 @@ pub mod communication {
 }
 
 pub mod eth {
-    pub(crate) mod aligned_service_manager;
+    pub mod aligned_service_manager;
     pub mod batcher_payment_service;
 }
 
