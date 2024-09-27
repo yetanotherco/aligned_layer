@@ -34,12 +34,15 @@ jobs:
         with:
           go-version: '1.23'
           cache: false
-      - name: Build Operator
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build Operator and ffi bindigs
         run: |
           make build_operator
       - name: Test Operator
         run: |
-          go test ./operator/...
+          make test_operator
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
       - name: Test aggregator
