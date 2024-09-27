@@ -7,7 +7,8 @@ defmodule TelemetryApi.Operators do
   alias TelemetryApi.Repo
 
   alias TelemetryApi.Operators.Operator
-  alias TelemetryApi.RegistryCoordinatorManager
+  alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
+  alias TelemetryApi.ContractManagers.OperatorStateRetriever
 
   @doc """
   Returns the list of operators.
@@ -39,35 +40,60 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Creates a operator.
+  Fetches all operators.
 
   ## Examples
 
-      iex> create_operator(%{field: value})
-      {:ok, %Operator{}}
+      iex> fetch_all_operators()
+      {:ok, %Ecto.Changeset{}}
 
-      iex> create_operator(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
+      iex> fetch_all_operators()
+      {:error, string}
 
   """
-  def create_operator(attrs \\ %{}) do
-    # Get address from the signature
-    with {:ok, address} <- SignatureVerifier.get_address(attrs["version"], attrs["signature"]),
-      {:ok, is_registered?} <- RegistryCoordinatorManager.is_operator_registered?(address) do
-        # Verify operator is registered
-        if is_registered? do
-          address = "0x" <> address 
-          attrs = Map.put(attrs, "address", address)
-
-          # We handle updates here as there is no patch method available at the moment.
-          case Repo.get(Operator, address) do
-            nil -> %Operator{}
+  def fetch_all_operators() do
+    with {:ok, operators} <- OperatorStateRetriever.get_operators() do
+        operators = Enum.map(operators, fn op_data -> 
+          case Repo.get(Operator, op_data.address) do
+            nil -> %Operator{} 
             operator -> operator
           end
-          |> Operator.changeset(attrs)
+          |> Operator.changeset(op_data) 
           |> Repo.insert_or_update()
-        else
-          {:error, "Provided address does not correspond to any registered operator"}
+        end)
+        # Check if we failed to store any operator
+        case Enum.find(operators, fn {status, _} -> status == :error end) do
+          nil -> 
+            {:ok, Enum.map(operators, fn {:ok, value} -> value end)}
+          
+          {:error, _} -> 
+            {:error, "Failed to store Operator in database"}
+        end
+    end
+  end
+  
+  @doc """
+  Updates an operator's version.
+
+  ## Examples
+
+      iex> update_operator_version(%{field: value})
+      {:ok, %Ecto.Changeset{}}
+
+      iex> update_operator_version(%{field: bad_value})
+      {:error, string}
+
+  """
+  def update_operator_version(attrs \\ %{}) do
+    with {:ok, address} <- SignatureVerifier.get_address(attrs["version"], attrs["signature"]) do
+        address = "0x" <> address 
+        # We only want to allow changes on version
+        changes = %{
+          version: attrs["version"]
+        }
+        case Repo.get(Operator, address) do
+          nil -> {:error, "Provided address does not correspond to any registered operator"}
+          operator -> operator |> Operator.changeset(changes) |> Repo.insert_or_update()
         end
     end
   end

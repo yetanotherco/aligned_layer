@@ -4,6 +4,7 @@ defmodule TelemetryApiWeb.OperatorController do
   alias TelemetryApi.Operators
   alias TelemetryApi.Operators.Operator
 
+  alias TelemetryApi.ContractManagers.OperatorStateRetriever
   action_fallback TelemetryApiWeb.FallbackController
 
   defp return_error(conn, message) do
@@ -19,7 +20,7 @@ defmodule TelemetryApiWeb.OperatorController do
   end
 
   def create(conn, operator_params) do
-    case Operators.create_operator(operator_params) do
+    case Operators.update_operator_version(operator_params) do
       {:ok, %Operator{} = operator} ->
         conn
           |> put_status(:created)

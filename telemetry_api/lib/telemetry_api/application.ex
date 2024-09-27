@@ -21,7 +21,12 @@ defmodule TelemetryApi.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: TelemetryApi.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    # Now we fetch operators data from smart contract to fill db
+    with {:ok, pid} <- Supervisor.start_link(children, opts),
+      {:ok, _} <- TelemetryApi.Operators.fetch_all_operators() do
+        {:ok, pid}
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration

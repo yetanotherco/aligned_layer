@@ -1,5 +1,5 @@
-defmodule TelemetryApi.RegistryCoordinatorManager do
-  alias TelemetryApi.RegistryCoordinatorManager
+defmodule TelemetryApi.ContractManagers.RegistryCoordinatorManager do
+  alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
 
   require Logger
 

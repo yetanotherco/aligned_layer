@@ -4,6 +4,8 @@ defmodule TelemetryApi.Operators.Operator do
 
   @primary_key {:address, :string, []}
   schema "operators" do
+    field :id, :string
+    field :stake, :string
     field :version, :string
 
     timestamps(type: :utc_datetime)
@@ -12,8 +14,8 @@ defmodule TelemetryApi.Operators.Operator do
   @doc false
   def changeset(operator, attrs) do
     operator
-    |> cast(attrs, [:address, :version])
-    |> validate_required([:address, :version])
+    |> cast(attrs, [:address, :id, :stake, :version])
+    |> validate_required([:address, :id, :stake])
   end
 end
 
