@@ -766,6 +766,18 @@ docker_build_operator:
 docker_build_batcher:
 	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
 
+docker_restart_aggregator:
+	docker compose -f docker-compose.yaml --profile aggregator down
+	docker compose -f docker-compose.yaml --profile aggregator up -d
+
+docker_restart_operator:
+	docker compose -f docker-compose.yaml --profile operator down
+	docker compose -f docker-compose.yaml --profile operator up -d
+
+docker_restart_batcher:
+	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile batcher up -d
+
 docker_build:
 	@echo "Host architecture: $(GOARCH)"
 	docker compose -f docker-compose.yaml --profile aligned_base build
