@@ -23,6 +23,7 @@ COPY batcher/aligned/ batcher/aligned/
 
 RUN cargo build --manifest-path ./batcher/aligned-batcher/Cargo.toml --release
 RUN cargo build --manifest-path ./batcher/aligned/Cargo.toml --release
+RUN go build -o ./gnark_groth16_bn254_infinite_script scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go
 
 RUN rm -rf operator/
 
@@ -33,6 +34,7 @@ WORKDIR /aligned_layer
 COPY --from=builder /aligned_layer /aligned_layer
 COPY --from=builder /aligned_layer/batcher/target/release/aligned-batcher /usr/local/bin/
 COPY --from=builder /aligned_layer/batcher/target/release/aligned /usr/local/bin/
+COPY --from=builder /aligned_layer/gnark_groth16_bn254_infinite_script /usr/local/bin
 
 RUN apt update -y
 RUN apt install -y libssl-dev ca-certificates
