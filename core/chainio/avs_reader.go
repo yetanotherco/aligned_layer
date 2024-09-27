@@ -1,6 +1,8 @@
 package chainio
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
@@ -63,6 +65,6 @@ func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, erro
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }
 
-func (r *AvsReader) GetBlacklistedVerifiers() (uint64, error) {
+func (r *AvsReader) GetBlacklistedVerifiers() (*big.Int, error) {
 	return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.GetBlacklistedVerifiers(&bind.CallOpts{})
 }

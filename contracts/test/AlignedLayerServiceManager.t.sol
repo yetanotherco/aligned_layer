@@ -104,16 +104,16 @@ contract AlignedLayerServiceManagerTest is Test, BLSMockAVSDeployer {
 
     function test_SetVerifiersList_WorksAsExpected() public {
         vm.prank(address(0));
-        uint64 newBitmap = 1234;
+        uint256 newBitmap = 1234;
         alignedLayerServiceManager.setVerifiersBlacklist(newBitmap);
-        uint64 actualBitmap = alignedLayerServiceManager
-            .blacklistedVerifiers();
+        uint256 actualBitmap = alignedLayerServiceManager
+            .getBlacklistedVerifiers();
 
         assertEq(newBitmap, actualBitmap);
     }
 
     function test_BlacklistAndWhitelistVerifier_WorksAsExpected() public {
-        uint64 verifierIdx = 28;
+        uint256 verifierIdx = 28;
 
         // make sure it is false by default
         bool res = alignedLayerServiceManager.isVerifierBlacklisted(

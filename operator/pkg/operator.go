@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
 	"sync"
 	"time"
 
@@ -333,9 +334,9 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	return nil
 }
 
-func (o *Operator) CheckVerifierStatus(blacklisted_verifiers_bitmap uint64, verifierId common.ProvingSystemId) bool {
+func (o *Operator) IsVerifierValid(blacklisted_verifiers_bitmap *big.Int, verifierId common.ProvingSystemId) bool {
 	verifierIdInt := uint64(verifierId)
-	bit := blacklisted_verifiers_bitmap & (1 << verifierIdInt)
+	bit := blacklisted_verifiers_bitmap.Uint64() & (1 << verifierIdInt)
 	return bit == 0
 }
 
@@ -346,7 +347,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- false
 		return
 	}
-	is_verifier_valid := o.CheckVerifierStatus(blacklisted_verifiers_bitmap, verificationData.ProvingSystemId)
+	is_verifier_valid := o.IsVerifierValid(blacklisted_verifiers_bitmap, verificationData.ProvingSystemId)
 	if !is_verifier_valid {
 		o.Logger.Infof("Verifier %s is not available", verificationData.ProvingSystemId.String())
 		results <- false
