@@ -298,10 +298,6 @@ contract BatcherPaymentService is
 
         address signer = ECDSA.recover(hash, signatureData.signature);
 
-        if (signer == address(0)) {
-            revert InvalidSignature();
-        }
-
         UserInfo storage signerData = userData[signer];
 
         if (signerData.nonce != signatureData.nonce) {
