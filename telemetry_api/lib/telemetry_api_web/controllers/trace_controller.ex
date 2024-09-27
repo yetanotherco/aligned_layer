@@ -45,6 +45,18 @@ defmodule TelemetryApiWeb.TraceController do
   end
 
   @doc """
+  Registers an error in the trace of the given merkle_root
+  Method: POST taskError
+  """
+  def task_error(conn, %{"merkle_root" => merkle_root, "error" => error}) do
+    with {:ok, merkle_root} <- Traces.task_error(merkle_root, error) do
+      conn
+      |> put_status(:ok)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  @doc """
   Finish a trace for the given merkle_root
   Method: POST finishTaskTrace
   """

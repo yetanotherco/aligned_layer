@@ -25,6 +25,11 @@ type QuorumReachedMessage struct {
 	MerkleRoot string `json:"merkle_root"`
 }
 
+type TaskErrorMessage struct {
+	MerkleRoot string `json:"merkle_root"`
+	TaskError  string `json:"error"`
+}
+
 type Telemetry struct {
 	client  *http.Client
 	baseURL *url.URL
@@ -104,6 +109,26 @@ func (t *Telemetry) LogQuorumReached(batchMerkleRoot [32]byte) {
 	if err := t.sendAndReceiveResponse("/api/quorumReached", encodedBody); err != nil {
 
 		t.logger.Error("[Telemetry] Error sending QuorumReached: %v", err)
+	}
+}
+
+// Logs a task error.
+// Emits an event in the corresponding trace.
+func (t *Telemetry) LogTaskError(batchMerkleRoot [32]byte, error error) {
+	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
+	body := TaskErrorMessage{
+		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
+		TaskError:  error.Error(),
+	}
+	encodedBody, err := json.Marshal(body)
+	if err != nil {
+		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
+		return
+	}
+	t.logger.Info("[Telemetry] Logging Task Error", "merkle_root", body.MerkleRoot, "error", body.TaskError)
+	if err := t.sendAndReceiveResponse("/api/taskError", encodedBody); err != nil {
+
+		t.logger.Error("[Telemetry] Error sending Task Error: %v", err)
 	}
 }
 

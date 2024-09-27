@@ -123,6 +123,47 @@ defmodule TelemetryApi.Traces do
   end
 
   @doc """
+  Registers an error in the task trace.
+
+  ## Examples
+
+      iex> merkle_root = "0x1234567890abcdef"
+      iex> error = "Some error.."
+      iex> task_error(merkle_root, error)
+      :ok
+  """
+  def task_error(merkle_root, error) do
+    case TraceStore.get_trace(merkle_root) do
+      nil ->
+        IO.inspect("Context not found for #{merkle_root}")
+        {:error, "Context not found for #{merkle_root}"}
+
+      trace ->
+        Ctx.attach(trace.context)
+        Tracer.set_current_span(trace.parent_span)
+
+        Tracer.add_event(
+          "Batch verification failed",
+          [
+            {:status, "error"},
+            {:error, error}
+          ]
+        )
+
+        ctx = Ctx.get_current()
+
+        TraceStore.store_trace(
+          merkle_root,
+          %{trace | context: ctx}
+        )
+
+        IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
+
+        {:ok, merkle_root}
+    end
+  end
+
+  @doc """
   Finish the task trace
 
   This function is responsible for ending the span and cleaning up the context.
