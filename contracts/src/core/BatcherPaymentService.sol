@@ -40,7 +40,7 @@ contract BatcherPaymentService is
     error UserHasNoFundsToUnlock(address user); // b38340cf
     error UserHasNoFundsToLock(address user); // 6cc12bc2
     error PayerInsufficientBalance(uint256 balance, uint256 amount); // 21c3d50f
-    error FundsLocked(uint256 unlockBlock, uint256 currentBlockTime); // bedc4e5a
+    error FundsLocked(uint256 unlockBlockTime, uint256 currentBlockTime); // bedc4e5a
     error InvalidSignature(); // 8baa579f
     error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
     error InvalidMaxFee(uint256 maxFee, uint256 actualFee); // f59adf4a
