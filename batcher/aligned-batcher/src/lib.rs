@@ -407,12 +407,7 @@ impl Batcher {
         // At this point, we will have a user state for sure, since we have inserted it
         // if not already present.
         let batch_state_lock = self.batch_state.lock().await;
-        let proofs_in_batch = batch_state_lock
-            .get_user_state(&addr)
-            .unwrap()
-            .lock()
-            .await
-            .proofs_in_batch;
+        let proofs_in_batch = batch_state_lock.get_user_proof_count(&addr).await.unwrap();
         if !self.check_user_balance(&addr, proofs_in_batch + 1).await {
             send_message(
                 ws_conn_sink.clone(),
@@ -445,21 +440,18 @@ impl Batcher {
         };
 
         if expected_nonce < msg_nonce {
-            warn!(
-                "Invalid nonce for address {addr}, had nonce {:?} < {:?}",
-                expected_nonce, msg_nonce
-            );
+            warn!("Invalid nonce for address {addr}, had nonce {expected_nonce:?} < {msg_nonce:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return Ok(());
         } else if expected_nonce == msg_nonce {
             let max_fee = nonced_verification_data.max_fee;
 
-            let (user_min_fee, _) = batch_state_lock.get_user_batch_data(&addr).await.unwrap();
+            let Some((user_min_fee, _)) = batch_state_lock.get_user_batch_data(&addr).await else {
+                send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                return Ok(());
+            };
             if max_fee > user_min_fee {
-                warn!(
-                    "Invalid max fee for address {addr}, had fee {:?} < {:?}",
-                    user_min_fee, max_fee
-                );
+                warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {max_fee:?}");
                 send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
                 return Ok(());
             }
@@ -527,8 +519,7 @@ impl Batcher {
 
         let Some(entry) = batch_state_lock.get_entry(addr, nonce) else {
             warn!(
-                "Invalid nonce for address {addr} Expected: {:?}, got: {:?}",
-                expected_user_nonce, nonce
+                "Invalid nonce for address {addr} Expected: {expected_user_nonce:?}, got: {nonce:?}"
             );
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return false;
@@ -549,8 +540,7 @@ impl Batcher {
         }
 
         info!(
-            "Replacing message for address {} with nonce {} and max fee {}",
-            addr, nonce, replacement_max_fee
+            "Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}"
         );
 
         // The replacement entry is built from the old entry and validated for then to be replaced
@@ -566,7 +556,7 @@ impl Batcher {
                 let mut old_sink = messaging_sink.write().await;
                 if let Err(e) = old_sink.close().await {
                     // we dont want to exit here, just log the error
-                    warn!("Error closing sink: {:?}", e);
+                    warn!("Error closing sink: {e:?}");
                 }
             } else {
                 warn!(
@@ -601,10 +591,12 @@ impl Batcher {
             BatchQueueEntryPriority::new(replacement_max_fee, nonce),
         );
 
+        let Some(user_state) = batch_state_lock.get_user_state(&addr) else {
+            warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+            return false;
+        };
         let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
-        let mut user_state_lock = batch_state_lock.get_user_state(&addr).unwrap().lock().await;
-        user_state_lock.min_fee = updated_min_fee_in_batch;
-
+        user_state.lock().await.min_fee = updated_min_fee_in_batch;
         true
     }
 
@@ -674,12 +666,12 @@ impl Batcher {
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
     /// There are essentially two conditions to be checked:
-    ///     * Has the current batch reached the minimum size to be posted?
-    ///     * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
+    ///   * Has the current batch reached the minimum size to be posted?
+    ///   * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     /// Then the batch will be made as big as possible given this two conditions:
-    ///     * The serialized batch size needs to be smaller than the maximum batch size
-    ///     * The batch submission fee is less than the lowest `max fee` included the batch,
-    ///     * And the batch submission fee is more than the highest `max fee` not included the batch.
+    ///   * The serialized batch size needs to be smaller than the maximum batch size
+    ///   * The batch submission fee is less than the lowest `max fee` included the batch,
+    ///   * And the batch submission fee is more than the highest `max fee` not included the batch.
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
@@ -722,41 +714,47 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
         let batch_queue_copy = batch_state_lock.batch_queue.clone();
-        match batch_queue::try_build_batch(batch_queue_copy, gas_price, self.max_batch_size) {
-            Ok((resulting_batch_queue, finalized_batch)) => {
-                batch_state_lock.batch_queue = resulting_batch_queue;
+        let (resulting_batch_queue, finalized_batch) =
+            batch_queue::try_build_batch(batch_queue_copy, gas_price, self.max_batch_size)
+                .inspect_err(|e| {
+                    *batch_posting = false;
+                    match e {
+                        // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
+                        BatcherError::BatchCostTooHigh => {
+                            info!("No working batch found. Waiting for more proofs")
+                        }
+                        // FIXME: We should refactor this code and instead of returning None, return an error.
+                        // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
+                        e => error!("Unexpected error: {:?}", e),
+                    }
+                })
+                .ok()?;
 
-                let updated_user_proof_count_and_min_fee =
-                    batch_state_lock.get_user_proofs_in_batch_and_min_fee();
+        batch_state_lock.batch_queue = resulting_batch_queue;
+        let updated_user_proof_count_and_min_fee =
+            batch_state_lock.get_user_proofs_in_batch_and_min_fee();
 
-                for addr in batch_state_lock.user_states.keys() {
-                    let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
-                        .get(addr)
-                        .unwrap_or(&(0, U256::MAX));
+        for addr in batch_state_lock.user_states.keys() {
+            let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
+                .get(addr)
+                .unwrap_or(&(0, U256::MAX));
 
-                    let mut user_state =
-                        batch_state_lock.get_user_state(addr).unwrap().lock().await;
+            // FIXME: The case where a `user_state` is not found in the `user_states` map should not really
+            // happen here, but doing this check so that we don't unwrap.
+            // Once https://github.com/yetanotherco/aligned_layer/issues/1046 is done we could return a more
+            // informative error.
+            let Some(user_state) = batch_state_lock.get_user_state(addr) else {
+                return None;
+            };
 
-                    user_state.proofs_in_batch = *proof_count;
-                    user_state.min_fee = *min_fee;
-                }
+            // Now we update the user states
 
-                Some(finalized_batch)
-            }
-            Err(BatcherError::BatchCostTooHigh) => {
-                // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
-                info!("No working batch found. Waiting for more proofs...");
-                *batch_posting = false;
-                None
-            }
-            // FIXME: We should refactor this code and instead of returning None, return an error.
-            // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
-            Err(e) => {
-                error!("Unexpected error: {:?}", e);
-                *batch_posting = false;
-                None
-            }
+            let mut user_state_lock = user_state.lock().await;
+            user_state_lock.proofs_in_batch = *proof_count;
+            user_state_lock.min_fee = *min_fee;
         }
+
+        Some(finalized_batch)
     }
 
     /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
@@ -1113,54 +1111,52 @@ impl Batcher {
         Ok(())
     }
 
-    async fn get_user_balance(&self, addr: &Address) -> U256 {
-        match self.payment_service.user_balances(*addr).call().await {
-            Ok(val) => val,
-            Err(_) => match self
-                .payment_service_fallback
-                .user_balances(*addr)
-                .call()
-                .await
-            {
-                Ok(balance) => balance,
-                Err(_) => {
-                    warn!("Failed to get balance for address {:?}", addr);
-                    U256::zero()
-                }
-            },
-        }
+    /// TODO: ADD DOCUMENTATION ON WHY IT IS AN OPTION
+    async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
+        if let Ok(balance) = self.payment_service.user_balances(*addr).call().await {
+            return Some(balance);
+        };
+
+        self.payment_service_fallback
+            .user_balances(*addr)
+            .call()
+            .await
+            .inspect_err(|e| warn!("Failed to get balance for address {:?}", addr))
+            .ok()
     }
 
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
-        let unlock_block = match self.payment_service.user_unlock_block(*addr).call().await {
-            Ok(val) => val,
-            Err(_) => match self
-                .payment_service_fallback
-                .user_unlock_block(*addr)
-                .call()
-                .await
-            {
-                Ok(unlock_block) => unlock_block,
-                Err(_) => {
-                    warn!("Failed to get unlock block for address {:?}", addr);
-                    U256::zero()
-                }
-            },
-        };
-
-        unlock_block != U256::zero()
+        // try with the main
+        if let Ok(unlock_block) = self.payment_service.user_unlock_block(*addr).call().await {
+            return unlock_block != U256::zero();
+        }
+        // falback
+        if let Ok(unlock_block) = self
+            .payment_service_fallback
+            .user_unlock_block(*addr)
+            .call()
+            .await
+        {
+            return unlock_block != U256::zero();
+        }
+        warn!("Could not get user locking state");
+        false
     }
 
     async fn get_gas_price(&self) -> Option<U256> {
-        match self.eth_ws_provider.get_gas_price().await {
-            Ok(gas_price) => Some(gas_price), // this is the block's max priority gas price, not the base fee
-            Err(_) => match self.eth_ws_provider_fallback.get_gas_price().await {
-                Ok(gas_price) => Some(gas_price),
-                Err(_) => {
-                    warn!("Failed to get gas price");
-                    None
-                }
-            },
+        if let Ok(gas_price) = self
+            .eth_ws_provider
+            .get_gas_price()
+            .await
+            .inspect_err(|e| warn!("Failed to get gas price. Trying with fallback: {e:?}"))
+        {
+            return Some(gas_price);
         }
+
+        self.eth_ws_provider_fallback
+            .get_gas_price()
+            .await
+            .inspect_err(|e| warn!("Failed to get gas price: {e:?}"))
+            .ok()
     }
 }
