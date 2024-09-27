@@ -26,10 +26,7 @@ services:
     build:
       context: .
       dockerfile: docker/aggregator.Dockerfile
-    depends_on:
-      - anvil
     profiles:
-      - base
       - aggregator
 
   fund-operator:
