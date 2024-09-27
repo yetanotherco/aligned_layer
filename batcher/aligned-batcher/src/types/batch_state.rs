@@ -15,21 +15,6 @@ impl BatchState {
         }
     }
 
-    // fn get_user_proof_count(&self, addr: &Address) -> u64 {
-    //     *self.user_proof_count_in_batch.get(addr).unwrap_or(&0)
-    // }
-
-    // /*
-    //    Increments the user proof count in the batch, if the user is already in the hashmap.
-    //    If the user is not in the hashmap, it adds the user to the hashmap with a count of 1 to represent the first proof.
-    // */
-    // fn increment_user_proof_count(&mut self, addr: &Address) {
-    //     self.user_proof_count_in_batch
-    //         .entry(*addr)
-    //         .and_modify(|count| *count += 1)
-    //         .or_insert(1);
-    // }
-
     pub(crate) fn get_entry(&self, sender: Address, nonce: U256) -> Option<&BatchQueueEntry> {
         self.batch_queue
             .iter()
@@ -38,12 +23,7 @@ impl BatchState {
     }
 
     /// Checks if the entry is valid
-    /// An entry is valid if there is no entry with the same sender,
-    /// lower nonce and a lower fee
-    /// If the entry is valid, it replaces the entry in the queue
-    /// to increment the max fee, then it updates the user min fee if necessary
-    /// If the entry is invalid, it returns a validity response message.
-    /// If the entry is valid, it returns None.
+    /// An entry is valid if there is no entry with the same sender, lower nonce and a lower fee
     pub(crate) fn replacement_entry_is_valid(
         &mut self,
         replacement_entry: &BatchQueueEntry,
@@ -64,33 +44,6 @@ impl BatchState {
                 && entry.nonced_verification_data.max_fee < replacement_max_fee
         })
     }
-
-    //     if !is_valid {
-    //         return Some(ValidityResponseMessage::InvalidReplacementMessage);
-    //     }
-
-    //     // remove the old entry and insert the new one
-    //     // note that the entries are considered equal for the priority queue
-    //     // if they have the same nonce and sender, so we can remove the old entry
-    //     // by calling remove with the new entry
-    //     self.batch_queue.remove(&replacement_entry);
-    //     self.batch_queue.push(
-    //         replacement_entry.clone(),
-    //         BatchQueueEntryPriority::new(replacement_max_fee, nonce),
-    //     );
-
-    //     let user_min_fee = self
-    //         .batch_queue
-    //         .iter()
-    //         .filter(|(e, _)| e.sender == sender)
-    //         .map(|(e, _)| e.nonced_verification_data.max_fee)
-    //         .min()
-    //         .unwrap_or(U256::max_value());
-
-    //     self.user_min_fee.insert(sender, user_min_fee);
-
-    //     None
-    // }
 
     pub(crate) fn get_user_min_fee_in_batch(&self, addr: &Address) -> U256 {
         self.batch_queue
