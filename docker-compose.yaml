@@ -12,6 +12,12 @@ services:
     build:
       context: .
       dockerfile: docker/anvil.Dockerfile
+    healthcheck:
+      test: cast block-number
+      interval: 1s
+      timeout: 45s
+      retries: 20
+      start_period: 1s
     profiles:
       - base
 
