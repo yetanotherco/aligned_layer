@@ -1,14 +1,15 @@
 package operator
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/ugorji/go/codec"
-
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
 
@@ -99,13 +100,13 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 
 	var batch []VerificationData
 
-	decoder := codec.NewDecoderBytes(batchBytes, new(codec.CborHandle))
+	decoder := cbor.NewDecoder(bytes.NewReader(batchBytes))
 
 	err = decoder.Decode(&batch)
 	if err != nil {
 		o.Logger.Infof("Error decoding batch as CBOR: %s. Trying JSON decoding...", err)
 		// try json
-		decoder = codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
+		decoder := codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
 		err = decoder.Decode(&batch)
 		if err != nil {
 			return nil, err
