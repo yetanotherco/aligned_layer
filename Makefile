@@ -840,3 +840,47 @@ docker_batcher_send_plonk_bls12_381_burst:
               --repetitions 15 \
               --rpc_url $(DOCKER_RPC_URL) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_batcher_send_infinite_groth16:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+		mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs; \
+	  counter=1; \
+	  timer=3; \
+	  while true; do \
+	    echo "Generating proof $${counter} != 0"; \
+	    gnark_groth16_bn254_infinite_script $${counter}; \
+	    aligned submit \
+	              --rpc_url $(DOCKER_RPC_URL) \
+	              --repetitions 2 \
+	              --proving_system Groth16Bn254 \
+	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.proof \
+	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
+	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
+	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
+	    sleep $${timer}; \
+	    counter=$$((counter + 1)); \
+	  done \
+	'
+
+docker_batcher_send_halo2_ipa_task_burst_5:
+	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+	              --proving_system Halo2IPA \
+	              --proof scripts/test_files/halo2_ipa/proof.bin \
+	              --public_input scripts/test_files/halo2_ipa/pub_input.bin \
+	              --vk scripts/test_files/halo2_ipa/params.bin \
+	              --repetitions 5 \
+	              --rpc_url $(DOCKER_RPC_URL) \
+	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_batcher_send_halo2_kzg_task_burst_5:
+	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+	              --proving_system Halo2KZG \
+	              --proof scripts/test_files/halo2_kzg/proof.bin \
+	              --public_input scripts/test_files/halo2_kzg/pub_input.bin \
+	              --vk scripts/test_files/halo2_kzg/params.bin \
+	              --repetitions 5 \
+	              --rpc_url $(DOCKER_RPC_URL) \
+	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
