@@ -94,8 +94,8 @@ pub async fn send_messages(
                 error!("Proof too large!");
                 return Err(SubmitError::ProofTooLarge);
             }
-            ValidityResponseMessage::InvalidProof => {
-                error!("Invalid Proof!");
+            ValidityResponseMessage::InvalidProof(reason) => {
+                error!("Invalid Proof!: {}", reason);
                 return Err(SubmitError::InvalidProof);
             }
             ValidityResponseMessage::InvalidMaxFee => {

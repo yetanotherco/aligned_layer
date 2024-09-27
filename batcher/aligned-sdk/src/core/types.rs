@@ -1,3 +1,7 @@
+use std::fmt;
+use std::fmt::Display;
+use std::fmt::Formatter;
+
 use ethers::core::k256::ecdsa::SigningKey;
 use ethers::signers::Signer;
 use ethers::signers::Wallet;
@@ -32,6 +36,20 @@ pub enum ProvingSystemId {
     Halo2KZG,
     Halo2IPA,
     Risc0,
+}
+
+impl Display for ProvingSystemId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ProvingSystemId::GnarkPlonkBls12_381 => write!(f, "GnarkPlonkBls12_381"),
+            ProvingSystemId::GnarkPlonkBn254 => write!(f, "GnarkPlonkBn254"),
+            ProvingSystemId::Groth16Bn254 => write!(f, "Groth16Bn254"),
+            ProvingSystemId::SP1 => write!(f, "SP1"),
+            ProvingSystemId::Halo2KZG => write!(f, "Halo2KZG"),
+            ProvingSystemId::Halo2IPA => write!(f, "Halo2IPA"),
+            ProvingSystemId::Risc0 => write!(f, "Risc0"),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -280,7 +298,7 @@ impl ClientMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AlignedVerificationData {
     pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
@@ -312,11 +330,30 @@ pub enum ValidityResponseMessage {
     InvalidNonce,
     InvalidSignature,
     InvalidChainId,
-    InvalidProof,
+    InvalidProof(ProofInvalidReason),
     InvalidMaxFee,
     InvalidReplacementMessage,
     ProofTooLarge,
     InsufficientBalance(Address),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProofInvalidReason {
+    Unknown,
+    MissingVerificationData,
+    VerifierNotSupported,
+    BlacklistedVerifier,
+}
+
+impl Display for ProofInvalidReason {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ProofInvalidReason::Unknown => write!(f, "Unknown"),
+            ProofInvalidReason::MissingVerificationData => write!(f, "Missing verification data"),
+            ProofInvalidReason::VerifierNotSupported => write!(f, "Verifier not supported"),
+            ProofInvalidReason::BlacklistedVerifier => write!(f, "Blacklisted verifier"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
