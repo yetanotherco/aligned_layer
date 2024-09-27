@@ -16,7 +16,7 @@ use aligned_sdk::{
 
 use super::errors::BatcherError;
 
-type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
+pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
 #[derive(Clone)]
 pub(crate) struct BatchQueueEntry {
