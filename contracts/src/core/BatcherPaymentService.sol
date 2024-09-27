@@ -20,7 +20,7 @@ contract BatcherPaymentService is
     using ECDSA for bytes32;
 
     // CONSTANTS = 100 Blocks * 12 second block time.
-    uint256 public constant UNLOCK_BLOCK_TIME = 1200 seconds;
+    uint256 public constant UNLOCK_BLOCK_TIME = 3600 seconds;
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
