@@ -461,10 +461,7 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
-                if !self
-                    .check_user_balance(&addr)
-                    .await
-                {
+                if !self.check_user_balance(&addr).await {
                     send_message(
                         ws_conn_sink.clone(),
                         ValidityResponseMessage::InsufficientBalance(addr),
