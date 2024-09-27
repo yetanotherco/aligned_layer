@@ -3,10 +3,10 @@ extern crate core;
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
+use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use serde::Serialize;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -17,9 +17,8 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{
-    BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+    ClientMessage, NoncedVerificationData, ResponseMessage, ValidityResponseMessage,
+    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
@@ -33,12 +32,13 @@ use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
-use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority, WsMessageSink};
+use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 
 mod config;
+mod connection;
 mod eth;
 pub mod gnark;
 pub mod halo2;
@@ -435,7 +435,6 @@ impl Batcher {
             ethereum_user_nonce
         };
 
-        let min_fee = user_state.min_fee;
         if expected_nonce < msg_nonce {
             warn!(
                 "Invalid nonce for address {addr}, had nonce {:?} < {:?}",
@@ -445,10 +444,10 @@ impl Batcher {
             return Ok(());
         } else if expected_nonce == msg_nonce {
             let max_fee = nonced_verification_data.max_fee;
-            if max_fee > min_fee {
+            if max_fee > user_state.min_fee {
                 warn!(
                     "Invalid max fee for address {addr}, had fee {:?} < {:?}",
-                    min_fee, max_fee
+                    user_state.min_fee, max_fee
                 );
                 send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
                 return Ok(());
@@ -479,13 +478,10 @@ impl Batcher {
                 // message should not be added to batch
                 return Ok(());
             }
-            let user_min_fee = self
-                .batch_state
-                .lock()
-                .await
-                .get_user_min_fee_in_batch(&addr);
 
-            user_state.min_fee = user_min_fee;
+            let batch_state = self.batch_state.lock().await;
+            let updated_min_fee_in_batch = batch_state.get_user_min_fee_in_batch(&addr);
+            user_state.min_fee = updated_min_fee_in_batch;
         }
 
         info!("Verification data message handled");
@@ -778,8 +774,6 @@ impl Batcher {
             .map(VerificationCommitmentBatch::hash_data)
             .collect();
 
-        println!("ENTERING SUBMIT BATCH...");
-
         if let Err(e) = self
             .submit_batch(
                 &batch_bytes,
@@ -808,7 +802,7 @@ impl Batcher {
             return Err(e);
         };
 
-        send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
+        connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
@@ -1140,54 +1134,5 @@ impl Batcher {
                 }
             },
         }
-    }
-}
-
-async fn send_batch_inclusion_data_responses(
-    finalized_batch: Vec<BatchQueueEntry>,
-    batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
-) -> Result<(), BatcherError> {
-    for (vd_batch_idx, entry) in finalized_batch.iter().enumerate() {
-        let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
-        let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
-
-        let serialized_response = cbor_serialize(&response)
-            .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
-
-        let Some(ws_sink) = entry.messaging_sink.as_ref() else {
-            return Err(BatcherError::WsSinkEmpty);
-        };
-
-        let sending_result = ws_sink
-            .write()
-            .await
-            .send(Message::binary(serialized_response))
-            .await;
-
-        match sending_result {
-            Err(Error::AlreadyClosed) => (),
-            Err(e) => error!("Error while sending batch inclusion data response: {}", e),
-            Ok(_) => (),
-        }
-
-        info!("Response sent");
-    }
-
-    Ok(())
-}
-
-async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, message: T) {
-    match cbor_serialize(&message) {
-        Ok(serialized_response) => {
-            if let Err(err) = ws_conn_sink
-                .write()
-                .await
-                .send(Message::binary(serialized_response))
-                .await
-            {
-                error!("Error while sending message: {}", err)
-            }
-        }
-        Err(e) => error!("Error while serializing message: {}", e),
     }
 }
