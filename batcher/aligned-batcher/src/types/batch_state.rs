@@ -1,17 +1,30 @@
 use std::collections::HashMap;
 
-use super::batch_queue::{BatchQueue, BatchQueueEntry};
+use super::{
+    batch_queue::{BatchQueue, BatchQueueEntry},
+    user_state::UserState,
+};
 use ethers::types::{Address, U256};
 use log::debug;
+use tokio::sync::Mutex;
 
 pub(crate) struct BatchState {
     pub(crate) batch_queue: BatchQueue,
+    pub(crate) user_states: HashMap<Address, Mutex<UserState>>,
 }
 
 impl BatchState {
     pub(crate) fn new() -> Self {
         Self {
             batch_queue: BatchQueue::new(),
+            user_states: HashMap::new(),
+        }
+    }
+
+    pub(crate) fn new_with_user_states(user_states: HashMap<Address, Mutex<UserState>>) -> Self {
+        Self {
+            batch_queue: BatchQueue::new(),
+            user_states,
         }
     }
 
@@ -20,6 +33,40 @@ impl BatchState {
             .iter()
             .map(|(entry, _)| entry)
             .find(|entry| entry.sender == sender && entry.nonced_verification_data.nonce == nonce)
+    }
+
+    pub(crate) fn get_user_state(&self, addr: &Address) -> Option<&Mutex<UserState>> {
+        self.user_states.get(addr)
+    }
+
+    pub(crate) async fn get_user_nonce(&self, addr: &Address) -> Option<U256> {
+        let Some(user_state) = self.get_user_state(addr) else {
+            return None;
+        };
+        user_state.lock().await.nonce
+    }
+
+    pub(crate) async fn get_user_min_fee(&self, addr: &Address) -> Option<U256> {
+        let Some(user_state) = self.get_user_state(addr) else {
+            return None;
+        };
+        Some(user_state.lock().await.min_fee)
+    }
+
+    pub(crate) async fn get_user_proof_count(&self, addr: &Address) -> Option<usize> {
+        let Some(user_state) = self.get_user_state(addr) else {
+            return None;
+        };
+        Some(user_state.lock().await.proofs_in_batch)
+    }
+
+    pub(crate) async fn get_user_batch_data(&self, addr: &Address) -> Option<(U256, usize)> {
+        let Some(user_state) = self.get_user_state(addr) else {
+            return None;
+        };
+
+        let user_state_lock = user_state.lock().await;
+        Some((user_state_lock.min_fee, user_state_lock.proofs_in_batch))
     }
 
     /// Checks if the entry is valid
