@@ -71,6 +71,9 @@ contract BatcherPaymentService is
         address _batcherWallet,
         bytes32 _noncedVerificationDataTypeHash
     ) public initializer {
+        if (address(_alignedLayerServiceManager) == address(0)) {
+            revert InvalidAddress("alignedServiceManager");
+        }
         if (_batcherPaymentServiceOwner == address(0)) {
             revert InvalidAddress("batcherPaymentServiceOwner");
         }

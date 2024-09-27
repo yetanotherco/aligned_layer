@@ -36,6 +36,18 @@ contract AlignedLayerServiceManager is
             __stakeRegistry
         )
     {
+        if (address(__avsDirectory) == address(0)) {
+            revert InvalidAddress("avsDirectory");
+        }
+        if (address(__rewardsCoordinator) == address(0)) {
+            revert InvalidAddress("rewardsCoordinator");
+        }
+        if (address(__registryCoordinator) == address(0)) {
+            revert InvalidAddress("registryCoordinator");
+        }
+        if (address(__stakeRegistry) == address(0)) {
+            revert InvalidAddress("stakeRegistry");
+        }
         _disableInitializers();
     }
 
