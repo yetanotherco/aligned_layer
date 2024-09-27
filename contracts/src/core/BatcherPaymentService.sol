@@ -71,7 +71,6 @@ contract BatcherPaymentService is
         address _batcherWallet,
         bytes32 _noncedVerificationDataTypeHash
     ) public initializer {
-        // make sure the addresses are not zero
         if (_batcherPaymentServiceOwner == address(0)) {
             revert InvalidAddress("batcherPaymentServiceOwner");
         }
