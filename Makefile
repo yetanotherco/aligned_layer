@@ -132,8 +132,8 @@ update_operator:
 bindings:
 	cd contracts && ./generate-go-bindings.sh
 
-test:
-	go test ./...
+test_operator: test_all_ffi
+	go test ./operator/...
 
 
 get_delegation_manager_address:
@@ -211,7 +211,7 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 
 batcher_start_local: user_fund_payment_service
 	@echo "Starting Batcher..."
-	@$(MAKE) run_storage &
+	# @$(MAKE) run_storage &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
 
 install_batcher:
