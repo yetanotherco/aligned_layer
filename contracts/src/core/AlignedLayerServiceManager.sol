@@ -142,9 +142,7 @@ contract AlignedLayerServiceManager is
         currentBatch.responded = true;
 
         // Check that batcher has enough funds to fund response
-        if (
-            batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit
-        ) {
+        if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
             revert InsufficientFunds(
                 senderAddress,
                 currentBatch.respondToTaskFeeLimit,
