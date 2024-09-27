@@ -898,3 +898,6 @@ docker_batcher_send_halo2_kzg_task_burst_5:
 	              --repetitions 5 \
 	              --rpc_url $(DOCKER_RPC_URL) \
 	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_attach_foundry:
+	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
