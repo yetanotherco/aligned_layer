@@ -30,7 +30,7 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
@@ -352,41 +352,19 @@ impl Batcher {
         info!("Message signature verified");
 
         if self.is_nonpaying(&addr) {
+            println!("Handling nonpaying MESSAGEEE!");
             return self
                 .handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                 .await;
         }
-        // Check that we had a user state entry for this user and insert it if not.
-        if !self.user_states.read().await.contains_key(&addr) {
-            let new_user_state = Mutex::new(UserState::new());
-            self.user_states
-                .write()
-                .await
-                .insert(addr.clone(), new_user_state);
-        }
 
-        // At this point, we will have a user state for sure, since we have inserted it
-        // if not already present.
-        let user_state_read_lock = self.user_states.read().await;
-        let mut user_state = user_state_read_lock.get(&addr).unwrap().lock().await;
-
-        // Perform validations on user state
         if self.user_balance_is_unlocked(&addr).await {
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InsufficientBalance(addr),
             )
             .await;
-            return Ok(());
-        }
-
-        let updated_user_proofs = user_state.proofs_in_batch + 1;
-        if !self.check_user_balance(&addr, updated_user_proofs).await {
-            send_message(
-                ws_conn_sink.clone(),
-                ValidityResponseMessage::InsufficientBalance(addr),
-            )
-            .await;
+            println!("UNLOCKING THE USER {addr} STATEEE!");
             return Ok(());
         }
 
@@ -415,6 +393,39 @@ impl Batcher {
             return Ok(());
         }
 
+        // Check that we had a user state entry for this user and insert it if not.
+        if !self.user_states.read().await.contains_key(&addr) {
+            let new_user_state = Mutex::new(UserState::new());
+            self.user_states
+                .write()
+                .await
+                .insert(addr.clone(), new_user_state);
+        }
+
+        // At this point, we will have a user state for sure, since we have inserted it
+        // if not already present.
+        println!("LOCKING USER STATE FOR ADDR: {addr}");
+        let user_state_read_lock = self.user_states.read().await;
+        let mut user_state = user_state_read_lock.get(&addr).unwrap().lock().await;
+        println!("USER STATE FOR {addr} LOCKED BABY!");
+
+        println!("LOCKING BATCH STATE IN HANDLE MESSAGE");
+        let batch_state_lock = self.batch_state.lock().await;
+        println!("BATCH STATE LOCKEDIN HANDLE MESSAGE");
+
+        if !self
+            .check_user_balance(&addr, user_state.proofs_in_batch + 1)
+            .await
+        {
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InsufficientBalance(addr),
+            )
+            .await;
+            println!("UNLOCKING THE USER {addr} STATEEE!");
+            return Ok(());
+        }
+
         let expected_nonce = if let Some(cached_nonce) = user_state.nonce {
             cached_nonce
         } else {
@@ -440,6 +451,7 @@ impl Batcher {
                 "Invalid nonce for address {addr}, had nonce {:?} < {:?}",
                 expected_nonce, msg_nonce
             );
+            println!("UNLOCKING THE USER {addr} STATEEE!");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return Ok(());
         } else if expected_nonce == msg_nonce {
@@ -455,18 +467,30 @@ impl Batcher {
 
             user_state.nonce = Some(msg_nonce + U256::one());
             user_state.min_fee = max_fee;
+            user_state.proofs_in_batch += 1;
+
+            println!(
+                "USER {addr} PROOFS IN BATCH: {}",
+                user_state.proofs_in_batch
+            );
+
+            println!("ADDING NORMAL ENTRY TO BATCH");
             self.add_to_batch(
+                batch_state_lock,
                 nonced_verification_data,
                 ws_conn_sink.clone(),
                 client_msg.signature,
                 addr,
             )
             .await;
+            println!("NORMAL ENTRY ADDED SUCCESSFULLY TO BATCH");
         } else {
             // In this case, the message might be a replacement one. If it is valid,
             // we replace the old entry with the new from the replacement message.
             if !self
                 .handle_replacement_message(
+                    batch_state_lock,
+                    user_state,
                     nonced_verification_data,
                     ws_conn_sink.clone(),
                     client_msg.signature,
@@ -475,15 +499,20 @@ impl Batcher {
                 )
                 .await
             {
+                println!("UNLOCKING THE USER {addr} STATEEE!");
+
                 // message should not be added to batch
                 return Ok(());
             }
 
-            let batch_state = self.batch_state.lock().await;
-            let updated_min_fee_in_batch = batch_state.get_user_min_fee_in_batch(&addr);
-            user_state.min_fee = updated_min_fee_in_batch;
+            // println!("LOCKING BATCH STATE - HANDLE MESSAGE - REPLACEMENT MESSAGE");
+            // let batch_state = self.batch_state.lock().await;
+            // println!("BATCH STATE LOCKED - HANDLE MESSAGE - REPLACEMENT MESSAGE");
+            // let updated_min_fee_in_batch = batch_state.get_user_min_fee_in_batch(&addr);
+            // user_state.min_fee = updated_min_fee_in_batch;
         }
-
+        println!("BATCH STATE UNLOCKED LOCKED - HANDLE MESSAGE");
+        println!("UNLOCKING THE USER {addr} STATEEE!");
         info!("Verification data message handled");
         send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
         Ok(())
@@ -509,18 +538,22 @@ impl Batcher {
     /// Returns true if the message was replaced in the batch, false otherwise
     async fn handle_replacement_message(
         &self,
+        mut batch_state_lock: MutexGuard<'_, BatchState>,
+        mut user_state_lock: MutexGuard<'_, UserState>,
         nonced_verification_data: NoncedVerificationData,
         ws_conn_sink: WsMessageSink,
         signature: Signature,
         addr: Address,
         expected_user_nonce: U256,
     ) -> bool {
-        let mut batch_state = self.batch_state.lock().await;
+        // println!("LOCKING BATCH STATE - HANDLE MESSAGE - REPLACEMENT MESSAGE FUNCTION");
+        // let mut batch_state = self.batch_state.lock().await;
+        // println!("BATCH STATE LOCKED - HANDLE MESSAGE - REPLACEMENT MESSAGE FUNCTION");
 
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
 
-        let Some(entry) = batch_state.get_entry(addr, nonce) else {
+        let Some(entry) = batch_state_lock.get_entry(addr, nonce) else {
             warn!(
                 "Invalid nonce for address {addr} Expected: {:?}, got: {:?}",
                 expected_user_nonce, nonce
@@ -571,13 +604,14 @@ impl Batcher {
         }
 
         replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
-        if !batch_state.replacement_entry_is_valid(&replacement_entry) {
+        if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
             warn!("Invalid max fee");
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidReplacementMessage,
             )
             .await;
+            println!("BATCH STATE UNLOCKED - HANDLE MESSAGE - REPLACEMENT MESSAGE FUNCTION");
             return false;
         }
 
@@ -590,14 +624,17 @@ impl Batcher {
         // note that the entries are considered equal for the priority queue
         // if they have the same nonce and sender, so we can remove the old entry
         // by calling remove with the new entry
-        batch_state.batch_queue.remove(&replacement_entry);
-        let result = batch_state.batch_queue.push(
+        batch_state_lock.batch_queue.remove(&replacement_entry);
+        let result = batch_state_lock.batch_queue.push(
             replacement_entry.clone(),
             BatchQueueEntryPriority::new(replacement_max_fee, nonce),
         );
+        let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
+        user_state_lock.min_fee = updated_min_fee_in_batch;
 
         assert!(result.is_none());
 
+        println!("BATCH STATE UNLOCKED - HANDLE MESSAGE - REPLACEMENT MESSAGE FUNCTION");
         true
     }
 
@@ -614,6 +651,7 @@ impl Batcher {
     /// Adds verification data to the current batch queue.
     async fn add_to_batch(
         &self,
+        mut batch_state_lock: MutexGuard<'_, BatchState>,
         verification_data: NoncedVerificationData,
         ws_conn_sink: WsMessageSink,
         proof_submitter_sig: Signature,
@@ -626,8 +664,10 @@ impl Batcher {
         let max_fee = verification_data.max_fee;
         let nonce = verification_data.nonce;
 
-        let mut batch_state = self.batch_state.lock().await;
-        batch_state.batch_queue.push(
+        // println!("LOCKING BATCH STATE - ADD TO BATCH FUNCTION");
+        // let mut batch_state = self.batch_state.lock().await;
+        // println!("BATCH STATE LOCKED - ADD TO BATCH FUNCTION");
+        batch_state_lock.batch_queue.push(
             BatchQueueEntry::new(
                 verification_data,
                 verification_data_comm,
@@ -640,8 +680,9 @@ impl Batcher {
 
         info!(
             "Current batch queue length: {}",
-            batch_state.batch_queue.len()
+            batch_state_lock.batch_queue.len()
         );
+        println!("UNLOCKING BATCH STATE - ADD TO BATCH FUNCTION");
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
@@ -661,8 +702,9 @@ impl Batcher {
         block_number: u64,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
+        println!("LOCKING BATCH STATE - IS BATCH READY FUNCTION");
         let mut batch_state = self.batch_state.lock().await;
-        let user_states = self.user_states.write().await;
+        println!("BATCH STATE LOCKED - IS BATCH READY FUNCTION");
 
         let current_batch_len = batch_state.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
@@ -671,6 +713,7 @@ impl Batcher {
         // once the bug in Lambdaworks merkle tree is fixed.
         if current_batch_len < 2 {
             info!("Current batch is empty or length 1. Waiting for more proofs...");
+            println!("BATCH STATE UNLOCKED - IS BATCH READY FUNCTION");
             return None;
         }
 
@@ -681,6 +724,7 @@ impl Batcher {
                 "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
                 block_number, *last_uploaded_batch_block_lock, current_batch_len, self.min_batch_len
             );
+            println!("BATCH STATE UNLOCKED - IS BATCH READY FUNCTION");
             return None;
         }
 
@@ -690,30 +734,54 @@ impl Batcher {
             info!(
                 "Batch is currently being posted. Waiting for the current batch to be finalized..."
             );
+            println!("BATCH STATE UNLOCKED - IS BATCH READY FUNCTION");
             return None;
         }
 
         // Set the batch posting flag to true
         *batch_posting = true;
+
+        println!("LOCKING USER STATES - IS BATCH READY FUNCTION");
+        let user_states = self.user_states.write().await;
+        println!("USER STATES LOCKED - IS BATCH READY FUNCTION");
+
         let batch_queue_copy = batch_state.batch_queue.clone();
         match batch_queue::try_build_batch(batch_queue_copy, gas_price, self.max_batch_size) {
             Ok((resulting_batch_queue, finalized_batch)) => {
+                if finalized_batch.len() == 1 {
+                    println!("BATCH STATE UNLOCKED - IS BATCH READY FUNCTION");
+                    panic!("FINALIZED BATCH IS LEN 1!!!!!!!!!!!!!!!");
+                }
                 batch_state.batch_queue = resulting_batch_queue;
+
                 let updated_user_proof_count_and_min_fee =
                     batch_state.get_user_proofs_in_batch_and_min_fee();
 
-                for (addr, (proof_count, min_fee)) in updated_user_proof_count_and_min_fee.iter() {
+                for addr in user_states.keys() {
+                    let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
+                        .get(addr)
+                        .unwrap_or(&(0, U256::MAX));
+
                     let mut user_state = user_states.get(addr).unwrap().lock().await;
                     user_state.proofs_in_batch = *proof_count;
                     user_state.min_fee = *min_fee;
                 }
 
+                // for (addr, (proof_count, min_fee)) in updated_user_proof_count_and_min_fee.iter() {
+                //     let mut user_state = user_states.get(addr).unwrap().lock().await;
+                //     println!("UPDATING OF PROOFS IN BATCH: {}", proof_count);
+                //     user_state.proofs_in_batch = *proof_count;
+                //     user_state.min_fee = *min_fee;
+                // }
+
+                println!("BATCH STATE UNLOCKED - IS BATCH READY FUNCTION");
                 Some(finalized_batch)
             }
             Err(BatcherError::BatchCostTooHigh) => {
                 // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
                 info!("No working batch found. Waiting for more proofs...");
                 *batch_posting = false;
+                println!("BATCH STATE UNLOCKED - IS BATCH READY FUNCTION");
                 None
             }
             // FIXME: We should refactor this code and instead of returning None, return an error.
@@ -721,6 +789,7 @@ impl Batcher {
             Err(e) => {
                 error!("Unexpected error: {:?}", e);
                 *batch_posting = false;
+                println!("BATCH STATE UNLOCKED - IS BATCH READY FUNCTION");
                 None
             }
         }
@@ -807,7 +876,10 @@ impl Batcher {
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
         warn!("Resetting state... Flushing queue and nonces");
+
+        println!("LOCKING BATCH STATE - FLUE QUEUE AND CLEAR NONCE FUNCTION");
         let mut batch_state = self.batch_state.lock().await;
+        println!("BATCH STATE LOCKED - FLUE QUEUE AND CLEAR NONCE FUNCTION");
 
         for (entry, _) in batch_state.batch_queue.iter() {
             if let Some(ws_sink) = entry.messaging_sink.as_ref() {
@@ -819,6 +891,7 @@ impl Batcher {
 
         batch_state.batch_queue.clear();
         self.user_states.write().await.clear();
+        println!("BATCH STATE UNLOCKED - FLUE QUEUE AND CLEAR NONCE FUNCTION");
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
@@ -832,7 +905,7 @@ impl Batcher {
             }
         };
 
-        while let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
+        if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
             let batch_finalization_result = self
                 .finalize_batch(block_number, finalized_batch, gas_price)
                 .await;
@@ -1046,6 +1119,7 @@ impl Batcher {
         }
 
         let user_states = self.user_states.read().await;
+        let batch_state_lock = self.batch_state.lock().await;
 
         // Safe to call `unwrap()` here since at this point we have a non-paying configuration loaded
         // for sure and the non-paying address nonce cached in the user states.
@@ -1069,13 +1143,16 @@ impl Batcher {
         )
         .await;
 
+        println!("NONPAYING - ADDING ENTRY TO BATCH");
         self.add_to_batch(
+            batch_state_lock,
             nonced_verification_data,
             ws_sink.clone(),
             client_msg.signature,
             non_paying_config.address,
         )
         .await;
+        println!("NONPAYING - ADDED ENTRY TO BATCH SUCCESSFULLY");
 
         // Non-paying user nonce is updated
         (*non_paying_user_state).nonce = Some(non_paying_nonce + U256::one());
