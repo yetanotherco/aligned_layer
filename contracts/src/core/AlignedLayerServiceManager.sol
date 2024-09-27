@@ -45,7 +45,6 @@ contract AlignedLayerServiceManager is
         address _rewardsInitiator,
         address _alignedAggregator
     ) public initializer {
-        // make sure the addresses are not zero
         if (_initialOwner == address(0)) {
             revert InvalidAddress("initialOwner");
         }
