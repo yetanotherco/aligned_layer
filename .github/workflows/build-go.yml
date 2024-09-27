@@ -27,7 +27,7 @@ jobs:
           cache: false
       - name: Build Operator
         run: |
-          make operator
+          make build_operator
       - name: Test Operator
         run: |
           go test ./operator/...
