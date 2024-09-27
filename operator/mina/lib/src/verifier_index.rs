@@ -17,10 +17,13 @@ use kimchi::{
 };
 use serde::Deserialize;
 
-#[cfg(feature = "devnet")]
-const BLOCKCHAIN_VK_JSON: &str = include_str!("devnet_vk.json");
-#[cfg(not(feature = "devnet"))]
-const BLOCKCHAIN_VK_JSON: &str = include_str!("mainnet_vk.json");
+const DEVNET_VK_JSON: &str = include_str!("devnet_vk.json");
+const MAINNET_VK_JSON: &str = include_str!("mainnet_vk.json");
+
+pub enum MinaChain {
+    Devnet,
+    Mainnet,
+}
 
 #[derive(Deserialize)]
 struct BlockchainVerificationKey {
@@ -103,9 +106,13 @@ impl TryInto<PolyComm<Pallas>> for JSONPolyComm {
     }
 }
 
-pub fn deserialize_blockchain_vk() -> Result<VerifierIndex<Pallas>, String> {
+pub fn deserialize_blockchain_vk(chain: MinaChain) -> Result<VerifierIndex<Pallas>, String> {
+    let vk_json = match chain {
+        MinaChain::Devnet => DEVNET_VK_JSON,
+        MinaChain::Mainnet => MAINNET_VK_JSON,
+    };
     let vk: BlockchainVerificationKey =
-        serde_json::from_str(BLOCKCHAIN_VK_JSON).map_err(|err| err.to_string())?;
+        serde_json::from_str(vk_json).map_err(|err| err.to_string())?;
 
     let max_poly_size = vk.index.max_poly_size;
     let domain = Radix2EvaluationDomain::new(1 << vk.index.domain.log_size_of_group)
