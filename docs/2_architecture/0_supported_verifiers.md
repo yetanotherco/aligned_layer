@@ -10,10 +10,9 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
 - 🏗️ Circom
 - 🏗️ Lambdaworks
-
+- 🏗️ Kimchi
 
 The following are in the roadmap to be added:
 
-- :black_square_button: Kimchi
 - :black_square_button: Jolt
 - :black_square_button: Nexus
