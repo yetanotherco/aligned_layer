@@ -8,6 +8,7 @@
 * [Use cases](1_introduction/3_use_cases.md)
 * [FAQ](1_introduction/4_faq.md)
 * [Why ZK and Aligned?](1_introduction/5_why_zk.md)
+* [Security guarantees](1_introduction/6_security_guarantees.md)
 
 ## Architecture
 
