@@ -26,9 +26,7 @@
       </:col>
     </.table>
   <% else %>
-    <.card_background class="overflow-x-auto min-h-[38.45rem] flex flex-col items-center justify-center gap-2">
-      <p class="text-lg text-muted-foreground">No batches found.</p>
-    </.card_background>
+    <.empty_card_background text="No batches found." />
   <% end %>
   <div class="flex gap-x-2 items-center justify-center w-full">
     <%= if @current_page >= 2 do %>

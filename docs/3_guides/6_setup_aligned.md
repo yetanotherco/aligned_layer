@@ -534,6 +534,9 @@ to run it using the following documentation:
 - [Erlang 26](https://github.com/asdf-vm/asdf-erlang)
 - [Elixir 1.16.2](https://elixir-ko.github.io/install.html), compiled with OTP 26
 - [Docker](https://docs.docker.com/get-docker/)
+- [NodeJS](https://nodejs.org/en/download/package-manager)
+  - Tested with node 20 and 22
+- [pnpm](https://pnpm.io/installation)
 
 ### DB Setup
 

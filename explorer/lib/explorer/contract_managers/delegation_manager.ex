@@ -44,12 +44,11 @@ defmodule DelegationManager do
         {:ok, data} -> List.last(data).data |> hd() # most recent entry
 
         {:error, reason} ->
-          IO.inspect("Error getting operator url")
-          IO.inspect(reason)
+          Logger.error("Error getting operator url: #{inspect(reason)}")
 
         other ->
-          IO.inspect("Unexpected response:")
-          IO.inspect(other)
+          Logger.debug("Unexpected response getting operator url: #{inspect(other)}")
+
       end
   end
 
@@ -66,12 +65,11 @@ defmodule DelegationManager do
             %Restakings{operator_id: operator_id, operator_address: operator_address, stake: share, quorum_number: 0, strategy_address: strategy_address}
           end)
       {:error, error} ->
-        IO.inspect("Error fetching operator's strategies shares")
-        IO.inspect(error)
+        Logger.error("Error getting operator shares: #{inspect(error)}")
+
         error
       other ->
-        IO.inspect("Unexpected response on get_operator_all_strategies_shares:")
-        dbg other
+        Logger.debug("Unexpected response getting operator shares: #{inspect(other)}")
         other
     end
   end

@@ -47,32 +47,40 @@ defmodule ExplorerWeb.Restakes.Index do
         total_staked={@total_staked}
         operators_registered={@operators_registered}
       />
-      <.table id="assets" rows={@assets}>
-        <:col :let={asset} label="Token" class="text-left">
-          <.link
-            navigate={~p"/restake/#{asset.strategy_address}"}
-            class="flex gap-x-2 items-center group-hover:text-foreground/80"
-          >
-            <img
-              src={~s"/images/restakes/#{asset.symbol |> String.downcase()}.webp"}
-              alt={asset.name}
-              class="size-5 rounded-full object-scale-down text-xs truncate text-center"
-            />
-            <%= asset.name %>
-            <p class="text-muted-foreground text-sm">
-              <%= asset.symbol %>
-            </p>
-            <.right_arrow />
-          </.link>
-        </:col>
-        <:col :let={asset} label="Total ETH Restaked">
-          <%= if asset.total_staked != nil do %>
-            <%= asset.total_staked |> EthConverter.wei_to_eth(3) |> Helpers.format_number() %>
-          <% else %>
-            N/A
-          <% end %>
-        </:col>
-      </.table>
+      <%= if @assets != [] do %>
+        <.table id="assets" rows={@assets}>
+          <:col :let={asset} label="Token" class="text-left">
+            <.link
+              navigate={~p"/restake/#{asset.strategy_address}"}
+              class="flex gap-x-2 items-center group-hover:text-foreground/80"
+            >
+              <img
+                src={~s"/images/restakes/#{asset.symbol |> String.downcase()}.webp"}
+                alt={asset.name}
+                class="size-5 rounded-full object-scale-down text-xs truncate text-center"
+              />
+              <%= if asset.name != "‎" do %>
+                <%= asset.name %>
+              <% else %>
+                <%= asset.strategy_address %>
+              <% end %>
+              <p class="text-muted-foreground text-sm">
+                <%= asset.symbol %>
+              </p>
+              <.right_arrow />
+            </.link>
+          </:col>
+          <:col :let={asset} label="Total ETH Restaked">
+            <%= if asset.total_staked != nil do %>
+              <%= asset.total_staked |> EthConverter.wei_to_eth(3) |> Helpers.format_number() %>
+            <% else %>
+              N/A
+            <% end %>
+          </:col>
+        </.table>
+      <% else %>
+        <.empty_card_background text="No restaked assets found." />
+      <% end %>
     </div>
     """
   end
