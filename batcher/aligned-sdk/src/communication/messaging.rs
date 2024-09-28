@@ -114,6 +114,10 @@ pub async fn send_messages(
                 error!("Invalid replacement message!");
                 return Err(SubmitError::InvalidReplacementMessage);
             }
+            ValidityResponseMessage::AddToBatchError => {
+                error!("Error while pushing the entry to queue");
+                return Err(SubmitError::AddToBatchError);
+            }
         };
 
         sent_verification_data.push(verification_data.clone());

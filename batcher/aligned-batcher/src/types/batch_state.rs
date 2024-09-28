@@ -40,23 +40,17 @@ impl BatchState {
     }
 
     pub(crate) async fn get_user_nonce(&self, addr: &Address) -> Option<U256> {
-        let Some(user_state) = self.get_user_state(addr) else {
-            return None;
-        };
+        let user_state = self.get_user_state(addr)?;
         user_state.lock().await.nonce
     }
 
     pub(crate) async fn get_user_min_fee(&self, addr: &Address) -> Option<U256> {
-        let Some(user_state) = self.get_user_state(addr) else {
-            return None;
-        };
+        let user_state = self.get_user_state(addr)?;
         Some(user_state.lock().await.min_fee)
     }
 
     pub(crate) async fn get_user_proof_count(&self, addr: &Address) -> Option<usize> {
-        let Some(user_state) = self.get_user_state(addr) else {
-            return None;
-        };
+        let user_state = self.get_user_state(addr)?;
         Some(user_state.lock().await.proofs_in_batch)
     }
 

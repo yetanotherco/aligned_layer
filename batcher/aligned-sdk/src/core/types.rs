@@ -315,6 +315,7 @@ pub enum ValidityResponseMessage {
     InvalidProof,
     InvalidMaxFee,
     InvalidReplacementMessage,
+    AddToBatchError,
     ProofTooLarge,
     InsufficientBalance(Address),
 }

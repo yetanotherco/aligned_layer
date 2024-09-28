@@ -81,6 +81,7 @@ pub enum SubmitError {
     InvalidReplacementMessage,
     InsufficientBalance,
     BatchSubmissionFailed(String),
+    AddToBatchError,
     GenericError(String),
 }
 
@@ -179,6 +180,7 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
+            SubmitError::AddToBatchError => write!(f, "Error while adding entry to batch"),
         }
     }
 }
