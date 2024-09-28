@@ -7,7 +7,7 @@ use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use types::batch_state::{self, BatchState};
+use types::batch_state::BatchState;
 use types::user_state::UserState;
 
 use std::collections::HashMap;
@@ -166,6 +166,7 @@ impl Batcher {
         .expect("Failed to get fallback Batcher Payment Service contract");
 
         let mut user_states = HashMap::new();
+        let mut batch_state = BatchState::new();
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
                 non_paying_config.address);
@@ -183,12 +184,11 @@ impl Batcher {
                 non_paying_user_state,
             );
 
+            batch_state = BatchState::new_with_user_states(user_states);
             Some(non_paying_config)
         } else {
             None
         };
-
-        let batch_state = BatchState::new_with_user_states(user_states);
 
         Self {
             s3_client,
@@ -408,7 +408,7 @@ impl Batcher {
         // if not already present.
         let batch_state_lock = self.batch_state.lock().await;
         let proofs_in_batch = batch_state_lock.get_user_proof_count(&addr).await.unwrap();
-        if !self.check_user_balance(&addr, proofs_in_batch + 1).await {
+        if !self.check_min_balance(&addr, proofs_in_batch + 1).await {
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InsufficientBalance(addr),
@@ -425,11 +425,9 @@ impl Batcher {
                 Ok(ethereum_user_nonce) => ethereum_user_nonce,
                 Err(e) => {
                     error!(
-                        "Failed to get user nonce from Ethereum for address {:?}. Error: {:?}",
-                        addr, e
+                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
                     );
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
-
                     return Ok(());
                 }
             };
@@ -443,20 +441,13 @@ impl Batcher {
             warn!("Invalid nonce for address {addr}, had nonce {expected_nonce:?} < {msg_nonce:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return Ok(());
-        } else if expected_nonce == msg_nonce {
-            let max_fee = nonced_verification_data.max_fee;
+        }
 
-            let Some((user_min_fee, _)) = batch_state_lock.get_user_batch_data(&addr).await else {
-                send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
-                return Ok(());
-            };
-            if max_fee > user_min_fee {
-                warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {max_fee:?}");
-                send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
-                return Ok(());
-            }
-
-            self.add_to_batch(
+        // In this case, the message might be a replacement one. If it is valid,
+        // we replace the old entry with the new from the replacement message.
+        if expected_nonce > msg_nonce {
+            info!("Possible replacement message received: Expected nonce {expected_nonce:?} - message nonce: {msg_nonce:?}");
+            self.handle_replacement_message(
                 batch_state_lock,
                 nonced_verification_data,
                 ws_conn_sink.clone(),
@@ -464,24 +455,31 @@ impl Batcher {
                 addr,
             )
             .await;
-        } else {
-            // In this case, the message might be a replacement one. If it is valid,
-            // we replace the old entry with the new from the replacement message.
-            if !self
-                .handle_replacement_message(
-                    batch_state_lock,
-                    nonced_verification_data,
-                    ws_conn_sink.clone(),
-                    client_msg.signature,
-                    addr,
-                    expected_nonce,
-                )
-                .await
-            {
-                // message should not be added to batch
-                return Ok(());
-            }
+
+            return Ok(());
         }
+
+        let msg_max_fee = nonced_verification_data.max_fee;
+        let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return Ok(());
+        };
+
+        if msg_max_fee > user_min_fee {
+            warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {msg_max_fee:?}");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
+            return Ok(());
+        }
+
+        self.add_to_batch(
+            batch_state_lock,
+            nonced_verification_data,
+            ws_conn_sink.clone(),
+            client_msg.signature,
+            addr,
+        )
+        .await;
+
         info!("Verification data message handled");
         send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
         Ok(())
@@ -489,8 +487,10 @@ impl Batcher {
 
     // Checks user has sufficient balance
     // If user has sufficient balance, increments the user's proof count in the batch
-    async fn check_user_balance(&self, addr: &Address, user_proofs_in_batch: usize) -> bool {
-        let user_balance = self.get_user_balance(addr).await;
+    async fn check_min_balance(&self, addr: &Address, user_proofs_in_batch: usize) -> bool {
+        let Some(user_balance) = self.get_user_balance(addr).await else {
+            return false;
+        };
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
         if user_balance < min_balance {
             return false;
@@ -512,36 +512,28 @@ impl Batcher {
         ws_conn_sink: WsMessageSink,
         signature: Signature,
         addr: Address,
-        expected_user_nonce: U256,
-    ) -> bool {
+    ) {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
-
         let Some(entry) = batch_state_lock.get_entry(addr, nonce) else {
-            warn!(
-                "Invalid nonce for address {addr} Expected: {expected_user_nonce:?}, got: {nonce:?}"
-            );
+            warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
-            return false;
+            return;
         };
 
-        if entry.nonced_verification_data.max_fee > replacement_max_fee {
-            warn!(
-                "Invalid replacement message for address {addr}, had fee {:?} < {:?}",
-                entry.nonced_verification_data.max_fee, replacement_max_fee
-            );
+        let original_max_fee = entry.nonced_verification_data.max_fee;
+        if original_max_fee > replacement_max_fee {
+            warn!("Invalid replacement message for address {addr}, had fee {original_max_fee:?} < {replacement_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidReplacementMessage,
             )
             .await;
 
-            return false;
+            return;
         }
 
-        info!(
-            "Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}"
-        );
+        info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
 
         // The replacement entry is built from the old entry and validated for then to be replaced
         let mut replacement_entry = entry.clone();
@@ -573,7 +565,7 @@ impl Batcher {
                 ValidityResponseMessage::InvalidReplacementMessage,
             )
             .await;
-            return false;
+            return;
         }
 
         info!(
@@ -593,11 +585,10 @@ impl Batcher {
 
         let Some(user_state) = batch_state_lock.get_user_state(&addr) else {
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
-            return false;
+            return;
         };
         let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
         user_state.lock().await.min_fee = updated_min_fee_in_batch;
-        true
     }
 
     async fn get_user_nonce_from_ethereum(
@@ -847,8 +838,17 @@ impl Batcher {
             }
         }
 
+        let Some(nonpaying_replacement_addr) = self.get_nonpaying_replacement_addr() else {
+            batch_state_lock.batch_queue.clear();
+            batch_state_lock.user_states.clear();
+            return;
+        };
+
         batch_state_lock.batch_queue.clear();
-        batch_state_lock.user_states.clear();
+        warn!("Clearing user states, preserving nonpaying user {nonpaying_replacement_addr}");
+        batch_state_lock
+            .user_states
+            .retain(|&addr, _| addr == nonpaying_replacement_addr);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
@@ -1036,6 +1036,13 @@ impl Batcher {
             .is_some_and(|non_paying_config| non_paying_config.address == *addr)
     }
 
+    fn get_nonpaying_replacement_addr(&self) -> Option<Address> {
+        let Some(non_paying_conf) = self.non_paying_config.as_ref() else {
+            return None;
+        };
+        Some(non_paying_conf.replacement.address())
+    }
+
     /// Only relevant for testing and for users to easily use Aligned in testnet.
     async fn handle_nonpaying_msg(
         &self,
@@ -1049,9 +1056,17 @@ impl Batcher {
         };
 
         let replacement_addr = non_paying_config.replacement.address();
-        let replacement_user_balance = self.get_user_balance(&replacement_addr).await;
+        let Some(replacement_user_balance) = self.get_user_balance(&replacement_addr).await else {
+            error!("Could not get balance for non-paying address {replacement_addr:?}");
+            send_message(
+                ws_sink.clone(),
+                ValidityResponseMessage::InsufficientBalance(replacement_addr),
+            )
+            .await;
+            return Ok(());
+        };
         if replacement_user_balance == U256::from(0) {
-            error!("Insufficient funds for address {:?}", replacement_addr);
+            error!("Insufficient funds for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
                 ValidityResponseMessage::InsufficientBalance(replacement_addr),
@@ -1066,18 +1081,16 @@ impl Batcher {
         {
             error!("Invalid proof detected. Verification failed.");
             send_message(ws_sink.clone(), ValidityResponseMessage::InvalidProof).await;
-            return Ok(()); // Send error message to the client and return
+            return Ok(());
         }
 
-        // let user_states = self.user_states.read().await;
         let batch_state_lock = self.batch_state.lock().await;
-
-        // Safe to call `unwrap()` here since at this point we have a non-paying configuration loaded
-        // for sure and the non-paying address nonce cached in the user states.
-        let non_paying_nonce = batch_state_lock
-            .get_user_nonce(&replacement_addr)
-            .await
-            .unwrap();
+        let Some(non_paying_nonce) = batch_state_lock.get_user_nonce(&replacement_addr).await
+        else {
+            error!("Nonce for non-paying address {replacement_addr:?} not found in cache.");
+            send_message(ws_sink.clone(), ValidityResponseMessage::InvalidProof).await;
+            return Ok(());
+        };
 
         debug!("Non-paying nonce: {:?}", non_paying_nonce);
 
@@ -1104,10 +1117,8 @@ impl Batcher {
         )
         .await;
 
-        // // Non-paying user nonce is updated
         info!("Non-paying verification data message handled");
         send_message(ws_sink, ValidityResponseMessage::Valid).await;
-
         Ok(())
     }
 
@@ -1121,16 +1132,14 @@ impl Batcher {
             .user_balances(*addr)
             .call()
             .await
-            .inspect_err(|e| warn!("Failed to get balance for address {:?}", addr))
+            .inspect_err(|_| warn!("Failed to get balance for address {:?}", addr))
             .ok()
     }
 
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
-        // try with the main
         if let Ok(unlock_block) = self.payment_service.user_unlock_block(*addr).call().await {
             return unlock_block != U256::zero();
         }
-        // falback
         if let Ok(unlock_block) = self
             .payment_service_fallback
             .user_unlock_block(*addr)

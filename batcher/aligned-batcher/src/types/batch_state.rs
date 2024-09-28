@@ -60,15 +60,6 @@ impl BatchState {
         Some(user_state.lock().await.proofs_in_batch)
     }
 
-    pub(crate) async fn get_user_batch_data(&self, addr: &Address) -> Option<(U256, usize)> {
-        let Some(user_state) = self.get_user_state(addr) else {
-            return None;
-        };
-
-        let user_state_lock = user_state.lock().await;
-        Some((user_state_lock.min_fee, user_state_lock.proofs_in_batch))
-    }
-
     /// Checks if the entry is valid
     /// An entry is valid if there is no entry with the same sender, lower nonce and a lower fee
     pub(crate) fn replacement_entry_is_valid(
