@@ -662,8 +662,8 @@ impl Batcher {
             ));
         };
 
-        let mut user_state_lock = user_state.lock().await;
         // User state is updated
+        let mut user_state_lock = user_state.lock().await;
         user_state_lock.nonce = Some(nonce + U256::one());
         user_state_lock.min_fee = max_fee;
         user_state_lock.proofs_in_batch += 1;
@@ -856,11 +856,23 @@ impl Batcher {
             return;
         };
 
+        // If there is a nonpaying address configured, then fetch the correct nonce from Ethereum
+        // so that it is already loaded
+
+        let Ok(nonpaying_replacement_addr_nonce) = self
+            .get_user_nonce_from_ethereum(nonpaying_replacement_addr)
+            .await
+        else {
+            batch_state_lock.batch_queue.clear();
+            batch_state_lock.user_states.clear();
+            return;
+        };
         batch_state_lock.batch_queue.clear();
-        warn!("Clearing user states, preserving nonpaying user {nonpaying_replacement_addr}");
+        batch_state_lock.user_states.clear();
+        let nonpaying_user_state = UserState::new_non_paying(nonpaying_replacement_addr_nonce);
         batch_state_lock
             .user_states
-            .retain(|&addr, _| addr == nonpaying_replacement_addr);
+            .insert(nonpaying_replacement_addr, Mutex::new(nonpaying_user_state));
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
