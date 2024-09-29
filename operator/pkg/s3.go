@@ -92,7 +92,7 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 
 	// Checks if downloaded merkle root is the same as the expected one
 	o.Logger.Infof("Verifying batch merkle tree...")
-	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
+	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, expectedMerkleRoot)
 	if !merkle_root_check {
 		// try old merkle tree
 		o.Logger.Infof("Batch merkle tree verification failed. Trying old merkle tree...")
