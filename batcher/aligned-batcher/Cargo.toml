@@ -34,3 +34,38 @@ bincode = "1.3.3"
 aligned-sdk = { path = "../aligned-sdk" }
 ciborium = "=0.2.2"
 priority-queue = "2.1.0"
+
+honggfuzz = "*"
+arbitrary = { version = "1.0", features = ["derive"] }
+
+[[bin]]
+name = "verify_halo2_kzg_fuzz"
+path = "src/fuzzing/verify_halo2_kzg_fuzz.rs"
+
+[[bin]]
+name = "verify_halo2_ipa_fuzz"
+path = "src/fuzzing/verify_halo2_ipa_fuzz.rs"
+
+[[bin]]
+name = "verify_gnark_plonk_bn254"
+path = "src/fuzzing/verify_halo2_ipa_fuzz.rs"
+
+[[bin]]
+name = "verify_gnark_plonk_bls12_381"
+path = "src/fuzzing/verify_halo2_ipa_fuzz.rs"
+
+[[bin]]
+name = "verify_gnark_groth_16_bn254"
+path = "src/fuzzing/verify_halo2_ipa_fuzz.rs"
+
+[[bin]]
+name = "verify_sp1_proof"
+path = "src/fuzzing/verify_halo2_ipa_fuzz.rs"
+
+[[bin]]
+name = "verify_risc_zero_proof"
+path = "src/fuzzing/verify_halo2_ipa_fuzz.rs"
+
+[[bin]]
+name = "cbor"
+path = "src/fuzzing/verify_halo2_ipa_fuzz.rs"

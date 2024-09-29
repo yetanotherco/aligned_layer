@@ -224,7 +224,6 @@ build_batcher_client:
 batcher/target/release/aligned:
 	@cd batcher/aligned && cargo b --release
 
-
 RPC_URL=http://localhost:8545
 BATCHER_PAYMENTS_CONTRACT_ADDRESS=0x7969c5eD335650692Bc04293B07F5BF2e7A673C0
 
@@ -641,6 +640,16 @@ generate_halo2_ipa_proof:
 	RUST_LOG=info cargo run --release && \
 	echo "Generating halo2 plonk proof..." && \
 	echo "Generated halo2 plonk proof!"
+
+operator_halo2_ipa_fuzz_macos:
+	@cd operator/pkg/fuzz && go test -fuzz=FuzzHalo2Ipa -ldflags=-extldflags=-Wl,-ld_classic
+
+operator_halo2_ipz_fuzz_linux:
+	@cd operator/pkg/fuzz && \
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
+	@cd operator/pkg/fuzz && go test -fuzz=FuzzHalo2Ipa -ldflags=-extldflags=-Wl,-ld_classic
+
+	go test -fuzz=FuzzMarshalUnmarshal
 
 
 __BUILD_ALL_FFI__:
