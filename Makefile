@@ -723,6 +723,10 @@ explorer_fetch_old_operators_strategies_restakes:
 	@cd explorer && \
 	./scripts/fetch_old_operators_strategies_restakes.sh 0
 
+explorer_create_env:
+	@cd explorer && \
+	cp .env.dev .env
+
 __TRACKER__:
 
 tracker_devnet_start: tracker_run_db
