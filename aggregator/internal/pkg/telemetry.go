@@ -53,124 +53,81 @@ func NewTelemetry(serverAddress string, logger logging.Logger) *Telemetry {
 	}
 }
 
-// Initializes a new trace for the given batchMerkleRoot.
-// User must call FinishTrace() to complete the trace.
 func (t *Telemetry) InitNewTrace(batchMerkleRoot [32]byte) {
-	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
 	body := TraceMessage{
-		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
+		MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
 	}
-	encodedBody, err := json.Marshal(body)
-	if err != nil {
-		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
-		return
-	}
-	t.logger.Info("[Telemetry] Sending init task trace.", "merkle_root", body.MerkleRoot)
-	if err := t.sendAndReceiveResponse("/api/initTaskTrace", encodedBody); err != nil {
-
-		t.logger.Error("[Telemetry] Error sending init task trace: %v", err)
+	if err := t.sendTelemetryMessage("/api/initTaskTrace", body); err != nil {
+		t.logger.Error("[Telemetry] Error in InitNewTrace", "error", err)
 	}
 }
 
-// Logs an operator response.
-// The response is added as an event in the corresponding trace.
 func (t *Telemetry) LogOperatorResponse(batchMerkleRoot [32]byte, operatorId [32]byte) {
-	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
-	operatorIdString := hex.EncodeToString(operatorId[:])
 	body := OperatorResponseMessage{
-		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
-		OperatorId: fmt.Sprintf("0x%s", operatorIdString),
+		MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
+		OperatorId: fmt.Sprintf("0x%s", hex.EncodeToString(operatorId[:])),
 	}
-	encodedBody, err := json.Marshal(body)
-	if err != nil {
-		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
-		return
-	}
-	t.logger.Info("[Telemetry] Sending operator response.", "merkle_root", body.MerkleRoot, "operator_resonse", body.OperatorId)
-	if err := t.sendAndReceiveResponse("/api/operatorResponse", encodedBody); err != nil {
-
-		t.logger.Error("[Telemetry] Error sending operator response: %v", err)
+	if err := t.sendTelemetryMessage("/api/operatorResponse", body); err != nil {
+		t.logger.Error("[Telemetry] Error in LogOperatorResponse", "error", err)
 	}
 }
 
-// Logs quorum reached.
-// Emits an event in the corresponding trace.
 func (t *Telemetry) LogQuorumReached(batchMerkleRoot [32]byte) {
-	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
 	body := QuorumReachedMessage{
-		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
+		MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
 	}
-	encodedBody, err := json.Marshal(body)
-	if err != nil {
-		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
-		return
-	}
-	t.logger.Info("[Telemetry] Logging quorum reached", "merkle_root", body.MerkleRoot)
-	if err := t.sendAndReceiveResponse("/api/quorumReached", encodedBody); err != nil {
-
-		t.logger.Error("[Telemetry] Error sending QuorumReached: %v", err)
+	if err := t.sendTelemetryMessage("/api/quorumReached", body); err != nil {
+		t.logger.Error("[Telemetry] Error in LogQuorumReached", "error", err)
 	}
 }
 
-// Logs a task error.
-// Emits an event in the corresponding trace.
-func (t *Telemetry) LogTaskError(batchMerkleRoot [32]byte, error error) {
-	merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
+func (t *Telemetry) LogTaskError(batchMerkleRoot [32]byte, taskError error) {
 	body := TaskErrorMessage{
-		MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
-		TaskError:  error.Error(),
+		MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
+		TaskError:  taskError.Error(),
 	}
-	encodedBody, err := json.Marshal(body)
-	if err != nil {
-		t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
-		return
-	}
-	t.logger.Info("[Telemetry] Logging Task Error", "merkle_root", body.MerkleRoot, "error", body.TaskError)
-	if err := t.sendAndReceiveResponse("/api/taskError", encodedBody); err != nil {
-
-		t.logger.Error("[Telemetry] Error sending Task Error: %v", err)
+	if err := t.sendTelemetryMessage("/api/taskError", body); err != nil {
+		t.logger.Error("[Telemetry] Error in LogTaskError", "error", err)
 	}
 }
 
-// Finishes the trace for the given merkle root and frees resources
-// In order to wait for all operators responses, even if the quorum is reached, this function has a delayed execution
 func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
 	go func() {
 		time.Sleep(10 * time.Second)
-		merkleRootString := hex.EncodeToString(batchMerkleRoot[:])
 		body := TraceMessage{
-			MerkleRoot: fmt.Sprintf("0x%s", merkleRootString),
+			MerkleRoot: fmt.Sprintf("0x%s", hex.EncodeToString(batchMerkleRoot[:])),
 		}
-		encodedBody, err := json.Marshal(body)
-		if err != nil {
-			t.logger.Error("[Telemetry] Error marshalling JSON: %v", err)
-			return
-		}
-		t.logger.Info("[Telemetry] Sending finish task trace.", "merkle_root", body.MerkleRoot)
-
-		if err := t.sendAndReceiveResponse("/api/finishTaskTrace", encodedBody); err != nil {
-
-			t.logger.Error("[Telemetry] Error finishing trace: %v", err)
+		if err := t.sendTelemetryMessage("/api/finishTaskTrace", body); err != nil {
+			t.logger.Error("[Telemetry] Error in FinishTrace", "error", err)
 		}
 	}()
 }
 
-// Sends a POST request and processes the response.
-func (t *Telemetry) sendAndReceiveResponse(endpoint string, body []byte) error {
-
-	url := t.baseURL.ResolveReference(&url.URL{Path: endpoint})
-	resp, err := t.client.Post(url.String(), "application/json", bytes.NewBuffer(body))
+func (t *Telemetry) sendTelemetryMessage(endpoint string, message interface{}) error {
+	encodedBody, err := json.Marshal(message)
 	if err != nil {
+		t.logger.Error("[Telemetry] Error marshalling JSON", "error", err)
+		return fmt.Errorf("error marshalling JSON: %w", err)
+	}
+
+	t.logger.Info("[Telemetry] Sending message.", "endpoint", endpoint, "message", message)
+
+	fullURL := t.baseURL.ResolveReference(&url.URL{Path: endpoint})
+
+	resp, err := t.client.Post(fullURL.String(), "application/json", bytes.NewBuffer(encodedBody))
+	if err != nil {
+		t.logger.Error("[Telemetry] Error sending POST request", "error", err)
 		return fmt.Errorf("error making POST request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		t.logger.Error("[Telemetry] Error reading response body", "error", err)
 		return fmt.Errorf("error reading response body: %w", err)
 	}
 
-	t.logger.Info("[Telemetry] Response Status", "status", resp.Status, "response_body", string(respBody))
+	t.logger.Info("[Telemetry] Response received", "status", resp.Status, "response_body", string(respBody))
 
 	return nil
 }
