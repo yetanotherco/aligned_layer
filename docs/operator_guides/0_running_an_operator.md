@@ -154,9 +154,11 @@ If you don't have Holesky ETH, these are some useful faucets:
 
 ### Run Operator using Systemd
 
-To manage the Operator process on Linux systems, we recommend use Systemd with the following configuration:
+To manage the Operator process on Linux systems, we recommend use systemd with the following configuration:
 
-```shell
+You should create a user and a group in order to run the Operator and set the service unit to use that. In the provided service unit, we assume you have already created a user called `aligned`
+
+```toml
 # aligned-operator.service
 
 [Unit]
@@ -165,8 +167,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=<user>
-WorkingDirectory=<path_to_aligned_layer_repository>
+User=aligned
 ExecStart=<path_to_aligned_layer_repository>/operator/build/aligned-operator start --config <path_to_operator_config>
 Restart=always
 RestartSec=1
@@ -183,7 +184,7 @@ WantedBy=multi-user.target
 Once you have configured the `aligned-operator.service` file, you need to run the following commands:
 
 ```shell
-sudo ln -s <path_to_service_file>/aligned-operator.service /etc/systemd/system/aligned-operator.service
+sudo cp aligned-operator.service /etc/systemd/system/aligned-operator.service
 sudo systemctl enable --now aligned-operator.service
 ```
 
@@ -205,7 +206,7 @@ sudo systemctl restart aligned-operator.service
 
 #### Get Operators logs
 
-Once you are running your operator using Systemd, you can get its logs using Journalctl as follows:
+Once you are running your operator using systemd, you can get its logs using Journalctl as follows:
 
 ```shell
 journalctl -xfeu aligned-operator.service
