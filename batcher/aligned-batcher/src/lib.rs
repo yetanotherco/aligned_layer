@@ -404,7 +404,7 @@ impl Batcher {
         // *        Perform validations over user state         *
         // * ---------------------------------------------------*
 
-        // For now until the message is fully processed, the batch state is locked
+        // For now on until the message is fully processed, the batch state is locked
         // This is needed because we need to query the user state to make validations and
         // finally add the proof to the batch queue.
 
@@ -462,10 +462,6 @@ impl Batcher {
             return Ok(());
         }
 
-        // * ---------------------------------------------------------------------*
-        // *        Add message data into the queue and update user state         *
-        // * ---------------------------------------------------------------------*
-
         let msg_max_fee = nonced_verification_data.max_fee;
         let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
@@ -477,6 +473,10 @@ impl Batcher {
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
             return Ok(());
         }
+
+        // * ---------------------------------------------------------------------*
+        // *        Add message data into the queue and update user state         *
+        // * ---------------------------------------------------------------------*
 
         if let Err(e) = self
             .add_to_batch(
