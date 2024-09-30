@@ -129,9 +129,9 @@ impl BatchState {
         new_min_fee: U256,
         new_proof_count: usize,
     ) -> Option<(U256, U256, usize)> {
-        let updated_nonce = self.update_user_nonce(&addr, new_nonce);
-        let updated_min_fee = self.update_user_min_fee(&addr, new_min_fee);
-        let updated_proof_count = self.update_user_proof_count(&addr, new_proof_count);
+        let updated_nonce = self.update_user_nonce(addr, new_nonce);
+        let updated_min_fee = self.update_user_min_fee(addr, new_min_fee);
+        let updated_proof_count = self.update_user_proof_count(addr, new_proof_count);
 
         match (updated_nonce, updated_min_fee, updated_proof_count) {
             (Some(_), Some(_), Some(_)) => Some((new_nonce, new_min_fee, new_proof_count)),

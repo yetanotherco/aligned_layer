@@ -397,7 +397,7 @@ impl Batcher {
             batch_state_lock
                 .user_states
                 .entry(addr)
-                .or_insert_with(|| UserState::new());
+                .or_insert_with(UserState::new);
         }
 
         // * ---------------------------------------------------*
