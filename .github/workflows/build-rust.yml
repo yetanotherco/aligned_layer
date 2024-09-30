@@ -7,13 +7,13 @@ on:
   pull_request:
     branches: ["*"]
     paths:
-        - 'batcher/**'
-        - '.github/workflows/build-rust.yml'
+      - "batcher/**"
+      - ".github/workflows/build-rust.yml"
 
 jobs:
   build:
     runs-on: aligned-runner
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -45,3 +45,13 @@ jobs:
         run: |
           cd batcher
           cargo build --all
+
+  batcher-test:
+    runs-on: aligned-runner
+    needs: build
+
+    steps:
+      - name: run-tests
+        run: |
+          cd batcher
+          cargo test --all
