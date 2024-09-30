@@ -2,7 +2,7 @@ use core::fmt;
 use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
 use ethers::types::transaction::eip712::Eip712Error;
-use ethers::types::SignatureError;
+use ethers::types::{SignatureError, H160};
 use std::io;
 use std::path::PathBuf;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
@@ -88,6 +88,7 @@ pub enum SubmitError {
     ProofTooLarge,
     InvalidReplacementMessage,
     InsufficientBalance,
+    InvalidPaymentServiceAddress(H160, H160),
     BatchSubmissionFailed(String),
     GenericError(String),
 }
@@ -122,6 +123,9 @@ impl From<VerificationError> for SubmitError {
             VerificationError::HexDecodingError(e) => SubmitError::HexDecodingError(e.to_string()),
             VerificationError::EthereumProviderError(e) => SubmitError::EthereumProviderError(e),
             VerificationError::EthereumCallError(e) => SubmitError::EthereumProviderError(e),
+            VerificationError::EthereumNotAContract(address) => {
+                SubmitError::InvalidEthereumAddress(address.to_string())
+            }
         }
     }
 }
@@ -186,6 +190,13 @@ impl fmt::Display for SubmitError {
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
+            SubmitError::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
+                write!(
+                    f,
+                    "Invalid payment service address, received: {}, expected: {}",
+                    received_addr, expected_addr
+                )
+            }
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }
     }
@@ -196,6 +207,7 @@ pub enum VerificationError {
     HexDecodingError(String),
     EthereumProviderError(String),
     EthereumCallError(String),
+    EthereumNotAContract(H160),
 }
 
 impl fmt::Display for VerificationError {
@@ -206,6 +218,9 @@ impl fmt::Display for VerificationError {
                 write!(f, "Ethereum provider error: {}", e)
             }
             VerificationError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
+            VerificationError::EthereumNotAContract(address) => {
+                write!(f, "Address {} does not contain a contract", address)
+            }
         }
     }
 }

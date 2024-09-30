@@ -435,13 +435,31 @@ impl Batcher {
 
         if client_msg.verification_data.chain_id != self.chain_id {
             warn!(
-                "Received message with incorrect chain id: {}",
+                "Received message with incorrect chain id: {}", //This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
                 client_msg.verification_data.chain_id
             );
 
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidChainId,
+            )
+            .await;
+
+            return Ok(());
+        }
+
+        if client_msg.verification_data.payment_service_addr != self.payment_service.address() {
+            warn!(
+                "Received message with incorrect payment service address: {}", //This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
+                client_msg.verification_data.payment_service_addr
+            );
+
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidPaymentServiceAddress(
+                    client_msg.verification_data.payment_service_addr,
+                    self.payment_service.address(),
+                ),
             )
             .await;
 
@@ -455,6 +473,7 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
+                info!("Handling paying message");
                 if !self
                     .check_user_balance_and_increment_proof_count(&addr)
                     .await
