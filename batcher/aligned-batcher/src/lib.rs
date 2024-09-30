@@ -684,10 +684,12 @@ impl Batcher {
     /// There are essentially two conditions to be checked:
     ///   * Has the current batch reached the minimum size to be posted?
     ///   * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
+    ///
     /// Then the batch will be made as big as possible given this two conditions:
     ///   * The serialized batch size needs to be smaller than the maximum batch size
     ///   * The batch submission fee is less than the lowest `max fee` included the batch,
     ///   * And the batch submission fee is more than the highest `max fee` not included the batch.
+    ///
     /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
