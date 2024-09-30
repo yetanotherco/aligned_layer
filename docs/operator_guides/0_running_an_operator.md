@@ -92,16 +92,26 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
 
-The default configuration uses the public nodes RPC, but we suggest you use your own nodes for better performance and reliability.
-Also, from v0.5.2 there is a fallback mechanism to have two RPCs, so you can add a second RPC for redundancy.
+Two RPCs are used, one as the main one, and the other one as a fallback in case one node is working unreliably. 
+
+Default configurations is set up to use the same public node in both scenarios. 
+
+{% hint style="danger" %}
+
+PUBLIC NODES SHOULDN'T BE USED AS THE MAIN RPC. We recommend not using public nodes at all. 
+
+FALLBACK AND MAIN RPCs SHOULD BE DIFFERENT. 
+
+{% endhint %}
+
+Most of the actions will pass through the main RPC unless there is a problem with it. Events are fetched from both nodes.
 
 ```yaml
-eth_rpc_url: "https://ethereum-holesky-rpc.publicnode.com"
-eth_rpc_url_fallback: "https://ethereum-holesky-rpc.publicnode.com"
-eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
-eth_ws_url_fallback: "wss://ethereum-holesky-rpc.publicnode.com"
+eth_rpc_url: "https://<RPC_1>" 
+eth_rpc_url_fallback: "https://<RPC_2>"
+eth_ws_url: "wss://<RPC_1>"
+eth_ws_url_fallback: "wss://<RPC_2>"
 ```
-
 
 ## Step 4 - Deposit Strategy Tokens
 
