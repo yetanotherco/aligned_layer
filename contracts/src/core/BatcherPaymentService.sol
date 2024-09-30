@@ -44,11 +44,11 @@ contract BatcherPaymentService is
     error InvalidSignature(); // 8baa579f
     error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
     error InvalidMaxFee(uint256 maxFee, uint256 actualFee); // f59adf4a
-    error SignerInsufficientBalance(
+    error SubmissionInsufficientBalance(
         address signer,
         uint256 balance,
         uint256 required
-    ); // 955c0664
+    ); // 4f779ceb
     error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
 
     // CONSTRUCTOR & INITIALIZER
@@ -104,44 +104,30 @@ contract BatcherPaymentService is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        bytes32[] calldata leaves, // padded to the next power of 2
-        SignatureData[] calldata signatures, // actual length (proof sumbitters == proofs submitted)
+        ProofSubmitterData[] calldata proofsSubmissions, 
         uint256 feeForAggregator,
         uint256 feePerProof,
         uint256 respondToTaskFeeLimit
     ) external onlyBatcher whenNotPaused {
-        uint256 leavesQty = leaves.length;
-        uint256 signaturesQty = signatures.length;
+        uint256 proofsSubmissionsQty = proofsSubmissions.length;
 
-        if (leavesQty == 0) {
-            revert NoLeavesSubmitted();
-        }
-
-        if (signaturesQty == 0) {
+        if (proofsSubmissionsQty == 0) {
             revert NoProofSubmitterSignatures();
-        }
-
-        if (leavesQty < signaturesQty) {
-            revert NotEnoughLeaves(leavesQty, signaturesQty);
-        }
-
-        if ((leavesQty & (leavesQty - 1)) != 0) {
-            revert LeavesNotPowerOfTwo(leavesQty);
         }
 
         if (feePerProof == 0) {
             revert NoFeePerProof();
         }
 
-        if (feePerProof * signaturesQty <= feeForAggregator) {
+        if (feePerProof * proofsSubmissionsQty <= feeForAggregator) {
             revert InsufficientFeeForAggregator(
                 feeForAggregator,
-                feePerProof * signaturesQty
+                feePerProof * proofsSubmissionsQty 
             );
         }
 
-        for (uint32 i = 0; i < signatures.length; i++) {
-            _decreaseBalance(signatures[i], feePerProof);
+        for (uint32 i = 0; i < proofsSubmissionsQty; i++) {
+            _decreaseBalance(proofsSubmissions[i], feePerProof);
         }
 
         // call alignedLayerServiceManager
@@ -155,7 +141,7 @@ contract BatcherPaymentService is
         emit TaskCreated(batchMerkleRoot, feePerProof);
 
         payable(batcherWallet).transfer(
-            (feePerProof * signaturesQty) - feeForAggregator
+            (feePerProof * proofsSubmissionsQty) - feeForAggregator
         );
     }
 
@@ -214,20 +200,20 @@ contract BatcherPaymentService is
         onlyOwner // solhint-disable-next-line no-empty-blocks
     {}
 
-    function _decreaseBalance(SignatureData calldata data, uint256 feePerProof) private {
-        if (data.maxFee < feePerProof) {
-            revert InvalidMaxFee(data.maxFee, feePerProof);
+    function _decreaseBalance(ProofSubmitterData calldata proofSubmission, uint256 feePerProof) private {
+        if (proofSubmission.maxFee < feePerProof) {
+            revert InvalidMaxFee(proofSubmission.maxFee, feePerProof);
         }
 
-        UserInfo storage user = userData[data.userAddress];
+        UserInfo storage user = userData[proofSubmission.sender];
 
-        if (user.nonce != data.nonce) {
-            revert InvalidNonce(user.nonce, data.nonce);
+        if (user.nonce != proofSubmission.nonce) {
+            revert InvalidNonce(user.nonce, proofSubmission.nonce);
         }
         user.nonce++;
 
         if (user.balance < feePerProof) {
-            revert SignerInsufficientBalance(data.userAddress, user.balance, feePerProof);
+            revert SubmissionInsufficientBalance(proofSubmission.sender, user.balance, feePerProof);
         }
 
         user.balance -= feePerProof;
