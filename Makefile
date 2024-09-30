@@ -271,7 +271,7 @@ batcher_send_risc0_burst:
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
-        --repetitions 500 \
+        --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
@@ -297,7 +297,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--repetitions 4 \
+		--repetitions $(BURST_SIZE) \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
@@ -362,7 +362,7 @@ batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
 		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_ipa/params.bin \
-		--repetitions 500 \
+		--repetitions $(BURST_SIZE) \
 		--private_key 0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97 \
 		--rpc_url $(RPC_URL) \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
