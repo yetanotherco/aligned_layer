@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.7.2
+OPERATOR_VERSION=v0.7.3
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -112,7 +112,7 @@ operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -158,6 +158,12 @@ operator_whitelist_devnet:
 	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
 	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+
+operator_remove_devnet:
+	@echo "Removing operator"
+	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
+	@echo "Operator address: $(OPERATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/remove_operator.sh $(OPERATOR_ADDRESS)
 
 operator_whitelist:
 	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
