@@ -5,8 +5,6 @@ import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 abstract contract BatcherPaymentServiceStorage {
     struct ProofSubmitterData {
         address sender;
-        uint256 nonce;
-        uint256 maxFee;
     }
 
     struct UserInfo {

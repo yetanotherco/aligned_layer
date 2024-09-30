@@ -201,16 +201,7 @@ contract BatcherPaymentService is
     {}
 
     function _decreaseBalance(ProofSubmitterData calldata proofSubmission, uint256 feePerProof) private {
-        if (proofSubmission.maxFee < feePerProof) {
-            revert InvalidMaxFee(proofSubmission.maxFee, feePerProof);
-        }
-
         UserInfo storage user = userData[proofSubmission.sender];
-
-        if (user.nonce != proofSubmission.nonce) {
-            revert InvalidNonce(user.nonce, proofSubmission.nonce);
-        }
-        user.nonce++;
 
         if (user.balance < feePerProof) {
             revert SubmissionInsufficientBalance(proofSubmission.sender, user.balance, feePerProof);
