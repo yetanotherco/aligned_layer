@@ -179,10 +179,13 @@ async fn _submit_multiple(
 
     let payment_service_addr = match chain {
         Chain::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").ok(),
-        Chain::Holesky => H160::from_str(
-            &std::env::var("BATCHER_PAYMENT_SERVICE_ADDR")
-                .map_err(|err| errors::SubmitError::GenericError(err.to_string()))?,
-        )
+        Chain::Holesky => H160::from_str(&std::env::var("BATCHER_PAYMENT_SERVICE_ADDR").map_err(
+            |err| {
+                errors::SubmitError::GenericError(
+                    "BATCHER_PAYMENT_SERVICE_ADDR env var not found".to_string(),
+                )
+            },
+        )?)
         .ok(),
         Chain::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").ok(),
     };
