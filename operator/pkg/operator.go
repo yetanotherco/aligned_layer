@@ -321,7 +321,14 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	wg.Add(verificationDataBatchLen)
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
-			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					// Most common panic we experience is runtime OOM, so GC to keep going
+					runtime.GC()
+					o.Logger.Errorf("Verification goroutine panicked", "msg", r, "verification_data", verificationData)
+				}
+				wg.Done()
+			}()
 			o.verify(data, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
