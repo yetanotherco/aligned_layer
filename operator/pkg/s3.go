@@ -1,7 +1,6 @@
 package operator
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -100,9 +99,10 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 
 	var batch []VerificationData
 
-	decoder := cbor.NewDecoder(bytes.NewReader(batchBytes))
+	// This is the max value for length of array to correctly decode the batch
+	decoder, err := cbor.DecOptions{MaxArrayElements: 2147483647}.DecMode()
+	err = decoder.Unmarshal(batchBytes, &batch)
 
-	err = decoder.Decode(&batch)
 	if err != nil {
 		o.Logger.Infof("Error decoding batch as CBOR: %s. Trying JSON decoding...", err)
 		// try json
