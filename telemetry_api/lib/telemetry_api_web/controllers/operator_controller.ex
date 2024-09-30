@@ -4,7 +4,6 @@ defmodule TelemetryApiWeb.OperatorController do
   alias TelemetryApi.Operators
   alias TelemetryApi.Operators.Operator
 
-  alias TelemetryApi.ContractManagers.OperatorStateRetriever
   action_fallback TelemetryApiWeb.FallbackController
 
   defp return_error(conn, message) do

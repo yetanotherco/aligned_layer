@@ -7,8 +7,8 @@ defmodule TelemetryApi.Operators do
   alias TelemetryApi.Repo
 
   alias TelemetryApi.Operators.Operator
-  alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
   alias TelemetryApi.ContractManagers.OperatorStateRetriever
+  alias TelemetryApi.ContractManagers.DelegationManager
 
   @doc """
   Returns the list of operators.
@@ -53,25 +53,45 @@ defmodule TelemetryApi.Operators do
   """
   def fetch_all_operators() do
     with {:ok, operators} <- OperatorStateRetriever.get_operators() do
-        operators = Enum.map(operators, fn op_data -> 
+      Enum.map(operators, fn op_data ->
+        with {:ok, full_operator_data} <- add_operator_metadata(op_data) do
           case Repo.get(Operator, op_data.address) do
-            nil -> %Operator{} 
+            nil -> %Operator{}
             operator -> operator
           end
-          |> Operator.changeset(op_data) 
+          |> Operator.changeset(full_operator_data)
           |> Repo.insert_or_update()
-        end)
-        # Check if we failed to store any operator
-        case Enum.find(operators, fn {status, _} -> status == :error end) do
-          nil -> 
-            {:ok, Enum.map(operators, fn {:ok, value} -> value end)}
-          
-          {:error, _} -> 
-            {:error, "Failed to store Operator in database"}
         end
+      end)
+      |> TelemetryApi.Utils.clean_list_errors("Error fetching operators metadata")
     end
   end
+
   
+  #Adds operator metadata to received operator.
+
+  ### Examples
+
+  #    iex> add_operator_metadata(operator)
+  #    {:ok, operator_with_metadata}
+  #
+  #    iex> add_operator_metadata(operator)
+  #    {:error, string}
+  #
+  defp add_operator_metadata(op_data) do
+    with {:ok, url} <- DelegationManager.get_operator_url(op_data.address),
+         {:ok, metadata} <- TelemetryApi.Utils.fetch_json_data(url) do
+      operator = %{
+        id: op_data.id,
+        address: op_data.address,
+        stake: op_data.stake,
+        name: Map.get(metadata, "name")
+      }
+
+      {:ok, operator}
+    end
+  end
+
   @doc """
   Updates an operator's version.
 
@@ -86,15 +106,16 @@ defmodule TelemetryApi.Operators do
   """
   def update_operator_version(attrs \\ %{}) do
     with {:ok, address} <- SignatureVerifier.get_address(attrs["version"], attrs["signature"]) do
-        address = "0x" <> address 
-        # We only want to allow changes on version
-        changes = %{
-          version: attrs["version"]
-        }
-        case Repo.get(Operator, address) do
-          nil -> {:error, "Provided address does not correspond to any registered operator"}
-          operator -> operator |> Operator.changeset(changes) |> Repo.insert_or_update()
-        end
+      address = "0x" <> address
+      # We only want to allow changes on version
+      changes = %{
+        version: attrs["version"]
+      }
+
+      case Repo.get(Operator, address) do
+        nil -> {:error, "Provided address does not correspond to any registered operator"}
+        operator -> operator |> Operator.changeset(changes) |> Repo.insert_or_update()
+      end
     end
   end
 

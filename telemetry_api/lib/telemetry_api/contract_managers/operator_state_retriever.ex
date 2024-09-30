@@ -1,6 +1,4 @@
 defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
-  alias TelemetryApi.ContractManagers.OperatorStateRetriever
-  alias TelemetryApi.Operators.Operator
   require Logger
 
   @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")

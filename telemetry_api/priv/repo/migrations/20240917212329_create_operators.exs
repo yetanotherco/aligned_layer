@@ -6,6 +6,7 @@ defmodule TelemetryApi.Repo.Migrations.CreateOperators do
       add :address, :string, primary_key: true
       add :id, :string
       add :stake, :string
+      add :name, :string
       add :version, :string
 
       timestamps(type: :utc_datetime)

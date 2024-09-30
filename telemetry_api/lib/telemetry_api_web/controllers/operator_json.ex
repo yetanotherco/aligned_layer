@@ -20,6 +20,7 @@ defmodule TelemetryApiWeb.OperatorJSON do
       address: operator.address,
       id: operator.id,
       stake: operator.stake,
+      name: operator.name,
       version: operator.version
     }
   end
