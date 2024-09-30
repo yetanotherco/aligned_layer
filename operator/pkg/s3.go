@@ -99,8 +99,11 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 
 	var batch []VerificationData
 
-	// This is the max value for length of array to correctly decode the batch
+	// Use the max value for length of an array to correctly decode the batch.
 	decoder, err := cbor.DecOptions{MaxArrayElements: 2147483647}.DecMode()
+	if err != nil {
+		return nil, fmt.Errorf("error creating CBOR decoder: %s", err)
+	}
 	err = decoder.Unmarshal(batchBytes, &batch)
 
 	if err != nil {
