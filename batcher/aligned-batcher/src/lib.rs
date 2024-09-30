@@ -533,6 +533,7 @@ impl Batcher {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
         let Some(entry) = batch_state_lock.get_entry(addr, nonce) else {
+            std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return;
@@ -540,6 +541,7 @@ impl Batcher {
 
         let original_max_fee = entry.nonced_verification_data.max_fee;
         if original_max_fee > replacement_max_fee {
+            std::mem::drop(batch_state_lock);
             warn!("Invalid replacement message for address {addr}, had fee {original_max_fee:?} < {replacement_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
@@ -576,6 +578,7 @@ impl Batcher {
 
         replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
         if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
+            std::mem::drop(batch_state_lock);
             warn!("Invalid max fee");
             send_message(
                 ws_conn_sink.clone(),
@@ -602,6 +605,7 @@ impl Batcher {
 
         let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
         let Some(_) = batch_state_lock.update_user_min_fee(&addr, updated_min_fee_in_batch) else {
+            std::mem::drop(batch_state_lock);
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
             return;
         };
