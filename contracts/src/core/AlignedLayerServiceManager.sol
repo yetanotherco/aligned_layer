@@ -39,6 +39,18 @@ contract AlignedLayerServiceManager is
             __stakeRegistry
         )
     {
+        if (address(__avsDirectory) == address(0)) {
+            revert InvalidAddress("avsDirectory");
+        }
+        if (address(__rewardsCoordinator) == address(0)) {
+            revert InvalidAddress("rewardsCoordinator");
+        }
+        if (address(__registryCoordinator) == address(0)) {
+            revert InvalidAddress("registryCoordinator");
+        }
+        if (address(__stakeRegistry) == address(0)) {
+            revert InvalidAddress("stakeRegistry");
+        }
         _disableInitializers();
     }
 
@@ -57,6 +69,15 @@ contract AlignedLayerServiceManager is
         IPauserRegistry _pauserRegistry,
         uint256 _initialPausedStatus
     ) public initializer {
+        if (_initialOwner == address(0)) {
+            revert InvalidAddress("initialOwner");
+        }
+        if (_rewardsInitiator == address(0)) {
+            revert InvalidAddress("rewardsInitiator");
+        }
+        if (_alignedAggregator == address(0)) {
+            revert InvalidAddress("alignedAggregator");
+        }
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
         alignedAggregator = _alignedAggregator; //can't do setAggregator(aggregator) since caller is not the owner
         _transferOwnership(_initialOwner); // TODO check is this needed? is it not called in __ServiceManagerBase_init ?
@@ -152,7 +173,7 @@ contract AlignedLayerServiceManager is
         if (currentBatch.responded) {
             revert BatchAlreadyResponded(batchIdentifierHash);
         }
-        currentBatch.responded = true; 
+        currentBatch.responded = true;
 
         // Check that batcher has enough funds to fund response
         if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
@@ -204,7 +225,7 @@ contract AlignedLayerServiceManager is
             senderAddress,
             batchersBalances[senderAddress]
         );
-        
+
         payable(alignedAggregator).transfer(txCost);
     }
 
