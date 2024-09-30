@@ -80,7 +80,6 @@ pub struct Batcher {
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
-    // user_states: RwLock<HashMap<Address, Mutex<UserState>>>,
 }
 
 impl Batcher {
@@ -208,7 +207,6 @@ impl Batcher {
             non_paying_config,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
-            // user_states: RwLock::new(user_states),
         }
     }
 
