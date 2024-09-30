@@ -87,3 +87,23 @@ And you can run this to attach to the anvil/foundry container and run `cast` wit
 ```shell
 make docker_attach_foundry
 ```
+
+## Logs
+
+You can watch logs for the components with the following commands:
+
+```shell
+make docker_logs_anvil
+```
+
+```shell
+make docker_logs_aggregator
+```
+
+```shell
+make docker_logs_operator
+```
+
+```shell
+make docker_logs_batcher
+```
