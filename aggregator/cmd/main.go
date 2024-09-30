@@ -58,9 +58,6 @@ func aggregatorMain(ctx *cli.Context) error {
 	}()
 
 	err = aggregator.Start(context.Background())
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
