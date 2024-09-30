@@ -202,9 +202,9 @@ sudo systemctl enable --now aligned-operator.service
 All paths must be absolute.
 {% endhint %}
 
-Those commands will link the service to Systemd directory and then, will start the Operator service.
+Those commands will link the service to systemd directory and then, will start the Operator service.
 
-Also, if the server running the operator goes down, Systemd will start automatically the Operator on server startup.
+Also, if the server running the operator goes down, systemd will start automatically the Operator on server startup.
 
 #### Restart operator
 
@@ -216,7 +216,7 @@ sudo systemctl restart aligned-operator.service
 
 #### Get Operators logs
 
-Once you are running your operator using systemd, you can get its logs using Journalctl as follows:
+Once you are running your operator using systemd, you can get its logs using journalctl as follows:
 
 ```shell
 journalctl -xfeu aligned-operator.service
