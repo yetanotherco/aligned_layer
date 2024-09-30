@@ -286,6 +286,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 			// If Aggregator successfully responds to task we acquire the task mutex and
 			// remove task information from the aggregator maps to prevent a memory leak.
 			go func() {
+				time.Sleep(10 * time.Second)
 				agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
 				agg.taskMutex.Lock()
 				delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
@@ -312,6 +313,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	// If the aggregator fails to respond to the task we remove the batch information as well.
 	go func() {
+		time.Sleep(10 * time.Second)
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
 		agg.taskMutex.Lock()
 		delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
