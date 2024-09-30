@@ -13,8 +13,11 @@ func FuzzMarshalUnmarshal(f *testing.F) {
 		// MarshalUnmarshal
 
 		var marshalled VerificationData
-		decoder := cbor.NewDecoder(bytes.NewReader(data))
-		err := decoder.Decode(&marshalled)
+		decoder, err := createDecoderMode()
+		if err != nil {
+			return
+		}
+		err = decoder.Unmarshal(data, &marshalled)
 		if err != nil {
 			return
 		}

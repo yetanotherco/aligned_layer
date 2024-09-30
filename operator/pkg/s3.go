@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fxamacker/cbor/v2"
 	"github.com/ugorji/go/codec"
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
@@ -100,7 +99,7 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 	var batch []VerificationData
 
 	// Use the max value for length of an array to correctly decode the batch.
-	decoder, err := cbor.DecOptions{MaxArrayElements: 2147483647}.DecMode()
+	decoder, err := createDecoderMode()
 	if err != nil {
 		return nil, fmt.Errorf("error creating CBOR decoder: %s", err)
 	}
