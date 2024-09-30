@@ -1,3 +1,4 @@
+use futures_util::{future, stream::FuturesUnordered};
 use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -5,7 +6,7 @@ use std::str::FromStr;
 
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
-    types::{Chain, ProvingSystemId, VerificationData},
+    types::{Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
@@ -32,23 +33,17 @@ const GROTH_16_PROOF_DIR: &str =
 #[command(version, about, long_about = None)]
 pub struct Args {
     #[arg(
+        name = "Ethereum RPC provider connection address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
         name = "Batcher connection address",
         long = "batcher-url",
         default_value = "ws://localhost:8080"
     )]
     batcher_url: String,
-    #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment-service-addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
-    )]
-    payment_service_addr: String,
-    #[arg(
-        name = "Ethereum RPC provider connection address",
-        long = "rpc-url",
-        default_value = "http://localhost:8545"
-    )]
-    eth_rpc_url: String,
     #[arg(
         name = "Number of proofs per burst",
         long = "burst-size",
@@ -57,6 +52,18 @@ pub struct Args {
     burst_size: usize,
     #[arg(name = "Burst Time", long = "burst-time", default_value = "3")]
     burst_time: usize,
+    #[arg(
+        name = "Number of spawned infinite task senders",
+        long = "num-senders",
+        default_value = "1"
+    )]
+    num_senders: usize,
+    #[arg(
+        name = "Batcher Payment Service Eth Address",
+        long = "payment-service-addr",
+        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+    )]
+    payment_service_addr: String,
     #[arg(
         name = "Proof generator address",
         long = "proof_generator_addr",
@@ -80,22 +87,22 @@ pub struct Args {
         long = "chain",
         default_value = "devnet"
     )]
-    chain: ChainArg,
+    chain: NetworkArg,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
-pub enum ChainArg {
+pub enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
 }
 
-impl From<ChainArg> for Chain {
-    fn from(chain_arg: ChainArg) -> Self {
+impl From<NetworkArg> for Network {
+    fn from(chain_arg: NetworkArg) -> Self {
         match chain_arg {
-            ChainArg::Devnet => Chain::Devnet,
-            ChainArg::Holesky => Chain::Holesky,
-            ChainArg::HoleskyStage => Chain::HoleskyStage,
+            NetworkArg::Devnet => Network::Devnet,
+            NetworkArg::Holesky => Network::Holesky,
+            NetworkArg::HoleskyStage => Network::HoleskyStage,
         }
     }
 }
@@ -160,44 +167,61 @@ async fn main() -> Result<(), AlignedError> {
 
     let mut count = 1;
     //TODO: sort out error messages
-    if let Err(e) = tokio::spawn(async move {
-        loop {
-            info!("Generating proof {} != 0", count);
-            if let Err(e) = Command::new("go")
-                .arg("run")
-                .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
-                .arg(format!("{:?}", count))
-                .status()
-            {
-                error!("Failed to generate Groth16 Proofs: {:?}", e);
-                return Ok::<(), AlignedError>(());
-            }
-            let Ok((max_fees, verification_data)) =
-                get_verification_data(burst_size, count, max_fee, proof_generator_addr, &base_dir)
+    let futures = (0..args.num_senders)
+        .map(|_| {
+            let manifest_dir = base_dir.clone();
+            let user_wallet = wallet.clone();
+            let task_args = args.clone();
+            tokio::spawn(async move {
+                loop {
+                    info!("Generating proof {} != 0", count);
+                    if let Err(e) = Command::new("go")
+                        .arg("run")
+                        .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
+                        .arg(format!("{:?}", count))
+                        .status()
+                    {
+                        error!("Failed to generate Groth16 Proofs: {:?}", e);
+                        return Ok::<(), AlignedError>(());
+                    }
+                    let Ok((max_fees, verification_data)) = get_verification_data(
+                        burst_size,
+                        count,
+                        max_fee,
+                        proof_generator_addr,
+                        &manifest_dir,
+                    )
                     .await
-            else {
-                error!("Failed to generate Verification Data");
-                return Ok(());
-            };
-            if let Err(e) = send_burst(&max_fees, &verification_data, &wallet, args.clone()).await {
-                error!("Failed to send Proof Burst: {:?}", e);
-                return Ok(());
-            };
-            // To prevent continously creating proofs we clear the directory after sending a burst.
-            std::fs::remove_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
-                error!("Failed to send Clear Proof Directory: {:?}", e);
-            });
-            std::fs::create_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
-                error!("Failed to Create Proof Directory and Clearing: {:?}", e);
-            });
-            sleep(Duration::from_secs(burst_time as u64)).await;
-            count += 1;
-        }
-    })
-    .await
-    {
-        error!("Proof Stream Exited: {:?}", e);
-    }
+                    else {
+                        error!("Failed to generate Verification Data");
+                        return Ok(());
+                    };
+                    if let Err(e) = send_burst(
+                        &max_fees,
+                        &verification_data,
+                        &user_wallet,
+                        task_args.clone(),
+                    )
+                    .await
+                    {
+                        error!("Failed to send Proof Burst: {:?}", e);
+                        return Ok(());
+                    };
+                    // To prevent continously creating proofs we clear the directory after sending a burst.
+                    std::fs::remove_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
+                        error!("Failed to send Clear Proof Directory: {:?}", e);
+                    });
+                    std::fs::create_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
+                        error!("Failed to Create Proof Directory and Clearing: {:?}", e);
+                    });
+                    sleep(Duration::from_secs(burst_time as u64)).await;
+                    count += 1;
+                }
+            })
+        })
+        .collect::<FuturesUnordered<_>>();
+
+    future::join_all(futures).await;
 
     //Clean infinite_proofs directory on exit
     if let Err(e) = std::fs::remove_dir_all(GROTH_16_PROOF_DIR) {
@@ -234,89 +258,31 @@ async fn get_verification_data(
     ))
 }
 
-async fn get_verification_data(
-    burst_size: usize,
-    count: usize,
-    max_fee: U256,
-    proof_generator_addr: Address,
-    base_dir: &Path,
-) -> Result<(Vec<U256>, Vec<VerificationData>), AlignedError> {
-    let proof = read_file(base_dir.join(format!(
-        "{}/ineq_{}_groth16.proof",
-        GROTH_16_PROOF_DIR, count
-    )))?;
-    let public_input =
-        read_file(base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count)))?;
-    let vk = read_file(base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count)))?;
-    let verification_data = VerificationData {
-        proving_system: ProvingSystemId::Groth16Bn254,
-        proof,
-        pub_input: Some(public_input),
-        verification_key: Some(vk),
-        vm_program_code: None,
-        proof_generator_addr,
-    };
-    Ok((
-        vec![max_fee; burst_size],
-        vec![verification_data; burst_size],
-    ))
-}
-
-async fn get_verification_data(
-    burst_size: usize,
-    count: usize,
-    max_fee: U256,
-    proof_generator_addr: Address,
-    base_dir: &Path,
-) -> Result<(Vec<U256>, Vec<VerificationData>), AlignedError> {
-    let proof = read_file(base_dir.join(format!(
-        "{}/ineq_{}_groth16.proof",
-        GROTH_16_PROOF_DIR, count
-    )))?;
-    let public_input =
-        read_file(base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count)))?;
-    let vk = read_file(base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count)))?;
-    let verification_data = VerificationData {
-        proving_system: ProvingSystemId::Groth16Bn254,
-        proof,
-        pub_input: Some(public_input),
-        verification_key: Some(vk),
-        vm_program_code: None,
-        proof_generator_addr,
-    };
-    Ok((
-        vec![max_fee; burst_size],
-        vec![verification_data; burst_size],
-    ))
-}
-
 async fn send_burst(
     max_fees: &[U256],
     verification_data: &[VerificationData],
     wallet: &Wallet<SigningKey>,
     args: Args,
 ) -> Result<(), AlignedError> {
-    let chain: Chain = args.chain.clone().into();
+    let network = args.chain.clone().into();
     let eth_rpc_url = args.eth_rpc_url.clone();
     let batcher_url: String = args.batcher_url;
-
-    let batcher_addr = args.payment_service_addr.clone();
 
     let nonce = get_nonce(
         &eth_rpc_url,
         wallet.address(),
-        &batcher_addr,
         verification_data.len(),
+        network,
     )
     .await?;
     info!(
         "Sending {:?} Proofs to {:?} Aligned Batcher",
         verification_data.len(),
-        chain
+        network
     );
     let aligned_verification_data_vec = match submit_multiple(
         &batcher_url,
-        chain,
+        network,
         verification_data,
         max_fees,
         wallet.clone(),
@@ -361,10 +327,10 @@ async fn send_burst(
 async fn get_nonce(
     eth_rpc_url: &str,
     address: Address,
-    batcher_contract_addr: &str,
     proof_count: usize,
+    network: Network,
 ) -> Result<U256, AlignedError> {
-    let nonce = get_next_nonce(eth_rpc_url, address, batcher_contract_addr).await?;
+    let nonce = get_next_nonce(eth_rpc_url, address, network).await?;
 
     let nonce_file = format!("nonce_{:?}.bin", address);
 
@@ -386,7 +352,6 @@ async fn get_nonce(
     Ok(nonce)
 }
 
-//TODO: Duplicated from `batcher/aligned`.
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
     std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
 }
