@@ -70,13 +70,6 @@ defmodule TelemetryApi.Traces do
           ]
         )
 
-        ctx = Ctx.get_current()
-
-        TraceStore.store_trace(
-          merkle_root,
-          %{trace | context: ctx}
-        )
-
         IO.inspect(
           "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
         )
@@ -107,13 +100,6 @@ defmodule TelemetryApi.Traces do
         Tracer.add_event(
           "Quorum Reached",
           []
-        )
-
-        ctx = Ctx.get_current()
-
-        TraceStore.store_trace(
-          merkle_root,
-          %{trace | context: ctx}
         )
 
         IO.inspect("Reached quorum registered. merkle_root: #{IO.inspect(merkle_root)}")
@@ -148,13 +134,6 @@ defmodule TelemetryApi.Traces do
             {:status, "error"},
             {:error, error}
           ]
-        )
-
-        ctx = Ctx.get_current()
-
-        TraceStore.store_trace(
-          merkle_root,
-          %{trace | context: ctx}
         )
 
         IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
