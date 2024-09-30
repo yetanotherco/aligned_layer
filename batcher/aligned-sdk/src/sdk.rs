@@ -172,7 +172,9 @@ pub async fn fee_per_proof(
     eth_rpc_url: &str,
     num_proofs_per_batch: usize,
 ) -> Result<U256, MaxFeeEstimateError> {
-    let gas_price = fetch_gas_price(eth_rpc_url).await?;
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e: url::ParseError| MaxFeeEstimateError::EthereumProviderError(e.to_string()))?;
+    let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
     // Cost for estimate `num_proofs_per_batch` proofs
     let estimated_gas_per_proof = (CONSTANT_GAS_COST
@@ -185,10 +187,7 @@ pub async fn fee_per_proof(
     Ok(fee_per_proof)
 }
 
-async fn fetch_gas_price(eth_rpc_url: &str) -> Result<U256, MaxFeeEstimateError> {
-    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e: url::ParseError| MaxFeeEstimateError::EthereumProviderError(e.to_string()))?;
-
+async fn fetch_gas_price(eth_rpc_provider: &Provider<Http>) -> Result<U256, MaxFeeEstimateError> {
     let gas_price = match eth_rpc_provider.get_gas_price().await {
         Ok(price) => price,
         Err(e) => return Err(MaxFeeEstimateError::EthereumGasPriceError(e.to_string())),
