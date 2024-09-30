@@ -177,7 +177,7 @@ impl Batcher {
                 .await
                 .expect("Could not get non-paying nonce from Ethereum");
 
-            let non_paying_user_state = Mutex::new(UserState::new_non_paying(nonpaying_nonce));
+            let non_paying_user_state = UserState::new_non_paying(nonpaying_nonce);
             user_states.insert(
                 non_paying_config.replacement.address(),
                 non_paying_user_state,
@@ -397,7 +397,7 @@ impl Batcher {
             batch_state_lock
                 .user_states
                 .entry(addr)
-                .or_insert_with(|| Mutex::new(UserState::new()));
+                .or_insert_with(|| UserState::new());
         }
 
         // * ---------------------------------------------------*
@@ -406,7 +406,7 @@ impl Batcher {
 
         // At this point, we will have a user state for sure, since we have inserted it
         // if not already present. It should be safe to call `unwrap()` here.
-        let batch_state_lock = self.batch_state.lock().await;
+        let mut batch_state_lock = self.batch_state.lock().await;
         let proofs_in_batch = batch_state_lock.get_user_proof_count(&addr).await.unwrap();
         if !self.check_min_balance(&addr, proofs_in_batch + 1).await {
             send_message(
@@ -432,8 +432,7 @@ impl Batcher {
                 }
             };
 
-            let mut user_state = batch_state_lock.get_user_state(&addr).unwrap().lock().await;
-            user_state.nonce = Some(ethereum_user_nonce);
+            batch_state_lock.update_user_nonce(&addr, ethereum_user_nonce);
             ethereum_user_nonce
         };
 
@@ -593,12 +592,15 @@ impl Batcher {
             BatchQueueEntryPriority::new(replacement_max_fee, nonce),
         );
 
-        let Some(user_state) = batch_state_lock.get_user_state(&addr) else {
+        // let Some(user_state) = batch_state_lock.get_user_state(&addr) else {
+        //     warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
+        //     return;
+        // };
+        let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
+        let Some(_) = batch_state_lock.update_user_min_fee(&addr, updated_min_fee_in_batch) else {
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
             return;
         };
-        let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
-        user_state.lock().await.min_fee = updated_min_fee_in_batch;
     }
 
     async fn get_user_nonce_from_ethereum(
@@ -653,7 +655,17 @@ impl Batcher {
             proof_submitter_addr
         };
 
-        let Some(user_state) = batch_state_lock.get_user_state(&proof_submitter_addr) else {
+        // let Some(user_state) = batch_state_lock.get_user_state(&proof_submitter_addr) else {
+        //     error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+        //     return Err(BatcherError::AddressNotFoundInUserStates(
+        //         proof_submitter_addr,
+        //     ));
+        // };
+
+        let Some(user_proof_count) = batch_state_lock
+            .get_user_proof_count(&proof_submitter_addr)
+            .await
+        else {
             error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
             return Err(BatcherError::AddressNotFoundInUserStates(
                 proof_submitter_addr,
@@ -661,10 +673,26 @@ impl Batcher {
         };
 
         // User state is updated
-        let mut user_state_lock = user_state.lock().await;
-        user_state_lock.nonce = Some(nonce + U256::one());
-        user_state_lock.min_fee = max_fee;
-        user_state_lock.proofs_in_batch += 1;
+        // batch_state_lock.update_user_nonce(&proof_submitter_addr, nonce + U256::one());
+        // batch_state_lock.update_user_min_fee(&proof_submitter_addr, max_fee);
+        // batch_state_lock.update_user_proof_count(&proof_submitter_addr, user_proof_count + 1);
+
+        let Some(_) = batch_state_lock.update_user_state(
+            &proof_submitter_addr,
+            nonce + U256::one(),
+            max_fee,
+            user_proof_count + 1,
+        ) else {
+            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            return Err(BatcherError::AddressNotFoundInUserStates(
+                proof_submitter_addr,
+            ));
+        };
+
+        // let mut user_state_lock = user_sta
+        // user_state_lock.nonce = Some(nonce + U256::one());
+        // user_state_lock.min_fee = max_fee;
+        // user_state_lock.proofs_in_batch += 1;
         Ok(())
     }
 
@@ -738,7 +766,24 @@ impl Batcher {
         let updated_user_proof_count_and_min_fee =
             batch_state_lock.get_user_proofs_in_batch_and_min_fee();
 
-        for addr in batch_state_lock.user_states.keys() {
+        // batch_state_lock.user_states.keys().map(|addr| {
+        //     let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
+        //         .get(addr)
+        //         .unwrap_or(&(0, U256::MAX));
+
+        //     // FIXME: The case where a `user_state` is not found in the `user_states` map should not really
+        //     // happen here, but doing this check so that we don't unwrap.
+        //     // Once https://github.com/yetanotherco/aligned_layer/issues/1046 is done we could return a more
+        //     // informative error.
+        //     // let user_state = batch_state_lock.get_user_state(addr)?;
+
+        //     // Now we update the user states
+        //     let updated_proof_count = batch_state_lock.update_user_proof_count(addr, *proof_count);
+        //     let update_user_min_fee = batch_state_lock.update_user_min_fee(addr, *min_fee);
+        // });
+
+        let user_addresses: Vec<Address> = batch_state_lock.user_states.keys().cloned().collect();
+        for addr in user_addresses.iter() {
             let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
                 .get(addr)
                 .unwrap_or(&(0, U256::MAX));
@@ -747,12 +792,11 @@ impl Batcher {
             // happen here, but doing this check so that we don't unwrap.
             // Once https://github.com/yetanotherco/aligned_layer/issues/1046 is done we could return a more
             // informative error.
-            let user_state = batch_state_lock.get_user_state(addr)?;
+            // let user_state = batch_state_lock.get_user_state(addr)?;
 
             // Now we update the user states
-            let mut user_state_lock = user_state.lock().await;
-            user_state_lock.proofs_in_batch = *proof_count;
-            user_state_lock.min_fee = *min_fee;
+            batch_state_lock.update_user_proof_count(addr, *proof_count);
+            batch_state_lock.update_user_min_fee(addr, *min_fee);
         }
 
         Some(finalized_batch)
@@ -870,7 +914,7 @@ impl Batcher {
         let nonpaying_user_state = UserState::new_non_paying(nonpaying_replacement_addr_nonce);
         batch_state_lock
             .user_states
-            .insert(nonpaying_replacement_addr, Mutex::new(nonpaying_user_state));
+            .insert(nonpaying_replacement_addr, nonpaying_user_state);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
