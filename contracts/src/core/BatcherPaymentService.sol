@@ -140,12 +140,9 @@ contract BatcherPaymentService is
             );
         }
 
-        _checkMerkleRootAndVerifySignatures(
-            leaves,
-            batchMerkleRoot,
-            signatures,
-            feePerProof
-        );
+        for (uint32 i = 0; i < signatures.length; i++) {
+            _decreaseBalance(signatures[i], feePerProof);
+        }
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
@@ -217,103 +214,23 @@ contract BatcherPaymentService is
         onlyOwner // solhint-disable-next-line no-empty-blocks
     {}
 
-    function _checkMerkleRootAndVerifySignatures(
-        bytes32[] calldata leaves,
-        bytes32 batchMerkleRoot,
-        SignatureData[] calldata signatures,
-        uint256 feePerProof
-    ) private {
-        uint256 numNodesInLayer = leaves.length / 2;
-        bytes32[] memory layer = new bytes32[](numNodesInLayer);
-
-        uint32 i = 0;
-
-        // Calculate the hash of the next layer of the Merkle tree
-        // and verify the signatures up to numNodesInLayer
-        for (i = 0; i < numNodesInLayer; i++) {
-            layer[i] = keccak256(
-                abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
-            );
-
-            _verifySignatureAndDecreaseBalance(
-                leaves[i],
-                signatures[i],
-                feePerProof
-            );
+    function _decreaseBalance(SignatureData calldata data, uint256 feePerProof) private {
+        if (data.maxFee < feePerProof) {
+            revert InvalidMaxFee(data.maxFee, feePerProof);
         }
 
-        // Verify the rest of the signatures
-        for (; i < signatures.length; i++) {
-            _verifySignatureAndDecreaseBalance(
-                leaves[i],
-                signatures[i],
-                feePerProof
-            );
+        UserInfo storage user = userData[data.userAddress];
+
+        if (user.nonce != data.nonce) {
+            revert InvalidNonce(user.nonce, data.nonce);
+        }
+        user.nonce++;
+
+        if (user.balance < feePerProof) {
+            revert SignerInsufficientBalance(data.userAddress, user.balance, feePerProof);
         }
 
-        // The next layer above has half as many nodes
-        numNodesInLayer /= 2;
-
-        // Continue calculating Merkle root for remaining layers
-        while (numNodesInLayer != 0) {
-            // Overwrite the first numNodesInLayer nodes in layer with the pairwise hashes of their children
-            for (i = 0; i < numNodesInLayer; i++) {
-                layer[i] = keccak256(
-                    abi.encodePacked(layer[2 * i], layer[2 * i + 1])
-                );
-            }
-
-            // The next layer above has half as many nodes
-            numNodesInLayer /= 2;
-        }
-
-        if (leaves.length == 1) {
-            if (leaves[0] != batchMerkleRoot) {
-                revert InvalidMerkleRoot(batchMerkleRoot, leaves[0]);
-            }
-        } else if (layer[0] != batchMerkleRoot) {
-            revert InvalidMerkleRoot(batchMerkleRoot, layer[0]);
-        }
-    }
-
-    function _verifySignatureAndDecreaseBalance(
-        bytes32 leaf,
-        SignatureData calldata signatureData,
-        uint256 feePerProof
-    ) private {
-        if (signatureData.maxFee < feePerProof) {
-            revert InvalidMaxFee(signatureData.maxFee, feePerProof);
-        }
-
-        bytes32 structHash = keccak256(
-            abi.encode(
-                noncedVerificationDataTypeHash,
-                leaf,
-                signatureData.nonce,
-                signatureData.maxFee
-            )
-        );
-
-        bytes32 hash = _hashTypedDataV4(structHash);
-
-        address signer = ECDSA.recover(hash, signatureData.signature);
-
-        UserInfo storage signerData = userData[signer];
-
-        if (signerData.nonce != signatureData.nonce) {
-            revert InvalidNonce(signerData.nonce, signatureData.nonce);
-        }
-        signerData.nonce++;
-
-        if (signerData.balance < feePerProof) {
-            revert SignerInsufficientBalance(
-                signer,
-                signerData.balance,
-                feePerProof
-            );
-        }
-
-        signerData.balance -= feePerProof;
+        user.balance -= feePerProof;
     }
 
     function user_balances(address account) public view returns (uint256) {

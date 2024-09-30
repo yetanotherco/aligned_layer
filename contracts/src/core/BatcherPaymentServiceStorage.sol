@@ -1,9 +1,10 @@
 pragma solidity ^0.8.12;
+
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 
 abstract contract BatcherPaymentServiceStorage {
     struct SignatureData {
-        bytes signature;
+        address userAddress;
         uint256 nonce;
         uint256 maxFee;
     }
