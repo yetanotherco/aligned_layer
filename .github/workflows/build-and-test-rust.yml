@@ -1,4 +1,4 @@
-name: build-rust-projects
+name: build-and-test-rust-projects
 
 on:
   merge_group:
@@ -45,13 +45,7 @@ jobs:
         run: |
           cd batcher
           cargo build --all
-
-  batcher-test:
-    runs-on: aligned-runner
-    needs: build
-
-    steps:
-      - name: run-tests
+      - name: Run tests
         run: |
           cd batcher
           cargo test --all
