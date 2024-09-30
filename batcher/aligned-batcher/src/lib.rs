@@ -404,6 +404,10 @@ impl Batcher {
         // *        Perform validations over user state         *
         // * ---------------------------------------------------*
 
+        // For now until the message is fully processed, the batch state is locked
+        // This is needed because we need to query the user state to make validations and
+        // finally add the proof to the batch queue.
+
         // At this point, we will have a user state for sure, since we have inserted it
         // if not already present. It should be safe to call `unwrap()` here.
         let mut batch_state_lock = self.batch_state.lock().await;
@@ -494,8 +498,7 @@ impl Batcher {
         Ok(())
     }
 
-    // Checks user has sufficient balance
-    // If user has sufficient balance, increments the user's proof count in the batch
+    // Checks user has sufficient balance for paying all its the proofs in the current batch.
     async fn check_min_balance(&self, addr: &Address, user_proofs_in_batch: usize) -> bool {
         let Some(user_balance) = self.get_user_balance(addr).await else {
             return false;
@@ -592,10 +595,6 @@ impl Batcher {
             BatchQueueEntryPriority::new(replacement_max_fee, nonce),
         );
 
-        // let Some(user_state) = batch_state_lock.get_user_state(&addr) else {
-        //     warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
-        //     return;
-        // };
         let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
         let Some(_) = batch_state_lock.update_user_min_fee(&addr, updated_min_fee_in_batch) else {
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
@@ -655,13 +654,6 @@ impl Batcher {
             proof_submitter_addr
         };
 
-        // let Some(user_state) = batch_state_lock.get_user_state(&proof_submitter_addr) else {
-        //     error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
-        //     return Err(BatcherError::AddressNotFoundInUserStates(
-        //         proof_submitter_addr,
-        //     ));
-        // };
-
         let Some(user_proof_count) = batch_state_lock
             .get_user_proof_count(&proof_submitter_addr)
             .await
@@ -673,10 +665,6 @@ impl Batcher {
         };
 
         // User state is updated
-        // batch_state_lock.update_user_nonce(&proof_submitter_addr, nonce + U256::one());
-        // batch_state_lock.update_user_min_fee(&proof_submitter_addr, max_fee);
-        // batch_state_lock.update_user_proof_count(&proof_submitter_addr, user_proof_count + 1);
-
         let Some(_) = batch_state_lock.update_user_state(
             &proof_submitter_addr,
             nonce + U256::one(),
@@ -689,10 +677,6 @@ impl Batcher {
             ));
         };
 
-        // let mut user_state_lock = user_sta
-        // user_state_lock.nonce = Some(nonce + U256::one());
-        // user_state_lock.min_fee = max_fee;
-        // user_state_lock.proofs_in_batch += 1;
         Ok(())
     }
 
@@ -766,37 +750,20 @@ impl Batcher {
         let updated_user_proof_count_and_min_fee =
             batch_state_lock.get_user_proofs_in_batch_and_min_fee();
 
-        // batch_state_lock.user_states.keys().map(|addr| {
-        //     let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
-        //         .get(addr)
-        //         .unwrap_or(&(0, U256::MAX));
-
-        //     // FIXME: The case where a `user_state` is not found in the `user_states` map should not really
-        //     // happen here, but doing this check so that we don't unwrap.
-        //     // Once https://github.com/yetanotherco/aligned_layer/issues/1046 is done we could return a more
-        //     // informative error.
-        //     // let user_state = batch_state_lock.get_user_state(addr)?;
-
-        //     // Now we update the user states
-        //     let updated_proof_count = batch_state_lock.update_user_proof_count(addr, *proof_count);
-        //     let update_user_min_fee = batch_state_lock.update_user_min_fee(addr, *min_fee);
-        // });
-
         let user_addresses: Vec<Address> = batch_state_lock.user_states.keys().cloned().collect();
         for addr in user_addresses.iter() {
             let (proof_count, min_fee) = updated_user_proof_count_and_min_fee
                 .get(addr)
                 .unwrap_or(&(0, U256::MAX));
 
-            // FIXME: The case where a `user_state` is not found in the `user_states` map should not really
-            // happen here, but doing this check so that we don't unwrap.
+            // FIXME: The case where a the update functions return `None` can only happen when the user was not found
+            // in the `user_states` map should not really happen here, but doing this check so that we don't unwrap.
             // Once https://github.com/yetanotherco/aligned_layer/issues/1046 is done we could return a more
             // informative error.
-            // let user_state = batch_state_lock.get_user_state(addr)?;
 
-            // Now we update the user states
-            batch_state_lock.update_user_proof_count(addr, *proof_count);
-            batch_state_lock.update_user_min_fee(addr, *min_fee);
+            // Now we update the user states related to the batch (proof count in batch and min fee in batch)
+            batch_state_lock.update_user_proof_count(addr, *proof_count)?;
+            batch_state_lock.update_user_min_fee(addr, *min_fee)?;
         }
 
         Some(finalized_batch)
@@ -1186,7 +1153,9 @@ impl Batcher {
         Ok(())
     }
 
-    /// TODO: ADD DOCUMENTATION ON WHY IT IS AN OPTION
+    /// Gets the balance of user with address `addr` from Ethereum.
+    /// Returns `None` if the balance couldn't be returned
+    /// FIXME: This should return a `Result` instead.
     async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
         if let Ok(balance) = self.payment_service.user_balances(*addr).call().await {
             return Some(balance);
@@ -1216,6 +1185,9 @@ impl Batcher {
         false
     }
 
+    /// Gets the current gas price from Ethereum.
+    /// Returns `None` if the gas price couldn't be returned
+    /// FIXME: This should return a `Result` instead.
     async fn get_gas_price(&self) -> Option<U256> {
         if let Ok(gas_price) = self
             .eth_ws_provider

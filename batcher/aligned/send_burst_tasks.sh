@@ -28,6 +28,6 @@ while true
 do
     # Run in backaground to be able to run onece per second, and not wait for the previous one to finish
     . ./batcher/aligned/generate_proof_and_send.sh $counter $burst &
-    sleep 3
+    sleep 1
     counter=$((counter + 1))
 done
