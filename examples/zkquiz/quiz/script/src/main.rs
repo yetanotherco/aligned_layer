@@ -108,7 +108,7 @@ async fn main() {
                 pub_input: None,
             };
 
-            // Set a `max_fee` of 0.1 Eth
+            // Set a `max_fee` of 0.5 Eth
             let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
             let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK)
                 .await
