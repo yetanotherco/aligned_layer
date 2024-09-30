@@ -50,6 +50,7 @@ contract BatcherPaymentService is
         uint256 required
     ); // 4f779ceb
     error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
+    error InvalidAddress(string param); // 161eb542
 
     // CONSTRUCTOR & INITIALIZER
     constructor() EIP712("Aligned", "1") {
@@ -70,6 +71,15 @@ contract BatcherPaymentService is
         address _batcherWallet,
         bytes32 _noncedVerificationDataTypeHash
     ) public initializer {
+        if (address(_alignedLayerServiceManager) == address(0)) {
+            revert InvalidAddress("alignedServiceManager");
+        }
+        if (_batcherPaymentServiceOwner == address(0)) {
+            revert InvalidAddress("batcherPaymentServiceOwner");
+        }
+        if (_batcherWallet == address(0)) {
+            revert InvalidAddress("batcherWallet");
+        }
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
         _transferOwnership(_batcherPaymentServiceOwner);
