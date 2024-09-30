@@ -317,6 +317,7 @@ pub enum ValidityResponseMessage {
     InvalidReplacementMessage,
     ProofTooLarge,
     InsufficientBalance(Address),
+    InvalidPaymentServiceAddress(Address, Address),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -328,8 +329,8 @@ pub enum ResponseMessage {
     Error(String),
 }
 
-#[derive(Debug, Clone)]
-pub enum Chain {
+#[derive(Debug, Clone, Copy)]
+pub enum Network {
     Devnet,
     Holesky,
     HoleskyStage,
