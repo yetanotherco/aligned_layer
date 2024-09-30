@@ -53,29 +53,20 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def register_operator_response(merkle_root, operator_id) do
-    case TraceStore.get_trace(merkle_root) do
-      nil ->
-        IO.inspect("Context not found for #{merkle_root}")
-        {:error, "Context not found for #{merkle_root}"}
+    add_event(
+      merkle_root,
+      "Operator ID: #{operator_id}",
+      [
+        {:merkle_root, merkle_root},
+        {:operator_id, operator_id}
+      ]
+    )
 
-      trace ->
-        Ctx.attach(trace.context)
-        Tracer.set_current_span(trace.parent_span)
+    IO.inspect(
+      "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
+    )
 
-        Tracer.add_event(
-          "Operator ID: #{operator_id}",
-          [
-            {:merkle_root, merkle_root},
-            {:operator_id, operator_id}
-          ]
-        )
-
-        IO.inspect(
-          "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
-        )
-
-        {:ok, operator_id}
-    end
+    {:ok, operator_id}
   end
 
   @doc """
@@ -88,24 +79,15 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def quorum_reached(merkle_root) do
-    case TraceStore.get_trace(merkle_root) do
-      nil ->
-        IO.inspect("Context not found for #{merkle_root}")
-        {:error, "Context not found for #{merkle_root}"}
+    add_event(
+      merkle_root,
+      "Quorum Reached",
+      []
+    )
 
-      trace ->
-        Ctx.attach(trace.context)
-        Tracer.set_current_span(trace.parent_span)
+    IO.inspect("Reached quorum registered. merkle_root: #{IO.inspect(merkle_root)}")
 
-        Tracer.add_event(
-          "Quorum Reached",
-          []
-        )
-
-        IO.inspect("Reached quorum registered. merkle_root: #{IO.inspect(merkle_root)}")
-
-        {:ok, merkle_root}
-    end
+    {:ok, merkle_root}
   end
 
   @doc """
@@ -119,27 +101,17 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def task_error(merkle_root, error) do
-    case TraceStore.get_trace(merkle_root) do
-      nil ->
-        IO.inspect("Context not found for #{merkle_root}")
-        {:error, "Context not found for #{merkle_root}"}
+    add_event(
+      merkle_root,
+      "Batch verification failed",
+      [
+        {:status, "error"},
+        {:error, error}
+      ]
+    )
 
-      trace ->
-        Ctx.attach(trace.context)
-        Tracer.set_current_span(trace.parent_span)
-
-        Tracer.add_event(
-          "Batch verification failed",
-          [
-            {:status, "error"},
-            {:error, error}
-          ]
-        )
-
-        IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
-
-        {:ok, merkle_root}
-    end
+    IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
+    {:ok, merkle_root}
   end
 
   @doc """
@@ -170,6 +142,20 @@ defmodule TelemetryApi.Traces do
         TraceStore.delete_trace(merkle_root)
         IO.inspect("Finished task trace with merkle_root: #{IO.inspect(merkle_root)}.")
         :ok
+    end
+  end
+
+  defp add_event(merkle_root, event_name, event_attributes) do
+    case TraceStore.get_trace(merkle_root) do
+      nil ->
+        IO.inspect("Context not found for #{merkle_root}")
+        {:error, "Context not found for #{merkle_root}"}
+
+      trace ->
+        Ctx.attach(trace.context)
+        Tracer.set_current_span(trace.parent_span)
+
+        Tracer.add_event(event_name, event_attributes)
     end
   end
 end
