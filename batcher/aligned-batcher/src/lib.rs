@@ -413,6 +413,7 @@ impl Batcher {
         let mut batch_state_lock = self.batch_state.lock().await;
         let proofs_in_batch = batch_state_lock.get_user_proof_count(&addr).await.unwrap();
         if !self.check_min_balance(&addr, proofs_in_batch + 1).await {
+            std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InsufficientBalance(addr),
@@ -431,6 +432,7 @@ impl Batcher {
                     error!(
                         "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
                     );
+                    std::mem::drop(batch_state_lock);
                     send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
                     return Ok(());
                 }
@@ -441,6 +443,7 @@ impl Batcher {
         };
 
         if expected_nonce < msg_nonce {
+            std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}, had nonce {expected_nonce:?} < {msg_nonce:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return Ok(());
@@ -464,11 +467,13 @@ impl Batcher {
 
         let msg_max_fee = nonced_verification_data.max_fee;
         let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
+            std::mem::drop(batch_state_lock);
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return Ok(());
         };
 
         if msg_max_fee > user_min_fee {
+            std::mem::drop(batch_state_lock);
             warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {msg_max_fee:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
             return Ok(());
@@ -659,6 +664,7 @@ impl Batcher {
             .await
         else {
             error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            std::mem::drop(batch_state_lock);
             return Err(BatcherError::AddressNotFoundInUserStates(
                 proof_submitter_addr,
             ));
@@ -672,6 +678,7 @@ impl Batcher {
             user_proof_count + 1,
         ) else {
             error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            std::mem::drop(batch_state_lock);
             return Err(BatcherError::AddressNotFoundInUserStates(
                 proof_submitter_addr,
             ));
