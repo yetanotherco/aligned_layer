@@ -12,7 +12,6 @@ use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::submit_multiple;
 
 use clap::Parser;
-use clap::Subcommand;
 use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
@@ -29,50 +28,34 @@ const GROTH_16_PROOF_GENERATOR_FILE_PATH: &str =
 const GROTH_16_PROOF_DIR: &str =
     "../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs";
 
-use crate::TaskSenderCommands::SendInfinite;
-
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-pub struct TaskSenderArgs {
-    #[clap(subcommand)]
-    pub command: TaskSenderCommands,
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Subcommand, Debug)]
-pub enum TaskSenderCommands {
-    #[clap(about = "Send Infinite Proofs to the batcher")]
-    SendInfinite(SubmitArgs),
-}
-
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
-pub struct SubmitArgs {
+pub struct Args {
     #[arg(
         name = "Batcher connection address",
-        long = "batcher_url",
+        long = "batcher-url",
         default_value = "ws://localhost:8080"
     )]
     batcher_url: String,
     #[arg(
         name = "Batcher Payment Service Eth Address",
-        long = "payment_service_addr",
+        long = "payment-service-addr",
         default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
     )]
     payment_service_addr: String,
     #[arg(
         name = "Ethereum RPC provider connection address",
-        long = "rpc_url",
+        long = "rpc-url",
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
     #[arg(
         name = "Number of proofs per burst",
-        long = "burst_size",
+        long = "burst-size",
         default_value = "10"
     )]
     burst_size: usize,
-    #[arg(name = "Burst Time", long = "burst_time", default_value = "3")]
+    #[arg(name = "Burst Time", long = "burst-time", default_value = "3")]
     burst_time: usize,
     #[arg(
         name = "Proof generator address",
@@ -86,7 +69,7 @@ pub struct SubmitArgs {
     private_key: Option<String>,
     #[arg(
         name = "Max Fee",
-        long = "max_fee",
+        long = "max-fee",
         default_value = "1300000000000000" // 13_000 gas per proof * 100 gwei gas price (upper bound)
     )]
     max_fee: String, // String because U256 expects hex
@@ -121,126 +104,105 @@ impl From<ChainArg> for Chain {
 async fn main() -> Result<(), AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let args: TaskSenderArgs = TaskSenderArgs::parse();
+    let args = Args::parse();
 
-    match args.command {
-        SendInfinite(submit_args) => {
-            let max_fee =
-                U256::from_dec_str(&submit_args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
+    let max_fee = U256::from_dec_str(&args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
 
-            let burst_size = submit_args.burst_size;
+    let burst_size = args.burst_size;
 
-            let burst_time = submit_args.burst_time;
+    let burst_time = args.burst_time;
 
-            let keystore_path = &submit_args.keystore_path;
-            let private_key = &submit_args.private_key;
+    let keystore_path = &args.keystore_path;
+    let private_key = &args.private_key;
 
-            if keystore_path.is_some() && private_key.is_some() {
-                warn!("Can't have a keystore path and a private key as input. Please use only one");
+    if keystore_path.is_some() && private_key.is_some() {
+        warn!("Can't have a keystore path and a private key as input. Please use only one");
+        return Ok(());
+    }
+
+    let mut wallet = if let Some(keystore_path) = keystore_path {
+        let password = rpassword::prompt_password("Please enter your keystore password:")
+            .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+        Wallet::decrypt_keystore(keystore_path, password)
+            .map_err(|e| SubmitError::GenericError(e.to_string()))?
+    } else if let Some(private_key) = private_key {
+        private_key
+            .parse::<LocalWallet>()
+            .map_err(|e| SubmitError::GenericError(e.to_string()))?
+    } else {
+        warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+        match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
+            Ok(wallet) => wallet,
+            Err(e) => {
+                warn!(
+                    "Failed to create wallet from anvil private key: {}",
+                    e.to_string()
+                );
                 return Ok(());
             }
+        }
+    };
 
-            let mut wallet = if let Some(keystore_path) = keystore_path {
-                let password = rpassword::prompt_password("Please enter your keystore password:")
-                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
-                Wallet::decrypt_keystore(keystore_path, password)
-                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
-            } else if let Some(private_key) = private_key {
-                private_key
-                    .parse::<LocalWallet>()
-                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
-            } else {
-                warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-                match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
-                    Ok(wallet) => wallet,
-                    Err(e) => {
-                        warn!(
-                            "Failed to create wallet from anvil private key: {}",
-                            e.to_string()
-                        );
-                        return Ok(());
-                    }
-                }
-            };
+    let eth_rpc_url = args.eth_rpc_url.clone();
 
-            let eth_rpc_url = submit_args.eth_rpc_url.clone();
-
-            let chain_id = get_chain_id(eth_rpc_url.as_str()).await.map_err(|e| {
+    let chain_id = get_chain_id(eth_rpc_url.as_str()).await.map_err(|e| {
                     SubmitError::GenericError(format!(
                         "Failed to retrieve chain id, verify `eth_rpc_url` is cor/rect or local testnet is running on \"http://localhost:8545\": {}", e
                     ))
             })?;
-            wallet = wallet.with_chain_id(chain_id);
+    wallet = wallet.with_chain_id(chain_id);
 
-            let proof_generator_addr = Address::from_str(&submit_args.proof_generator_addr)
-                .map_err(|e| {
-                    SubmitError::InvalidEthereumAddress(format!(
-                        "Error while parsing address: {}",
-                        e
-                    ))
-                })?;
-            std::fs::create_dir_all(GROTH_16_PROOF_DIR)
-                .map_err(|e| SubmitError::IoError(PathBuf::from(GROTH_16_PROOF_DIR), e))?;
+    let proof_generator_addr = Address::from_str(&args.proof_generator_addr).map_err(|e| {
+        SubmitError::InvalidEthereumAddress(format!("Error while parsing address: {}", e))
+    })?;
+    std::fs::create_dir_all(GROTH_16_PROOF_DIR)
+        .map_err(|e| SubmitError::IoError(PathBuf::from(GROTH_16_PROOF_DIR), e))?;
 
-            let mut count = 1;
-            //TODO: sort out error messages
-            if let Err(e) = tokio::spawn(async move {
-                loop {
-                    info!("Generating proof {} != 0", count);
-                    if let Err(e) = Command::new("go")
-                        .arg("run")
-                        .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
-                        .arg(format!("{:?}", count))
-                        .status()
-                    {
-                        error!("Failed to generate Groth16 Proofs: {:?}", e);
-                        return Ok::<(), AlignedError>(());
-                    }
-                    let (max_fees, verification_data) = match get_verification_data(
-                        burst_size,
-                        count,
-                        max_fee,
-                        proof_generator_addr,
-                        &base_dir,
-                    )
-                    .await
-                    {
-                        Ok(value) => value,
-                        Err(e) => {
-                            error!("Failed to create Verification Data: {:?}", e);
-                            return Ok(());
-                        }
-                    };
-                    if let Err(e) =
-                        send_burst(&max_fees, &verification_data, &wallet, submit_args.clone())
-                            .await
-                    {
-                        error!("Failed to send Proof Burst: {:?}", e);
-                        return Ok(());
-                    };
-                    // To prevent continously creating proofs we clear the directory after sending a burst.
-                    std::fs::remove_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
-                        error!("Failed to send Clear Proof Directory: {:?}", e);
-                    });
-                    std::fs::create_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
-                        error!("Failed to Create Proof Directory and Clearing: {:?}", e);
-                    });
-                    sleep(Duration::from_secs(burst_time as u64)).await;
-                    count += 1;
-                }
-            })
-            .await
+    let mut count = 1;
+    //TODO: sort out error messages
+    if let Err(e) = tokio::spawn(async move {
+        loop {
+            info!("Generating proof {} != 0", count);
+            if let Err(e) = Command::new("go")
+                .arg("run")
+                .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
+                .arg(format!("{:?}", count))
+                .status()
             {
-                error!("Proof Stream Exited: {:?}", e);
+                error!("Failed to generate Groth16 Proofs: {:?}", e);
+                return Ok::<(), AlignedError>(());
             }
-
-            //Clean infinite_proofs directory on exit
-            if let Err(e) = std::fs::remove_dir_all(GROTH_16_PROOF_DIR) {
-                error!("Failed to remove {}: {}", GROTH_16_PROOF_DIR, e);
-            }
+            let Ok((max_fees, verification_data)) =
+                get_verification_data(burst_size, count, max_fee, proof_generator_addr, &base_dir)
+                    .await
+            else {
+                error!("Failed to generate Verification Data");
+                return Ok(());
+            };
+            if let Err(e) = send_burst(&max_fees, &verification_data, &wallet, args.clone()).await {
+                error!("Failed to send Proof Burst: {:?}", e);
+                return Ok(());
+            };
+            // To prevent continously creating proofs we clear the directory after sending a burst.
+            std::fs::remove_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
+                error!("Failed to send Clear Proof Directory: {:?}", e);
+            });
+            std::fs::create_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
+                error!("Failed to Create Proof Directory and Clearing: {:?}", e);
+            });
+            sleep(Duration::from_secs(burst_time as u64)).await;
+            count += 1;
         }
+    })
+    .await
+    {
+        error!("Proof Stream Exited: {:?}", e);
     }
 
+    //Clean infinite_proofs directory on exit
+    if let Err(e) = std::fs::remove_dir_all(GROTH_16_PROOF_DIR) {
+        error!("Failed to remove {}: {}", GROTH_16_PROOF_DIR, e);
+    }
     Ok(())
 }
 
@@ -332,7 +294,7 @@ async fn send_burst(
     max_fees: &[U256],
     verification_data: &[VerificationData],
     wallet: &Wallet<SigningKey>,
-    args: SubmitArgs,
+    args: Args,
 ) -> Result<(), AlignedError> {
     let chain: Chain = args.chain.clone().into();
     let eth_rpc_url = args.eth_rpc_url.clone();
