@@ -1029,13 +1029,7 @@ impl Batcher {
 
         let proof_submitters_data = finalized_batch
             .iter()
-            .map(|entry| {
-                ProofSubmitterData::new(
-                    entry.sender,
-                    entry.nonced_verification_data.nonce,
-                    entry.nonced_verification_data.max_fee,
-                )
-            })
+            .map(|entry| ProofSubmitterData::new(entry.sender))
             .collect();
 
         match self

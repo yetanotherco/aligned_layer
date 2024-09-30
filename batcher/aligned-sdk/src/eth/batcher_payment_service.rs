@@ -24,11 +24,7 @@ pub async fn batcher_payment_service(
 }
 
 impl ProofSubmitterData {
-    pub fn new(address: H160, nonce: U256, max_fee: U256) -> Self {
-        ProofSubmitterData {
-            sender: address,
-            nonce,
-            max_fee,
-        }
+    pub fn new(address: H160) -> Self {
+        ProofSubmitterData { sender: address }
     }
 }
