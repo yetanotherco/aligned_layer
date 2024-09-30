@@ -1,7 +1,5 @@
-extern crate core;
-
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
-use aligned_sdk::eth::batcher_payment_service::SignatureData;
+use aligned_sdk::eth::batcher_payment_service::ProofSubmitterData;
 use config::NonPayingConfig;
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
@@ -11,7 +9,6 @@ use serde::Serialize;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::env;
-use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -989,22 +986,6 @@ impl Batcher {
         finalized_batch: &[BatchQueueEntry],
         gas_price: U256,
     ) -> Result<(), BatcherError> {
-        let signatures: Vec<_> = finalized_batch
-            .iter()
-            .map(|entry| &entry.signature)
-            .cloned()
-            .collect();
-
-        let nonces: Vec<_> = finalized_batch
-            .iter()
-            .map(|entry| entry.nonced_verification_data.nonce)
-            .collect();
-
-        let max_fees: Vec<_> = finalized_batch
-            .iter()
-            .map(|entry| entry.nonced_verification_data.max_fee)
-            .collect();
-
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
@@ -1046,18 +1027,22 @@ impl Batcher {
             respond_to_task_fee_limit,
         );
 
-        let signatures = signatures
+        let proof_submitters_data = finalized_batch
             .iter()
-            .enumerate()
-            .map(|(i, signature)| SignatureData::new(signature, nonces[i], max_fees[i]))
+            .map(|entry| {
+                ProofSubmitterData::new(
+                    entry.sender,
+                    entry.nonced_verification_data.nonce,
+                    entry.nonced_verification_data.max_fee,
+                )
+            })
             .collect();
 
         match self
             .create_new_task(
                 *batch_merkle_root,
                 batch_data_pointer,
-                leaves,
-                signatures,
+                proof_submitters_data,
                 fee_params,
             )
             .await
@@ -1081,20 +1066,15 @@ impl Batcher {
         &self,
         batch_merkle_root: [u8; 32],
         batch_data_pointer: String,
-        leaves: Vec<[u8; 32]>,
-        signatures: Vec<SignatureData>,
+        proof_submitters_data: Vec<ProofSubmitterData>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
-        // pad leaves to next power of 2
-        let padded_leaves = Self::pad_leaves(leaves);
-
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
 
         match try_create_new_task(
             batch_merkle_root,
             batch_data_pointer.clone(),
-            padded_leaves.clone(),
-            signatures.clone(),
+            proof_submitters_data.clone(),
             fee_params.clone(),
             &self.payment_service,
         )
@@ -1112,8 +1092,7 @@ impl Batcher {
                 let receipt = try_create_new_task(
                     batch_merkle_root,
                     batch_data_pointer,
-                    padded_leaves,
-                    signatures,
+                    proof_submitters_data,
                     fee_params,
                     &self.payment_service_fallback,
                 )
@@ -1122,15 +1101,6 @@ impl Batcher {
                 Ok(receipt)
             }
         }
-    }
-
-    fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
-        let leaves_len = leaves.len();
-        let last_leaf = leaves[leaves_len - 1];
-        leaves
-            .into_iter()
-            .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
-            .collect()
     }
 
     /// Only relevant for testing and for users to easily use Aligned
@@ -1223,7 +1193,7 @@ impl Batcher {
                     nonced_verification_data,
                     ws_conn_sink.clone(),
                     client_msg.signature,
-                    non_paying_config.address,
+                    non_paying_config.replacement.address(),
                 )
                 .await;
         } else {
