@@ -227,10 +227,6 @@ pub enum ProvingSystemArg {
     Groth16Bn254,
     #[clap(name = "SP1")]
     SP1,
-    #[clap(name = "Halo2KZG")]
-    Halo2KZG,
-    #[clap(name = "Halo2IPA")]
-    Halo2IPA,
     #[clap(name = "Risc0")]
     Risc0,
 }
@@ -244,8 +240,6 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::GnarkPlonkBn254 => ProvingSystemId::GnarkPlonkBn254,
             ProvingSystemArg::Groth16Bn254 => ProvingSystemId::Groth16Bn254,
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
-            ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
-            ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
         }
     }
@@ -571,9 +565,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
                 args.pub_input_file_name.clone(),
             )?);
         }
-        ProvingSystemId::Halo2KZG
-        | ProvingSystemId::Halo2IPA
-        | ProvingSystemId::GnarkPlonkBls12_381
+        ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
             verification_key = Some(read_file_option(

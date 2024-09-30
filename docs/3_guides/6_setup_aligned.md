@@ -50,11 +50,11 @@ Before starting, you need to set up an S3 bucket. More data storage will be test
 
 You need to fill the data in:
 
-```batcher/aligned-batcher/.env```
+`batcher/aligned-batcher/.env`
 
 And you can use this file as an example of how to fill it:
 
-```batcher/aligned-batcher/.env.example```
+`batcher/aligned-batcher/.env.example`
 
 After having the env setup, run in different terminals the following commands to boot Aligned locally:
 
@@ -108,15 +108,15 @@ Note that when upgrading the contracts, you must also:
 
 1. Re-generate the Go smart contract bindings:
 
-    ```bash
-    make bindings
-    ```
+   ```bash
+   make bindings
+   ```
 
 2. Rebuild Aggregator and Operator Go binaries:
 
-    ```bash
-    make build_binaries
-    ```
+   ```bash
+   make build_binaries
+   ```
 
 </details>
 
@@ -324,7 +324,7 @@ batcher (`batcher/aligned-batcher/`).
 The necessary environment variables are:
 
 | Variable Name         | Description                                                                                                                    |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | AWS_SECRET_ACCESS_KEY | Secret key to authenticate and authorize API requests to the AWS S3 Bucket.                                                    |
 | AWS_REGION            | Geographical region where the AWS S3 Bucket will be accessed.                                                                  |
 | AWS_ACCESS_KEY_ID     | Access key used in combination with the AWS_SECRET_ACCESS_KEY to authenticate and authorize API requests to the AWS S3 Bucket. |
@@ -460,35 +460,6 @@ Send bn254 proof bursts indefinitely:
 
 ```bash
 make batcher_send_burst_groth16
-```
-
-</details>
-
-<details>
-<summary>Halo2</summary>
-
-Send an individual IPA proof:
-
-```bash
-make batcher_send_halo2_ipa_task
-```
-
-Send a burst of five IPA proofs:
-
-```bash
-make batcher_send_halo2_ipa_task_burst_5
-```
-
-Send an individual KZG proof:
-
-```bash
-make batcher_send_halo2_kzg_task
-```
-
-Send a burst of 5 KZG proofs:
-
-```bash
-make batcher_send_halo2_kzg_task_burst_5
 ```
 
 </details>
@@ -660,7 +631,7 @@ Create a `.env` file in the `/explorer` directory of the project.
 The `.env` file needs to contain the following variables:
 
 | Variable              | Description                                                                                     |
-|-----------------------|-------------------------------------------------------------------------------------------------|
+| --------------------- | ----------------------------------------------------------------------------------------------- |
 | `RPC_URL`             | The RPC URL of the network you want to connect to.                                              |
 | `ENVIRONMENT`         | The environment you want to run the application in. It can be `devnet`, `holesky` or `mainnet`. |
 | `ALIGNED_CONFIG_FILE` | The config file containing Aligned contracts' deployment information                            |
@@ -719,18 +690,18 @@ forge install Layr-Labs/eigenlayer-middleware@mainnet
 
 Then, to solve the issue<https://github.com/Layr-Labs/eigenlayer-middleware/issues/229>, we changed it to:
 
-```forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit```
+`forge install yetanotherco/eigenlayer-middleware@yac-mainnet --no-commit`
 
 As soon as it gets fixed in mainnet, we can revert it.
 
-Base version of middleware used is ```7229f2b```.
+Base version of middleware used is `7229f2b`.
 
-The script to initialize the devnet can be found on  ```contracts/scripts/anvil```.
+The script to initialize the devnet can be found on `contracts/scripts/anvil`.
 
 The addresses of the relevant contracts after running the anvil script are dumped
-on ```contracts/script/output/devnet```.
+on `contracts/script/output/devnet`.
 
-The state is backed up on ```contracts/scripts/anvil/state```.
+The state is backed up on `contracts/scripts/anvil/state`.
 
 EigenLayer contract deployment is almost the same as the EigenLayer contract deployment on mainnet.
 Changes are described in the file.
