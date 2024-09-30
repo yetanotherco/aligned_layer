@@ -7,7 +7,7 @@ use crate::{
     core::{
         errors,
         types::{
-            AlignedVerificationData, Chain, ProvingSystemId, VerificationData,
+            AlignedVerificationData, Network, ProvingSystemId, VerificationData,
             VerificationDataCommitment,
         },
     },
@@ -69,16 +69,15 @@ use futures_util::{
 pub async fn submit_multiple_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
-    chain: Chain,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-    payment_service_addr: &str,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     let aligned_verification_data = submit_multiple(
         batcher_url,
-        chain.clone(),
+        network,
         verification_data,
         max_fees,
         wallet,
@@ -87,13 +86,7 @@ pub async fn submit_multiple_and_wait_verification(
     .await?;
 
     for aligned_verification_data_item in aligned_verification_data.iter() {
-        await_batch_verification(
-            aligned_verification_data_item,
-            eth_rpc_url,
-            chain.clone(),
-            payment_service_addr,
-        )
-        .await?;
+        await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await?;
     }
 
     Ok(aligned_verification_data)
@@ -126,7 +119,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_url: &str,
-    chain: Chain,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -144,7 +137,7 @@ pub async fn submit_multiple(
     _submit_multiple(
         ws_write,
         ws_read,
-        chain.clone(),
+        network,
         verification_data,
         max_fees,
         wallet,
@@ -153,10 +146,30 @@ pub async fn submit_multiple(
     .await
 }
 
+pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
+    match network {
+        Network::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
+        Network::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
+        Network::HoleskyStage => {
+            H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
+        }
+    }
+}
+
+pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H160 {
+    match network {
+        Network::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
+        Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
+        Network::HoleskyStage => {
+            H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
+        }
+    }
+}
+
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    chain: Chain,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -177,32 +190,21 @@ async fn _submit_multiple(
 
     let response_stream = Arc::new(Mutex::new(response_stream));
 
-    let payment_service_addr = match chain {
-        Chain::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").ok(),
-        Chain::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").ok(),
-        Chain::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").ok(),
-    };
+    let payment_service_addr = get_payment_service_address(network);
 
-    let sent_verification_data = match payment_service_addr {
+    let sent_verification_data = {
         // The sent verification data will be stored here so that we can calculate
         // their commitments later.
-        Some(payment_service_addr) => {
-            send_messages(
-                response_stream.clone(),
-                ws_write,
-                payment_service_addr,
-                verification_data,
-                max_fees,
-                wallet,
-                nonce,
-            )
-            .await?
-        }
-        None => {
-            return Err(errors::SubmitError::GenericError(
-                "Invalid chain".to_string(),
-            ))
-        }
+        send_messages(
+            response_stream.clone(),
+            ws_write,
+            payment_service_addr,
+            verification_data,
+            max_fees,
+            wallet,
+            nonce,
+        )
+        .await?
     };
 
     let num_responses = Arc::new(Mutex::new(0));
@@ -262,12 +264,11 @@ async fn _submit_multiple(
 pub async fn submit_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
-    chain: Chain,
+    network: Network,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-    payment_service_addr: &str,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
@@ -276,12 +277,11 @@ pub async fn submit_and_wait_verification(
     let aligned_verification_data = submit_multiple_and_wait_verification(
         batcher_url,
         eth_rpc_url,
-        chain,
+        network,
         &verification_data,
         &max_fees,
         wallet,
         nonce,
-        payment_service_addr,
     )
     .await?;
 
@@ -315,7 +315,7 @@ pub async fn submit_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_url: &str,
-    chain: Chain,
+    network: Network,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -326,7 +326,7 @@ pub async fn submit(
 
     let aligned_verification_data = submit_multiple(
         batcher_url,
-        chain.clone(),
+        network,
         &verification_data,
         &max_fees,
         wallet,
@@ -351,39 +351,24 @@ pub async fn submit(
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 pub async fn is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    chain: Chain,
+    network: Network,
     eth_rpc_url: &str,
-    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError> {
     let eth_rpc_provider =
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
             errors::VerificationError::EthereumProviderError(e.to_string())
         })?;
 
-    _is_proof_verified(
-        aligned_verification_data,
-        chain,
-        eth_rpc_provider,
-        payment_service_addr,
-    )
-    .await
+    _is_proof_verified(aligned_verification_data, network, eth_rpc_provider).await
 }
 
 async fn _is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    chain: Chain,
+    network: Network,
     eth_rpc_provider: Provider<Http>,
-    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError> {
-    let contract_address = match chain {
-        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        Chain::Holesky => "0x58F280BeBE9B34c9939C3C39e0890C81f163B623",
-        Chain::HoleskyStage => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
-    };
-
-    let payment_service_addr = payment_service_addr
-        .parse::<Address>()
-        .map_err(|e| errors::VerificationError::HexDecodingError(e.to_string()))?;
+    let contract_address = get_aligned_service_manager_address(network);
+    let payment_service_addr = get_payment_service_address(network);
 
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data
@@ -450,12 +435,14 @@ pub fn get_vk_commitment(
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
     submitter_addr: Address,
-    payment_service_addr: &str,
+    network: Network,
 ) -> Result<U256, errors::NonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
 
-    match batcher_payment_service(eth_rpc_provider, payment_service_addr).await {
+    let payment_service_address = get_payment_service_address(network);
+
+    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
         Ok(contract) => {
             let call = contract.user_nonces(submitter_addr);
 
@@ -488,220 +475,4 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
         .map_err(|e| errors::ChainIdError::EthereumCallError(e.to_string()))?;
 
     Ok(chain_id.as_u64())
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::core::{errors::SubmitError, types::ProvingSystemId};
-    use ethers::types::Address;
-    use ethers::types::H160;
-
-    use std::path::PathBuf;
-    use std::str::FromStr;
-    use tokio::time::sleep;
-
-    use ethers::signers::LocalWallet;
-
-    const BATCHER_PAYMENT_SERVICE_ADDR: &str = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0";
-    const MAX_FEE: U256 = U256::max_value();
-
-    #[tokio::test]
-    async fn test_submit_success() {
-        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
-        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci.elf")).unwrap());
-
-        let proof_generator_addr =
-            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
-
-        let verification_data = VerificationData {
-            proving_system: ProvingSystemId::SP1,
-            proof,
-            pub_input: None,
-            verification_key: None,
-            vm_program_code: elf,
-            proof_generator_addr,
-        };
-
-        let verification_data = vec![verification_data];
-
-        let max_fees = vec![MAX_FEE];
-
-        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-            .parse::<LocalWallet>()
-            .map_err(|e| SubmitError::GenericError(e.to_string()))
-            .unwrap();
-
-        let aligned_verification_data = submit_multiple_and_wait_verification(
-            "ws://localhost:8080",
-            "http://localhost:8545",
-            Chain::Devnet,
-            &verification_data,
-            &max_fees,
-            wallet,
-            U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(aligned_verification_data.len(), 1);
-    }
-
-    #[tokio::test]
-    async fn test_submit_failure() {
-        //Create an erroneous verification data vector
-        let contract_addr = H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap();
-
-        let verification_data = vec![VerificationData {
-            proving_system: ProvingSystemId::SP1,
-            proof: vec![],
-            pub_input: None,
-            verification_key: None,
-            vm_program_code: None,
-            proof_generator_addr: contract_addr,
-        }];
-
-        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-            .parse::<LocalWallet>()
-            .map_err(|e| SubmitError::GenericError(e.to_string()))
-            .unwrap();
-
-        let max_fees = vec![MAX_FEE];
-
-        let result = submit_multiple_and_wait_verification(
-            "ws://localhost:8080",
-            "http://localhost:8545",
-            Chain::Devnet,
-            &verification_data,
-            &max_fees,
-            wallet,
-            U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await;
-
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_verify_proof_onchain_success() {
-        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-        let proof = read_file(base_dir.join("test_files/groth16_bn254/plonk.proof")).unwrap();
-        let pub_input =
-            read_file(base_dir.join("test_files/groth16_bn254/plonk_pub_input.pub")).ok();
-        let vk = read_file(base_dir.join("test_files/groth16_bn254/plonk.vk")).ok();
-
-        let proof_generator_addr =
-            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
-
-        let verification_data = VerificationData {
-            proving_system: ProvingSystemId::Groth16Bn254,
-            proof,
-            pub_input,
-            verification_key: vk,
-            vm_program_code: None,
-            proof_generator_addr,
-        };
-
-        let verification_data = vec![verification_data];
-
-        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-            .parse::<LocalWallet>()
-            .map_err(|e| SubmitError::GenericError(e.to_string()))
-            .unwrap();
-
-        let max_fees = vec![MAX_FEE];
-
-        let aligned_verification_data = submit_multiple_and_wait_verification(
-            "ws://localhost:8080",
-            "http://localhost:8545",
-            Chain::Devnet,
-            &verification_data,
-            &max_fees,
-            wallet,
-            U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        sleep(std::time::Duration::from_secs(20)).await;
-
-        let result = is_proof_verified(
-            &aligned_verification_data[0],
-            Chain::Devnet,
-            "http://localhost:8545",
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        assert!(result, "Proof was not verified on-chain");
-    }
-
-    #[tokio::test]
-    async fn test_verify_proof_onchain_failure() {
-        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
-        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci.elf")).unwrap());
-
-        let proof_generator_addr =
-            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
-
-        let verification_data = VerificationData {
-            proving_system: ProvingSystemId::SP1,
-            proof,
-            pub_input: None,
-            verification_key: None,
-            vm_program_code: elf,
-            proof_generator_addr,
-        };
-
-        let verification_data = vec![verification_data];
-
-        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-            .parse::<LocalWallet>()
-            .map_err(|e| SubmitError::GenericError(e.to_string()))
-            .unwrap();
-
-        let aligned_verification_data = submit_multiple_and_wait_verification(
-            "ws://localhost:8080",
-            "http://localhost:8545",
-            Chain::Devnet,
-            &verification_data,
-            &[MAX_FEE],
-            wallet,
-            U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        sleep(std::time::Duration::from_secs(20)).await;
-
-        let mut aligned_verification_data_modified = aligned_verification_data[0].clone();
-
-        // Modify the batch merkle root so that the verification fails
-        aligned_verification_data_modified.batch_merkle_root[0] = 0;
-
-        let result = is_proof_verified(
-            &aligned_verification_data_modified,
-            Chain::Devnet,
-            "http://localhost:8545",
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        assert!(!result, "Proof verified on chain");
-    }
-
-    fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
-        std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
-    }
 }
