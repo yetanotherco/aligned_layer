@@ -16,9 +16,19 @@ if  [ -z "$RPC_URL" ]; then
 fi
 
 number=$(cast call $ALIGNED_SERVICE_MANAGER "paused()()" --rpc-url $RPC_URL)
+echo Aligned Paused state: $number,
+
+if [ $number = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff ]; then
+    echo "All functions are paused"
+    exit 0
+elif [ $number = 0x0000000000000000000000000000000000000000000000000000000000000000 ]; then
+    echo "No functions are paused"
+    exit 0
+fi
+
 number=$((number))
 
-echo Aligned Paused state: $number,
+echo Aligned Paused state number: $number,
 
 echo Aligned paused functions:
 
