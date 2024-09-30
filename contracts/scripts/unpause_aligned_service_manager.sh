@@ -34,7 +34,7 @@ fi
 result=0
 
 for num in "$@"; do
-    result=$((result | (1 << (num - 1))))
+    result=$((result | (1 << num)))
 done
 
 echo "New pause state: $result"
