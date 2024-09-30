@@ -121,13 +121,22 @@ update_operator:
 	@make build_operator
 	@./operator/build/aligned-operator --version
 
-operator_verification_data_fuzz_macos:
-	@cd operator/pkg && go test -fuzz=FuzzMarshalUnmarshal -ldflags=-extldflags=-Wl,-ld_classic
+operator_unmarshall_fuzz_macos:
+	@cd operator/pkg && go test -fuzz=FuzzUnMarshal -ldflags=-extldflags=-Wl,-ld_classic
 
-operator_verification_data_fuzz_linux:
+operator_unmarshall_fuzz_linux:
 	@cd operator/pkg && \
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
-	go test -fuzz=FuzzMarshalUnmarshal
+	go test -fuzz=FuzzUnMarshal
+
+
+operator_marshall_fuzz_macos:
+	@cd operator/pkg && go test -fuzz=FuzzMarshal -ldflags=-extldflags=-Wl,-ld_classic
+
+operator_marshall_fuzz_linux:
+	@cd operator/pkg && \
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
+	go test -fuzz=FuzzMarshal
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh
