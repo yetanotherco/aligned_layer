@@ -91,6 +91,10 @@ unpause_all_aligned_service_manager:
 	@echo "Pausing all contracts..."
 	. contracts/scripts/unpause_aligned_service_manager.sh all
 
+get_paused_state_aligned_service_manager:
+	@echo "Getting paused state of all contracts..."
+	. contracts/scripts/get_paused_state_aligned_service_manager.sh
+
 pause_batcher_payment_service:
 	@echo "Pausing BatcherPayments contract..."
 	. contracts/scripts/pause_batcher_payment_service.sh
