@@ -3,10 +3,6 @@ pragma solidity ^0.8.12;
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 
 abstract contract BatcherPaymentServiceStorage {
-    struct ProofSubmitterData {
-        address sender;
-    }
-
     struct UserInfo {
         uint256 balance;
         uint256 unlockBlockTime;

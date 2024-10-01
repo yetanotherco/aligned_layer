@@ -28,9 +28,3 @@ pub async fn batcher_payment_service(
 
     Ok(BatcherPaymentService::new(contract_address, client))
 }
-
-impl ProofSubmitterData {
-    pub fn new(address: H160) -> Self {
-        ProofSubmitterData { sender: address }
-    }
-}

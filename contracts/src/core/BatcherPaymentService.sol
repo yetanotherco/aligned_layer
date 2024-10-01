@@ -114,14 +114,14 @@ contract BatcherPaymentService is
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
-        ProofSubmitterData[] calldata proofsSubmissions, 
+        address[] calldata proofSubmitters, 
         uint256 feeForAggregator,
         uint256 feePerProof,
         uint256 respondToTaskFeeLimit
     ) external onlyBatcher whenNotPaused {
-        uint256 proofsSubmissionsQty = proofsSubmissions.length;
+        uint256 proofSubmittersQty = proofSubmitters.length;
 
-        if (proofsSubmissionsQty == 0) {
+        if (proofSubmittersQty == 0) {
             revert NoProofSubmitterSignatures();
         }
 
@@ -129,15 +129,24 @@ contract BatcherPaymentService is
             revert NoFeePerProof();
         }
 
-        if (feePerProof * proofsSubmissionsQty <= feeForAggregator) {
+        if (feePerProof * proofSubmittersQty <= feeForAggregator) {
             revert InsufficientFeeForAggregator(
                 feeForAggregator,
-                feePerProof * proofsSubmissionsQty 
+                feePerProof * proofSubmittersQty 
             );
         }
 
-        for (uint32 i = 0; i < proofsSubmissionsQty; i++) {
-            _decreaseBalance(proofsSubmissions[i], feePerProof);
+        // decrease user balances
+        for (uint32 i = 0; i < proofSubmittersQty; i++) {
+            address proofSubmitter = proofSubmitters[i]; 
+            UserInfo storage user = userData[proofSubmitter];
+
+            // if one user does not have enough balance, the whole batch fails
+            if (user.balance < feePerProof) {
+                revert SubmissionInsufficientBalance(proofSubmitter, user.balance, feePerProof);
+            }
+    
+            user.balance -= feePerProof;
         }
 
         // call alignedLayerServiceManager
@@ -151,7 +160,7 @@ contract BatcherPaymentService is
         emit TaskCreated(batchMerkleRoot, feePerProof);
 
         payable(batcherWallet).transfer(
-            (feePerProof * proofsSubmissionsQty) - feeForAggregator
+            (feePerProof * proofSubmittersQty) - feeForAggregator
         );
     }
 
@@ -209,16 +218,6 @@ contract BatcherPaymentService is
         override
         onlyOwner // solhint-disable-next-line no-empty-blocks
     {}
-
-    function _decreaseBalance(ProofSubmitterData calldata proofSubmission, uint256 feePerProof) private {
-        UserInfo storage user = userData[proofSubmission.sender];
-
-        if (user.balance < feePerProof) {
-            revert SubmissionInsufficientBalance(proofSubmission.sender, user.balance, feePerProof);
-        }
-
-        user.balance -= feePerProof;
-    }
 
     function user_balances(address account) public view returns (uint256) {
         return userData[account].balance;

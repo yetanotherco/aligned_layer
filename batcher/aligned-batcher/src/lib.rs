@@ -1,5 +1,4 @@
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
-use aligned_sdk::eth::batcher_payment_service::ProofSubmitterData;
 use config::NonPayingConfig;
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
@@ -1046,16 +1045,13 @@ impl Batcher {
             respond_to_task_fee_limit,
         );
 
-        let proof_submitters_data = finalized_batch
-            .iter()
-            .map(|entry| ProofSubmitterData::new(entry.sender))
-            .collect();
+        let proof_submitters = finalized_batch.iter().map(|entry| entry.sender).collect();
 
         match self
             .create_new_task(
                 *batch_merkle_root,
                 batch_data_pointer,
-                proof_submitters_data,
+                proof_submitters,
                 fee_params,
             )
             .await
@@ -1079,7 +1075,7 @@ impl Batcher {
         &self,
         batch_merkle_root: [u8; 32],
         batch_data_pointer: String,
-        proof_submitters_data: Vec<ProofSubmitterData>,
+        proof_submitters: Vec<Address>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
@@ -1087,7 +1083,7 @@ impl Batcher {
         match try_create_new_task(
             batch_merkle_root,
             batch_data_pointer.clone(),
-            proof_submitters_data.clone(),
+            proof_submitters.clone(),
             fee_params.clone(),
             &self.payment_service,
         )
@@ -1105,7 +1101,7 @@ impl Batcher {
                 let receipt = try_create_new_task(
                     batch_merkle_root,
                     batch_data_pointer,
-                    proof_submitters_data,
+                    proof_submitters,
                     fee_params,
                     &self.payment_service_fallback,
                 )
