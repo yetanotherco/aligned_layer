@@ -2,7 +2,6 @@ package chainio
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -75,7 +74,7 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to filter logs, err: %w", err)
+		return nil, err
 	}
 
 	var tasks []servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
@@ -83,7 +82,7 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 	for logs.Next() {
 		task, err := r.AvsContractBindings.ServiceManager.ParseNewBatchV3(logs.Event.Raw)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse log data: %w", err)
+			return nil, err
 		}
 
 		// now check if its finalized or not before appending
@@ -92,7 +91,7 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 		state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
 
 		if err != nil {
-			return nil, fmt.Errorf("err while getting batch state: %w", err)
+			return nil, err
 		}
 
 		// append the task if not responded yet

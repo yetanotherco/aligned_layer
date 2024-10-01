@@ -306,7 +306,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get latest block number: %w", err)
+			return nil, err
 		}
 	}
 
@@ -320,7 +320,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 
 	logs, err := s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to filter logs, err: %w", err)
+		return nil, err
 	}
 
 	var lastLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
@@ -331,11 +331,11 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 	}
 
 	if err := logs.Error(); err != nil {
-		return nil, fmt.Errorf("failed to iterate through events: %v", err)
+		return nil, err
 	}
 
 	if lastLog == nil {
-		return nil, fmt.Errorf("no events found")
+		return nil, nil
 	}
 
 	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
@@ -343,7 +343,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
 
 	if err != nil {
-		return nil, fmt.Errorf("err while getting batch state: %w", err)
+		return nil, err
 	}
 
 	if state.Responded {
@@ -361,7 +361,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get latest block number: %w", err)
+			return nil, err
 		}
 	}
 
@@ -375,7 +375,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 
 	logs, err := s.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to filter logs, err: %w", err)
+		return nil, err
 	}
 
 	var lastLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
@@ -386,11 +386,11 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 	}
 
 	if err := logs.Error(); err != nil {
-		return nil, fmt.Errorf("failed to iterate through events: %v", err)
+		return nil, err
 	}
 
 	if lastLog == nil {
-		return nil, fmt.Errorf("no events found")
+		return nil, nil
 	}
 
 	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
@@ -398,7 +398,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
 
 	if err != nil {
-		return nil, fmt.Errorf("err while getting batch state: %w", err)
+		return nil, err
 	}
 
 	if state.Responded {
