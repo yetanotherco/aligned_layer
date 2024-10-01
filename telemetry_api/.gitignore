@@ -25,3 +25,5 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 telemetry_api-*.tar
 
+# Elixir lsp server
+.elixir_ls

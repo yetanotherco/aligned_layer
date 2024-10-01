@@ -16,6 +16,11 @@ defmodule TelemetryApiWeb.Router do
     post "/finishTaskTrace", TraceController, :finish_task_trace
   end
 
+  scope "/versions", TelemetryApiWeb do
+    pipe_through :api
+    resources "/", OperatorController, only: [:index, :show, :create]
+  end
+
   # Enable LiveDashboard in development
   if Application.compile_env(:telemetry_api, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put

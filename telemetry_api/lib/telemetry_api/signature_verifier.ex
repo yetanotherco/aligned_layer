@@ -11,7 +11,7 @@ defmodule SignatureVerifier do
   # Recover the public key from the signature and hashed version
   defp recover_public_key(hash, signature, recovery_id) do
     case ExSecp256k1.recover_compact(hash, signature,  recovery_id) do
-      {:ok, public_key} -> public_key
+      {:ok, public_key} -> {:ok, public_key}
       _error -> {:error, "Failed to recover public key"}
     end
   end
@@ -48,8 +48,10 @@ defmodule SignatureVerifier do
     rs = binary_part(binary_signature, 0, signature_len - 1)
     recovery_id = Binary.decode_unsigned(binary_part(binary_signature, signature_len - 1, 1))
 
-    recover_public_key(version_hash, rs, recovery_id)
-    |> public_key_to_address()
-    |> Base.encode16()
+    with {:ok, address} <- recover_public_key(version_hash, rs, recovery_id) do
+      addr = public_key_to_address(address)
+      |> Base.encode16()
+      {:ok, addr}
+    end
   end
 end
