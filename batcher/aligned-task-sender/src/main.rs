@@ -1,8 +1,8 @@
 use futures_util::{future, stream::FuturesUnordered};
-use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::atomic::AtomicUsize;
 
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
@@ -16,7 +16,6 @@ use clap::Parser;
 use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
-use ethers::utils::hex;
 use k256::ecdsa::SigningKey;
 use log::warn;
 use log::{error, info};
@@ -84,10 +83,10 @@ pub struct Args {
     nonce: Option<String>, // String because U256 expects hex
     #[arg(
         name = "The Ethereum network's name",
-        long = "chain",
+        long = "network",
         default_value = "devnet"
     )]
-    chain: NetworkArg,
+    network: NetworkArg,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -107,6 +106,9 @@ impl From<NetworkArg> for Network {
     }
 }
 
+// Refactors:
+// - Use Go bindings so there is no contention
+// -  to generate all the different proof tasks then add them to queue.
 #[tokio::main]
 async fn main() -> Result<(), AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -166,6 +168,14 @@ async fn main() -> Result<(), AlignedError> {
         .map_err(|e| SubmitError::IoError(PathBuf::from(GROTH_16_PROOF_DIR), e))?;
 
     let mut count = 1;
+    // Since we operate over a local network each thread sources its nonce by incrementing the initial nonce from the network.
+    // When multiple senders are spawned we just increment the atomic to grab the nonce.
+    let eth_rpc_url = args.eth_rpc_url.clone();
+    let network = args.network.into();
+    let latest_nonce = get_next_nonce(&eth_rpc_url, wallet.address(), network)
+        .await?
+        .as_u128();
+    let mut nonce = AtomicUsize::new(latest_nonce as usize);
     //TODO: sort out error messages
     let futures = (0..args.num_senders)
         .map(|_| {
@@ -196,18 +206,28 @@ async fn main() -> Result<(), AlignedError> {
                         error!("Failed to generate Verification Data");
                         return Ok(());
                     };
-                    if let Err(e) = send_burst(
-                        &max_fees,
+                    // Refactor to generate all the different proof tasks then add them to queue.
+                    info!(
+                        "Sending {:?} Proofs to {:?} Aligned Batcher",
+                        verification_data.len(),
+                        network
+                    );
+                    if let Err(e) = submit_multiple(
+                        &args.batcher_url,
+                        network,
                         &verification_data,
-                        &user_wallet,
-                        task_args.clone(),
+                        &max_fees,
+                        wallet.clone(),
+                        U256::from(nonce),
                     )
                     .await
                     {
-                        error!("Failed to send Proof Burst: {:?}", e);
+                        error!("Error submitting proofs to aligned: {:?}", e);
                         return Ok(());
                     };
+
                     // To prevent continously creating proofs we clear the directory after sending a burst.
+                    /* */
                     std::fs::remove_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
                         error!("Failed to send Clear Proof Directory: {:?}", e);
                     });
@@ -281,7 +301,7 @@ async fn send_burst(
         verification_data.len(),
         network
     );
-    let aligned_verification_data_vec = match submit_multiple(
+    if let Err(e) = submit_multiple(
         &batcher_url,
         network,
         verification_data,
@@ -291,35 +311,9 @@ async fn send_burst(
     )
     .await
     {
-        Ok(aligned_verification_data_vec) => aligned_verification_data_vec,
-        Err(e) => {
-            error!("Error submitting proofs to aligned: {:?}", e);
-            let nonce_file = format!("nonce_{:?}.bin", wallet.address());
-
-            delete_file(&nonce_file).unwrap_or_else(|e| {
-                error!("Error while deleting nonce file: {}", e);
-            });
-            return Ok(());
-        }
+        error!("Error submitting proofs to aligned: {:?}", e);
+        return Ok(());
     };
-
-    let mut unique_batch_merkle_roots = HashSet::new();
-
-    for aligned_verification_data in aligned_verification_data_vec {
-        unique_batch_merkle_roots.insert(aligned_verification_data.batch_merkle_root);
-    }
-
-    match unique_batch_merkle_roots.len() {
-        1 => info!("Proofs submitted to aligned. See the batch in the explorer:"),
-        _ => info!("Proofs submitted to aligned. See the batches in the explorer:"),
-    }
-
-    for batch_merkle_root in unique_batch_merkle_roots {
-        info!(
-            "https://explorer.alignedlayer.com/batches/0x{}",
-            hex::encode(batch_merkle_root)
-        );
-    }
 
     Ok(())
 }
