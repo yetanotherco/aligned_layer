@@ -392,6 +392,8 @@ impl Batcher {
                 .await;
         }
 
+        info!("Handling paying message");
+
         if self.user_balance_is_unlocked(&addr).await {
             send_message(
                 ws_conn_sink.clone(),
@@ -1122,6 +1124,7 @@ impl Batcher {
         ws_sink: WsMessageSink,
         client_msg: &ClientMessage,
     ) -> Result<(), Error> {
+        info!("Handling nonpaying message");
         let Some(non_paying_config) = self.non_paying_config.as_ref() else {
             warn!("There isn't a non-paying configuration loaded. This message will be ignored");
             send_message(ws_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
