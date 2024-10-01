@@ -38,7 +38,7 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
   def get_contract_address() do
     @contract_address
   end
-  
+
   def get_operators() do
     with {:ok, block_number} = Ethers.current_block_number(),
       {:ok, operators_state} = fetch_operators_state(block_number) do
@@ -51,11 +51,11 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
   defp parse_operators(operators_state) do
     operators =
       operators_state |> Enum.map(fn {address, id, stake} ->
-        id = id |> String.trim_leading("0x") |> String.upcase()
-        address = address |> String.trim_leading("0x") |> String.upcase()
+        id = "0x" <> Base.encode16(id, case: :lower)
+        address = address |> String.downcase()
         %{
-          id: "0x" <> Base.encode16(id, case: :lower),
-          address: "0x" <> address,
+          id: id,
+          address: address,
           stake: Integer.to_string(stake)
         }
       end)
