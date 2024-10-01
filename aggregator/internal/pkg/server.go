@@ -33,11 +33,8 @@ func (agg *Aggregator) ServeOperators() error {
 		agg.AggregatorConfig.Aggregator.ServerIpPortAddress)
 
 	err = http.ListenAndServe(agg.AggregatorConfig.Aggregator.ServerIpPortAddress, nil)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // Aggregator Methods

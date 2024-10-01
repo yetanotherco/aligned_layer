@@ -43,7 +43,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
         alignedLayerServiceManager = new AlignedLayerServiceManager(
             avsDirectory,
-            IRewardsCoordinator(address(rewardsCoordinator)),
+            IRewardsCoordinator(address(rewardsCoordinatorMock)),
             IRegistryCoordinator(address(registryCoordinator)),
             IStakeRegistry(address(stakeRegistry))
         );
@@ -70,8 +70,6 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
         // transfer to serviceManager
         address(alignedLayerServiceManager).call{value: maxFeeToRespond}("");
 
-        vm.expectEmit(true, true, true, true);
-        emit NewBatchV2(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer);
         vm.expectEmit(true, true, true, true);
         emit NewBatchV3(batchMerkleRoot, batcher, uint32(block.number), batchDataPointer, maxFeeToRespond);
 
