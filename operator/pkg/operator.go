@@ -192,7 +192,7 @@ func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
 		return fmt.Errorf("failed to write to file: %v", err)
 	}
 
-	o.Logger.Info("Updated latest block json file, new block: %v", blockNumber)
+	o.Logger.Infof("Updated latest block json file, new block: %v", blockNumber)
 
 	return nil
 }
@@ -223,7 +223,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			o.Logger.Info("Operator shutting down...")
 			return nil
 		case err := <-metricsErrChan:
-			o.Logger.Fatal("Metrics server failed", "err", err)
+			o.Logger.Errorf("Metrics server failed", "err", err)
 		case err := <-subV2:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			subV2, err = o.SubscribeToNewTasksV2()
@@ -262,13 +262,22 @@ func (o *Operator) ProcessMissedBatchesWhileOffline() {
 	}
 
 	o.Logger.Info("Getting missed tasks")
-	logs, err := o.avsReader.GetNotRespondedTasksFrom(uint64(o.lastProcessedBatch.BlockNumber - UnverifiedBatchOffset))
+
+	// this check is necessary for overflows as go does not do saturating arithmetic
+	var fromBlock uint64
+	if o.lastProcessedBatch.BlockNumber < UnverifiedBatchOffset {
+		fromBlock = 0
+	} else {
+		fromBlock = uint64(o.lastProcessedBatch.BlockNumber - UnverifiedBatchOffset)
+	}
+
+	logs, err := o.avsReader.GetNotRespondedTasksFrom(fromBlock)
 	if err != nil {
 		return
 	}
-	o.Logger.Info(fmt.Sprintf("Missed tasks retrieved, total tasks to process: %v", len(logs)))
+	o.Logger.Infof(fmt.Sprintf("Missed tasks retrieved, total tasks to process: %v", len(logs)))
 
-	o.Logger.Info("Starting to verify missed batches while offline")
+	o.Logger.Infof("Starting to verify missed batches while offline")
 	for _, logEntry := range logs {
 		go o.handleNewBatchLogV3(&logEntry)
 	}
@@ -289,7 +298,7 @@ func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlign
 	var err error
 	defer o.afterHandlingBatchV2(newBatchLog, err == nil)
 
-	o.Logger.Infof("Received new batch log V2")
+	o.Logger.Info("Received new batch log V2")
 	err = o.ProcessNewBatchLogV2(newBatchLog)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
