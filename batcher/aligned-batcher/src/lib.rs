@@ -610,7 +610,10 @@ impl Batcher {
         );
 
         let updated_min_fee_in_batch = batch_state_lock.get_user_min_fee_in_batch(&addr);
-        let Some(_) = batch_state_lock.update_user_min_fee(&addr, updated_min_fee_in_batch) else {
+        if batch_state_lock
+            .update_user_min_fee(&addr, updated_min_fee_in_batch)
+            .is_none()
+        {
             std::mem::drop(batch_state_lock);
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
             return;
