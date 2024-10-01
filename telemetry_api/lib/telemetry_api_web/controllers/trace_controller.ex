@@ -10,7 +10,7 @@ defmodule TelemetryApiWeb.TraceController do
   Method: POST initTaskTrace
   """
   def create_task_trace(conn, %{"merkle_root" => merkle_root}) do
-    with {:ok, merkle_root} <- Traces.create_task_trace(merkle_root) do
+    with :ok <- Traces.create_task_trace(merkle_root) do
       conn
       |> put_status(:created)
       |> render(:show_merkle, merkle_root: merkle_root)
@@ -25,7 +25,7 @@ defmodule TelemetryApiWeb.TraceController do
         "merkle_root" => merkle_root,
         "operator_id" => operator_id
       }) do
-    with {:ok, operator_id} <- Traces.register_operator_response(merkle_root, operator_id) do
+    with :ok <- Traces.register_operator_response(merkle_root, operator_id) do
       conn
       |> put_status(:ok)
       |> render(:show_operator, operator_id: operator_id)
@@ -37,7 +37,7 @@ defmodule TelemetryApiWeb.TraceController do
   Method: POST quorumReached
   """
   def quorum_reached(conn, %{"merkle_root" => merkle_root}) do
-    with {:ok, merkle_root} <- Traces.quorum_reached(merkle_root) do
+    with :ok <- Traces.quorum_reached(merkle_root) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)
@@ -49,7 +49,7 @@ defmodule TelemetryApiWeb.TraceController do
   Method: POST taskError
   """
   def task_error(conn, %{"merkle_root" => merkle_root, "error" => error}) do
-    with {:ok, merkle_root} <- Traces.task_error(merkle_root, error) do
+    with :ok <- Traces.task_error(merkle_root, error) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)

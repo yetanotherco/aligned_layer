@@ -40,7 +40,7 @@ defmodule TelemetryApi.Traces do
     })
 
     IO.inspect("New task trace with merkle_root: #{IO.inspect(merkle_root)}")
-    {:ok, merkle_root}
+    :ok
   end
 
   @doc """
@@ -54,24 +54,24 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def register_operator_response(merkle_root, operator_id) do
-    with operator <- Operators.get_operator_by_id(operator_id) do
-      add_event(
-        merkle_root,
-        "Operator Response: " <> operator.name,
-        [
-          {:merkle_root, merkle_root},
-          {:operator_id, operator_id},
-          {:name, operator.name},
-          {:address, operator.address},
-          {:stake, operator.stake}
-        ]
-      )
-
+    with {:ok, operator} <- Operators.get_operator_by_id(operator_id),
+         :ok <-
+           add_event(
+             merkle_root,
+             "Operator Response: " <> operator.name,
+             [
+               {:merkle_root, merkle_root},
+               {:operator_id, operator_id},
+               {:name, operator.name},
+               {:address, operator.address},
+               {:stake, operator.stake}
+             ]
+           ) do
       IO.inspect(
         "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
       )
 
-      {:ok, operator_id}
+      :ok
     end
   end
 
@@ -85,15 +85,15 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def quorum_reached(merkle_root) do
-    add_event(
-      merkle_root,
-      "Quorum Reached",
-      []
-    )
-
-    IO.inspect("Reached quorum registered. merkle_root: #{IO.inspect(merkle_root)}")
-
-    {:ok, merkle_root}
+    with :ok <-
+           add_event(
+             merkle_root,
+             "Quorum Reached",
+             []
+           ) do
+      IO.inspect("Reached quorum registered. merkle_root: #{IO.inspect(merkle_root)}")
+      :ok
+    end
   end
 
   @doc """
@@ -107,17 +107,18 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def task_error(merkle_root, error) do
-    add_event(
-      merkle_root,
-      "Batch verification failed",
-      [
-        {:status, "error"},
-        {:error, error}
-      ]
-    )
-
-    IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
-    {:ok, merkle_root}
+    with :ok <-
+           add_event(
+             merkle_root,
+             "Batch verification failed",
+             [
+               {:status, "error"},
+               {:error, error}
+             ]
+           ) do
+      IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
+      :ok
+    end
   end
 
   @doc """
@@ -132,36 +133,27 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def finish_task_trace(merkle_root) do
-    case TraceStore.get_trace(merkle_root) do
-      nil ->
-        IO.inspect("Context not found for #{merkle_root}")
-        {:error, "Context not found for #{merkle_root}"}
+    with {:ok, trace} <- TraceStore.get_trace(merkle_root) do
+      Ctx.attach(trace.context)
+      Tracer.set_current_span(trace.parent_span)
+      Tracer.set_attributes(%{status: "completed"})
 
-      trace ->
-        Ctx.attach(trace.context)
-        Tracer.set_current_span(trace.parent_span)
-        Tracer.set_attributes(%{status: "completed"})
+      Tracer.end_span(trace.parent_span)
 
-        Tracer.end_span(trace.parent_span)
-
-        # Clean up the context from the Agent
-        TraceStore.delete_trace(merkle_root)
-        IO.inspect("Finished task trace with merkle_root: #{IO.inspect(merkle_root)}.")
-        :ok
+      # Clean up the context from the Agent
+      TraceStore.delete_trace(merkle_root)
+      IO.inspect("Finished task trace with merkle_root: #{IO.inspect(merkle_root)}.")
+      :ok
     end
   end
 
   defp add_event(merkle_root, event_name, event_attributes) do
-    case TraceStore.get_trace(merkle_root) do
-      nil ->
-        IO.inspect("Context not found for #{merkle_root}")
-        {:error, "Context not found for #{merkle_root}"}
+    with {:ok, trace} <- TraceStore.get_trace(merkle_root) do
+      Ctx.attach(trace.context)
+      Tracer.set_current_span(trace.parent_span)
 
-      trace ->
-        Ctx.attach(trace.context)
-        Tracer.set_current_span(trace.parent_span)
-
-        Tracer.add_event(event_name, event_attributes)
+      Tracer.add_event(event_name, event_attributes)
+      :ok
     end
   end
 end
