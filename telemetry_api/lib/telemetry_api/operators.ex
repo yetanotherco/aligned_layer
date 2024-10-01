@@ -33,7 +33,6 @@ defmodule TelemetryApi.Operators do
 
       iex> get_operator("non_existent_address")
       {:error, :not_found, "Operator not found for address: non_existent_address"}
-
   """
   def get_operator(address) do
     case Repo.get(Operator, address) do
@@ -52,30 +51,18 @@ defmodule TelemetryApi.Operators do
   ## Examples
 
       iex> get_operator_by_id("some_id")
-      %Operator{}
+      {:ok, %Operator{}}
 
       iex> get_operator_by_id("non_existent_id")
-      nil
+      {:error, :not_found, "Operator not found for id: non_existent_id"}
   """
   def get_operator_by_id(id) do
     query = from(o in Operator, where: o.id == ^id)
-    Repo.one(query)
-  end
 
-  @doc """
-  Get a single operator by operator id.
-
-  ## Examples
-
-      iex> get_operator_by_id("some_id")
-      %Operator{}
-
-      iex> get_operator_by_id("non_existent_id")
-      nil
-  """
-  def get_operator_by_id(id) do
-    query = from(o in Operator, where: o.id == ^id)
-    Repo.one(query)
+    case Repo.one(query) do
+      nil -> {:error, :not_found, "Operator not found for id: {id}"}
+      operator -> {:ok, operator}
+    end
   end
 
   @doc """
@@ -142,13 +129,12 @@ defmodule TelemetryApi.Operators do
       {:error, "Some status", "Some message"}
 
   """
-  def update_operator_version(atts \\ %{}) do
-    with {:ok, address} <-
-           SignatureVerifier.get_address(atts["version"], atts["signature"]) do
+  def update_operator_version(attrs \\ %{}) do
+    with {:ok, address} <- SignatureVerifier.get_address(attrs["version"], attrs["signature"]) do
       address = "0x" <> address
       # We only want to allow changes on version
       changes = %{
-        version: atts["version"]
+        version: attrs["version"]
       }
 
       case Repo.get(Operator, address) do
