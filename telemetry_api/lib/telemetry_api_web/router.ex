@@ -10,6 +10,9 @@ defmodule TelemetryApiWeb.Router do
     resources "/operators", OperatorController, only: [:index, :show, :create]
 
     post "/initTaskTrace", TraceController, :create_task_trace
+    post "/operatorResponse", TraceController, :register_operator_response
+    post "/quorumReached", TraceController, :quorum_reached
+    post "/taskError", TraceController, :task_error
     post "/finishTaskTrace", TraceController, :finish_task_trace
   end
 
