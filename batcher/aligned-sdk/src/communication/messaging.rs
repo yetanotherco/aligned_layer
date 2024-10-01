@@ -119,7 +119,19 @@ pub async fn send_messages(
                 return Err(SubmitError::AddToBatchError);
             }
             ValidityResponseMessage::EthRpcError => {
-                error!("Batcher suffered connection error with Ethereum RPCs")
+                return Err(SubmitError::EthereumProviderError(
+                    "Batcher experienced Eth RPC connection error".to_string(),
+                ));
+            }
+            ValidityResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
+                error!(
+                    "Invalid payment service address, received: {}, expected: {}",
+                    received_addr, expected_addr
+                );
+                return Err(SubmitError::InvalidPaymentServiceAddress(
+                    received_addr,
+                    expected_addr,
+                ));
             }
         };
 

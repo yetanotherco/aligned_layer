@@ -129,7 +129,6 @@ use ethers::prelude::*;
 
 const RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
-const BATCHER_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
 
 async fn submit_proof_to_aligned(
@@ -148,15 +147,16 @@ async fn submit_proof_to_aligned(
     let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_CONTRACT_ADDRESS)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to get next nonce: {:?}", e))?;
+    let max_fee: U256 = 10000000000000000; //0.01 ETH
 
     match submit_and_wait_verification(
         BATCHER_URL,
         RPC_URL,
         Chain::Holesky,
         &verification_data,
+        max_fee,
         wallet,
         nonce,
-        BATCHER_CONTRACT_ADDRESS
     ).await.map_err(|e| anyhow::anyhow!("Failed to submit proof: {:?}", e))
 }
 

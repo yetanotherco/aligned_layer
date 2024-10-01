@@ -211,6 +211,13 @@ cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com <CONTRACT_ADDRES
 
 The proof submission and verification can be done either with the SDK or by using the Aligned CLI.
 
-To submit the proof generated in this example, run `make submit_fibonacci_proof`. This will output the `AlignedVerificationData` needed to send to the `verifyBatchInclusion` method of the contract in the `batch_inclusion_data` directory inside `aligned-integration`.
+To submit the proof generated in this example, run:
 
-For more details on submitting proofs, refer to the [submitting proofs guide](0_submitting_proofs.md).
+```sh
+export KEYSTORE_PATH=<LOCAL_KEYSTORE_PATH>
+make submit_fibonacci_proof
+```
+
+This will output the `AlignedVerificationData` needed to send to the `verifyBatchInclusion` method of the contract in the `batch_inclusion_data` directory inside `aligned-integration`.
+
+For more details on submitting proofs and setting up a local wallet keystore, refer to the [submitting proofs guide](0_submitting_proofs.md).

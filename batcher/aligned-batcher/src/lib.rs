@@ -325,15 +325,30 @@ impl Batcher {
         // *        Perform validations over the message        *
         // * ---------------------------------------------------*
 
-        if client_msg.verification_data.chain_id != self.chain_id {
-            warn!(
-                "Received message with incorrect chain id: {}",
-                client_msg.verification_data.chain_id
-            );
-
+        //This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
+        let msg_chain_id = client_msg.verification_data.chain_id;
+        if msg_chain_id != self.chain_id {
+            warn!("Received message with incorrect chain id: {msg_chain_id}");
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidChainId,
+            )
+            .await;
+
+            return Ok(());
+        }
+
+        //This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
+        let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
+        if msg_payment_service_addr != self.payment_service.address() {
+            warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
+
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidPaymentServiceAddress(
+                    msg_payment_service_addr,
+                    self.payment_service.address(),
+                ),
             )
             .await;
 
