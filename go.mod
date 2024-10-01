@@ -3,16 +3,18 @@ module github.com/yetanotherco/aligned_layer
 go 1.22.2
 
 require (
-	github.com/Layr-Labs/eigensdk-go v0.1.9
-	github.com/ethereum/go-ethereum v1.14.9
+	github.com/Layr-Labs/eigensdk-go v0.1.12
+	github.com/ethereum/go-ethereum v1.14.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/crypto v0.26.0
 )
 
 require (
+	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
 	github.com/consensys/gnark v0.11.0
 	github.com/consensys/gnark-crypto v0.14.0
+	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/ugorji/go/codec v1.2.12
 )
 
@@ -49,7 +51,6 @@ require (
 	github.com/ethereum/c-kzg-4844 v1.0.3 // indirect
 	github.com/ethereum/go-verkle v0.1.1-0.20240829091221-dffa7562dbe9 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 // indirect
@@ -92,5 +93,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
-
-replace github.com/Layr-Labs/eigensdk-go => github.com/yetanotherco/eigensdk-go v0.1.10-0.20240805154752-29f4d3457921

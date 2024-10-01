@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ugorji/go/codec"
-
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 	merkle_tree_old "github.com/yetanotherco/aligned_layer/operator/merkle_tree_old"
 )
@@ -105,13 +104,16 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 
 	var batch []VerificationData
 
-	decoder := codec.NewDecoderBytes(batchBytes, new(codec.CborHandle))
+	decoder, err := createDecoderMode()
+	if err != nil {
+		return nil, fmt.Errorf("error creating CBOR decoder: %s", err)
+	}
+	err = decoder.Unmarshal(batchBytes, &batch)
 
-	err = decoder.Decode(&batch)
 	if err != nil {
 		o.Logger.Infof("Error decoding batch as CBOR: %s. Trying JSON decoding...", err)
 		// try json
-		decoder = codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
+		decoder := codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
 		err = decoder.Decode(&batch)
 		if err != nil {
 			return nil, err
