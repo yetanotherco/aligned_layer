@@ -11,7 +11,7 @@ use crate::{
         },
         errors::{self, MaxFeeEstimateError},
         types::{
-            AlignedVerificationData, Network, ProvingSystemId, VerificationData,
+            AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
             VerificationDataCommitment,
         },
     },
