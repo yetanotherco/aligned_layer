@@ -23,8 +23,8 @@ version of the release that has the `latest` badge.
 To get the SDK up and running in your project, you must first import it
 
 ```rust
-use aligned_sdk::core::types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{submit_and_wait, get_next_nonce};
+use aligned_sdk::core::types::{PriceEstimate, AlignedVerificationData, Network, ProvingSystemId, VerificationData};
+use aligned_sdk::sdk::{estimate_fee, submit_and_wait, get_next_nonce};
 ```
 
 And then you can do a simple call of, for example, `get_next_nonce`
@@ -67,7 +67,7 @@ fn main() {
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
         .with_chain_id(17000u64);
-    let max_fee: U256 = 10000000000000000; //0.01 ETH
+    let max_fee: U256 = estimate_fee(&rpc_url).await.unwrap();
 
     // Call to SDK:
     match submit_and_wait_verification(
