@@ -319,7 +319,7 @@ impl Batcher {
             }
         };
         let msg_nonce = client_msg.verification_data.nonce;
-        info!("Received message with nonce: {msg_nonce:?}",);
+        debug!("Received message with nonce: {msg_nonce:?}",);
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
@@ -352,12 +352,14 @@ impl Batcher {
         };
         info!("Message signature verified");
 
-        let nonced_verification_data = client_msg.verification_data.clone();
-        if nonced_verification_data.verification_data.proof.len() > self.max_proof_size {
+        let proof_size = client_msg.verification_data.verification_data.proof.len();
+        if proof_size > self.max_proof_size {
             error!("Proof size exceeds the maximum allowed size.");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::ProofTooLarge).await;
             return Ok(());
         }
+
+        let nonced_verification_data = client_msg.verification_data.clone();
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled
@@ -585,7 +587,7 @@ impl Batcher {
         replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
         if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
             std::mem::drop(batch_state_lock);
-            warn!("Invalid max fee");
+            warn!("Invalid replacement message");
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidReplacementMessage,
