@@ -37,6 +37,7 @@ interface IAlignedLayerServiceManager {
     error InvalidDepositAmount(uint256 amount); // 412ed242
     error ExceededMaxRespondFee(uint256 respondToTaskFeeLimit, uint256 txCost); // 86fc507e
     error VerifierIdxOutOfBounds(); // 0x089628ee
+    error InvalidAddress(string param); // 161eb542
 
     function createNewTask(
         bytes32 batchMerkleRoot,

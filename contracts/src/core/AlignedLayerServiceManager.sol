@@ -36,6 +36,18 @@ contract AlignedLayerServiceManager is
             __stakeRegistry
         )
     {
+        if (address(__avsDirectory) == address(0)) {
+            revert InvalidAddress("avsDirectory");
+        }
+        if (address(__rewardsCoordinator) == address(0)) {
+            revert InvalidAddress("rewardsCoordinator");
+        }
+        if (address(__registryCoordinator) == address(0)) {
+            revert InvalidAddress("registryCoordinator");
+        }
+        if (address(__stakeRegistry) == address(0)) {
+            revert InvalidAddress("stakeRegistry");
+        }
         _disableInitializers();
     }
 
@@ -45,6 +57,15 @@ contract AlignedLayerServiceManager is
         address _rewardsInitiator,
         address _alignedAggregator
     ) public initializer {
+        if (_initialOwner == address(0)) {
+            revert InvalidAddress("initialOwner");
+        }
+        if (_rewardsInitiator == address(0)) {
+            revert InvalidAddress("rewardsInitiator");
+        }
+        if (_alignedAggregator == address(0)) {
+            revert InvalidAddress("alignedAggregator");
+        }
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
         alignedAggregator = _alignedAggregator; //can't do setAggregator(aggregator) since caller is not the owner
     }

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::core::errors::SubmitError;
-use aligned_sdk::core::types::Chain::Holesky;
+use aligned_sdk::core::types::Network;
 use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
 use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use clap::Parser;
@@ -16,13 +16,13 @@ use ethers::utils::hex;
 use log::info;
 
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
-const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
 const RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
 const PROOF_FILE_PATH: &str = "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof";
 const PUB_INPUT_FILE_PATH: &str = "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub";
 const IMAGE_ID_FILE_PATH: &str =
     "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin";
 const PROOF_GENERATOR_ADDRESS: &str = "0x66f9664f97F2b50F62D13eA064982f936dE76657";
+const NETWORK: Network = Network::Holesky;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -68,21 +68,22 @@ async fn main() -> Result<(), SubmitError> {
     // Set a fee of 0.1 Eth
     let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
 
-    let nonce = get_next_nonce(RPC_URL, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
+    let nonce = get_next_nonce(RPC_URL, wallet.address(), NETWORK)
         .await
         .expect("Failed to get next nonce");
+
 
     info!("Submitting Fibonacci proof to Aligned and waiting for verification...");
     let aligned_verification_data = submit_and_wait_verification(
         BATCHER_URL,
         RPC_URL,
-        Holesky,
+        NETWORK,
         &verification_data,
         max_fee,
         wallet,
         nonce,
-        BATCHER_PAYMENTS_ADDRESS,
     )
+
     .await?;
 
     let batch_inclusion_data_directory_path = PathBuf::from("batch_inclusion_data");
