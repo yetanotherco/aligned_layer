@@ -118,6 +118,9 @@ pub async fn send_messages(
                 error!("Error while pushing the entry to queue");
                 return Err(SubmitError::AddToBatchError);
             }
+            ValidityResponseMessage::EthRpcError => {
+                error!("Batcher suffered connection error with Ethereum RPCs")
+            }
         };
 
         sent_verification_data.push(verification_data.clone());

@@ -318,6 +318,7 @@ pub enum ValidityResponseMessage {
     AddToBatchError,
     ProofTooLarge,
     InsufficientBalance(Address),
+    EthRpcError,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

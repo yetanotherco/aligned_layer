@@ -420,6 +420,12 @@ impl Batcher {
         // This is needed because we need to query the user state to make validations and
         // finally add the proof to the batch queue.
 
+        let Some(user_balance) = self.get_user_balance(&addr).await else {
+            error!("Could not get balance for address {addr:?}");
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+            return Ok(());
+        };
+
         // At this point, we will have a user state for sure, since we have inserted it
         // if not already present. It should be safe to call `unwrap()` here.
         let batch_state_lock = self.batch_state.lock().await;
@@ -430,7 +436,7 @@ impl Batcher {
             return Ok(());
         };
 
-        if !self.check_min_balance(&addr, proofs_in_batch + 1).await {
+        if !self.check_min_balance(proofs_in_batch + 1, user_balance) {
             std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
@@ -510,15 +516,9 @@ impl Batcher {
     }
 
     // Checks user has sufficient balance for paying all its the proofs in the current batch.
-    async fn check_min_balance(&self, addr: &Address, user_proofs_in_batch: usize) -> bool {
-        let Some(user_balance) = self.get_user_balance(addr).await else {
-            return false;
-        };
+    fn check_min_balance(&self, user_proofs_in_batch: usize, user_balance: U256) -> bool {
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
-        if user_balance < min_balance {
-            return false;
-        }
-        true
+        return user_balance > min_balance;
     }
 
     /// Handles a replacement message
