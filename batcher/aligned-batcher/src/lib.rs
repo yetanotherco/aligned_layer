@@ -684,12 +684,15 @@ impl Batcher {
         };
 
         // User state is updated
-        let Some(_) = batch_state_lock.update_user_state(
-            &proof_submitter_addr,
-            nonce + U256::one(),
-            max_fee,
-            user_proof_count + 1,
-        ) else {
+        if batch_state_lock
+            .update_user_state(
+                &proof_submitter_addr,
+                nonce + U256::one(),
+                max_fee,
+                user_proof_count + 1,
+            )
+            .is_none()
+        {
             error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
             std::mem::drop(batch_state_lock);
             return Err(BatcherError::AddressNotFoundInUserStates(
