@@ -42,7 +42,7 @@ defmodule TelemetryApi.ContractManagers.DelegationManager do
       |> Ethers.get_logs(fromBlock: @first_block)
       |> case do
         {:ok, data} -> 
-          url = List.last(data).data |> hd() # most recent entry
+          url = List.last(data).data |> hd() # The head (hd) is the most recent entry
           {:ok, url}
         {:error, reason} ->
           {:error, reason}

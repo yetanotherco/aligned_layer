@@ -45,8 +45,7 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
           case response do
             {:ok, [operators | _]} -> 
               operators = 
-                operators |> Enum.map(fn op_data -> 
-                  {address, id, stake} = op_data
+                operators |> Enum.map(fn {address, id, stake} -> 
                   id = id |> String.trim_leading("0x") |> String.upcase()
                   address = address |> String.trim_leading("0x") |> String.upcase()
                   %{
