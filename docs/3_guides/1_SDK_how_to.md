@@ -67,7 +67,7 @@ fn main() {
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
         .with_chain_id(17000u64);
-    let max_fee: U256 = estimate_fee(&rpc_url).await.unwrap();
+    let max_fee: U256 = estimate_fee(&rpc_url, PriceEstimate::Default).await.unwrap();
 
     // Call to SDK:
     match submit_and_wait_verification(
