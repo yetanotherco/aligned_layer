@@ -4,8 +4,8 @@ use std::io;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use aligned_sdk::core::types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{submit_and_wait_verification, get_next_nonce};
+use aligned_sdk::core::types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData};
+use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -13,12 +13,14 @@ use ethers::providers::{Http, Provider};
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::{Address, Bytes, H160, U256};
 use sp1_sdk::{ProverClient, SP1Stdin};
+use aligned_sdk::sdk::get_payment_service_address;
 
 abigen!(VerifierContract, "VerifierContract.json",);
 
 const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
-const BATCHER_PAYMENTS_ADDRESS: &str = "0x815aeCA64a974297942D2Bbf034ABEe22a38A003";
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
+
+const NETWORK: Network = Network::Holesky;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -106,18 +108,20 @@ async fn main() {
                 pub_input: None,
             };
 
-            let nonce = get_next_nonce(&rpc_url, wallet.address(), BATCHER_PAYMENTS_ADDRESS)
+            // Set a `max_fee` of 0.5 Eth
+            let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
+            let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK)
                 .await
                 .expect("Failed to get next nonce");
-
+            
             match submit_and_wait_verification(
                 BATCHER_URL,
                 &rpc_url,
-                Chain::Holesky,
+                NETWORK,
                 &verification_data,
+                max_fee,
                 wallet.clone(),
                 nonce,
-                BATCHER_PAYMENTS_ADDRESS,
             )
             .await
             {
@@ -136,7 +140,7 @@ async fn main() {
                     {
                         println!("Failed to claim prize: {:?}", e);
                     }
-                },
+                }
                 Err(e) => {
                     println!("Proof verification failed: {:?}", e);
                 }
@@ -197,7 +201,7 @@ async fn pay_batcher(
         anyhow::bail!("Payment cancelled")
     }
 
-    let addr = Address::from_str(BATCHER_PAYMENTS_ADDRESS).map_err(|e| anyhow::anyhow!(e))?;
+    let addr = get_payment_service_address(NETWORK);
 
     let tx = TransactionRequest::new()
         .from(from)

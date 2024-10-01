@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.5.2
+OPERATOR_VERSION=v0.7.3
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -112,7 +112,7 @@ operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -158,6 +158,12 @@ operator_whitelist_devnet:
 	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
 	@echo "Operator address: $(OPERATOR_ADDRESS)"
 	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
+
+operator_remove_devnet:
+	@echo "Removing operator"
+	$(eval OPERATOR_ADDRESS = $(shell yq -r '.operator.address' $(CONFIG_FILE)))
+	@echo "Operator address: $(OPERATOR_ADDRESS)"
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/remove_operator.sh $(OPERATOR_ADDRESS)
 
 operator_whitelist:
 	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
@@ -226,7 +232,7 @@ batcher/target/release/aligned:
 
 
 RPC_URL=http://localhost:8545
-BATCHER_PAYMENTS_CONTRACT_ADDRESS=0x7969c5eD335650692Bc04293B07F5BF2e7A673C0
+NETWORK=devnet # devnet | holesky-stage | holesky
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
@@ -236,7 +242,7 @@ batcher_send_sp1_task:
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
@@ -247,7 +253,7 @@ batcher_send_sp1_burst:
 		--repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
@@ -262,7 +268,7 @@ batcher_send_risc0_task:
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -274,7 +280,7 @@ batcher_send_risc0_burst:
         --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -285,7 +291,7 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -297,7 +303,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--repetitions 4 \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -308,7 +314,7 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -320,8 +326,7 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions 15 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
-
+		--network $(NETWORK)
 
 batcher_send_groth16_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -332,7 +337,7 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
@@ -352,7 +357,7 @@ batcher_send_halo2_ipa_task: batcher/target/release/aligned
 		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
 		--vk ../../scripts/test_files/halo2_ipa/params.bin \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
@@ -363,7 +368,7 @@ batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
 		--vk ../../scripts/test_files/halo2_ipa/params.bin \
 		--repetitions 5 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_halo2_kzg_task: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
@@ -374,7 +379,7 @@ batcher_send_halo2_kzg_task: batcher/target/release/aligned
 		--vk ../../scripts/test_files/halo2_kzg/params.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
@@ -386,7 +391,7 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--repetitions 5 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+		--network $(NETWORK)
 
 __GENERATE_PROOFS__:
  # TODO add a default proving system
@@ -467,9 +472,9 @@ build_aligned_contracts:
 
 show_aligned_error_codes:
 	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts/src/core && forge inspect IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
 	@echo "\nBatcherPaymentService errors:"
-	@cd contracts/src/core && forge inspect BatcherPaymentService.sol:BatcherPaymentService errors
+	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
 
 __BUILD__:
 build_binaries:
@@ -541,14 +546,28 @@ build_merkle_tree_macos:
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
+build_merkle_tree_macos_old:
+	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree_old/lib/libmerkle_tree.dylib
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
+
 build_merkle_tree_linux:
 	@cd operator/merkle_tree/lib && cargo build $(RELEASE_FLAG)
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
+build_merkle_tree_linux_old:
+	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree_old/lib/libmerkle_tree.so
+	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
+
 test_merkle_tree_rust_ffi:
 	@echo "Testing Merkle Tree Rust FFI source code..."
 	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
+
+test_merkle_tree_rust_ffi_old:
+	@echo "Testing Old Merkle Tree Rust FFI source code..."
+	@cd operator/merkle_tree_old/lib && RUST_MIN_STACK=83886080 cargo t --release
 
 test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 	@echo "Testing Merkle Tree Go bindings..."
@@ -557,6 +576,14 @@ test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
+
+test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
+	@echo "Testing Old Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree_old/... -v
+
+test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
+	@echo "Testing Merkle Tree Go bindings..."
+	go test ./operator/merkle_tree_old/... -v
 
 __HALO2_KZG_FFI__: ##
 build_halo2_kzg_macos:
@@ -632,6 +659,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_merkle_tree_macos_old
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
 	@echo "All macOS FFIs built successfully."
@@ -641,6 +669,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_merkle_tree_linux_old
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
 	@echo "All Linux FFIs built successfully."
