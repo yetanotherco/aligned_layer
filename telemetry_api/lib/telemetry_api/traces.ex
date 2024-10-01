@@ -3,6 +3,7 @@ defmodule TelemetryApi.Traces do
   The Traces context.
   """
   alias TelemetryApi.Traces.Trace
+  alias TelemetryApi.Operators
 
   require OpenTelemetry.Tracer
   require OpenTelemetry.Ctx
@@ -53,20 +54,25 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def register_operator_response(merkle_root, operator_id) do
-    add_event(
-      merkle_root,
-      "Operator ID: #{operator_id}",
-      [
-        {:merkle_root, merkle_root},
-        {:operator_id, operator_id}
-      ]
-    )
+    with operator <- Operators.get_operator_by_id(operator_id) do
+      add_event(
+        merkle_root,
+        "Operator Response: " <> operator.name,
+        [
+          {:merkle_root, merkle_root},
+          {:operator_id, operator_id},
+          {:name, operator.name},
+          {:address, operator.address},
+          {:stake, operator.stake}
+        ]
+      )
 
-    IO.inspect(
-      "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
-    )
+      IO.inspect(
+        "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
+      )
 
-    {:ok, operator_id}
+      {:ok, operator_id}
+    end
   end
 
   @doc """

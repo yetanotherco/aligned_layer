@@ -39,6 +39,22 @@ defmodule TelemetryApi.Operators do
     Repo.get(Operator, address)
   end
 
+  @doc"""
+  Get a single operator by operator id.
+
+  ## Examples
+
+      iex> get_operator_by_id("some_id")
+      %Operator{}
+
+      iex> get_operator_by_id("non_existent_id")
+      nil
+  """
+  def get_operator_by_id(id) do
+    query = from(o in Operator, where: o.id == ^id)
+    Repo.one(query)
+  end
+
   @doc """
   Fetches all operators.
 
@@ -67,7 +83,7 @@ defmodule TelemetryApi.Operators do
     end
   end
 
-  
+
   #Adds operator metadata to received operator.
 
   ### Examples
