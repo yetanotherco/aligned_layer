@@ -10,6 +10,7 @@ use ethers::signers::Signer;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::env;
 use std::iter::repeat;
@@ -411,7 +412,7 @@ impl Batcher {
         // Check that we had a user state entry for this user and insert it if not.
         {
             let mut batch_state_lock = self.batch_state.lock().await;
-            if !batch_state_lock.user_states.contains_key(&addr) {
+            if let Entry::Vacant(user_state_entry) = batch_state_lock.user_states.entry(addr) {
                 let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
                     Ok(ethereum_user_nonce) => ethereum_user_nonce,
                     Err(e) => {
@@ -425,7 +426,7 @@ impl Batcher {
                     }
                 };
                 let user_state = UserState::new(ethereum_user_nonce);
-                batch_state_lock.user_states.insert(addr, user_state);
+                user_state_entry.insert(user_state);
             }
         }
 
@@ -535,7 +536,7 @@ impl Batcher {
     // Checks user has sufficient balance for paying all its the proofs in the current batch.
     fn check_min_balance(&self, user_proofs_in_batch: usize, user_balance: U256) -> bool {
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
-        return user_balance >= min_balance;
+        user_balance >= min_balance
     }
 
     /// Handles a replacement message
