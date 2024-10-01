@@ -518,7 +518,7 @@ impl Batcher {
     // Checks user has sufficient balance for paying all its the proofs in the current batch.
     fn check_min_balance(&self, user_proofs_in_batch: usize, user_balance: U256) -> bool {
         let min_balance = U256::from(user_proofs_in_batch) * U256::from(MIN_FEE_PER_PROOF);
-        return user_balance > min_balance;
+        return user_balance >= min_balance;
     }
 
     /// Handles a replacement message
