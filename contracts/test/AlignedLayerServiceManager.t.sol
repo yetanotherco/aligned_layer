@@ -112,7 +112,7 @@ contract AlignedLayerServiceManagerTest is Test, BLSMockAVSDeployer {
     }
 
     function test_BlacklistAndWhitelistVerifier_WorksAsExpected() public {
-        uint256 verifierIdx = 28;
+        uint8 verifierIdx = 28;
 
         // make sure it is false by default
         bool res = alignedLayerServiceManager.isVerifierBlacklisted(
@@ -146,34 +146,14 @@ contract AlignedLayerServiceManagerTest is Test, BLSMockAVSDeployer {
     }
 
     function test_BlacklistVerifier_FailsWhenNotOwner() public {
+        uint8 newBitmap = 10;
         vm.expectRevert("Ownable: caller is not the owner");
-        alignedLayerServiceManager.blacklistVerifier(10);
+        alignedLayerServiceManager.blacklistVerifier(newBitmap);
     }
 
     function test_WhitelistVerifier_FailsWhenNotOwner() public {
+        uint8 newBitmap = 10;
         vm.expectRevert("Ownable: caller is not the owner");
-        alignedLayerServiceManager.whitelistVerifier(10);
-    }
-
-    // test index bounds
-    function test_BlacklistVerifier_FailsWhenIdxOutOfBounds() public {
-        vm.expectRevert(
-            IAlignedLayerServiceManager.VerifierIdxOutOfBounds.selector
-        );
-        alignedLayerServiceManager.isVerifierBlacklisted(256);
-    }
-
-    function test_WhitelistVerifier_FailsWhenIdxOutOfBounds() public {
-        vm.expectRevert(
-            IAlignedLayerServiceManager.VerifierIdxOutOfBounds.selector
-        );
-        alignedLayerServiceManager.isVerifierBlacklisted(256);
-    }
-
-    function test_IsVerifierBlacklisted_FailsWhenOutOfBounds() public {
-        vm.expectRevert(
-            IAlignedLayerServiceManager.VerifierIdxOutOfBounds.selector
-        );
-        alignedLayerServiceManager.isVerifierBlacklisted(256);
+        alignedLayerServiceManager.whitelistVerifier(newBitmap);
     }
 }

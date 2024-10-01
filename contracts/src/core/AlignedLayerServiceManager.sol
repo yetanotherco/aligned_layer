@@ -208,22 +208,22 @@ contract AlignedLayerServiceManager is
     }
 
     function isVerifierBlacklisted(
-        uint256 verifierIdx
-    ) external view validVerifierIdx(verifierIdx) returns (bool) {
+        uint8 verifierIdx
+    ) external view returns (bool) {
         uint256 bit = blacklistedVerifiers & (1 << verifierIdx);
         return bit > 0;
     }
 
     function blacklistVerifier(
-        uint256 verifierIdx
-    ) external validVerifierIdx(verifierIdx) onlyOwner {
+        uint8 verifierIdx
+    ) external onlyOwner {
         blacklistedVerifiers |= (1 << verifierIdx);
         emit VerifierBlacklisted(verifierIdx);
     }
 
     function whitelistVerifier(
-        uint256 verifierIdx
-    ) external validVerifierIdx(verifierIdx) onlyOwner {
+        uint8 verifierIdx
+    ) external onlyOwner {
         blacklistedVerifiers &= ~(1 << verifierIdx);
         emit VerifierWhitelisted(verifierIdx);
     }
@@ -349,13 +349,6 @@ contract AlignedLayerServiceManager is
     modifier onlyAggregator() {
         if (msg.sender != alignedAggregator) {
             revert SenderIsNotAggregator(msg.sender, alignedAggregator);
-        }
-        _;
-    }
-
-    modifier validVerifierIdx(uint256 verifierIdx) {
-        if (verifierIdx >= 64) {
-            revert VerifierIdxOutOfBounds();
         }
         _;
     }
