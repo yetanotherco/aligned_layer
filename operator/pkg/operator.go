@@ -245,7 +245,6 @@ func (o *Operator) Start(ctx context.Context) error {
 			if err != nil {
 				o.Logger.Errorf("Error while updating last process batch", "err", err)
 			}
-
 		}
 	}
 }
@@ -288,11 +287,7 @@ func (o *Operator) ProcessMissedBatchesWhileOffline() {
 // Process of handling batches from V2 events:
 func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
 	var err error
-	defer func() {
-		if err == nil {
-			o.lastProcessedBatch.batchProcessedChan <- uint32(newBatchLog.Raw.BlockNumber)
-		}
-	}()
+	defer o.afterHandlingBatchV2(newBatchLog, err == nil)
 
 	o.Logger.Infof("Received new batch log V2")
 	err = o.ProcessNewBatchLogV2(newBatchLog)
@@ -366,11 +361,7 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 // Process of handling batches from V3 events:
 func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
 	var err error
-	defer func() {
-		if err == nil {
-			o.lastProcessedBatch.batchProcessedChan <- uint32(newBatchLog.Raw.BlockNumber)
-		}
-	}()
+	defer o.afterHandlingBatchV3(newBatchLog, err == nil)
 	o.Logger.Infof("Received new batch log V3")
 	err = o.ProcessNewBatchLogV3(newBatchLog)
 	if err != nil {
@@ -438,6 +429,18 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	}
 
 	return nil
+}
+
+func (o *Operator) afterHandlingBatchV2(log *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, succeeded bool) {
+	if succeeded {
+		o.lastProcessedBatch.batchProcessedChan <- uint32(log.Raw.BlockNumber)
+	}
+}
+
+func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, succeeded bool) {
+	if succeeded {
+		o.lastProcessedBatch.batchProcessedChan <- uint32(log.Raw.BlockNumber)
+	}
 }
 
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
