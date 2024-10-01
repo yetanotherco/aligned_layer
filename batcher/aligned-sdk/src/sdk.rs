@@ -114,7 +114,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn estimate_max_fee(
+pub async fn estimate_fee(
     eth_rpc_url: &str,
     estimate: PriceEstimate,
 ) -> Result<U256, errors::MaxFeeEstimateError> {
@@ -613,14 +613,14 @@ mod test {
     }
 
     #[tokio::test]
-    async fn estimate_max_fee_are_larger_than_one_another() {
-        let min_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Min)
+    async fn estimate_fee_are_larger_than_one_another() {
+        let min_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Min)
             .await
             .unwrap();
-        let default_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Default)
+        let default_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Default)
             .await
             .unwrap();
-        let instant_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Instant)
+        let instant_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Instant)
             .await
             .unwrap();
 
