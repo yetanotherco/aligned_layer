@@ -26,7 +26,7 @@ func (circuit *InequalityCircuit) Define(api frontend.API) error {
 }
 
 func GenerateIneqProof(x int) {
-	outputDir := "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/"
+	outputDir := "../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/"
 
 	var circuit InequalityCircuit
 	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &circuit)
