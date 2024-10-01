@@ -634,7 +634,6 @@ impl Batcher {
         {
             std::mem::drop(batch_state_lock);
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
-            return;
         };
     }
 
