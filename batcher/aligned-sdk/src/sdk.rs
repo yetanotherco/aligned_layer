@@ -165,7 +165,7 @@ pub async fn fee_per_proof(
     eth_rpc_provider: &Provider<Http>,
     num_proofs_per_batch: usize,
 ) -> Result<U256, errors::MaxFeeEstimateError> {
-    let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
+    let gas_price = fetch_gas_price(eth_rpc_provider).await?;
 
     // Cost for estimate `num_proofs_per_batch` proofs
     let estimated_gas_per_proof = (CONSTANT_GAS_COST
