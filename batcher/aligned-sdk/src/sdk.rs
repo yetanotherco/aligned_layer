@@ -7,7 +7,7 @@ use crate::{
     core::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
-            MAX_FEE_DEFAULT_BATCH_SIZE, MAX_FEE_INSTANT_BATCH_SIZE,
+            MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
         },
         errors,
         types::{
@@ -119,17 +119,17 @@ pub async fn estimate_fee(
     estimate: PriceEstimate,
 ) -> Result<U256, errors::MaxFeeEstimateError> {
     // Price of 1 proof in 32 proof batch
-    let fee_per_proof = fee_per_proof(eth_rpc_url, MAX_FEE_INSTANT_BATCH_SIZE).await?;
+    let fee_per_proof = fee_per_proof(eth_rpc_url, MAX_FEE_BATCH_PROOF_NUMBER).await?;
 
     let proof_price = match estimate {
         PriceEstimate::Min => fee_per_proof,
-        PriceEstimate::Default => U256::from(MAX_FEE_DEFAULT_BATCH_SIZE) * fee_per_proof,
-        PriceEstimate::Instant => U256::from(MAX_FEE_INSTANT_BATCH_SIZE) * fee_per_proof,
+        PriceEstimate::Default => U256::from(MAX_FEE_DEFAULT_PROOF_NUMBER) * fee_per_proof,
+        PriceEstimate::Instant => U256::from(MAX_FEE_BATCH_PROOF_NUMBER) * fee_per_proof,
     };
     Ok(proof_price)
 }
 
-/// Returns the compute `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
+/// Returns the computed `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
 /// number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
 /// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
 /// # Arguments
