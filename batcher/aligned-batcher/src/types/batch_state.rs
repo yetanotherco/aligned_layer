@@ -132,10 +132,10 @@ impl BatchState {
         let updated_min_fee = self.update_user_min_fee(addr, new_min_fee);
         let updated_proof_count = self.update_user_proof_count(addr, new_proof_count);
 
-        match (updated_nonce, updated_min_fee, updated_proof_count) {
-            (Some(_), Some(_), Some(_)) => Some((new_nonce, new_min_fee, new_proof_count)),
-            _ => None,
+        if updated_nonce.is_some() && updated_min_fee.is_some() && updated_proof_count.is_some() {
+            return Some((new_nonce, new_min_fee, new_proof_count));
         }
+        None
     }
 
     pub(crate) fn get_user_proofs_in_batch_and_min_fee(&self) -> HashMap<Address, (usize, U256)> {
