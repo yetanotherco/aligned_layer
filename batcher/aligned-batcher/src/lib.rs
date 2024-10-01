@@ -177,7 +177,7 @@ impl Batcher {
                 .await
                 .expect("Could not get non-paying nonce from Ethereum");
 
-            let non_paying_user_state = UserState::new_non_paying(nonpaying_nonce);
+            let non_paying_user_state = UserState::new(nonpaying_nonce);
             user_states.insert(
                 non_paying_config.replacement.address(),
                 non_paying_user_state,
@@ -394,10 +394,22 @@ impl Batcher {
         // Check that we had a user state entry for this user and insert it if not.
         {
             let mut batch_state_lock = self.batch_state.lock().await;
-            batch_state_lock
-                .user_states
-                .entry(addr)
-                .or_insert_with(UserState::new);
+            if !batch_state_lock.user_states.contains_key(&addr) {
+                let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+                    Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                    Err(e) => {
+                        error!(
+                            "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
+                        );
+                        std::mem::drop(batch_state_lock);
+                        send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce)
+                            .await;
+                        return Ok(());
+                    }
+                };
+                let user_state = UserState::new(ethereum_user_nonce);
+                batch_state_lock.user_states.insert(addr, user_state);
+            }
         }
 
         // * ---------------------------------------------------*
@@ -410,8 +422,14 @@ impl Batcher {
 
         // At this point, we will have a user state for sure, since we have inserted it
         // if not already present. It should be safe to call `unwrap()` here.
-        let mut batch_state_lock = self.batch_state.lock().await;
-        let proofs_in_batch = batch_state_lock.get_user_proof_count(&addr).await.unwrap();
+        let batch_state_lock = self.batch_state.lock().await;
+        let Some(proofs_in_batch) = batch_state_lock.get_user_proof_count(&addr).await else {
+            error!("Failed to get user proof count: User not found in user states, but it should have been already inserted");
+            std::mem::drop(batch_state_lock);
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return Ok(());
+        };
+
         if !self.check_min_balance(&addr, proofs_in_batch + 1).await {
             std::mem::drop(batch_state_lock);
             send_message(
@@ -422,24 +440,12 @@ impl Batcher {
             return Ok(());
         }
 
-        let user_nonce = batch_state_lock.get_user_nonce(&addr).await;
-        let expected_nonce = if let Some(cached_nonce) = user_nonce {
-            cached_nonce
-        } else {
-            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
-                Ok(ethereum_user_nonce) => ethereum_user_nonce,
-                Err(e) => {
-                    error!(
-                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
-                    );
-                    std::mem::drop(batch_state_lock);
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
-                    return Ok(());
-                }
-            };
-
-            batch_state_lock.update_user_nonce(&addr, ethereum_user_nonce);
-            ethereum_user_nonce
+        let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
+        let Some(expected_nonce) = cached_user_nonce else {
+            error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
+            std::mem::drop(batch_state_lock);
+            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+            return Ok(());
         };
 
         if expected_nonce < msg_nonce {
@@ -891,7 +897,7 @@ impl Batcher {
         };
         batch_state_lock.batch_queue.clear();
         batch_state_lock.user_states.clear();
-        let nonpaying_user_state = UserState::new_non_paying(nonpaying_replacement_addr_nonce);
+        let nonpaying_user_state = UserState::new(nonpaying_replacement_addr_nonce);
         batch_state_lock
             .user_states
             .insert(nonpaying_replacement_addr, nonpaying_user_state);

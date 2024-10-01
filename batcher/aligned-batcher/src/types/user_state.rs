@@ -1,7 +1,7 @@
 use ethers::types::U256;
 
 pub(crate) struct UserState {
-    pub nonce: Option<U256>,
+    pub nonce: U256,
     /// The minimum fee of a pending proof for a user.
     /// This should always be the fee of the biggest pending nonce by the user.
     /// This is used to check if a user is submitting a proof with a higher nonce and higher fee,
@@ -11,17 +11,9 @@ pub(crate) struct UserState {
 }
 
 impl UserState {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(nonce: U256) -> Self {
         UserState {
-            nonce: None,
-            min_fee: U256::max_value(),
-            proofs_in_batch: 0,
-        }
-    }
-
-    pub(crate) fn new_non_paying(nonce: U256) -> Self {
-        UserState {
-            nonce: Some(nonce),
+            nonce,
             min_fee: U256::max_value(),
             proofs_in_batch: 0,
         }

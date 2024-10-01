@@ -40,7 +40,7 @@ impl BatchState {
 
     pub(crate) async fn get_user_nonce(&self, addr: &Address) -> Option<U256> {
         let user_state = self.get_user_state(addr)?;
-        user_state.nonce
+        Some(user_state.nonce)
     }
 
     pub(crate) async fn get_user_min_fee(&self, addr: &Address) -> Option<U256> {
@@ -50,9 +50,8 @@ impl BatchState {
 
     pub(crate) fn update_user_nonce(&mut self, addr: &Address, new_nonce: U256) -> Option<U256> {
         if let Entry::Occupied(mut user_state) = self.user_states.entry(*addr) {
-            let new_nonce = Some(new_nonce);
             user_state.get_mut().nonce = new_nonce;
-            return new_nonce;
+            return Some(new_nonce);
         }
         None
     }
