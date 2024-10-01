@@ -21,7 +21,6 @@ use crate::{
     },
 };
 
-use core::num;
 use ethers::{
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Middleware, Provider},
