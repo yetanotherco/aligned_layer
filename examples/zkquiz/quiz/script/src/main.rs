@@ -126,7 +126,6 @@ async fn main() {
         .expect("Failed to read user input")
     {   return; }
 
-    let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
     let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK)
         .await
         .expect("Failed to get next nonce");
