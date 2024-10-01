@@ -3,11 +3,7 @@ package chainio
 import (
 	"context"
 	"fmt"
-	"math/big"
-	"strings"
 
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -76,51 +72,19 @@ func (r *AvsReader) IsOperatorRegistered(address ethcommon.Address) (bool, error
 
 // Returns all the "NewBatchV3" logs that have not been responded starting from the given block number
 func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
-	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
+	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
+
 	if err != nil {
-		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
-		if err != nil {
-			return nil, fmt.Errorf("failed to get latest block number: %w", err)
-		}
-	}
-
-	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ABI: %w", err)
-	}
-
-	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatchV3"]
-	if newBatchEvent.ID == (ethcommon.Hash{}) {
-		return nil, fmt.Errorf("NewBatch event not found in ABI")
-	}
-
-	query := ethereum.FilterQuery{
-		FromBlock: big.NewInt(int64(fromBlock)),
-		ToBlock:   big.NewInt(int64(latestBlock)),
-		Addresses: []ethcommon.Address{r.AlignedLayerServiceManagerAddr},
-		Topics:    [][]ethcommon.Hash{{newBatchEvent.ID, {}}},
-	}
-
-	logs, err := r.AvsContractBindings.ethClient.FilterLogs(context.Background(), query)
-	if err != nil {
-		logs, err = r.AvsContractBindings.ethClientFallback.FilterLogs(context.Background(), query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get logs: %w", err)
-		}
+		return nil, fmt.Errorf("failed to filter logs, err: %w", err)
 	}
 
 	var tasks []servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 
-	for _, logEntry := range logs {
-		var task servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-
-		err := alignedLayerServiceManagerABI.UnpackIntoInterface(&task, "NewBatchV3", logEntry.Data)
+	for logs.Next() {
+		task, err := r.AvsContractBindings.ServiceManager.ParseNewBatchV3(logs.Event.Raw)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unpack log data: %w", err)
+			return nil, fmt.Errorf("failed to parse log data: %w", err)
 		}
-
-		// The second topic is the batch merkle root, as it is an indexed variable in the contract
-		task.BatchMerkleRoot = logEntry.Topics[1]
 
 		// now check if its finalized or not before appending
 		batchIdentifier := append(task.BatchMerkleRoot[:], task.SenderAddress[:]...)
@@ -133,9 +97,8 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 
 		// append the task if not responded yet
 		if !state.Responded {
-			tasks = append(tasks, task)
+			tasks = append(tasks, *task)
 		}
-
 	}
 
 	return tasks, nil

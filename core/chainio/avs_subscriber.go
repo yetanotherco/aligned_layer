@@ -4,13 +4,9 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math/big"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -322,48 +318,27 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 		fromBlock = latestBlock - BlockInterval
 	}
 
-	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
+	logs, err := s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ABI: %w", err)
+		return nil, fmt.Errorf("failed to filter logs, err: %w", err)
 	}
 
-	// We just care about the NewBatch event
-	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatchV2"]
-	if newBatchEvent.ID == (ethcommon.Hash{}) {
-		return nil, fmt.Errorf("NewBatch event not found in ABI")
+	var lastLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+
+	// Iterate over the logs until the end
+	for logs.Next() {
+		lastLog = logs.Event
 	}
 
-	query := ethereum.FilterQuery{
-		FromBlock: big.NewInt(int64(fromBlock)),
-		ToBlock:   big.NewInt(int64(latestBlock)),
-		Addresses: []ethcommon.Address{s.AlignedLayerServiceManagerAddr},
-		Topics:    [][]ethcommon.Hash{{newBatchEvent.ID, {}}},
+	if err := logs.Error(); err != nil {
+		return nil, fmt.Errorf("failed to iterate through events: %v", err)
 	}
 
-	logs, err := s.AvsContractBindings.ethClient.FilterLogs(context.Background(), query)
-	if err != nil {
-		logs, err = s.AvsContractBindings.ethClientFallback.FilterLogs(context.Background(), query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get logs: %w", err)
-		}
+	if lastLog == nil {
+		return nil, fmt.Errorf("no events found")
 	}
 
-	if len(logs) == 0 {
-		return nil, fmt.Errorf("no logs found")
-	}
-
-	lastLog := logs[len(logs)-1]
-
-	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
-	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatchV2", lastLog.Data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unpack log data: %w", err)
-	}
-
-	// The second topic is the batch merkle root, as it is an indexed variable in the contract
-	latestTask.BatchMerkleRoot = lastLog.Topics[1]
-
-	batchIdentifier := append(latestTask.BatchMerkleRoot[:], latestTask.SenderAddress[:]...)
+	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
 
@@ -375,7 +350,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 		return nil, nil
 	}
 
-	return &latestTask, nil
+	return lastLog, nil
 }
 
 // getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
@@ -398,48 +373,27 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 		fromBlock = latestBlock - BlockInterval
 	}
 
-	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
+	logs, err := s.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ABI: %w", err)
+		return nil, fmt.Errorf("failed to filter logs, err: %w", err)
 	}
 
-	// We just care about the NewBatch event
-	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatchV3"]
-	if newBatchEvent.ID == (ethcommon.Hash{}) {
-		return nil, fmt.Errorf("NewBatch event not found in ABI")
+	var lastLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+
+	// Iterate over the logs until the end
+	for logs.Next() {
+		lastLog = logs.Event
 	}
 
-	query := ethereum.FilterQuery{
-		FromBlock: big.NewInt(int64(fromBlock)),
-		ToBlock:   big.NewInt(int64(latestBlock)),
-		Addresses: []ethcommon.Address{s.AlignedLayerServiceManagerAddr},
-		Topics:    [][]ethcommon.Hash{{newBatchEvent.ID, {}}},
+	if err := logs.Error(); err != nil {
+		return nil, fmt.Errorf("failed to iterate through events: %v", err)
 	}
 
-	logs, err := s.AvsContractBindings.ethClient.FilterLogs(context.Background(), query)
-	if err != nil {
-		logs, err = s.AvsContractBindings.ethClientFallback.FilterLogs(context.Background(), query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get logs: %w", err)
-		}
+	if lastLog == nil {
+		return nil, fmt.Errorf("no events found")
 	}
 
-	if len(logs) == 0 {
-		return nil, fmt.Errorf("no logs found")
-	}
-
-	lastLog := logs[len(logs)-1]
-
-	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatchV3", lastLog.Data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unpack log data: %w", err)
-	}
-
-	// The second topic is the batch merkle root, as it is an indexed variable in the contract
-	latestTask.BatchMerkleRoot = lastLog.Topics[1]
-
-	batchIdentifier := append(latestTask.BatchMerkleRoot[:], latestTask.SenderAddress[:]...)
+	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
 
@@ -451,7 +405,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 		return nil, nil
 	}
 
-	return &latestTask, nil
+	return lastLog, nil
 }
 
 func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
