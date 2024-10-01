@@ -55,7 +55,12 @@ func operatorMain(ctx *cli.Context) error {
 	body := map[string]interface{}{
 		"version":   ctx.App.Version,
 		"signature": signature,
+    "eth_rpc_url": urlRemoveProtocol(operatorConfig.BaseConfig.EthRpcUrl),
+    "eth_rpc_url_fallback": urlRemoveProtocol(operatorConfig.BaseConfig.EthRpcUrlFallback),
+    "eth_ws_url": urlRemoveProtocol(operatorConfig.BaseConfig.EthWsUrl),
+    "eth_ws_url_fallback": urlRemoveProtocol(operatorConfig.BaseConfig.EthWsUrlFallback),
 	}
+
 	bodyBuffer := new(bytes.Buffer)
 
 	bodyReader := json.NewEncoder(bodyBuffer)

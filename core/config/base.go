@@ -27,6 +27,8 @@ type BaseConfig struct {
 	Logger                       sdklogging.Logger
 	EthRpcUrl                    string
 	EthWsUrl                     string
+	EthRpcUrlFallback            string
+	EthWsUrlFallback             string
 	EthRpcClient                 eth.Client
 	EthRpcClientFallback         eth.Client
 	EthWsClient                  eth.Client
@@ -136,6 +138,8 @@ func NewBaseConfig(configFilePath string) *BaseConfig {
 		Logger:                       logger,
 		EthRpcUrl:                    baseConfigFromYaml.EthRpcUrl,
 		EthWsUrl:                     baseConfigFromYaml.EthWsUrl,
+		EthRpcUrlFallback:            baseConfigFromYaml.EthRpcUrlFallback,
+		EthWsUrlFallback:             baseConfigFromYaml.EthWsUrlFallback,
 		EthRpcClient:                 ethRpcClient,
 		EthRpcClientFallback:         ethRpcClientFallback,
 		EthWsClient:                  ethWsClient,

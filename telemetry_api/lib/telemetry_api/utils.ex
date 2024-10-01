@@ -1,4 +1,6 @@
 defmodule TelemetryApi.Utils do
+  use TelemetryApiWeb, :controller
+
   @moduledoc """
   Some utility functions
   """
@@ -50,4 +52,45 @@ defmodule TelemetryApi.Utils do
         {:error, error_message}
     end
   end
+
+
+  @doc """
+  Returns json encoded error using http
+  """
+  def return_error(conn, message) do
+    conn
+      |> put_status(:bad_request)
+      |> put_resp_content_type("application/json")
+      |> send_resp(:bad_request, Jason.encode!(%{error: message}))
+  end
+
+  @doc """
+  Validates the existance of a given list of keys in provided params map. 
+  Extra keys will be filtered out.
+
+  ## Examples
+
+      iex> required_keys = ["hello", "bye"]
+      iex> params = %{"hello": 4, "bye": 2, "dog": 100}
+      iex> params_validation(required_keys, params)
+      {:ok, %{"hello": 4, "bye": 2}}
+
+      iex> required_keys = ["hello", "bye"]
+      iex> params = %{"hello": 4}
+      iex> params_validation(required_keys, params)
+      {:error, string}
+  """
+  def params_validation(required_keys, params) do 
+    # Check if all required keys are present
+    missing_keys = Enum.filter(required_keys, &(!Map.has_key?(params, &1)))
+    
+    if Enum.empty?(missing_keys) do
+      # Filter the params to only include the required keys
+      filtered_params = Map.take(params, required_keys)
+      {:ok, filtered_params}
+    else
+      {:error, "Missing required parameters: #{Enum.join(missing_keys, ", ")}"}
+    end
+  end
+
 end

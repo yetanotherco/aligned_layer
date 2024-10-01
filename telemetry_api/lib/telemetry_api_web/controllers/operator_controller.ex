@@ -2,31 +2,37 @@ defmodule TelemetryApiWeb.OperatorController do
   use TelemetryApiWeb, :controller
 
   alias TelemetryApi.Operators
+  alias TelemetryApi.Utils
   alias TelemetryApi.Operators.Operator
 
   action_fallback TelemetryApiWeb.FallbackController
 
-  defp return_error(conn, message) do
-    conn
-      |> put_status(:bad_request)
-      |> put_resp_content_type("application/json")
-      |> send_resp(:bad_request, Jason.encode!(%{error: message}))
-  end
+  @create_params [
+    "version",
+    "signature",
+    "eth_rpc_url",
+    "eth_rpc_url_fallback",
+    "eth_ws_url",
+    "eth_ws_url_fallback"
+  ]
 
   def index(conn, _params) do
     operators = Operators.list_operators()
     render(conn, :index, operators: operators)
   end
 
-  def create(conn, operator_params) do
-    case Operators.update_operator_version(operator_params) do
-      {:ok, %Operator{} = operator} ->
+  def create(conn, params) do
+    with {:ok, op_params} <- Utils.params_validation(@create_params, params),
+      {:ok, %Operator{} = operator} <- Operators.update_operator(op_params) do
         conn
           |> put_status(:created)
           |> put_resp_header("location", ~p"/api/operators/#{operator}")
           |> render(:show, operator: operator)
+    else
       {:error, message} ->
-        return_error(conn, message)
+        Utils.return_error(conn, message)
+      _ ->
+        Utils.return_error(conn, "Unknown error while updating operator")
     end
   end
 
