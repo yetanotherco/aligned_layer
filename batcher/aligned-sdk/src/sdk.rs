@@ -115,11 +115,11 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn estimate_max_fee(
-    eth_rpc_url: &str,
+    eth_rpc_provider: &Provider<Http>,
     estimate: PriceEstimate,
 ) -> Result<U256, errors::MaxFeeEstimateError> {
     // Price of 1 proof in 32 proof batch
-    let fee_per_proof = fee_per_proof(eth_rpc_url, MAX_FEE_INSTANT_BATCH_SIZE).await?;
+    let fee_per_proof = fee_per_proof(eth_rpc_provider, MAX_FEE_INSTANT_BATCH_SIZE).await?;
 
     let proof_price = match estimate {
         PriceEstimate::Min => fee_per_proof,
@@ -142,7 +142,7 @@ pub async fn estimate_max_fee(
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn compute_max_fee(
-    eth_rpc_url: &str,
+    eth_rpc_url: &Provider<Http>,
     num_proofs: usize,
     num_proofs_per_batch: usize,
 ) -> Result<U256, errors::MaxFeeEstimateError> {
@@ -162,13 +162,9 @@ pub async fn compute_max_fee(
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
 pub async fn fee_per_proof(
-    eth_rpc_url: &str,
+    eth_rpc_provider: &Provider<Http>,
     num_proofs_per_batch: usize,
 ) -> Result<U256, errors::MaxFeeEstimateError> {
-    let eth_rpc_provider =
-        Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
-            errors::MaxFeeEstimateError::EthereumProviderError(e.to_string())
-        })?;
     let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
     // Cost for estimate `num_proofs_per_batch` proofs
@@ -590,37 +586,44 @@ mod test {
 
     #[tokio::test]
     async fn computed_max_fee_for_larger_batch_is_smaller() {
-        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 2, 10)
-            .await
+        let eth_rpc_provider = Provider::<Http>::try_from(HOLESKY_PUBLIC_RPC_URL)
+            .map_err(|e: url::ParseError| {
+                errors::MaxFeeEstimateError::EthereumProviderError(e.to_string())
+            })
             .unwrap();
-        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
-            .await
-            .unwrap();
+        let small_fee = compute_max_fee(&eth_rpc_provider, 2, 10).await.unwrap();
+        let large_fee = compute_max_fee(&eth_rpc_provider, 5, 10).await.unwrap();
 
         assert!(small_fee < large_fee);
     }
 
     #[tokio::test]
     async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
-        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 20)
-            .await
+        let eth_rpc_provider = Provider::<Http>::try_from(HOLESKY_PUBLIC_RPC_URL)
+            .map_err(|e: url::ParseError| {
+                errors::MaxFeeEstimateError::EthereumProviderError(e.to_string())
+            })
             .unwrap();
-        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
-            .await
-            .unwrap();
+        let small_fee = compute_max_fee(&eth_rpc_provider, 5, 20).await.unwrap();
+        let large_fee = compute_max_fee(&eth_rpc_provider, 5, 10).await.unwrap();
 
         assert!(small_fee < large_fee);
     }
 
     #[tokio::test]
     async fn estimate_max_fee_are_larger_than_one_another() {
-        let min_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Min)
+        let eth_rpc_provider = Provider::<Http>::try_from(HOLESKY_PUBLIC_RPC_URL)
+            .map_err(|e: url::ParseError| {
+                errors::MaxFeeEstimateError::EthereumProviderError(e.to_string())
+            })
+            .unwrap();
+        let min_fee = estimate_max_fee(&eth_rpc_provider, PriceEstimate::Min)
             .await
             .unwrap();
-        let default_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Default)
+        let default_fee = estimate_max_fee(&eth_rpc_provider, PriceEstimate::Default)
             .await
             .unwrap();
-        let instant_fee = estimate_max_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Instant)
+        let instant_fee = estimate_max_fee(&eth_rpc_provider, PriceEstimate::Instant)
             .await
             .unwrap();
 
