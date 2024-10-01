@@ -45,6 +45,13 @@ jobs:
         run: |
           cd batcher
           cargo build --all
+
+  test:
+    runs-on: aligned-runner
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Run tests
         run: |
           cd batcher
