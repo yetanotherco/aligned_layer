@@ -145,6 +145,8 @@ contract BatcherPaymentService is
             if (user.balance < feePerProof) {
                 revert SubmissionInsufficientBalance(proofSubmitter, user.balance, feePerProof);
             }
+
+            user.nonce++;
     
             user.balance -= feePerProof;
         }
