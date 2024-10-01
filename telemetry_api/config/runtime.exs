@@ -76,7 +76,7 @@ if config_env() == :prod do
   # Configure ethereumex url
   config :ethereumex, url: rpc_url
 
-  # Contract RegistryCoordinatorManager address
+  # Aligned configuration file path
   System.get_env("ALIGNED_CONFIG_FILE") ||
     raise """
     environment variable ALIGNED_CONFIG_FILE is missing.

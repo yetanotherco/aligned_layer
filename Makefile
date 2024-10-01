@@ -757,3 +757,6 @@ telemetry_dump_db:
 		docker exec -t telemetry-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /telemetry_api"
 
+telemetry_create_env:
+	@cd telemetry_api && \
+		cp .env.dev .env

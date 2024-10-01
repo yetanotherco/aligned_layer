@@ -18,6 +18,9 @@ defmodule TelemetryApiWeb.OperatorJSON do
   defp data(%Operator{} = operator) do
     %{
       address: operator.address,
+      id: operator.id,
+      stake: operator.stake,
+      name: operator.name,
       version: operator.version
     }
   end

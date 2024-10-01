@@ -1,6 +1,16 @@
 #!/bin/bash
 
-source .env.dev
+source .env
+
+# Add new environment variables here
+env_vars=(
+  "ENVIRONMENT"
+  "ALIGNED_CONFIG_FILE"
+)
+
+for var in "${env_vars[@]}"; do
+  export "$var=${!var}"
+done
 
 mix deps.get
 
