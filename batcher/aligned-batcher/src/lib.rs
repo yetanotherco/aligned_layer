@@ -585,7 +585,7 @@ impl Batcher {
             nonced_verification_data.verification_data.clone().into();
         replacement_entry.nonced_verification_data = nonced_verification_data;
 
-        // Close old sink in old entry replace it with new one
+        // Close old sink in old entry and replace it with the new one
         {
             if let Some(messaging_sink) = replacement_entry.messaging_sink {
                 let mut old_sink = messaging_sink.write().await;
