@@ -517,7 +517,7 @@ impl Batcher {
                     return Ok(());
                 }
 
-                let blacklisted_verifiers = self.get_blacklisted_verifiers().await;
+                let blacklisted_verifiers = self.blacklisted_verifiers().await;
                 // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
                 if self.pre_verification_is_enabled {
                     let result = zk_utils::verify(
@@ -781,9 +781,9 @@ impl Batcher {
         true
     }
 
-    async fn get_blacklisted_verifiers(&self) -> u64 {
+    async fn blacklisted_verifiers(&self) -> U256 {
         self.service_manager
-            .get_blacklisted_verifiers()
+            .blacklisted_verifiers()
             .call()
             .await
             .unwrap_or_default()
@@ -1210,7 +1210,7 @@ impl Batcher {
             return Ok(()); // Send error message to the client and return
         }
 
-        let blacklisted_verifiers = self.get_blacklisted_verifiers().await;
+        let blacklisted_verifiers = self.blacklisted_verifiers().await;
         if client_msg.verification_data.verification_data.proof.len() <= self.max_proof_size {
             // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
             if self.pre_verification_is_enabled {

@@ -6,11 +6,12 @@ use crate::sp1::verify_sp1_proof;
 use aligned_sdk::core::types::{
     ProofInvalidReason, ProvingSystemId, ValidityResponseMessage, VerificationData,
 };
+use ethers::types::U256;
 use log::{debug, warn};
 
 pub(crate) async fn verify(
     verification_data: &VerificationData,
-    blacklisted_verifiers: u64,
+    blacklisted_verifiers: U256,
 ) -> ValidityResponseMessage {
     let verification_data = verification_data.clone();
     tokio::task::spawn_blocking(move || verify_internal(&verification_data, blacklisted_verifiers))
@@ -22,9 +23,11 @@ pub(crate) async fn verify(
 
 fn verify_internal(
     verification_data: &VerificationData,
-    blacklisted_verifiers: u64,
+    blacklisted_verifiers: U256,
 ) -> ValidityResponseMessage {
-    if blacklisted_verifiers & (1 << verification_data.proving_system.clone() as u64) != 0 {
+    if blacklisted_verifiers & (U256::one() << verification_data.proving_system.clone() as u64)
+        != U256::zero()
+    {
         warn!(
             "Verifier {} is blacklisted, skipping verification",
             verification_data.proving_system

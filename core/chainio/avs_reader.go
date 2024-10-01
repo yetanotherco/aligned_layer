@@ -65,6 +65,6 @@ func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, erro
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }
 
-func (r *AvsReader) GetBlacklistedVerifiers() (*big.Int, error) {
-	return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.GetBlacklistedVerifiers(&bind.CallOpts{})
+func (r *AvsReader) BlacklistedVerifiers() (*big.Int, error) {
+	return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BlacklistedVerifiers(&bind.CallOpts{})
 }

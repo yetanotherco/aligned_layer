@@ -214,10 +214,6 @@ contract AlignedLayerServiceManager is
         return bit > 0;
     }
 
-    function getBlacklistedVerifiers() external view returns (uint256) {
-        return blacklistedVerifiers;
-    }
-
     function blacklistVerifier(
         uint256 verifierIdx
     ) external validVerifierIdx(verifierIdx) onlyOwner {

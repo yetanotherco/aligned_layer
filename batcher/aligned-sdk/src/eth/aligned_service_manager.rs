@@ -10,7 +10,7 @@ abigen!(
     methods {
         verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256) as verify_batch_inclusion_legacy;
         verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address) as verify_batch_inclusion;
-        getBlacklistedVerifiers() as get_blacklisted_verifiers;
+        blacklistedVerifiers() as blacklisted_verifiers;
     },
 );
 

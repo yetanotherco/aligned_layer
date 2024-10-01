@@ -341,7 +341,7 @@ func (o *Operator) IsVerifierValid(blacklisted_verifiers_bitmap *big.Int, verifi
 }
 
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
-	blacklisted_verifiers_bitmap, err := o.avsReader.GetBlacklistedVerifiers()
+	blacklisted_verifiers_bitmap, err := o.avsReader.BlacklistedVerifiers()
 	if err != nil {
 		o.Logger.Errorf("Could not check verifier status: %s", err)
 		results <- false

@@ -73,5 +73,4 @@ interface IAlignedLayerServiceManager {
     function blacklistVerifier(uint256 verifierIdx) external;
     function whitelistVerifier(uint256 verifierIdx) external;
     function setVerifiersBlacklist(uint256 bitmap) external;
-    function getBlacklistedVerifiers() external view returns (uint256);
 }
