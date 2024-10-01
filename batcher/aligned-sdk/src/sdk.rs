@@ -20,8 +20,10 @@ use crate::{
 use ethers::{
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Middleware, Provider},
-    signers::Wallet,
+    signers::{Wallet, LocalWallet},
     types::{Address, H160, U256},
+    core::types::TransactionRequest,
+    middleware::SignerMiddleware,
 };
 use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
@@ -475,4 +477,81 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
         .map_err(|e| errors::ChainIdError::EthereumCallError(e.to_string()))?;
 
     Ok(chain_id.as_u64())
+}
+
+/// Funds the batcher payment service in name of the signer
+/// # Arguments
+/// * `amount` - The amount to be paid.
+/// * `signer` - The signer middleware of the payer.
+/// * `network` - The network on which the payment will be done.
+/// # Returns
+/// * The receipt of the payment transaction.
+/// # Errors
+/// * `SendError` if there is an error sending the transaction.
+/// * `SubmitError` if there is an error submitting the transaction.
+/// * `PaymentFailed` if the payment failed.
+pub async fn fund_payment_service(
+    amount: U256,
+    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    network: Network,
+) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
+
+    let payment_service_address = get_payment_service_address(network);
+    let from = signer.address();
+
+    let tx = TransactionRequest::new()
+        .from(from)
+        .to(payment_service_address)
+        .value(amount);
+
+    match signer
+        .send_transaction(tx, None)
+        .await
+        .map_err(|e| errors::PaymentError::SendError(e.to_string()))?
+        .await
+        .map_err(|e| errors::PaymentError::SubmitError(e.to_string()))?
+    {
+        Some(receipt) => {
+            Ok(receipt)
+        }
+        None => {
+            Err(errors::PaymentError::PaymentFailed)
+        }
+    }
+}
+
+/// Returns the balance of a user in the payment service.
+/// # Arguments
+/// * `user` - The address of the user.
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `network` - The network on which the balance will be checked.
+/// # Returns
+/// * The balance of the user in the payment service.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumCallError` if there is an error in the Ethereum call.
+pub async fn get_balance_in_payment_sevice(
+    user: Address,
+    eth_rpc_url: &str,
+    network: Network,
+) -> Result<U256, errors::BalanceError> {
+    
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| errors::BalanceError::EthereumProviderError(e.to_string()))?;
+
+    let payment_service_address = get_payment_service_address(network);
+
+    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
+        Ok(batcher_payment_service) => {
+            let call = batcher_payment_service.user_balances(user);
+
+            let result = call
+                .call()
+                .await
+                .map_err(|e| errors::BalanceError::EthereumCallError(e.to_string()))?;
+
+            Ok(result)
+        }
+        Err(e) => Err(errors::BalanceError::EthereumCallError(e.to_string())),
+    }
 }

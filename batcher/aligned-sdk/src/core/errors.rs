@@ -279,3 +279,16 @@ impl fmt::Display for VerifySignatureError {
         }
     }
 }
+
+#[derive(Debug)]
+pub enum PaymentError {
+    SendError(String),
+    SubmitError(String),
+    PaymentFailed,
+}
+
+#[derive(Debug)]
+pub enum BalanceError {
+    EthereumProviderError(String),
+    EthereumCallError(String),
+}
