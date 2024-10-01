@@ -98,7 +98,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 			case newBatch := <-internalChannel:
 				s.processNewBatchV2(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			case <-pollLatestBatchTicker.C:
-				latestBatch, err := s.getLatestTaskFromEthereumV2()
+				latestBatch, err := s.getLatestNotRespondedTaskFromEthereumV2()
 				if err != nil {
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
@@ -168,7 +168,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 			case newBatch := <-internalChannel:
 				s.processNewBatchV3(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			case <-pollLatestBatchTicker.C:
-				latestBatch, err := s.getLatestTaskFromEthereumV3()
+				latestBatch, err := s.getLatestNotRespondedTaskFromEthereumV3()
 				if err != nil {
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
@@ -305,7 +305,7 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 // getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
 // The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
 // to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
-func (s *AvsSubscriber) getLatestTaskFromEthereumV2() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
+func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
@@ -363,7 +363,6 @@ func (s *AvsSubscriber) getLatestTaskFromEthereumV2() (*servicemanager.ContractA
 	// The second topic is the batch merkle root, as it is an indexed variable in the contract
 	latestTask.BatchMerkleRoot = lastLog.Topics[1]
 
-	// return the task if has not been responded only
 	batchIdentifier := append(latestTask.BatchMerkleRoot[:], latestTask.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
@@ -382,7 +381,7 @@ func (s *AvsSubscriber) getLatestTaskFromEthereumV2() (*servicemanager.ContractA
 // getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
 // The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
 // to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
-func (s *AvsSubscriber) getLatestTaskFromEthereumV3() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
@@ -440,7 +439,6 @@ func (s *AvsSubscriber) getLatestTaskFromEthereumV3() (*servicemanager.ContractA
 	// The second topic is the batch merkle root, as it is an indexed variable in the contract
 	latestTask.BatchMerkleRoot = lastLog.Topics[1]
 
-	// return the task if has not been responded only
 	batchIdentifier := append(latestTask.BatchMerkleRoot[:], latestTask.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)

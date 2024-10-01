@@ -64,6 +64,7 @@ const (
 	BatchDownloadTimeout    = 1 * time.Minute
 	BatchDownloadMaxRetries = 3
 	BatchDownloadRetryDelay = 5 * time.Second
+	UnverifiedBatchOffset   = 100
 )
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
@@ -129,7 +130,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		metrics:                   operatorMetrics,
 		lastProcessedBatchLogFile: lastProcessedBatchLogFile,
 		lastProcessedBatch: OperatorLastProcessedBatch{
-			BlockNumber: 0,
+			BlockNumber:        0,
+			batchProcessedChan: make(chan uint32),
 		},
 
 		// Timeout
@@ -150,7 +152,8 @@ func (o *Operator) SubscribeToNewTasksV3() (chan error, error) {
 }
 
 type OperatorLastProcessedBatch struct {
-	BlockNumber uint32 `json:"block_number"`
+	BlockNumber        uint32      `json:"block_number"`
+	batchProcessedChan chan uint32 `json:"-"`
 }
 
 func (o *Operator) LoadLastProcessedBatch() error {
@@ -212,8 +215,7 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
-	batchProcessorChan := make(chan uint32)
-	go o.ProcessMissedBatchesWhileOffline(batchProcessorChan)
+	go o.ProcessMissedBatchesWhileOffline()
 
 	for {
 		select {
@@ -235,23 +237,24 @@ func (o *Operator) Start(ctx context.Context) error {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
-			go o.handleNewBatchLogV2(newBatchLogV2, batchProcessorChan)
+			go o.handleNewBatchLogV2(newBatchLogV2)
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
-			go o.handleNewBatchLogV3(newBatchLogV3, batchProcessorChan)
-		case bacthProcessed := <-batchProcessorChan:
-			err = o.UpdateLastProcessBatch(bacthProcessed)
-			o.Logger.Errorf("Error while updating last process batch", "err", err)
+			go o.handleNewBatchLogV3(newBatchLogV3)
+		case blockNumber := <-o.lastProcessedBatch.batchProcessedChan:
+			err = o.UpdateLastProcessBatch(blockNumber)
+			if err != nil {
+				o.Logger.Errorf("Error while updating last process batch", "err", err)
+			}
 
 		}
 	}
 }
 
 // Here we query all the batches that have not yet been verified starting from
-// the latest verified batch by the operator. We also get the prior 100 and check if we need to verify them as well
-// This last thing of getting the last 100 is to make sure we have not missed a batch since they are process in parallel
-// and a higher batch number might have been processed first than the lower one.
-// So getting the last 100 accounts for such cases
-func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
+// the latest verified batch by the operator. We also read from the previous
+// `UnverifiedBatchOffset` blocks, because as batches are processed in parallel, there could be
+// unverified batches slightly before the latest verified batch
+func (o *Operator) ProcessMissedBatchesWhileOffline() {
 	// this is the default value
 	// and it means there was no file so no batches have been verified
 	if o.lastProcessedBatch.BlockNumber == 0 {
@@ -260,7 +263,7 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
 	}
 
 	o.Logger.Info("Getting missed tasks")
-	logs, err := o.avsReader.GetNotRespondedTasksFrom(uint64(o.lastProcessedBatch.BlockNumber - 100))
+	logs, err := o.avsReader.GetNotRespondedTasksFrom(uint64(o.lastProcessedBatch.BlockNumber - UnverifiedBatchOffset))
 	if err != nil {
 		return
 	}
@@ -268,7 +271,7 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
 
 	o.Logger.Info("Starting to verify missed batches while offline")
 	for _, logEntry := range logs {
-		go o.handleNewBatchLogV3(&logEntry, c)
+		go o.handleNewBatchLogV3(&logEntry)
 	}
 	o.Logger.Info("Finished verifying all batches missed while offline")
 }
@@ -283,11 +286,11 @@ func (o *Operator) ProcessMissedBatchesWhileOffline(c chan uint32) {
 // different events enables the smooth operator upgradeability
 
 // Process of handling batches from V2 events:
-func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchProcessedChan chan uint32) {
+func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
 	var err error
 	defer func() {
 		if err == nil {
-			batchProcessedChan <- uint32(newBatchLog.Raw.BlockNumber)
+			o.lastProcessedBatch.batchProcessedChan <- uint32(newBatchLog.Raw.BlockNumber)
 		}
 	}()
 
@@ -361,11 +364,11 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 }
 
 // Process of handling batches from V3 events:
-func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, batchProcessedChan chan uint32) {
+func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
 	var err error
 	defer func() {
 		if err == nil {
-			batchProcessedChan <- uint32(newBatchLog.Raw.BlockNumber)
+			o.lastProcessedBatch.batchProcessedChan <- uint32(newBatchLog.Raw.BlockNumber)
 		}
 	}()
 	o.Logger.Infof("Received new batch log V3")
