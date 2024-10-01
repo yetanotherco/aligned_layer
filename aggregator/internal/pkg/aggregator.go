@@ -267,12 +267,14 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		NonSignerStakeIndices:        blsAggServiceResp.NonSignerStakeIndices,
 	}
 
+	agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 	agg.taskMutex.Lock()
 
 	// Delete the task from the map
 	delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
 
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Freeing task data")
+	agg.logger.Info("- Unlocking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
+
 	agg.taskMutex.Unlock()
 
 	agg.telemetry.LogQuorumReached(batchData.BatchMerkleRoot)
@@ -328,6 +330,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
+		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
 

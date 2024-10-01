@@ -92,6 +92,7 @@ func (t *Telemetry) LogTaskError(batchMerkleRoot [32]byte, taskError error) {
 }
 
 func (t *Telemetry) FinishTrace(batchMerkleRoot [32]byte) {
+	// In order to wait for all operator responses, even if the quorum is reached, this function has a delayed execution
 	go func() {
 		time.Sleep(10 * time.Second)
 		body := TraceMessage{
