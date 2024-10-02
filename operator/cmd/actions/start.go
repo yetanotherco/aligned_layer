@@ -75,7 +75,7 @@ func updateTelemetryService(operator *operator.Operator, ctx *cli.Context, opera
 	}
 
 	// send version to operator tracker server
-	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/api/operators"
+	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/versions"
 	operator.Logger.Info("Sending version to operator tracker server: ", "endpoint", endpoint)
 
 	res, err := http.Post(endpoint, "application/json", bodyBuffer)
