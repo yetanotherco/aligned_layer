@@ -194,9 +194,7 @@ defmodule TelemetryApi.Traces do
         operator_stake_fraction = operator_stake / trace.total_stake
 
         TraceStore.store_trace(merkle_root, %Trace{
-          parent_span: trace.parent_span,
-          context: trace.context,
-          total_stake: trace.total_stake,
+          trace |
           current_stake: new_stake
           })
 
