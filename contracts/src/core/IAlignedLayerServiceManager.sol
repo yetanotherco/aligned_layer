@@ -34,6 +34,7 @@ interface IAlignedLayerServiceManager {
     error SenderIsNotAggregator(address sender, address alignedAggregator); // 2cbe4195
     error InvalidDepositAmount(uint256 amount); // 412ed242
     error ExceededMaxRespondFee(uint256 respondToTaskFeeLimit, uint256 txCost); // 86fc507e
+    error InvalidAddress(string param); // 161eb542
 
     function createNewTask(
         bytes32 batchMerkleRoot,

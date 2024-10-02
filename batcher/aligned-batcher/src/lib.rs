@@ -3,7 +3,7 @@ extern crate core;
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use serde::Serialize;
@@ -327,7 +327,9 @@ impl Batcher {
 
     pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
         // Create the event loop and TCP listener we'll accept connections on.
-        let listener = TcpListener::bind(address).await.expect("Failed to build");
+        let listener = TcpListener::bind(address)
+            .await
+            .map_err(|e| BatcherError::TcpListenerError(e.to_string()))?;
         info!("Listening on: {}", address);
 
         // Let's spawn the handling of each connection in a separate task.
@@ -439,13 +441,31 @@ impl Batcher {
 
         if client_msg.verification_data.chain_id != self.chain_id {
             warn!(
-                "Received message with incorrect chain id: {}",
+                "Received message with incorrect chain id: {}", //This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
                 client_msg.verification_data.chain_id
             );
 
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidChainId,
+            )
+            .await;
+
+            return Ok(());
+        }
+
+        if client_msg.verification_data.payment_service_addr != self.payment_service.address() {
+            warn!(
+                "Received message with incorrect payment service address: {}", //This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
+                client_msg.verification_data.payment_service_addr
+            );
+
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidPaymentServiceAddress(
+                    client_msg.verification_data.payment_service_addr,
+                    self.payment_service.address(),
+                ),
             )
             .await;
 
@@ -459,6 +479,7 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
+                info!("Handling paying message");
                 if !self
                     .check_user_balance_and_increment_proof_count(&addr)
                     .await
@@ -1016,7 +1037,7 @@ impl Batcher {
             &file_name,
         )
         .await
-        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 

@@ -10,10 +10,11 @@ use aligned_sdk::communication::serialization::cbor_deserialize;
 use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
-    types::{AlignedVerificationData, Chain, ProvingSystemId, VerificationData},
+    types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
+use aligned_sdk::sdk::get_payment_service_address;
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
@@ -68,12 +69,6 @@ pub struct SubmitArgs {
     )]
     batcher_url: String,
     #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
-    )]
-    payment_service_addr: String,
-    #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
         default_value = "http://localhost:8545"
@@ -120,22 +115,16 @@ pub struct SubmitArgs {
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
     #[arg(
-        name = "The Ethereum network's name",
-        long = "chain",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    chain: ChainArg,
+    network: NetworkArg,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct DepositToBatcherArgs {
-    #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
-    )]
-    payment_service_addr: String,
     #[arg(
         name = "Path to local keystore",
         long = "keystore_path",
@@ -149,11 +138,11 @@ pub struct DepositToBatcherArgs {
     )]
     eth_rpc_url: String,
     #[arg(
-        name = "The Ethereum network's name",
-        long = "chain",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    chain: ChainArg,
+    network: NetworkArg,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
     amount: String,
 }
@@ -170,17 +159,11 @@ pub struct VerifyProofOnchainArgs {
     )]
     eth_rpc_url: String,
     #[arg(
-        name = "The Ethereum network's name",
-        long = "chain",
+        name = "The working network's name",
+        long = "network",
         default_value = "devnet"
     )]
-    chain: ChainArg,
-    #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
-    )]
-    payment_service_addr: String,
+    network: NetworkArg,
 }
 
 #[derive(Parser, Debug)]
@@ -198,11 +181,11 @@ pub struct GetVkCommitmentArgs {
 #[command(version, about, long_about = None)]
 pub struct GetUserBalanceArgs {
     #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment_service_addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet"
     )]
-    payment_service_addr: String,
+    network: NetworkArg,
     #[arg(
         name = "Ethereum RPC provider address",
         long = "rpc_url",
@@ -217,19 +200,19 @@ pub struct GetUserBalanceArgs {
     user_address: String,
 }
 
-#[derive(Debug, Clone, ValueEnum)]
-enum ChainArg {
+#[derive(Debug, Clone, ValueEnum, Copy)]
+enum NetworkArg {
     Devnet,
     Holesky,
     HoleskyStage,
 }
 
-impl From<ChainArg> for Chain {
-    fn from(chain_arg: ChainArg) -> Self {
-        match chain_arg {
-            ChainArg::Devnet => Chain::Devnet,
-            ChainArg::Holesky => Chain::Holesky,
-            ChainArg::HoleskyStage => Chain::HoleskyStage,
+impl From<NetworkArg> for Network {
+    fn from(env_arg: NetworkArg) -> Self {
+        match env_arg {
+            NetworkArg::Devnet => Network::Devnet,
+            NetworkArg::Holesky => Network::Holesky,
+            NetworkArg::HoleskyStage => Network::HoleskyStage,
         }
     }
 }
@@ -307,7 +290,16 @@ async fn main() -> Result<(), AlignedError> {
                     .map_err(|e| SubmitError::GenericError(e.to_string()))?
             } else {
                 warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
-                LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet")
+                match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
+                    Ok(wallet) => wallet,
+                    Err(e) => {
+                        warn!(
+                            "Failed to create wallet from anvil private key: {}",
+                            e.to_string()
+                        );
+                        return Ok(());
+                    }
+                }
             };
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
@@ -315,15 +307,13 @@ async fn main() -> Result<(), AlignedError> {
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
 
-            let batcher_eth_address = submit_args.payment_service_addr.clone();
-
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
                 None => {
                     get_nonce(
                         &eth_rpc_url,
                         wallet.address(),
-                        &batcher_eth_address,
+                        submit_args.network.into(),
                         repetitions,
                     )
                     .await?
@@ -331,8 +321,6 @@ async fn main() -> Result<(), AlignedError> {
             };
 
             let verification_data = verification_data_from_args(&submit_args)?;
-
-            let chain = submit_args.chain.clone().into();
 
             let verification_data_arr = vec![verification_data; repetitions];
 
@@ -342,7 +330,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let aligned_verification_data_vec = match submit_multiple(
                 &connect_addr,
-                chain,
+                submit_args.network.into(),
                 &verification_data_arr,
                 &max_fees,
                 wallet.clone(),
@@ -383,7 +371,6 @@ async fn main() -> Result<(), AlignedError> {
         }
 
         VerifyProofOnchain(verify_inclusion_args) => {
-            let chain = verify_inclusion_args.chain.into();
             let batch_inclusion_file =
                 File::open(verify_inclusion_args.batch_inclusion_data.clone()).map_err(|e| {
                     SubmitError::IoError(verify_inclusion_args.batch_inclusion_data.clone(), e)
@@ -397,9 +384,8 @@ async fn main() -> Result<(), AlignedError> {
             info!("Verifying response data matches sent proof data...");
             let response = is_proof_verified(
                 &aligned_verification_data,
-                chain,
+                verify_inclusion_args.network.into(),
                 &verify_inclusion_args.eth_rpc_url,
-                &verify_inclusion_args.payment_service_addr,
             )
             .await?;
 
@@ -430,18 +416,17 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let chain: Chain = deposit_to_batcher_args.chain.into();
-
             let amount = deposit_to_batcher_args.amount.replace("ether", "");
 
             let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
-            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
-                SubmitError::EthereumProviderError(format!(
-                    "Error while connecting to Ethereum: {}",
-                    e
-                ))
-            })?;
+            let eth_rpc_provider =
+                Provider::<Http>::try_from(eth_rpc_url.clone()).map_err(|e| {
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while connecting to Ethereum: {}",
+                        e
+                    ))
+                })?;
 
             let keystore_path = &deposit_to_batcher_args.keystore_path;
 
@@ -455,11 +440,8 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             };
 
-            match chain {
-                Chain::Devnet => wallet = wallet.with_chain_id(31337u64),
-                Chain::Holesky => wallet = wallet.with_chain_id(17000u64),
-                Chain::HoleskyStage => wallet = wallet.with_chain_id(17000u64),
-            }
+            let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
+            wallet = wallet.with_chain_id(chain_id);
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
@@ -487,13 +469,7 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             }
 
-            let batcher_addr = Address::from_str(&deposit_to_batcher_args.payment_service_addr)
-                .map_err(|e| {
-                    SubmitError::HexDecodingError(format!(
-                        "Error while parsing batcher address: {}",
-                        e
-                    ))
-                })?;
+            let batcher_addr = get_payment_service_address(deposit_to_batcher_args.network.into());
 
             let tx = TransactionRequest::new()
                 .to(batcher_addr)
@@ -546,13 +522,7 @@ async fn main() -> Result<(), AlignedError> {
                     ))
                 })?;
 
-            let batcher_addr = Address::from_str(&get_user_balance_args.payment_service_addr)
-                .map_err(|e| {
-                    SubmitError::HexDecodingError(format!(
-                        "Error while parsing batcher address: {}",
-                        e
-                    ))
-                })?;
+            let batcher_addr = get_payment_service_address(get_user_balance_args.network.into());
 
             let balance = get_user_balance(eth_rpc_provider, batcher_addr, user_address)
                 .await
@@ -674,10 +644,10 @@ fn delete_file(file_name: &str) -> Result<(), io::Error> {
 async fn get_nonce(
     eth_rpc_url: &str,
     address: Address,
-    batcher_contract_addr: &str,
+    network: Network,
     proof_count: usize,
 ) -> Result<U256, AlignedError> {
-    let nonce = get_next_nonce(eth_rpc_url, address, batcher_contract_addr).await?;
+    let nonce = get_next_nonce(eth_rpc_url, address, network).await?;
 
     let nonce_file = format!("nonce_{:?}.bin", address);
 

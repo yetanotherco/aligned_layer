@@ -10,7 +10,7 @@ abstract contract BatcherPaymentServiceStorage {
 
     struct UserInfo {
         uint256 balance;
-        uint256 unlockBlock;
+        uint256 unlockBlockTime;
         uint256 nonce;
     }
 
