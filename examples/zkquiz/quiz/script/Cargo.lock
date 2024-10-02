@@ -75,6 +75,7 @@ name = "aligned-sdk"
 version = "0.1.0"
 dependencies = [
  "ciborium",
+ "dialoguer",
  "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
  "futures-util",
  "hex",
