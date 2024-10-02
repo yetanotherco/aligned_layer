@@ -1155,6 +1155,7 @@ impl Batcher {
         let batch_state_lock = self.batch_state.lock().await;
         let Some(non_paying_nonce) = batch_state_lock.get_user_nonce(&replacement_addr).await
         else {
+            std::mem::drop(batch_state_lock);
             error!("Nonce for non-paying address {replacement_addr:?} not found in cache.");
             send_message(ws_sink.clone(), ValidityResponseMessage::InvalidProof).await;
             return Ok(());
