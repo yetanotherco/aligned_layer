@@ -277,6 +277,10 @@ func (o *Operator) ProcessMissedBatchesWhileOffline() {
 	}
 	o.Logger.Infof(fmt.Sprintf("Missed tasks retrieved, total tasks to process: %v", len(logs)))
 
+	if len(logs) == 0 {
+		return
+	}
+
 	o.Logger.Infof("Starting to verify missed batches while offline")
 	for _, logEntry := range logs {
 		go o.handleNewBatchLogV3(&logEntry)
