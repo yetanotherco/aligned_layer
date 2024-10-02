@@ -52,3 +52,12 @@ This will:
 3. Pay & submit proof to aligned for verification
 4. Wait for proof to be verified in aligned
 5. Claim NFT if proof is verified
+
+## Testing locally
+
+If you want to test the zk quiz on a local network following this steps:
+
+1. From the root directory of the repo start anvil: `make anvil_start`
+2. cd into the zkquiz example: `cd examples/zkquiz`
+3. Deploy the verifier and locate the `CONTRACT_ADDRESS` from the output of: `make deploy_verifier_testnet`
+4. Run the quiz: `CONTRACT_ADDRESS=<VERIFIER_CONTRACT_ADDRESS> make answer_quiz_local`
