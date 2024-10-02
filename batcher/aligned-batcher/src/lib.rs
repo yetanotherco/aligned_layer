@@ -325,7 +325,7 @@ impl Batcher {
         // *        Perform validations over the message        *
         // * ---------------------------------------------------*
 
-        //This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
+        // This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
         let msg_chain_id = client_msg.verification_data.chain_id;
         if msg_chain_id != self.chain_id {
             warn!("Received message with incorrect chain id: {msg_chain_id}");
@@ -338,7 +338,7 @@ impl Batcher {
             return Ok(());
         }
 
-        //This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
+        // This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
         let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
         if msg_payment_service_addr != self.payment_service.address() {
             warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
@@ -393,6 +393,9 @@ impl Batcher {
 
         info!("Handling paying message");
 
+        // We don't need a batch state lock here, since if the user locks its funds
+        // after the check, some blocks should pass until he can withdraw.
+        // It is safe to do just do this here.
         if self.user_balance_is_unlocked(&addr).await {
             send_message(
                 ws_conn_sink.clone(),
@@ -445,18 +448,16 @@ impl Batcher {
         // *        Perform validations over user state         *
         // * ---------------------------------------------------*
 
-        // For now on until the message is fully processed, the batch state is locked
-        // This is needed because we need to query the user state to make validations and
-        // finally add the proof to the batch queue.
-
         let Some(user_balance) = self.get_user_balance(&addr).await else {
             error!("Could not get balance for address {addr:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
             return Ok(());
         };
 
-        // At this point, we will have a user state for sure, since we have inserted it
-        // if not already present. It should be safe to call `unwrap()` here.
+        // For now on until the message is fully processed, the batch state is locked
+        // This is needed because we need to query the user state to make validations and
+        // finally add the proof to the batch queue.
+
         let batch_state_lock = self.batch_state.lock().await;
         let Some(proofs_in_batch) = batch_state_lock.get_user_proof_count(&addr).await else {
             error!("Failed to get user proof count: User not found in user states, but it should have been already inserted");
