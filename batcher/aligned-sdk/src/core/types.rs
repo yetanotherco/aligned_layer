@@ -347,14 +347,17 @@ pub enum Network {
 }
 
 impl FromStr for Network {
-    type Err = String; // The error type is a string
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "holesky" => Ok(Network::Holesky),
             "holesky-stage" => Ok(Network::HoleskyStage),
             "devnet" => Ok(Network::Devnet),
-            _ => Ok(Network::HoleskyStage),
+            _ => Err(
+                "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\""
+                    .to_string(),
+            ),
         }
     }
 }
