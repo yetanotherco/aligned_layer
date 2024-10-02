@@ -16,6 +16,7 @@ use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::get_payment_service_address;
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
+use aligned_sdk::sdk::{fund_payment_service, get_balance_in_payment_sevice};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -505,39 +506,25 @@ async fn main() -> Result<(), AlignedError> {
             }
         }
         GetUserBalance(get_user_balance_args) => {
-            let eth_rpc_url = get_user_balance_args.eth_rpc_url;
-
-            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
-                SubmitError::EthereumProviderError(format!(
-                    "Error while connecting to Ethereum: {}",
-                    e
-                ))
-            })?;
-
-            let user_address =
-                Address::from_str(&get_user_balance_args.user_address).map_err(|e| {
-                    SubmitError::HexDecodingError(format!(
-                        "Error while parsing user address: {}",
-                        e
-                    ))
-                })?;
-
-            let batcher_addr = get_payment_service_address(get_user_balance_args.network.into());
-
-            let balance = get_user_balance(eth_rpc_provider, batcher_addr, user_address)
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while getting user balance: {}",
-                        e
-                    ))
-                })?;
-
-            info!(
-                "User {} has {} ether in the batcher",
+            // get_balance_in_payment_sevice
+            let user_address = H160::from_str(&get_user_balance_args.user_address).unwrap()
+            match get_balance_in_payment_sevice(
                 user_address,
-                format_ether(balance)
-            );
+                &get_user_balance_args.eth_rpc_url,
+                get_user_balance_args.network.into(),
+            ).await {
+                Ok(balance) => {
+                    info!(
+                        "User {} has {} ether in the batcher",
+                        user_address,
+                        format_ether(balance)
+                    );
+                },
+                Err(e) => {
+                    error!("Error while getting user balance: {:?}", e);
+                    return Ok(());
+                }
+            }
         }
     }
 
