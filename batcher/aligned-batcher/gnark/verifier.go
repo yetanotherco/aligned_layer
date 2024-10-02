@@ -15,15 +15,21 @@ import "C"
 
 import (
 	"bytes"
+	"log"
+	"unsafe"
+
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
-	"log"
-	"unsafe"
 )
 
 func listRefToBytes(listRef C.ListRef) []byte {
+
+	if listRef.len == 0 {
+		return []byte{}
+	}
+
 	return C.GoBytes(unsafe.Pointer(listRef.ptr), C.int(listRef.len))
 }
 
