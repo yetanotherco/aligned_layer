@@ -71,6 +71,14 @@ impl NoncedVerificationData {
     }
 }
 
+// Defines an estimate price preference for the user.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum PriceEstimate {
+    Min,
+    Default,
+    Instant,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
@@ -317,6 +325,7 @@ pub enum ValidityResponseMessage {
     InvalidReplacementMessage,
     ProofTooLarge,
     InsufficientBalance(Address),
+    InvalidPaymentServiceAddress(Address, Address),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -328,8 +337,8 @@ pub enum ResponseMessage {
     Error(String),
 }
 
-#[derive(Debug, Clone)]
-pub enum Chain {
+#[derive(Debug, Clone, Copy)]
+pub enum Network {
     Devnet,
     Holesky,
     HoleskyStage,

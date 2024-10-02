@@ -36,6 +36,18 @@ contract AlignedLayerServiceManager is
             __stakeRegistry
         )
     {
+        if (address(__avsDirectory) == address(0)) {
+            revert InvalidAddress("avsDirectory");
+        }
+        if (address(__rewardsCoordinator) == address(0)) {
+            revert InvalidAddress("rewardsCoordinator");
+        }
+        if (address(__registryCoordinator) == address(0)) {
+            revert InvalidAddress("registryCoordinator");
+        }
+        if (address(__stakeRegistry) == address(0)) {
+            revert InvalidAddress("stakeRegistry");
+        }
         _disableInitializers();
     }
 
@@ -45,6 +57,15 @@ contract AlignedLayerServiceManager is
         address _rewardsInitiator,
         address _alignedAggregator
     ) public initializer {
+        if (_initialOwner == address(0)) {
+            revert InvalidAddress("initialOwner");
+        }
+        if (_rewardsInitiator == address(0)) {
+            revert InvalidAddress("rewardsInitiator");
+        }
+        if (_alignedAggregator == address(0)) {
+            revert InvalidAddress("alignedAggregator");
+        }
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
         alignedAggregator = _alignedAggregator; //can't do setAggregator(aggregator) since caller is not the owner
     }
@@ -129,7 +150,7 @@ contract AlignedLayerServiceManager is
         if (currentBatch.responded) {
             revert BatchAlreadyResponded(batchIdentifierHash);
         }
-        currentBatch.responded = true; 
+        currentBatch.responded = true;
 
         // Check that batcher has enough funds to fund response
         if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
@@ -181,7 +202,7 @@ contract AlignedLayerServiceManager is
             senderAddress,
             batchersBalances[senderAddress]
         );
-        
+
         payable(alignedAggregator).transfer(txCost);
     }
 
@@ -240,16 +261,17 @@ contract AlignedLayerServiceManager is
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
     ) external view returns (bool) {
-        return this.verifyBatchInclusion(
-            proofCommitment,
-            pubInputCommitment,
-            provingSystemAuxDataCommitment,
-            proofGeneratorAddr,
-            batchMerkleRoot,
-            merkleProof,
-            verificationDataBatchIndex,
-            address(0)
-        );
+        return
+            this.verifyBatchInclusion(
+                proofCommitment,
+                pubInputCommitment,
+                provingSystemAuxDataCommitment,
+                proofGeneratorAddr,
+                batchMerkleRoot,
+                merkleProof,
+                verificationDataBatchIndex,
+                address(0)
+            );
     }
 
     function setAggregator(address _alignedAggregator) public onlyOwner {
