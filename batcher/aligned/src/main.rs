@@ -14,7 +14,6 @@ use aligned_sdk::core::{
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::get_payment_service_address;
 use aligned_sdk::sdk::{fund_payment_service, get_balance_in_payment_sevice};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
