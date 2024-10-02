@@ -368,48 +368,37 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 	case common.Groth16Bn254:
 		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
-
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
+
 		results <- verificationResult
 
 	case common.SP1:
-		proofLen := (uint32)(len(verificationData.Proof))
-		elfLen := (uint32)(len(verificationData.VmProgramCode))
 
-		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
+		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2IPA:
-		proofLen := (uint32)(len(verificationData.Proof))
-		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2ipa.VerifyHalo2IpaProof(
-			verificationData.Proof, proofLen,
-			verificationData.VerificationKey, paramsLen,
-			verificationData.PubInput, publicInputLen)
+			verificationData.Proof,
+			verificationData.VerificationKey,
+			verificationData.PubInput)
 
 		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2KZG:
-		proofLen := (uint32)(len(verificationData.Proof))
-		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
-			verificationData.Proof, proofLen,
-			verificationData.VerificationKey, paramsLen,
-			verificationData.PubInput, publicInputLen)
+			verificationData.Proof,
+			verificationData.VerificationKey,
+			verificationData.PubInput)
 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Risc0:
-		proofLen := (uint32)(len(verificationData.Proof))
-		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
-		pubInputLen := (uint32)(len(verificationData.PubInput))
 
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen,
-			verificationData.VmProgramCode, imageIdLen, verificationData.PubInput, pubInputLen)
+		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
+			verificationData.VmProgramCode, verificationData.PubInput)
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult

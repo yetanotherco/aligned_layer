@@ -16,10 +16,18 @@ use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use aligned_sdk::core::types::{
-    BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+use aligned_sdk::core::{
+    constants::{
+        ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
+        DEFAULT_AGGREGATOR_FEE_DIVIDER, DEFAULT_AGGREGATOR_FEE_MULTIPLIER,
+        DEFAULT_MAX_FEE_PER_PROOF, MIN_FEE_PER_PROOF, RESPOND_TO_TASK_FEE_LIMIT_DIVIDER,
+        RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER,
+    },
+    types::{
+        BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
+        ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+        VerificationDataCommitment,
+    },
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{
@@ -51,20 +59,6 @@ pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
-
-const AGGREGATOR_GAS_COST: u128 = 400_000;
-const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
-pub(crate) const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
-pub(crate) const CONSTANT_GAS_COST: u128 =
-    ((AGGREGATOR_GAS_COST * DEFAULT_AGGREGATOR_FEE_MULTIPLIER) / DEFAULT_AGGREGATOR_FEE_DIVIDER)
-        + BATCHER_SUBMISSION_BASE_GAS_COST;
-
-const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
-const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // gas_price = 0.1 Gwei = 0.0000000001 ether (low gas price)
-const RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER: u128 = 5; // to set the respondToTaskFeeLimit variable higher than fee_for_aggregator
-const RESPOND_TO_TASK_FEE_LIMIT_DIVIDER: u128 = 2;
-const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
-const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
 
 struct BatchState {
     batch_queue: BatchQueue,

@@ -8,12 +8,11 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: gnark [(v0.11.0)](https://github.com/Consensys/gnark/releases/tag/v0.11.0) - Plonk (with BN254 and BLS12-381)
 - :white_check_mark: SP1 [(v1.0.1)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.1)
 - :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
-- :white_check_mark: Halo2 - Plonk/KZG
-- :white_check_mark: Halo2 - Plonk/IPA
+- 🏗️ Circom
+- 🏗️ Lambdaworks
+- 🏗️ Kimchi
 
-The following are going to be added soon:
+The following are in the roadmap to be added:
 
-- :black_square_button: Kimchi
 - :black_square_button: Jolt
 - :black_square_button: Nexus
-- :black_square_button: Circom
