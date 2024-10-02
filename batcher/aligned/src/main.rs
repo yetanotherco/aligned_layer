@@ -571,6 +571,12 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
                 args.pub_input_file_name.clone(),
             )?);
         }
+        ProvingSystemId::Validia => {
+            vm_program_code = Some(read_file_option(
+                "--vm_program",
+                args.vm_program_code_file_name.clone(),
+            )?);
+        }
         ProvingSystemId::Halo2KZG
         | ProvingSystemId::Halo2IPA
         | ProvingSystemId::GnarkPlonkBls12_381
