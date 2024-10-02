@@ -18,12 +18,12 @@ use crate::{
 };
 
 use ethers::{
-    prelude::k256::ecdsa::SigningKey,
-    providers::{Http, Middleware, Provider},
-    signers::{Wallet, LocalWallet},
-    types::{Address, H160, U256},
     core::types::TransactionRequest,
     middleware::SignerMiddleware,
+    prelude::k256::ecdsa::SigningKey,
+    providers::{Http, Middleware, Provider},
+    signers::{LocalWallet, Wallet},
+    types::{Address, H160, U256},
 };
 use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
@@ -495,7 +495,6 @@ pub async fn fund_payment_service(
     signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
     network: Network,
 ) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
-
     let payment_service_address = get_payment_service_address(network);
     let from = signer.address();
 
@@ -511,12 +510,8 @@ pub async fn fund_payment_service(
         .await
         .map_err(|e| errors::PaymentError::SubmitError(e.to_string()))?
     {
-        Some(receipt) => {
-            Ok(receipt)
-        }
-        None => {
-            Err(errors::PaymentError::PaymentFailed)
-        }
+        Some(receipt) => Ok(receipt),
+        None => Err(errors::PaymentError::PaymentFailed),
     }
 }
 
@@ -535,7 +530,6 @@ pub async fn get_balance_in_payment_sevice(
     eth_rpc_url: &str,
     network: Network,
 ) -> Result<U256, errors::BalanceError> {
-    
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| errors::BalanceError::EthereumProviderError(e.to_string()))?;
 
