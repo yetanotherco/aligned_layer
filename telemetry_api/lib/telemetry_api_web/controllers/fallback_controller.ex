@@ -19,4 +19,10 @@ defmodule TelemetryApiWeb.FallbackController do
     |> put_resp_content_type("application/json")
     |> send_resp(status, Jason.encode!(%{error: message}))
   end
+
+  def call(conn, {:error, message}) do
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(:internal_server_error, Jason.encode!(%{error: message}))
+  end
 end
