@@ -3,30 +3,23 @@ package merkle_tree_old
 import (
 	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 	"testing"
 )
 
+const BatchFilePath = "lib/test_files/merkle_tree_batch.bin"
+
+const RootFilePath = "lib/test_files/merkle_root.bin"
+
 func TestVerifyMerkleTreeBatchOld(t *testing.T) {
-	batchFile, err := os.Open("lib/test_files/merkle_tree_batch.bin")
+	batchByteValue, err := os.ReadFile(BatchFilePath)
 	if err != nil {
 		t.Fatalf("Error opening batch file: %v", err)
 	}
 
-	batchByteValue, err := io.ReadAll(batchFile)
-	if err != nil {
-		t.Fatalf("Error reading batch file: %v", err)
-	}
-
-	rootFile, err := os.Open("lib/test_files/merkle_root.bin")
+	rootByteValue, err := os.ReadFile(RootFilePath)
 	if err != nil {
 		t.Fatalf("Error opening batch file: %v", err)
-	}
-
-	rootByteValue, err := io.ReadAll(rootFile)
-	if err != nil {
-		t.Fatalf("Error reading batch file: %v", err)
 	}
 
 	merkle_root := make([]byte, hex.DecodedLen(len(rootByteValue)))
@@ -39,7 +32,7 @@ func TestVerifyMerkleTreeBatchOld(t *testing.T) {
 	var merkleRoot [32]byte
 	copy(merkleRoot[:], merkle_root)
 
-	if !VerifyMerkleTreeBatchOld(batchByteValue, uint(len(batchByteValue)), merkleRoot) {
+	if !VerifyMerkleTreeBatchOld(batchByteValue, merkleRoot) {
 		t.Errorf("Batch did not verify Merkle Root")
 	}
 
