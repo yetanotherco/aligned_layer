@@ -37,20 +37,20 @@ import (
 )
 
 type Operator struct {
-	Config             config.OperatorConfig
-	Address            ethcommon.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
-	avsSubscriber      chainio.AvsSubscriber
+	Config               config.OperatorConfig
+	Address              ethcommon.Address
+	Socket               string
+	Timeout              time.Duration
+	PrivKey              *ecdsa.PrivateKey
+	KeyPair              *bls.KeyPair
+	OperatorId           eigentypes.OperatorId
+	avsSubscriber        chainio.AvsSubscriber
 	NewTaskCreatedChanV2 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	NewTaskCreatedChanV3 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	Logger             logging.Logger
-	aggRpcClient       AggregatorRpcClient
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+	Logger               logging.Logger
+	aggRpcClient         AggregatorRpcClient
+	metricsReg           *prometheus.Registry
+	metrics              *metrics.Metrics
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -110,23 +110,22 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:             configuration,
-		Logger:             logger,
-		avsSubscriber:      *avsSubscriber,
-		Address:            address,
+		Config:               configuration,
+		Logger:               logger,
+		avsSubscriber:        *avsSubscriber,
+		Address:              address,
 		NewTaskCreatedChanV2: newTaskCreatedChanV2,
 		NewTaskCreatedChanV3: newTaskCreatedChanV3,
-		aggRpcClient:       *rpcClient,
-		OperatorId:         operatorId,
-		metricsReg:         reg,
-		metrics:            operatorMetrics,
+		aggRpcClient:         *rpcClient,
+		OperatorId:           operatorId,
+		metricsReg:           reg,
+		metrics:              operatorMetrics,
 		// Timeout
 		// Socket
 	}
 
 	return operator, nil
 }
-
 
 func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
@@ -206,10 +205,10 @@ func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlign
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
@@ -277,10 +276,10 @@ func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlign
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
@@ -348,48 +347,37 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 	case common.Groth16Bn254:
 		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
-
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
+
 		results <- verificationResult
 
 	case common.SP1:
-		proofLen := (uint32)(len(verificationData.Proof))
-		elfLen := (uint32)(len(verificationData.VmProgramCode))
 
-		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
+		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2IPA:
-		proofLen := (uint32)(len(verificationData.Proof))
-		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2ipa.VerifyHalo2IpaProof(
-			verificationData.Proof, proofLen,
-			verificationData.VerificationKey, paramsLen,
-			verificationData.PubInput, publicInputLen)
+			verificationData.Proof,
+			verificationData.VerificationKey,
+			verificationData.PubInput)
 
 		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2KZG:
-		proofLen := (uint32)(len(verificationData.Proof))
-		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
-			verificationData.Proof, proofLen,
-			verificationData.VerificationKey, paramsLen,
-			verificationData.PubInput, publicInputLen)
+			verificationData.Proof,
+			verificationData.VerificationKey,
+			verificationData.PubInput)
 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Risc0:
-		proofLen := (uint32)(len(verificationData.Proof))
-		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
-		pubInputLen := (uint32)(len(verificationData.PubInput))
 
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen,
-			verificationData.VmProgramCode, imageIdLen, verificationData.PubInput, pubInputLen)
+		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
+			verificationData.VmProgramCode, verificationData.PubInput)
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
