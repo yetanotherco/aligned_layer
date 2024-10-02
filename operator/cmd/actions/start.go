@@ -26,7 +26,6 @@ var StartCommand = &cli.Command{
 	Action:      operatorMain,
 }
 
-
 func updateTelemetryService(operator *operator.Operator, ctx *cli.Context, operatorConfig *config.OperatorConfig) error {
 	// hash version
 	hash := sha3.NewLegacyKeccak256()
@@ -40,30 +39,30 @@ func updateTelemetryService(operator *operator.Operator, ctx *cli.Context, opera
 	if err != nil {
 		return err
 	}
-  ethRpcUrl, err := baseUrlOnly(operatorConfig.BaseConfig.EthRpcUrl)
-  if err != nil {
-    return err 
-  }
-  ethRpcUrlFallback, err := baseUrlOnly(operatorConfig.BaseConfig.EthRpcUrlFallback)
-  if err != nil {
-    return err 
-  }
-  ethWsUrl, err := baseUrlOnly(operatorConfig.BaseConfig.EthWsUrl)
-  if err != nil {
-    return err 
-  }
-  ethWsUrlFallback, err := baseUrlOnly(operatorConfig.BaseConfig.EthWsUrlFallback)
-  if err != nil {
-    return err 
-  }
+	ethRpcUrl, err := baseUrlOnly(operatorConfig.BaseConfig.EthRpcUrl)
+	if err != nil {
+		return err
+	}
+	ethRpcUrlFallback, err := baseUrlOnly(operatorConfig.BaseConfig.EthRpcUrlFallback)
+	if err != nil {
+		return err
+	}
+	ethWsUrl, err := baseUrlOnly(operatorConfig.BaseConfig.EthWsUrl)
+	if err != nil {
+		return err
+	}
+	ethWsUrlFallback, err := baseUrlOnly(operatorConfig.BaseConfig.EthWsUrlFallback)
+	if err != nil {
+		return err
+	}
 
 	body := map[string]interface{}{
-		"version":   ctx.App.Version,
-		"signature": signature,
-    "eth_rpc_url": ethRpcUrl,
-    "eth_rpc_url_fallback": ethRpcUrlFallback,
-    "eth_ws_url": ethWsUrl,
-    "eth_ws_url_fallback": ethWsUrlFallback,
+		"version":              ctx.App.Version,
+		"signature":            signature,
+		"eth_rpc_url":          ethRpcUrl,
+		"eth_rpc_url_fallback": ethRpcUrlFallback,
+		"eth_ws_url":           ethWsUrl,
+		"eth_ws_url_fallback":  ethWsUrlFallback,
 	}
 
 	bodyBuffer := new(bytes.Buffer)
@@ -86,7 +85,7 @@ func updateTelemetryService(operator *operator.Operator, ctx *cli.Context, opera
 		operator.Logger.Warn("Error sending version to operator tracker server: ", "status_code", res.StatusCode)
 	}
 
-  return nil
+	return nil
 }
 
 func operatorMain(ctx *cli.Context) error {
@@ -102,7 +101,7 @@ func operatorMain(ctx *cli.Context) error {
 		return err
 	}
 
-  err = updateTelemetryService(operator, ctx, operatorConfig)
+	err = updateTelemetryService(operator, ctx, operatorConfig)
 	if err != nil {
 		return err
 	}
