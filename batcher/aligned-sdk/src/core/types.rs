@@ -71,6 +71,14 @@ impl NoncedVerificationData {
     }
 }
 
+// Defines an estimate price preference for the user.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum PriceEstimate {
+    Min,
+    Default,
+    Instant,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
