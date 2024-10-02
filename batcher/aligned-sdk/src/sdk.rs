@@ -595,7 +595,7 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
 /// * `SendError` if there is an error sending the transaction.
 /// * `SubmitError` if there is an error submitting the transaction.
 /// * `PaymentFailed` if the payment failed.
-pub async fn fund_payment_service(
+pub async fn deposit_to_aligned(
     amount: U256,
     signer: SignerMiddleware<Provider<Http>, LocalWallet>,
     network: Network,
@@ -630,7 +630,7 @@ pub async fn fund_payment_service(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumCallError` if there is an error in the Ethereum call.
-pub async fn get_balance_in_payment_sevice(
+pub async fn get_balance_in_aligned(
     user: Address,
     eth_rpc_url: &str,
     network: Network,

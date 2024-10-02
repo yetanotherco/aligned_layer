@@ -14,7 +14,7 @@ use aligned_sdk::core::{
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::{fund_payment_service, get_balance_in_payment_sevice};
+use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
@@ -449,7 +449,7 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match fund_payment_service(amount_ether, client, deposit_to_batcher_args.network.into())
+            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
                 .await
             {
                 Ok(receipt) => {
@@ -465,7 +465,7 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetUserBalance(get_user_balance_args) => {
             let user_address = H160::from_str(&get_user_balance_args.user_address).unwrap();
-            match get_balance_in_payment_sevice(
+            match get_balance_in_aligned(
                 user_address,
                 &get_user_balance_args.eth_rpc_url,
                 get_user_balance_args.network.into(),
