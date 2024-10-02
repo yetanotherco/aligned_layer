@@ -64,9 +64,10 @@ defmodule TelemetryApi.Traces do
   def register_operator_response(merkle_root, operator_id) do
     with {:ok, operator} <- Operators.get_operator_by_id(operator_id),
          {:ok, trace} <- set_current_trace(merkle_root) do
-      new_stake = trace.current_stake + operator.operator_stake
+      operator_stake = String.to_integer(operator.stake)
+      new_stake = trace.current_stake + operator_stake
       new_stake_fraction = new_stake / trace.total_stake
-      operator_stake_fraction = operator.operator_stake / trace.total_stake
+      operator_stake_fraction = operator_stake / trace.total_stake
 
       Tracer.add_event(
         "Operator Response: " <> operator.name,
@@ -75,7 +76,7 @@ defmodule TelemetryApi.Traces do
           {:operator_id, operator_id},
           {:name, operator.name},
           {:address, operator.address},
-          {:operator_stake, operator.stake},
+          {:operator_stake, operator_stake},
           {:current_stake, new_stake},
           {:current_stake_fraction, new_stake_fraction},
           {:operator_stake_fraction, operator_stake_fraction}
