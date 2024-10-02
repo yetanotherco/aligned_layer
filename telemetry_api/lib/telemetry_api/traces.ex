@@ -20,7 +20,7 @@ defmodule TelemetryApi.Traces do
 
       iex> merkle_root = "0x1234567890abcdef"
       iex> create_task_trace(merkle_root)
-      {:ok, "merkle_root"}
+      :ok
   """
   def create_task_trace(merkle_root) do
     # Get total stake
@@ -63,22 +63,32 @@ defmodule TelemetryApi.Traces do
   """
   def register_operator_response(merkle_root, operator_id) do
     with {:ok, operator} <- Operators.get_operator_by_id(operator_id),
-         :ok <-
-           add_event(
-             merkle_root,
-             "Operator Response: " <> operator.name,
-             [
-               {:merkle_root, merkle_root},
-               {:operator_id, operator_id},
-               {:name, operator.name},
-               {:address, operator.address},
-               {:operator_stake, operator.stake}
-             ],
-             String.to_integer(operator.stake)
-           ) do
-      trace = TraceStore.get_trace(merkle_root)
+         {:ok, trace} <- set_current_trace(merkle_root) do
+      new_stake = trace.current_stake + operator.operator_stake
+      new_stake_fraction = new_stake / trace.total_stake
+      operator_stake_fraction = operator.operator_stake / trace.total_stake
+
+      Tracer.add_event(
+        "Operator Response: " <> operator.name,
+        [
+          {:merkle_root, merkle_root},
+          {:operator_id, operator_id},
+          {:name, operator.name},
+          {:address, operator.address},
+          {:operator_stake, operator.stake},
+          {:current_stake, new_stake},
+          {:current_stake_fraction, new_stake_fraction},
+          {:operator_stake_fraction, operator_stake_fraction}
+        ]
+      )
+
       responses = trace.responses ++ [operator_id]
-      TraceStore.store_trace(merkle_root, %{trace | responses: responses})
+
+      TraceStore.store_trace(merkle_root, %{
+        trace
+        | responses: responses,
+          current_stake: new_stake
+      })
 
       IO.inspect(
         "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
@@ -98,12 +108,8 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def quorum_reached(merkle_root) do
-    with :ok <-
-           add_event(
-             merkle_root,
-             "Quorum Reached",
-             []
-           ) do
+    with {:ok, _trace} <- set_current_trace(merkle_root) do
+      Tracer.add_event("Quorum Reached", [])
       IO.inspect("Reached quorum registered. merkle_root: #{IO.inspect(merkle_root)}")
       :ok
     end
@@ -120,15 +126,15 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def task_error(merkle_root, error) do
-    with :ok <-
-           add_event(
-             merkle_root,
-             "Batch verification failed",
-             [
-               {:status, "error"},
-               {:error, error}
-             ]
-           ) do
+    with {:ok, _trace} <- set_current_trace(merkle_root) do
+      Tracer.add_event(
+        "Batch verification failed",
+        [
+          {:status, "error"},
+          {:error, error}
+        ]
+      )
+
       IO.inspect("Task error registered. merkle_root: #{IO.inspect(merkle_root)}")
       :ok
     end
@@ -146,18 +152,15 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def finish_task_trace(merkle_root) do
-    with {:ok, trace} <- TraceStore.get_trace(merkle_root) do
-      Ctx.attach(trace.context)
-      Tracer.set_current_span(trace.parent_span)
-
+    with {:ok, trace} <- set_current_trace(merkle_root) do
       missing_operators =
         Operators.list_operators() |> Enum.filter(fn o -> o.id not in trace.responses end)
 
-      add_missing_operators(merkle_root, missing_operators)
+      add_missing_operators(missing_operators)
 
       Tracer.set_attributes(%{status: "completed"})
 
-      Tracer.end_span(trace.parent_span)
+      Tracer.end_span()
 
       # Clean up the context from the Agent
       TraceStore.delete_trace(merkle_root)
@@ -166,55 +169,20 @@ defmodule TelemetryApi.Traces do
     end
   end
 
-  defp add_missing_operators(_merkle_root, []), do: :ok
+  defp add_missing_operators([]), do: :ok
 
-  defp add_missing_operators(merkle_root, missing_operators) do
+  defp add_missing_operators(missing_operators) do
     missing_operators =
       missing_operators |> Enum.map(fn o -> o.name end) |> Enum.join(";")
 
-    add_event(merkle_root, "Missing Operators", [{:operators, missing_operators}])
+    Tracer.add_event("Missing Operators", [{:operators, missing_operators}])
   end
 
-  defp add_event(merkle_root, event_name, event_attributes, operator_stake) do
-    case TraceStore.get_trace(merkle_root) do
-      nil ->
-        IO.inspect("Context not found for #{merkle_root}")
-        {:error, "Context not found for #{merkle_root}"}
-
-      trace ->
-        Ctx.attach(trace.context)
-        Tracer.set_current_span(trace.parent_span)
-
-        new_stake = trace.current_stake + operator_stake
-        new_stake_fraction = new_stake / trace.total_stake
-        operator_stake_fraction = operator_stake / trace.total_stake
-
-        TraceStore.store_trace(merkle_root, %Trace{
-          parent_span: trace.parent_span,
-          context: trace.context,
-          total_stake: trace.total_stake,
-          current_stake: new_stake
-        })
-
-        Tracer.add_event(
-          event_name,
-          event_attributes ++
-            [
-              {:current_stake, new_stake},
-              {:current_stake_fraction, new_stake_fraction},
-              {:operator_stake_fraction, operator_stake_fraction}
-            ]
-        )
-    end
-  end
-
-  defp add_event(merkle_root, event_name, event_attributes) do
+  defp set_current_trace(merkle_root) do
     with {:ok, trace} <- TraceStore.get_trace(merkle_root) do
       Ctx.attach(trace.context)
       Tracer.set_current_span(trace.parent_span)
-
-      Tracer.add_event(event_name, event_attributes)
-      :ok
+      {:ok, trace}
     end
   end
 end

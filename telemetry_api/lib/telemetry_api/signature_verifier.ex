@@ -51,7 +51,7 @@ defmodule SignatureVerifier do
     with {:ok, address} <- recover_public_key(version_hash, rs, recovery_id) do
       addr =
         public_key_to_address(address)
-        |> Base.encode16()
+        |> Base.encode16(case: :lower)
 
       {:ok, addr}
     end
