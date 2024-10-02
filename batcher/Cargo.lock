@@ -144,25 +144,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aligned-task-sender"
-version = "0.1.0"
-dependencies = [
- "aligned-sdk",
- "clap",
- "env_logger",
- "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "futures-util",
- "log",
- "rpassword",
- "serde",
- "serde_json",
- "sha3 0.10.8",
- "tokio",
- "tokio-tungstenite 0.24.0",
- "url",
-]
-
-[[package]]
 name = "allocator-api2"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6785,6 +6766,25 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "task-sender"
+version = "0.1.0"
+dependencies = [
+ "aligned-sdk",
+ "clap",
+ "env_logger",
+ "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "futures-util",
+ "log",
+ "rpassword",
+ "serde",
+ "serde_json",
+ "sha3 0.10.8",
+ "tokio",
+ "tokio-tungstenite 0.24.0",
+ "url",
+]
 
 [[package]]
 name = "tempfile"

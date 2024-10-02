@@ -1,8 +1,14 @@
-use futures_util::{future, stream::FuturesUnordered};
-use std::io;
-use std::path::{Path, PathBuf};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::atomic::AtomicUsize;
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
+use std::thread;
+use std::time::Duration;
+use tokio::runtime::Handle;
 
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
@@ -16,11 +22,9 @@ use clap::Parser;
 use clap::ValueEnum;
 use env_logger::Env;
 use ethers::prelude::*;
-use k256::ecdsa::SigningKey;
 use log::warn;
 use log::{error, info};
 use std::process::Command;
-use tokio::time::{sleep, Duration};
 
 const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
 const GROTH_16_PROOF_GENERATOR_FILE_PATH: &str =
@@ -57,12 +61,6 @@ pub struct Args {
         default_value = "1"
     )]
     num_senders: usize,
-    #[arg(
-        name = "Batcher Payment Service Eth Address",
-        long = "payment-service-addr",
-        default_value = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"
-    )]
-    payment_service_addr: String,
     #[arg(
         name = "Proof generator address",
         long = "proof_generator_addr",
@@ -106,9 +104,6 @@ impl From<NetworkArg> for Network {
     }
 }
 
-// Refactors:
-// - Use Go bindings so there is no contention
-// -  to generate all the different proof tasks then add them to queue.
 #[tokio::main]
 async fn main() -> Result<(), AlignedError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -152,9 +147,7 @@ async fn main() -> Result<(), AlignedError> {
         }
     };
 
-    let eth_rpc_url = args.eth_rpc_url.clone();
-
-    let chain_id = get_chain_id(eth_rpc_url.as_str()).await.map_err(|e| {
+    let chain_id = get_chain_id(&args.eth_rpc_url).await.map_err(|e| {
                     SubmitError::GenericError(format!(
                         "Failed to retrieve chain id, verify `eth_rpc_url` is cor/rect or local testnet is running on \"http://localhost:8545\": {}", e
                     ))
@@ -167,195 +160,122 @@ async fn main() -> Result<(), AlignedError> {
     std::fs::create_dir_all(GROTH_16_PROOF_DIR)
         .map_err(|e| SubmitError::IoError(PathBuf::from(GROTH_16_PROOF_DIR), e))?;
 
-    let mut count = 1;
-    // Since we operate over a local network each thread sources its nonce by incrementing the initial nonce from the network.
-    // When multiple senders are spawned we just increment the atomic to grab the nonce.
-    let eth_rpc_url = args.eth_rpc_url.clone();
-    let network = args.network.into();
-    let latest_nonce = get_next_nonce(&eth_rpc_url, wallet.address(), network)
-        .await?
-        .as_u128();
-    let mut nonce = AtomicUsize::new(latest_nonce as usize);
-    //TODO: sort out error messages
-    let futures = (0..args.num_senders)
+    let count = Arc::new(AtomicU64::new(1));
+    // Generate 50 groth16 data in parallel.
+    // TODO(pat): persist between runs.
+    // TODO(pat): add go bindings so proof info is generate and stored them directly in memory.
+    let threads: Vec<_> = (0..50)
         .map(|_| {
-            let manifest_dir = base_dir.clone();
-            let user_wallet = wallet.clone();
-            let task_args = args.clone();
-            tokio::spawn(async move {
-                loop {
-                    info!("Generating proof {} != 0", count);
-                    if let Err(e) = Command::new("go")
-                        .arg("run")
-                        .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
-                        .arg(format!("{:?}", count))
-                        .status()
-                    {
-                        error!("Failed to generate Groth16 Proofs: {:?}", e);
-                        return Ok::<(), AlignedError>(());
-                    }
-                    let Ok((max_fees, verification_data)) = get_verification_data(
-                        burst_size,
-                        count,
-                        max_fee,
-                        proof_generator_addr,
-                        &manifest_dir,
-                    )
-                    .await
-                    else {
-                        error!("Failed to generate Verification Data");
-                        return Ok(());
-                    };
-                    // Refactor to generate all the different proof tasks then add them to queue.
-                    info!(
-                        "Sending {:?} Proofs to {:?} Aligned Batcher",
-                        verification_data.len(),
-                        network
-                    );
-                    if let Err(e) = submit_multiple(
-                        &args.batcher_url,
-                        network,
-                        &verification_data,
-                        &max_fees,
-                        wallet.clone(),
-                        U256::from(nonce),
-                    )
-                    .await
-                    {
-                        error!("Error submitting proofs to aligned: {:?}", e);
-                        return Ok(());
-                    };
+            let base_dir = base_dir.clone();
+            let count = count.clone();
+            thread::spawn(move || {
+                let count = count.fetch_add(1, Ordering::Relaxed);
+                Command::new("go")
+                    .arg("run")
+                    .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
+                    .arg(format!("{:?}", count))
+                    .status()
+                    .unwrap();
 
-                    // To prevent continously creating proofs we clear the directory after sending a burst.
-                    /* */
-                    std::fs::remove_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
-                        error!("Failed to send Clear Proof Directory: {:?}", e);
-                    });
-                    std::fs::create_dir_all(GROTH_16_PROOF_DIR).unwrap_or_else(|e| {
-                        error!("Failed to Create Proof Directory and Clearing: {:?}", e);
-                    });
-                    sleep(Duration::from_secs(burst_time as u64)).await;
-                    count += 1;
+                let proof_path = base_dir.join(format!(
+                    "{}/ineq_{}_groth16.proof",
+                    GROTH_16_PROOF_DIR, count
+                ));
+                let public_input_path =
+                    base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count));
+                let vk_path =
+                    base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count));
+
+                let proof = std::fs::read(&proof_path)
+                    .map_err(|e| SubmitError::IoError(proof_path, e))
+                    .unwrap();
+                let public_input = std::fs::read(&public_input_path)
+                    .map_err(|e| SubmitError::IoError(public_input_path, e))
+                    .unwrap();
+                let vk = std::fs::read(&vk_path)
+                    .map_err(|e| SubmitError::IoError(vk_path, e))
+                    .unwrap();
+                VerificationData {
+                    proving_system: ProvingSystemId::Groth16Bn254,
+                    proof,
+                    pub_input: Some(public_input),
+                    verification_key: Some(vk),
+                    vm_program_code: None,
+                    proof_generator_addr,
                 }
             })
         })
-        .collect::<FuturesUnordered<_>>();
+        .collect();
 
-    future::join_all(futures).await;
+    let cached_verification_data: Vec<VerificationData> =
+        threads.into_iter().map(|t| t.join().unwrap()).collect();
+
+    // Since we operate over a local network each thread sources its nonce by incrementing the initial nonce from the network.
+    // When multiple senders are spawned we just increment the atomic to grab the nonce.
+    //let eth_rpc_url = args.eth_rpc_url;
+    let network = args.network.into();
+    let latest_nonce = get_next_nonce(&args.eth_rpc_url, wallet.address(), network)
+        .await?
+        .as_u64();
+    let global_nonce = Arc::new(AtomicU64::new(latest_nonce));
+    //TODO: sort out error messages
+    let threads = (0..args.num_senders)
+        .map(|sender_id| {
+            let batcher_url = args.batcher_url.clone();
+            let nonce = global_nonce.clone();
+            let handle = Handle::current();
+            let cached_verification_data: Vec<VerificationData> = cached_verification_data.clone();
+            let wallet = wallet.clone();
+            thread::spawn(move || {
+                info!("Task Sender Started {}", sender_id);
+                loop {
+                    let max_fees = vec![max_fee; args.burst_size];
+                    //TODO(pat): not sure how slow this is... open to faster alternatives
+                    let verification_data: Vec<_> = cached_verification_data
+                        .choose_multiple(&mut thread_rng(), burst_size)
+                        .cloned()
+                        .collect();
+                    info!(
+                        "Sending {:?} Proofs to {:?} Aligned Batcher",
+                        burst_size, network
+                    );
+                    let nonce = nonce.fetch_add(burst_size as u64, Ordering::Relaxed);
+                    let batcher_url = batcher_url.clone();
+                    let wallet = wallet.clone();
+                    handle.spawn(async move {
+                        if let Err(e) = submit_multiple(
+                            &batcher_url.clone(),
+                            network,
+                            &verification_data.clone(),
+                            &max_fees,
+                            wallet.clone(),
+                            U256::from(nonce),
+                        )
+                        .await
+                        {
+                            error!("Error submitting proofs to aligned: {:?}", e);
+                        };
+                        info!(
+                            "{:?} Proofs to the Aligned Batcher {:?} on Holesky",
+                            burst_size, network
+                        );
+                    });
+                    std::thread::sleep(Duration::from_secs(burst_time as u64));
+                }
+            })
+        })
+        .collect::<Vec<_>>();
+
+    for t in threads {
+        if let Err(e) = t.join() {
+            error!("Thread panicked: {:?}", e);
+            return Ok(());
+        }
+    }
 
     //Clean infinite_proofs directory on exit
     if let Err(e) = std::fs::remove_dir_all(GROTH_16_PROOF_DIR) {
         error!("Failed to remove {}: {}", GROTH_16_PROOF_DIR, e);
     }
     Ok(())
-}
-
-async fn get_verification_data(
-    burst_size: usize,
-    count: usize,
-    max_fee: U256,
-    proof_generator_addr: Address,
-    base_dir: &Path,
-) -> Result<(Vec<U256>, Vec<VerificationData>), AlignedError> {
-    //TODO: Replace with a generate proof call
-    let proof = read_file(base_dir.join(format!(
-        "{}/ineq_{}_groth16.proof",
-        GROTH_16_PROOF_DIR, count
-    )))?;
-    let public_input =
-        read_file(base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count)))?;
-    let vk = read_file(base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count)))?;
-    let verification_data = VerificationData {
-        proving_system: ProvingSystemId::Groth16Bn254,
-        proof,
-        pub_input: Some(public_input),
-        verification_key: Some(vk),
-        vm_program_code: None,
-        proof_generator_addr,
-    };
-    Ok((
-        vec![max_fee; burst_size],
-        vec![verification_data; burst_size],
-    ))
-}
-
-async fn send_burst(
-    max_fees: &[U256],
-    verification_data: &[VerificationData],
-    wallet: &Wallet<SigningKey>,
-    args: Args,
-) -> Result<(), AlignedError> {
-    let network = args.chain.clone().into();
-    let eth_rpc_url = args.eth_rpc_url.clone();
-    let batcher_url: String = args.batcher_url;
-
-    let nonce = get_nonce(
-        &eth_rpc_url,
-        wallet.address(),
-        verification_data.len(),
-        network,
-    )
-    .await?;
-    info!(
-        "Sending {:?} Proofs to {:?} Aligned Batcher",
-        verification_data.len(),
-        network
-    );
-    if let Err(e) = submit_multiple(
-        &batcher_url,
-        network,
-        verification_data,
-        max_fees,
-        wallet.clone(),
-        nonce,
-    )
-    .await
-    {
-        error!("Error submitting proofs to aligned: {:?}", e);
-        return Ok(());
-    };
-
-    Ok(())
-}
-
-//Persits and extrapolate this to sdk
-async fn get_nonce(
-    eth_rpc_url: &str,
-    address: Address,
-    proof_count: usize,
-    network: Network,
-) -> Result<U256, AlignedError> {
-    let nonce = get_next_nonce(eth_rpc_url, address, network).await?;
-
-    let nonce_file = format!("nonce_{:?}.bin", address);
-
-    let local_nonce = read_file(PathBuf::from(nonce_file.clone())).unwrap_or(vec![0u8; 32]);
-    let local_nonce = U256::from_big_endian(local_nonce.as_slice());
-
-    let nonce = if local_nonce > nonce {
-        local_nonce
-    } else {
-        nonce
-    };
-
-    let mut nonce_bytes = [0; 32];
-
-    (nonce + U256::from(proof_count)).to_big_endian(&mut nonce_bytes);
-
-    write_file(nonce_file.as_str(), &nonce_bytes)?;
-
-    Ok(nonce)
-}
-
-fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
-    std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
-}
-
-fn write_file(file_name: &str, content: &[u8]) -> Result<(), SubmitError> {
-    std::fs::write(file_name, content)
-        .map_err(|e| SubmitError::IoError(PathBuf::from(file_name), e))
-}
-
-fn delete_file(file_name: &str) -> Result<(), io::Error> {
-    std::fs::remove_file(file_name)
 }
