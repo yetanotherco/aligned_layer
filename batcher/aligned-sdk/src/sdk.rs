@@ -597,7 +597,7 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
 /// * `PaymentFailed` if the payment failed.
 pub async fn fund_payment_service(
     amount: U256,
-    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    signer: SignerMiddleware<Provider<Http>, LocalWallet>,
     network: Network,
 ) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
     let payment_service_address = get_payment_service_address(network);

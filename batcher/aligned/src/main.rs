@@ -15,8 +15,8 @@ use aligned_sdk::core::{
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::get_payment_service_address;
-use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use aligned_sdk::sdk::{fund_payment_service, get_balance_in_payment_sevice};
+use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -446,80 +446,40 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            let balance = client
-                .get_balance(wallet.address(), None)
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while getting balance: {}",
-                        e
-                    ))
-                })?;
-
-            let amount_ether = parse_ether(&amount).map_err(|e| {
-                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
-            })?;
-
-            if amount_ether <= U256::from(0) {
-                error!("Amount should be greater than 0");
-                return Ok(());
-            }
-
-            if balance < amount_ether {
-                error!("Insufficient funds to pay to the batcher. Please deposit some Ether in your wallet.");
-                return Ok(());
-            }
-
-            let batcher_addr = get_payment_service_address(deposit_to_batcher_args.network.into());
-
-            let tx = TransactionRequest::new()
-                .to(batcher_addr)
-                .value(amount_ether)
-                .from(wallet.address());
-
-            info!("Sending {} ether to the batcher", amount);
-
-            let tx = client
-                .send_transaction(tx, None)
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while sending transaction: {}",
-                        e
-                    ))
-                })?
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while sending transaction: {}",
-                        e
-                    ))
-                })?;
-
-            if let Some(tx) = tx {
-                info!(
-                    "Payment sent to the batcher successfully. Tx: 0x{:x}",
-                    tx.transaction_hash
-                );
-            } else {
-                error!("Transaction failed");
+            match fund_payment_service(
+                U256::from_str(&amount).unwrap(),
+                client,
+                deposit_to_batcher_args.network.into(),
+            )
+            .await
+            {
+                Ok(receipt) => {
+                    info!(
+                        "Payment sent to the batcher successfully. Tx: 0x{:x}",
+                        receipt.transaction_hash
+                    );
+                }
+                Err(e) => {
+                    error!("Transaction failed: {:?}", e);
+                }
             }
         }
         GetUserBalance(get_user_balance_args) => {
-            // get_balance_in_payment_sevice
-            let user_address = H160::from_str(&get_user_balance_args.user_address).unwrap()
+            let user_address = H160::from_str(&get_user_balance_args.user_address).unwrap();
             match get_balance_in_payment_sevice(
                 user_address,
                 &get_user_balance_args.eth_rpc_url,
                 get_user_balance_args.network.into(),
-            ).await {
+            )
+            .await
+            {
                 Ok(balance) => {
                     info!(
                         "User {} has {} ether in the batcher",
                         user_address,
                         format_ether(balance)
                     );
-                },
+                }
                 Err(e) => {
                     error!("Error while getting user balance: {:?}", e);
                     return Ok(());
