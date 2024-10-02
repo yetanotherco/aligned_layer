@@ -412,24 +412,34 @@ impl Batcher {
         }
 
         // Check that we had a user state entry for this user and insert it if not.
+
+        // We aquire the lock first only to query if the user is already present and the lock is dropped.
+        // If it was not present, then the user nonce is queried to the Aligned contract.
+        // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
+
+        let is_user_in_state: bool;
         {
+            let batch_state_lock = self.batch_state.lock().await;
+            is_user_in_state = batch_state_lock.user_states.contains_key(&addr);
+        }
+
+        if !is_user_in_state {
+            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+                Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                Err(e) => {
+                    error!(
+                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
+                    );
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
+                    return Ok(());
+                }
+            };
+            let user_state = UserState::new(ethereum_user_nonce);
             let mut batch_state_lock = self.batch_state.lock().await;
-            if let Entry::Vacant(user_state_entry) = batch_state_lock.user_states.entry(addr) {
-                let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
-                    Ok(ethereum_user_nonce) => ethereum_user_nonce,
-                    Err(e) => {
-                        error!(
-                            "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
-                        );
-                        std::mem::drop(batch_state_lock);
-                        send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce)
-                            .await;
-                        return Ok(());
-                    }
-                };
-                let user_state = UserState::new(ethereum_user_nonce);
-                user_state_entry.insert(user_state);
-            }
+            batch_state_lock
+                .user_states
+                .entry(addr)
+                .or_insert(user_state);
         }
 
         // * ---------------------------------------------------*
