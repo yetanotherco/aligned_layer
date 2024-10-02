@@ -12,6 +12,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	"github.com/yetanotherco/aligned_layer/operator/validia"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
@@ -381,6 +382,13 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
+	case common.Validia:
+		verificationResult := validia.VerifyValidiaProof(verificationData.Proof,
+			verificationData.VmProgramCode)
+
+		o.Logger.Infof("Validia proof verification result: %t", verificationResult)
+		results <- verificationResult
+
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
