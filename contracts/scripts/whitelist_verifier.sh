@@ -16,10 +16,10 @@ fi
 
 VERIFIER_ID=$1
 
-# Read the registry coordinator address from the JSON file
+# Read the service manager address from the JSON file
 SERVICE_MANAGER=$(jq -r '.addresses.alignedLayerServiceManager' "$OUTPUT_PATH")
 
-# Check if the registry coordinator address is empty
+# Check if the service manager address is empty
 if [ -z "$SERVICE_MANAGER" ]; then
     echo "Service manager address is empty"
     exit 1
@@ -37,13 +37,7 @@ if [ -z "$PRIVATE_KEY" ]; then
     exit 1
 fi
 
-# # Call the add function on the contract
-# cast send \
-#   --rpc-url=$RPC_URL \
-#   --private-key=$PRIVATE_KEY \
-#   $SERVICE_MANAGER 'remove(address)' \
-#   $OPERATOR_ADDRESS
-
+# Call the whitelistVerifier function on the contract
 cast send \
     --private-key=$PRIVATE_KEY \
     --rpc-url=$RPC_URL \
