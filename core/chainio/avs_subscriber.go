@@ -298,9 +298,7 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 	}
 }
 
-// getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
-// The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
-// to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
+// getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
 func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
@@ -353,9 +351,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 	return lastLog, nil
 }
 
-// getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
-// The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
-// to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
+// getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
 func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
