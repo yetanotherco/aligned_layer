@@ -157,7 +157,7 @@ defmodule TelemetryApi.Traces do
         missing_operators =
           Operators.list_operators() |> Enum.filter(fn o -> o.id not in trace.responses end)
 
-        add_missing_operators(missing_operators)
+        add_missing_operators(merkle_root, missing_operators)
 
         Tracer.set_attributes(%{status: "completed"})
 
@@ -170,7 +170,7 @@ defmodule TelemetryApi.Traces do
     end
   end
 
-  defp add_missing_operators(merkle_root, []), do: :ok
+  defp add_missing_operators(_merkle_root, []), do: :ok
 
   defp add_missing_operators(merkle_root, missing_operators) do
     missing_operators =
