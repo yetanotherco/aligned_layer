@@ -296,7 +296,7 @@ func (o *Operator) ProcessMissedBatchesWhileOffline() {
 // Process of handling batches from V2 events:
 func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
 	var err error
-	defer o.afterHandlingBatchV2(newBatchLog, err == nil)
+	defer func() { o.afterHandlingBatchV2(newBatchLog, err == nil) }()
 
 	o.Logger.Info("Received new batch log V2")
 	err = o.ProcessNewBatchLogV2(newBatchLog)
@@ -370,7 +370,7 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 // Process of handling batches from V3 events:
 func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
 	var err error
-	defer o.afterHandlingBatchV3(newBatchLog, err == nil)
+	defer func() { o.afterHandlingBatchV3(newBatchLog, err == nil) }()
 	o.Logger.Infof("Received new batch log V3")
 	err = o.ProcessNewBatchLogV3(newBatchLog)
 	if err != nil {
