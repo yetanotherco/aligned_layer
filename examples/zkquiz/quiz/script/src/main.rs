@@ -1,5 +1,4 @@
 #![feature(slice_flatten)]
-
 use std::io;
 use std::sync::Arc;
 
@@ -18,10 +17,7 @@ use sp1_sdk::{ProverClient, SP1Stdin};
 
 abigen!(VerifierContract, "VerifierContract.json",);
 
-const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
-
-const NETWORK: Network = Network::Holesky;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -34,6 +30,12 @@ struct Args {
         default_value = "https://ethereum-holesky-rpc.publicnode.com"
     )]
     rpc_url: String,
+    #[arg(short, long, default_value = "wss://batcher.alignedlayer.com")]
+    batcher_url: String,
+    #[arg(short, long, default_value = "holesky")]
+    network: Network,
+    #[arg(short, long, default_value = "17000")]
+    chain_id: u64,
     #[arg(short, long)]
     verifier_contract_address: H160,
 }
@@ -50,7 +52,7 @@ async fn main() {
 
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
-        .with_chain_id(17000u64);
+        .with_chain_id(args.chain_id);
 
     let provider =
         Provider::<Http>::try_from(rpc_url.as_str()).expect("Failed to connect to provider");
@@ -61,7 +63,7 @@ async fn main() {
         .with_prompt("Do you want to deposit 0.004eth in Aligned ?\nIf you already deposited Ethereum to Aligned before, this is not needed")
         .interact()
         .expect("Failed to read user input") {   
-            deposit_to_batcher(wallet.address(), signer.clone()).await.expect("Failed to pay for proof submission");
+            deposit_to_batcher(wallet.address(), signer.clone(), args.network).await.expect("Failed to pay for proof submission");
     }
 
     // Generate proof.
@@ -126,14 +128,14 @@ async fn main() {
         .expect("Failed to read user input")
     {   return; }
 
-    let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK)
+    let nonce = get_next_nonce(&rpc_url, wallet.address(), args.network)
         .await
         .expect("Failed to get next nonce");
 
     let aligned_verification_data = submit_and_wait_verification(
-        BATCHER_URL,
+        &args.rpc_url,
         &rpc_url,
-        NETWORK,
+        args.network,
         &verification_data,
         max_fee,
         wallet.clone(),
@@ -196,8 +198,9 @@ fn read_answer() -> char {
 async fn deposit_to_batcher(
     from: Address,
     signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    network: Network,
 ) -> anyhow::Result<()> {
-    let addr = get_payment_service_address(NETWORK);
+    let addr = get_payment_service_address(network);
 
     let tx = TransactionRequest::new()
         .from(from)
