@@ -18,7 +18,7 @@ answer_quiz_local:
 	@cd quiz/script && cargo run -r -- \
 		--keystore-path ../../../../config-files/devnet/keys/operator-3.ecdsa.key.json \
  		--rpc-url http://localhost:8545 \
-		--batcher-url ws://http://localhost:8545 \
+		--batcher-url ws://localhost:8545 \
 		--network devnet \
 		--chain-id 31337 \
   		--verifier-contract-address $(CONTRACT_ADDRESS)

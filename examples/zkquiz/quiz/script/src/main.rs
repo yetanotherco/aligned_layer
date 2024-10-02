@@ -133,7 +133,7 @@ async fn main() {
         .expect("Failed to get next nonce");
 
     let aligned_verification_data = submit_and_wait_verification(
-        &args.rpc_url,
+        &args.batcher_url,
         &rpc_url,
         args.network,
         &verification_data,
