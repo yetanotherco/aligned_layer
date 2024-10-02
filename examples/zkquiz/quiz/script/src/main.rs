@@ -66,6 +66,18 @@ async fn main() {
             deposit_to_batcher(wallet.address(), signer.clone(), args.network).await.expect("Failed to pay for proof submission");
     }
 
+    let provider =
+        Provider::<Http>::try_from(rpc_url.as_str()).expect("Failed to connect to provider");
+
+    let signer = Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
+
+    if Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
+        .with_prompt("Do you want to deposit 0.004eth in Aligned ?\nIf you already deposited Ethereum to Aligned before, this is not needed")
+        .interact()
+        .expect("Failed to read user input") {   
+            deposit_to_batcher(wallet.address(), signer.clone()).await.expect("Failed to pay for proof submission");
+    }
+
     // Generate proof.
     let mut stdin = SP1Stdin::new();
 
