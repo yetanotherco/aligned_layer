@@ -23,7 +23,7 @@ url = "2.5.0"
 log = "0.4.21"
 env_logger = "0.11.3"
 clap = { version = "4.5.4", features = ["derive"] }
-lambdaworks-crypto = { version = "0.10.0", features = ["serde"] }
+lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "efd46f0b0aea3aa95d94bba7de86cb96611b40d3", features = ["serde"] }
 ethers = { tag = "v2.0.15-fix-reconnections", features = [
     "ws",
     "rustls",
