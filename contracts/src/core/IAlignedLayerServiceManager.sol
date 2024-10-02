@@ -20,8 +20,8 @@ interface IAlignedLayerServiceManager {
     );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
-    event VerifierBlacklisted(uint256 indexed verifierIdx);
-    event VerifierWhitelisted(uint256 indexed verifierIdx);
+    event VerifierBlacklisted(uint8 indexed verifierIdx);
+    event VerifierWhitelisted(uint8 indexed verifierIdx);
 
     // ERRORS
     error BatchAlreadySubmitted(bytes32 batchIdentifierHash); // 3102f10c
@@ -36,7 +36,6 @@ interface IAlignedLayerServiceManager {
     error SenderIsNotAggregator(address sender, address alignedAggregator); // 2cbe4195
     error InvalidDepositAmount(uint256 amount); // 412ed242
     error ExceededMaxRespondFee(uint256 respondToTaskFeeLimit, uint256 txCost); // 86fc507e
-    error VerifierIdxOutOfBounds(); // 0x089628ee
     error InvalidAddress(string param); // 161eb542
 
     function createNewTask(
