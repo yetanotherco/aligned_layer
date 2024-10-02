@@ -20,5 +20,5 @@ answer_quiz_local:
  		--rpc-url http://localhost:8545 \
 		--batcher-url ws://http://localhost:8545 \
 		--network devnet \
-		--chain-id 31337u64 \
+		--chain-id 31337 \
   		--verifier-contract-address $(CONTRACT_ADDRESS)
