@@ -172,6 +172,14 @@ aligned submit \
 --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
+**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.0.1`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.0.1` or your proof will not be verified. If you encounter issues installing an older version of `cargo-risc0` please reference this [thread](https://discord.com/channels/953703904086994974/1290498126049841232). If you still can't install `cargo-risczero` `v1.0.1`, you can manually modify your `cargo.toml` to point to `v1.0.1`:
+
+```toml
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.0.1", default-features = false, features = [
+    "prove",
+] }
+```
+
 **Example**
 
 ```bash
