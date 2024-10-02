@@ -26,19 +26,8 @@ var StartCommand = &cli.Command{
 	Action:      operatorMain,
 }
 
-func operatorMain(ctx *cli.Context) error {
-	operatorConfigFilePath := ctx.String("config")
-	operatorConfig := config.NewOperatorConfig(operatorConfigFilePath)
-	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &operatorConfig)
-	if err != nil {
-		return err
-	}
 
-	operator, err := operator.NewOperatorFromConfig(*operatorConfig)
-	if err != nil {
-		return err
-	}
-
+func updateTelemetryService(operator *operator.Operator, ctx *cli.Context, operatorConfig *config.OperatorConfig) error {
 	// hash version
 	hash := sha3.NewLegacyKeccak256()
 	hash.Write([]byte(ctx.App.Version))
@@ -51,14 +40,30 @@ func operatorMain(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+  ethRpcUrl, err := baseUrlOnly(operatorConfig.BaseConfig.EthRpcUrl)
+  if err != nil {
+    return err 
+  }
+  ethRpcUrlFallback, err := baseUrlOnly(operatorConfig.BaseConfig.EthRpcUrlFallback)
+  if err != nil {
+    return err 
+  }
+  ethWsUrl, err := baseUrlOnly(operatorConfig.BaseConfig.EthWsUrl)
+  if err != nil {
+    return err 
+  }
+  ethWsUrlFallback, err := baseUrlOnly(operatorConfig.BaseConfig.EthWsUrlFallback)
+  if err != nil {
+    return err 
+  }
 
 	body := map[string]interface{}{
 		"version":   ctx.App.Version,
 		"signature": signature,
-    "eth_rpc_url": urlRemoveProtocol(operatorConfig.BaseConfig.EthRpcUrl),
-    "eth_rpc_url_fallback": urlRemoveProtocol(operatorConfig.BaseConfig.EthRpcUrlFallback),
-    "eth_ws_url": urlRemoveProtocol(operatorConfig.BaseConfig.EthWsUrl),
-    "eth_ws_url_fallback": urlRemoveProtocol(operatorConfig.BaseConfig.EthWsUrlFallback),
+    "eth_rpc_url": ethRpcUrl,
+    "eth_rpc_url_fallback": ethRpcUrlFallback,
+    "eth_ws_url": ethWsUrl,
+    "eth_ws_url_fallback": ethWsUrlFallback,
 	}
 
 	bodyBuffer := new(bytes.Buffer)
@@ -73,13 +78,33 @@ func operatorMain(ctx *cli.Context) error {
 	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/api/operators"
 	operator.Logger.Info("Sending version to operator tracker server: ", "endpoint", endpoint)
 
-	res, err := http.Post(endpoint, "application/json",
-		bodyBuffer)
+	res, err := http.Post(endpoint, "application/json", bodyBuffer)
 	if err != nil {
 		// Dont prevent operator from starting if operator tracker server is down
 		operator.Logger.Warn("Error sending version to metrics server: ", "err", err)
 	} else if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusNoContent {
 		operator.Logger.Warn("Error sending version to operator tracker server: ", "status_code", res.StatusCode)
+	}
+
+  return nil
+}
+
+func operatorMain(ctx *cli.Context) error {
+	operatorConfigFilePath := ctx.String("config")
+	operatorConfig := config.NewOperatorConfig(operatorConfigFilePath)
+	err := sdkutils.ReadYamlConfig(operatorConfigFilePath, &operatorConfig)
+	if err != nil {
+		return err
+	}
+
+	operator, err := operator.NewOperatorFromConfig(*operatorConfig)
+	if err != nil {
+		return err
+	}
+
+  err = updateTelemetryService(operator, ctx, operatorConfig)
+	if err != nil {
+		return err
 	}
 
 	operator.Logger.Info("Operator starting...")
