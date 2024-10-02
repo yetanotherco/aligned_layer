@@ -419,6 +419,10 @@ async fn main() -> Result<(), AlignedError> {
 
             let amount = deposit_to_batcher_args.amount.replace("ether", "");
 
+            let amount_ether = parse_ether(&amount).map_err(|e| {
+                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
+            })?;
+
             let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
             let eth_rpc_provider =
@@ -447,7 +451,7 @@ async fn main() -> Result<(), AlignedError> {
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
             match fund_payment_service(
-                U256::from_str(&amount).unwrap(),
+                amount_ether,
                 client,
                 deposit_to_batcher_args.network.into(),
             )
