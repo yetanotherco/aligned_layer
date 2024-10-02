@@ -450,12 +450,8 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            match fund_payment_service(
-                amount_ether,
-                client,
-                deposit_to_batcher_args.network.into(),
-            )
-            .await
+            match fund_payment_service(amount_ether, client, deposit_to_batcher_args.network.into())
+                .await
             {
                 Ok(receipt) => {
                     info!(
