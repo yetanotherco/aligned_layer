@@ -57,7 +57,7 @@ This will:
 
 If you want to test the zk quiz on a local network following this steps:
 
-1. From the root directory of the repo start anvil: `make anvil_start`
+1. Setup Aligned locally following [this guide](../../docs/3_guides/6_setup_aligned.md)
 2. cd into the zkquiz example: `cd examples/zkquiz`
 3. Deploy the verifier and locate the `CONTRACT_ADDRESS` from the output of: `make deploy_verifier_testnet`
 4. Run the quiz: `CONTRACT_ADDRESS=<VERIFIER_CONTRACT_ADDRESS> make answer_quiz_local`
