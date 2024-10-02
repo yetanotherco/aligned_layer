@@ -22,12 +22,12 @@ defmodule TelemetryApiWeb.OperatorController do
   end
 
   def create(conn, params) do
-    with {:ok, op_params} <- Utils.params_validation(@create_params, params),
-      {:ok, %Operator{} = operator} <- Operators.update_operator(op_params) do
-        conn
-          |> put_status(:created)
-          |> put_resp_header("location", ~p"/api/operators/#{operator}")
-          |> render(:show, operator: operator)
+    params = Map.take(params, @create_params) 
+    with {:ok, %Operator{} = operator} <- Operators.update_operator(params) do
+      conn
+        |> put_status(:created)
+        |> put_resp_header("location", ~p"/api/operators/#{operator}")
+        |> render(:show, operator: operator)
     else
       {:error, message} ->
         Utils.return_error(conn, message)
