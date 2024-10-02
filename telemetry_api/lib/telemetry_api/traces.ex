@@ -36,7 +36,8 @@ defmodule TelemetryApi.Traces do
 
     TraceStore.store_trace(merkle_root, %Trace{
       parent_span: span_ctx,
-      context: ctx
+      context: ctx,
+      responses: []
     })
 
     IO.inspect("New task trace with merkle_root: #{IO.inspect(merkle_root)}")
@@ -66,6 +67,10 @@ defmodule TelemetryApi.Traces do
           {:stake, operator.stake}
         ]
       )
+
+      trace = TraceStore.get_trace(merkle_root)
+      responses = trace.responses ++ [operator_id]
+      TraceStore.store_trace(merkle_root, %{trace | responses: responses})
 
       IO.inspect(
         "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
@@ -140,6 +145,12 @@ defmodule TelemetryApi.Traces do
       trace ->
         Ctx.attach(trace.context)
         Tracer.set_current_span(trace.parent_span)
+
+        missing_operators =
+          Operators.list_operators() |> Enum.filter(fn o -> o.id not in trace.responses end)
+
+        add_missing_operators(missing_operators)
+
         Tracer.set_attributes(%{status: "completed"})
 
         Tracer.end_span(trace.parent_span)
@@ -149,6 +160,15 @@ defmodule TelemetryApi.Traces do
         IO.inspect("Finished task trace with merkle_root: #{IO.inspect(merkle_root)}.")
         :ok
     end
+  end
+
+  defp add_missing_operators(merkle_root, []), do: :ok
+
+  defp add_missing_operators(merkle_root, missing_operators) do
+    missing_operators =
+      missing_operators |> Enum.map(fn o -> o.name end) |> Enum.join(";")
+
+    add_event(merkle_root, "Missing Operators", [{:operators, missing_operators}])
   end
 
   defp add_event(merkle_root, event_name, event_attributes) do
