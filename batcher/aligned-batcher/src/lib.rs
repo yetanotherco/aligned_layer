@@ -10,7 +10,6 @@ use ethers::signers::Signer;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::env;
 use std::iter::repeat;
