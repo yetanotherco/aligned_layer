@@ -209,6 +209,23 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
+# The verifier ID to blacklist or whitelist corresponds to the index of the verifier in the `ProvingSystemIDd` enum.
+verifier_whitelist_devnet:
+	@echo "Whitelisting verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/whitelist_verifier.sh $(VERIFIER_ID)
+
+verifier_blacklist_devnet:
+	@echo "Disabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/blacklist_verifier.sh $(VERIFIER_ID)
+
+verifier_whitelist:
+	@echo "Whitelisting verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/whitelist_verifier.sh $(VERIFIER_ID)
+
+verifier_blacklist:
+	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/blacklist_verifier.sh $(VERIFIER_ID)
+
 __BATCHER__:
 
 BURST_SIZE=5
