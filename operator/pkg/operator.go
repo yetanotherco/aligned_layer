@@ -12,7 +12,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
-	"github.com/yetanotherco/aligned_layer/operator/validia"
+	"github.com/yetanotherco/aligned_layer/operator/valida"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
@@ -382,11 +382,11 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
-	case common.Validia:
-		verificationResult := validia.VerifyValidiaProof(verificationData.Proof,
+	case common.Valida:
+		verificationResult := valida.VerifyValidaProof(verificationData.Proof,
 			verificationData.VmProgramCode)
 
-		o.Logger.Infof("Validia proof verification result: %t", verificationResult)
+		o.Logger.Infof("Valida proof verification result: %t", verificationResult)
 		results <- verificationResult
 
 	default:

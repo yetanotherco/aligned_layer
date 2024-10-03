@@ -24,7 +24,7 @@ use rand_seeder::Seeder;
 use valida_machine::StarkConfigImpl;
 use valida_machine::__internal::p3_commit::ExtensionMmcs;
 
-pub fn verify_validia_proof(code: &[u8], proof: &[u8]) -> bool {
+pub fn verify_valida_proof(code: &[u8], proof: &[u8]) -> bool {
     let mut machine = BasicMachine::<BabyBear>::default();
     let Program {
         code,
@@ -48,7 +48,7 @@ pub fn verify_validia_proof(code: &[u8], proof: &[u8]) -> bool {
     let mds16 = Mds16::default();
 
     type Perm16 = Poseidon<Val, Mds16, 16, 5>;
-    let mut rng: Pcg64 = Seeder::from("validia seed").make_rng();
+    let mut rng: Pcg64 = Seeder::from("valida seed").make_rng();
     let perm16 = Perm16::new_from_rng(4, 22, mds16, &mut rng);
 
     type MyHash = SerializingHasher32<Keccak256Hash>;
