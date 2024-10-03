@@ -32,7 +32,7 @@ pub enum ProvingSystemId {
     Halo2KZG,
     Halo2IPA,
     Risc0,
-    Lita,
+    Validia,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

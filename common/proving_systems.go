@@ -18,7 +18,7 @@ const (
 	Halo2KZG
 	Halo2IPA
 	Risc0
-	Lita
+	Validia
 )
 
 func (t *ProvingSystemId) String() string {
@@ -41,8 +41,8 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Halo2IPA, nil
 	case "Risc0":
 		return Risc0, nil
-	case "Lita":
-		return Lita, nil
+	case "Validia":
+		return Validia, nil
 	}
 
 	return 0, fmt.Errorf("unknown proving system: %s", provingSystem)
@@ -64,8 +64,8 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "Halo2IPA", nil
 	case Risc0:
 		return "Risc0", nil
-	case Lita:
-		return "Lita", nil
+	case Validia:
+		return "Validia", nil
 	}
 
 	return "", fmt.Errorf("unknown proving system: %d", provingSystem)
@@ -124,8 +124,8 @@ func (s *ProvingSystemId) UnmarshalCBOR(data []byte) error {
 		*s = Halo2IPA
 	case "Risc0":
 		*s = Risc0
-	case "Lita":
-		*s = Lita
+	case "Validia":
+		*s = Validia
 	}
 
 	return nil
