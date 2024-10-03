@@ -284,6 +284,10 @@ Changing operator keys:
 
 Operator keys can be changed if needed.
 
+**WARNING:**
+
+- When creating a new wallet keystore and private key please use strong passwords for your own protection.
+
 To create a keystore, run:
 
 ```bash
@@ -518,7 +522,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path [path_to_ecdsa_keystore] \
 --batcher_url wss://batcher.alignedlayer.com \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 </details>

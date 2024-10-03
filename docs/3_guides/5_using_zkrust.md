@@ -41,6 +41,10 @@ make install
 
 ### 2. Generate a keystore:
 
+**WARNING:**
+
+- When creating a new wallet keystore and private key please use strong passwords for your own protection.
+
 You can use cast to create a local keystore.
 If you already have one, you can skip this step.
 

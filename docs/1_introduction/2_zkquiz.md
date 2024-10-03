@@ -11,8 +11,8 @@ The process is as follows:
 3. The proof is posted on Aligned.
 4. Upon verification, ZKQuiz mints an NFT via a Smart Contract.
 
-The NFT is only granted if the user's answers correctly. 
-Incorrect answers or tampering with the ZKQuiz code will result in proof generation failure or mismatched checksums, 
+The NFT is only granted if the user's answers correctly.
+Incorrect answers or tampering with the ZKQuiz code will result in proof generation failure or mismatched checksums,
 preventing NFT minting.
 
 Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
@@ -25,6 +25,10 @@ Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
 ## Usage
 
 ### 1 - Create Keystore
+
+**WARNING:**
+
+- When creating a new wallet keystore and private key please use strong passwords for your own protection.
 
 You can use cast to create a local keystore.
 If you already have one, you can skip this step.
