@@ -29,8 +29,6 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
-    Halo2KZG,
-    Halo2IPA,
     Risc0,
 }
 
