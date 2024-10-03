@@ -31,10 +31,10 @@ aligned submit \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --batcher_url wss://batcher.alignedlayer.com \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
-1. You should get a response like this:
+5. You should get a response like this:
 
 ```bash
 [2024-07-01T19:17:54Z WARN  aligned] Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet
