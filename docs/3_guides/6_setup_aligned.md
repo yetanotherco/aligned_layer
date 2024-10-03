@@ -284,6 +284,10 @@ Changing operator keys:
 
 Operator keys can be changed if needed.
 
+{% hint style="warning" %}
+When creating a new wallet keystore and private key please use strong passwords for your own protection.
+{% endhint %}
+
 To create a keystore, run:
 
 ```bash
