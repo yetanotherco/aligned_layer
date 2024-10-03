@@ -36,7 +36,7 @@ contract BatcherPaymentServiceDeployer is Script {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(batcherPaymentService),
             abi.encodeWithSignature(
-                "initialize(address,address,address,bytes32)",
+                "initialize(address,address,address)",
                 IAlignedLayerServiceManager(alignedLayerServiceManager),
                 batcherPaymentServiceOwner,
                 batcherWallet

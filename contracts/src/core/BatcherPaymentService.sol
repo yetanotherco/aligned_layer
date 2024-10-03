@@ -13,7 +13,7 @@ contract BatcherPaymentService is
     OwnableUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable,
-    BatcherPaymentServiceStorage,
+    BatcherPaymentServiceStorage
 {
     // CONSTANTS = 100 Blocks * 12 second block time.
     uint256 public constant UNLOCK_BLOCK_TIME = 3600 seconds;
