@@ -3,10 +3,9 @@ extern crate core;
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use priority_queue::PriorityQueue;
 use serde::Serialize;
 
 use std::collections::hash_map::Entry;
@@ -16,10 +15,18 @@ use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use aligned_sdk::core::types::{
-    BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
-    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
-    VerificationDataCommitment,
+use aligned_sdk::core::{
+    constants::{
+        ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
+        DEFAULT_AGGREGATOR_FEE_DIVIDER, DEFAULT_AGGREGATOR_FEE_MULTIPLIER,
+        DEFAULT_MAX_FEE_PER_PROOF, MIN_FEE_PER_PROOF, RESPOND_TO_TASK_FEE_LIMIT_DIVIDER,
+        RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER,
+    },
+    types::{
+        BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
+        ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+        VerificationDataCommitment,
+    },
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
@@ -35,7 +42,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
-use types::batch_queue::{BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
+use types::batch_queue::{self, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -49,19 +56,6 @@ pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
-
-const AGGREGATOR_GAS_COST: u128 = 400_000;
-const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
-const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
-const CONSTANT_GAS_COST: u128 = ((AGGREGATOR_GAS_COST * DEFAULT_AGGREGATOR_FEE_MULTIPLIER)
-    / DEFAULT_AGGREGATOR_FEE_DIVIDER)
-    + BATCHER_SUBMISSION_BASE_GAS_COST;
-const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
-const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // gas_price = 0.1 Gwei = 0.0000000001 ether (low gas price)
-const RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER: u128 = 5; // to set the respondToTaskFeeLimit variable higher than fee_for_aggregator
-const RESPOND_TO_TASK_FEE_LIMIT_DIVIDER: u128 = 2;
-const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
-const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
 
 struct BatchState {
     batch_queue: BatchQueue,
@@ -327,7 +321,9 @@ impl Batcher {
 
     pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
         // Create the event loop and TCP listener we'll accept connections on.
-        let listener = TcpListener::bind(address).await.expect("Failed to build");
+        let listener = TcpListener::bind(address)
+            .await
+            .map_err(|e| BatcherError::TcpListenerError(e.to_string()))?;
         info!("Listening on: {}", address);
 
         // Let's spawn the handling of each connection in a separate task.
@@ -439,13 +435,31 @@ impl Batcher {
 
         if client_msg.verification_data.chain_id != self.chain_id {
             warn!(
-                "Received message with incorrect chain id: {}",
+                "Received message with incorrect chain id: {}", //This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
                 client_msg.verification_data.chain_id
             );
 
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidChainId,
+            )
+            .await;
+
+            return Ok(());
+        }
+
+        if client_msg.verification_data.payment_service_addr != self.payment_service.address() {
+            warn!(
+                "Received message with incorrect payment service address: {}", //This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
+                client_msg.verification_data.payment_service_addr
+            );
+
+            send_message(
+                ws_conn_sink.clone(),
+                ValidityResponseMessage::InvalidPaymentServiceAddress(
+                    client_msg.verification_data.payment_service_addr,
+                    self.payment_service.address(),
+                ),
             )
             .await;
 
@@ -459,6 +473,7 @@ impl Batcher {
                 self.handle_nonpaying_msg(ws_conn_sink.clone(), client_msg)
                     .await
             } else {
+                info!("Handling paying message");
                 if !self
                     .check_user_balance_and_increment_proof_count(&addr)
                     .await
@@ -715,14 +730,20 @@ impl Batcher {
 
         // close old sink and replace with new one
         {
-            let mut old_sink = replacement_entry.messaging_sink.write().await;
-            if let Err(e) = old_sink.close().await {
-                // we dont want to exit here, just log the error
-                warn!("Error closing sink: {:?}", e);
-            }
+            if let Some(messaging_sink) = replacement_entry.messaging_sink {
+                let mut old_sink = messaging_sink.write().await;
+                if let Err(e) = old_sink.close().await {
+                    // we dont want to exit here, just log the error
+                    warn!("Error closing sink: {:?}", e);
+                }
+            } else {
+                warn!(
+                    "Old websocket sink was empty. This should only happen in testing environments"
+                )
+            };
         }
-        replacement_entry.messaging_sink = ws_conn_sink.clone();
 
+        replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
         if let Some(msg) = batch_state.validate_and_increment_max_fee(replacement_entry) {
             warn!("Invalid max fee");
             send_message(ws_conn_sink.clone(), msg).await;
@@ -825,97 +846,27 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
 
-        let mut batch_queue_copy = batch_state.batch_queue.clone();
-
-        match self.try_build_batch(&mut batch_queue_copy, gas_price) {
-            Some(finalized_batch) => {
+        let batch_queue_copy = batch_state.batch_queue.clone();
+        match batch_queue::try_build_batch(batch_queue_copy, gas_price, self.max_batch_size) {
+            Ok((resulting_batch_queue, finalized_batch)) => {
                 // Set the batch queue to batch queue copy
-                batch_state.batch_queue = batch_queue_copy;
+                batch_state.batch_queue = resulting_batch_queue;
                 batch_state.update_user_proofs_in_batch_and_min_fee();
-
                 Some(finalized_batch)
             }
-            None => {
+            Err(BatcherError::BatchCostTooHigh) => {
                 // We cant post a batch since users are not willing to pay the needed fee, wait for more proofs
                 info!("No working batch found. Waiting for more proofs...");
                 *batch_posting = false;
                 None
             }
-        }
-    }
-
-    /// Tries to build a batch from the current batch queue.
-    /// The function iterates over the batch queue and tries to build a batch that satisfies the gas price
-    /// and the max_fee set by the users.
-    /// If a working batch is found, the function tries to make it as big as possible by adding more proofs,
-    /// until a user is not willing to pay the required fee.
-    /// The extra check is that the batch size does not surpass the maximum batch size.
-    /// Note that the batch queue is sorted descending by the max_fee set by the users.
-    /// We use a copy of the batch queue because we might not find a working batch,
-    /// and we want to keep the original batch queue intact.
-    /// Returns Some(working_batch) if found, None otherwise.
-    fn try_build_batch(
-        &self,
-        batch_queue_copy: &mut PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>,
-        gas_price: U256,
-    ) -> Option<Vec<BatchQueueEntry>> {
-        let mut finalized_batch = vec![];
-        let mut finalized_batch_size = 2; // at most two extra bytes for cbor encoding array markers
-        let mut finalized_batch_works = false;
-
-        while let Some((entry, _)) = batch_queue_copy.peek() {
-            let serialized_vd_size =
-                match cbor_serialize(&entry.nonced_verification_data.verification_data) {
-                    Ok(val) => val.len(),
-                    Err(e) => {
-                        warn!("Serialization error: {:?}", e);
-                        break;
-                    }
-                };
-
-            if finalized_batch_size + serialized_vd_size > self.max_batch_size {
-                break;
+            // FIXME: We should refactor this code and instead of returning None, return an error.
+            // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
+            Err(e) => {
+                error!("Unexpected error: {:?}", e);
+                *batch_posting = false;
+                None
             }
-
-            let num_proofs = finalized_batch.len() + 1;
-
-            let gas_per_proof = (CONSTANT_GAS_COST
-                + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs as u128)
-                / num_proofs as u128;
-
-            let fee_per_proof = U256::from(gas_per_proof) * gas_price;
-
-            debug!(
-                "Validating that batch submission fee {} is less than max fee {} for sender {}",
-                fee_per_proof, entry.nonced_verification_data.max_fee, entry.sender,
-            );
-
-            // it is sufficient to check this max fee because it will be the lowest since its sorted
-            if fee_per_proof < entry.nonced_verification_data.max_fee && num_proofs >= 2 {
-                finalized_batch_works = true;
-            } else if finalized_batch_works {
-                // Can not add latest element since it is not willing to pay the corresponding fee
-                // Could potentially still find another working solution later with more elements,
-                // maybe we can explore all lengths in a future version
-                // or do the reverse from this, try with whole batch,
-                // then with whole batch minus last element, etc
-                break;
-            }
-
-            // Either max fee is insufficient but we have not found a working solution yet,
-            // or we can keep adding to a working batch,
-            // Either way we need to keep iterating
-            finalized_batch_size += serialized_vd_size;
-
-            // We can unwrap here because we have already peeked to check there is a value
-            let (entry, _) = batch_queue_copy.pop().unwrap();
-            finalized_batch.push(entry);
-        }
-
-        if finalized_batch_works {
-            Some(finalized_batch)
-        } else {
-            None
         }
     }
 
@@ -977,13 +928,17 @@ impl Batcher {
             )
             .await
         {
-            for entry in finalized_batch.iter() {
-                let merkle_root = hex::encode(batch_merkle_tree.root);
-                send_message(
-                    entry.messaging_sink.clone(),
-                    ResponseMessage::CreateNewTaskError(merkle_root),
-                )
-                .await
+            for entry in finalized_batch.into_iter() {
+                if let Some(ws_sink) = entry.messaging_sink {
+                    let merkle_root = hex::encode(batch_merkle_tree.root);
+                    send_message(
+                        ws_sink.clone(),
+                        ResponseMessage::CreateNewTaskError(merkle_root),
+                    )
+                    .await
+                } else {
+                    warn!("Websocket sink was found empty. This should only happen in tests");
+                }
             }
 
             self.flush_queue_and_clear_nonce_cache().await;
@@ -999,7 +954,11 @@ impl Batcher {
         let mut batch_state = self.batch_state.lock().await;
 
         for (entry, _) in batch_state.batch_queue.iter() {
-            send_message(entry.messaging_sink.clone(), ResponseMessage::BatchReset).await;
+            if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                send_message(ws_sink.clone(), ResponseMessage::BatchReset).await;
+            } else {
+                warn!("Websocket sink was found empty. This should only happen in tests");
+            }
         }
 
         batch_state.batch_queue.clear();
@@ -1072,7 +1031,7 @@ impl Batcher {
             &file_name,
         )
         .await
-        .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -1355,8 +1314,11 @@ async fn send_batch_inclusion_data_responses(
         let serialized_response = cbor_serialize(&response)
             .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
 
-        let sending_result = entry
-            .messaging_sink
+        let Some(ws_sink) = entry.messaging_sink.as_ref() else {
+            return Err(BatcherError::WsSinkEmpty);
+        };
+
+        let sending_result = ws_sink
             .write()
             .await
             .send(Message::binary(serialized_response))

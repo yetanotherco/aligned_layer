@@ -14,7 +14,6 @@ CURRENT_TAG=$(curl -s -L \
   https://api.github.com/repos/yetanotherco/aligned_layer/releases/latest \
   | grep '"tag_name":' | awk -F'"' '{print $4}')
 RELEASE_URL="https://github.com/yetanotherco/aligned_layer/releases/download/$CURRENT_TAG/"
-
 ARCH=$(uname -m)
 
 if [ "$ARCH" == "x86_64" ]; then

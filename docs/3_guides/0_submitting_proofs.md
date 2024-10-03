@@ -65,10 +65,9 @@ To be able to send proofs to Aligned using the Batcher, the user must fund its t
 To use it, you can use the `aligned` CLI, as shown with the following example:
 
 ```bash
-aligned deposit-to-batcher \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+aligned deposit-to-batcher  \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---chain holesky \
+--network holesky \
 --keystore_path <keystore_path> \
 --amount 0.1ether
 ```
@@ -77,7 +76,7 @@ These commands allow the usage of the following flags:
 
 - `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
-- `--chain` to specify the chain id to be used. Could be holesky or devnet.
+- `--network` to specify the chain id to be used. Could be holesky or devnet.
 - `--keystore_path` the path to the keystore.
 - `--amount` the number of ethers to transfer to the Batcher.
 - Note: `--amount` flag parameter must be with the shown format. The amount followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
@@ -85,8 +84,7 @@ These commands allow the usage of the following flags:
 After depositing funds, you can verify the Service has correctly received them by executing the following command:
 
 ```bash
-aligned get-user-balance \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
+aligned get-user-balance  \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --user_addr <user_addr>
 ```
@@ -130,9 +128,8 @@ aligned submit \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---chain holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 **Example**
@@ -145,9 +142,8 @@ aligned submit \
 --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
---chain holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 ### Risc0 proof
@@ -167,9 +163,18 @@ aligned submit \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---chain holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
+```
+
+**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.0.1`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.0.1` or your proof will not be verified. 
+
+If you can't install `cargo-risczero` `v1.0.1`, you can manually modify your `cargo.toml` on the host project to point to `v1.0.1`:
+
+```toml
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.0.1", default-features = false, features = [
+    "prove",
+] }
 ```
 
 **Example**
@@ -184,9 +189,8 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
---chain holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 ### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
@@ -204,9 +208,8 @@ aligned submit \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---chain holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 **Examples**:
@@ -220,9 +223,8 @@ aligned submit \
 --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
---chain holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 ```bash
@@ -234,9 +236,8 @@ aligned submit \
 --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
---chain holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 ```bash
@@ -248,9 +249,8 @@ aligned submit \
 --vk ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
---chain holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 ### Halo2 KZG and Halo2 IPA
@@ -269,7 +269,7 @@ aligned submit \
   --batcher_url wss://batcher.alignedlayer.com \
   --keystore_path <path_to_ecdsa_keystore> \
   --proof_generator_addr <proof_generator_addr> \
-  --chain holesky \
+  --network holesky \
   --rpc_url https://ethereum-holesky-rpc.publicnode.com \
   --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
 ```
@@ -286,7 +286,7 @@ aligned submit \
   --batcher_url wss://batcher.alignedlayer.com \
   --keystore_path <path_to_ecdsa_keystore> \
   --proof_generator_addr <proof_generator_addr> \
-  --chain holesky \
+  --network holesky \
   --rpc_url https://ethereum-holesky-rpc.publicnode.com \
   --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
@@ -303,7 +303,7 @@ aligned submit \
   --batcher_url wss://batcher.alignedlayer.com \
   --keystore_path ~/.aligned_keystore/keystore0 \
   --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-  --chain holesky \
+  --network holesky \
   --rpc_url https://ethereum-holesky-rpc.publicnode.com \
   --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
@@ -318,7 +318,7 @@ aligned submit \
   --batcher_url wss://batcher.alignedlayer.com \
   --keystore_path ~/.aligned_keystore/keystore0 \
   --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-  --chain holesky \
+  --network holesky \
   --rpc_url https://ethereum-holesky-rpc.publicnode.com \
   --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```

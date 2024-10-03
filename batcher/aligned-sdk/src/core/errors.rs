@@ -2,7 +2,7 @@ use core::fmt;
 use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
 use ethers::types::transaction::eip712::Eip712Error;
-use ethers::types::SignatureError;
+use ethers::types::{SignatureError, H160};
 use std::io;
 use std::path::PathBuf;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
@@ -15,6 +15,7 @@ pub enum AlignedError {
     VerificationError(VerificationError),
     NonceError(NonceError),
     ChainIdError(ChainIdError),
+    MaxFeeEstimateError(MaxFeeEstimateError),
 }
 
 impl From<SubmitError> for AlignedError {
@@ -41,6 +42,12 @@ impl From<ChainIdError> for AlignedError {
     }
 }
 
+impl From<MaxFeeEstimateError> for AlignedError {
+    fn from(e: MaxFeeEstimateError) -> Self {
+        AlignedError::MaxFeeEstimateError(e)
+    }
+}
+
 impl fmt::Display for AlignedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -48,6 +55,7 @@ impl fmt::Display for AlignedError {
             AlignedError::VerificationError(e) => write!(f, "Verification error: {}", e),
             AlignedError::NonceError(e) => write!(f, "Nonce error: {}", e),
             AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
+            AlignedError::MaxFeeEstimateError(e) => write!(f, "Max fee estimate error: {}", e),
         }
     }
 }
@@ -80,6 +88,7 @@ pub enum SubmitError {
     ProofTooLarge,
     InvalidReplacementMessage,
     InsufficientBalance,
+    InvalidPaymentServiceAddress(H160, H160),
     BatchSubmissionFailed(String),
     GenericError(String),
 }
@@ -114,6 +123,9 @@ impl From<VerificationError> for SubmitError {
             VerificationError::HexDecodingError(e) => SubmitError::HexDecodingError(e.to_string()),
             VerificationError::EthereumProviderError(e) => SubmitError::EthereumProviderError(e),
             VerificationError::EthereumCallError(e) => SubmitError::EthereumProviderError(e),
+            VerificationError::EthereumNotAContract(address) => {
+                SubmitError::InvalidEthereumAddress(address.to_string())
+            }
         }
     }
 }
@@ -178,6 +190,13 @@ impl fmt::Display for SubmitError {
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
+            SubmitError::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
+                write!(
+                    f,
+                    "Invalid payment service address, received: {}, expected: {}",
+                    received_addr, expected_addr
+                )
+            }
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
         }
     }
@@ -188,6 +207,7 @@ pub enum VerificationError {
     HexDecodingError(String),
     EthereumProviderError(String),
     EthereumCallError(String),
+    EthereumNotAContract(H160),
 }
 
 impl fmt::Display for VerificationError {
@@ -198,6 +218,9 @@ impl fmt::Display for VerificationError {
                 write!(f, "Ethereum provider error: {}", e)
             }
             VerificationError::EthereumCallError(e) => write!(f, "Ethereum call error: {}", e),
+            VerificationError::EthereumNotAContract(address) => {
+                write!(f, "Address {} does not contain a contract", address)
+            }
         }
     }
 }
@@ -237,6 +260,25 @@ impl fmt::Display for ChainIdError {
 }
 
 #[derive(Debug)]
+pub enum MaxFeeEstimateError {
+    EthereumProviderError(String),
+    EthereumGasPriceError(String),
+}
+
+impl fmt::Display for MaxFeeEstimateError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MaxFeeEstimateError::EthereumProviderError(e) => {
+                write!(f, "Ethereum provider error: {}", e)
+            }
+            MaxFeeEstimateError::EthereumGasPriceError(e) => {
+                write!(f, "Failed to retreive the current gas price: {}", e)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum VerifySignatureError {
     RecoverTypedDataError(SignatureError),
     EncodeError(Eip712Error),
@@ -263,4 +305,17 @@ impl fmt::Display for VerifySignatureError {
             VerifySignatureError::EncodeError(e) => write!(f, "Encode error: {}", e),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum PaymentError {
+    SendError(String),
+    SubmitError(String),
+    PaymentFailed,
+}
+
+#[derive(Debug)]
+pub enum BalanceError {
+    EthereumProviderError(String),
+    EthereumCallError(String),
 }

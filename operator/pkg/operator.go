@@ -37,19 +37,20 @@ import (
 )
 
 type Operator struct {
-	Config             config.OperatorConfig
-	Address            ethcommon.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
-	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	Logger             logging.Logger
-	aggRpcClient       AggregatorRpcClient
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+	Config               config.OperatorConfig
+	Address              ethcommon.Address
+	Socket               string
+	Timeout              time.Duration
+	PrivKey              *ecdsa.PrivateKey
+	KeyPair              *bls.KeyPair
+	OperatorId           eigentypes.OperatorId
+	avsSubscriber        chainio.AvsSubscriber
+	NewTaskCreatedChanV2 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewTaskCreatedChanV3 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+	Logger               logging.Logger
+	aggRpcClient         AggregatorRpcClient
+	metricsReg           *prometheus.Registry
+	metrics              *metrics.Metrics
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -93,7 +94,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
-	newTaskCreatedChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
+	newTaskCreatedChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
+	newTaskCreatedChanV3 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
 	if err != nil {
@@ -108,15 +110,16 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:             configuration,
-		Logger:             logger,
-		avsSubscriber:      *avsSubscriber,
-		Address:            address,
-		NewTaskCreatedChan: newTaskCreatedChan,
-		aggRpcClient:       *rpcClient,
-		OperatorId:         operatorId,
-		metricsReg:         reg,
-		metrics:            operatorMetrics,
+		Config:               configuration,
+		Logger:               logger,
+		avsSubscriber:        *avsSubscriber,
+		Address:              address,
+		NewTaskCreatedChanV2: newTaskCreatedChanV2,
+		NewTaskCreatedChanV3: newTaskCreatedChanV3,
+		aggRpcClient:         *rpcClient,
+		OperatorId:           operatorId,
+		metricsReg:           reg,
+		metrics:              operatorMetrics,
 		// Timeout
 		// Socket
 	}
@@ -124,12 +127,21 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasks() (chan error, error) {
-	return o.avsSubscriber.SubscribeToNewTasks(o.NewTaskCreatedChan)
+func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
+	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
+}
+
+func (o *Operator) SubscribeToNewTasksV3() (chan error, error) {
+	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3)
 }
 
 func (o *Operator) Start(ctx context.Context) error {
-	sub, err := o.SubscribeToNewTasks()
+	subV2, err := o.SubscribeToNewTasksV2()
+	if err != nil {
+		log.Fatal("Could not subscribe to new tasks")
+	}
+
+	subV3, err := o.SubscribeToNewTasksV3()
 	if err != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
@@ -148,21 +160,39 @@ func (o *Operator) Start(ctx context.Context) error {
 			return nil
 		case err := <-metricsErrChan:
 			o.Logger.Fatal("Metrics server failed", "err", err)
-		case err := <-sub:
+		case err := <-subV2:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
-			sub, err = o.SubscribeToNewTasks()
+			subV2, err = o.SubscribeToNewTasksV2()
 			if err != nil {
-				o.Logger.Fatal("Could not subscribe to new tasks")
+				o.Logger.Fatal("Could not subscribe to new tasks V2")
 			}
-		case newBatchLog := <-o.NewTaskCreatedChan:
-			go o.handleNewBatchLog(newBatchLog)
+		case err := <-subV3:
+			o.Logger.Infof("Error in websocket subscription", "err", err)
+			subV2, err = o.SubscribeToNewTasksV3()
+			if err != nil {
+				o.Logger.Fatal("Could not subscribe to new tasks V3")
+			}
+		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
+			go o.handleNewBatchLogV2(newBatchLogV2)
+		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
+			go o.handleNewBatchLogV3(newBatchLogV3)
 		}
 	}
 }
 
-func (o *Operator) handleNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
-	o.Logger.Infof("Received new batch log")
-	err := o.ProcessNewBatchLog(newBatchLog)
+// Currently, Operator can handle NewBatchV2 and NewBatchV3 events.
+
+// The difference between these events do not affect the operator
+// So if you read below, handleNewBatchLogV2 and handleNewBatchLogV3
+// are identical.
+
+// This structure may help for future upgrades. Having different logics under
+// different events enables the smooth operator upgradeability
+
+// Process of handling batches from V2 events:
+func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
+	o.Logger.Infof("Received new batch log V2")
+	err := o.ProcessNewBatchLogV2(newBatchLog)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 		return
@@ -175,10 +205,10 @@ func (o *Operator) handleNewBatchLog(newBatchLog *servicemanager.ContractAligned
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
@@ -188,10 +218,78 @@ func (o *Operator) handleNewBatchLog(newBatchLog *servicemanager.ContractAligned
 
 	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
 }
+func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
 
-// Takes a NewTaskCreatedLog struct as input and returns a TaskResponseHeader struct.
-// The TaskResponseHeader struct is the struct that is signed and sent to the contract as a task response.
-func (o *Operator) ProcessNewBatchLog(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) error {
+	o.Logger.Info("Received new batch with proofs to verify",
+		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
+		"sender address", "0x"+hex.EncodeToString(newBatchLog.SenderAddress[:]),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
+	defer cancel()
+
+	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
+	if err != nil {
+		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
+		return err
+	}
+
+	verificationDataBatchLen := len(verificationDataBatch)
+	results := make(chan bool, verificationDataBatchLen)
+	var wg sync.WaitGroup
+	wg.Add(verificationDataBatchLen)
+	for _, verificationData := range verificationDataBatch {
+		go func(data VerificationData) {
+			defer wg.Done()
+			o.verify(data, results)
+			o.metrics.IncOperatorTaskResponses()
+		}(verificationData)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if !result {
+			return fmt.Errorf("invalid proof")
+		}
+	}
+
+	return nil
+}
+
+// Process of handling batches from V3 events:
+func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
+	o.Logger.Infof("Received new batch log V3")
+	err := o.ProcessNewBatchLogV3(newBatchLog)
+	if err != nil {
+		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
+		return
+	}
+
+	batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
+	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	responseSignature := o.SignTaskResponse(batchIdentifierHash)
+	o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
+
+	signedTaskResponse := types.SignedTaskResponse{
+		BatchIdentifierHash: batchIdentifierHash,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
+	}
+	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
+		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+		hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+	)
+
+	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
+}
+func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) error {
 
 	o.Logger.Info("Received new batch with proofs to verify",
 		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
@@ -249,48 +347,37 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 	case common.Groth16Bn254:
 		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
-
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
+
 		results <- verificationResult
 
 	case common.SP1:
-		proofLen := (uint32)(len(verificationData.Proof))
-		elfLen := (uint32)(len(verificationData.VmProgramCode))
 
-		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
+		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2IPA:
-		proofLen := (uint32)(len(verificationData.Proof))
-		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2ipa.VerifyHalo2IpaProof(
-			verificationData.Proof, proofLen,
-			verificationData.VerificationKey, paramsLen,
-			verificationData.PubInput, publicInputLen)
+			verificationData.Proof,
+			verificationData.VerificationKey,
+			verificationData.PubInput)
 
 		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Halo2KZG:
-		proofLen := (uint32)(len(verificationData.Proof))
-		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		publicInputLen := (uint32)(len(verificationData.PubInput))
 
 		verificationResult := halo2kzg.VerifyHalo2KzgProof(
-			verificationData.Proof, proofLen,
-			verificationData.VerificationKey, paramsLen,
-			verificationData.PubInput, publicInputLen)
+			verificationData.Proof,
+			verificationData.VerificationKey,
+			verificationData.PubInput)
 
 		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
 		results <- verificationResult
 	case common.Risc0:
-		proofLen := (uint32)(len(verificationData.Proof))
-		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
-		pubInputLen := (uint32)(len(verificationData.PubInput))
 
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen,
-			verificationData.VmProgramCode, imageIdLen, verificationData.PubInput, pubInputLen)
+		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
+			verificationData.VmProgramCode, verificationData.PubInput)
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
