@@ -31,6 +31,14 @@ make telemetry_clean_db
 
 ## Run Server
 
+First you need to manually set the `telemetry_api/.env` file.
+
+To use `telemetry_api/.env.dev`, run:
+
+```shell
+make telemetry_create_env
+```
+
 To start your Phoenix server:
 
 ```shell
