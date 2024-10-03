@@ -65,7 +65,7 @@ defmodule TelemetryApi.Operators do
           |> Repo.insert_or_update()
         end
       end)
-      |> TelemetryApi.Utils.clean_list_errors("Error fetching operators metadata")
+      |> TelemetryApi.Utils.check_list_status("Error fetching operators metadata")
     end
   end
 
