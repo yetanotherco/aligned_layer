@@ -4,7 +4,6 @@ import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initia
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 import {BatcherPaymentServiceStorage} from "./BatcherPaymentServiceStorage.sol";
 
