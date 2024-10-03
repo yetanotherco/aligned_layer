@@ -902,6 +902,18 @@ docker_batcher_send_halo2_kzg_task_burst_5:
 docker_attach_foundry:
 	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
 
+docker_attach_anvil:
+	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
+
+docker_attach_aggregator:
+	docker exec -ti $(shell docker ps | grep aggregator | awk '{print $$1}') /bin/bash
+
+docker_attach_operator:
+	docker exec -ti $(shell docker ps | grep operator | awk '{print $$1}') /bin/bash
+
+docker_attach_batcher:
+	docker exec -ti $(shell docker ps | grep batcher | awk '{print $$1}') /bin/bash
+
 docker_logs_anvil:
 	docker compose -f docker-compose.yaml logs anvil -f
 
