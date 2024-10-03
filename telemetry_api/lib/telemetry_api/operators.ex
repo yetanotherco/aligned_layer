@@ -29,30 +29,40 @@ defmodule TelemetryApi.Operators do
   ## Examples
 
       iex> get_operator("some_address"})
-      %Operator{}
+      {:ok, %Operator{}}
 
       iex> get_operator("non_existent_address")
-      nil
-
+      {:error, :not_found, "Operator not found for address: non_existent_address"}
   """
   def get_operator(address) do
-    Repo.get(Operator, address)
+    case Repo.get(Operator, address) do
+      nil ->
+        IO.inspect("Operator not found for address: #{address}")
+        {:error, :not_found, "Operator not found for address: #{address}"}
+
+      operator ->
+        {:ok, operator}
+    end
   end
 
-  @doc"""
+  @doc """
   Get a single operator by operator id.
 
   ## Examples
 
       iex> get_operator_by_id("some_id")
-      %Operator{}
+      {:ok, %Operator{}}
 
       iex> get_operator_by_id("non_existent_id")
-      nil
+      {:error, :not_found, "Operator not found for id: non_existent_id"}
   """
   def get_operator_by_id(id) do
     query = from(o in Operator, where: o.id == ^id)
-    Repo.one(query)
+
+    case Repo.one(query) do
+      nil -> {:error, :not_found, "Operator not found for id: {id}"}
+      operator -> {:ok, operator}
+    end
   end
 
   @doc """
@@ -83,8 +93,7 @@ defmodule TelemetryApi.Operators do
     end
   end
 
-
-  #Adds operator metadata to received operator.
+  # Adds operator metadata to received operator.
 
   ### Examples
 
@@ -117,7 +126,7 @@ defmodule TelemetryApi.Operators do
       {:ok, %Ecto.Changeset{}}
 
       iex> update_operator_version(%{field: bad_value})
-      {:error, string}
+      {:error, "Some status", "Some message"}
 
   """
   def update_operator_version(attrs \\ %{}) do
@@ -129,8 +138,12 @@ defmodule TelemetryApi.Operators do
       }
 
       case Repo.get(Operator, address) do
-        nil -> {:error, "Provided address does not correspond to any registered operator"}
-        operator -> operator |> Operator.changeset(changes) |> Repo.insert_or_update()
+        nil ->
+          {:error, :bad_request,
+           "Provided address does not correspond to any registered operator"}
+
+        operator ->
+          operator |> Operator.changeset(changes) |> Repo.insert_or_update()
       end
     end
   end

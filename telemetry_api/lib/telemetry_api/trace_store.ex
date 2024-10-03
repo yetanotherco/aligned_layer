@@ -16,7 +16,14 @@ defmodule TraceStore do
   # Retrieve the trace by merkle_root
   def get_trace(merkle_root) do
     Agent.get(__MODULE__, fn state ->
-      Map.get(state, merkle_root)
+      case Map.get(state, merkle_root) do
+        nil ->
+          IO.inspect("Context not found for #{merkle_root}")
+          {:error, :not_found, "Context not found for #{merkle_root}"}
+
+        trace ->
+          {:ok, trace}
+      end
     end)
   end
 
