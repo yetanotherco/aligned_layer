@@ -268,7 +268,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 			// If Aggregator successfully responds to task we acquire the task mutex and
 			// remove task information from the aggregator maps to prevent a memory leak.
-			go agg.clearTaskFromMaps(blsAggServiceResp.TaskIndex)
+			agg.clearTaskFromMaps(blsAggServiceResp.TaskIndex)
 			
 			return
 		}
@@ -285,7 +285,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	// If the aggregator fails to respond to the task we remove the batch information as well.
-	go agg.clearTaskFromMaps(blsAggServiceResp.TaskIndex)
+	agg.clearTaskFromMaps(blsAggServiceResp.TaskIndex)
 }
 
 func (agg *Aggregator) clearTaskFromMaps(taskIndex uint32) {
