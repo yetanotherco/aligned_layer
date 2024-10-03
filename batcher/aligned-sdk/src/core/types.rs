@@ -30,6 +30,7 @@ pub enum ProvingSystemId {
     #[default]
     SP1,
     Risc0,
+    Nexus,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

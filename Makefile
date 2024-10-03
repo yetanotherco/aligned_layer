@@ -32,6 +32,9 @@ submodules:
 	git submodule update --init --recursive
 	@echo "Updated submodules"
 
+install_nexus:
+	@cargo install --git https://github.com/nexus-xyz/nexus-zkvm nexus-tools --tag 'v0.2.3'
+
 deps: submodules build_all_ffi ## Install deps
 
 go_deps:
@@ -249,6 +252,23 @@ batcher/target/release/aligned:
 
 RPC_URL=http://localhost:8545
 NETWORK=devnet # devnet | holesky-stage | holesky
+
+batcher_send_nexus_task:
+	@echo "Sending Nexus fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Nexus \
+		--proof test_files/nexus/nexus-proof \
+		--vk test_files/nexus/nexus-public-seq-16.zst \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_nexus_burst:
+	@echo "Sending Nexus fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Nexus \
+		--proof test_files/nexus/nexus-proof \
+		--vk test_files/nexus/nexus-public-seq-16.zst \
+		--repetitions 15 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
@@ -485,6 +505,35 @@ generate_sp1_fibonacci_proof:
 	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
+__NEXUS_FFI__: ##
+build_nexus_macos:
+	@cd operator/nexus/lib && RUST_MIN_STACK=999999999 cargo build --release
+	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.dylib operator/nexus/lib/libnexus_verifier.dylib
+	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.a operator/nexus/lib/libnexus_verifier.a
+
+build_nexus_linux:
+	@cd operator/nexus/lib && RUST_MIN_STACK=999999999 cargo build --release
+	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.so operator/nexus/lib/libnexus_verifier.so
+	@cp operator/nexus/lib/target/release/libnexus_verifier_ffi.a operator/nexus/lib/libnexus_verifier.a
+
+test_nexus_rust_ffi:
+	@echo "Testing Nexus Rust FFI source code..."
+	@cd operator/nexus/lib && RUST_MIN_STACK=999999999 cargo t --release
+
+test_nexus_go_bindings_macos: build_nexus_macos
+	@echo "Testing Nexus Go bindings..."
+	go test ./operator/nexus/... -v
+
+test_nexus_go_bindings_linux: build_nexus_linux
+	@echo "Testing Nexus Go bindings..."
+	go test ./operator/nexus/... -v
+
+# TODO: how to remove cargo dependency???
+generate_nexus_fibonacci_proof: install_nexus
+	@cd task_sender/test_examples/nexus/fib && cargo nexus prove
+	@cp task_sender/test_examples/nexus/fib/target/nexus-cache/nexus-public-seq-16.zst task_sender/test_examples/nexus/fib/.
+	@echo "Fibonacci proof and Parameters generated in task_sender/test_examples/nexus folder"
+
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
@@ -566,6 +615,7 @@ build_all_ffi: ## Build all FFIs
 build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
+	@$(MAKE) build_nexus_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_merkle_tree_macos_old
@@ -574,6 +624,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
+	@$(MAKE) build_nexus_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_merkle_tree_linux_old

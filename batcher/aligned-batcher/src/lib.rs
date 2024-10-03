@@ -41,6 +41,11 @@ mod config;
 mod connection;
 mod eth;
 pub mod gnark;
+<<<<<<< HEAD
+=======
+pub mod halo2;
+pub mod nexus;
+>>>>>>> 5c5d63d2 (add nexus verifier)
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
@@ -272,6 +277,13 @@ impl Batcher {
         addr: SocketAddr,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
+        // !!!TODO_BEFORE_MERGE!!!(pat): Configure websocket config to allow for larger msg size not default 16 MiB
+        // ref: https://docs.rs/tungstenite/latest/tungstenite/protocol/struct.WebSocketConfig.html#structfield.max_frame_size
+        /*
+        let mut config = WebSocketConfig::default();
+        config.max_frame_size = Some(200 << 20);
+        config.max_message_size = Some(200 << 20);
+        */
         let ws_stream = tokio_tungstenite::accept_async(raw_stream).await?;
 
         debug!("WebSocket connection established: {}", addr);

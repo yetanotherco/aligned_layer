@@ -511,6 +511,12 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
                 args.pub_input_file_name.clone(),
             )?);
         }
+        ProvingSystemId::Nexus => {
+            verification_key = Some(read_file_option(
+                "--vk",
+                args.verification_key_file_name.clone(),
+            )?);
+        }
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {

@@ -1,4 +1,5 @@
 use crate::gnark::verify_gnark;
+use crate::nexus::verify_nexus_proof;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
 use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
@@ -18,6 +19,13 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
                 return verify_sp1_proof(verification_data.proof.as_slice(), elf.as_slice());
             }
             warn!("Trying to verify SP1 proof but ELF was not provided. Returning false");
+            false
+        }
+        ProvingSystemId::Nexus => {
+            if let Some(params) = &verification_data.verification_key {
+                return verify_nexus_proof(&verification_data.proof, &params);
+            }
+            warn!("Trying to verify Nexus proof but Params not provided. Returning false");
             false
         }
         ProvingSystemId::Risc0 => {

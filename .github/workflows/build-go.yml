@@ -25,6 +25,8 @@ jobs:
         with:
           go-version: "1.22"
           cache: false
+      - name: Build Nexus bindings
+        run: make build_nexus_linux
       - name: Build SP1 bindings
         run: make build_sp1_linux
       - name: Build Risc Zero go bindings

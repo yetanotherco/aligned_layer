@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/yetanotherco/aligned_layer/operator/nexus"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -484,6 +485,13 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 			verificationData.VmProgramCode, verificationData.PubInput)
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
+		results <- verificationResult
+	case common.Nexus:
+
+		verificationResult := nexus.VerifyNexusProof(verificationData.Proof,
+			verificationData.VerificationKey)
+
+		o.Logger.Infof("Nexus proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
