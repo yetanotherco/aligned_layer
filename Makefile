@@ -79,10 +79,6 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
-anvil_add_type_hash_to_batcher_payment_service:
-	@echo "Adding Type Hash to Batcher Payment Service..."
-	. contracts/scripts/anvil/upgrade_add_type_hash_to_batcher_payment_service.sh
-
 lint_contracts:
 	@cd contracts && npm run lint:sol
 
@@ -450,10 +446,6 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
-
-upgrade_batcher_payments_add_type_hash: ## Add Type Hash to Batcher Payment Service
-	@echo "Adding Type Hash to Batcher Payment Service..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_type_hash_to_batcher_payment_service.sh
 
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
