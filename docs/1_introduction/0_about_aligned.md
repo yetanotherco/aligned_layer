@@ -90,3 +90,7 @@ Since Aligned’s operators only need to run the verification code on bare metal
 - Adding new proof systems is straightforward.
 
 Preliminary numbers show that Aligned can verify more than 1000 proofs per second, over two orders of magnitude than the EVM at nominal capacity. Using effective batching techniques, we can split the task creation and verification cost between thousands of proofs.
+
+## Future additions
+
+- Propagation of the results to different L2s

@@ -69,6 +69,14 @@ impl NoncedVerificationData {
     }
 }
 
+// Defines an estimate price preference for the user.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum PriceEstimate {
+    Min,
+    Default,
+    Instant,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct VerificationDataCommitment {
     pub proof_commitment: [u8; 32],
@@ -313,8 +321,10 @@ pub enum ValidityResponseMessage {
     InvalidProof,
     InvalidMaxFee,
     InvalidReplacementMessage,
+    AddToBatchError,
     ProofTooLarge,
     InsufficientBalance(Address),
+    EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
 }
 

@@ -6,6 +6,27 @@ Aligned’s mission is to extend Ethereum’s zero-knowledge capabilities. We ar
 
 The question we want to share is: If we are sure that zero-knowledge proofs are the future of Ethereum, but we don't know which of the many possible zero-knowledge futures will win, **then how do we build infrastructure for Ethereum to make it compatible with any future zero-knowledge proving system?**
 
+### What are the security guarantees and trust assumptions of Aligned?
+
+Aligned verifies proofs by having the operators re-execute the verification code for each proof and, if all of the proofs are valid, each of them signs a message containing a commitment to the proof and public input or the root of the batch. The aggregator is responsible for receiving the signatures, checking the quorum, performing the aggregation and sending them to Ethereum.
+
+- 67% of the operators behaving dishonestly to be able to submit false proofs.
+- 33% of the operators colluding to censor a batch of proofs or task. However, in the case of a batch, the operators can only censor the whole batch, but not a particular proof included in it.
+- The aggregator can censor batches or proofs by not sending the aggregated signature.
+
+### What is the batcher?
+
+We have a service called the batcher that batches enough proofs to send to the AVS in Eigen Layer to reduce on-chain verification costs. Users can submit their proofs to Aligned directly without the batcher. The batcher is fully optional. The batcher is an optimization to reduce on-chain verification costs.
+
+### What are the security guarantees added by the batcher?
+
+A batcher can censor proofs. The user can run their own batcher to avoid censorship or can send a task to verify proofs in Aligned via Ethereum without using the batcher. 
+The batcher cannot transfer user's funds to other accounts, only spend them to create verification tasks and pay to the aggregator. We recommend to only deposit enough funds for a few months of operations.
+
+### How do I send proofs without a batcher?
+
+### How do I run my own batcher?
+
 ### Why build Aligned on top of Ethereum?
     
 Ethereum is the most decentralized and most significant source of liquidity in the crypto ecosystem. We believe it is the most ambitious and long-term project on the internet. Aligned is being built to help Ethereum achieve its highest potential, and we believe this is only possible through validity/zero-knowledge proofs.

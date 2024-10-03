@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.7.3
+OPERATOR_VERSION=v0.8.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -120,6 +120,22 @@ update_operator:
 	@./scripts/fetch_latest_release.sh
 	@make build_operator
 	@./operator/build/aligned-operator --version
+
+operator_valid_marshall_fuzz_macos:
+	@cd operator/pkg && go test -fuzz=FuzzValidMarshall -ldflags=-extldflags=-Wl,-ld_classic
+
+operator_valid_marshall_fuzz_linux:
+	@cd operator/pkg && \
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
+	go test -fuzz=FuzzValidMarshall
+
+operator_marshall_unmarshall_fuzz_macos:
+	@cd operator/pkg && go test -fuzz=FuzzMarshalUnmarshal -ldflags=-extldflags=-Wl,-ld_classic
+
+operator_marshall_unmarshall_fuzz_linux:
+	@cd operator/pkg && \
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
+	go test -fuzz=FuzzMarshalUnmarshal
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh

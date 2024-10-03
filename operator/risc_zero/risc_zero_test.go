@@ -23,7 +23,7 @@ func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
 		t.Errorf("could not open public input file: %s", err)
 	}
 
-	if !risc_zero.VerifyRiscZeroReceipt(innerReceiptBytes, uint32(len(innerReceiptBytes)), imageIdBytes, uint32(len(imageIdBytes)), publicInputBytes, uint32(len(publicInputBytes))) {
+	if !risc_zero.VerifyRiscZeroReceipt(innerReceiptBytes, imageIdBytes, publicInputBytes) {
 		t.Errorf("proof did not verify")
 	}
 }

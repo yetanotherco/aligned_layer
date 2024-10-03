@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/fxamacker/cbor/v2"
 )
 
 type ProvingSystemId uint16
@@ -84,6 +86,28 @@ func (t *ProvingSystemId) UnmarshalBinary(data []byte) error {
 	*t, err = ProvingSystemIdFromString(str)
 
 	return err
+}
+
+func (s *ProvingSystemId) UnmarshalCBOR(data []byte) error {
+	var statusStr string
+	if err := cbor.Unmarshal(data, &statusStr); err != nil {
+		return err
+	}
+
+	switch statusStr {
+	case "GnarkPlonkBls12_381":
+		*s = GnarkPlonkBls12_381
+	case "GnarkPlonkBn254":
+		*s = GnarkPlonkBn254
+	case "Groth16Bn254":
+		*s = Groth16Bn254
+	case "SP1":
+		*s = SP1
+	case "Risc0":
+		*s = Risc0
+	}
+
+	return nil
 }
 
 func (t ProvingSystemId) MarshalBinary() ([]byte, error) {
