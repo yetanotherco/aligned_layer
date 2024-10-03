@@ -210,15 +210,13 @@ async fn main() -> Result<(), AlignedError> {
     let cached_verification_data: Vec<VerificationData> =
         threads.into_iter().map(|t| t.join().unwrap()).collect();
 
-    // Since we operate over a local network each thread sources its nonce by incrementing the initial nonce from the network.
+    // We operate over a local network each thread sources its nonce by incrementing the global network nonce.
     // When multiple senders are spawned we just increment the atomic to grab the nonce.
-    //let eth_rpc_url = args.eth_rpc_url;
     let network = args.network.into();
     let latest_nonce = get_next_nonce(&args.eth_rpc_url, wallet.address(), network)
         .await?
         .as_u64();
     let global_nonce = Arc::new(AtomicU64::new(latest_nonce));
-    //TODO: sort out error messages
     let threads = (0..args.num_senders)
         .map(|sender_id| {
             let batcher_url = args.batcher_url.clone();
