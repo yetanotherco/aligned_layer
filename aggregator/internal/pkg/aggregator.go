@@ -268,17 +268,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 			// If Aggregator successfully responds to task we acquire the task mutex and
 			// remove task information from the aggregator maps to prevent a memory leak.
-			go func() {
-				time.Sleep(10 * time.Second)
-				agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
-				agg.taskMutex.Lock()
-				delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
-				delete(agg.batchCreatedBlockByIdx, blsAggServiceResp.TaskIndex)
-				delete(agg.batchesIdentifierHashByIdx, blsAggServiceResp.TaskIndex)
-				delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
-				agg.taskMutex.Unlock()
-				agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
-			}()
+			go agg.clearTaskFromMaps(blsAggServiceResp.TaskIndex)
+			
 			return
 		}
 
@@ -294,17 +285,25 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	// If the aggregator fails to respond to the task we remove the batch information as well.
-	go func() {
-		time.Sleep(10 * time.Second)
-		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
-		agg.taskMutex.Lock()
-		delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
-		delete(agg.batchCreatedBlockByIdx, blsAggServiceResp.TaskIndex)
-		delete(agg.batchesIdentifierHashByIdx, blsAggServiceResp.TaskIndex)
-		delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
-		agg.taskMutex.Unlock()
+	go agg.clearTaskFromMaps(blsAggServiceResp.TaskIndex)
+}
+
+func (agg *Aggregator) clearTaskFromMaps(taskIndex uint32) {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Removing Task Info from Aggregator in 10 seconds")
+	time.Sleep(10 * time.Second)
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
+
+	agg.taskMutex.Lock()
+	defer func() {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
+		agg.taskMutex.Unlock()
 	}()
+
+	batchIdentifierHash := agg.batchesIdentifierHashByIdx[taskIndex]
+	delete(agg.batchesIdxByIdentifierHash, batchIdentifierHash)
+	delete(agg.batchCreatedBlockByIdx, taskIndex)
+	delete(agg.batchesIdentifierHashByIdx, taskIndex)
+	delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
 }
 
 // / Sends response to contract and waits for transaction receipt
