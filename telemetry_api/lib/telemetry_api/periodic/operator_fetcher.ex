@@ -9,7 +9,7 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
 
   @wait_time_ms (
     case Integer.parse(wait_time_str) do
-      :error -> raise("OPERATOR_FETCHER_WAIT_TIME_MS is not a number")
+      :error -> raise("OPERATOR_FETCHER_WAIT_TIME_MS is not a number, received: #{wait_time_str}")
       {num, _} -> num
     end
   )
@@ -18,7 +18,7 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
     Task.start_link(&poll_serivce/0)
   end
 
-  defp poll_serivce() do
+  defp poll_service() do
     receive do
     after
       @wait_time_ms ->
@@ -26,7 +26,7 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
           {:ok, _} -> :ok
           {:error, message} -> IO.inspect "Couldn't fetch operators: #{IO.inspect message}"
         end
-        poll_serivce()
+        poll_service()
     end
   end
 end
