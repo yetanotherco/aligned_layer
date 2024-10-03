@@ -465,35 +465,6 @@ make batcher_send_burst_groth16
 </details>
 
 <details>
-<summary>Halo2</summary>
-
-Send an individual IPA proof:
-
-```bash
-make batcher_send_halo2_ipa_task
-```
-
-Send a burst of five IPA proofs:
-
-```bash
-make batcher_send_halo2_ipa_task_burst_5
-```
-
-Send an individual KZG proof:
-
-```bash
-make batcher_send_halo2_kzg_task
-```
-
-Send a burst of 5 KZG proofs:
-
-```bash
-make batcher_send_halo2_kzg_task_burst_5
-```
-
-</details>
-
-<details>
 <summary>Send a specific proof:</summary>
 
 To install the Aligned client to send a specific proof, run:

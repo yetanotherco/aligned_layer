@@ -18,8 +18,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
-	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
-	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -477,30 +475,11 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- verificationResult
 
 	case common.SP1:
-
 		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		results <- verificationResult
-	case common.Halo2IPA:
 
-		verificationResult := halo2ipa.VerifyHalo2IpaProof(
-			verificationData.Proof,
-			verificationData.VerificationKey,
-			verificationData.PubInput)
-
-		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
-		results <- verificationResult
-	case common.Halo2KZG:
-
-		verificationResult := halo2kzg.VerifyHalo2KzgProof(
-			verificationData.Proof,
-			verificationData.VerificationKey,
-			verificationData.PubInput)
-
-		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
-		results <- verificationResult
 	case common.Risc0:
-
 		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
 
