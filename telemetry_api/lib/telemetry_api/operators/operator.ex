@@ -8,14 +8,14 @@ defmodule TelemetryApi.Operators.Operator do
     field :stake, :string
     field :name, :string
     field :version, :string
-
+    field :active, :boolean, default: false
     timestamps(type: :utc_datetime)
   end
 
   @doc false
   def changeset(operator, attrs) do
     operator
-    |> cast(attrs, [:address, :id, :stake, :name, :version])
+    |> cast(attrs, [:address, :id, :stake, :name, :version, :active])
     |> validate_required([:address, :id, :name, :stake])
   end
 end
