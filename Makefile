@@ -409,6 +409,27 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
+batcher_send_valida_task: batcher/target/release/aligned
+	@echo "Sending Valida fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Valida \
+		--proof ../../scripts/test_files/valida/fiboncci/proof.bin \
+		--vm-program ../../scripts/test_files/valida/fiboncci/code.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_valida_burst: batcher/target/release/aligned
+	@echo "Sending Valida fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Valida \
+		--proof ../../scripts/test_files/valida/fiboncci/proof.bin \
+		--vm-program ../../scripts/test_files/valida/fiboncci/code.bin \
+		--repetitions $(BURST_SIZE) \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
