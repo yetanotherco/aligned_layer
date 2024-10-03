@@ -1,10 +1,11 @@
 defmodule TelemetryApi.Periodic.OperatorFetcher do
   use Task
+  require Logger
   alias TelemetryApi.Operators
   alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
 
   wait_time_str =
-    "5" ||
+    System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
       raise """
       environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
       """
@@ -43,9 +44,13 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   defp fetch_operators_status() do
     Operators.list_operators()
     |> Enum.map(fn op ->
-      active = RegistryCoordinatorManager.is_operator_active?(op.address)
-      IO.inspect("OPERATOR #{op.address} STATUS #{inspect(active)}")
-      Operators.update_operator(%{op | active: active})
+      case RegistryCoordinatorManager.is_operator_active?(op.address) do
+        {:ok, active} ->
+          Operators.update_operator(op, %{active: active})
+
+        {:error, error} ->
+          Logger.error("Error when updating status: #{error}")
+      end
     end)
   end
 end

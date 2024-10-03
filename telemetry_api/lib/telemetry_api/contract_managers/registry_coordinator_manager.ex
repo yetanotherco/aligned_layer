@@ -22,8 +22,8 @@ defmodule TelemetryApi.ContractManagers.RegistryCoordinatorManager do
   end
 
   @registry_coordinator_address Jason.decode!(config_json_string)
-                         |> Map.get("addresses")
-                         |> Map.get("registryCoordinator")
+                                |> Map.get("addresses")
+                                |> Map.get("registryCoordinator")
 
   use Ethers.Contract,
     abi_file: "priv/abi/IRegistryCoordinator.json",
@@ -33,14 +33,14 @@ defmodule TelemetryApi.ContractManagers.RegistryCoordinatorManager do
     @registry_coordinator_address
   end
 
-  def is_operator_registered?(operator_address) do
-    {:ok, operator_address } = Base.decode16(operator_address, case: :mixed)
-
-    case RegistryCoordinatorManager.get_operator_status(operator_address)
-      |> Ethers.call() do
-        {:ok, response} -> {:ok, response == 1}
-        error ->
-          {:error, error}
-      end
+  def is_operator_active?(operator_address) do
+    with {:ok, response} <-
+           RegistryCoordinatorManager.get_operator_status(operator_address)
+           |> Ethers.call() do
+      {:ok, response == 1}
+    else
+      error ->
+        {:error, error}
+    end
   end
 end
