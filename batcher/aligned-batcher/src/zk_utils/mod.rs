@@ -3,9 +3,9 @@ use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
-use crate::validia::verify_validia_proof;
 use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
 use log::{debug, warn};
+use validia::verify_validia_proof;
 
 pub(crate) async fn verify(verification_data: &VerificationData) -> bool {
     let verification_data = verification_data.clone();

@@ -118,26 +118,7 @@ dependencies = [
  "hex",
  "lambdaworks-crypto",
  "log",
- "p3-air 0.1.0",
- "p3-baby-bear 0.1.0",
- "p3-challenger 0.1.0",
- "p3-commit 0.1.0",
- "p3-dft 0.1.0",
- "p3-field 0.1.0",
- "p3-fri 0.1.0",
- "p3-goldilocks",
- "p3-keccak 0.1.0",
- "p3-matrix 0.1.0",
- "p3-maybe-rayon 0.1.0",
- "p3-mds 0.1.0",
- "p3-merkle-tree 0.1.0",
- "p3-poseidon",
- "p3-symmetric 0.1.0",
- "p3-uni-stark 0.1.0",
- "p3-util 0.1.0",
  "priority-queue",
- "rand_pcg",
- "rand_seeder",
  "risc0-zkvm",
  "serde",
  "serde_json",
@@ -146,12 +127,7 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "tokio-tungstenite 0.21.0",
- "valida-basic",
- "valida-cpu",
- "valida-elf",
- "valida-machine",
- "valida-program",
- "valida-static-data",
+ "validia",
 ]
 
 [[package]]
@@ -8265,6 +8241,38 @@ version = "0.1.0"
 source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
 dependencies = [
  "p3-field 0.1.0",
+]
+
+[[package]]
+name = "validia"
+version = "0.1.0"
+dependencies = [
+ "ciborium",
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-challenger 0.1.0",
+ "p3-commit 0.1.0",
+ "p3-dft 0.1.0",
+ "p3-field 0.1.0",
+ "p3-fri 0.1.0",
+ "p3-goldilocks",
+ "p3-keccak 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-mds 0.1.0",
+ "p3-merkle-tree 0.1.0",
+ "p3-poseidon",
+ "p3-symmetric 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "p3-util 0.1.0",
+ "rand_pcg",
+ "rand_seeder",
+ "valida-basic",
+ "valida-cpu",
+ "valida-elf",
+ "valida-machine",
+ "valida-program",
+ "valida-static-data",
 ]
 
 [[package]]
