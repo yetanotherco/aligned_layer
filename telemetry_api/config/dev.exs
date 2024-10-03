@@ -51,7 +51,7 @@ config :telemetry_api, TelemetryApiWeb.Endpoint,
 # different ports.
 
 # Enable dev routes for dashboard and mailbox
-config :telemetry_api, dev_routes: true
+# config :telemetry_api, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
