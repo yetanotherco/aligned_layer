@@ -1,9 +1,9 @@
 use crate::gnark::verify_gnark;
 use crate::halo2::ipa::verify_halo2_ipa;
 use crate::halo2::kzg::verify_halo2_kzg;
+use crate::lita::verify_lita_proof;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
-use crate::validia::verify_validia_proof;
 use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
 use log::{debug, warn};
 
@@ -82,11 +82,11 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             warn!("Trying to verify Risc0 proof but image id or public input was not provided. Returning false");
             false
         }
-        ProvingSystemId::Validia => {
+        ProvingSystemId::Lita => {
             if let (Some(vm_program), proof) =
                 (&verification_data.vm_program_code, &verification_data.proof)
             {
-                return verify_validia_proof(vm_program, proof.as_slice());
+                return verify_lita_proof(vm_program, proof.as_slice());
             }
 
             warn!("Trying to verify Risc0 proof but image id or public input was not provided. Returning false");
