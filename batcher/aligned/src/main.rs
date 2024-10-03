@@ -233,6 +233,8 @@ pub enum ProvingSystemArg {
     Halo2IPA,
     #[clap(name = "Risc0")]
     Risc0,
+    #[clap(name = "Valida")]
+    Valida,
 }
 
 const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
@@ -247,6 +249,7 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
             ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
+            ProvingSystemArg::Valida => ProvingSystemId::Valida,
         }
     }
 }
