@@ -69,7 +69,7 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
     quorum_numbers = <<0>>
 
     response =
-      __MODULE__.get_operator_state(@registry_coordinator_address, quorum_numbers, block_number)
+      get_operator_state(@registry_coordinator_address, quorum_numbers, block_number)
       |> Ethers.call()
 
     case response do
