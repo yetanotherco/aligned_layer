@@ -768,15 +768,15 @@ docker_build_batcher:
 
 docker_restart_aggregator:
 	docker compose -f docker-compose.yaml --profile aggregator down
-	docker compose -f docker-compose.yaml --profile aggregator up -d
+	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
 
 docker_restart_operator:
 	docker compose -f docker-compose.yaml --profile operator down
-	docker compose -f docker-compose.yaml --profile operator up -d
+	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
 
 docker_restart_batcher:
 	docker compose -f docker-compose.yaml --profile batcher down
-	docker compose -f docker-compose.yaml --profile batcher up -d
+	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
 
 docker_build:
 	@echo "Host architecture: $(GOARCH)"
@@ -788,18 +788,18 @@ docker_build:
 	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
 
 docker_up:
-	docker compose -f docker-compose.yaml --profile base up -d
+	docker compose -f docker-compose.yaml --profile base up -d --remove-orphans --force-recreate
 	@until [ "$$(docker inspect $$(docker ps | grep anvil | awk '{print $$1}') | jq -r '.[0].State.Health.Status')" == "healthy" ]; do sleep .5; done; sleep 2
-	docker compose -f docker-compose.yaml --profile aggregator up -d
+	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
 	docker compose -f docker-compose.yaml run --rm fund-operator
 	docker compose -f docker-compose.yaml run --rm register-operator-eigenlayer
 	docker compose -f docker-compose.yaml run --rm mint-mock-tokens
 	docker compose -f docker-compose.yaml run --rm operator-deposit-into-mock-strategy
 	docker compose -f docker-compose.yaml run --rm operator-whitelist-devnet
 	docker compose -f docker-compose.yaml run --rm operator-register-with-aligned-layer
-	docker compose -f docker-compose.yaml --profile operator up -d
+	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
 	docker compose -f docker-compose.yaml run --rm user-fund-payment-service-devnet
-	docker compose -f docker-compose.yaml --profile batcher up -d
+	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
 	@echo "Up and running"
 
 docker_down:
