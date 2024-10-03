@@ -20,7 +20,7 @@ jobs:
       run: sudo make docker_up
 
     - name: Logs
-      run: sleep 30 && sudo docker-compose -f "docker-compose.yaml" logs
+      run: sleep 30 && sudo docker compose -f "docker-compose.yaml" logs
 
     - name: Stop containers
       if: always()
