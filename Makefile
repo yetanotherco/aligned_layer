@@ -899,6 +899,19 @@ docker_batcher_send_halo2_kzg_task_burst_5:
 	              --rpc_url $(DOCKER_RPC_URL) \
 	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
+docker_verify_proofs_onchain:
+	@echo "Verifying proofs"
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+	    for proof in ./aligned_verification_data/*; \
+		  do \
+			  echo "Verifying $${proof}"; \
+	      aligned verify-proof-onchain \
+	                --aligned-verification-data $${proof} \
+	                --rpc_url $(DOCKER_RPC_URL); \
+	    done \
+	  '
+
 docker_attach_foundry:
 	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
 
