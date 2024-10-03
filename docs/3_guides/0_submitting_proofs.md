@@ -25,6 +25,10 @@ If you already have a keystore file, you can ignore this section and start sendi
 
 You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/installation).
 
+{% hint style="warning" %}
+When creating a new wallet keystore and private key please use strong passwords for your own protection.
+{% endhint %}
+
 - If you are creating a new account, create a private key with:
 
     ```bash
