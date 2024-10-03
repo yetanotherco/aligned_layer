@@ -16,8 +16,6 @@ abstract contract BatcherPaymentServiceStorage {
     // map to user data
     mapping(address => UserInfo) public userData;
 
-    bytes32 public noncedVerificationDataTypeHash;
-
     // storage gap for upgradeability
     // solhint-disable-next-line var-name-mixedcase
     uint256[23] private __GAP;

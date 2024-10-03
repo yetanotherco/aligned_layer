@@ -5,7 +5,6 @@ import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/Ownabl
 import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {EIP712} from "../../lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 import {BatcherPaymentServiceStorage} from "./BatcherPaymentServiceStorage.sol";
 
@@ -15,10 +14,7 @@ contract BatcherPaymentService is
     PausableUpgradeable,
     UUPSUpgradeable,
     BatcherPaymentServiceStorage,
-    EIP712
 {
-    using ECDSA for bytes32;
-
     // CONSTANTS = 100 Blocks * 12 second block time.
     uint256 public constant UNLOCK_BLOCK_TIME = 3600 seconds;
 
@@ -31,29 +27,22 @@ contract BatcherPaymentService is
 
     // ERRORS
     error OnlyBatcherAllowed(address caller); // 152bc288
-    error NoLeavesSubmitted(); // e5180e03
-    error NoProofSubmitterSignatures(); // 32742c04
-    error NotEnoughLeaves(uint256 leavesQty, uint256 signaturesQty); // 320f0a1b
-    error LeavesNotPowerOfTwo(uint256 leavesQty); // 6b1651e1
+    error NoProofSubmitters(); // c43ac290
     error NoFeePerProof(); // a3a8658a
     error InsufficientFeeForAggregator(uint256 required, uint256 available); // 7899ec71
     error UserHasNoFundsToUnlock(address user); // b38340cf
     error UserHasNoFundsToLock(address user); // 6cc12bc2
     error PayerInsufficientBalance(uint256 balance, uint256 amount); // 21c3d50f
     error FundsLocked(uint256 unlockBlockTime, uint256 currentBlockTime); // bedc4e5a
-    error InvalidSignature(); // 8baa579f
-    error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
-    error InvalidMaxFee(uint256 maxFee, uint256 actualFee); // f59adf4a
     error SubmissionInsufficientBalance(
-        address signer,
+        address sender,
         uint256 balance,
         uint256 required
     ); // 4f779ceb
-    error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
     error InvalidAddress(string param); // 161eb542
 
     // CONSTRUCTOR & INITIALIZER
-    constructor() EIP712("Aligned", "1") {
+    constructor() {
         _disableInitializers();
     }
 
@@ -68,8 +57,7 @@ contract BatcherPaymentService is
     function initialize(
         IAlignedLayerServiceManager _alignedLayerServiceManager,
         address _batcherPaymentServiceOwner,
-        address _batcherWallet,
-        bytes32 _noncedVerificationDataTypeHash
+        address _batcherWallet
     ) public initializer {
         if (address(_alignedLayerServiceManager) == address(0)) {
             revert InvalidAddress("alignedServiceManager");
@@ -86,21 +74,6 @@ contract BatcherPaymentService is
 
         alignedLayerServiceManager = _alignedLayerServiceManager;
         batcherWallet = _batcherWallet;
-        noncedVerificationDataTypeHash = _noncedVerificationDataTypeHash;
-    }
-
-    // Defined in types.rs
-    // keccak256("NoncedVerificationData(bytes32 verification_data_hash,uint256 nonce,uint256 max_fee)")
-    function initializeNoncedVerificationDataTypeHash(
-        bytes32 _noncedVerificationDataTypeHash
-    ) public reinitializer(2) onlyOwner {
-        noncedVerificationDataTypeHash = _noncedVerificationDataTypeHash;
-    }
-
-    function setNoncedVerificationDataTypeHash(
-        bytes32 _newTypeHash
-    ) public onlyOwner {
-        noncedVerificationDataTypeHash = _newTypeHash;
     }
 
     // PAYABLE FUNCTIONS
@@ -122,7 +95,7 @@ contract BatcherPaymentService is
         uint256 proofSubmittersQty = proofSubmitters.length;
 
         if (proofSubmittersQty == 0) {
-            revert NoProofSubmitterSignatures();
+            revert NoProofSubmitters();
         }
 
         if (feePerProof == 0) {
