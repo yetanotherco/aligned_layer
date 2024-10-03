@@ -41,8 +41,7 @@ aligned submit \
 --vm_program <vm_program_path> \
 --batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 Where `proof_path` is the path to the proof file, `vm_program_path` is the path to the ELF file. `proof_generator_addr` is an optional parameter that works as a helper for some applications where you can be frontrunned.
@@ -57,10 +56,9 @@ This guide assumes that:
 
 - Gnark library is installed. If not, install it using the following command inside your Go module:
 
-```bash
-go get github.com/consensys/gnark@v0.11.0
-go get github.com/consensys/gnark-crypto@v0.14.0
-```
+ ```bash
+ go get github.com/consensys/gnark@v0.10.0
+ ```
 
 - Gnark project to generate the proofs' instructions [here](https://docs.gnark.consensys.io/category/how-to)
 
@@ -68,9 +66,9 @@ go get github.com/consensys/gnark-crypto@v0.14.0
 
 Open a terminal and navigate to the Gnark project directory. Then, run the following command to generate the proof:
 
-```bash
-go run circuit.go
-```
+ ```bash
+ go run circuit.go
+ ```
 
 ### How to get the proof verified by Aligned
 
@@ -92,8 +90,7 @@ aligned submit \
 --vk <verification_key_path> \
 --batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 Where proof path is the path to the proof file, `public_input_path` is the path to the public input file,
@@ -249,7 +246,6 @@ cargo run --release
 ```
 
 The files will be saved within a `proof_files/` directory containing:
-
 - `proof.bin`
 - `params.bin`
 - `public_input.bin`
@@ -278,7 +274,7 @@ aligned submit \
   --public_input <pub_input_file_path> \
   --conn wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr> \
-  --chain holesky \
+  --network holesky \
   --rpc https://ethereum-holesky-rpc.publicnode.com \
   --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```

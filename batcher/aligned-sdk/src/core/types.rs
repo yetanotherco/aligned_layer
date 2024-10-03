@@ -323,8 +323,10 @@ pub enum ValidityResponseMessage {
     InvalidProof,
     InvalidMaxFee,
     InvalidReplacementMessage,
+    AddToBatchError,
     ProofTooLarge,
     InsufficientBalance(Address),
+    EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
 }
 
