@@ -73,7 +73,7 @@ dependencies = [
 [[package]]
 name = "aligned-sdk"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/aligned_layer.git?branch=mina#3426bb47115f90606f223c97d695693a7777b61b"
+source = "git+https://github.com/lambdaclass/aligned_layer.git?branch=use_two_vks#56ac3a2e0a2d8accbc5466d6491ca082b45723cc"
 dependencies = [
  "ciborium",
  "ethers",
@@ -3657,7 +3657,7 @@ dependencies = [
 [[package]]
 name = "mina_bridge_core"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/mina_bridge?branch=devnet_flag#28a19228688a7b8d1a991b1df778c7c76d5ec658"
+source = "git+https://github.com/lambdaclass/mina_bridge?branch=aligned#b923855167a95b069fdb7f031006f7a09c59b060"
 dependencies = [
  "aligned-sdk",
  "alloy",
