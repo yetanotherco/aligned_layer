@@ -61,7 +61,7 @@ type Aggregator struct {
 	// and can start from zero
 	batchesIdxByIdentifierHash map[[32]byte]uint32
 
-	// Stores the taskCreatedBlock for each batch but batch index
+	// Stores the taskCreatedBlock for each batch by batch index
 	batchCreatedBlockByIdx map[uint32]uint64
 
 	// Stores the TaskResponse for each batch by batchIdentifierHash
