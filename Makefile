@@ -410,7 +410,7 @@ batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
 		--network $(NETWORK)
 
 batcher_send_valida_task: batcher/target/release/aligned
-	@echo "Sending Valida fibonacci task to Batcher..."
+	@echo "Sending Valida cat task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Valida \
 		--proof ../../scripts/test_files/valida/fiboncci/proof.bin \
@@ -420,7 +420,7 @@ batcher_send_valida_task: batcher/target/release/aligned
 		--network $(NETWORK)
 
 batcher_send_valida_burst: batcher/target/release/aligned
-	@echo "Sending Valida fibonacci task to Batcher..."
+	@echo "Sending Valida cat task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Valida \
 		--proof ../../scripts/test_files/valida/fiboncci/proof.bin \
