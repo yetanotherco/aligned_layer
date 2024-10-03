@@ -789,7 +789,7 @@ docker_build:
 
 docker_up:
 	docker compose -f docker-compose.yaml --profile base up -d --remove-orphans --force-recreate
-	@until [ "$$(docker inspect $$(docker ps | grep anvil | awk '{print $$1}') | jq -r '.[0].State.Health.Status')" == "healthy" ]; do sleep .5; done; sleep 2
+	@until [ "$$(docker inspect $$(docker ps | grep anvil | awk '{print $$1}') | jq -r '.[0].State.Health.Status')" = "healthy" ]; do sleep .5; done; sleep 2
 	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
 	docker compose -f docker-compose.yaml run --rm fund-operator
 	docker compose -f docker-compose.yaml run --rm register-operator-eigenlayer
