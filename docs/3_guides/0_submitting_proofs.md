@@ -29,28 +29,28 @@ When creating a new wallet keystore and private key please use strong passwords 
 
 - If you are creating a new account, create a private key with:
 
-    ```bash
-    cast wallet new-mnemonic --words 12
-    ```
+  ```bash
+  cast wallet new-mnemonic --words 12
+  ```
 
-    It will show you a new mnemonic phrase and a public-private key pair, similar to the following example:
+  It will show you a new mnemonic phrase and a public-private key pair, similar to the following example:
 
-    ```
-    Phrase:
-    test test test test test test test test test test test test
+  ```
+  Phrase:
+  test test test test test test test test test test test test
 
-    Accounts:
-    - Account 0:
-    Address:     0xabcd...1234
-    Private key: 0x1234...abcd
-    ```
+  Accounts:
+  - Account 0:
+  Address:     0xabcd...1234
+  Private key: 0x1234...abcd
+  ```
 
 - Import the wallet using the private key previously generated, or whichever you want to use, and write a password to use it.
 
-    ```bash
-    mkdir -p ~/.aligned_keystore/
-    cast wallet import ~/.aligned_keystore/keystore0 --interactive
-    ```
+  ```bash
+  mkdir -p ~/.aligned_keystore/
+  cast wallet import ~/.aligned_keystore/keystore0 --interactive
+  ```
 
   You have to paste your private key and set a password for the keystore file.
 
@@ -103,16 +103,16 @@ This guide will focus on how to submit proofs using the Aligned CLI. To integrat
 
 Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are:
 
-* `proving_system`: The proving system corresponding to the proof you want to submit.
-* `proof`: The path of the proof associated to the computation to be verified.
-* `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
-* `pub_input`: The path to the file with the public input associated with the proof.
-* `batcher_url`: The batcher websocket URL.
-* `chain` to specify the chain id to be used. Could be holesky or devnet.
-* `rpc_url`: The RPC Ethereum node URL.
-* `payment_service_addr`: The Ethereum address of the Batcher Payments System contract.
-* `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
-* `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
+- `proving_system`: The proving system corresponding to the proof you want to submit.
+- `proof`: The path of the proof associated to the computation to be verified.
+- `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
+- `pub_input`: The path to the file with the public input associated with the proof.
+- `batcher_url`: The batcher websocket URL.
+- `chain` to specify the chain id to be used. Could be holesky or devnet.
+- `rpc_url`: The RPC Ethereum node URL.
+- `payment_service_addr`: The Ethereum address of the Batcher Payments System contract.
+- `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
+- `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
 
 ### SP1 proof
 
@@ -193,6 +193,43 @@ aligned submit \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com 
+```
+
+### Nexus Proof
+
+The current Nexus version used in Aligned is v0.2.3.
+
+The Nexus Nova (Sequential) proof needs the proof file and the public parameters file (located in `target/nexus-cache/nexus-public-nova-seq-16.zst`).
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system Nexus \
+--proof <proof_file> \
+--vk <public_parameters_file> \
+--batcher_url wss://batcher.alignedlayer.com \
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
+--keystore_path <path_to_ecdsa_keystore> \
+--chain holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
+**Example**
+
+```bash
+rm -rf ~/.aligned/aligned_verification_data/ &&
+aligned submit \
+--proving_system Nexus \
+--proof ./scripts/test_files/nexus/nexus-proof \
+--vk ./scripts/test_files/nexus/nexus-public-nova-seq-16.zst \
+--batcher_url wss://batcher.alignedlayer.com \
+--aligned_verification_data_path ~/.aligned/aligned_verification_data \
+--keystore_path ~/.aligned_keystore/keystore0 \
+--chain holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
 ### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254

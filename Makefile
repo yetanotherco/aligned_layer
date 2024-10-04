@@ -33,7 +33,7 @@ submodules:
 	@echo "Updated submodules"
 
 install_nexus:
-	@cargo install --git https://github.com/nexus-xyz/nexus-zkvm nexus-tools --tag 'v0.2.3'
+	@cargo install --git https://github.com/nexus-xyz/nexus-zkvm cargo-nexus --tag 'v0.2.3'
 
 deps: submodules build_all_ffi ## Install deps
 
@@ -257,16 +257,16 @@ batcher_send_nexus_task:
 	@echo "Sending Nexus fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Nexus \
-		--proof test_files/nexus/nexus-proof \
-		--vk test_files/nexus/nexus-public-seq-16.zst \
+		--proof ../../scripts/test_files/nexus/nexus-proof \
+		--vk ../../scripts/test_files/nexus/nexus-public-seq-16.zst \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_nexus_burst:
 	@echo "Sending Nexus fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Nexus \
-		--proof test_files/nexus/nexus-proof \
-		--vk test_files/nexus/nexus-public-seq-16.zst \
+		--proof ../../scripts/test_files/nexus/nexus-proof \
+		--vk ../../scripts/test_files/nexus/nexus-public-seq-16.zst \
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -530,9 +530,9 @@ test_nexus_go_bindings_linux: build_nexus_linux
 
 # TODO: how to remove cargo dependency???
 generate_nexus_fibonacci_proof: install_nexus
-	@cd task_sender/test_examples/nexus/fib && cargo nexus prove
-	@cp task_sender/test_examples/nexus/fib/target/nexus-cache/nexus-public-seq-16.zst task_sender/test_examples/nexus/fib/.
-	@echo "Fibonacci proof and Parameters generated in task_sender/test_examples/nexus folder"
+	@cd scripts/test_files/nexus/ && cargo nexus prove
+	@cp scripts/test_files/nexus/target/nexus-cache/nexus-public-seq-16.zst scripts/test_files/nexus/.
+	@echo "Fibonacci proof and Parameters generated in scripts/test_files/nexus/"
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
