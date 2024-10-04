@@ -110,20 +110,10 @@ mod tests {
     }
 
     #[test]
-    fn verify_risc_zero_aborts_with_bad_proof() {
-        let proof = PROOF;
+    fn verify_valida_returns_false_with_bad_proof() {
         let program = PROGRAM_CODE;
 
-        let result = verify_valida_proof(program, proof);
-        assert!(!result)
-    }
-
-    #[test]
-    fn verify_valida_input_valid() {
-        let proof = PROOF;
-        let program = PROGRAM_CODE;
-
-        let result = verify_valida_proof(program, proof);
+        let result = verify_valida_proof(program, &[0, 0, 1]);
         assert!(!result)
     }
 }

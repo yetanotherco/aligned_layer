@@ -132,7 +132,7 @@ mod tests {
     }
 
     #[test]
-    fn verify_risc_zero_aborts_with_bad_proof() {
+    fn verify_valida_aborts_with_bad_proof() {
         let proof = PROOF.as_ptr();
         let program = PROGRAM_CODE.as_ptr();
 
