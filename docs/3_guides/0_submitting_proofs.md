@@ -189,6 +189,42 @@ aligned submit \
 --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
+### Lita proof
+
+The current Lita version used in Aligned is v0.3.0.
+
+The Lita proof needs the proof file and the vm program file.
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system Valida \
+--proof <proof_file> \
+--vm_program <vm_program_file> \
+--batcher_url wss://batcher.alignedlayer.com \
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
+--keystore_path <path_to_ecdsa_keystore> \
+--chain holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
+**Example**
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system Valida  \
+--proof ./scripts/test_files/valida/cat/cat.proof \
+--vm_program ./scripts/test_files/cat/cat.bin \
+--batcher_url wss://batcher.alignedlayer.com \
+--keystore_path ~/.aligned_keystore/keystore0 \
+--chain holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
 ### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
 
 The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof file, the public input file and the verification key file.
