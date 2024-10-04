@@ -18,7 +18,7 @@ use valida_cpu::MachineWithCpuChip;
 use valida_elf::{load_executable_file, Program};
 use valida_machine::StarkConfigImpl;
 use valida_machine::__internal::p3_commit::ExtensionMmcs;
-use valida_machine::{FixedAdviceProvider, Machine, MachineProof};
+use valida_machine::{FixedAdviceProvider, GlobalAdviceProvider, Machine, MachineProof};
 use valida_program::MachineWithProgramChip;
 use valida_static_data::MachineWithStaticDataChip;
 
@@ -54,7 +54,6 @@ pub extern "C" fn verify_valida_proof_ffi(
     machine.cpu_mut().save_register_state();
     machine.static_data_mut().load(data);
 
-    // Run the program
     machine.run(&code, &mut FixedAdviceProvider::empty());
 
     type Val = BabyBear;
@@ -65,7 +64,7 @@ pub extern "C" fn verify_valida_proof_ffi(
     let mds16 = Mds16::default();
 
     type Perm16 = Poseidon<Val, Mds16, 16, 5>;
-    let mut rng: Pcg64 = Seeder::from("valida seed").make_rng();
+    let mut rng: Pcg64 = Seeder::from("validia seed").make_rng();
     let perm16 = Perm16::new_from_rng(4, 22, mds16, &mut rng);
 
     type MyHash = SerializingHasher32<Keccak256Hash>;
@@ -113,8 +112,10 @@ pub extern "C" fn verify_valida_proof_ffi(
 mod tests {
     use super::*;
 
-    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/valida/cat/cat.proof");
-    const PROGRAM_CODE: &[u8] = include_bytes!("../../../../scripts/test_files/valida/cat/cat.bin");
+    const PROOF: &[u8] =
+        include_bytes!("../../../../scripts/test_files/valida/cat/fibonacci.proof");
+    const PROGRAM_CODE: &[u8] =
+        include_bytes!("../../../../scripts/test_files/valida/cat/fibonacci.bin");
 
     #[test]
     fn verify_valida_proof_with_program_code_works() {

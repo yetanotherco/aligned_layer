@@ -48,7 +48,7 @@ pub fn verify_valida_proof(code: &[u8], proof: &[u8]) -> bool {
     let mds16 = Mds16::default();
 
     type Perm16 = Poseidon<Val, Mds16, 16, 5>;
-    let mut rng: Pcg64 = Seeder::from("valida seed").make_rng();
+    let mut rng: Pcg64 = Seeder::from("validia seed").make_rng();
     let perm16 = Perm16::new_from_rng(4, 22, mds16, &mut rng);
 
     type MyHash = SerializingHasher32<Keccak256Hash>;
@@ -84,8 +84,46 @@ pub fn verify_valida_proof(code: &[u8], proof: &[u8]) -> bool {
     let challenger = Challenger::new(perm16);
     let config = MyConfig::new(pcs, challenger);
 
-    let proof: MachineProof<MyConfig> = ciborium::from_reader(proof).expect("wherever");
+    let Ok(proof): Result<MachineProof<MyConfig>, _> = ciborium::from_reader(proof) else {
+        return false;
+    };
     let verification_result = machine.verify(&config, &proof);
-
     verification_result.is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const PROOF: &[u8] =
+        include_bytes!("../../../../../scripts/test_files/valida/cat/fibonacci.proof");
+    const PROGRAM_CODE: &[u8] =
+        include_bytes!("../../../../../scripts/test_files/valida/cat/fibonacci.bin");
+
+    #[test]
+    fn verify_valida_proof_with_program_code_works() {
+        let proof = PROOF;
+        let program = PROGRAM_CODE;
+
+        let result = verify_valida_proof(program, proof);
+        assert!(result)
+    }
+
+    #[test]
+    fn verify_risc_zero_aborts_with_bad_proof() {
+        let proof = PROOF;
+        let program = PROGRAM_CODE;
+
+        let result = verify_valida_proof(program, proof);
+        assert!(!result)
+    }
+
+    #[test]
+    fn verify_valida_input_valid() {
+        let proof = PROOF;
+        let program = PROGRAM_CODE;
+
+        let result = verify_valida_proof(program, proof);
+        assert!(!result)
+    }
 }
