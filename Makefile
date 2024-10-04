@@ -900,17 +900,37 @@ docker_batcher_send_halo2_kzg_task_burst_5:
 	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 docker_verify_proofs_onchain:
-	@echo "Verifying proofs"
+	@echo "Verifying proofs..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
 	sh -c ' \
-	    for proof in ./aligned_verification_data/*; \
-		  do \
+	    for proof in ./aligned_verification_data/*; do \
 			  echo "Verifying $${proof}"; \
 	      aligned verify-proof-onchain \
 	                --aligned-verification-data $${proof} \
 	                --rpc_url $(DOCKER_RPC_URL); \
 	    done \
 	  '
+
+docker_verify_proof_submission_success: 
+	@echo "Verifying proofs were successfully submitted..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+			echo "Waiting 60 seconds before starting proof verification."; \
+			sleep 60; \
+			for proof in ./aligned_verification_data/*; do \
+				echo "---------------------------------------------------------------------------------------------------"; \
+				echo "Verifying proof $${proof} \n"; \
+				verification=$$(aligned verify-proof-onchain \
+									--aligned-verification-data $${proof} \
+									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
+				if echo "$$verification" | grep -q not; then \
+					echo "Proof verification failed for $${proof}"; \
+					exit 1; \
+				elif echo "$$verification" | grep -q verified; then \
+					echo "Proof verification succeeded for $${proof}"; \
+				fi; \
+			done \
+		'
 
 docker_attach_foundry:
 	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
