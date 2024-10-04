@@ -223,6 +223,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		agg.taskMutex.Lock()
 		batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
+		// TODO here add to garbage collector
+
 		agg.taskMutex.Unlock()
 		return
 	}
@@ -424,6 +426,7 @@ func (agg *Aggregator) clearTasksFromMaps(sleep_seconds time.Duration) {
 	}
 }
 
+//TODO consider using a channel
 func (agg *Aggregator) finalizeBatchIdx(idx uint32) {
 	agg.taskMutex.Lock()
 	agg.batchIsFinalizedByIdx[idx] = struct{}{} //now the key is present, no need to waste memory on a value
