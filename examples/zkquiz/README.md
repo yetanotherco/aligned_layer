@@ -61,3 +61,5 @@ If you want to test the zk quiz on a local network following this steps:
 2. cd into the zkquiz example: `cd examples/zkquiz`
 3. Deploy the verifier and locate the `CONTRACT_ADDRESS` from the output of: `make deploy_verifier_testnet`
 4. Run the quiz: `CONTRACT_ADDRESS=<VERIFIER_CONTRACT_ADDRESS> make answer_quiz_local`
+
+**Note** Make sure you send another proof alongside as the batcher will not create a task if it only has one proof in its queue. For example you could do: `make batcher_send_burst_groth16`
