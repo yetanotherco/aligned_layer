@@ -66,7 +66,9 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Fetches all operators.
+  - Fetches the state of all operators from the RegistryCoordinator ({address, id, stake}).
+  - Fetches the metadata of all operators from the DelegationManager.
+  - Stores all data in the database.
 
   ## Examples
 
@@ -89,7 +91,7 @@ defmodule TelemetryApi.Operators do
           |> Repo.insert_or_update()
         end
       end)
-      |> TelemetryApi.Utils.clean_list_errors("Error fetching operators metadata")
+      |> TelemetryApi.Utils.check_list_status("Error fetching operators metadata")
     end
   end
 
@@ -129,12 +131,12 @@ defmodule TelemetryApi.Operators do
       {:error, "Some status", "Some message"}
 
   """
-  def update_operator_version(attrs \\ %{}) do
-    with {:ok, address} <- SignatureVerifier.get_address(attrs["version"], attrs["signature"]) do
+  def update_operator_version(%{"version" => version, "signature" => signature}) do
+    with {:ok, address} <- SignatureVerifier.recover_address(version, signature) do
       address = "0x" <> address
       # We only want to allow changes on version
       changes = %{
-        version: attrs["version"]
+        version: version
       }
 
       case Repo.get(Operator, address) do

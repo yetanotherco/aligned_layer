@@ -20,14 +20,14 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
   end
 
   @contract_address Jason.decode!(config_json_string)
-                         |> Map.get("addresses")
-                         |> Map.get("operatorStateRetriever")
+                    |> Map.get("addresses")
+                    |> Map.get("operatorStateRetriever")
 
   @registry_coordinator_address Jason.decode!(config_json_string)
-                         |> Map.get("addresses")
-                         |> Map.get("registryCoordinator")
-                         |> String.trim_leading("0x")
-                         |> Base.decode16!(case: :mixed)
+                                |> Map.get("addresses")
+                                |> Map.get("registryCoordinator")
+                                |> String.trim_leading("0x")
+                                |> Base.decode16!(case: :mixed)
 
   use Ethers.Contract,
     abi_file: "priv/abi/OperatorStateRetriever.json",
@@ -41,34 +41,41 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
 
   def get_operators() do
     with {:ok, block_number} = Ethers.current_block_number(),
-      {:ok, operators_state} = fetch_operators_state(block_number) do
-        parse_operators(operators_state)
-      end
+         {:ok, operators_state} = fetch_operators_state(block_number) do
+      parse_operators(operators_state)
+    end
   end
 
   # -------- PRIVATE FUNCTIONS --------
 
   defp parse_operators(operators_state) do
     operators =
-      operators_state |> Enum.map(fn {address, id, stake} ->
+      operators_state
+      |> Enum.map(fn {address, id, stake} ->
         id = "0x" <> Base.encode16(id, case: :lower)
         address = address |> String.downcase()
+
         %{
           id: id,
           address: address,
           stake: Integer.to_string(stake)
         }
       end)
+
     {:ok, operators}
   end
 
   defp fetch_operators_state(block_number) do
-      quorum_numbers = <<0>>
-      response = __MODULE__.get_operator_state(@registry_coordinator_address, quorum_numbers, block_number) |> Ethers.call()
-      case response do
-        {:ok, [operators | _]} -> {:ok, operators}
-        {:error, message} -> {:error, message}
-        _ -> {:error, "Bad formated data received from OperatorStateRetriever::getOperatorState"}
-      end
+    quorum_numbers = <<0>>
+
+    response =
+      get_operator_state(@registry_coordinator_address, quorum_numbers, block_number)
+      |> Ethers.call()
+
+    case response do
+      {:ok, [operators | _]} -> {:ok, operators}
+      {:error, message} -> {:error, message}
+      _ -> {:error, "Bad formated data received from OperatorStateRetriever::getOperatorState"}
+    end
   end
 end

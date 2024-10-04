@@ -35,10 +35,10 @@ defmodule SignatureVerifier do
   Examples
       iex> version = "v0.7.0"
       iex> signature = N1UJOvjJT1W39MdQUYAOsKZj4aQ1Sjkwp31NJgafpjoUniGt24tSaLw6TlTKP68AkLtsIFoVEaJcJDj7TyvhLQA=
-      iex> get_address(version, signature)
+      iex> recover_address(version, signature)
       "0x..."
   """
-  def get_address(version, signature) do
+  def recover_address(version, signature) do
     version_hash = hash_version(version)
     # Signature contains r, s and v (recovery_id)
     # r<>s is 64 bytes.

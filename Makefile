@@ -757,7 +757,7 @@ open_telemetry_start: ## Run open telemetry services using telemetry-docker-comp
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
 
-telemetry_start: telemetry_ecto_migrate ## Run Telemetry API
+telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
 	 	./start.sh	
 
@@ -782,7 +782,7 @@ telemetry_clean_db: telemetry_remove_db_container
 
 telemetry_dump_db:
 	@cd telemetry_api && \
-		docker exec -t telemetry-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
+		docker exec -t telemetry-postgres-container pg_dumpall -c -U telemetry_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /telemetry_api"
 
 telemetry_create_env:
