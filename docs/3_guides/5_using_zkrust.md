@@ -65,9 +65,9 @@ For example, to generate a proof of a `fibonacci` program with Risc0 or SP1 and 
 
 ```sh
 cargo run --release --  prove-risc0 \
-    --submit-to-aligned-with-keystore \
-    <PATH_TO_KEYSTORE> \
-    examples/fibonacci .
+    --submit-to-aligned \
+    --keystore-path <PATH_TO_KEYSTORE> \
+    examples/fibonacci
 ```
 
 This command will generate a proof for the fibonacci example program and submit it to Aligned using the keystore
@@ -81,8 +81,9 @@ The same program can be proved using SP1 just changing the zkRust subcommand:
 
 ```bash
 cargo run --release -- prove-sp1 \
-    --submit-to-aligned-with-keystore <path_to_keystore> \
-    examples/fibonacci .
+    --submit-to-aligned \
+    --keystore-path <PATH_TO_KEYSTORE> \
+    examples/fibonacci
 ```
 
 ## Caveats
