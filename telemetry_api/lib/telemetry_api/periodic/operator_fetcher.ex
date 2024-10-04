@@ -15,7 +15,7 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   )
 
   def start_link(_) do
-    Task.start_link(&poll_serivce/0)
+    Task.start_link(&poll_service/0)
   end
 
   defp poll_service() do
