@@ -90,7 +90,7 @@ The ZkQuiz Program is built using SP1 following the [quickstart guide](https://d
 
 Once the proof is generated, the App sends the proof to Aligned, and once it is verified, the App calls to the ZkQuiz Verifier Contract to check the proof verification and send an NFT to the user is the proof was verified in Aligned.
 
-![img.png](../images/zkquiz.png)
+![ZkQuiz](../images/zkquiz.png)
 
 Now, lets build ZkQuiz from scratch.
 
