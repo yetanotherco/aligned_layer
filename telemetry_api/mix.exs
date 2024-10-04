@@ -36,7 +36,7 @@ defmodule TelemetryApi.MixProject do
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.10"},
       {:postgrex, ">= 0.0.0"},
-      # {:phoenix_live_dashboard, "~> 0.8.3"},
+      {:phoenix_live_dashboard, "~> 0.8.3"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:httpoison, "~> 2.0"},
@@ -45,7 +45,7 @@ defmodule TelemetryApi.MixProject do
       {:bandit, "~> 1.5"},
       {:ex_keccak, "~> 0.7.5"},
       {:ex_secp256k1, "~> 0.7"},
-      {:ethers, "~> 0.4.4"},
+      {:ethers, "~> 0.4.4"}
     ]
   end
 

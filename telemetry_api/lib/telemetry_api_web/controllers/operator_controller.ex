@@ -18,7 +18,7 @@ defmodule TelemetryApiWeb.OperatorController do
     render(conn, :index, operators: operators)
   end
 
-  def create(conn, operator_params) do
+  def create_or_update(conn, operator_params) do
     case Operators.update_operator_version(operator_params) do
       {:ok, %Operator{} = operator} ->
         conn
