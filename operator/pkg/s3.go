@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ugorji/go/codec"
-
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 	merkle_tree_old "github.com/yetanotherco/aligned_layer/operator/merkle_tree_old"
 )
@@ -92,11 +91,11 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 
 	// Checks if downloaded merkle root is the same as the expected one
 	o.Logger.Infof("Verifying batch merkle tree...")
-	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
+	merkle_root_check := merkle_tree.VerifyMerkleTreeBatch(batchBytes, expectedMerkleRoot)
 	if !merkle_root_check {
 		// try old merkle tree
 		o.Logger.Infof("Batch merkle tree verification failed. Trying old merkle tree...")
-		merkle_root_check = merkle_tree_old.VerifyMerkleTreeBatchOld(batchBytes, uint(len(batchBytes)), expectedMerkleRoot)
+		merkle_root_check = merkle_tree_old.VerifyMerkleTreeBatchOld(batchBytes, expectedMerkleRoot)
 		if !merkle_root_check {
 			return nil, fmt.Errorf("merkle root check failed")
 		}
@@ -105,13 +104,16 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 
 	var batch []VerificationData
 
-	decoder := codec.NewDecoderBytes(batchBytes, new(codec.CborHandle))
+	decoder, err := createDecoderMode()
+	if err != nil {
+		return nil, fmt.Errorf("error creating CBOR decoder: %s", err)
+	}
+	err = decoder.Unmarshal(batchBytes, &batch)
 
-	err = decoder.Decode(&batch)
 	if err != nil {
 		o.Logger.Infof("Error decoding batch as CBOR: %s. Trying JSON decoding...", err)
 		// try json
-		decoder = codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
+		decoder := codec.NewDecoderBytes(batchBytes, new(codec.JsonHandle))
 		err = decoder.Decode(&batch)
 		if err != nil {
 			return nil, err
