@@ -4,7 +4,7 @@ use p3_baby_bear::BabyBear;
 
 use p3_fri::{FriConfig, TwoAdicFriPcs, TwoAdicFriPcsConfig};
 use valida_cpu::MachineWithCpuChip;
-use valida_machine::{GlobalAdviceProvider, Machine, MachineProof};
+use valida_machine::{FixedAdviceProvider, Machine, MachineProof};
 
 use valida_elf::{load_executable_file, Program};
 use valida_program::MachineWithProgramChip;
@@ -38,7 +38,7 @@ pub fn verify_valida_proof(code: &[u8], proof: &[u8]) -> bool {
     machine.static_data_mut().load(data);
 
     // Run the program
-    machine.run(&code, &mut GlobalAdviceProvider::new(&None));
+    machine.run(&code, &mut FixedAdviceProvider::empty());
 
     type Val = BabyBear;
     type Challenge = BinomialExtensionField<Val, 5>;
