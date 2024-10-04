@@ -36,7 +36,7 @@ cd zkRust
 and running the installation script:
 
 ```sh
-make install
+./install_aligned.sh
 ```
 
 ### 2. Generate a keystore:
@@ -64,7 +64,7 @@ You can find them in `zkRust/examples`.
 For example, to generate a proof of a `fibonacci` program with Risc0 or SP1 and submit it to aligned, run:
 
 ```sh
-cargo run --release --  prove-risc0 \
+zkrust prove-risc0 \
     --submit-to-aligned \
     --keystore-path <PATH_TO_KEYSTORE> \
     examples/fibonacci
@@ -80,7 +80,7 @@ Aligned.
 The same program can be proved using SP1 just changing the zkRust subcommand:
 
 ```bash
-cargo run --release -- prove-sp1 \
+zkrust prove-sp1 \
     --submit-to-aligned \
     --keystore-path <PATH_TO_KEYSTORE> \
     examples/fibonacci
