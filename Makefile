@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.7.3
+OPERATOR_VERSION=v0.8.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -365,50 +365,6 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
-batcher_send_halo2_ipa_task: batcher/target/release/aligned
-	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Halo2IPA \
-		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
-		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
-		--vk ../../scripts/test_files/halo2_ipa/params.bin \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
-	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Halo2IPA \
-		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
-		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
-		--vk ../../scripts/test_files/halo2_ipa/params.bin \
-		--repetitions 5 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_halo2_kzg_task: batcher/target/release/aligned
-	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Halo2KZG \
-		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
-		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
-		--vk ../../scripts/test_files/halo2_kzg/params.bin \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
-	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Halo2KZG \
-		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
-		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
-		--vk ../../scripts/test_files/halo2_kzg/params.bin \
-		--repetitions 5 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
@@ -601,69 +557,6 @@ test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree_old/... -v
 
-__HALO2_KZG_FFI__: ##
-build_halo2_kzg_macos:
-	@cd operator/halo2kzg/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.dylib operator/halo2kzg/lib/libhalo2kzg_verifier.dylib
-	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
-
-build_halo2_kzg_linux:
-	@cd operator/halo2kzg/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.so operator/halo2kzg/lib/libhalo2kzg_verifier.so
-	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
-
-test_halo2_kzg_rust_ffi:
-	@echo "Testing Halo2-KZG Rust FFI source code..."
-	@cd operator/halo2kzg/lib && cargo t --release
-
-test_halo2_kzg_go_bindings_macos: build_halo2_kzg_macos
-	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2kzg/... -v
-
-test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
-	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2kzg/... -v
-
-generate_halo2_kzg_proof:
-	@cd scripts/test_files/halo2_kzg && \
-	cargo clean && \
-	rm -f params.bin proof.bin pub_input.bin && \
-	RUST_LOG=info cargo run --release && \
-	echo "Generating halo2 plonk proof..." && \
-	echo "Generated halo2 plonk proof!"
-
-__HALO2_IPA_FFI__: ##
-build_halo2_ipa_macos:
-	@cd operator/halo2ipa/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.dylib operator/halo2ipa/lib/libhalo2ipa_verifier.dylib
-	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
-
-build_halo2_ipa_linux:
-	@cd operator/halo2ipa/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.so operator/halo2ipa/lib/libhalo2ipa_verifier.so
-	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
-
-test_halo2_ipa_rust_ffi:
-	@echo "Testing Halo2-KZG Rust FFI source code..."
-	@cd operator/halo2ipa/lib && cargo t --release
-
-test_halo2_ipa_go_bindings_macos: build_halo2_ipa_macos
-	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2ipa/... -v
-
-test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
-	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2ipa/... -v
-
-generate_halo2_ipa_proof:
-	@cd scripts/test_files/halo2_ipa && \
-	cargo clean && \
-	rm -f params.bin proof.bin pub_input.bin && \
-	RUST_LOG=info cargo run --release && \
-	echo "Generating halo2 plonk proof..." && \
-	echo "Generated halo2 plonk proof!"
-
-
 __BUILD_ALL_FFI__:
 
 build_all_ffi: ## Build all FFIs
@@ -676,8 +569,6 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_merkle_tree_macos_old
-	@$(MAKE) build_halo2_ipa_macos
-	@$(MAKE) build_halo2_kzg_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -686,8 +577,6 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_merkle_tree_linux_old
-	@$(MAKE) build_halo2_ipa_linux
-	@$(MAKE) build_halo2_kzg_linux
 	@echo "All Linux FFIs built successfully."
 
 
