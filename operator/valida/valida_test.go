@@ -7,13 +7,13 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/valida"
 )
 
-func TestCatValidaProofVerifies(t *testing.T) {
-	proofBytes, err := os.ReadFile("../../scripts/test_files/valida/cat/cat.proof")
+func TestFibonacciValidaProofVerifies(t *testing.T) {
+	proofBytes, err := os.ReadFile("../../scripts/test_files/valida/cat/fibonacci.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
 
-	programCodeBytes, err := os.ReadFile("../../scripts/test_files/valida/cat/cat.bin")
+	programCodeBytes, err := os.ReadFile("../../scripts/test_files/valida/cat/fibonacci.bin")
 	if err != nil {
 		t.Errorf("could not open program code file: %s", err)
 	}
