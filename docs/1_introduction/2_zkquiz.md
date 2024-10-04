@@ -47,6 +47,7 @@ You can do this by using this [faucet](https://cloud.google.com/application/web3
 To answer quiz questions run:
 
 ```bash
+cd examples/zkquiz
 make answer_quiz KEYSTORE_PATH=<path_to_keystore.json>
 ```
 
