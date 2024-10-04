@@ -89,7 +89,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
                 return verify_valida_proof(vm_program, proof.as_slice());
             }
 
-            warn!("Trying to verify Risc0 proof but image id or public input was not provided. Returning false");
+            warn!("Trying to verify Valida proof but vm program or proof was not provided. Returning false");
             false
         }
         ProvingSystemId::GnarkPlonkBls12_381
