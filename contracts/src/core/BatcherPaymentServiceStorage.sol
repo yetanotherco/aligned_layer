@@ -18,5 +18,5 @@ abstract contract BatcherPaymentServiceStorage {
 
     // storage gap for upgradeability
     // solhint-disable-next-line var-name-mixedcase
-    uint256[23] private __GAP;
+    uint256[24] private __GAP;
 }
