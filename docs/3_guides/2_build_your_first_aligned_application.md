@@ -34,7 +34,9 @@ Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
 
 #### 1. Clone the repository
 
-```bash git clone https://github.com/yetanotherco/aligned_layer.git && cd aligned_layer```
+```bash
+git clone https://github.com/yetanotherco/aligned_layer.git && cd aligned_layer
+```
 
 #### 2. Create a Keystore
 
