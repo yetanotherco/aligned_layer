@@ -34,8 +34,6 @@ struct Args {
     batcher_url: String,
     #[arg(short, long, default_value = "holesky")]
     network: Network,
-    #[arg(short, long, default_value = "17000")]
-    chain_id: u64,
     #[arg(short, long)]
     verifier_contract_address: H160,
 }
@@ -51,8 +49,7 @@ async fn main() {
         .expect("Failed to read keystore password");
 
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
-        .expect("Failed to decrypt keystore")
-        .with_chain_id(args.chain_id);
+        .expect("Failed to decrypt keystore");
 
     let provider =
         Provider::<Http>::try_from(rpc_url.as_str()).expect("Failed to connect to provider");
@@ -63,6 +60,7 @@ async fn main() {
         .with_prompt("Do you want to deposit 0.004eth in Aligned ?\nIf you already deposited Ethereum to Aligned before, this is not needed")
         .interact()
         .expect("Failed to read user input") {   
+            deposit_to_aligned();
             deposit_to_batcher(wallet.address(), signer.clone(), args.network).await.expect("Failed to pay for proof submission");
     }
 
