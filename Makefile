@@ -685,6 +685,30 @@ generate_halo2_ipa_proof:
 	echo "Generated halo2 plonk proof!"
 
 
+
+__VALIDA_FFI__: ##
+build_valida_macos:
+	@cd operator/valida/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/valida/lib/target/$(TARGET_REL_PATH)/libvalida_verifier_ffi.dylib operator/valida/lib/libvalida_verifier_ffi.dylib
+
+build_valida_linux:
+	@cd operator/valida/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/valida/lib/target/$(TARGET_REL_PATH)/libvalida_verifier_ffi.so operator/valida/lib/libvalida_verifier_ffi.so
+
+test_valida_rust_ffi:
+	@echo "Testing RISC Zero Rust FFI source code..."
+	@cd operator/valida/lib && cargo test --release
+
+test_valida_go_bindings_macos: build_valida_macos
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/valida/... -v
+
+test_valida_go_bindings_linux: build_valida_linux
+	@echo "Testing RISC Zero Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/valida/lib \
+	go test ./operator/valida/... -v
+
+
 __BUILD_ALL_FFI__:
 
 build_all_ffi: ## Build all FFIs
@@ -699,6 +723,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_merkle_tree_macos_old
 	@$(MAKE) build_halo2_ipa_macos
 	@$(MAKE) build_halo2_kzg_macos
+	@$(MAKE) build_valida_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -709,6 +734,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_merkle_tree_linux_old
 	@$(MAKE) build_halo2_ipa_linux
 	@$(MAKE) build_halo2_kzg_linux
+	@$(MAKE) build_valida_linux
 	@echo "All Linux FFIs built successfully."
 
 
