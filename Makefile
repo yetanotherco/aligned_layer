@@ -656,3 +656,195 @@ tracker_dump_db:
 	@cd operator_tracker && \
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
+
+ARCH := $(shell uname -m)
+ifeq ($(ARCH), x86_64)
+  GOARCH := amd64
+else ifeq ($(ARCH), arm64)
+  GOARCH := arm64
+endif
+
+DOCKER_RPC_URL=http://anvil:8545
+PROOF_GENERATOR_ADDRESS=0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+docker_build_aggregator:
+	docker compose -f docker-compose.yaml --profile aggregator build
+
+docker_build_operator:
+	docker compose -f docker-compose.yaml --profile operator build --build-arg GOARCH=$(GOARCH)
+
+docker_build_batcher:
+	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
+
+docker_restart_aggregator:
+	docker compose -f docker-compose.yaml --profile aggregator down
+	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
+
+docker_restart_operator:
+	docker compose -f docker-compose.yaml --profile operator down
+	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
+
+docker_restart_batcher:
+	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
+
+docker_build:
+	@echo "Host architecture: $(GOARCH)"
+	docker compose -f docker-compose.yaml --profile aligned_base build
+	docker compose -f docker-compose.yaml --profile eigenlayer-cli build
+	docker compose -f docker-compose.yaml --profile foundry build
+	docker compose -f docker-compose.yaml --profile base build
+	docker compose -f docker-compose.yaml --profile operator build --build-arg GOARCH=$(GOARCH)
+	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
+
+docker_up:
+	docker compose -f docker-compose.yaml --profile base up -d --remove-orphans --force-recreate
+	@until [ "$$(docker inspect $$(docker ps | grep anvil | awk '{print $$1}') | jq -r '.[0].State.Health.Status')" = "healthy" ]; do sleep .5; done; sleep 2
+	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
+	docker compose -f docker-compose.yaml run --rm fund-operator
+	docker compose -f docker-compose.yaml run --rm register-operator-eigenlayer
+	docker compose -f docker-compose.yaml run --rm mint-mock-tokens
+	docker compose -f docker-compose.yaml run --rm operator-deposit-into-mock-strategy
+	docker compose -f docker-compose.yaml run --rm operator-whitelist-devnet
+	docker compose -f docker-compose.yaml run --rm operator-register-with-aligned-layer
+	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
+	docker compose -f docker-compose.yaml run --rm user-fund-payment-service-devnet
+	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
+	@echo "Up and running"
+
+docker_down:
+	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile operator down
+	docker compose -f docker-compose.yaml --profile base down
+	@echo "Everything down"
+	docker ps
+
+docker_batcher_send_sp1_burst:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --batcher_url 'ws://[::1]:8080' \
+              --proving_system SP1 \
+              --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
+              --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
+              --repetitions 5 \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+docker_batcher_send_risc0_burst:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --batcher_url 'ws://[::1]:8080' \
+              --proving_system Risc0 \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+              --repetitions $(BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_batcher_send_plonk_bn254_burst:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --batcher_url 'ws://[::1]:8080' \
+              --proving_system GnarkPlonkBn254 \
+              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
+              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+              --repetitions 4 \
+              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_batcher_send_plonk_bls12_381_burst:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --batcher_url 'ws://[::1]:8080' \
+              --proving_system GnarkPlonkBls12_381 \
+              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
+              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --repetitions 15 \
+              --rpc_url $(DOCKER_RPC_URL) \
+              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_batcher_send_infinite_groth16:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+		mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs; \
+	  counter=1; \
+	  timer=3; \
+	  while true; do \
+	    echo "Generating proof $${counter} != 0"; \
+	    gnark_groth16_bn254_infinite_script $${counter}; \
+	    aligned submit \
+	              --rpc_url $(DOCKER_RPC_URL) \
+	              --repetitions 2 \
+	              --proving_system Groth16Bn254 \
+	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.proof \
+	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
+	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
+	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
+	    sleep $${timer}; \
+	    counter=$$((counter + 1)); \
+	  done \
+	'
+
+docker_batcher_send_halo2_ipa_task_burst_5:
+	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+	              --proving_system Halo2IPA \
+	              --proof scripts/test_files/halo2_ipa/proof.bin \
+	              --public_input scripts/test_files/halo2_ipa/pub_input.bin \
+	              --vk scripts/test_files/halo2_ipa/params.bin \
+	              --repetitions 5 \
+	              --rpc_url $(DOCKER_RPC_URL) \
+	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_batcher_send_halo2_kzg_task_burst_5:
+	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+	              --proving_system Halo2KZG \
+	              --proof scripts/test_files/halo2_kzg/proof.bin \
+	              --public_input scripts/test_files/halo2_kzg/pub_input.bin \
+	              --vk scripts/test_files/halo2_kzg/params.bin \
+	              --repetitions 5 \
+	              --rpc_url $(DOCKER_RPC_URL) \
+	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
+docker_verify_proofs_onchain:
+	@echo "Verifying proofs"
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+	    for proof in ./aligned_verification_data/*; \
+		  do \
+			  echo "Verifying $${proof}"; \
+	      aligned verify-proof-onchain \
+	                --aligned-verification-data $${proof} \
+	                --rpc_url $(DOCKER_RPC_URL); \
+	    done \
+	  '
+
+docker_attach_foundry:
+	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
+
+docker_attach_anvil:
+	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
+
+docker_attach_aggregator:
+	docker exec -ti $(shell docker ps | grep aggregator | awk '{print $$1}') /bin/bash
+
+docker_attach_operator:
+	docker exec -ti $(shell docker ps | grep operator | awk '{print $$1}') /bin/bash
+
+docker_attach_batcher:
+	docker exec -ti $(shell docker ps | grep batcher | awk '{print $$1}') /bin/bash
+
+docker_logs_anvil:
+	docker compose -f docker-compose.yaml logs anvil -f
+
+docker_logs_aggregator:
+	docker compose -f docker-compose.yaml logs aggregator -f
+
+docker_logs_operator:
+	docker compose -f docker-compose.yaml logs operator -f
+
+docker_logs_batcher:
+	docker compose -f docker-compose.yaml logs batcher -f
