@@ -32,7 +32,13 @@ use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
+<<<<<<< HEAD
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
+=======
+use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
+use tokio_tungstenite::WebSocketStream;
+use types::batch_queue::{self, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
+>>>>>>> 7ce69258 (fix: larger incoming payloads for websockets)
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
@@ -41,11 +47,7 @@ mod config;
 mod connection;
 mod eth;
 pub mod gnark;
-<<<<<<< HEAD
-=======
-pub mod halo2;
 pub mod nexus;
->>>>>>> 5c5d63d2 (add nexus verifier)
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
@@ -277,14 +279,13 @@ impl Batcher {
         addr: SocketAddr,
     ) -> Result<(), BatcherError> {
         info!("Incoming TCP connection from: {}", addr);
-        // !!!TODO_BEFORE_MERGE!!!(pat): Configure websocket config to allow for larger msg size not default 16 MiB
+        // Nexus sends payloads bigger than the default maximum of 16MiB
         // ref: https://docs.rs/tungstenite/latest/tungstenite/protocol/struct.WebSocketConfig.html#structfield.max_frame_size
-        /*
         let mut config = WebSocketConfig::default();
-        config.max_frame_size = Some(200 << 20);
-        config.max_message_size = Some(200 << 20);
-        */
-        let ws_stream = tokio_tungstenite::accept_async(raw_stream).await?;
+        config.max_frame_size = Some(256 << 20);
+        config.max_message_size = Some(256 << 20);
+
+        let ws_stream = tokio_tungstenite::accept_async_with_config(raw_stream, Some(config)).await?;
 
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
