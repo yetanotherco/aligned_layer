@@ -1,4 +1,4 @@
-# Getting started!
+# Try Aligned
 
 In this tutorial, you will learn how to send your first SP1 proofs to get verified in Aligned in under 3 minutes.
 

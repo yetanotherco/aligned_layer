@@ -3,8 +3,7 @@
 ## Introduction
 
 * [About Aligned](1_introduction/0_about_aligned.md)
-* [Getting started](1_introduction/1_getting_started.md)
-* [Example - ZKquiz](1_introduction/2_zkquiz.md)
+* [Getting started](1_introduction/1_try_aligned.md)
 * [Use cases](1_introduction/3_use_cases.md)
 * [FAQ](1_introduction/4_faq.md)
 * [Why ZK and Aligned?](1_introduction/5_why_zk.md)
@@ -25,7 +24,7 @@
 ## Guides
 
 * [Submitting proofs](3_guides/0_submitting_proofs.md)
-* [Integrating Aligned into your Application](3_guides/2_integrating_aligned_into_your_application.md)
+* [Build your fist Aligned Application](3_guides/2_build_your_first_aligned_application.md)
 * [Validating public input](3_guides/3_validating_public_input.md)
 * [SDK Intro](3_guides/1_SDK_how_to.md)
 * [SDK API Reference](3_guides/1.2_SDK_api_reference.md)
