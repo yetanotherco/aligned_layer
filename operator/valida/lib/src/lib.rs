@@ -101,72 +101,55 @@ pub extern "C" fn verify_valida_proof_ffi(
     let challenger = Challenger::new(perm16);
     let config = MyConfig::new(pcs, challenger);
 
-    let proof: MachineProof<MyConfig> = ciborium::from_reader(proof).expect("wherever");
+    let Ok(proof): Result<MachineProof<MyConfig>, _> = ciborium::from_reader(proof) else {
+        return false;
+    };
     let verification_result = machine.verify(&config, &proof);
 
     verification_result.is_ok()
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
-//     const IMAGE_ID: &[u8] = include_bytes!(
-//         "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin"
-//     );
-//     const PUBLIC_INPUT: &[u8] = include_bytes!(
-//         "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub"
-//     );
+    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/valida/cat/cat.proof");
+    const PROGRAM_CODE: &[u8] = include_bytes!("../../../../scripts/test_files/valida/cat/cat.bin");
 
-//     #[test]
-//     fn verify_risc_zero_receipt_with_image_id_works() {
-//         let receipt_bytes = RECEIPT.as_ptr();
-//         let image_id = IMAGE_ID.as_ptr();
-//         let public_input = PUBLIC_INPUT.as_ptr();
+    #[test]
+    fn verify_valida_proof_with_program_code_works() {
+        let proof = PROOF.as_ptr();
+        let program = PROGRAM_CODE.as_ptr();
 
-//         let result = verify_risc_zero_receipt_ffi(
-//             receipt_bytes,
-//             RECEIPT.len() as u32,
-//             image_id,
-//             IMAGE_ID.len() as u32,
-//             public_input,
-//             PUBLIC_INPUT.len() as u32,
-//         );
-//         assert!(result)
-//     }
+        let result = verify_valida_proof_ffi(
+            proof,
+            PROOF.len() as u32,
+            program,
+            PROGRAM_CODE.len() as u32,
+        );
+        assert!(result)
+    }
 
-//     #[test]
-//     fn verify_risc_zero_aborts_with_bad_proof() {
-//         let receipt_bytes = RECEIPT.as_ptr();
-//         let image_id = IMAGE_ID.as_ptr();
-//         let public_input = PUBLIC_INPUT.as_ptr();
+    #[test]
+    fn verify_risc_zero_aborts_with_bad_proof() {
+        let proof = PROOF.as_ptr();
+        let program = PROGRAM_CODE.as_ptr();
 
-//         let result = verify_risc_zero_receipt_ffi(
-//             receipt_bytes,
-//             (RECEIPT.len() - 1) as u32,
-//             image_id,
-//             IMAGE_ID.len() as u32,
-//             public_input,
-//             PUBLIC_INPUT.len() as u32,
-//         );
-//         assert!(!result)
-//     }
+        let result = verify_valida_proof_ffi(
+            proof,
+            (PROOF.len() - 1) as u32,
+            program,
+            PROGRAM_CODE.len() as u32,
+        );
+        assert!(!result)
+    }
 
-//     #[test]
-//     fn verify_risc_zero_input_valid() {
-//         let receipt_bytes = RECEIPT.as_ptr();
-//         let image_id = IMAGE_ID.as_ptr();
-//         let public_input = [].as_ptr();
+    #[test]
+    fn verify_valida_input_valid() {
+        let proof = PROOF.as_ptr();
+        let program = PROGRAM_CODE.as_ptr();
 
-//         let result = verify_risc_zero_receipt_ffi(
-//             receipt_bytes,
-//             (RECEIPT.len() - 1) as u32,
-//             image_id,
-//             IMAGE_ID.len() as u32,
-//             public_input,
-//             0,
-//         );
-//         assert!(!result)
-//     }
-// }
+        let result = verify_valida_proof_ffi(proof, (PROOF.len() - 1) as u32, program, 0);
+        assert!(!result)
+    }
+}
