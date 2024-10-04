@@ -258,7 +258,7 @@ batcher_send_nexus_task:
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Nexus \
 		--proof ../../scripts/test_files/nexus/nexus-proof \
-		--vk ../../scripts/test_files/nexus/nexus-public-seq-16.zst \
+		--vk ../../scripts/test_files/nexus/nexus-public-nova-seq-16.zst \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_nexus_burst:
@@ -266,7 +266,7 @@ batcher_send_nexus_burst:
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Nexus \
 		--proof ../../scripts/test_files/nexus/nexus-proof \
-		--vk ../../scripts/test_files/nexus/nexus-public-seq-16.zst \
+		--vk ../../scripts/test_files/nexus/nexus-public-nova-seq-16.zst \
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
