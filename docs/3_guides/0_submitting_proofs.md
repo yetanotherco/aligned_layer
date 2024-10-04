@@ -216,8 +216,8 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system Valida  \
---proof ./scripts/test_files/valida/cat/cat.proof \
---vm_program ./scripts/test_files/cat/cat.bin \
+--proof ./scripts/test_files/valida/fibonacci.proof \
+--vm_program ./scripts/test_files/valida/fibonacci.bin \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --chain holesky \

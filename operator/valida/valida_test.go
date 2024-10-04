@@ -8,12 +8,12 @@ import (
 )
 
 func TestFibonacciValidaProofVerifies(t *testing.T) {
-	proofBytes, err := os.ReadFile("../../scripts/test_files/valida/cat/fibonacci.proof")
+	proofBytes, err := os.ReadFile("../../scripts/test_files/valida/fibonacci.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
 
-	programCodeBytes, err := os.ReadFile("../../scripts/test_files/valida/cat/fibonacci.bin")
+	programCodeBytes, err := os.ReadFile("../../scripts/test_files/valida/fibonacci.bin")
 	if err != nil {
 		t.Errorf("could not open program code file: %s", err)
 	}

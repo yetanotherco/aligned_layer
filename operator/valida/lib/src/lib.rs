@@ -112,10 +112,9 @@ pub extern "C" fn verify_valida_proof_ffi(
 mod tests {
     use super::*;
 
-    const PROOF: &[u8] =
-        include_bytes!("../../../../scripts/test_files/valida/cat/fibonacci.proof");
+    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/valida/fibonacci.proof");
     const PROGRAM_CODE: &[u8] =
-        include_bytes!("../../../../scripts/test_files/valida/cat/fibonacci.bin");
+        include_bytes!("../../../../scripts/test_files/valida/fibonacci.bin");
 
     #[test]
     fn verify_valida_proof_with_program_code_works() {
