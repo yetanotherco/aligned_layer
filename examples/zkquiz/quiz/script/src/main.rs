@@ -5,7 +5,7 @@ use std::sync::Arc;
 use aligned_sdk::core::types::{
     AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
 };
-use aligned_sdk::sdk::{estimate_fee, get_payment_service_address};
+use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee, get_payment_service_address};
 use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
@@ -48,20 +48,27 @@ async fn main() {
     let keystore_password = rpassword::prompt_password("Enter keystore password: ")
         .expect("Failed to read keystore password");
 
-    let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
-        .expect("Failed to decrypt keystore");
-
     let provider =
         Provider::<Http>::try_from(rpc_url.as_str()).expect("Failed to connect to provider");
 
-    let signer = Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
+    let chain_id = provider
+        .get_chainid()
+        .await
+        .expect("Failed to get chain_id");
+
+    let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
+        .expect("Failed to decrypt keystore")
+        .with_chain_id(chain_id.as_u64());
+
+    let signer = SignerMiddleware::new(provider.clone(), wallet.clone());
 
     if Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
         .with_prompt("Do you want to deposit 0.004eth in Aligned ?\nIf you already deposited Ethereum to Aligned before, this is not needed")
         .interact()
         .expect("Failed to read user input") {   
-            deposit_to_aligned();
-            deposit_to_batcher(wallet.address(), signer.clone(), args.network).await.expect("Failed to pay for proof submission");
+
+        deposit_to_aligned(U256::from(4000000000000000u128), signer.clone(), args.network).await
+        .expect("Failed to pay for proof submission");
     }
 
     // Generate proof.
@@ -193,44 +200,12 @@ fn read_answer() -> char {
     }
 }
 
-async fn deposit_to_batcher(
-    from: Address,
-    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
-    network: Network,
-) -> anyhow::Result<()> {
-    let addr = get_payment_service_address(network);
-
-    let tx = TransactionRequest::new()
-        .from(from)
-        .to(addr)
-        .value(4000000000000000u128);
-
-    match signer
-        .send_transaction(tx, None)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to send tx {}", e))?
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to submit tx {}", e))?
-    {
-        Some(receipt) => {
-            println!(
-                "Payment sent. Transaction hash: {:x}",
-                receipt.transaction_hash
-            );
-            Ok(())
-        }
-        None => {
-            anyhow::bail!("Payment failed");
-        }
-    }
-}
-
 async fn claim_nft_with_verified_proof(
     aligned_verification_data: &AlignedVerificationData,
-    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    signer: SignerMiddleware<Provider<Http>, LocalWallet>,
     verifier_contract_addr: &Address,
 ) -> anyhow::Result<()> {
-    let verifier_contract = VerifierContract::new(*verifier_contract_addr, signer);
+    let verifier_contract = VerifierContract::new(*verifier_contract_addr, signer.into());
 
     let index_in_batch = U256::from(aligned_verification_data.index_in_batch);
     let merkle_path = Bytes::from(
