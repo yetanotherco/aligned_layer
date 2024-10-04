@@ -9,8 +9,8 @@ import "C"
 import "unsafe"
 
 func VerifyNexusProof(proofBuffer []byte, paramsBuffer []byte) bool {
-	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
-	paramsPtr := (*C.uchar)(unsafe.Pointer(&paramsBuffer[0]))
+	proofPtr := (*C.uchar)(unsafe.SliceData(proofBuffer))
+	paramsPtr := (*C.uchar)(unsafe.SliceData(paramsBuffer))
 
 	return (bool)(C.verify_nexus_proof_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), paramsPtr, (C.uint32_t)(len(paramsBuffer))))
 }
