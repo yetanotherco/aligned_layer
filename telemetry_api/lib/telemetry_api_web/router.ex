@@ -1,5 +1,4 @@
 defmodule TelemetryApiWeb.Router do
-  alias TelemetryApiWeb.OperatorController
   use TelemetryApiWeb, :router
 
   pipeline :api do
@@ -8,14 +7,18 @@ defmodule TelemetryApiWeb.Router do
 
   scope "/api", TelemetryApiWeb do
     pipe_through :api
+
+    get "/operators", OperatorController, :index
+    get "/operators/:id", OperatorController, :show
     post "/operators", OperatorController, :create_or_update
-    resources "/operators", OperatorController, only: [:index, :show]
   end
 
   scope "/versions", TelemetryApiWeb do
     pipe_through :api
-    post "/operators", OperatorController, :create_or_update
-    resources "/", OperatorController, only: [:index, :show]
+
+    get "/", OperatorController, :index
+    get "/:id", OperatorController, :show
+    post "/", OperatorController, :create_or_update
   end
 
   # Enable LiveDashboard in development
