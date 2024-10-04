@@ -414,7 +414,7 @@ batcher_send_valida_task: batcher/target/release/aligned
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Valida \
 		--proof ../../scripts/test_files/valida/fiboncci/proof.bin \
-		--vm-program ../../scripts/test_files/valida/fiboncci/code.bin \
+		--vm_program ../../scripts/test_files/valida/fiboncci/code.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -423,8 +423,8 @@ batcher_send_valida_burst: batcher/target/release/aligned
 	@echo "Sending Valida cat task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Valida \
-		--proof ../../scripts/test_files/valida/fiboncci/proof.bin \
-		--vm-program ../../scripts/test_files/valida/fiboncci/code.bin \
+		--proof ../../scripts/test_files/valida/cat/cat.proof \
+		--vm_program ../../scripts/test_files/valida/cat/cat.bin \
 		--repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
