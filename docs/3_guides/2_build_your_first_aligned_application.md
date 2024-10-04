@@ -32,7 +32,11 @@ Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
 
 ### Usage
 
-#### 1. Create a Keystore
+#### 1. Clone the repository
+
+```bash git clone https://github.com/yetanotherco/aligned_layer.git && cd aligned_layer```
+
+#### 2. Create a Keystore
 
 You need a keystore to pay for the proof verification, you can use cast to create a local keystore.
 If you already have one, you can skip this step.
@@ -56,7 +60,7 @@ You can do this by using one of the following faucets:
 - [Stakely Faucet](https://stakely.io/faucet/ethereum-holesky-testnet-eth)
 - [Quicknode Faucet](https://faucet.quicknode.com/ethereum/holesky)
 
-#### 2. Answer Quiz
+#### 3. Answer Quiz
 
 To answer quiz questions run:
 
