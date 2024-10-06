@@ -28,20 +28,20 @@ defmodule TelemetryApi.Utils do
   end
 
   @doc """
-  Unwraps inner element status 
+  Unwraps inner element status
 
   ## Examples
 
-      iex> list = [{:ok, 2}, {:ok, 3}] 
-      iex> clean_list_errors(list, error_message)
+      iex> error_message = "Error found on list"
+      iex> list = [{:ok, 2}, {:ok, 3}]
+      iex> check_list_status(list, error_message)
       {:ok, list}
 
-      iex> list = [{:ok, 2}, {:ok, 3}, {:error, "this is an error"}] 
-      iex> message = "Error found on list"
-      iex> clean_list_errors(list, error_message)
+      iex> list = [{:ok, 2}, {:ok, 3}, {:error, "this is an error"}]
+      iex> check_list_status(list, error_message)
       {:error, "Error found on list"}
   """
-  def clean_list_errors(list, error_message) do
+  def check_list_status(list, error_message) do
     case Enum.find(list, fn {status, _} -> status == :error end) do
       nil ->
         {:ok, Enum.map(list, fn {:ok, value} -> value end)}

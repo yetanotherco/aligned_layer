@@ -17,9 +17,19 @@ We also recommend the following RPC providers:
 - [Infura](https://infura.io/)
 - [Blast](https://blastapi.io/)
 
-The default configuration uses the public nodes RPC.
+Two RPCs are used, one as the main one, and the other one as a fallback in case one node is working unreliably.
 
-Since `v0.5.2`, there is a fallback mechanism to have two RPCs, so you need to add a second RPC for redundancy.
+Default configurations is set up to use the same public node in both scenarios.
+
+{% hint style="danger" %}
+
+PUBLIC NODES SHOULDN'T BE USED AS THE MAIN RPC. We recommend not using public nodes at all.
+
+FALLBACK AND MAIN RPCs SHOULD BE DIFFERENT.
+
+{% endhint %}
+
+Most of the actions will pass through the main RPC unless there is a problem with it. Events are fetched from both nodes.
 
 ### How can I check if the version I'm using is the latest one?
 

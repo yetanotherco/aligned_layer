@@ -12,19 +12,19 @@ import (
 type AvsServiceBindings struct {
 	ServiceManager         *csservicemanager.ContractAlignedLayerServiceManager
 	ServiceManagerFallback *csservicemanager.ContractAlignedLayerServiceManager
-	ethClient              eth.Client
-	ethClientFallback      eth.Client
+	ethClient              eth.InstrumentedClient
+	ethClientFallback      eth.InstrumentedClient
 	logger                 logging.Logger
 }
 
-func NewAvsServiceBindings(serviceManagerAddr, blsOperatorStateRetrieverAddr gethcommon.Address, ethClient eth.Client, ethClientFallback eth.Client, logger logging.Logger) (*AvsServiceBindings, error) {
-	contractServiceManager, err := csservicemanager.NewContractAlignedLayerServiceManager(serviceManagerAddr, ethClient)
+func NewAvsServiceBindings(serviceManagerAddr, blsOperatorStateRetrieverAddr gethcommon.Address, ethClient eth.InstrumentedClient, ethClientFallback eth.InstrumentedClient, logger logging.Logger) (*AvsServiceBindings, error) {
+	contractServiceManager, err := csservicemanager.NewContractAlignedLayerServiceManager(serviceManagerAddr, &ethClient)
 	if err != nil {
 		logger.Error("Failed to fetch AlignedLayerServiceManager contract", "err", err)
 		return nil, err
 	}
 
-	contractServiceManagerFallback, err := csservicemanager.NewContractAlignedLayerServiceManager(serviceManagerAddr, ethClientFallback)
+	contractServiceManagerFallback, err := csservicemanager.NewContractAlignedLayerServiceManager(serviceManagerAddr, &ethClientFallback)
 	if err != nil {
 		logger.Error("Failed to fetch AlignedLayerServiceManager contract", "err", err)
 		return nil, err

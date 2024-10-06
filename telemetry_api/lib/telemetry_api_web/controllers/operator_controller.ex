@@ -4,14 +4,14 @@ defmodule TelemetryApiWeb.OperatorController do
   alias TelemetryApi.Operators
   alias TelemetryApi.Operators.Operator
 
-  action_fallback TelemetryApiWeb.FallbackController
+  action_fallback(TelemetryApiWeb.FallbackController)
 
   def index(conn, _params) do
     operators = Operators.list_operators()
     render(conn, :index, operators: operators)
   end
 
-  def create(conn, operator_params) do
+  def create_or_update(conn, operator_params) do
     with {:ok, %Operator{} = operator} <- Operators.update_operator_version(operator_params) do
       conn
       |> put_status(:created)
@@ -25,20 +25,4 @@ defmodule TelemetryApiWeb.OperatorController do
       render(conn, :show, operator: operator)
     end
   end
-
-  # defp update(conn, operator, operator_params) do
-  #   with {:ok, %Operator{} = operator} <- Operators.update_operator(operator, operator_params) do
-  #     conn
-  #     |> put_status(:ok)
-  #     |> render(:show, operator: operator)
-  #   end
-  # end
-
-  # def delete(conn, %{"id" => id}) do
-  #   operator = Operators.get_operator!(id)
-
-  #   with {:ok, %Operator{}} <- Operators.delete_operator(operator) do
-  #     send_resp(conn, :no_content, "")
-  #   end
-  # end
 end
