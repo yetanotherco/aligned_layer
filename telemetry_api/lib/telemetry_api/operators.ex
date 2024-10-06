@@ -187,6 +187,19 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
+  Returns an `%Ecto.Changeset{}` for tracking operator changes.
+
+  ## Examples
+
+      iex> change_operator(operator)
+      %Ecto.Changeset{data: %Operator{}}
+
+  """
+  def change_operator(%Operator{} = operator, attrs \\ %{}) do
+    Operator.changeset(operator, attrs)
+  end
+
+  @doc """
   Checks if an operator is active.
 
   ## Examples
@@ -198,14 +211,7 @@ defmodule TelemetryApi.Operators do
       false
 
   """
-  def change_operator(%Operator{} = operator, attrs \\ %{}) do
-    Operator.changeset(operator, attrs)
-  end
-
-  @doc """
-
-  """
-  def is_active?(operator) do
+  defp is_active?(operator) do
     operator.status == @active
   end
 end
