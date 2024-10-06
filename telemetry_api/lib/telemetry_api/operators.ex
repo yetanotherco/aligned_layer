@@ -211,7 +211,7 @@ defmodule TelemetryApi.Operators do
       false
 
   """
-  defp is_active?(operator) do
+  def is_active?(operator) do
     operator.status == @active
   end
 end

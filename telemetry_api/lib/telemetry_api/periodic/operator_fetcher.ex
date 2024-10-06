@@ -5,9 +5,9 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
 
   wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
-      raise """
-      environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
-      """
+    raise """
+    environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
+    """
 
   @wait_time_ms (
     case Integer.parse(wait_time_str) do
