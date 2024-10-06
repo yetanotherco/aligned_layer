@@ -16,6 +16,7 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/services/avsregistry"
 	blsagg "github.com/Layr-Labs/eigensdk-go/services/bls_aggregation"
+	oppubkeysserv "github.com/Layr-Labs/eigensdk-go/services/operatorsinfo"
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
@@ -64,12 +65,6 @@ type Aggregator struct {
 
 	// Stores the TaskResponse for each batch by batchIdentifierHash
 	batchDataByIdentifierHash map[[32]byte]BatchData
-
-	// Stores if an operator already submitted a response for a batch
-	// This is to avoid double submissions
-	// struct{} is used as a placeholder because it is the smallest type
-	// go does not have a set type
-	operatorRespondedBatch map[uint32]map[eigentypes.Bytes32]struct{}
 
 	// This task index is to communicate with the local BLS
 	// Service.
@@ -148,6 +143,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		return taskResponseDigest, nil
 	}
 
+	operatorPubkeysService := oppubkeysserv.NewOperatorsInfoServiceInMemory(context.Background(), clients.AvsRegistryChainSubscriber, clients.AvsRegistryChainReader, nil, oppubkeysserv.Opts{}, logger)
 	avsRegistryService := avsregistry.NewAvsRegistryServiceChainCaller(avsReader.ChainReader, operatorPubkeysService, logger)
 	blsAggregationService := blsagg.NewBlsAggregatorService(avsRegistryService, hashFunction, logger)
 
@@ -171,7 +167,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		batchesIdxByIdentifierHash: batchesIdxByIdentifierHash,
 		batchDataByIdentifierHash:  batchDataByIdentifierHash,
 		batchCreatedBlockByIdx:     batchCreatedBlockByIdx,
-		operatorRespondedBatch:     make(map[uint32]map[eigentypes.Bytes32]struct{}),
 		nextBatchIndex:             nextBatchIndex,
 		taskMutex:                  &sync.Mutex{},
 		walletMutex:                &sync.Mutex{},
@@ -237,13 +232,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		agg.taskMutex.Lock()
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
-
-		// Remove task from the list of tasks
-		delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
-
-		agg.logger.Info("- Unlocking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
-
-		agg.taskMutex.Unlock()
 		return
 	}
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
@@ -265,14 +253,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		TotalStakeIndices:            blsAggServiceResp.TotalStakeIndices,
 		NonSignerStakeIndices:        blsAggServiceResp.NonSignerStakeIndices,
 	}
-
-	agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
-	agg.taskMutex.Lock()
-
-	// Delete the task from the map
-	delete(agg.operatorRespondedBatch, blsAggServiceResp.TaskIndex)
-
-	agg.logger.Info("- Unlocking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 
 	agg.taskMutex.Unlock()
 
