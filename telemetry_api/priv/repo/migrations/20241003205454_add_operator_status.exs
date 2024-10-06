@@ -3,7 +3,7 @@ defmodule TelemetryApi.Repo.Migrations.AddOperatorStatus do
 
   def change do
     alter table(:operators) do
-      add :active, :boolean, default: false
+      add :status, :boolean, default: false
     end
   end
 end

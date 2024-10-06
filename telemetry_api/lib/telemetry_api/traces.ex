@@ -63,7 +63,7 @@ defmodule TelemetryApi.Traces do
   """
   def register_operator_response(merkle_root, operator_id) do
     with {:ok, operator} <- Operators.get_operator_by_id(operator_id),
-         :ok <- check_active_operator(operator),
+         :ok <- check_operator_status(operator),
          {:ok, trace} <- set_current_trace(merkle_root) do
       operator_stake = String.to_integer(operator.stake)
       new_stake = trace.current_stake + operator_stake
@@ -188,8 +188,8 @@ defmodule TelemetryApi.Traces do
     end
   end
 
-  defp check_active_operator(operator) do
-    if operator.active do
+  defp check_operator_status(operator) do
+    if Operators.is_active?(operator) do
       :ok
     else
       {:error, :bad_request, "Operator not active"}

@@ -33,14 +33,8 @@ defmodule TelemetryApi.ContractManagers.RegistryCoordinatorManager do
     @registry_coordinator_address
   end
 
-  def is_operator_active?(operator_address) do
-    with {:ok, response} <-
-           RegistryCoordinatorManager.get_operator_status(operator_address)
-           |> Ethers.call() do
-      {:ok, response == 1}
-    else
-      error ->
-        {:error, error}
-    end
+  def fetch_operator_status(operator_address) do
+    RegistryCoordinatorManager.get_operator_status(operator_address)
+    |> Ethers.call()
   end
 end

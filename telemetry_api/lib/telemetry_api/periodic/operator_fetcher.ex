@@ -4,21 +4,17 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   alias TelemetryApi.Operators
   alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
 
-  wait_time_str =
-    System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
+  wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
       raise """
       environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
       """
 
-  @wait_time_ms (case Integer.parse(wait_time_str) do
-                   :error ->
-                     raise(
-                       "OPERATOR_FETCHER_WAIT_TIME_MS is not a number, received: #{wait_time_str}"
-                     )
-
-                   {num, _} ->
-                     num
-                 end)
+  @wait_time_ms (
+    case Integer.parse(wait_time_str) do
+      :error -> raise("OPERATOR_FETCHER_WAIT_TIME_MS is not a number, received: #{wait_time_str}")
+      {num, _} -> num
+    end
+  )
 
   def start_link(_) do
     Task.start_link(&poll_service/0)
@@ -44,11 +40,11 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   defp fetch_operators_status() do
     Operators.list_operators()
     |> Enum.map(fn op ->
-      case RegistryCoordinatorManager.is_operator_active?(op.address) do
-        {:ok, active} ->
-          Operators.update_operator(op, %{active: active})
+      case RegistryCoordinatorManager.fetch_operator_status(op.address) do
+        {:ok, status} ->
+          Operators.update_operator(op, %{status: status})
 
-        {:error, error} ->
+        error ->
           Logger.error("Error when updating status: #{error}")
       end
     end)

@@ -10,6 +10,8 @@ defmodule TelemetryApi.Operators do
   alias TelemetryApi.ContractManagers.OperatorStateRetriever
   alias TelemetryApi.ContractManagers.DelegationManager
 
+  @active 1
+
   @doc """
   Returns the list of operators.
 
@@ -185,15 +187,25 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Returns an `%Ecto.Changeset{}` for tracking operator changes.
+  Checks if an operator is active.
 
   ## Examples
 
-      iex> change_operator(operator)
-      %Ecto.Changeset{data: %Operator{}}
+      iex> is_active?(%Operator{status: 1})
+      true
+
+      iex> is_active?(%Operator{status: 0})
+      false
 
   """
   def change_operator(%Operator{} = operator, attrs \\ %{}) do
     Operator.changeset(operator, attrs)
+  end
+
+  @doc """
+
+  """
+  def is_active?(operator) do
+    operator.status == @active
   end
 end
