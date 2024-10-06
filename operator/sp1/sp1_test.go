@@ -7,32 +7,22 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
 )
 
-const MaxProofSize = 2 * 1024 * 1024
-const MaxElfSize = 2 * 1024 * 1024
+const ProofFilePath = "../../scripts/test_files/sp1/sp1_fibonacci.proof"
+
+const ElfFilePath = "../../scripts/test_files/sp1/sp1_fibonacci.elf"
 
 func TestFibonacciSp1ProofVerifies(t *testing.T) {
-	proofFile, err := os.Open("../../scripts/test_files/sp1/sp1_fibonacci.proof")
-	if err != nil {
-		t.Errorf("could not open proof file: %s", err)
-	}
-	proofBytes := make([]byte, MaxProofSize)
-	nReadProofBytes, err := proofFile.Read(proofBytes)
-	if err != nil {
-		t.Errorf("could not read bytes from file")
-	}
-
-	elfFile, err := os.Open("../../scripts/test_files/sp1/sp1_fibonacci.elf")
+	proofBytes, err := os.ReadFile(ProofFilePath)
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
 
-	elfBytes := make([]byte, MaxElfSize)
-	nReadElfBytes, err := elfFile.Read(elfBytes)
+	elfBytes, err := os.ReadFile(ElfFilePath)
 	if err != nil {
-		t.Errorf("could not read bytes from file")
+		t.Errorf("could not open elf file: %s", err)
 	}
 
-	if !sp1.VerifySp1Proof(proofBytes, uint32(nReadProofBytes), elfBytes, uint32(nReadElfBytes)) {
+	if !sp1.VerifySp1Proof(proofBytes, elfBytes) {
 		t.Errorf("proof did not verify")
 	}
 }

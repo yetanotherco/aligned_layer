@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/fxamacker/cbor/v2"
 )
 
 type ProvingSystemId uint16
@@ -13,13 +15,11 @@ const (
 	GnarkPlonkBn254
 	Groth16Bn254
 	SP1
-	Halo2KZG
-	Halo2IPA
 	Risc0
 )
 
 func (t *ProvingSystemId) String() string {
-	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1", "Halo2IPA"}[*t]
+	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1"}[*t]
 }
 
 func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
@@ -32,10 +32,6 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Groth16Bn254, nil
 	case "SP1":
 		return SP1, nil
-	case "Halo2KZG":
-		return Halo2KZG, nil
-	case "Halo2IPA":
-		return Halo2IPA, nil
 	case "Risc0":
 		return Risc0, nil
 	}
@@ -53,10 +49,6 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "Groth16Bn254", nil
 	case SP1:
 		return "SP1", nil
-	case Halo2KZG:
-		return "Halo2KZG", nil
-	case Halo2IPA:
-		return "Halo2IPA", nil
 	case Risc0:
 		return "Risc0", nil
 	}
@@ -94,6 +86,28 @@ func (t *ProvingSystemId) UnmarshalBinary(data []byte) error {
 	*t, err = ProvingSystemIdFromString(str)
 
 	return err
+}
+
+func (s *ProvingSystemId) UnmarshalCBOR(data []byte) error {
+	var statusStr string
+	if err := cbor.Unmarshal(data, &statusStr); err != nil {
+		return err
+	}
+
+	switch statusStr {
+	case "GnarkPlonkBls12_381":
+		*s = GnarkPlonkBls12_381
+	case "GnarkPlonkBn254":
+		*s = GnarkPlonkBn254
+	case "Groth16Bn254":
+		*s = Groth16Bn254
+	case "SP1":
+		*s = SP1
+	case "Risc0":
+		*s = Risc0
+	}
+
+	return nil
 }
 
 func (t ProvingSystemId) MarshalBinary() ([]byte, error) {
