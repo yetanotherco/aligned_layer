@@ -229,9 +229,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	if blsAggServiceResp.Err != nil {
 		agg.telemetry.LogTaskError(batchData.BatchMerkleRoot, blsAggServiceResp.Err)
-		agg.taskMutex.Lock()
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
-		agg.logger.Info("- Locking task mutex: Delete task from operator map", "taskIndex", blsAggServiceResp.TaskIndex)
 		return
 	}
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
@@ -253,8 +251,6 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		TotalStakeIndices:            blsAggServiceResp.TotalStakeIndices,
 		NonSignerStakeIndices:        blsAggServiceResp.NonSignerStakeIndices,
 	}
-
-	agg.taskMutex.Unlock()
 
 	agg.telemetry.LogQuorumReached(batchData.BatchMerkleRoot)
 
@@ -292,6 +288,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", "0x"+hex.EncodeToString(batchData.BatchMerkleRoot[:]),
 		"senderAddress", "0x"+hex.EncodeToString(batchData.SenderAddress[:]),
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+	agg.telemetry.LogTaskError(batchData.BatchMerkleRoot, err)
 }
 
 // / Sends response to contract and waits for transaction receipt
