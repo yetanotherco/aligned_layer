@@ -10,8 +10,6 @@ defmodule TelemetryApi.Operators do
   alias TelemetryApi.ContractManagers.OperatorStateRetriever
   alias TelemetryApi.ContractManagers.DelegationManager
 
-  @active 1
-
   @doc """
   Returns the list of operators.
 
@@ -200,18 +198,18 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Checks if an operator is active.
+  Checks if an operator is registered.
 
   ## Examples
 
-      iex> is_active?(%Operator{status: 1})
+      iex> is_registered?(%Operator{status: "REGISTERED"})
       true
 
-      iex> is_active?(%Operator{status: 0})
+      iex> is_registered?(%Operator{status: "DEREGISTERED"})
       false
 
   """
-  def is_active?(operator) do
-    operator.status == @active
+  def is_registered?(operator) do
+    operator.status == "REGISTERED"
   end
 end

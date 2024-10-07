@@ -21,7 +21,8 @@ defmodule TelemetryApiWeb.OperatorJSON do
       id: operator.id,
       stake: operator.stake,
       name: operator.name,
-      version: operator.version
+      version: operator.version,
+      status: operator.status
     }
   end
 end

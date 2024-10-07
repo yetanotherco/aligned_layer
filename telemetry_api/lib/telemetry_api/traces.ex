@@ -156,7 +156,7 @@ defmodule TelemetryApi.Traces do
   def finish_task_trace(merkle_root) do
     with {:ok, trace} <- set_current_trace(merkle_root) do
       missing_operators =
-        Operators.list_operators() |> Enum.filter(fn o -> o.id not in trace.responses and Operators.is_active?(o) end)
+        Operators.list_operators() |> Enum.filter(fn o -> o.id not in trace.responses and Operators.is_registered?(o) end)
 
       add_missing_operators(missing_operators)
 
@@ -189,10 +189,10 @@ defmodule TelemetryApi.Traces do
   end
 
   defp check_operator_status(operator) do
-    if Operators.is_active?(operator) do
+    if Operators.is_registered?(operator) do
       :ok
     else
-      {:error, :bad_request, "Operator not active"}
+      {:error, :bad_request, "Operator not registered"}
     end
   end
 end

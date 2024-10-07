@@ -3,7 +3,7 @@ defmodule TelemetryApi.Repo.Migrations.AddOperatorStatus do
 
   def change do
     alter table(:operators) do
-      add :status, :integer
+      add :status, :string
     end
   end
 end

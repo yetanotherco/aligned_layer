@@ -4,6 +4,10 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   alias TelemetryApi.Operators
   alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
 
+  @never_registered 0
+  @registered 1
+  @deregistered 2
+
   wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
     raise """
     environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
@@ -42,11 +46,16 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
     |> Enum.map(fn op ->
       case RegistryCoordinatorManager.fetch_operator_status(op.address) do
         {:ok, status} ->
-          Operators.update_operator(op, %{status: status})
+
+          Operators.update_operator(op, %{status: string_status(status)})
 
         error ->
           Logger.error("Error when updating status: #{error}")
       end
     end)
   end
+
+  defp string_status(@never_registered), do: "NEVER_REGISTERED"
+  defp string_status(@registered), do: "REGISTERED"
+  defp string_status(@deregistered), do: "DEREGISTERED"
 end
