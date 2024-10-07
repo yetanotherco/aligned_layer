@@ -373,7 +373,11 @@ impl Display for ValidityResponseMessage {
             }
             ValidityResponseMessage::EthRpcError => write!(f, "Eth RPC error"),
             ValidityResponseMessage::InvalidPaymentServiceAddress(addr, expected) => {
-                write!(f, "Invalid payment service address: {}, expected: {}", addr, expected)
+                write!(
+                    f,
+                    "Invalid payment service address: {}, expected: {}",
+                    addr, expected
+                )
             }
         }
     }
