@@ -276,7 +276,7 @@ impl Batcher {
         info!("Incoming TCP connection from: {}", addr);
         // Nexus sends payloads bigger than the default maximum of 16MiB
         // ref: https://docs.rs/tungstenite/latest/tungstenite/protocol/struct.WebSocketConfig.html#structfield.max_frame_size
-        let config = WebSocketConfig{
+        let config = WebSocketConfig {
             max_frame_size: Some(256 << 20),
             max_message_size: Some(256 << 20),
             ..Default::default()
