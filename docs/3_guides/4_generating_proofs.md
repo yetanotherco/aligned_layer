@@ -185,18 +185,36 @@ This guide assumes that:
 
 ### How to generate a proof
 
-> Aligned only verifies Lita `v0.3.0`.
+> Aligned only verifies Lita `v0.1.0`, which is only supported on linux.
 
-First, compile the source file with the LLVM-Valida clang compiler:
-`./clang -c -target delendum <your_program>.c -o <your_program>.o`
+First, install lita `v0.1.0`: 
+
+```bash
+wget https://github.com/lita-xyz/llvm-valida-releases/releases/download/v0.1.0-alpha/llvm-valida-v0.1.0-alpha-linux-x86_64.tar.gz
+```
+
+Then compile your program with clang;
+
+```bash
+./clang -c -target delendum <your_program>.c -o <your_program>.o
+```
 
 Link the object file:
-`./ld.lld --script=valida.ld -o <your_program>.bin <your_program>.o`
+
+```bash
+./ld.lld --script=valida.ld -o <your_program>.bin <your_program>.o
+```
 
 Then, to create your proof do:
 
 ```bash
-./valida proof program.bin program.poof
+./valida proof <your_program>.bin <your_program>.poof
+```
+
+You can valida it doing:
+
+```bash
+./valida verify <your_program>.bin <your_program>.poof
 ```
 
 ### How to get the proof verified by Aligned

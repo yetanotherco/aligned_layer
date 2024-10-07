@@ -197,7 +197,7 @@ aligned submit \
 
 ### Lita proof
 
-The current Lita version used in Aligned is v0.3.0.
+The current Lita version used in Aligned is `v0.1.0`, which currently only works on linux.
 
 The Lita proof needs the proof file and the vm program file.
 
