@@ -14,6 +14,7 @@ use lambdaworks_crypto::merkle_tree::{
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+use std::str::FromStr;
 
 use super::errors::VerifySignatureError;
 
