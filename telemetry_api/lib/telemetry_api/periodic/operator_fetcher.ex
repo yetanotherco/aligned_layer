@@ -1,6 +1,12 @@
 defmodule TelemetryApi.Periodic.OperatorFetcher do
   use Task
+  require Logger
   alias TelemetryApi.Operators
+  alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
+
+  @never_registered 0
+  @registered 1
+  @deregistered 2
 
   wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
     raise """
@@ -22,11 +28,34 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
     receive do
     after
       @wait_time_ms ->
-        case Operators.fetch_all_operators() do
-          {:ok, _} -> :ok
-          {:error, message} -> IO.inspect "Couldn't fetch operators: #{IO.inspect message}"
-        end
+        fetch_operators_info()
+        fetch_operators_status()
         poll_service()
     end
   end
+
+  defp fetch_operators_info() do
+    case Operators.fetch_all_operators() do
+      {:ok, _} -> :ok
+      {:error, message} -> IO.inspect("Couldn't fetch operators: #{IO.inspect(message)}")
+    end
+  end
+
+  defp fetch_operators_status() do
+    Operators.list_operators()
+    |> Enum.map(fn op ->
+      case RegistryCoordinatorManager.fetch_operator_status(op.address) do
+        {:ok, status} ->
+
+          Operators.update_operator(op, %{status: string_status(status)})
+
+        error ->
+          Logger.error("Error when updating status: #{error}")
+      end
+    end)
+  end
+
+  defp string_status(@never_registered), do: "NEVER_REGISTERED"
+  defp string_status(@registered), do: "REGISTERED"
+  defp string_status(@deregistered), do: "DEREGISTERED"
 end

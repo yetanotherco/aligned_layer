@@ -196,4 +196,20 @@ defmodule TelemetryApi.Operators do
   def change_operator(%Operator{} = operator, attrs \\ %{}) do
     Operator.changeset(operator, attrs)
   end
+
+  @doc """
+  Checks if an operator is registered.
+
+  ## Examples
+
+      iex> is_registered?(%Operator{status: "REGISTERED"})
+      true
+
+      iex> is_registered?(%Operator{status: "DEREGISTERED"})
+      false
+
+  """
+  def is_registered?(operator) do
+    operator.status == "REGISTERED"
+  end
 end
