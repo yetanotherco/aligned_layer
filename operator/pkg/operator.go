@@ -445,7 +445,7 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 
 func (o *Operator) IsVerifierValid(blacklisted_verifiers_bitmap *big.Int, verifierId common.ProvingSystemId) bool {
 	verifierIdInt := uint8(verifierId)
-	bit := uint8(blacklisted_verifiers_bitmap.Uint64()) & (1 << verifierIdInt)
+	bit := blacklisted_verifiers_bitmap.Uint64() & (1 << verifierIdInt)
 	return bit == 0
 }
 
