@@ -810,16 +810,19 @@ docker_down:
 	docker ps
 
 docker_batcher_send_sp1_burst:
+	@echo "Sending SP1 fibonacci task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --batcher_url 'ws://[::1]:8080' \
               --proving_system SP1 \
               --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
               --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
-              --repetitions 5 \
+              --repetitions $(BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
 docker_batcher_send_risc0_burst:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --batcher_url 'ws://[::1]:8080' \
               --proving_system Risc0 \
@@ -832,6 +835,7 @@ docker_batcher_send_risc0_burst:
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 docker_batcher_send_plonk_bn254_burst:
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --batcher_url 'ws://[::1]:8080' \
               --proving_system GnarkPlonkBn254 \
@@ -840,10 +844,11 @@ docker_batcher_send_plonk_bn254_burst:
               --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
-              --repetitions 4 \
+              --repetitions $(BURST_SIZE) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 docker_batcher_send_plonk_bls12_381_burst:
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --batcher_url 'ws://[::1]:8080' \
               --proving_system GnarkPlonkBls12_381 \
@@ -851,7 +856,7 @@ docker_batcher_send_plonk_bls12_381_burst:
               --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
               --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --repetitions 15 \
+              --repetitions $(BURST_SIZE) \
               --rpc_url $(DOCKER_RPC_URL) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
@@ -876,28 +881,6 @@ docker_batcher_send_infinite_groth16:
 	    counter=$$((counter + 1)); \
 	  done \
 	'
-
-docker_batcher_send_halo2_ipa_task_burst_5:
-	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
-	              --proving_system Halo2IPA \
-	              --proof scripts/test_files/halo2_ipa/proof.bin \
-	              --public_input scripts/test_files/halo2_ipa/pub_input.bin \
-	              --vk scripts/test_files/halo2_ipa/params.bin \
-	              --repetitions 5 \
-	              --rpc_url $(DOCKER_RPC_URL) \
-	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
-
-docker_batcher_send_halo2_kzg_task_burst_5:
-	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
-	              --proving_system Halo2KZG \
-	              --proof scripts/test_files/halo2_kzg/proof.bin \
-	              --public_input scripts/test_files/halo2_kzg/pub_input.bin \
-	              --vk scripts/test_files/halo2_kzg/params.bin \
-	              --repetitions 5 \
-	              --rpc_url $(DOCKER_RPC_URL) \
-	              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 docker_verify_proofs_onchain:
 	@echo "Verifying proofs..."
