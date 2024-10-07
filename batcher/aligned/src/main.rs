@@ -14,7 +14,7 @@ use aligned_sdk::core::{
 };
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
-use aligned_sdk::sdk::get_payment_service_address;
+use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
@@ -227,10 +227,6 @@ pub enum ProvingSystemArg {
     Groth16Bn254,
     #[clap(name = "SP1")]
     SP1,
-    #[clap(name = "Halo2KZG")]
-    Halo2KZG,
-    #[clap(name = "Halo2IPA")]
-    Halo2IPA,
     #[clap(name = "Risc0")]
     Risc0,
     #[clap(name = "Valida")]
@@ -246,8 +242,6 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::GnarkPlonkBn254 => ProvingSystemId::GnarkPlonkBn254,
             ProvingSystemArg::Groth16Bn254 => ProvingSystemId::Groth16Bn254,
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
-            ProvingSystemArg::Halo2KZG => ProvingSystemId::Halo2KZG,
-            ProvingSystemArg::Halo2IPA => ProvingSystemId::Halo2IPA,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
             ProvingSystemArg::Valida => ProvingSystemId::Valida,
         }
@@ -421,6 +415,10 @@ async fn main() -> Result<(), AlignedError> {
 
             let amount = deposit_to_batcher_args.amount.replace("ether", "");
 
+            let amount_ether = parse_ether(&amount).map_err(|e| {
+                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
+            })?;
+
             let eth_rpc_url = deposit_to_batcher_args.eth_rpc_url;
 
             let eth_rpc_provider =
@@ -448,99 +446,41 @@ async fn main() -> Result<(), AlignedError> {
 
             let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
 
-            let balance = client
-                .get_balance(wallet.address(), None)
+            match deposit_to_aligned(amount_ether, client, deposit_to_batcher_args.network.into())
                 .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while getting balance: {}",
-                        e
-                    ))
-                })?;
-
-            let amount_ether = parse_ether(&amount).map_err(|e| {
-                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
-            })?;
-
-            if amount_ether <= U256::from(0) {
-                error!("Amount should be greater than 0");
-                return Ok(());
-            }
-
-            if balance < amount_ether {
-                error!("Insufficient funds to pay to the batcher. Please deposit some Ether in your wallet.");
-                return Ok(());
-            }
-
-            let batcher_addr = get_payment_service_address(deposit_to_batcher_args.network.into());
-
-            let tx = TransactionRequest::new()
-                .to(batcher_addr)
-                .value(amount_ether)
-                .from(wallet.address());
-
-            info!("Sending {} ether to the batcher", amount);
-
-            let tx = client
-                .send_transaction(tx, None)
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while sending transaction: {}",
-                        e
-                    ))
-                })?
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while sending transaction: {}",
-                        e
-                    ))
-                })?;
-
-            if let Some(tx) = tx {
-                info!(
-                    "Payment sent to the batcher successfully. Tx: 0x{:x}",
-                    tx.transaction_hash
-                );
-            } else {
-                error!("Transaction failed");
+            {
+                Ok(receipt) => {
+                    info!(
+                        "Payment sent to the batcher successfully. Tx: 0x{:x}",
+                        receipt.transaction_hash
+                    );
+                }
+                Err(e) => {
+                    error!("Transaction failed: {:?}", e);
+                }
             }
         }
         GetUserBalance(get_user_balance_args) => {
-            let eth_rpc_url = get_user_balance_args.eth_rpc_url;
-
-            let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url).map_err(|e| {
-                SubmitError::EthereumProviderError(format!(
-                    "Error while connecting to Ethereum: {}",
-                    e
-                ))
-            })?;
-
-            let user_address =
-                Address::from_str(&get_user_balance_args.user_address).map_err(|e| {
-                    SubmitError::HexDecodingError(format!(
-                        "Error while parsing user address: {}",
-                        e
-                    ))
-                })?;
-
-            let batcher_addr = get_payment_service_address(get_user_balance_args.network.into());
-
-            let balance = get_user_balance(eth_rpc_provider, batcher_addr, user_address)
-                .await
-                .map_err(|e| {
-                    SubmitError::EthereumProviderError(format!(
-                        "Error while getting user balance: {}",
-                        e
-                    ))
-                })?;
-
-            info!(
-                "User {} has {} ether in the batcher",
+            let user_address = H160::from_str(&get_user_balance_args.user_address).unwrap();
+            match get_balance_in_aligned(
                 user_address,
-                format_ether(balance)
-            );
+                &get_user_balance_args.eth_rpc_url,
+                get_user_balance_args.network.into(),
+            )
+            .await
+            {
+                Ok(balance) => {
+                    info!(
+                        "User {} has {} ether in the batcher",
+                        user_address,
+                        format_ether(balance)
+                    );
+                }
+                Err(e) => {
+                    error!("Error while getting user balance: {:?}", e);
+                    return Ok(());
+                }
+            }
         }
     }
 
@@ -580,9 +520,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
                 args.vm_program_code_file_name.clone(),
             )?);
         }
-        ProvingSystemId::Halo2KZG
-        | ProvingSystemId::Halo2IPA
-        | ProvingSystemId::GnarkPlonkBls12_381
+        ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
             verification_key = Some(read_file_option(

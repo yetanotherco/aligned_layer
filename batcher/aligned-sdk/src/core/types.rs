@@ -29,8 +29,6 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
-    Halo2KZG,
-    Halo2IPA,
     Risc0,
     Valida,
 }
@@ -324,8 +322,10 @@ pub enum ValidityResponseMessage {
     InvalidProof,
     InvalidMaxFee,
     InvalidReplacementMessage,
+    AddToBatchError,
     ProofTooLarge,
     InsufficientBalance(Address),
+    EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
 }
 
