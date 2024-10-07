@@ -402,7 +402,7 @@ impl Batcher {
             {
                 ValidityResponseMessage::Valid => (),
                 response => {
-                    error!("Invalid proof detected. Verification failed.");
+                    error!("Invalid proof detected. Verification failed: {}", response);
                     send_message(ws_conn_sink.clone(), response).await;
                     return Ok(());
                 }

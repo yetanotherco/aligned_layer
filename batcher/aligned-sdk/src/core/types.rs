@@ -352,6 +352,33 @@ pub enum ProofInvalidReason {
     BlacklistedVerifier,
 }
 
+impl Display for ValidityResponseMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ValidityResponseMessage::Valid => write!(f, "Valid"),
+            ValidityResponseMessage::InvalidNonce => write!(f, "Invalid nonce"),
+            ValidityResponseMessage::InvalidSignature => write!(f, "Invalid signature"),
+            ValidityResponseMessage::InvalidChainId => write!(f, "Invalid chain id"),
+            ValidityResponseMessage::InvalidProof(reason) => {
+                write!(f, "Invalid proof: {}", reason)
+            }
+            ValidityResponseMessage::InvalidMaxFee => write!(f, "Invalid max fee"),
+            ValidityResponseMessage::InvalidReplacementMessage => {
+                write!(f, "Invalid replacement message")
+            }
+            ValidityResponseMessage::AddToBatchError => write!(f, "Add to batch error"),
+            ValidityResponseMessage::ProofTooLarge => write!(f, "Proof too large"),
+            ValidityResponseMessage::InsufficientBalance(addr) => {
+                write!(f, "Insufficient balance for address {}", addr)
+            }
+            ValidityResponseMessage::EthRpcError => write!(f, "Eth RPC error"),
+            ValidityResponseMessage::InvalidPaymentServiceAddress(addr, expected) => {
+                write!(f, "Invalid payment service address: {}, expected: {}", addr, expected)
+            }
+        }
+    }
+}
+
 impl Display for ProofInvalidReason {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
