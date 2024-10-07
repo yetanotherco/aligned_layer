@@ -112,7 +112,7 @@ defmodule TelemetryApi.Traces do
   def quorum_reached(merkle_root) do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
       Tracer.add_event("Quorum Reached", [])
-      IO.inspect("Reached quorum registered. merkle_root: #{IO.inspect(merkle_root)}")
+      IO.inspect("Reached quorum registered. merkle_root: #{merkle_root}")
       :ok
     end
   end
@@ -166,7 +166,7 @@ defmodule TelemetryApi.Traces do
 
       # Clean up the context from the Agent
       TraceStore.delete_trace(merkle_root)
-      IO.inspect("Finished task trace with merkle_root: #{IO.inspect(merkle_root)}.")
+      IO.inspect("Finished task trace with merkle_root: #{merkle_root}.")
       :ok
     end
   end

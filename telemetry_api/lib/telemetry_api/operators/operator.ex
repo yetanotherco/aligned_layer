@@ -8,7 +8,7 @@ defmodule TelemetryApi.Operators.Operator do
     field :stake, :string
     field :name, :string
     field :version, :string
-    field :status, :boolean, default: false
+    field :status, :integer
 
     timestamps(type: :utc_datetime)
   end
