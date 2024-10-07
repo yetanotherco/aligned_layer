@@ -1,37 +1,38 @@
 # Common variables for all the services
 # 'production' only prints info and above. 'development' also prints debug
-environment: "development"
-aligned_layer_deployment_config_file_path: "./contracts/script/output/devnet/alignedlayer_deployment_output.json"
-eigen_layer_deployment_config_file_path: "./contracts/script/output/devnet/eigenlayer_deployment_output.json"
-eth_rpc_url: "http://localhost:8545"
-eth_rpc_url_fallback: "http://localhost:8545"
-eth_ws_url: "ws://localhost:8545"
-eth_ws_url_fallback: "ws://localhost:8545"
-eigen_metrics_ip_port_address: "localhost:9090"
+environment: 'development'
+aligned_layer_deployment_config_file_path: './contracts/script/output/devnet/alignedlayer_deployment_output.json'
+eigen_layer_deployment_config_file_path: './contracts/script/output/devnet/eigenlayer_deployment_output.json'
+eth_rpc_url: 'http://localhost:8545'
+eth_rpc_url_fallback: 'http://localhost:8545'
+eth_ws_url: 'ws://localhost:8545'
+eth_ws_url_fallback: 'ws://localhost:8545'
+eigen_metrics_ip_port_address: 'localhost:9090'
 
 ## ECDSA Configurations
 ecdsa:
-  private_key_store_path: "config-files/devnet/keys/operator-3.ecdsa.key.json"
-  private_key_store_password: ""
+  private_key_store_path: 'config-files/devnet/keys/operator-3.ecdsa.key.json'
+  private_key_store_password: ''
 
 ## BLS Configurations
 bls:
-  private_key_store_path: "config-files/devnet/keys/operator-3.bls.key.json"
-  private_key_store_password: ""
+  private_key_store_path: 'config-files/devnet/keys/operator-3.bls.key.json'
+  private_key_store_password: ''
 
 ## Operator Configurations
 operator:
   aggregator_rpc_server_ip_port_address: localhost:8090
-  operator_tracker_ip_port_address: http://localhost:3030
+  operator_tracker_ip_port_address: http://localhost:4001
   address: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
   earnings_receiver_address: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
-  delegation_approver_address: "0x0000000000000000000000000000000000000000"
+  delegation_approver_address: '0x0000000000000000000000000000000000000000'
   staker_opt_out_window_blocks: 0
-  metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+  metadata_url: 'https://yetanotherco.github.io/operator_metadata/metadata.json'
   max_batch_size: 268435456 # 256 MiB
+  last_processed_batch_filepath: 'config-files/operator-3.last_processed_batch.json'
 
 # Operators variables needed for register it in EigenLayer
-el_delegation_manager_address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+el_delegation_manager_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9'
 private_key_store_path: config-files/devnet/keys/operator-3.ecdsa.key.json
 bls_private_key_store_path: config-files/devnet/keys/operator-3.bls.key.json
 signer_type: local_keystore

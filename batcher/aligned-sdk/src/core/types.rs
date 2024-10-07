@@ -33,8 +33,6 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
-    Halo2KZG,
-    Halo2IPA,
     Risc0,
 }
 
@@ -45,8 +43,6 @@ impl Display for ProvingSystemId {
             ProvingSystemId::GnarkPlonkBn254 => write!(f, "GnarkPlonkBn254"),
             ProvingSystemId::Groth16Bn254 => write!(f, "Groth16Bn254"),
             ProvingSystemId::SP1 => write!(f, "SP1"),
-            ProvingSystemId::Halo2KZG => write!(f, "Halo2KZG"),
-            ProvingSystemId::Halo2IPA => write!(f, "Halo2IPA"),
             ProvingSystemId::Risc0 => write!(f, "Risc0"),
         }
     }
@@ -341,8 +337,10 @@ pub enum ValidityResponseMessage {
     InvalidProof(ProofInvalidReason),
     InvalidMaxFee,
     InvalidReplacementMessage,
+    AddToBatchError,
     ProofTooLarge,
     InsufficientBalance(Address),
+    EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
 }
 
