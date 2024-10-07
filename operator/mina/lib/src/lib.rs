@@ -17,11 +17,13 @@ use mina_p2p_messages::v2::{MinaStateProtocolStateValueStableV2, StateHash};
 use mina_tree::proofs::field::FieldWitness as _;
 use mina_tree::proofs::verification::verify_block;
 use poly_commitment::srs::SRS;
-use verifier_index::deserialize_blockchain_vk;
+use verifier_index::{deserialize_blockchain_vk, MinaChain};
 
 lazy_static! {
-    static ref VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
-        deserialize_blockchain_vk().unwrap();
+    static ref DEVNET_VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
+        deserialize_blockchain_vk(MinaChain::Devnet).unwrap();
+    static ref MAINNET_VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
+        deserialize_blockchain_vk(MinaChain::Mainnet).unwrap();
     static ref MINA_SRS: SRS<Vesta> = SRS::<Vesta>::create(Fq::SRS_DEPTH);
 }
 
@@ -86,12 +88,21 @@ pub extern "C" fn verify_mina_state_ffi(
 
     // Verify the tip block (and thanks to Pickles recursion all the previous states are verified
     // as well)
-    verify_block(
-        &proof.candidate_tip_proof,
-        candidate_tip_state_hash,
-        &VERIFIER_INDEX,
-        &MINA_SRS,
-    )
+    if pub_inputs.is_state_proof_from_devnet {
+        verify_block(
+            &proof.candidate_tip_proof,
+            candidate_tip_state_hash,
+            &DEVNET_VERIFIER_INDEX,
+            &MINA_SRS,
+        )
+    } else {
+        verify_block(
+            &proof.candidate_tip_proof,
+            candidate_tip_state_hash,
+            &MAINNET_VERIFIER_INDEX,
+            &MINA_SRS,
+        )
+    }
 }
 
 /// Checks public inputs against the proof data, making sure the inputs correspond to the proofs
