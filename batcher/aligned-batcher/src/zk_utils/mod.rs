@@ -23,7 +23,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
         }
         ProvingSystemId::Nexus => {
             if let Some(params) = &verification_data.verification_key {
-                return verify_nexus_proof(&verification_data.proof, &params);
+                return verify_nexus_proof(&verification_data.proof, params);
             }
             warn!("Trying to verify Nexus proof but Params not provided. Returning false");
             false

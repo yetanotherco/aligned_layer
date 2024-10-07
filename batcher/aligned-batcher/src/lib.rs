@@ -33,7 +33,6 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 use tokio_tungstenite::tungstenite::{Error, Message};
-use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
 
@@ -277,9 +276,11 @@ impl Batcher {
         info!("Incoming TCP connection from: {}", addr);
         // Nexus sends payloads bigger than the default maximum of 16MiB
         // ref: https://docs.rs/tungstenite/latest/tungstenite/protocol/struct.WebSocketConfig.html#structfield.max_frame_size
-        let mut config = WebSocketConfig::default();
-        config.max_frame_size = Some(256 << 20);
-        config.max_message_size = Some(256 << 20);
+        let config = WebSocketConfig{
+            max_frame_size: Some(256 << 20),
+            max_message_size: Some(256 << 20),
+            ..Default::default()
+        };
 
         let ws_stream =
             tokio_tungstenite::accept_async_with_config(raw_stream, Some(config)).await?;
