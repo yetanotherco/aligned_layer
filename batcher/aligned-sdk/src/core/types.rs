@@ -12,6 +12,7 @@ use lambdaworks_crypto::merkle_tree::{
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
+use std::str::FromStr;
 
 use super::errors::VerifySignatureError;
 
@@ -342,6 +343,22 @@ pub enum Network {
     Devnet,
     Holesky,
     HoleskyStage,
+}
+
+impl FromStr for Network {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "holesky" => Ok(Network::Holesky),
+            "holesky-stage" => Ok(Network::HoleskyStage),
+            "devnet" => Ok(Network::Devnet),
+            _ => Err(
+                "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\""
+                    .to_string(),
+            ),
+        }
+    }
 }
 
 #[cfg(test)]
