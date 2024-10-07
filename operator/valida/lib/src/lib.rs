@@ -18,7 +18,7 @@ use valida_cpu::MachineWithCpuChip;
 use valida_elf::{load_executable_file, Program};
 use valida_machine::StarkConfigImpl;
 use valida_machine::__internal::p3_commit::ExtensionMmcs;
-use valida_machine::{FixedAdviceProvider, GlobalAdviceProvider, Machine, MachineProof};
+use valida_machine::{FixedAdviceProvider, Machine, MachineProof};
 use valida_program::MachineWithProgramChip;
 use valida_static_data::MachineWithStaticDataChip;
 
