@@ -416,7 +416,7 @@ batcher_send_mina_burst:
 batcher_send_mina_account_task:
 	@echo "Sending Mina account task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Mina \
+		--proving_system MinaAccount \
 		--proof ../../scripts/test_files/mina_account/mina_account.proof \
 		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
@@ -424,7 +424,7 @@ batcher_send_mina_account_task:
 batcher_send_mina_account_burst:
 	@echo "Sending Mina account task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Mina \
+		--proving_system MinaAccount \
 		--proof ../../scripts/test_files/mina_account/mina_account.proof \
 		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
 		--repetitions 15 \
