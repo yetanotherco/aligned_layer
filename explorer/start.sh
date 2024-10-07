@@ -2,14 +2,23 @@
 
 source .env
 
-export ENVIRONMENT=$ENVIRONMENT
-export RPC_URL=$RPC_URL
-export PHX_HOST=$PHX_HOST
-export DB_NAME=$DB_NAME
-export DB_USER=$DB_USER
-export DB_PASS=$DB_PASS
-export DB_HOST=$DB_HOST
-export ALIGNED_CONFIG_FILE=$ALIGNED_CONFIG_FILE
+# Add new environment variables here
+env_vars=(
+  "ENVIRONMENT"
+  "RPC_URL"
+  "PHX_HOST"
+  "DB_NAME"
+  "DB_USER"
+  "DB_PASS"
+  "DB_HOST"
+  "ALIGNED_CONFIG_FILE"
+  "DEBUG_ERRORS"
+  "TRACKER_API_URL"
+)
+
+for var in "${env_vars[@]}"; do
+  export "$var=${!var}"
+done
 
 mix compile --force #force recompile to get the latest .env values
 

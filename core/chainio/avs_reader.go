@@ -1,8 +1,12 @@
 package chainio
 
 import (
+	"context"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	gethcommon "github.com/ethereum/go-ethereum/common"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	contractERC20Mock "github.com/yetanotherco/aligned_layer/contracts/bindings/ERC20Mock"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
@@ -12,9 +16,10 @@ import (
 )
 
 type AvsReader struct {
-	sdkavsregistry.AvsRegistryReader
-	AvsContractBindings *AvsServiceBindings
-	logger              logging.Logger
+	*sdkavsregistry.ChainReader
+	AvsContractBindings            *AvsServiceBindings
+	AlignedLayerServiceManagerAddr ethcommon.Address
+	logger                         logging.Logger
 }
 
 func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.EcdsaConfig) (*AvsReader, error) {
@@ -33,29 +38,67 @@ func NewAvsReaderFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 		return nil, err
 	}
 
-	avsRegistryReader := clients.AvsRegistryChainReader
+	chainReader := clients.AvsRegistryChainReader
 
-	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.Logger)
+	avsServiceBindings, err := NewAvsServiceBindings(baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr, baseConfig.AlignedLayerDeploymentConfig.AlignedLayerOperatorStateRetrieverAddr, baseConfig.EthRpcClient, baseConfig.EthRpcClientFallback, baseConfig.Logger)
 	if err != nil {
 		return nil, err
 	}
 
 	return &AvsReader{
-		AvsRegistryReader:   avsRegistryReader,
-		AvsContractBindings: avsServiceBindings,
-		logger:              baseConfig.Logger,
+		ChainReader:                    chainReader,
+		AvsContractBindings:            avsServiceBindings,
+		AlignedLayerServiceManagerAddr: baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
+		logger:                         baseConfig.Logger,
 	}, nil
 }
 
-func (r *AvsReader) GetErc20Mock(tokenAddr gethcommon.Address) (*contractERC20Mock.ContractERC20Mock, error) {
-	erc20Mock, err := contractERC20Mock.NewContractERC20Mock(tokenAddr, r.AvsContractBindings.ethClient)
+func (r *AvsReader) GetErc20Mock(tokenAddr ethcommon.Address) (*contractERC20Mock.ContractERC20Mock, error) {
+	erc20Mock, err := contractERC20Mock.NewContractERC20Mock(tokenAddr, &r.AvsContractBindings.ethClient)
 	if err != nil {
-		r.logger.Error("Failed to fetch ERC20Mock contract", "err", err)
-		return nil, err
+		// Retry with fallback client
+		erc20Mock, err = contractERC20Mock.NewContractERC20Mock(tokenAddr, &r.AvsContractBindings.ethClientFallback)
+		if err != nil {
+			r.logger.Error("Failed to fetch ERC20Mock contract", "err", err)
+		}
 	}
 	return erc20Mock, nil
 }
 
-func (r *AvsReader) IsOperatorRegistered(address gethcommon.Address) (bool, error) {
-	return r.AvsRegistryReader.IsOperatorRegistered(&bind.CallOpts{}, address)
+func (r *AvsReader) IsOperatorRegistered(address ethcommon.Address) (bool, error) {
+	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
+}
+
+// Returns all the "NewBatchV3" logs that have not been responded starting from the given block number
+func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var tasks []servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+
+	for logs.Next() {
+		task, err := r.AvsContractBindings.ServiceManager.ParseNewBatchV3(logs.Event.Raw)
+		if err != nil {
+			return nil, err
+		}
+
+		// now check if its finalized or not before appending
+		batchIdentifier := append(task.BatchMerkleRoot[:], task.SenderAddress[:]...)
+		batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+		state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+
+		if err != nil {
+			return nil, err
+		}
+
+		// append the task if not responded yet
+		if !state.Responded {
+			tasks = append(tasks, *task)
+		}
+	}
+
+	return tasks, nil
 }

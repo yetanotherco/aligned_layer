@@ -1,16 +1,21 @@
-use lazy_static::lazy_static;
-use log::{debug, warn};
+use log::{debug, error, warn};
 use sp1_sdk::ProverClient;
+use std::sync::OnceLock;
 
-lazy_static! {
-    static ref SP1_PROVER_CLIENT: ProverClient = ProverClient::new();
-}
+static SP1_PROVER_CLIENT: OnceLock<ProverClient> = OnceLock::new();
 
 pub fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
+    if proof.is_empty() || elf.is_empty() {
+        error!("SP1 Input buffers zero size");
+        return false;
+    }
+
     debug!("Verifying SP1 proof");
-    let (_pk, vk) = SP1_PROVER_CLIENT.setup(elf);
+    let prover_client = SP1_PROVER_CLIENT.get_or_init(ProverClient::new);
+
+    let (_pk, vk) = prover_client.setup(elf);
     if let Ok(proof) = bincode::deserialize(proof) {
-        let res = SP1_PROVER_CLIENT.verify_compressed(&proof, &vk).is_ok();
+        let res = prover_client.verify(&proof, &vk).is_ok();
         debug!("SP1 proof is valid: {}", res);
         if res {
             return true;

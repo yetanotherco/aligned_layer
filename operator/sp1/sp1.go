@@ -9,9 +9,13 @@ package sp1
 import "C"
 import "unsafe"
 
-func VerifySp1Proof(proofBuffer []byte, proofLen uint32, elfBuffer []byte, elfLen uint32) bool {
+func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) bool {
+	if len(proofBuffer) == 0 || len(elfBuffer) == 0 {
+		return false
+	}
+
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
 
-	return (bool)(C.verify_sp1_proof_ffi(proofPtr, (C.uint32_t)(proofLen), elfPtr, (C.uint32_t)(elfLen)))
+	return (bool)(C.verify_sp1_proof_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), elfPtr, (C.uint32_t)(len(elfBuffer))))
 }

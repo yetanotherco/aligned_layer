@@ -1,7 +1,8 @@
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 import {BatcherPaymentService} from "../../src/core/BatcherPaymentService.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {IAlignedLayerServiceManager} from "../../src/core/IAlignedLayerServiceManager.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
@@ -10,7 +11,6 @@ contract BatcherPaymentServiceDeployer is Script {
     function run(
         string memory batcherConfigPath
     ) external returns (address, address) {
-
         // READ JSON CONFIG DATA
         string memory config_data = vm.readFile(batcherConfigPath);
 
@@ -29,39 +29,28 @@ contract BatcherPaymentServiceDeployer is Script {
             ".permissions.owner"
         );
 
-        uint256 paymentServiceCreateTaskGasCost = stdJson.readUint(
+        bytes32 noncedVerificationDataTypeHash = stdJson.readBytes32(
             config_data,
-            ".amounts.paymentServiceCreateTaskGasCost"
-        );
-
-        uint256 serviceManagerCreateTaskGasCost = stdJson.readUint(
-            config_data,
-            ".amounts.serviceManagerCreateTaskGasCost"
-        );
-
-        uint256 extraUserTxGasCost = stdJson.readUint(
-            config_data,
-            ".amounts.extraUserTxGasCost"
+            ".eip712.noncedVerificationDataTypeHash"
         );
 
         vm.startBroadcast();
 
         BatcherPaymentService batcherPaymentService = new BatcherPaymentService();
-        ERC1967Proxy proxy = new ERC1967Proxy(address(batcherPaymentService), "");
-        BatcherPaymentService(payable(address(proxy))).initialize(
-            alignedLayerServiceManager,
-            batcherPaymentServiceOwner,
-            batcherWallet,
-            paymentServiceCreateTaskGasCost,
-            serviceManagerCreateTaskGasCost,
-            extraUserTxGasCost
+
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(batcherPaymentService),
+            abi.encodeWithSignature(
+                "initialize(address,address,address,bytes32)",
+                IAlignedLayerServiceManager(alignedLayerServiceManager),
+                batcherPaymentServiceOwner,
+                batcherWallet,
+                noncedVerificationDataTypeHash
+            )
         );
-        
+
         vm.stopBroadcast();
 
-        return (
-            address(proxy),
-            address(batcherPaymentService)
-        );
+        return (address(proxy), address(batcherPaymentService));
     }
 }

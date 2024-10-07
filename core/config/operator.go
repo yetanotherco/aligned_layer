@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"os"
+
+	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type OperatorConfig struct {
@@ -16,6 +17,7 @@ type OperatorConfig struct {
 
 	Operator struct {
 		AggregatorServerIpPortAddress string
+		OperatorTrackerIpPortAddress  string
 		Address                       common.Address
 		EarningsReceiverAddress       common.Address
 		DelegationApproverAddress     common.Address
@@ -25,12 +27,14 @@ type OperatorConfig struct {
 		EnableMetrics                 bool
 		MetricsIpPortAddress          string
 		MaxBatchSize                  int64
+		LastProcessedBatchFilePath    string
 	}
 }
 
 type OperatorConfigFromYaml struct {
 	Operator struct {
 		AggregatorServerIpPortAddress string         `yaml:"aggregator_rpc_server_ip_port_address"`
+		OperatorTrackerIpPortAddress  string         `yaml:"operator_tracker_ip_port_address"`
 		Address                       common.Address `yaml:"address"`
 		EarningsReceiverAddress       common.Address `yaml:"earnings_receiver_address"`
 		DelegationApproverAddress     common.Address `yaml:"delegation_approver_address"`
@@ -40,6 +44,7 @@ type OperatorConfigFromYaml struct {
 		EnableMetrics                 bool           `yaml:"enable_metrics"`
 		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
 		MaxBatchSize                  int64          `yaml:"max_batch_size"`
+		LastProcessedBatchFilePath    string         `yaml:"last_processed_batch_filepath"`
 	} `yaml:"operator"`
 	EcdsaConfigFromYaml EcdsaConfigFromYaml `yaml:"ecdsa"`
 	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
@@ -79,6 +84,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		AlignedLayerDeploymentConfig: baseConfig.AlignedLayerDeploymentConfig,
 		Operator: struct {
 			AggregatorServerIpPortAddress string
+			OperatorTrackerIpPortAddress  string
 			Address                       common.Address
 			EarningsReceiverAddress       common.Address
 			DelegationApproverAddress     common.Address
@@ -88,6 +94,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			EnableMetrics                 bool
 			MetricsIpPortAddress          string
 			MaxBatchSize                  int64
+			LastProcessedBatchFilePath    string
 		}(operatorConfigFromYaml.Operator),
 	}
 }

@@ -9,12 +9,12 @@ package merkle_tree
 import "C"
 import "unsafe"
 
-const (
-	MaxBatchSize = 8301009
-)
+func VerifyMerkleTreeBatch(batchBuffer []byte, merkleRootBuffer [32]byte) bool {
+	if len(batchBuffer) == 0 {
+		return false
+	}
 
-func VerifyMerkleTreeBatch(batchBuffer [MaxBatchSize]byte, batchLen uint, merkleRootBuffer [32]byte) bool {
 	batchPtr := (*C.uchar)(unsafe.Pointer(&batchBuffer[0]))
 	merkleRootPtr := (*C.uchar)(unsafe.Pointer(&merkleRootBuffer[0]))
-	return (bool)(C.verify_merkle_tree_batch_ffi(batchPtr, (C.uint)(batchLen), merkleRootPtr))
+	return (bool)(C.verify_merkle_tree_batch_ffi(batchPtr, (C.uint)(len(batchBuffer)), merkleRootPtr))
 }

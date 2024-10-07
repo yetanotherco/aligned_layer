@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@floating-ui/dom": "^1.6.8"
+  },
+  "devDependencies": {
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "packageManager": "pnpm@9.1.1"
+}

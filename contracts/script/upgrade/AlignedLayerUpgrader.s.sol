@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.12;
+pragma solidity ^0.8.12;
 
 import {Script} from "forge-std/Script.sol";
 import "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";

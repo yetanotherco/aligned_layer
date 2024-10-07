@@ -12,7 +12,7 @@ config :explorer, ExplorerWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
   code_reloader: true,
-  debug_errors: true,
+  debug_errors: System.get_env("DEBUG_ERRORS") || false,
   secret_key_base: "Ar8XKULLilwSeaCoCwlrv0KVM8dhzo97yhNOZi5e5wXlk7O0UdjZJJbuyzJx1YuX",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:explorer, ~w(--sourcemap=inline --watch)]},

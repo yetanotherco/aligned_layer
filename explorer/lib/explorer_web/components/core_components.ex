@@ -18,6 +18,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   alias Phoenix.LiveView.JS
   import ExplorerWeb.Gettext
+  import Tails, only: [classes: 1]
 
   @doc """
   Renders a modal.
@@ -102,6 +103,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
+  attr :delay, :boolean, default: false, doc: "optional 3s delay for the flash message"
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
 
@@ -114,12 +116,15 @@ defmodule ExplorerWeb.CoreComponents do
       id={@id}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class={[
-        "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
-        "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
-        @kind == :info && "bg-emerald-50 text-emerald-800 ring-emerald-500 fill-cyan-900",
-        @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900"
-      ]}
+      class={
+        classes([
+          "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
+          "fixed bottom-5 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
+          @kind == :info && "bg-emerald-50 text-emerald-800 ring-emerald-500 fill-cyan-900",
+          @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900",
+          @delay && "delay-&lsqb;3s&rsqb;"
+        ])
+      }
       {@rest}
     >
       <p :if={@title} class="flex items-center gap-1.5 text-sm font-semibold leading-6">
@@ -127,7 +132,7 @@ defmodule ExplorerWeb.CoreComponents do
         <.icon :if={@kind == :error} name="hero-exclamation-circle-mini" class="h-4 w-4" />
         <%= @title %>
       </p>
-      <p class="mt-2 text-sm leading-5"><%= msg %></p>
+      <p class="mt-2 text-sm leading-5 break-all"><%= msg %></p>
       <button type="button" class="group absolute top-1 right-1 p-2" aria-label={gettext("close")}>
         <.icon name="hero-x-mark-solid" class="h-5 w-5 opacity-40 group-hover:opacity-70" />
       </button>
@@ -156,6 +161,7 @@ defmodule ExplorerWeb.CoreComponents do
         title={gettext("We can't find the internet")}
         phx-disconnected={show(".phx-client-error #client-error")}
         phx-connected={hide("#client-error")}
+        delay
         hidden
       >
         <%= gettext("Attempting to reconnect") %>
@@ -214,7 +220,7 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
-  Renders a button.
+  Renders a button. To add an icon just search for the icon name in the https://heroicons.com/ and pass it as the icon attribute.
 
   ## Examples
 
@@ -224,6 +230,8 @@ defmodule ExplorerWeb.CoreComponents do
   attr :type, :string, default: nil
   attr :class, :string, default: nil
   attr :rest, :global, include: ~w(disabled form name value)
+  attr :icon, :string, default: nil
+  attr :icon_class, :string, default: nil
 
   slot :inner_block, required: true
 
@@ -234,15 +242,27 @@ defmodule ExplorerWeb.CoreComponents do
       class={[
         "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
         "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
-        "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
-        "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
-        "border border-foreground/20",
+        "border border-foreground/20 inline-flex items-center gap-1.5",
         @class
       ]}
       {@rest}
     >
+      <.icon :if={@icon != nil} name={"hero-#{@icon}"} class={"size-4 stroke-inherit #{@icon_class}"} />
       <%= render_slot(@inner_block) %>
     </button>
+    """
+  end
+
+  @doc """
+  Root background component.
+  """
+  slot :inner_block, default: nil
+
+  def root_background(assigns) do
+    ~H"""
+    <main class="px-4 sm:px-6 lg:px-8 pt-20 pb-8 selection:bg-accent/80 selection:text-accent-foreground/80 min-h-dvh">
+      <%= render_slot(@inner_block) %>
+    </main>
     """
   end
 
@@ -254,7 +274,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card_background(assigns) do
     ~H"""
-    <div class={["bg-card border border-foreground/20 rounded-2xl p-4", @class]}>
+    <div class={classes(["bg-card border border-foreground/20 rounded-2xl p-4", @class])}>
       <%= render_slot(@inner_block) %>
     </div>
     """
@@ -268,7 +288,12 @@ defmodule ExplorerWeb.CoreComponents do
 
   def card_preheding(assigns) do
     ~H"""
-    <h1 class={["text-4xl sm:text-5xl font-bold font-foreground text-center md:text-left", @class]}>
+    <h1 class={
+      classes([
+        "text-4xl sm:text-5xl font-bold font-foreground text-left py-2",
+        @class
+      ])
+    }>
       <%= render_slot(@inner_block) %>
     </h1>
     """
@@ -289,10 +314,38 @@ defmodule ExplorerWeb.CoreComponents do
       <h2 class="font-medium text-muted-foreground capitalize">
         <%= @title %>
       </h2>
-      <span class={["text-4xl font-bold slashed-zero", @inner_class]}>
+      <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
         <%= render_slot(@inner_block) %>
       </span>
     </.card_background>
+    """
+  end
+
+  @doc """
+  Renders a card with a link and title that has a hyperlink icon and underline on hover.
+  """
+  attr :class, :string, default: nil
+  attr :inner_class, :string, default: nil
+  attr :title, :string, default: nil
+  attr :href, :string, default: nil
+  attr :rest, :global, include: ~w(href target navigate)
+  attr :icon, :string, default: "hero-arrow-top-right-on-square-solid"
+
+  slot :inner_block, default: nil
+
+  def card_link(assigns) do
+    ~H"""
+    <.link target="_blank" href={@href} class="group" {@rest}>
+      <.card_background class={@class}>
+        <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
+          <%= @title %>
+          <.icon name={@icon} class="size-4 mb-1" />
+        </h2>
+        <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
+          <%= render_slot(@inner_block) %>
+        </span>
+      </.card_background>
+    </.link>
     """
   end
 
@@ -320,14 +373,46 @@ defmodule ExplorerWeb.CoreComponents do
   def a(assigns) do
     ~H"""
     <.link
-      class={[
-        "underline underline-offset-4 font-medium	after:content-['↗'] hover:after:content-['→'] transition-all duration-150",
-        @class
-      ]}
+      class={
+        classes([
+          "underline underline-offset-4 font-medium flex items-center gap-1 hover:text-foreground/80",
+          @class
+        ])
+      }
       {@rest}
     >
       <%= render_slot(@inner_block) %>
+      <.icon name="hero-arrow-top-right-on-square-solid" class="size-4" />
     </.link>
+    """
+  end
+
+  @doc """
+    Renders a badge component.
+  """
+  attr :class, :string, default: nil
+  attr :variant, :string, default: "accent"
+  slot :inner_block, default: nil
+
+  def badge(assigns) do
+    ~H"""
+    <span class={
+      classes([
+        "px-3 py-1 rounded-full font-semibold",
+        case @variant do
+          "accent" -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
+          "primary" -> "text-primary-foreground bg-primary group-hover:bg-primary/80"
+          "secondary" -> "text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
+          "destructive" -> "text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
+          "foreground" -> "text-background bg-foreground group-hover:bg-foreground/80"
+          "card" -> "text-card-foreground bg-card group-hover:bg-card/80"
+          _ -> "text-accent-foreground bg-accent group-hover:bg-accent/80"
+        end,
+        @class
+      ])
+    }>
+      <%= render_slot(@inner_block) %>
+    </span>
     """
   end
 
@@ -336,26 +421,31 @@ defmodule ExplorerWeb.CoreComponents do
   """
   attr :class, :string, default: nil
   attr :status, :boolean, default: true
-  attr :pending_text, :string, default: "Pending"
-  attr :verified_text, :string, default: "Verified"
+  attr :falsy_text, :string, default: "Pending"
+  attr :truthy_text, :string, default: "Verified"
   slot :inner_block, default: nil
 
   def dynamic_badge(assigns) do
     ~H"""
-    <span class={[
-      "px-3 py-1 rounded-full",
-      case @status do
-        true -> "text-black bg-primary group-hover:bg-primary/80"
-        false -> "text-white bg-secondary group-hover:bg-secondary/80"
-      end,
-      @class
-    ]}>
+    <.badge
+      variant={
+        case @status do
+          true -> "accent"
+          false -> "foreground"
+        end
+      }
+      class={
+        classes([
+          @class
+        ])
+      }
+    >
       <%= case @status do
-        true -> @verified_text
-        false -> @pending_text
+        true -> @truthy_text
+        false -> @falsy_text
       end %>
       <%= render_slot(@inner_block) %>
-    </span>
+    </.badge>
     """
   end
 
@@ -471,12 +561,14 @@ defmodule ExplorerWeb.CoreComponents do
       <textarea
         id={@id}
         name={@name}
-        class={[
-          "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
-          "min-h-[6rem] phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
-          @errors == [] && "border-zinc-300 focus:border-zinc-400",
-          @errors != [] && "border-rose-400 focus:border-rose-400"
-        ]}
+        class={
+          classes([
+            "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
+            "min-h-[6rem] phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
+            @errors == [] && "border-zinc-300 focus:border-zinc-400",
+            @errors != [] && "border-rose-400 focus:border-rose-400"
+          ])
+        }
         {@rest}
       ><%= Phoenix.HTML.Form.normalize_value("textarea", @value) %></textarea>
       <.error :for={msg <- @errors}><%= msg %></.error>
@@ -494,12 +586,14 @@ defmodule ExplorerWeb.CoreComponents do
         name={@name}
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
-        class={[
-          "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
-          "phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
-          @errors == [] && "border-zinc-300 focus:border-zinc-400",
-          @errors != [] && "border-rose-400 focus:border-rose-400"
-        ]}
+        class={
+          classes([
+            "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
+            "phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
+            @errors == [] && "border-zinc-300 focus:border-zinc-400",
+            @errors != [] && "border-rose-400 focus:border-rose-400"
+          ])
+        }
         {@rest}
       />
       <.error :for={msg <- @errors}><%= msg %></.error>
@@ -561,7 +655,7 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc ~S"""
-  Renders a table with generic styling.
+  Renders a table with custom styling.
 
   ## Examples
 
@@ -581,6 +675,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   slot :col, required: true do
     attr :label, :string
+    attr :class, :string
   end
 
   slot :action, doc: "the slot for showing user actions in the last table column"
@@ -592,31 +687,40 @@ defmodule ExplorerWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] sm:w-full z-10">
-        <thead class="text-sm text-left leading-6 text-foreground">
-          <tr>
-            <th :for={col <- @col} class="p-0 pb-4 px-3 font-normal"><%= col[:label] %></th>
+    <.card_background class="overflow-x-auto">
+      <table class="table-auto border-collapse w-full">
+        <thead>
+          <tr class="text-muted-foreground font-normal truncate">
+            <th
+              :for={{col, i} <- Enum.with_index(@col)}
+              class={classes(["pr-4", i == 0 && "text-left", i != 0 && "text-center"])}
+            >
+              <%= col[:label] %>
+            </th>
             <th :if={@action != []} class="p-0 pb-4">
               <span class="sr-only"><%= gettext("Actions") %></span>
             </th>
           </tr>
         </thead>
-        <tbody
-          id={@id}
-          phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="divide-y divide-muted border-t border-foreground text-sm leading-6 text-muted-foreground"
-        >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-foreground/10">
+        <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
+          <tr
+            :for={row <- @rows}
+            id={@row_id && @row_id.(row)}
+            class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate"
+          >
             <td
-              :for={{col, i} <- Enum.with_index(@col)}
+              :for={{col, _i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
-              class={["p-0", @row_click && "hover:cursor-pointer"]}
+              class={classes(["p-0", @row_click && "hover:cursor-pointer"])}
             >
-              <div class="block py-4 px-3">
-                <span class={[i == 0 && "text-muted-foreground"]}>
-                  <%= render_slot(col, @row_item.(row)) %>
-                </span>
+              <div class={
+                classes([
+                  "group block normal-case font-medium text-base min-w-28",
+                  col[:class] != nil && col[:class],
+                  col[:class] == nil && "text-center font-semibold"
+                ])
+              }>
+                <%= render_slot(col, @row_item.(row)) %>
               </div>
             </td>
             <td :if={@action != []} class="w-14 p-0">
@@ -632,7 +736,44 @@ defmodule ExplorerWeb.CoreComponents do
           </tr>
         </tbody>
       </table>
-    </div>
+    </.card_background>
+    """
+  end
+
+  @doc """
+  Renders an empty card background.
+
+  ## Examples
+
+      <.empty_card_background text="No users found" />
+
+  """
+  attr :class, :string, default: nil
+  attr :inner_text_class, :string, default: nil
+  attr :text, :string, default: nil
+  slot :inner_block
+
+  def empty_card_background(assigns) do
+    ~H"""
+    <.card_background class={
+      classes([
+        "overflow-x-auto min-h-[38.45rem] flex flex-col items-center justify-center gap-2",
+        @class
+      ])
+    }>
+      <p
+        :if={@text != nil}
+        class={
+          classes([
+            "text-lg text-muted-foreground",
+            @inner_text_class
+          ])
+        }
+      >
+        <%= @text %>
+      </p>
+      <%= render_slot(@inner_block) %>
+    </.card_background>
     """
   end
 
@@ -664,30 +805,6 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
-  Renders a back navigation link.
-
-  ## Examples
-
-      <.back navigate={~p"/posts"}>Back to posts</.back>
-  """
-  attr :navigate, :any, required: true
-  slot :inner_block, required: true
-
-  def back(assigns) do
-    ~H"""
-    <div class="mt-16">
-      <.link
-        navigate={@navigate}
-        class="text-sm font-semibold leading-6 text-zinc-900 hover:text-zinc-700"
-      >
-        <.icon name="hero-arrow-left-solid" class="h-3 w-3" />
-        <%= render_slot(@inner_block) %>
-      </.link>
-    </div>
-    """
-  end
-
-  @doc """
   Renders a [Heroicon](https://heroicons.com).
 
   Heroicons come in three styles – outline, solid, and mini.
@@ -710,7 +827,7 @@ defmodule ExplorerWeb.CoreComponents do
 
   def icon(%{name: "hero-" <> _} = assigns) do
     ~H"""
-    <span class={[@name, @class]} />
+    <span class={classes([@name, @class])} />
     """
   end
 
@@ -787,5 +904,52 @@ defmodule ExplorerWeb.CoreComponents do
   """
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
+  end
+
+  @doc """
+  Tooltip component.
+
+  ## Example
+      <.tooltip>
+        <p>Hover over me</p>
+      </.tooltip>
+
+  """
+  attr :class, :string, default: nil
+  slot :inner_block, required: true
+
+  def tooltip(assigns) do
+    ~H"""
+    <span
+      id={Utils.random_id("tt")}
+      class={
+        classes([
+          "tooltip",
+          "animate-in fade-in slide-in-from-bottom duration-50",
+          "px-2.5 py-1 text-sm text-foreground bg-popover border border-muted-foreground/30 rounded-full shadow-sm drop-shadow-sm",
+          @class
+        ])
+      }
+      role="tooltip"
+      phx-hook="TooltipHook"
+    >
+      <%= render_slot(@inner_block) %>
+    </span>
+    """
+  end
+
+  @doc """
+  Divider component.
+
+  ## Example
+      <.divider />
+
+  """
+  attr :class, :string, default: nil
+
+  def divider(assigns) do
+    ~H"""
+    <hr class={classes(["border-t rounded-full border-muted-foreground/40 my-1.5", @class])} />
+    """
   end
 end

@@ -1,0 +1,18 @@
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs
+docs/
+
+# Dotenv file
+.env
+
+risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof
+risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub
+risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin
