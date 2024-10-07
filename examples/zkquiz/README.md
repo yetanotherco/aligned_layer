@@ -58,8 +58,28 @@ This will:
 If you want to test the zk quiz on a local network follow these steps:
 
 1. Setup Aligned locally following [this guide](../../docs/3_guides/6_setup_aligned.md)
-2. cd into the zkquiz example: `cd examples/zkquiz`
-3. Deploy the verifier and locate the `CONTRACT_ADDRESS` from the output of: `make deploy_verifier_devnet`
-4. Run the quiz: `CONTRACT_ADDRESS=<VERIFIER_CONTRACT_ADDRESS> make answer_quiz_local`
 
-**Note** Make sure you send another proof alongside as the batcher will not create a task if it only has one proof in its queue. For example you could do: `make batcher_send_burst_groth16`
+3. Move into the zkquiz example:
+    ```
+    cd examples/zkquiz
+    ```
+
+4. Deploy the ZKQuiz verifier contract, and locate the `CONTRACT_ADDRESS` from its output:
+    ```
+    make deploy_verifier_devnet
+    ```
+
+
+5. Run the quiz:
+    ```
+    CONTRACT_ADDRESS=<VERIFIER_CONTRACT_ADDRESS> make answer_quiz_local
+    ```
+
+> [!NOTE]
+> Make sure you send another proof alongside the ZKQuiz proof, as the batcher will not create a batch with only 1 proof.
+> 
+> For example you could do:
+> ```
+> make batcher_send_risc0_burst
+> ```
+
