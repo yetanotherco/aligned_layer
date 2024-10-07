@@ -1,11 +1,10 @@
 #![feature(slice_flatten)]
 use std::io;
-use std::sync::Arc;
 
 use aligned_sdk::core::types::{
     AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
 };
-use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee, get_payment_service_address};
+use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
 use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
@@ -137,6 +136,8 @@ async fn main() {
         .await
         .expect("Failed to get next nonce");
 
+        println!("Submitting your proof...");
+
     let aligned_verification_data = submit_and_wait_verification(
         &args.batcher_url,
         &rpc_url,
@@ -150,9 +151,10 @@ async fn main() {
     .unwrap();
 
     println!(
-        "Proof submitted and verified successfully on batch {}, claiming prize...",
+        "Proof submitted and verified successfully on batch {}",
         hex::encode(aligned_verification_data.batch_merkle_root)
     );
+    println!("Claiming NFT prize...");
 
     claim_nft_with_verified_proof(
         &aligned_verification_data,
