@@ -284,6 +284,10 @@ Changing operator keys:
 
 Operator keys can be changed if needed.
 
+{% hint style="warning" %}
+When creating a new wallet keystore and private key please use strong passwords for your own protection.
+{% endhint %}
+
 To create a keystore, run:
 
 ```bash
@@ -465,35 +469,6 @@ make batcher_send_burst_groth16
 </details>
 
 <details>
-<summary>Halo2</summary>
-
-Send an individual IPA proof:
-
-```bash
-make batcher_send_halo2_ipa_task
-```
-
-Send a burst of five IPA proofs:
-
-```bash
-make batcher_send_halo2_ipa_task_burst_5
-```
-
-Send an individual KZG proof:
-
-```bash
-make batcher_send_halo2_kzg_task
-```
-
-Send a burst of 5 KZG proofs:
-
-```bash
-make batcher_send_halo2_kzg_task_burst_5
-```
-
-</details>
-
-<details>
 <summary>Send a specific proof:</summary>
 
 To install the Aligned client to send a specific proof, run:
@@ -518,8 +493,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path [path_to_ecdsa_keystore] \
 --batcher_url wss://batcher.alignedlayer.com \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 </details>
