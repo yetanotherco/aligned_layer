@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 deploy_verifier:
 	@. ./contracts/.env && . ./contracts/deploy.sh
 
