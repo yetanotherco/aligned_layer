@@ -32,13 +32,9 @@ use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
-<<<<<<< HEAD
-use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
-=======
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 use tokio_tungstenite::WebSocketStream;
-use types::batch_queue::{self, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
->>>>>>> 7ce69258 (fix: larger incoming payloads for websockets)
+use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
