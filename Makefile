@@ -250,6 +250,19 @@ batcher/target/release/aligned:
 RPC_URL=http://localhost:8545
 NETWORK=devnet # devnet | holesky-stage | holesky
 
+# Infinite stream of burst of 10 proofs
+batcher_send_infinite_burst:
+	@cd batcher/aligned-task-sender && cargo run --release 
+
+# Infinite stream of one proof
+batcher_send_infinite_stream:
+	@cd batcher/aligned-task-sender && cargo run --release -- --burst-size 1
+
+# Infinite connections
+# To test: `make batcher_test_connection NUM_SENDERS=10000`, with 0 proofs sent returns `Error 101` when tested locally
+batcher_test_connections:
+	@cd batcher/aligned-task-sender && cargo run --release -- --num-senders $(NUM_SENDERS) --burst-size 1
+
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
