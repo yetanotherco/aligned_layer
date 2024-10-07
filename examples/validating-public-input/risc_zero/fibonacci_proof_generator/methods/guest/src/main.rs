@@ -9,6 +9,7 @@ risc0_zkvm::guest::entry!(main);
 fn main() {
     let n: u32 = env::read::<u32>();
 
+    env::commit(&n);
     let mut a: u32 = 0;
     let mut b: u32 = 1;
     for _ in 0..n {
