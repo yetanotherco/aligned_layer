@@ -149,7 +149,7 @@ async fn main() -> Result<(), AlignedError> {
 
     let chain_id = get_chain_id(&args.eth_rpc_url).await.map_err(|e| {
                     SubmitError::GenericError(format!(
-                        "Failed to retrieve chain id, verify `eth_rpc_url` is cor/rect or local testnet is running on \"http://localhost:8545\": {}", e
+                        "Failed to retrieve chain id, verify `eth_rpc_url` is correct or local testnet is running on \"http://localhost:8545\": {}", e
                     ))
             })?;
     wallet = wallet.with_chain_id(chain_id);
@@ -267,7 +267,6 @@ async fn main() -> Result<(), AlignedError> {
     for t in threads {
         if let Err(e) = t.join() {
             error!("Thread panicked: {:?}", e);
-            return Ok(());
         }
     }
 
