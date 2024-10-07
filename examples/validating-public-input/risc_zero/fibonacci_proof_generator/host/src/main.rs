@@ -49,10 +49,11 @@ fn main() {
     let receipt = prover.prove(env, FIBONACCI_ELF).unwrap().receipt;
 
     // Retrieve receipt journal here.
-    let vars: (u32, u32) = receipt.journal.decode().unwrap();
+    let vars: (u32, (u32, u32)) = receipt.journal.decode().unwrap();
 
-    let (a, b) = vars;
+    let (n,(a, b)) = vars;
 
+    println!("n: {}", n);
     println!("a: {}", a);
     println!("b: {}", b);
 
