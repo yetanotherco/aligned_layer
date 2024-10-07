@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "$MULTISIG" ]; then
+  echo "Missing MULTISIG env variable"
+  exit 1
+fi
+
 # cd to the directory of this script so that this can be run from anywhere
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
