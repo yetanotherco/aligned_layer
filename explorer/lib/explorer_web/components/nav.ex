@@ -36,6 +36,12 @@ defmodule NavComponent do
           >
             Operators
           </.link>
+          <.link
+            class="text-foreground/80 hover:text-foreground font-semibold"
+            navigate={~p"/calculator"}
+          >
+            Calculator
+          </.link>
         </div>
         <.live_component module={SearchComponent} id="nav_search" />
       </div>
@@ -86,6 +92,12 @@ defmodule NavComponent do
               navigate={~p"/operators"}
             >
               Operators
+            </.link>
+            <.link
+              class="text-foreground/80 hover:text-foreground font-semibold"
+              navigate={~p"/calculator"}
+            >
+              Calculator
             </.link>
             <.link class="hover:text-foreground" target="_blank" href="https://docs.alignedlayer.com">
               Docs

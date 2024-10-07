@@ -3,6 +3,10 @@ defmodule Numbers do
     nil
   end
 
+  def format_number(number) when number == "" do
+    nil
+  end
+
   def format_number(number) when is_integer(number) do
     do_format_number(Integer.to_string(number))
   end

@@ -232,6 +232,7 @@ defmodule ExplorerWeb.CoreComponents do
   attr :rest, :global, include: ~w(disabled form name value)
   attr :icon, :string, default: nil
   attr :icon_class, :string, default: nil
+  attr :variant, :string, default: "default"
 
   slot :inner_block, required: true
 
@@ -243,6 +244,11 @@ defmodule ExplorerWeb.CoreComponents do
         "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
         "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
         "border border-foreground/20 inline-flex items-center gap-1.5",
+        "transition-all duration-150",
+        case @variant do
+          "primary" -> "bg-primary text-primary-foreground hover:bg-primary/80"
+          _ -> ""
+        end,
         @class
       ]}
       {@rest}
