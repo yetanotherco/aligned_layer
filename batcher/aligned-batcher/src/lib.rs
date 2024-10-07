@@ -31,8 +31,8 @@ use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
-use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
+use tokio_tungstenite::tungstenite::{Error, Message};
 use tokio_tungstenite::WebSocketStream;
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
@@ -281,7 +281,8 @@ impl Batcher {
         config.max_frame_size = Some(256 << 20);
         config.max_message_size = Some(256 << 20);
 
-        let ws_stream = tokio_tungstenite::accept_async_with_config(raw_stream, Some(config)).await?;
+        let ws_stream =
+            tokio_tungstenite::accept_async_with_config(raw_stream, Some(config)).await?;
 
         debug!("WebSocket connection established: {}", addr);
         let (outgoing, incoming) = ws_stream.split();
