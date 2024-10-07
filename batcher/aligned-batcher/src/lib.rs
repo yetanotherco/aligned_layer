@@ -754,19 +754,17 @@ impl Batcher {
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        // FIXME(marian): This condition should be changed to current_batch_size == 0
-        // once the bug in Lambdaworks merkle tree is fixed.
-        if current_batch_len < 2 {
-            info!("Current batch is empty or length 1. Waiting for more proofs...");
+        if current_batch_len == 0 {
+            info!("Current batch is empty. Waiting for more proofs...");
             return None;
         }
 
-        if current_batch_len < self.min_batch_len
+        if batch_state_lock.batch_queue.len() < self.min_batch_len
             && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
         {
             info!(
                 "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
-                block_number, *last_uploaded_batch_block_lock, current_batch_len, self.min_batch_len
+                block_number, *last_uploaded_batch_block_lock, batch_state_lock.batch_queue.len(), self.min_batch_len
             );
             return None;
         }
@@ -853,7 +851,11 @@ impl Batcher {
             .collect();
 
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-            MerkleTree::build(&batch_data_comm);
+            MerkleTree::build(&batch_data_comm).ok_or_else(|| {
+                BatcherError::TaskCreationError(
+                    "Failed to Build Merkle Tree: Empty Batch".to_string(),
+                )
+            })?;
 
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
