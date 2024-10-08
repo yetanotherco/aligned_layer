@@ -28,7 +28,7 @@ if [[ "$1" == "all" ]]; then
         "pauseAll()()" \
         --rpc-url $RPC_URL \
         --private-key $PRIVATE_KEY
-    return
+    exit 0
 fi
 
 
