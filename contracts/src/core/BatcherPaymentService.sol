@@ -44,7 +44,11 @@ contract BatcherPaymentService is
     error InvalidSignature(); // 8baa579f
     error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
     error InvalidMaxFee(uint256 maxFee, uint256 actualFee); // f59adf4a
-    error SignerInsufficientBalance(address signer, uint256 balance, uint256 required); // 955c0664
+    error SignerInsufficientBalance(
+        address signer,
+        uint256 balance,
+        uint256 required
+    ); // 955c0664
     error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
     error InvalidAddress(string param); // 161eb542
 
@@ -87,15 +91,15 @@ contract BatcherPaymentService is
 
     // Defined in types.rs
     // keccak256("NoncedVerificationData(bytes32 verification_data_hash,uint256 nonce,uint256 max_fee)")
-    function initializeNoncedVerificationDataTypeHash(bytes32 _noncedVerificationDataTypeHash)
-        public
-        reinitializer(2)
-        onlyOwner
-    {
+    function initializeNoncedVerificationDataTypeHash(
+        bytes32 _noncedVerificationDataTypeHash
+    ) public reinitializer(2) onlyOwner {
         noncedVerificationDataTypeHash = _noncedVerificationDataTypeHash;
     }
 
-    function setNoncedVerificationDataTypeHash(bytes32 _newTypeHash) public onlyOwner {
+    function setNoncedVerificationDataTypeHash(
+        bytes32 _newTypeHash
+    ) public onlyOwner {
         noncedVerificationDataTypeHash = _newTypeHash;
     }
 
@@ -140,20 +144,32 @@ contract BatcherPaymentService is
         }
 
         if (feePerProof * signaturesQty <= feeForAggregator) {
-            revert InsufficientFeeForAggregator(feeForAggregator, feePerProof * signaturesQty);
+            revert InsufficientFeeForAggregator(
+                feeForAggregator,
+                feePerProof * signaturesQty
+            );
         }
 
-        _checkMerkleRootAndVerifySignatures(leaves, batchMerkleRoot, signatures, feePerProof);
+        _checkMerkleRootAndVerifySignatures(
+            leaves,
+            batchMerkleRoot,
+            signatures,
+            feePerProof
+        );
 
         // call alignedLayerServiceManager
         // with value to fund the task's response
         alignedLayerServiceManager.createNewTask{value: feeForAggregator}(
-            batchMerkleRoot, batchDataPointer, respondToTaskFeeLimit
+            batchMerkleRoot,
+            batchDataPointer,
+            respondToTaskFeeLimit
         );
 
         emit TaskCreated(batchMerkleRoot, feePerProof);
 
-        payable(batcherWallet).transfer((feePerProof * signaturesQty) - feeForAggregator);
+        payable(batcherWallet).transfer(
+            (feePerProof * signaturesQty) - feeForAggregator
+        );
     }
 
     function unlock() external whenNotPaused {
@@ -203,7 +219,9 @@ contract BatcherPaymentService is
         _unpause();
     }
 
-    function _authorizeUpgrade(address newImplementation)
+    function _authorizeUpgrade(
+        address newImplementation
+    )
         internal
         override
         onlyOwner // solhint-disable-next-line no-empty-blocks
@@ -223,14 +241,24 @@ contract BatcherPaymentService is
         // Calculate the hash of the next layer of the Merkle tree
         // and verify the signatures up to numNodesInLayer
         for (i = 0; i < numNodesInLayer; i++) {
-            layer[i] = keccak256(abi.encodePacked(leaves[2 * i], leaves[2 * i + 1]));
+            layer[i] = keccak256(
+                abi.encodePacked(leaves[2 * i], leaves[2 * i + 1])
+            );
 
-            _verifySignatureAndDecreaseBalance(leaves[i], signatures[i], feePerProof);
+            _verifySignatureAndDecreaseBalance(
+                leaves[i],
+                signatures[i],
+                feePerProof
+            );
         }
 
         // Verify the rest of the signatures
         for (; i < signatures.length; i++) {
-            _verifySignatureAndDecreaseBalance(leaves[i], signatures[i], feePerProof);
+            _verifySignatureAndDecreaseBalance(
+                leaves[i],
+                signatures[i],
+                feePerProof
+            );
         }
 
         // The next layer above has half as many nodes
@@ -240,7 +268,9 @@ contract BatcherPaymentService is
         while (numNodesInLayer != 0) {
             // Overwrite the first numNodesInLayer nodes in layer with the pairwise hashes of their children
             for (i = 0; i < numNodesInLayer; i++) {
-                layer[i] = keccak256(abi.encodePacked(layer[2 * i], layer[2 * i + 1]));
+                layer[i] = keccak256(
+                    abi.encodePacked(layer[2 * i], layer[2 * i + 1])
+                );
             }
 
             // The next layer above has half as many nodes
@@ -256,9 +286,11 @@ contract BatcherPaymentService is
         }
     }
 
-    function _verifySignatureAndDecreaseBalance(bytes32 leaf, SignatureData calldata signatureData, uint256 feePerProof)
-        private
-    {
+    function _verifySignatureAndDecreaseBalance(
+        bytes32 leaf,
+        SignatureData calldata signatureData,
+        uint256 feePerProof
+    ) private {
         if (signatureData.maxFee < feePerProof) {
             revert InvalidMaxFee(signatureData.maxFee, feePerProof);
         }
@@ -284,7 +316,11 @@ contract BatcherPaymentService is
         signerData.nonce++;
 
         if (signerData.balance < feePerProof) {
-            revert SignerInsufficientBalance(signer, signerData.balance, feePerProof);
+            revert SignerInsufficientBalance(
+                signer,
+                signerData.balance,
+                feePerProof
+            );
         }
 
         signerData.balance -= feePerProof;
