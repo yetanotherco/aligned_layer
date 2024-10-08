@@ -6,6 +6,7 @@ defmodule Proofs do
   schema "proofs" do
     field :batch_merkle_root, :string
     field :proof_hash, :binary
+    field :proving_system, :binary
 
     timestamps()
   end
@@ -19,26 +20,56 @@ defmodule Proofs do
   end
 
   def cast_to_proofs(%BatchDB{} = batch) do
-    case batch.proof_hashes do
-      nil -> %{}
-      proof_hashes -> Enum.map(proof_hashes, fn proof_hash ->
-        %{batch_merkle_root: batch.merkle_root, proof_hash: proof_hash, inserted_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second), updated_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)}
-      end)
+    case {batch.proof_hashes, batch.proving_systems} do
+      {nil, _} ->
+        %{}
+
+      {proof_hashes, proving_systems} ->
+        Enum.zip(proof_hashes, proving_systems)
+        |> Enum.map(fn {proof_hash, proving_system} ->
+          %{
+            batch_merkle_root: batch.merkle_root,
+            proof_hash: proof_hash,
+            proving_system: proving_system
+            # inserted_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second),
+            # updated_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
+          }
+        end)
     end
   end
 
   def get_proofs_from_batch(%{merkle_root: batch_merkle_root}) do
-    query = from(p in Proofs,
-    where: p.batch_merkle_root == ^batch_merkle_root,
-    select: p)
+    query =
+      from(p in Proofs,
+        where: p.batch_merkle_root == ^batch_merkle_root,
+        select: p
+      )
 
     case Explorer.Repo.all(query) do
       nil ->
         nil
+
       [] ->
         nil
+
       result ->
         result
+    end
+  end
+
+  def get_proving_systems_from_batch(%{merkle_root: batch_merkle_root}) do
+    query =
+      from(p in Proofs,
+        where: p.batch_merkle_root == ^batch_merkle_root,
+        select: p.proving_system
+      )
+
+    case Explorer.Repo.all(query) do
+      nil ->
+        nil
+
+      proving_system ->
+        proving_system
     end
   end
 
@@ -47,11 +78,13 @@ defmodule Proofs do
 
     {:ok, proof_hash_binary} = Base.decode16(proof_hash_hex, case: :mixed)
 
-    query = from p in Proofs,
-      where: p.proof_hash == ^proof_hash_binary,
-      select: %{
-        count: count(p.batch_merkle_root, :distinct)
-      }
+    query =
+      from(p in Proofs,
+        where: p.proof_hash == ^proof_hash_binary,
+        select: %{
+          count: count(p.batch_merkle_root, :distinct)
+        }
+      )
 
     case Explorer.Repo.one(query) do
       %{count: count} -> count
@@ -66,17 +99,20 @@ defmodule Proofs do
 
     offset = (page - 1) * page_size
 
-    query = from(p in Proofs,
-      where: p.proof_hash == ^proof_hash_binary,
-      order_by: [desc: p.id],
-      limit: ^page_size,
-      offset: ^offset,
-      distinct: p.batch_merkle_root,
-      select: p.batch_merkle_root)
+    query =
+      from(p in Proofs,
+        where: p.proof_hash == ^proof_hash_binary,
+        order_by: [desc: p.id],
+        limit: ^page_size,
+        offset: ^offset,
+        distinct: p.batch_merkle_root,
+        select: p.batch_merkle_root
+      )
 
     case Explorer.Repo.all(query) do
       [] ->
         []
+
       results ->
         results
         |> case do
@@ -86,5 +122,4 @@ defmodule Proofs do
         end
     end
   end
-
 end

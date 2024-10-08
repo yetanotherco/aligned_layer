@@ -30,6 +30,7 @@ defmodule BatchDB do
     :submission_transaction_hash,
     :submission_timestamp,
     :proof_hashes,
+    :proving_systems,
     :fee_per_proof,
     :sender_address,
     :max_aggregator_fee
@@ -46,6 +47,7 @@ defmodule BatchDB do
     :response_timestamp,
     :data_pointer,
     :proof_hashes,
+    :proving_systems,
     :fee_per_proof,
     :sender_address,
     :max_aggregator_fee

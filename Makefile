@@ -589,6 +589,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 
 
 __EXPLORER__:
+
 run_explorer: explorer_run_db explorer_ecto_setup_db
 	@cd explorer/ && \
 		pnpm install --prefix assets && \

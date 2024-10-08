@@ -24,6 +24,7 @@ defmodule ExplorerWeb.Batch.Index do
         merkle_root: merkle_root,
         current_batch: current_batch,
         proof_hashes: :empty,
+        proving_systems: :empty,
         network: System.get_env("ENVIRONMENT"),
         site_url: System.get_env("PHX_HOST"),
         page_title: Helpers.shorten_hash(merkle_root),
@@ -47,6 +48,7 @@ defmodule ExplorerWeb.Batch.Index do
          newBatchInfo: :empty,
          batchWasResponded: :empty,
          proof_hashes: :empty,
+         proving_systems: :empty,
          proofs: :empty,
          eth_usd_price: :empty
        )}
@@ -90,18 +92,34 @@ defmodule ExplorerWeb.Batch.Index do
 
   @impl true
   def handle_event("show_proofs", _value, socket) do
-    {:noreply, assign(socket, proof_hashes: get_proofs(socket.assigns.merkle_root))}
+    merkle_root = socket.assigns.merkle_root
+
+    {:noreply,
+     assign(socket,
+       proof_hashes: get_proofs(merkle_root),
+       proving_systems: get_proving_systems(merkle_root)
+     )}
   end
 
   @impl true
   def handle_event("hide_proofs", _value, socket) do
-    {:noreply, assign(socket, proof_hashes: :empty)}
+    {:noreply, assign(socket, proof_hashes: :empty, proving_systems: :empty)}
   end
 
   defp get_proofs(merkle_root) do
     case Proofs.get_proofs_from_batch(%{merkle_root: merkle_root}) do
       proofs when is_list(proofs) ->
         Enum.map(proofs, fn proof -> "0x" <> Base.encode16(proof.proof_hash, case: :lower) end)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp get_proving_systems(merkle_root) do
+    case Proofs.get_proving_systems_from_batch(%{merkle_root: merkle_root}) do
+      proving_systems when is_list(proving_systems) ->
+        proving_systems
 
       _ ->
         nil

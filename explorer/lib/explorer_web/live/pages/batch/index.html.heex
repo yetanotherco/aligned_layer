@@ -5,14 +5,16 @@
     </.card_preheding>
     <.card
       class="relative px-4 py-5 min-h-fit flex flex-col"
-      inner_class="font-semibold inline-flex flex-col text-base gap-y-4 text-muted-foreground [&>div>p]:text-foreground [&>div>a]:text-foreground [&>div>*]:break-all [&>div>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
+      inner_class="font-semibold inline-flex flex-col text-base gap-y-4 text-muted-foreground [&>div>p]:text-foreground [&>div>a]:text-foreground [&>div>*]:break-all lg:[&>div>*]:break-normal [&>div>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
     >
       <div>
         <h3>
           Batch Hash:
         </h3>
-        <p class="flex flex-wrap md:items-center md:gap-x-2">
-          <%= @merkle_root %>
+        <p class="space-x-0.5">
+          <span>
+            <%= @merkle_root %>
+          </span>
           <.live_component
             module={CopyToClipboardButtonComponent}
             text_to_copy={@merkle_root}
@@ -61,17 +63,27 @@
             </p>
           <% else %>
             <div class="space-y-2 basis-3/4">
-              <div class="h-36 overflow-y-auto text-foreground space-y-2">
-                <p :for={{proof, index} <- Enum.with_index(@proof_hashes)}>
-                  <%= proof %>
-                  <.live_component
-                    module={CopyToClipboardButtonComponent}
-                    text_to_copy={proof}
-                    id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
-                    class="inline-flex"
-                  />
-                </p>
-              </div>
+              <section class="h-36 overflow-y-auto text-foreground space-y-2 py-2 lg:py-0">
+                <.card_background
+                  :for={{proof, index} <- Enum.with_index(@proof_hashes)}
+                  class="space-x-2 space-y-1.5 group px-2 py-3 md:mr-3.5"
+                >
+                  <%= if @proving_systems |> Enum.at(index) != nil do %>
+                    <.badge variant="outline" class="px-1.5">
+                      <%= @proving_systems |> Enum.at(index) %>
+                    </.badge>
+                  <% end %>
+                  <span class="block md:inline">
+                    <%= proof %>
+                    <.live_component
+                      module={CopyToClipboardButtonComponent}
+                      text_to_copy={proof}
+                      id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
+                      class="inline-flex"
+                    />
+                  </span>
+                </.card_background>
+              </section>
               <.button class="w-fit text-foreground" phx-click="hide_proofs">
                 <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
               </.button>
