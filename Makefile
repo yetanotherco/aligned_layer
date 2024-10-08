@@ -860,6 +860,13 @@ docker_batcher_send_plonk_bls12_381_burst:
               --rpc_url $(DOCKER_RPC_URL) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
+# Update target as new proofs are supported.
+docker_batcher_send_all_proofs_burst:
+	@$(MAKE) docker_batcher_send_sp1_burst
+	@$(MAKE) docker_batcher_send_risc0_burst
+	@$(MAKE) docker_batcher_send_plonk_bn254_burst
+	@$(MAKE) docker_batcher_send_plonk_bls12_381_burst
+
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
 	sh -c ' \
@@ -898,21 +905,23 @@ docker_verify_proof_submission_success:
 	@echo "Verifying proofs were successfully submitted..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
 	sh -c ' \
-			echo "Waiting 60 seconds before starting proof verification."; \
+			if [ ! -d "./aligned_verification_data" ]; then echo "ERROR: aligned_verification_data direcroty does not exist." && exit 1; fi; \
+			echo "Waiting 60 seconds before starting proof verification. \n"; \
 			sleep 60; \
 			for proof in ./aligned_verification_data/*; do \
-				echo "---------------------------------------------------------------------------------------------------"; \
 				echo "Verifying proof $${proof} \n"; \
 				verification=$$(aligned verify-proof-onchain \
 									--aligned-verification-data $${proof} \
 									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
 				if echo "$$verification" | grep -q not; then \
-					echo "Proof verification failed for $${proof}"; \
+					echo "ERROR: Proof verification failed for $${proof}"; \
 					exit 1; \
 				elif echo "$$verification" | grep -q verified; then \
 					echo "Proof verification succeeded for $${proof}"; \
 				fi; \
-			done \
+				echo "---------------------------------------------------------------------------------------------------"; \
+			done; \
+			echo "All proofs verified successfully!"; \
 		'
 
 docker_attach_foundry:
