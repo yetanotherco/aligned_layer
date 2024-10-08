@@ -74,12 +74,3 @@ If you want to test the zk quiz on a local network follow these steps:
     ```
     CONTRACT_ADDRESS=<VERIFIER_CONTRACT_ADDRESS> make answer_quiz_local
     ```
-
-> [!NOTE]
-> Make sure you send another proof alongside the ZKQuiz proof, as the batcher will not create a batch with only 1 proof.
-> 
-> For example you could do:
-> ```
-> make batcher_send_risc0_burst
-> ```
-
