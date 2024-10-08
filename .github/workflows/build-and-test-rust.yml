@@ -7,14 +7,13 @@ on:
   pull_request:
     branches: ["*"]
     paths:
-        - 'batcher/**'
-        - '.github/workflows/build-rust.yml'
-env:
-  HOME: ${{ github.workspace }}
+      - "batcher/**"
+      - ".github/workflows/build-rust.yml"
+
 jobs:
   build:
-    runs-on: ubuntu-custom
-    
+    runs-on: aligned-runner
+
     steps:
       - uses: actions/checkout@v4
 
@@ -48,17 +47,11 @@ jobs:
           cargo build --all
 
   test:
-    runs-on: ubuntu-custom
+    runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
-          override: true
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:
