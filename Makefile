@@ -209,7 +209,7 @@ operator_deposit_and_register: operator_deposit_into_strategy operator_register_
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
-# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemIDd` enum.
+# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
 verifier_enable_devnet:
 	@echo "Enabling verifier with id: $(VERIFIER_ID)"
 	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
