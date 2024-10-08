@@ -602,11 +602,11 @@ test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
 __MINA_FFI__: ##
 build_mina_macos:
 	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
-	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.dylib operator/mina/lib/libmina_state_verifier.dylib
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.dylib operator/mina/lib/libmina_state_verifier_ffi.dylib
 
 build_mina_linux:
 	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
-	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.so operator/mina/lib/libmina_state_verifier.so
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.so operator/mina/lib/libmina_state_verifier_ffi.so
 
 test_mina_rust_ffi:
 	@echo "Testing Mina Rust FFI source code..."
@@ -623,11 +623,11 @@ test_mina_go_bindings_linux: build_mina_linux
 __MINA_ACCOUNT_FFI__: ##
 build_mina_account_macos:
 	@cd operator/mina_account/lib && cargo build --release
-	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.dylib operator/mina_account/lib/libmina_account_verifier.dylib
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.dylib operator/mina_account/lib/libmina_account_verifier_ffi.dylib
 
 build_mina_account_linux:
 	@cd operator/mina_account/lib && cargo build --release
-	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.so operator/mina_account/lib/libmina_account_verifier.so
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.so operator/mina_account/lib/libmina_account_verifier_ffi.so
 
 test_mina_account_rust_ffi:
 	@echo "Testing Mina Account Rust FFI source code..."
