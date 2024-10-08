@@ -178,7 +178,7 @@ func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
 		return nil
 	}
 
-	o.lastProcessedBatch = OperatorLastProcessedBatch{BlockNumber: blockNumber}
+	o.lastProcessedBatch.BlockNumber = blockNumber
 
 	// write to a file so it can be recovered in case of operator outage
 	json, err := json.Marshal(o.lastProcessedBatch)
