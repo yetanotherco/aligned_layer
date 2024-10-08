@@ -1,12 +1,10 @@
 #![feature(slice_flatten)]
-
 use std::io;
-use std::sync::Arc;
 
 use aligned_sdk::core::types::{
     AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
 };
-use aligned_sdk::sdk::{estimate_fee, get_payment_service_address};
+use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
 use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
@@ -18,10 +16,7 @@ use sp1_sdk::{ProverClient, SP1Stdin};
 
 abigen!(VerifierContract, "VerifierContract.json",);
 
-const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
-
-const NETWORK: Network = Network::Holesky;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -34,6 +29,10 @@ struct Args {
         default_value = "https://ethereum-holesky-rpc.publicnode.com"
     )]
     rpc_url: String,
+    #[arg(short, long, default_value = "wss://batcher.alignedlayer.com")]
+    batcher_url: String,
+    #[arg(short, long, default_value = "holesky")]
+    network: Network,
     #[arg(short, long)]
     verifier_contract_address: H160,
 }
@@ -48,20 +47,27 @@ async fn main() {
     let keystore_password = rpassword::prompt_password("Enter keystore password: ")
         .expect("Failed to read keystore password");
 
-    let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
-        .expect("Failed to decrypt keystore")
-        .with_chain_id(17000u64);
-
     let provider =
         Provider::<Http>::try_from(rpc_url.as_str()).expect("Failed to connect to provider");
 
-    let signer = Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
+    let chain_id = provider
+        .get_chainid()
+        .await
+        .expect("Failed to get chain_id");
+
+    let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
+        .expect("Failed to decrypt keystore")
+        .with_chain_id(chain_id.as_u64());
+
+    let signer = SignerMiddleware::new(provider.clone(), wallet.clone());
 
     if Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
         .with_prompt("Do you want to deposit 0.004eth in Aligned ?\nIf you already deposited Ethereum to Aligned before, this is not needed")
         .interact()
         .expect("Failed to read user input") {   
-            deposit_to_batcher(wallet.address(), signer.clone()).await.expect("Failed to pay for proof submission");
+
+        deposit_to_aligned(U256::from(4000000000000000u128), signer.clone(), args.network).await
+        .expect("Failed to pay for proof submission");
     }
 
     // Generate proof.
@@ -114,7 +120,7 @@ async fn main() {
         pub_input: None,
     };
 
-    let max_fee = estimate_fee(&rpc_url, PriceEstimate::Default)
+    let max_fee = estimate_fee(&rpc_url, PriceEstimate::Instant)
         .await
         .expect("failed to fetch gas price from the blockchain");
 
@@ -126,14 +132,16 @@ async fn main() {
         .expect("Failed to read user input")
     {   return; }
 
-    let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK)
+    let nonce = get_next_nonce(&rpc_url, wallet.address(), args.network)
         .await
         .expect("Failed to get next nonce");
 
+        println!("Submitting your proof...");
+
     let aligned_verification_data = submit_and_wait_verification(
-        BATCHER_URL,
+        &args.batcher_url,
         &rpc_url,
-        NETWORK,
+        args.network,
         &verification_data,
         max_fee,
         wallet.clone(),
@@ -143,9 +151,10 @@ async fn main() {
     .unwrap();
 
     println!(
-        "Proof submitted and verified successfully on batch {}, claiming prize...",
+        "Proof submitted and verified successfully on batch {}",
         hex::encode(aligned_verification_data.batch_merkle_root)
     );
+    println!("Claiming NFT prize...");
 
     claim_nft_with_verified_proof(
         &aligned_verification_data,
@@ -193,43 +202,12 @@ fn read_answer() -> char {
     }
 }
 
-async fn deposit_to_batcher(
-    from: Address,
-    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
-) -> anyhow::Result<()> {
-    let addr = get_payment_service_address(NETWORK);
-
-    let tx = TransactionRequest::new()
-        .from(from)
-        .to(addr)
-        .value(4000000000000000u128);
-
-    match signer
-        .send_transaction(tx, None)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to send tx {}", e))?
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to submit tx {}", e))?
-    {
-        Some(receipt) => {
-            println!(
-                "Payment sent. Transaction hash: {:x}",
-                receipt.transaction_hash
-            );
-            Ok(())
-        }
-        None => {
-            anyhow::bail!("Payment failed");
-        }
-    }
-}
-
 async fn claim_nft_with_verified_proof(
     aligned_verification_data: &AlignedVerificationData,
-    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    signer: SignerMiddleware<Provider<Http>, LocalWallet>,
     verifier_contract_addr: &Address,
 ) -> anyhow::Result<()> {
-    let verifier_contract = VerifierContract::new(*verifier_contract_addr, signer);
+    let verifier_contract = VerifierContract::new(*verifier_contract_addr, signer.into());
 
     let index_in_batch = U256::from(aligned_verification_data.index_in_batch);
     let merkle_path = Bytes::from(
