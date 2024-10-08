@@ -34,7 +34,7 @@ use std::{str::FromStr, sync::Arc};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
-use log::{debug, info};
+use log::debug;
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
@@ -503,10 +503,9 @@ async fn _is_proof_verified(
         payment_service_addr,
     );
 
-    let result = call.await.map_err(|e| {
-        info!("err: {}", e.to_string());
-        errors::VerificationError::EthereumCallError(e.to_string())
-    })?;
+    let result = call
+        .await
+        .map_err(|e| errors::VerificationError::EthereumCallError(e.to_string()))?;
 
     Ok(result)
 }
