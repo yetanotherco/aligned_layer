@@ -168,19 +168,20 @@ defmodule Utils do
   end
 
   def calculate_proof_hashes({:ok, deserialized_batch}) do
-    deserialized_batch
-    |> Enum.map(fn s3_object ->
-      :crypto.hash(:sha3_256, s3_object["proof"])
-    end)
+    proof_hashes =
+      deserialized_batch
+      |> Enum.map(fn s3_object ->
+        :crypto.hash(:sha3_256, s3_object["proof"])
+      end)
+
+    {:ok, proof_hashes}
   end
 
-  def calculate_proof_hashes({:error, reason}) do
-    Logger.error("Error calculating proof hashes: #{inspect(reason)}")
-    []
-  end
+  def calculate_proof_hashes(error), do: error
 
   def fetch_batch_data_pointer(batch_data_pointer) do
-    case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
+    case Finch.build(:get, batch_data_pointer)
+         |> Finch.request(Explorer.Finch, request_timeout: 10_000) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         cond do
           is_json?(body) ->
@@ -240,7 +241,7 @@ defmodule Utils do
   def extract_info_from_data_pointer(%BatchDB{} = batch) do
     Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
     # only get from s3 if not already in DB
-    proof_hashes =
+    result =
       case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
         nil ->
           Logger.debug("Fetching from S3")
@@ -252,12 +253,17 @@ defmodule Utils do
         proof_hashes ->
           # already processed and stored the S3 data
           Logger.debug("Fetching from DB")
-          proof_hashes
+          {:ok, proof_hashes}
       end
 
-    batch
-    |> Map.put(:proof_hashes, proof_hashes)
-    |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
+    with {:ok, proof_hashes} <- result do
+      batch_info =
+        batch
+        |> Map.put(:proof_hashes, proof_hashes)
+        |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
+
+      {:ok, batch_info}
+    end
   end
 
   def fetch_eigen_operator_metadata(url) do

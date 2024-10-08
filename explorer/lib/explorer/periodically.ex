@@ -79,32 +79,36 @@ defmodule Explorer.Periodically do
       {:ok, lock} ->
         "Processing batch: #{batch.merkle_root}" |> Logger.debug()
 
-        {batch_changeset, proofs} =
-          batch
-          |> Utils.extract_info_from_data_pointer()
-          |> Batches.generate_changesets()
+        with {:ok, batch_info} <- Utils.extract_info_from_data_pointer(batch),
+             {batch_changeset, proofs} <- Batches.generate_changesets(batch_info) do
+          Batches.insert_or_update(batch_changeset, proofs)
+          |> case do
+            {:ok, _} ->
+              PubSub.broadcast(Explorer.PubSub, "update_views", %{
+                eth_usd:
+                  case EthConverter.get_eth_price_usd() do
+                    {:ok, eth_usd_price} -> eth_usd_price
+                    {:error, _error} -> :empty
+                  end
+              })
 
-        Batches.insert_or_update(batch_changeset, proofs)
-        |> case do
-          {:ok, _} ->
-            PubSub.broadcast(Explorer.PubSub, "update_views", %{
-              eth_usd:
-                case EthConverter.get_eth_price_usd() do
-                  {:ok, eth_usd_price} -> eth_usd_price
-                  {:error, _error} -> :empty
-                end
-            })
+            {:error, error} ->
+              Logger.error(
+                "Some error in DB operation, not broadcasting update_views: #{inspect(error)}"
+              )
 
-          {:error, error} ->
-            Logger.error("Some error in DB operation, not broadcasting update_views: #{inspect(error)}")
+            # no changes in DB
+            nil ->
+              nil
+          end
 
-          # no changes in DB
-          nil ->
-            nil
+          "Done processing batch: #{batch.merkle_root}" |> Logger.debug()
+          Mutex.release(BatchMutex, lock)
+        else
+          {:error, {:http_error, reason}} ->
+            Logger.error("Error when procesing request body: #{inspect(reason)}")
+            # Maybe delete the batch
         end
-
-        "Done processing batch: #{batch.merkle_root}" |> Logger.debug()
-        Mutex.release(BatchMutex, lock)
     end
   end
 
