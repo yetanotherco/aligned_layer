@@ -15,15 +15,13 @@ const (
 	GnarkPlonkBn254
 	Groth16Bn254
 	SP1
-	Halo2KZG
-	Halo2IPA
 	Risc0
 	Mina
 	MinaAccount
 )
 
 func (t *ProvingSystemId) String() string {
-	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1", "Halo2IPA", "Mina", "MinaAccount"}[*t]
+	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1", "Mina", "MinaAccount"}[*t]
 }
 
 func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
@@ -36,10 +34,6 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return Groth16Bn254, nil
 	case "SP1":
 		return SP1, nil
-	case "Halo2KZG":
-		return Halo2KZG, nil
-	case "Halo2IPA":
-		return Halo2IPA, nil
 	case "Risc0":
 		return Risc0, nil
 	case "Mina":
@@ -61,10 +55,6 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "Groth16Bn254", nil
 	case SP1:
 		return "SP1", nil
-	case Halo2KZG:
-		return "Halo2KZG", nil
-	case Halo2IPA:
-		return "Halo2IPA", nil
 	case Risc0:
 		return "Risc0", nil
 	case Mina:
@@ -123,10 +113,6 @@ func (s *ProvingSystemId) UnmarshalCBOR(data []byte) error {
 		*s = Groth16Bn254
 	case "SP1":
 		*s = SP1
-	case "Halo2KZG":
-		*s = Halo2KZG
-	case "Halo2IPA":
-		*s = Halo2IPA
 	case "Risc0":
 		*s = Risc0
 	case "Mina":
