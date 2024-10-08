@@ -177,7 +177,7 @@ defmodule Utils do
 
   def calculate_proof_hashes({:error, reason}) do
     Logger.error("Error calculating proof hashes: #{inspect(reason)}")
-    []
+    ["invalid"]
   end
 
   defp stream_handler({:headers, _headers}, acc), do: {:cont, acc}
