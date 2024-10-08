@@ -1,4 +1,5 @@
 defmodule Explorer.Periodically do
+  require Logger
   alias Phoenix.PubSub
   use GenServer
 
@@ -29,6 +30,7 @@ defmodule Explorer.Periodically do
     # Gets previous unverified batches and checks if they were verified
     run_every_n_iterations = 8
     new_count = rem(count + 1, run_every_n_iterations)
+
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
     end
@@ -63,33 +65,35 @@ defmodule Explorer.Periodically do
       {:ok, lock} ->
         "Processing batch: #{batch.merkle_root}" |> IO.inspect()
 
-        {batch_changeset, proofs} =
-          batch
-          |> Utils.extract_info_from_data_pointer()
-          |> Batches.generate_changesets()
+        with {:ok, batch_info} <- Utils.extract_info_from_data_pointer(batch),
+             {batch_changeset, proofs} <- Batches.generate_changesets(batch_info) do
+          Batches.insert_or_update(batch_changeset, proofs)
+          |> case do
+            {:ok, _} ->
+              PubSub.broadcast(Explorer.PubSub, "update_views", %{
+                eth_usd:
+                  case EthConverter.get_eth_price_usd() do
+                    {:ok, eth_usd_price} -> eth_usd_price
+                    {:error, _error} -> :empty
+                  end
+              })
 
-        Batches.insert_or_update(batch_changeset, proofs)
-        |> case do
-          {:ok, _} ->
-            PubSub.broadcast(Explorer.PubSub, "update_views", %{
-              eth_usd:
-                case EthConverter.get_eth_price_usd() do
-                  {:ok, eth_usd_price} -> eth_usd_price
-                  {:error, _error} -> :empty
-                end
-            })
+            {:error, error} ->
+              IO.puts("Some error in DB operation, not broadcasting update_views")
+              IO.inspect(error)
 
-          {:error, error} ->
-            IO.puts("Some error in DB operation, not broadcasting update_views")
-            IO.inspect(error)
+            # no changes in DB
+            nil ->
+              nil
+          end
 
-          # no changes in DB
-          nil ->
-            nil
+          "Done processing batch: #{batch.merkle_root}" |> IO.inspect()
+          Mutex.release(BatchMutex, lock)
+        else
+          {:error, {:http_error, reason}} ->
+            Logger.error("Error when procesing request body: #{inspect(reason)}")
+            # Maybe delete the batch
         end
-
-        "Done processing batch: #{batch.merkle_root}" |> IO.inspect()
-        Mutex.release(BatchMutex, lock)
     end
   end
 
