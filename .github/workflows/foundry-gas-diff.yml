@@ -14,7 +14,7 @@ on:
 
 jobs:
   compare_gas_reports:
-    runs-on: aligned-runner
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./contracts
