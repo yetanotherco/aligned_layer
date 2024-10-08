@@ -1,4 +1,4 @@
-FROM aligned_base AS builder
+FROM ghcr.io/lambdaclass/aligned_layer/aligned_base:v0.8.0 AS builder
 
 RUN apt update -y
 RUN apt install -y gcc
