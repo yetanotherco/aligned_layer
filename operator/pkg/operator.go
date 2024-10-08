@@ -468,8 +468,8 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- false
 		return
 	}
-	isVerifierValid := o.IsVerifierBlacklisted(blacklistedVerifiersBitmap, verificationData.ProvingSystemId)
-	if isVerifierValid {
+	isVerifierBlacklisted := o.IsVerifierBlacklisted(blacklistedVerifiersBitmap, verificationData.ProvingSystemId)
+	if isVerifierBlacklisted {
 		o.Logger.Infof("Verifier %s is not available", verificationData.ProvingSystemId.String())
 		results <- false
 		return
