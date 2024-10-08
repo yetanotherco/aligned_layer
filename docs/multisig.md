@@ -9,6 +9,8 @@ You can create a Multisig wallet using [Safe](https://safe.global/). For this gu
 
 Once you have a Multisig, you can deploy the contracts using the Multisig wallet address as the upgrader, pauser, etc.
 
+For this, you must set your Safe Multisig's address in the `contracts/script/deploy/config/sepolia/aligned.sepolia.config.json` config file. In case of the `deployer` permission, it is not recommended to set the multisig, as he will deploy many contracts and delegate ownership, it is best to set the address of a wallet with funds, which will be the one that deploys the contracts.
+
 Then, in order to do some action that requires the Multisig Owner, for example upgrading the contract, you must do the following:
 
 1) Deploy the new implementation by running:

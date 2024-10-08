@@ -3,12 +3,12 @@
       "chainId": 11155111
     },
     "permissions" : {
-      "owner": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
-      "aggregator": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
-      "upgrader": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
-      "churner": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
-      "ejector": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
-      "deployer": "0xB321099cf86D9BB913b891441B014c03a6CcFc54",
+      "owner": "<owner_address>",
+      "aggregator": "<aggregator_address>",
+      "upgrader": "<upgrader_address>",
+      "churner": "<churner_address>",
+      "ejector": "<ejector_address>",
+      "deployer": "<deployer_address>",
       "initalPausedStatus": 0
     },
     "minimumStakes": [
