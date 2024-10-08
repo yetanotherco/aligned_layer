@@ -16,10 +16,8 @@ defmodule Explorer.Periodically do
     one_second = 1000
     seconds_in_an_hour = 60 * 60
 
-    # every 12 seconds, once per block
-    :timer.send_interval(one_second * 12, :batches)
-    # every 1 hour
-    :timer.send_interval(one_second * seconds_in_an_hour, :restakings)
+    :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
+    :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
   end
 
   # Reads and process last blocks for operators and restaking changes
@@ -47,7 +45,6 @@ defmodule Explorer.Periodically do
 
     run_every_n_iterations = 8
     new_count = rem(count + 1, run_every_n_iterations)
-
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
     end
@@ -99,9 +96,7 @@ defmodule Explorer.Periodically do
             })
 
           {:error, error} ->
-            Logger.error(
-              "Some error in DB operation, not broadcasting update_views: #{inspect(error)}"
-            )
+            Logger.error("Some error in DB operation, not broadcasting update_views: #{inspect(error)}")
 
           # no changes in DB
           nil ->
