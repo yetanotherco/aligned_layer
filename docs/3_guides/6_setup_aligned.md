@@ -284,6 +284,10 @@ Changing operator keys:
 
 Operator keys can be changed if needed.
 
+{% hint style="warning" %}
+When creating a new wallet keystore and private key please use strong passwords for your own protection.
+{% endhint %}
+
 To create a keystore, run:
 
 ```bash
@@ -460,35 +464,6 @@ Send BN254 proof bursts indefinitely:
 
 ```bash
 make batcher_send_burst_groth16
-```
-
-</details>
-
-<details>
-<summary>Halo2</summary>
-
-Send an individual IPA proof:
-
-```bash
-make batcher_send_halo2_ipa_task
-```
-
-Send a burst of five IPA proofs:
-
-```bash
-make batcher_send_halo2_ipa_task_burst_5
-```
-
-Send an individual KZG proof:
-
-```bash
-make batcher_send_halo2_kzg_task
-```
-
-Send a burst of 5 KZG proofs:
-
-```bash
-make batcher_send_halo2_kzg_task_burst_5
 ```
 
 </details>
