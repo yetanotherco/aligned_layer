@@ -109,6 +109,7 @@ impl FromStr for Action {
             "test-connections" => Ok(Action::TestConnections),
             "infinite-proofs" => Ok(Action::InfiniteProofs),
             "multiple-senders-infinite-proofs" => Ok(Action::MultipleSendersInfiniteProofs),
+            "clean-proofs" => Ok(Action::CleanProofs),
             _ => Err("Invalid action".to_string()),
         }
     }
@@ -322,15 +323,15 @@ fn get_verification_data_from_generated(
             base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, i));
         let vk_path = base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, i));
 
-        let proof = std::fs::read(&proof_path)
-            .map_err(|e| SubmitError::IoError(proof_path, e))
-            .unwrap();
-        let public_input = std::fs::read(&public_input_path)
-            .map_err(|e| SubmitError::IoError(public_input_path, e))
-            .unwrap();
-        let vk = std::fs::read(&vk_path)
-            .map_err(|e| SubmitError::IoError(vk_path, e))
-            .unwrap();
+        let Ok(proof) = std::fs::read(&proof_path) else {
+            continue;
+        };
+        let Ok(public_input) = std::fs::read(&public_input_path) else {
+            continue;
+        };
+        let Ok(vk) = std::fs::read(&vk_path) else {
+            continue;
+        };
 
         let verification_data = VerificationData {
             proving_system: ProvingSystemId::Groth16Bn254,
