@@ -36,7 +36,7 @@ func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err 
 		return isVerified, err
 	}
 
-	isVerified = true
+	isVerified = (r == 1)
 
 	return isVerified, err
 }
