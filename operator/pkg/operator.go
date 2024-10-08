@@ -470,7 +470,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 	}
 	isVerifierBlacklisted := o.IsVerifierBlacklisted(blacklistedVerifiersBitmap, verificationData.ProvingSystemId)
 	if isVerifierBlacklisted {
-		o.Logger.Infof("Verifier %s is not available", verificationData.ProvingSystemId.String())
+		o.Logger.Infof("Verifier %s is blacklisted. Skipping verifie", verificationData.ProvingSystemId.String())
 		results <- false
 		return
 	}
