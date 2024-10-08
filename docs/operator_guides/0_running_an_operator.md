@@ -3,7 +3,7 @@
 > **CURRENT VERSION:**
 > Aligned Operator [v0.7.3](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.7.3)
 
-> **IMPORTANT:**
+> **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
 
 ## Requirements
