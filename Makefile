@@ -860,12 +860,24 @@ docker_batcher_send_plonk_bls12_381_burst:
               --rpc_url $(DOCKER_RPC_URL) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
+docker_batcher_send_groth16_burst:
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+							--proving_system Groth16Bn254 \
+							--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
+							--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
+							--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+							--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+  						--repetitions $(BURST_SIZE) \
+							--rpc_url $(DOCKER_RPC_URL)
+
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_sp1_burst
 	@$(MAKE) docker_batcher_send_risc0_burst
 	@$(MAKE) docker_batcher_send_plonk_bn254_burst
 	@$(MAKE) docker_batcher_send_plonk_bls12_381_burst
+	@$(MAKE) docker_batcher_send_groth16_burst
 
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
