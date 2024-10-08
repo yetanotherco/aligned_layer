@@ -29,7 +29,12 @@ contract AlignedLayerServiceManager is
         IStakeRegistry __stakeRegistry
     )
         BLSSignatureChecker(__registryCoordinator)
-        ServiceManagerBase(__avsDirectory, __rewardsCoordinator, __registryCoordinator, __stakeRegistry)
+        ServiceManagerBase(
+            __avsDirectory,
+            __rewardsCoordinator,
+            __registryCoordinator,
+            __stakeRegistry
+        )
     {
         if (address(__avsDirectory) == address(0)) {
             revert InvalidAddress("avsDirectory");
@@ -68,15 +73,20 @@ contract AlignedLayerServiceManager is
     // This function is to be run only on upgrade
     // If a new contract is deployed, this function should be removed
     // Because this new value is also added in the initializer
-    function initializeAggregator(address _alignedAggregator) public reinitializer(2) {
+    function initializeAggregator(
+        address _alignedAggregator
+    ) public reinitializer(2) {
         setAggregator(_alignedAggregator);
     }
 
-    function createNewTask(bytes32 batchMerkleRoot, string calldata batchDataPointer, uint256 respondToTaskFeeLimit)
-        external
-        payable
-    {
-        bytes32 batchIdentifier = keccak256(abi.encodePacked(batchMerkleRoot, msg.sender));
+    function createNewTask(
+        bytes32 batchMerkleRoot,
+        string calldata batchDataPointer,
+        uint256 respondToTaskFeeLimit
+    ) external payable {
+        bytes32 batchIdentifier = keccak256(
+            abi.encodePacked(batchMerkleRoot, msg.sender)
+        );
 
         if (batchesState[batchIdentifier].taskCreatedBlock != 0) {
             revert BatchAlreadySubmitted(batchIdentifier);
@@ -84,11 +94,18 @@ contract AlignedLayerServiceManager is
 
         if (msg.value > 0) {
             batchersBalances[msg.sender] += msg.value;
-            emit BatcherBalanceUpdated(msg.sender, batchersBalances[msg.sender]);
+            emit BatcherBalanceUpdated(
+                msg.sender,
+                batchersBalances[msg.sender]
+            );
         }
 
         if (batchersBalances[msg.sender] < respondToTaskFeeLimit) {
-            revert InsufficientFunds(msg.sender, respondToTaskFeeLimit, batchersBalances[msg.sender]);
+            revert InsufficientFunds(
+                msg.sender,
+                respondToTaskFeeLimit,
+                batchersBalances[msg.sender]
+            );
         }
 
         BatchState memory batchState;
@@ -100,7 +117,13 @@ contract AlignedLayerServiceManager is
         batchesState[batchIdentifier] = batchState;
 
         // For aggregator and operators in v0.7.0
-        emit NewBatchV3(batchMerkleRoot, msg.sender, uint32(block.number), batchDataPointer, respondToTaskFeeLimit);
+        emit NewBatchV3(
+            batchMerkleRoot,
+            msg.sender,
+            uint32(block.number),
+            batchDataPointer,
+            respondToTaskFeeLimit
+        );
     }
 
     function respondToTaskV2(
@@ -111,7 +134,9 @@ contract AlignedLayerServiceManager is
     ) external onlyAggregator {
         uint256 initialGasLeft = gasleft();
 
-        bytes32 batchIdentifierHash = keccak256(abi.encodePacked(batchMerkleRoot, senderAddress));
+        bytes32 batchIdentifierHash = keccak256(
+            abi.encodePacked(batchMerkleRoot, senderAddress)
+        );
 
         BatchState storage currentBatch = batchesState[batchIdentifierHash];
 
@@ -129,23 +154,33 @@ contract AlignedLayerServiceManager is
 
         // Check that batcher has enough funds to fund response
         if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
-            revert InsufficientFunds(senderAddress, currentBatch.respondToTaskFeeLimit, batchersBalances[senderAddress]);
+            revert InsufficientFunds(
+                senderAddress,
+                currentBatch.respondToTaskFeeLimit,
+                batchersBalances[senderAddress]
+            );
         }
 
         /* CHECKING SIGNATURES & WHETHER THRESHOLD IS MET OR NOT */
 
         // check that aggregated BLS signature is valid
-        (QuorumStakeTotals memory quorumStakeTotals,) =
-            checkSignatures(batchIdentifierHash, currentBatch.taskCreatedBlock, nonSignerStakesAndSignature);
+        (QuorumStakeTotals memory quorumStakeTotals, ) = checkSignatures(
+            batchIdentifierHash,
+            currentBatch.taskCreatedBlock,
+            nonSignerStakesAndSignature
+        );
 
         // check that signatories own at least a threshold percentage of each quourm
         if (
-            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR
-                < quorumStakeTotals.totalStakeForQuorum[0] * QUORUM_THRESHOLD_PERCENTAGE
+            quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR <
+            quorumStakeTotals.totalStakeForQuorum[0] *
+                QUORUM_THRESHOLD_PERCENTAGE
         ) {
             revert InvalidQuorumThreshold(
-                quorumStakeTotals.signedStakeForQuorum[0] * THRESHOLD_DENOMINATOR,
-                quorumStakeTotals.totalStakeForQuorum[0] * QUORUM_THRESHOLD_PERCENTAGE
+                quorumStakeTotals.signedStakeForQuorum[0] *
+                    THRESHOLD_DENOMINATOR,
+                quorumStakeTotals.totalStakeForQuorum[0] *
+                    QUORUM_THRESHOLD_PERCENTAGE
             );
         }
 
@@ -155,7 +190,10 @@ contract AlignedLayerServiceManager is
         uint256 txCost = (initialGasLeft - gasleft() + 70_000) * tx.gasprice;
 
         if (txCost > currentBatch.respondToTaskFeeLimit) {
-            revert ExceededMaxRespondFee(currentBatch.respondToTaskFeeLimit, txCost);
+            revert ExceededMaxRespondFee(
+                currentBatch.respondToTaskFeeLimit,
+                txCost
+            );
         }
 
         // Subtract the txCost from the batcher's balance
@@ -182,7 +220,9 @@ contract AlignedLayerServiceManager is
         if (senderAddress == address(0)) {
             batchIdentifier = batchMerkleRoot;
         } else {
-            batchIdentifier = keccak256(abi.encodePacked(batchMerkleRoot, senderAddress));
+            batchIdentifier = keccak256(
+                abi.encodePacked(batchMerkleRoot, senderAddress)
+            );
         }
 
         if (batchesState[batchIdentifier].taskCreatedBlock == 0) {
@@ -193,12 +233,22 @@ contract AlignedLayerServiceManager is
             return false;
         }
 
-        bytes memory leaf =
-            abi.encodePacked(proofCommitment, pubInputCommitment, provingSystemAuxDataCommitment, proofGeneratorAddr);
+        bytes memory leaf = abi.encodePacked(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr
+        );
 
         bytes32 hashedLeaf = keccak256(leaf);
 
-        return Merkle.verifyInclusionKeccak(merkleProof, batchMerkleRoot, hashedLeaf, verificationDataBatchIndex);
+        return
+            Merkle.verifyInclusionKeccak(
+                merkleProof,
+                batchMerkleRoot,
+                hashedLeaf,
+                verificationDataBatchIndex
+            );
     }
 
     // Old function signature for backwards compatibility
@@ -230,7 +280,11 @@ contract AlignedLayerServiceManager is
 
     function withdraw(uint256 amount) external {
         if (batchersBalances[msg.sender] < amount) {
-            revert InsufficientFunds(msg.sender, amount, batchersBalances[msg.sender]);
+            revert InsufficientFunds(
+                msg.sender,
+                amount,
+                batchersBalances[msg.sender]
+            );
         }
 
         batchersBalances[msg.sender] -= amount;
@@ -259,7 +313,10 @@ contract AlignedLayerServiceManager is
         _depositToBatcher(msg.sender, msg.value);
     }
 
-    function checkPublicInput(bytes calldata publicInput, bytes32 hash) public pure returns (bool) {
+    function checkPublicInput(
+        bytes calldata publicInput,
+        bytes32 hash
+    ) public pure returns (bool) {
         return keccak256(publicInput) == hash;
     }
 
