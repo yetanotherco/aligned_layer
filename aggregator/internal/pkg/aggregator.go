@@ -230,7 +230,9 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 		// Task errored, mark as finalized
-		agg.batchIsFinalizedChan <- blsAggServiceResp.TaskIndex
+		// TODO: 
+		// Actually, if I remove this task from the maps, Agg will go and fetch it again from chain
+		// agg.batchIsFinalizedChan <- blsAggServiceResp.TaskIndex
 
 		agg.taskMutex.Unlock()
 		return
