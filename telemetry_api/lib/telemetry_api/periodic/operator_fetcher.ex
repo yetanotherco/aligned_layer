@@ -1,5 +1,5 @@
 defmodule TelemetryApi.Periodic.OperatorFetcher do
-  use Task
+  use GenServer
   alias TelemetryApi.Operators
 
   wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
@@ -15,18 +15,23 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   )
 
   def start_link(_) do
-    Task.start_link(&poll_service/0)
+    GenServer.start_link(__MODULE__, %{})
   end
 
-  defp poll_service() do
-    receive do
-    after
-      @wait_time_ms ->
+  def init(_) do
+    send_work()
+    {:ok, %{}}
+  end
+
+  def send_work() do
+    :timer.send_interval(@wait_time_ms, :fetch_operators)
+  end
+
+  def handle_info(:fetch_operators, _state) do
         case Operators.fetch_all_operators() do
           {:ok, _} -> :ok
           {:error, message} -> IO.inspect "Couldn't fetch operators: #{IO.inspect message}"
         end
-        poll_service()
-    end
+        {:noreply, %{}}
   end
 end
