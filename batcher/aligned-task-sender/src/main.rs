@@ -10,7 +10,6 @@ use std::sync::{
 };
 use std::thread::{self};
 use std::time::Duration;
-use tokio::task::JoinHandle;
 use tokio_tungstenite::connect_async;
 
 use aligned_sdk::core::{
@@ -38,6 +37,9 @@ const GROTH_16_PROOF_DIR: &str =
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {
+    // TODO make this a subcommand
+    #[arg(name = "Action", long = "action", default_value = "test_connection")]
+    action: Action,
     #[arg(
         name = "Ethereum RPC provider connection address",
         long = "rpc_url",
@@ -90,6 +92,28 @@ pub struct Args {
     network: NetworkArg,
 }
 
+#[derive(Debug, Clone)]
+pub enum Action {
+    GenerateProofs,
+    CleanProofs,
+    TestConnections,
+    InfiniteProofs,
+    MultipleSendersInfiniteProofs,
+}
+
+impl FromStr for Action {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "generate-proofs" => Ok(Action::GenerateProofs),
+            "test-connections" => Ok(Action::TestConnections),
+            "infinite-proofs" => Ok(Action::InfiniteProofs),
+            "multiple-senders-infinite-proofs" => Ok(Action::MultipleSendersInfiniteProofs),
+            _ => Err("Invalid action".to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, ValueEnum)]
 pub enum NetworkArg {
     Devnet,
@@ -114,16 +138,59 @@ async fn main() -> Result<(), AlignedError> {
     let args = Args::parse();
 
     let max_fee = U256::from_dec_str(&args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
-    let burst_size = args.burst_size;
-    let burst_time = args.burst_time;
 
-    let keystore_path = &args.keystore_path;
-    let private_key = &args.private_key;
-    if keystore_path.is_some() && private_key.is_some() {
-        warn!("Can't have a keystore path and a private key as input. Please use only one");
-        return Ok(());
+    match args.action {
+        Action::TestConnections => infinitely_hang_connection(args.batcher_url).await,
+        Action::InfiniteProofs => {
+            let keystore_path = args.keystore_path;
+            let private_key = args.private_key;
+            if keystore_path.is_some() && private_key.is_some() {
+                warn!("Can't have a keystore path and a private key as input. Please use only one");
+                return Ok(());
+            }
+            let wallet = get_sender_from_keystore_or_private_key(
+                keystore_path,
+                private_key,
+                args.eth_rpc_url.clone(),
+            )
+            .await
+            .unwrap();
+
+            let sender = Sender { wallet };
+            send_infinite_proofs(
+                vec![sender],
+                base_dir.clone(),
+                args.eth_rpc_url,
+                args.batcher_url,
+                args.network.into(),
+                args.burst_size,
+                args.burst_time as u64,
+                max_fee,
+            )
+            .await;
+        }
+        Action::MultipleSendersInfiniteProofs => {}
+        Action::GenerateProofs => generate_proofs(50)?,
+        Action::CleanProofs => {
+            if let Err(e) = std::fs::remove_dir_all(GROTH_16_PROOF_DIR) {
+                error!("Failed to remove {}: {}", GROTH_16_PROOF_DIR, e);
+            }
+        }
     }
-    let mut wallet = if let Some(keystore_path) = keystore_path {
+
+    Ok(())
+}
+
+struct Sender {
+    wallet: Wallet<SigningKey>,
+}
+
+async fn get_sender_from_keystore_or_private_key(
+    keystore_path: Option<PathBuf>,
+    private_key: Option<String>,
+    eth_rpc_url: String,
+) -> Result<Wallet<SigningKey>, SubmitError> {
+    let wallet = if let Some(keystore_path) = keystore_path {
         let password = rpassword::prompt_password("Please enter your keystore password:")
             .map_err(|e| SubmitError::GenericError(e.to_string()))?;
         Wallet::decrypt_keystore(keystore_path, password)
@@ -141,146 +208,160 @@ async fn main() -> Result<(), AlignedError> {
                     "Failed to create wallet from anvil private key: {}",
                     e.to_string()
                 );
-                return Ok(());
+                return Err(SubmitError::WalletSignerError(e.to_string()));
             }
         }
     };
-    let chain_id = get_chain_id(&args.eth_rpc_url).await.map_err(|e| {
+    let chain_id = get_chain_id(&eth_rpc_url).await.map_err(|e| {
                     SubmitError::GenericError(format!(
                         "Failed to retrieve chain id, verify `eth_rpc_url` is correct or local testnet is running on \"http://localhost:8545\": {}", e
                     ))
             })?;
-    wallet = wallet.with_chain_id(chain_id);
+    let wallet = wallet.with_chain_id(chain_id);
 
-    let proof_generator_addr = Address::from_str(&args.proof_generator_addr).map_err(|e| {
-        SubmitError::InvalidEthereumAddress(format!("Error while parsing address: {}", e))
-    })?;
+    Ok(wallet)
+}
+
+async fn send_infinite_proofs(
+    senders: Vec<Sender>,
+    base_dir: PathBuf,
+    eth_rpc_url: String,
+    batcher_url: String,
+    network: Network,
+    burst_size: usize,
+    burst_time: u64,
+    max_fee: U256,
+) {
+    if senders.len() == 0 {
+        return;
+    }
+
+    let verification_data =
+        get_verification_data_from_generated(50, base_dir.clone(), senders[0].wallet.address());
+
+    let mut handles = vec![];
+
+    for sender in senders {
+        // set the wallet address as the proof generator
+        let verification_data: Vec<VerificationData> = verification_data
+            .iter()
+            .map(|d| VerificationData {
+                proof_generator_addr: sender.wallet.address(),
+                ..d.clone()
+            })
+            .collect();
+
+        // this is necessary because of the move
+        let eth_rpc_url = eth_rpc_url.clone();
+        let batcher_url = batcher_url.clone();
+        let network = network.clone();
+        let max_fee = max_fee.clone();
+        let wallet = sender.wallet.clone();
+
+        let handle = tokio::spawn(async move {
+            infinitely_send_proofs_from(
+                verification_data,
+                wallet,
+                eth_rpc_url,
+                network,
+                batcher_url,
+                burst_size,
+                burst_time,
+                max_fee,
+            )
+            .await;
+        });
+
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        let _ = join!(handle);
+    }
+}
+
+fn generate_proofs(number: u64) -> Result<(), SubmitError> {
     std::fs::create_dir_all(GROTH_16_PROOF_DIR)
         .map_err(|e| SubmitError::IoError(PathBuf::from(GROTH_16_PROOF_DIR), e))?;
 
-    let count = Arc::new(AtomicU64::new(1));
-    // Generate 50 groth16 data in parallel.
-    // TODO(pat): persist between runs.
-    // TODO(pat): add go bindings so proof info is generate and stored them directly in memory.
-    let cached_verification_data = if burst_size == 0 {
-        vec![]
-    } else {
-        generate_proofs_and_get_verification_data(
-            count.clone(),
-            base_dir.clone(),
-            proof_generator_addr.clone(),
-        )
-    };
-
-    // We operate over a local network each thread sources its nonce by incrementing the global network nonce.
-    // When multiple senders are spawned we just increment the atomic to grab the nonce.
-    let network = args.network.into();
-    let latest_nonce = get_next_nonce(&args.eth_rpc_url, wallet.address(), network)
-        .await?
-        .as_u64();
-    let global_nonce = Arc::new(AtomicU64::new(latest_nonce));
-    let tasks: Vec<JoinHandle<()>> = (0..args.num_senders)
-        .map(|sender_id| {
-            let batcher_url = args.batcher_url.clone();
-            let nonce = global_nonce.clone();
-            let cached_verification_data: Vec<VerificationData> = cached_verification_data.clone();
-            let wallet = wallet.clone();
-
-            let handle = tokio::spawn(async move {
-                info!("Task Sender Started {}", sender_id);
-
-                if burst_size == 0 {
-                    infinitely_hang_connection(batcher_url.clone()).await;
-                } else {
-                    infinitely_send_proofs_from(
-                        cached_verification_data,
-                        wallet.clone(),
-                        nonce.clone(),
-                        network.clone(),
-                        batcher_url.clone(),
-                        burst_size.clone(),
-                        burst_time.clone() as u64,
-                        max_fee.clone(),
-                    )
-                    .await;
-                }
-            });
-            handle
-        })
-        .collect();
-
-    for t in tasks {
-        let _ = join!(t);
+    let count = Arc::new(AtomicU64::new(0));
+    let mut handles = vec![];
+    for _ in 0..number {
+        let count = count.clone();
+        let handle = thread::spawn(move || {
+            let count = count.fetch_add(1, Ordering::Relaxed);
+            Command::new("go")
+                .arg("run")
+                .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
+                .arg(format!("{:?}", count))
+                .status()
+                .unwrap();
+        });
+        handles.push(handle);
     }
 
-    //Clean infinite_proofs directory on exit
-    if let Err(e) = std::fs::remove_dir_all(GROTH_16_PROOF_DIR) {
-        error!("Failed to remove {}: {}", GROTH_16_PROOF_DIR, e);
+    for handle in handles {
+        let _ = handle.join();
     }
+
     Ok(())
 }
 
-fn generate_proofs_and_get_verification_data(
-    count: Arc<AtomicU64>,
+/// Returns the corresponding verification data for the generated groth proofs
+/// You'll probably have to change the address as the one  is the same for all
+fn get_verification_data_from_generated(
+    number: u64,
     base_dir: PathBuf,
-    proof_generator_addr: Address,
+    default_addr: Address,
 ) -> Vec<VerificationData> {
-    let threads: Vec<thread::JoinHandle<VerificationData>> = (0..50)
-        .map(|_| {
-            let count = count.clone();
-            let base_dir = base_dir.clone();
-            thread::spawn(move || {
-                let count = count.fetch_add(1, Ordering::Relaxed);
-                Command::new("go")
-                    .arg("run")
-                    .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
-                    .arg(format!("{:?}", count))
-                    .status()
-                    .unwrap();
+    let mut verifications_data = vec![];
 
-                let proof_path = base_dir.join(format!(
-                    "{}/ineq_{}_groth16.proof",
-                    GROTH_16_PROOF_DIR, count
-                ));
-                let public_input_path =
-                    base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count));
-                let vk_path =
-                    base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count));
+    for i in 0..number {
+        let proof_path = base_dir.join(format!("{}/ineq_{}_groth16.proof", GROTH_16_PROOF_DIR, i));
+        let public_input_path =
+            base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, i));
+        let vk_path = base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, i));
 
-                let proof = std::fs::read(&proof_path)
-                    .map_err(|e| SubmitError::IoError(proof_path, e))
-                    .unwrap();
-                let public_input = std::fs::read(&public_input_path)
-                    .map_err(|e| SubmitError::IoError(public_input_path, e))
-                    .unwrap();
-                let vk = std::fs::read(&vk_path)
-                    .map_err(|e| SubmitError::IoError(vk_path, e))
-                    .unwrap();
-                VerificationData {
-                    proving_system: ProvingSystemId::Groth16Bn254,
-                    proof,
-                    pub_input: Some(public_input),
-                    verification_key: Some(vk),
-                    vm_program_code: None,
-                    proof_generator_addr,
-                }
-            })
-        })
-        .collect();
+        let proof = std::fs::read(&proof_path)
+            .map_err(|e| SubmitError::IoError(proof_path, e))
+            .unwrap();
+        let public_input = std::fs::read(&public_input_path)
+            .map_err(|e| SubmitError::IoError(public_input_path, e))
+            .unwrap();
+        let vk = std::fs::read(&vk_path)
+            .map_err(|e| SubmitError::IoError(vk_path, e))
+            .unwrap();
 
-    threads.into_iter().map(|t| t.join().unwrap()).collect()
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Groth16Bn254,
+            proof,
+            pub_input: Some(public_input),
+            verification_key: Some(vk),
+            vm_program_code: None,
+            proof_generator_addr: default_addr,
+        };
+        verifications_data.push(verification_data);
+    }
+
+    verifications_data
 }
 
 async fn infinitely_send_proofs_from(
-    verification_data: Vec<VerificationData>,
+    mut verification_data: Vec<VerificationData>,
     wallet: Wallet<SigningKey>,
-    nonce: Arc<AtomicU64>,
+    eth_rpc_url: String,
     network: Network,
     batcher_url: String,
     burst_size: usize,
     burst_time: u64,
     max_fee: U256,
 ) {
+    for data in &mut verification_data {
+        data.proof_generator_addr = wallet.address();
+    }
+    let mut nonce = get_next_nonce(&eth_rpc_url, wallet.address(), network)
+        .await
+        .unwrap_or(U256::zero());
     loop {
         let max_fees = vec![max_fee; burst_size];
         let verification_data: Vec<_> = verification_data
@@ -291,7 +372,6 @@ async fn infinitely_send_proofs_from(
             "Sending {:?} Proofs to Aligned Batcher on {:?}",
             burst_size, network
         );
-        let nonce = nonce.fetch_add(burst_size as u64, Ordering::Relaxed);
         let batcher_url = batcher_url.clone();
 
         if let Err(e) = submit_multiple(
@@ -300,7 +380,7 @@ async fn infinitely_send_proofs_from(
             &verification_data.clone(),
             &max_fees,
             wallet.clone(),
-            U256::from(nonce),
+            nonce,
         )
         .await
         {
@@ -310,6 +390,7 @@ async fn infinitely_send_proofs_from(
             "{:?} Proofs to the Aligned Batcher on{:?}",
             burst_size, network
         );
+        nonce += U256::one();
         tokio::time::sleep(Duration::from_secs(burst_time)).await;
     }
 }
