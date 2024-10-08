@@ -120,7 +120,7 @@ async fn main() {
         pub_input: None,
     };
 
-    let max_fee = estimate_fee(&rpc_url, PriceEstimate::Default)
+    let max_fee = estimate_fee(&rpc_url, PriceEstimate::Instant)
         .await
         .expect("failed to fetch gas price from the blockchain");
 
