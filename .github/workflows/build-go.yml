@@ -15,7 +15,6 @@ on:
       - ".github/workflows/build-go.yml"
 env:
   FFI_FOR_RELEASE: false
-  HOME: ${{ github.workspace }}
 jobs:
   build:
     runs-on: ubuntu-latest
