@@ -522,7 +522,7 @@ pub fn get_vk_commitment(
     verification_key_bytes: &[u8],
     proving_system: ProvingSystemId,
 ) -> [u8; 32] {
-    let proving_system_id_byte = proving_system.clone() as u8;
+    let proving_system_id_byte = proving_system as u8;
     let mut hasher = Keccak256::new();
     hasher.update(verification_key_bytes);
     hasher.update([proving_system_id_byte]);

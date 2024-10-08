@@ -57,7 +57,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             );
 
             debug!("Gnark proof is valid: {}", is_valid);
-            return is_valid;
+            is_valid
         }
     }
 }
