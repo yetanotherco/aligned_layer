@@ -139,16 +139,16 @@ async fn main() -> Result<(), AlignedError> {
     let args = Args::parse();
 
     let max_fee = U256::from_dec_str(&args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
+    let keystore_path = args.keystore_path;
+    let private_key = args.private_key;
+    if keystore_path.is_some() && private_key.is_some() {
+        warn!("Can't have a keystore path and a private key as input. Please use only one");
+        return Ok(());
+    }
 
     match args.action {
         Action::TestConnections => infinitely_hang_connection(args.batcher_url).await,
         Action::InfiniteProofs => {
-            let keystore_path = args.keystore_path;
-            let private_key = args.private_key;
-            if keystore_path.is_some() && private_key.is_some() {
-                warn!("Can't have a keystore path and a private key as input. Please use only one");
-                return Ok(());
-            }
             let wallet = get_sender_from_keystore_or_private_key(
                 keystore_path,
                 private_key,
@@ -170,7 +170,27 @@ async fn main() -> Result<(), AlignedError> {
             )
             .await;
         }
-        Action::MultipleSendersInfiniteProofs => {}
+        Action::MultipleSendersInfiniteProofs => {
+            let funding_wallet = get_sender_from_keystore_or_private_key(
+                keystore_path,
+                private_key,
+                args.eth_rpc_url.clone(),
+            )
+            .await
+            .unwrap();
+            send_multiple_senders_infinite_proofs(
+                funding_wallet,
+                base_dir,
+                args.num_senders,
+                args.eth_rpc_url,
+                args.batcher_url,
+                args.network.into(),
+                args.burst_size,
+                args.burst_time as u64,
+                max_fee,
+            )
+            .await;
+        }
         Action::GenerateProofs => generate_proofs(50)?,
         Action::CleanProofs => {
             if let Err(e) = std::fs::remove_dir_all(GROTH_16_PROOF_DIR) {
@@ -223,6 +243,59 @@ async fn get_sender_from_keystore_or_private_key(
     Ok(wallet)
 }
 
+async fn send_multiple_senders_infinite_proofs(
+    funding_wallet: Wallet<SigningKey>,
+    base_dir: PathBuf,
+    num_senders: usize,
+    eth_rpc_url: String,
+    batcher_url: String,
+    network: Network,
+    burst_size: usize,
+    burst_time: u64,
+    max_fee: U256,
+) {
+    info!("Creating senders");
+    let mut senders = vec![];
+    let Ok(eth_rpc_provider) = Provider::<Http>::try_from(eth_rpc_url.clone()) else {
+        error!("Could not connect to eth rpc");
+        return;
+    };
+
+    for i in 0..num_senders {
+        let wallet = Wallet::new(&mut thread_rng());
+        let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
+        let tx = TransactionRequest::new()
+            .from(funding_wallet.address())
+            .to(wallet.address())
+            .value(U256::from(1));
+        let pending_transaction = match client.send_transaction(tx, None).await {
+            Ok(tx) => tx,
+            Err(err) => {
+                error!("Could not fund wallet {}", err.to_string());
+                return;
+            }
+        };
+        if let Err(err) = pending_transaction.await {
+            error!("Could not fund wallet {}", err.to_string());
+        }
+        let sender = Sender { wallet };
+        senders.push(sender);
+        info!("Wallet {} funded", i);
+    }
+
+    send_infinite_proofs(
+        senders,
+        base_dir,
+        eth_rpc_url,
+        batcher_url,
+        network,
+        burst_size,
+        burst_time,
+        max_fee,
+    )
+    .await;
+}
+
 async fn send_infinite_proofs(
     senders: Vec<Sender>,
     base_dir: PathBuf,
@@ -243,7 +316,7 @@ async fn send_infinite_proofs(
     let mut handles = vec![];
 
     for sender in senders {
-        // set the wallet address as the proof generator
+        // set the sender wallet address as the proof generator
         let verification_data: Vec<VerificationData> = verification_data
             .iter()
             .map(|d| VerificationData {
@@ -348,7 +421,7 @@ fn get_verification_data_from_generated(
 }
 
 async fn infinitely_send_proofs_from(
-    mut verification_data: Vec<VerificationData>,
+    verification_data: Vec<VerificationData>,
     wallet: Wallet<SigningKey>,
     eth_rpc_url: String,
     network: Network,
@@ -357,9 +430,6 @@ async fn infinitely_send_proofs_from(
     burst_time: u64,
     max_fee: U256,
 ) {
-    for data in &mut verification_data {
-        data.proof_generator_addr = wallet.address();
-    }
     let mut nonce = get_next_nonce(&eth_rpc_url, wallet.address(), network)
         .await
         .unwrap_or(U256::zero());

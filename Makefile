@@ -251,6 +251,12 @@ RPC_URL=http://localhost:8545
 NETWORK=devnet # devnet | holesky-stage | holesky
 
 # Infinite stream of burst of 10 proofs
+batcher_send_infinite_multiple_senders:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action generate-proofs && \
+	cargo run --release -- --action mutiple-senders-infinite-proofs --burst-size $(BURST_SIZE) --num-senders $(NUM_SENDERS)
+
+# Infinite stream of burst of 10 proofs
 batcher_send_infinite_burst:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action generate-proofs && \
