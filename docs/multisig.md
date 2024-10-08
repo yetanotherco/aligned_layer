@@ -37,7 +37,6 @@ You can propose the upgrade transaction with the multisig using this calldata
 You should save this `calldata` for later use.
 
 2) Start a transaction request on your multisig, clicking on `New transaction` -> `Interact with contracts`
-
 ![alt text](./images/multisig-1.png)
 ![alt text](./images/multisig-2.png)
 
@@ -50,28 +49,23 @@ jq -r ".addresses.alignedLayerProxyAdmin" contracts/script/output/sepolia/aligne
 ```bash
 jq ".abi" contracts/out/ProxyAdmin.sol/ProxyAdmin.json | pbcopy
 ```
-
 ![alt text](./images/multisig-3.png)
 ![alt text](./images/multisig-4.png)
 
 
 5) Scroll down and Fill the `ETH Value` as 0
-
 ![alt text](./images/multisig-5.png)
 
 6) Paste the calldata saved on step `1` and paste it on the `Data` box
-
 ![alt text](./images/multisig-6.png)
 
 7) Finish creating the transaction
-
 ![alt text](./images/multisig-7.png)
 You can previously simulate the tx to make sure everything is OK.
 ![alt text](./images/multisig-8.png)
 ![alt text](./images/multisig-9.png)
 
 8) Now in your transactions, you should be able to see the newly created Tx
-
 ![alt text](./images/multisig-10.png)
 
 9) If the transaction is correctly created, you have to wait until required Multisig member sign the transaction to send it.
