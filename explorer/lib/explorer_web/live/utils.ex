@@ -177,6 +177,7 @@ defmodule Utils do
 
   def calculate_proof_hashes({:error, reason}) do
     Logger.error("Error calculating proof hashes: #{inspect(reason)}")
+    # This ensures we avoid attempting to fetch the invalid data again.
     ["invalid"]
   end
 
