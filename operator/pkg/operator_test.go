@@ -165,7 +165,7 @@ func DepositToUser(t *testing.T, user *AlignedUser, serviceManager *contractAlig
 		t.Fatalf("could not create task: %s", err)
 	}
 
-	t.Logf("New task created")
+	t.Logf("Deposit sent")
 
 	i := 0
 	r := new(gethtypes.Receipt)
@@ -231,7 +231,7 @@ func handleRequestOOM(t *testing.T, w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Encoding", "gzip")
 		for {
 			if _, err := w.Write([]byte("infinite content")); err != nil {
-				t.Logf("Finishing test")
+				t.Logf("Request finished")
 				return
 			}
 			w.(http.Flusher).Flush()
