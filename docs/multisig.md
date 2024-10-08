@@ -70,17 +70,17 @@ You can previously simulate the tx to make sure everything is OK.
 ![alt text](./images/multisig-8.png)
 ![alt text](./images/multisig-9.png)
 
-1) Now in your transactions, you should be able to see the newly created Tx
+8) Now in your transactions, you should be able to see the newly created Tx
 
 ![alt text](./images/multisig-10.png)
 
-10) If the transaction is correctly created, you have to wait until required Multisig member sign the transaction to send it.
+9) If the transaction is correctly created, you have to wait until required Multisig member sign the transaction to send it.
 
-11) You can now approve it with the other signer, as we saw in this case it is a 2/3 multisig
+10) You can now approve it with the other signer, as we saw in this case it is a 2/3 multisig
 ![alt text](./images/multisig-11.png)
 ![alt text](./images/multisig-12.png)
 ![alt text](./images/multisig-13.png)
 
-12) The tx should be created, now you should just wait for its approval
+11) The tx should be created, now you should just wait for its approval
 ![alt text](./images/multisig-14.png)
 ![alt text](./images/multisig-15.png)
