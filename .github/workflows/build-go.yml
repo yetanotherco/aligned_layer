@@ -17,7 +17,7 @@ env:
   FFI_FOR_RELEASE: false
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: aligned-runner
 
     steps:
       - uses: actions/checkout@v4
