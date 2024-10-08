@@ -19,14 +19,14 @@ contract BatcherPaymentService is
 {
     using ECDSA for bytes32;
 
-    // CONSTANTS
-    uint256 public constant UNLOCK_BLOCK_COUNT = 100;
+    // CONSTANTS = 100 Blocks * 12 second block time.
+    uint256 public constant UNLOCK_BLOCK_TIME = 3600 seconds;
 
     // EVENTS
     event PaymentReceived(address indexed sender, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
     event BalanceLocked(address indexed user);
-    event BalanceUnlocked(address indexed user, uint256 unlockBlock);
+    event BalanceUnlocked(address indexed user, uint256 unlockBlockTime);
     event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
 
     // ERRORS
@@ -40,12 +40,13 @@ contract BatcherPaymentService is
     error UserHasNoFundsToUnlock(address user); // b38340cf
     error UserHasNoFundsToLock(address user); // 6cc12bc2
     error PayerInsufficientBalance(uint256 balance, uint256 amount); // 21c3d50f
-    error FundsLocked(uint256 unlockBlock, uint256 currentBlock); // bedc4e5a
+    error FundsLocked(uint256 unlockBlockTime, uint256 currentBlockTime); // bedc4e5a
     error InvalidSignature(); // 8baa579f
     error InvalidNonce(uint256 expected, uint256 actual); // 06427aeb
     error InvalidMaxFee(uint256 maxFee, uint256 actualFee); // f59adf4a
     error SignerInsufficientBalance(address signer, uint256 balance, uint256 required); // 955c0664
     error InvalidMerkleRoot(bytes32 expected, bytes32 actual); // 9f13b65c
+    error InvalidAddress(string param); // 161eb542
 
     // CONSTRUCTOR & INITIALIZER
     constructor() EIP712("Aligned", "1") {
@@ -66,6 +67,15 @@ contract BatcherPaymentService is
         address _batcherWallet,
         bytes32 _noncedVerificationDataTypeHash
     ) public initializer {
+        if (address(_alignedLayerServiceManager) == address(0)) {
+            revert InvalidAddress("alignedServiceManager");
+        }
+        if (_batcherPaymentServiceOwner == address(0)) {
+            revert InvalidAddress("batcherPaymentServiceOwner");
+        }
+        if (_batcherWallet == address(0)) {
+            revert InvalidAddress("batcherWallet");
+        }
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
         _transferOwnership(_batcherPaymentServiceOwner);
@@ -92,7 +102,7 @@ contract BatcherPaymentService is
     // PAYABLE FUNCTIONS
     receive() external payable {
         userData[msg.sender].balance += msg.value;
-        userData[msg.sender].unlockBlock = 0;
+        userData[msg.sender].unlockBlockTime = 0;
         emit PaymentReceived(msg.sender, msg.value);
     }
 
@@ -151,15 +161,17 @@ contract BatcherPaymentService is
             revert UserHasNoFundsToUnlock(msg.sender);
         }
 
-        userData[msg.sender].unlockBlock = block.number + UNLOCK_BLOCK_COUNT;
-        emit BalanceUnlocked(msg.sender, userData[msg.sender].unlockBlock);
+        userData[msg.sender].unlockBlockTime =
+            block.timestamp +
+            UNLOCK_BLOCK_TIME;
+        emit BalanceUnlocked(msg.sender, userData[msg.sender].unlockBlockTime);
     }
 
     function lock() external whenNotPaused {
         if (userData[msg.sender].balance == 0) {
             revert UserHasNoFundsToLock(msg.sender);
         }
-        userData[msg.sender].unlockBlock = 0;
+        userData[msg.sender].unlockBlockTime = 0;
         emit BalanceLocked(msg.sender);
     }
 
@@ -169,12 +181,15 @@ contract BatcherPaymentService is
             revert PayerInsufficientBalance(senderData.balance, amount);
         }
 
-        if (senderData.unlockBlock == 0 || senderData.unlockBlock > block.number) {
-            revert FundsLocked(senderData.unlockBlock, block.number);
+        if (
+            senderData.unlockBlockTime == 0 ||
+            senderData.unlockBlockTime > block.timestamp
+        ) {
+            revert FundsLocked(senderData.unlockBlockTime, block.timestamp);
         }
 
         senderData.balance -= amount;
-        senderData.unlockBlock = 0;
+        senderData.unlockBlockTime = 0;
         emit BalanceLocked(msg.sender);
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
@@ -248,16 +263,18 @@ contract BatcherPaymentService is
             revert InvalidMaxFee(signatureData.maxFee, feePerProof);
         }
 
-        bytes32 structHash =
-            keccak256(abi.encode(noncedVerificationDataTypeHash, leaf, signatureData.nonce, signatureData.maxFee));
+        bytes32 structHash = keccak256(
+            abi.encode(
+                noncedVerificationDataTypeHash,
+                leaf,
+                signatureData.nonce,
+                signatureData.maxFee
+            )
+        );
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
         address signer = ECDSA.recover(hash, signatureData.signature);
-
-        if (signer == address(0)) {
-            revert InvalidSignature();
-        }
 
         UserInfo storage signerData = userData[signer];
 
@@ -282,6 +299,6 @@ contract BatcherPaymentService is
     }
 
     function user_unlock_block(address account) public view returns (uint256) {
-        return userData[account].unlockBlock;
+        return userData[account].unlockBlockTime;
     }
 }

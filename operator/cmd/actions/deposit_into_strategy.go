@@ -69,18 +69,18 @@ func depositIntoStrategyMain(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	w, err := wallet.NewPrivateKeyWallet(config.BaseConfig.EthRpcClient, signerFn,
+	w, err := wallet.NewPrivateKeyWallet(&config.BaseConfig.EthRpcClient, signerFn,
 		config.Operator.Address, config.BaseConfig.Logger)
 
 	if err != nil {
 		return err
 	}
 
-	txMgr := txmgr.NewSimpleTxManager(w, config.BaseConfig.EthRpcClient, config.BaseConfig.Logger,
+	txMgr := txmgr.NewSimpleTxManager(w, &config.BaseConfig.EthRpcClient, config.BaseConfig.Logger,
 		config.Operator.Address)
 	eigenMetrics := metrics.NewNoopMetrics()
 	eigenLayerWriter, err := elcontracts.BuildELChainWriter(delegationManagerAddr, avsDirectoryAddr,
-		config.BaseConfig.EthRpcClient, config.BaseConfig.Logger, eigenMetrics, txMgr)
+		&config.BaseConfig.EthRpcClient, config.BaseConfig.Logger, eigenMetrics, txMgr)
 	if err != nil {
 		return err
 	}

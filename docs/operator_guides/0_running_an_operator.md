@@ -1,7 +1,7 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.7.2](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.7.2)
+> Aligned Operator [v0.7.3](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.7.3)
 
 > **IMPORTANT:**
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
@@ -26,7 +26,7 @@ Minimum hardware requirements:
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.7.2
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.7.3
 cd aligned_layer
 ```
 
@@ -92,14 +92,25 @@ Update the following placeholders in `./config-files/config-operator.yaml`:
 `"<ecdsa_key_store_location_path>"` and `"<bls_key_store_location_path>"` are the paths to your keys generated with the EigenLayer CLI, `"<operator_address>"` and `"<earnings_receiver_address>"` can be found in the `operator.yaml` file created in the EigenLayer registration process.
 The keys are stored by default in the `~/.eigenlayer/operator_keys/` directory, so for example `<ecdsa_key_store_location_path>` could be `/path/to/home/.eigenlayer/operator_keys/some_key.ecdsa.key.json` and for `<bls_key_store_location_path>` it could be `/path/to/home/.eigenlayer/operator_keys/some_key.bls.key.json`.
 
-The default configuration uses the public nodes RPC, but we suggest you use your own nodes for better performance and reliability.
-Also, from v0.5.2 there is a fallback mechanism to have two RPCs, so you can add a second RPC for redundancy.
+Two RPCs are used, one as the main one, and the other one as a fallback in case one node is working unreliably. 
+
+Default configurations is set up to use the same public node in both scenarios. 
+
+{% hint style="danger" %}
+
+PUBLIC NODES SHOULDN'T BE USED AS THE MAIN RPC. We recommend not using public nodes at all. 
+
+FALLBACK AND MAIN RPCs SHOULD BE DIFFERENT. 
+
+{% endhint %}
+
+Most of the actions will pass through the main RPC unless there is a problem with it. Events are fetched from both nodes.
 
 ```yaml
-eth_rpc_url: "https://ethereum-holesky-rpc.publicnode.com"
-eth_rpc_url_fallback: "https://ethereum-holesky-rpc.publicnode.com"
-eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
-eth_ws_url_fallback: "wss://ethereum-holesky-rpc.publicnode.com"
+eth_rpc_url: "https://<RPC_1>" 
+eth_rpc_url_fallback: "https://<RPC_2>"
+eth_ws_url: "wss://<RPC_1>"
+eth_ws_url_fallback: "wss://<RPC_2>"
 ```
 
 ## Step 4 - Deposit Strategy Tokens
@@ -149,6 +160,66 @@ If you don't have Holesky ETH, these are some useful faucets:
 
 ```bash
 ./operator/build/aligned-operator start --config ./config-files/config-operator.yaml
+```
+
+### Run Operator using Systemd
+
+To manage the Operator process on Linux systems, we recommend use systemd with the following configuration:
+
+You should create a user and a group in order to run the Operator and set the service unit to use that. In the provided service unit, we assume you have already created a user called `aligned`
+
+```toml
+# aligned-operator.service
+
+[Unit]
+Description=Aligned Operator
+After=network.target
+
+[Service]
+Type=simple
+User=aligned
+ExecStart=<path_to_aligned_layer_repository>/operator/build/aligned-operator start --config <path_to_operator_config>
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target
+```
+
+{% hint style="info" %}
+`aligned-operator.service` is just an arbitrary name. You can name your service as you wish, following the format `<service-name>.service`.
+{% endhint %}
+
+Once you have configured the `aligned-operator.service` file, you need to run the following commands:
+
+```shell
+sudo cp aligned-operator.service /etc/systemd/system/aligned-operator.service
+sudo systemctl enable --now aligned-operator.service
+```
+
+{% hint style="warning" %}
+All paths must be absolute.
+{% endhint %}
+
+Those commands will link the service to systemd directory and then, will start the Operator service.
+
+Also, if the server running the operator goes down, systemd will start automatically the Operator on server startup.
+
+#### Restart operator
+
+If you want to restart the operator, you can use the following command:
+
+```shell
+sudo systemctl restart aligned-operator.service
+```
+
+#### Get Operators logs
+
+Once you are running your operator using systemd, you can get its logs using journalctl as follows:
+
+```shell
+journalctl -xfeu aligned-operator.service
 ```
 
 ## Unregistering the operator

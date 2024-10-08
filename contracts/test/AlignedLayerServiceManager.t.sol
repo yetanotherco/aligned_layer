@@ -43,7 +43,7 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
 
         alignedLayerServiceManager = new AlignedLayerServiceManager(
             avsDirectory,
-            IRewardsCoordinator(address(rewardsCoordinator)),
+            IRewardsCoordinator(address(rewardsCoordinatorMock)),
             IRegistryCoordinator(address(registryCoordinator)),
             IStakeRegistry(address(stakeRegistry))
         );
