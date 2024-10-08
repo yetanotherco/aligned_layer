@@ -628,6 +628,10 @@ explorer_fetch_old_operators_strategies_restakes:
 	@cd explorer && \
 	./scripts/fetch_old_operators_strategies_restakes.sh 0
 
+explorer_create_env:
+	@cd explorer && \
+	cp .env.dev .env
+
 __TRACKER__:
 
 tracker_devnet_start: tracker_run_db
@@ -656,3 +660,41 @@ tracker_dump_db:
 	@cd operator_tracker && \
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
+
+__TELEMETRY__:
+open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
+	## TODO(juarce) ADD DOCKER COMPOSE
+	@echo "Running telemetry..."
+	@docker compose -f telemetry-docker-compose.yaml up -d
+
+telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
+	@cd telemetry_api && \
+	 	./start.sh	
+
+telemetry_ecto_migrate: ##
+		@cd telemetry_api && \
+			./ecto_setup_db.sh	
+
+telemetry_build_db:
+	@cd telemetry_api && \
+		docker build -t telemetry-postgres-image .
+
+telemetry_run_db: telemetry_build_db telemetry_remove_db_container
+	@cd telemetry_api && \
+		docker run -d --name telemetry-postgres-container -p 5434:5432 -v telemetry-postgres-data:/var/lib/postgresql/data telemetry-postgres-image
+
+telemetry_remove_db_container:
+	@docker stop telemetry-postgres-container || true  && \
+	    docker rm telemetry-postgres-container || true
+
+telemetry_clean_db: telemetry_remove_db_container
+	@docker volume rm telemetry-postgres-data || true
+
+telemetry_dump_db:
+	@cd telemetry_api && \
+		docker exec -t telemetry-postgres-container pg_dumpall -c -U telemetry_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
+	@echo "Dumped database successfully to /telemetry_api"
+
+telemetry_create_env:
+	@cd telemetry_api && \
+		cp .env.dev .env
