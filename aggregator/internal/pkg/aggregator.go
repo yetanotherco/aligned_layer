@@ -315,6 +315,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 	receipt, err := utils.WaitForTransactionReceipt(
 		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
 	if err != nil {
+		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
 
