@@ -1,3 +1,4 @@
+use futures_util::join;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::path::PathBuf;
@@ -6,9 +7,9 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
-use std::thread;
+use std::thread::{self};
 use std::time::Duration;
-use tokio::runtime::Handle;
+use tokio::task::JoinHandle;
 use tokio_tungstenite::connect_async;
 
 use aligned_sdk::core::{
@@ -222,37 +223,34 @@ async fn main() -> Result<(), AlignedError> {
         .await?
         .as_u64();
     let global_nonce = Arc::new(AtomicU64::new(latest_nonce));
-    let threads = (0..args.num_senders)
+    let tasks: Vec<JoinHandle<()>> = (0..args.num_senders)
         .map(|sender_id| {
             let batcher_url = args.batcher_url.clone();
             let nonce = global_nonce.clone();
-            let handle = Handle::current();
             let cached_verification_data: Vec<VerificationData> = cached_verification_data.clone();
             let wallet = wallet.clone();
-            thread::spawn(move || {
+
+            let handle = tokio::spawn(async move {
                 info!("Task Sender Started {}", sender_id);
-                // if the burst size is 0, then we'll just open a socket connection
-                // without sending proofs, this might be useful in case we want to do a strees test
-                // on concurrent socket connections.
+                info!("Burst size {}", burst_size);
+
                 if burst_size == 0 {
+                    info!("Going to only open a connection");
                     let ws_url = batcher_url.clone();
-                    handle.spawn(async move {
-                        if let Ok((mut ws_stream, _)) = connect_async(ws_url).await {
-                            info!("Connection number has connected");
-                            // hang indefinably until program close
-                            while let Some(msg) = ws_stream.next().await {
-                                match msg {
-                                    Ok(message) => info!("Received message: {:?}", message),
-                                    Err(e) => {
-                                        info!("WebSocket error: {}", e);
-                                        break;
-                                    }
+                    let conn = connect_async(ws_url).await;
+                    if let Ok((mut ws_stream, _)) = conn {
+                        while let Some(msg) = ws_stream.next().await {
+                            match msg {
+                                Ok(message) => info!("Received message: {:?}", message),
+                                Err(e) => {
+                                    info!("WebSocket error: {}", e);
+                                    break;
                                 }
                             }
-                        } else {
-                            error!("Could not connect to socket");
                         }
-                    })
+                    } else {
+                        error!("Could not connect to socket, err {:?}", conn.err());
+                    }
                 } else {
                     loop {
                         let max_fees = vec![max_fee; args.burst_size];
@@ -268,35 +266,33 @@ async fn main() -> Result<(), AlignedError> {
                         let nonce = nonce.fetch_add(burst_size as u64, Ordering::Relaxed);
                         let batcher_url = batcher_url.clone();
                         let wallet = wallet.clone();
-                        handle.spawn(async move {
-                            if let Err(e) = submit_multiple(
-                                &batcher_url.clone(),
-                                network,
-                                &verification_data.clone(),
-                                &max_fees,
-                                wallet.clone(),
-                                U256::from(nonce),
-                            )
-                            .await
-                            {
-                                error!("Error submitting proofs to aligned: {:?}", e);
-                            };
-                            info!(
-                                "{:?} Proofs to the Aligned Batcher on{:?}",
-                                burst_size, network
-                            );
-                        });
-                        std::thread::sleep(Duration::from_secs(burst_time as u64));
+
+                        if let Err(e) = submit_multiple(
+                            &batcher_url.clone(),
+                            network,
+                            &verification_data.clone(),
+                            &max_fees,
+                            wallet.clone(),
+                            U256::from(nonce),
+                        )
+                        .await
+                        {
+                            error!("Error submitting proofs to aligned: {:?}", e);
+                        };
+                        info!(
+                            "{:?} Proofs to the Aligned Batcher on{:?}",
+                            burst_size, network
+                        );
+                        tokio::time::sleep((Duration::from_secs(burst_time as u64))).await;
                     }
                 }
-            })
+            });
+            handle
         })
-        .collect::<Vec<_>>();
+        .collect();
 
-    for t in threads {
-        if let Err(e) = t.join() {
-            error!("Thread panicked: {:?}", e);
-        }
+    for t in tasks {
+        join!(t);
     }
 
     //Clean infinite_proofs directory on exit
