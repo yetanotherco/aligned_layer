@@ -69,7 +69,10 @@ interface IAlignedLayerServiceManager {
     function isVerifierDisabled(
         uint8 verifierIdx
     ) external view returns (bool);
+
     function disableVerifier(uint8 verifierIdx) external;
+
     function enableVerifier(uint8 verifierIdx) external;
+    
     function setDisabledVerifiers(uint256 bitmap) external;
 }
