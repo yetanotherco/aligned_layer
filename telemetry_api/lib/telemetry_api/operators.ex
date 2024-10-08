@@ -131,8 +131,8 @@ defmodule TelemetryApi.Operators do
       {:error, "Some status", "Some message"}
 
   """
-  def update_operator(attrs) do
-    with {:ok, address} <- SignatureVerifier.recover_address(attrs["version"], attrs["signature"]) do
+  def update_operator(version, signature, changes) do
+    with {:ok, address} <- SignatureVerifier.recover_address(version, signature) do
       address = "0x" <> address
       case Repo.get(Operator, address) do
         nil ->
