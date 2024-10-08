@@ -1,5 +1,7 @@
 # Frontend Utils
 defmodule ExplorerWeb.Helpers do
+  @request_timeout 10_000
+
   def shorten_hash(hash, decimals \\ 6) do
     case String.length(hash) do
       n when n < decimals -> hash
@@ -181,7 +183,7 @@ defmodule Utils do
 
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer)
-         |> Finch.request(Explorer.Finch, request_timeout: 10_000) do
+         |> Finch.request(Explorer.Finch, request_timeout: @request_timeout) do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         cond do
           is_json?(body) ->
