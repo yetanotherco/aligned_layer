@@ -189,7 +189,7 @@ defmodule Utils do
 
   defp stream_handler({:data, chunk}, {_acc_body, size})
        when size + byte_size(chunk) > @max_body_size do
-    {:halt, {:error, :body_too_large}}
+    {:halt, {:error, {:http, :body_too_large}}}
   end
 
   defp stream_handler({:data, chunk}, {acc_body, size}) do
@@ -200,8 +200,8 @@ defmodule Utils do
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer)
          |> Finch.stream_while(Explorer.Finch, {"", 0}, &stream_handler(&1, &2)) do
-      {:ok, {:error, :body_too_large}} ->
-        {:error, {:http_error, :body_too_large}}
+      {:ok, {:error, reason}} ->
+        {:error, reason}
 
       {:ok, {body, _size}} ->
         cond do
