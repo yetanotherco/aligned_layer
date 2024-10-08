@@ -1,5 +1,6 @@
 defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
   require Logger
+  alias TelemetryApi.ContractManagers.OperatorStateRetriever
 
   @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")
 
@@ -40,9 +41,11 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
   end
 
   def get_operators() do
-    with {:ok, block_number} = Ethers.current_block_number(),
-         {:ok, operators_state} = fetch_operators_state(block_number) do
+    with {:ok, block_number} <- Ethers.current_block_number(),
+         {:ok, operators_state} <- fetch_operators_state(block_number) do
       parse_operators(operators_state)
+    else
+      {:error, %{reason: :econnrefused}} -> {:error, "Blockchain is not reachable"}
     end
   end
 
@@ -69,7 +72,11 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
     quorum_numbers = <<0>>
 
     response =
-      __MODULE__.get_operator_state(@registry_coordinator_address, quorum_numbers, block_number)
+      OperatorStateRetriever.get_operator_state(
+        @registry_coordinator_address,
+        quorum_numbers,
+        block_number
+      )
       |> Ethers.call()
 
     case response do

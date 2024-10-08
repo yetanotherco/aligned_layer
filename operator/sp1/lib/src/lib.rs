@@ -1,7 +1,6 @@
 use lazy_static::lazy_static;
-use sp1_sdk::ProverClient;
-use std::slice;
 use log::error;
+use sp1_sdk::ProverClient;
 
 lazy_static! {
     static ref PROVER_CLIENT: ProverClient = ProverClient::new();
@@ -24,9 +23,9 @@ pub extern "C" fn verify_sp1_proof_ffi(
         return false;
     }
 
-    let proof_bytes = unsafe { slice::from_raw_parts(proof_bytes, proof_len as usize) };
+    let proof_bytes = unsafe { std::slice::from_raw_parts(proof_bytes, proof_len as usize) };
 
-    let elf_bytes = unsafe { slice::from_raw_parts(elf_bytes, elf_len as usize) };
+    let elf_bytes = unsafe { std::slice::from_raw_parts(elf_bytes, elf_len as usize) };
 
     if let Ok(proof) = bincode::deserialize(proof_bytes) {
         let (_pk, vk) = PROVER_CLIENT.setup(elf_bytes);

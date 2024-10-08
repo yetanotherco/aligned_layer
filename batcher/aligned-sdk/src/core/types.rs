@@ -29,8 +29,6 @@ pub enum ProvingSystemId {
     Groth16Bn254,
     #[default]
     SP1,
-    Halo2KZG,
-    Halo2IPA,
     Risc0,
 }
 
@@ -69,6 +67,14 @@ impl NoncedVerificationData {
             payment_service_addr,
         }
     }
+}
+
+// Defines an estimate price preference for the user.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum PriceEstimate {
+    Min,
+    Default,
+    Instant,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -315,8 +321,10 @@ pub enum ValidityResponseMessage {
     InvalidProof,
     InvalidMaxFee,
     InvalidReplacementMessage,
+    AddToBatchError,
     ProofTooLarge,
     InsufficientBalance(Address),
+    EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
 }
 

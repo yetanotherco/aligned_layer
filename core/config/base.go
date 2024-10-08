@@ -9,7 +9,9 @@ import (
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
+	rpccalls "github.com/Layr-Labs/eigensdk-go/metrics/collectors/rpc_calls"
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -27,12 +29,12 @@ type BaseConfig struct {
 	Logger                       sdklogging.Logger
 	EthRpcUrl                    string
 	EthWsUrl                     string
+	EthRpcClient                 eth.InstrumentedClient
+	EthRpcClientFallback         eth.InstrumentedClient
+	EthWsClient                  eth.InstrumentedClient
+	EthWsClientFallback          eth.InstrumentedClient
 	EthRpcUrlFallback            string
 	EthWsUrlFallback             string
-	EthRpcClient                 eth.Client
-	EthRpcClientFallback         eth.Client
-	EthWsClient                  eth.Client
-	EthWsClientFallback          eth.Client
 	EigenMetricsIpPortAddress    string
 	ChainId                      *big.Int
 }
@@ -98,12 +100,15 @@ func NewBaseConfig(configFilePath string) *BaseConfig {
 		log.Fatal("Eth ws url or fallback is empty")
 	}
 
-	ethWsClient, err := eth.NewClient(baseConfigFromYaml.EthWsUrl)
+	reg := prometheus.NewRegistry()
+	rpcCallsCollector := rpccalls.NewCollector("ethWs", reg)
+	ethWsClient, err := eth.NewInstrumentedClient(baseConfigFromYaml.EthWsUrl, rpcCallsCollector)
 	if err != nil {
 		log.Fatal("Error initializing eth ws client: ", err)
 	}
-
-	ethWsClientFallback, err := eth.NewClient(baseConfigFromYaml.EthWsUrlFallback)
+	reg = prometheus.NewRegistry()
+	rpcCallsCollector = rpccalls.NewCollector("ethWsFallback", reg)
+	ethWsClientFallback, err := eth.NewInstrumentedClient(baseConfigFromYaml.EthWsUrlFallback, rpcCallsCollector)
 	if err != nil {
 		log.Fatal("Error initializing eth ws client fallback: ", err)
 	}
@@ -112,12 +117,16 @@ func NewBaseConfig(configFilePath string) *BaseConfig {
 		log.Fatal("Eth rpc url is empty")
 	}
 
-	ethRpcClient, err := eth.NewClient(baseConfigFromYaml.EthRpcUrl)
+	reg = prometheus.NewRegistry()
+	rpcCallsCollector = rpccalls.NewCollector("ethRpc", reg)
+	ethRpcClient, err := eth.NewInstrumentedClient(baseConfigFromYaml.EthRpcUrl, rpcCallsCollector)
 	if err != nil {
 		log.Fatal("Error initializing eth rpc client: ", err)
 	}
 
-	ethRpcClientFallback, err := eth.NewClient(baseConfigFromYaml.EthRpcUrlFallback)
+	reg = prometheus.NewRegistry()
+	rpcCallsCollector = rpccalls.NewCollector("ethRpc", reg)
+	ethRpcClientFallback, err := eth.NewInstrumentedClient(baseConfigFromYaml.EthRpcUrlFallback, rpcCallsCollector)
 	if err != nil {
 		log.Fatal("Error initializing eth rpc client fallback: ", err)
 	}
@@ -138,12 +147,12 @@ func NewBaseConfig(configFilePath string) *BaseConfig {
 		Logger:                       logger,
 		EthRpcUrl:                    baseConfigFromYaml.EthRpcUrl,
 		EthWsUrl:                     baseConfigFromYaml.EthWsUrl,
+		EthRpcClient:                 *ethRpcClient,
+		EthRpcClientFallback:         *ethRpcClientFallback,
+		EthWsClient:                  *ethWsClient,
+		EthWsClientFallback:          *ethWsClientFallback,
 		EthRpcUrlFallback:            baseConfigFromYaml.EthRpcUrlFallback,
 		EthWsUrlFallback:             baseConfigFromYaml.EthWsUrlFallback,
-		EthRpcClient:                 ethRpcClient,
-		EthRpcClientFallback:         ethRpcClientFallback,
-		EthWsClient:                  ethWsClient,
-		EthWsClientFallback:          ethWsClientFallback,
 		EigenMetricsIpPortAddress:    baseConfigFromYaml.EigenMetricsIpPortAddress,
 		ChainId:                      chainId,
 	}
