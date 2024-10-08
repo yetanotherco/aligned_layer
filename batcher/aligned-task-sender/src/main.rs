@@ -9,6 +9,7 @@ use std::sync::{
 use std::thread;
 use std::time::Duration;
 use tokio::runtime::Handle;
+use tokio_tungstenite::connect_async;
 
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
@@ -164,48 +165,52 @@ async fn main() -> Result<(), AlignedError> {
     // Generate 50 groth16 data in parallel.
     // TODO(pat): persist between runs.
     // TODO(pat): add go bindings so proof info is generate and stored them directly in memory.
-    let threads: Vec<_> = (0..50)
-        .map(|_| {
-            let base_dir = base_dir.clone();
-            let count = count.clone();
-            thread::spawn(move || {
-                let count = count.fetch_add(1, Ordering::Relaxed);
-                Command::new("go")
-                    .arg("run")
-                    .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
-                    .arg(format!("{:?}", count))
-                    .status()
-                    .unwrap();
+    let threads: Vec<_> = if burst_size == 0 {
+        vec![]
+    } else {
+        (0..50)
+            .map(|_| {
+                let base_dir = base_dir.clone();
+                let count = count.clone();
+                thread::spawn(move || {
+                    let count = count.fetch_add(1, Ordering::Relaxed);
+                    Command::new("go")
+                        .arg("run")
+                        .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
+                        .arg(format!("{:?}", count))
+                        .status()
+                        .unwrap();
 
-                let proof_path = base_dir.join(format!(
-                    "{}/ineq_{}_groth16.proof",
-                    GROTH_16_PROOF_DIR, count
-                ));
-                let public_input_path =
-                    base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count));
-                let vk_path =
-                    base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count));
+                    let proof_path = base_dir.join(format!(
+                        "{}/ineq_{}_groth16.proof",
+                        GROTH_16_PROOF_DIR, count
+                    ));
+                    let public_input_path =
+                        base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count));
+                    let vk_path =
+                        base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count));
 
-                let proof = std::fs::read(&proof_path)
-                    .map_err(|e| SubmitError::IoError(proof_path, e))
-                    .unwrap();
-                let public_input = std::fs::read(&public_input_path)
-                    .map_err(|e| SubmitError::IoError(public_input_path, e))
-                    .unwrap();
-                let vk = std::fs::read(&vk_path)
-                    .map_err(|e| SubmitError::IoError(vk_path, e))
-                    .unwrap();
-                VerificationData {
-                    proving_system: ProvingSystemId::Groth16Bn254,
-                    proof,
-                    pub_input: Some(public_input),
-                    verification_key: Some(vk),
-                    vm_program_code: None,
-                    proof_generator_addr,
-                }
+                    let proof = std::fs::read(&proof_path)
+                        .map_err(|e| SubmitError::IoError(proof_path, e))
+                        .unwrap();
+                    let public_input = std::fs::read(&public_input_path)
+                        .map_err(|e| SubmitError::IoError(public_input_path, e))
+                        .unwrap();
+                    let vk = std::fs::read(&vk_path)
+                        .map_err(|e| SubmitError::IoError(vk_path, e))
+                        .unwrap();
+                    VerificationData {
+                        proving_system: ProvingSystemId::Groth16Bn254,
+                        proof,
+                        pub_input: Some(public_input),
+                        verification_key: Some(vk),
+                        vm_program_code: None,
+                        proof_generator_addr,
+                    }
+                })
             })
-        })
-        .collect();
+            .collect()
+    };
 
     let cached_verification_data: Vec<VerificationData> =
         threads.into_iter().map(|t| t.join().unwrap()).collect();
@@ -226,39 +231,63 @@ async fn main() -> Result<(), AlignedError> {
             let wallet = wallet.clone();
             thread::spawn(move || {
                 info!("Task Sender Started {}", sender_id);
-                loop {
-                    let max_fees = vec![max_fee; args.burst_size];
-                    //TODO(pat): not sure how slow this is... open to faster alternatives
-                    let verification_data: Vec<_> = cached_verification_data
-                        .choose_multiple(&mut thread_rng(), burst_size)
-                        .cloned()
-                        .collect();
-                    info!(
-                        "Sending {:?} Proofs to Aligned Batcher on {:?}",
-                        burst_size, network
-                    );
-                    let nonce = nonce.fetch_add(burst_size as u64, Ordering::Relaxed);
-                    let batcher_url = batcher_url.clone();
-                    let wallet = wallet.clone();
+                // if the burst size is 0, then we'll just open a socket connection
+                // without sending proofs, this might be useful in case we want to do a strees test
+                // on concurrent socket connections.
+                if burst_size == 0 {
+                    let ws_url = batcher_url.clone();
                     handle.spawn(async move {
-                        if let Err(e) = submit_multiple(
-                            &batcher_url.clone(),
-                            network,
-                            &verification_data.clone(),
-                            &max_fees,
-                            wallet.clone(),
-                            U256::from(nonce),
-                        )
-                        .await
-                        {
-                            error!("Error submitting proofs to aligned: {:?}", e);
-                        };
+                        if let Ok((mut ws_stream, _)) = connect_async(ws_url).await {
+                            info!("Connection number has connected");
+                            // hang indefinably until program close
+                            while let Some(msg) = ws_stream.next().await {
+                                match msg {
+                                    Ok(message) => info!("Received message: {:?}", message),
+                                    Err(e) => {
+                                        info!("WebSocket error: {}", e);
+                                        break;
+                                    }
+                                }
+                            }
+                        } else {
+                            error!("Could not connect to socket");
+                        }
+                    })
+                } else {
+                    loop {
+                        let max_fees = vec![max_fee; args.burst_size];
+                        //TODO(pat): not sure how slow this is... open to faster alternatives
+                        let verification_data: Vec<_> = cached_verification_data
+                            .choose_multiple(&mut thread_rng(), burst_size)
+                            .cloned()
+                            .collect();
                         info!(
-                            "{:?} Proofs to the Aligned Batcher on{:?}",
+                            "Sending {:?} Proofs to Aligned Batcher on {:?}",
                             burst_size, network
                         );
-                    });
-                    std::thread::sleep(Duration::from_secs(burst_time as u64));
+                        let nonce = nonce.fetch_add(burst_size as u64, Ordering::Relaxed);
+                        let batcher_url = batcher_url.clone();
+                        let wallet = wallet.clone();
+                        handle.spawn(async move {
+                            if let Err(e) = submit_multiple(
+                                &batcher_url.clone(),
+                                network,
+                                &verification_data.clone(),
+                                &max_fees,
+                                wallet.clone(),
+                                U256::from(nonce),
+                            )
+                            .await
+                            {
+                                error!("Error submitting proofs to aligned: {:?}", e);
+                            };
+                            info!(
+                                "{:?} Proofs to the Aligned Batcher on{:?}",
+                                burst_size, network
+                            );
+                        });
+                        std::thread::sleep(Duration::from_secs(burst_time as u64));
+                    }
                 }
             })
         })
