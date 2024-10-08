@@ -479,8 +479,9 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		o.handleVerificationResult(results, verificationResult, err, "SP1 proof verification")
 
 	case common.Risc0:
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
+		verificationResult, err := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
+		o.handleVerificationResult(results, verificationResult, err, "RiscZero proof verification")
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
