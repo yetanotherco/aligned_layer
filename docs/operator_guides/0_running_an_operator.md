@@ -1,9 +1,9 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.7.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.7.0)
+> Aligned Operator [v0.7.2](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.7.2)
 
-> **IMPORTANT:** 
+> **IMPORTANT:**
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
 
 ## Requirements
@@ -26,7 +26,7 @@ Minimum hardware requirements:
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.7.0
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.7.2
 cd aligned_layer
 ```
 
@@ -101,7 +101,6 @@ eth_rpc_url_fallback: "https://ethereum-holesky-rpc.publicnode.com"
 eth_ws_url: "wss://ethereum-holesky-rpc.publicnode.com"
 eth_ws_url_fallback: "wss://ethereum-holesky-rpc.publicnode.com"
 ```
-
 
 ## Step 4 - Deposit Strategy Tokens
 

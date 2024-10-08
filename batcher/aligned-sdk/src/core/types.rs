@@ -220,30 +220,34 @@ impl Eip712 for NoncedVerificationData {
     }
 
     fn struct_hash(&self) -> Result<[u8; 32], Self::Error> {
+        //EIP requires big endian for u256
+        let mut nonce_bytes = [0u8; 32];
+        self.nonce.to_big_endian(&mut nonce_bytes);
+
+        let mut max_fee_bytes = [0u8; 32];
+        self.max_fee.to_big_endian(&mut max_fee_bytes);
+
+        // This hashes the data of the task the user wants solved
+        // This is the data that is the leaf on the batch merkle tree
         let verification_data_hash =
             VerificationCommitmentBatch::hash_data(&self.verification_data.clone().into());
 
         let mut hasher = Keccak256::new();
 
+        // hashStruct(s : 𝕊) = keccak256(typeHash ‖ encodeData(s))
+
+        // We first generate the type hash
         hasher.update(NONCED_VERIFICATION_DATA_TYPE);
-        let nonced_verification_data_type_hash = hasher.finalize_reset();
+        let type_hash = hasher.finalize_reset();
 
-        let mut nonce_bytes = [0u8; 32];
-        self.nonce.to_big_endian(&mut nonce_bytes);
+        // Then we hash it with the rest of the data in the struct
+        hasher.update(type_hash);
+        hasher.update(verification_data_hash);
         hasher.update(nonce_bytes);
-        let nonce_hash = hasher.finalize_reset();
-
-        let mut max_fee_bytes = [0u8; 32];
-        self.max_fee.to_big_endian(&mut max_fee_bytes);
         hasher.update(max_fee_bytes);
-        let max_fee_hash = hasher.finalize_reset();
+        let hash_struct = hasher.finalize_reset();
 
-        hasher.update(nonced_verification_data_type_hash.as_slice());
-        hasher.update(verification_data_hash.as_slice());
-        hasher.update(nonce_hash.as_slice());
-        hasher.update(max_fee_hash.as_slice());
-
-        Ok(hasher.finalize().into())
+        Ok(hash_struct.into())
     }
 }
 
@@ -268,6 +272,7 @@ impl ClientMessage {
     /// The signature of the message is verified, and when it correct, the
     /// recovered address from the signature is returned.
     pub fn verify_signature(&self) -> Result<Address, VerifySignatureError> {
+        // Recovers the address from the signed data
         let recovered = self.signature.recover_typed_data(&self.verification_data)?;
 
         let hashed_data = self.verification_data.encode_eip712()?;
@@ -330,4 +335,52 @@ pub enum Chain {
     Devnet,
     Holesky,
     HoleskyStage,
+}
+
+#[cfg(test)]
+mod tests {
+    use ethers::signers::LocalWallet;
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn eip_712_recovers_same_address_as_signed() {
+        const ANVIL_PRIVATE_KEY: &str =
+            "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
+        let wallet = LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet");
+
+        let proof = [42, 42, 42, 42].to_vec();
+        let pub_input = Some([32, 32, 32, 32].to_vec());
+        let verification_key = Some([8, 8, 8, 8].to_vec());
+        let proving_system = ProvingSystemId::Groth16Bn254;
+
+        let verification_data = VerificationData {
+            proving_system,
+            proof,
+            pub_input,
+            verification_key,
+            vm_program_code: None,
+            proof_generator_addr: wallet.address(),
+        };
+
+        let nonced_verification_data = NoncedVerificationData::new(
+            verification_data,
+            1.into(),
+            2.into(),
+            3.into(),
+            wallet.address(),
+        );
+
+        let signed_data = wallet
+            .sign_typed_data(&nonced_verification_data)
+            .await
+            .unwrap();
+
+        let recovered_address = signed_data
+            .recover_typed_data(&nonced_verification_data)
+            .unwrap();
+
+        assert_eq!(recovered_address, wallet.address())
+    }
 }

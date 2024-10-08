@@ -17,7 +17,11 @@ contract AlignedLayerServiceManagerTest is BLSMockAVSDeployer {
     using stdStorage for StdStorage;
 
     event NewBatchV2(
-        bytes32 indexed batchMerkleRoot, address senderAddress, uint32 taskCreatedBlock, string batchDataPointer
+        bytes32 indexed batchMerkleRoot,
+        address senderAddress,
+        uint32 taskCreatedBlock,
+        string batchDataPointer,
+        uint256 maxFeeToRespond
     );
     event NewBatchV3(
         bytes32 indexed batchMerkleRoot,
