@@ -14,15 +14,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Build containers
-      run: sudo make docker_build
-
     - name: Start containers
       run: sudo make docker_up
 
-    - name: Logs
-      run: sleep 30 && sudo docker compose -f "docker-compose.yaml" logs
-
     - name: Stop containers
       if: always()
-      run: sudo docker compose -f "docker-compose.yaml" down
+      run: sudo make docker_down
