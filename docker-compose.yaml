@@ -8,7 +8,7 @@ services:
       - base
 
   anvil:
-    image: anvil
+    image: ghcr.io/lambdaclass/aligned_layer/anvil:latest
     build:
       context: .
       dockerfile: docker/anvil.Dockerfile
@@ -22,7 +22,7 @@ services:
       - base
 
   aggregator:
-    image: aggregator
+    image: ghcr.io/lambdaclass/aligned_layer/aggregator:v0.8.0
     build:
       context: .
       dockerfile: docker/aggregator.Dockerfile
@@ -30,7 +30,7 @@ services:
       - aggregator
 
   fund-operator:
-    image: foundry
+    image: ghcr.io/lambdaclass/aligned_layer/foundry:latest
     command: ["cast", "send", "--from", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "--value", "1ether", "--private-key", "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", "--rpc-url", "http://anvil:8545", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
     build:
       context: .
@@ -39,7 +39,7 @@ services:
       - excluded
 
   register-operator-eigenlayer:
-    image: eigenlayer-cli
+    image: ghcr.io/lambdaclass/aligned_layer/eigenlayer-cli:latest
     command: ["sh", "-c", "echo '' | eigenlayer operator register config-files/config-docker.yaml"]
     build:
       context: .
@@ -48,7 +48,7 @@ services:
       - excluded
 
   mint-mock-tokens:
-    image: foundry
+    image: ghcr.io/lambdaclass/aligned_layer/foundry:latest
     command: ["cast", "send", "09635f643e140090a9a8dcd712ed6285858cebef", "mint(address, uint256)", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "100000000000000000", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "--rpc-url", "http://anvil:8545"]
     build:
       context: .
@@ -57,7 +57,7 @@ services:
       - excluded
 
   operator-deposit-into-mock-strategy:
-    image: operator
+    image: ghcr.io/lambdaclass/aligned_layer/operator:v0.8.0
     command: ["aligned-layer-operator", "deposit-into-strategy", "--config", "./config-files/config-docker.yaml", "--strategy-address", "0xc5a5C42992dECbae36851359345FE25997F5C42d", "--amount", "100000000000000000"]
     build:
       context: .
@@ -66,7 +66,7 @@ services:
       - excluded
 
   operator-whitelist-devnet:
-    image: foundry
+    image: ghcr.io/lambdaclass/aligned_layer/foundry:latest
     command: ["cast", "send", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x851356ae760d987E095750cCeb3bC6014560891C", "add(address)", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "--rpc-url", "http://anvil:8545"]
     build:
       context: .
@@ -75,7 +75,7 @@ services:
       - excluded
 
   operator-register-with-aligned-layer:
-    image: operator
+    image: ghcr.io/lambdaclass/aligned_layer/operator:v0.8.0
     command: ["aligned-layer-operator", "register", "--config", "./config-files/config-docker.yaml"]
     build:
       context: .
@@ -84,7 +84,7 @@ services:
       - excluded
 
   operator:
-    image: operator
+    image: ghcr.io/lambdaclass/aligned_layer/operator:v0.8.0
     command: ["aligned-layer-operator", "start", "--config", "./config-files/config-docker.yaml"]
     build:
       context: .
@@ -93,7 +93,7 @@ services:
       - operator
 
   user-fund-payment-service-devnet:
-    image: foundry
+    image: ghcr.io/lambdaclass/aligned_layer/foundry:latest
     command: ["cast", "send", "--from", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "--value", "100ether", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "--rpc-url", "http://anvil:8545", "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0"]
     build:
       context: .
@@ -102,7 +102,7 @@ services:
       - excluded
 
   batcher:
-    image: batcher
+    image: ghcr.io/lambdaclass/aligned_layer/batcher:v0.8.0
     environment:
       AWS_SECRET_ACCESS_KEY: test
       AWS_REGION: us-east-2
@@ -119,7 +119,7 @@ services:
       - batcher
 
   aligned_base:
-    image: aligned_base
+    image: ghcr.io/lambdaclass/aligned_layer/aligned_base:v0.8.0
     build:
       context: .
       dockerfile: docker/aligned_base.Dockerfile
@@ -127,7 +127,7 @@ services:
       - aligned_base
 
   foundry:
-    image: foundry
+    image: ghcr.io/lambdaclass/aligned_layer/foundry:latest
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
@@ -135,7 +135,7 @@ services:
       - foundry
 
   eigenlayer-cli:
-    image: eigenlayer-cli
+    image: ghcr.io/lambdaclass/aligned_layer/eigenlayer-cli:latest
     build:
       context: .
       dockerfile: docker/eigenlayer-cli.Dockerfile
