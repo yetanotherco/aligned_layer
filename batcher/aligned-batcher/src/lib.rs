@@ -18,8 +18,9 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{
-    ClientMessage, NoncedVerificationData, ResponseMessage, ValidityResponseMessage,
-    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+    ClientMessage, NoncedVerificationData, ProofInvalidReason, ResponseMessage,
+    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{
@@ -357,7 +358,6 @@ impl Batcher {
         let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
         if msg_payment_service_addr != self.payment_service.address() {
             warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
-
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidPaymentServiceAddress(
@@ -391,21 +391,33 @@ impl Batcher {
 
         let nonced_verification_data = client_msg.verification_data.clone();
 
-        let blacklisted_verifiers = self.blacklisted_verifiers().await;
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
-            match zk_utils::verify(
-                &nonced_verification_data.verification_data,
-                blacklisted_verifiers,
-            )
-            .await
+            let blacklisted_verifiers = self.blacklisted_verifiers().await;
+            let verification_data = nonced_verification_data.verification_data.clone();
+            if blacklisted_verifiers & (U256::one() << verification_data.proving_system as u64)
+                != U256::zero()
             {
-                ValidityResponseMessage::Valid => (),
-                response => {
-                    error!("Invalid proof detected. Verification failed: {}", response);
-                    send_message(ws_conn_sink.clone(), response).await;
-                    return Ok(());
-                }
+                warn!(
+                    "Verifier for proving system {} is blacklisted, skipping verification",
+                    verification_data.proving_system
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::BlacklistedVerifier),
+                )
+                .await;
+                return Ok(());
+            }
+
+            if !zk_utils::verify(&verification_data).await {
+                error!("Invalid proof detected. Verification failed");
+                send_message(
+                    ws_conn_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
+                )
+                .await;
+                return Ok(());
             }
         }
 

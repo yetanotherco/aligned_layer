@@ -26,7 +26,7 @@ use super::errors::VerifySignatureError;
 const NONCED_VERIFICATION_DATA_TYPE: &[u8] =
     b"NoncedVerificationData(bytes32 verification_data_hash,uint256 nonce,uint256 max_fee)";
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq, Copy)]
 #[repr(u8)]
 pub enum ProvingSystemId {
     GnarkPlonkBls12_381,
@@ -347,8 +347,7 @@ pub enum ValidityResponseMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProofInvalidReason {
-    Unknown,
-    MissingVerificationData,
+    RejectedProof,
     VerifierNotSupported,
     BlacklistedVerifier,
 }
@@ -387,10 +386,9 @@ impl Display for ValidityResponseMessage {
 impl Display for ProofInvalidReason {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ProofInvalidReason::Unknown => write!(f, "Unknown"),
-            ProofInvalidReason::MissingVerificationData => write!(f, "Missing verification data"),
             ProofInvalidReason::VerifierNotSupported => write!(f, "Verifier not supported"),
             ProofInvalidReason::BlacklistedVerifier => write!(f, "Blacklisted verifier"),
+            ProofInvalidReason::RejectedProof => write!(f, "Proof did not verify"),
         }
     }
 }

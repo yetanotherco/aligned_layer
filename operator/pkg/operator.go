@@ -443,10 +443,10 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	return nil
 }
 
-func (o *Operator) IsVerifierValid(blacklisted_verifiers_bitmap *big.Int, verifierId common.ProvingSystemId) bool {
+func (o *Operator) IsVerifierBlacklisted(blacklistedVerifiersBitmap *big.Int, verifierId common.ProvingSystemId) bool {
 	verifierIdInt := uint8(verifierId)
-	bit := blacklisted_verifiers_bitmap.Uint64() & (1 << verifierIdInt)
-	return bit == 0
+	bit := blacklistedVerifiersBitmap.Uint64() & (1 << verifierIdInt)
+	return bit != 0
 }
 
 func (o *Operator) afterHandlingBatchV2(log *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, succeeded bool) {
@@ -462,14 +462,14 @@ func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayer
 }
 
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
-	blacklisted_verifiers_bitmap, err := o.avsReader.BlacklistedVerifiers()
+	blacklistedVerifiersBitmap, err := o.avsReader.BlacklistedVerifiers()
 	if err != nil {
 		o.Logger.Errorf("Could not check verifier status: %s", err)
 		results <- false
 		return
 	}
-	is_verifier_valid := o.IsVerifierValid(blacklisted_verifiers_bitmap, verificationData.ProvingSystemId)
-	if !is_verifier_valid {
+	isVerifierValid := o.IsVerifierBlacklisted(blacklistedVerifiersBitmap, verificationData.ProvingSystemId)
+	if isVerifierValid {
 		o.Logger.Infof("Verifier %s is not available", verificationData.ProvingSystemId.String())
 		results <- false
 		return
