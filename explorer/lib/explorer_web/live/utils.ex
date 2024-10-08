@@ -132,7 +132,7 @@ end
 # Backend utils
 defmodule Utils do
   require Logger
-  @max_batch_size String.to_integer(System.get_env("POOL_SIZE") || "268435456")
+  @max_batch_size String.to_integer(System.get_env("MAX_BATCH_SIZE") || "268435456")
 
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
