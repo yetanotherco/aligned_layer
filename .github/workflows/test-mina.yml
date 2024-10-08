@@ -7,7 +7,8 @@ on:
   pull_request:
     branches: ["*"]
     paths:
-      - 'operator/sp1/**'
+      - 'operator/mina/**'
+      - 'operator/mina_account/**'
       - '.github/workflows/test-mina.yml'
 
 jobs:
