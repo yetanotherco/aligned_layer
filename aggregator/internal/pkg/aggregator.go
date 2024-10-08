@@ -68,6 +68,7 @@ type Aggregator struct {
 
 	// Stores if a batch has been finalized, either by response or failure to respond
 	batchIsFinalizedByIdx map[uint32]struct{} // Id in the key list means it is finalized, using empty struct to save memory
+	batchIsFinalizedChan chan uint32
 
 	// This task index is to communicate with the local BLS
 	// Service.
@@ -109,6 +110,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	batchDataByIdentifierHash := make(map[[32]byte]BatchData)
 	batchCreatedBlockByIdx := make(map[uint32]uint64)
 	batchIsFinalizedByIdx := make(map[uint32]struct{})
+	batchIsFinalizedChan := make(chan uint32)
 
 	chainioConfig := sdkclients.BuildAllConfig{
 		EthHttpUrl:                 aggregatorConfig.BaseConfig.EthRpcUrl,
@@ -165,6 +167,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		batchDataByIdentifierHash:  batchDataByIdentifierHash,
 		batchCreatedBlockByIdx:     batchCreatedBlockByIdx,
 		batchIsFinalizedByIdx:      batchIsFinalizedByIdx,
+		batchIsFinalizedChan:       batchIsFinalizedChan,
 		nextBatchIndex:             nextBatchIndex,
 		taskMutex:                  &sync.Mutex{},
 		walletMutex:                &sync.Mutex{},
@@ -175,7 +178,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		metrics:               aggregatorMetrics,
 	}
 
-	go aggregator.clearTasksFromMaps(garbageCollectorSleep)
+	go aggregator.clearTasksFromMaps(garbageCollectorPeriod)
 
 	return &aggregator, nil
 }
@@ -208,13 +211,16 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 				"taskIndex", blsAggServiceResp.TaskIndex)
 
 			go agg.handleBlsAggServiceResponse(blsAggServiceResp)
+		case taskIdx := <-agg.batchIsFinalizedChan:
+			agg.logger.Info("Batch is finalized", "taskIndex", taskIdx)
+			agg.finalizeBatchIdx(taskIdx)
 		}
 	}
 }
 
 const MaxSentTxRetries = 5
 
-const garbageCollectorSleep = 60 * time.Second
+const garbageCollectorPeriod = 60 * time.Second
 
 const BLS_AGG_SERVICE_TIMEOUT = 100 * time.Second
 
@@ -223,7 +229,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		agg.taskMutex.Lock()
 		batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
 		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
-		// TODO here add to garbage collector
+		// Task errored, mark as finalized
+		agg.batchIsFinalizedChan <- blsAggServiceResp.TaskIndex
 
 		agg.taskMutex.Unlock()
 		return
@@ -279,7 +286,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 			// Mark the batch as finalized
-			agg.finalizeBatchIdx(blsAggServiceResp.TaskIndex)
+			agg.batchIsFinalizedChan <- blsAggServiceResp.TaskIndex
+
 
 			return
 		}
@@ -296,7 +304,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 
 	// Aggregator failed to respond to the task, mark the batch as finalized
-	agg.finalizeBatchIdx(blsAggServiceResp.TaskIndex)
+	agg.batchIsFinalizedChan <- blsAggServiceResp.TaskIndex
 }
 
 // / Sends response to contract and waits for transaction receipt
@@ -387,25 +395,25 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 }
 
-// TODO missing calling this when task expires
-func (agg *Aggregator) clearTasksFromMaps(sleep_seconds time.Duration) {
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Removing deprecated Task Infos from Maps every %d seconds", sleep_seconds)
+// long-lived gorouting that periodically checks and removes finished Tasks from stored Maps
+func (agg *Aggregator) clearTasksFromMaps(period time.Duration) {
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Removing finalized Task Infos from Maps every %d seconds", period)
 
 	for {
-		time.Sleep(sleep_seconds)
+		time.Sleep(period)
 
-		agg.AggregatorConfig.BaseConfig.Logger.Info("Garbage collecting")
+		agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning finalized tasks from maps")
 
 		// Reading batchIsFinalizedByIdx map without using a lock because worst case scenario is we miss a newly inserted value
 		// in which case, the value will be catched in the next iteration
 
 		for idx := range agg.batchIsFinalizedByIdx {
-			agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
 			agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning up finalized task", "taskIndex", idx)
 
 			// Critical section inside anonymous function to ensure defer works
 			func() {
 				agg.taskMutex.Lock()
+				agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Removing Task Info from Aggregator")
 
 				defer func() {
 					agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Removed Task Info from Aggregator")
@@ -426,9 +434,7 @@ func (agg *Aggregator) clearTasksFromMaps(sleep_seconds time.Duration) {
 	}
 }
 
-//TODO consider using a channel
+// called in the chan so no need for a mutex
 func (agg *Aggregator) finalizeBatchIdx(idx uint32) {
-	agg.taskMutex.Lock()
 	agg.batchIsFinalizedByIdx[idx] = struct{}{} //now the key is present, no need to waste memory on a value
-	agg.taskMutex.Unlock()
 }
