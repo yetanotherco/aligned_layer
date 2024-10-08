@@ -264,6 +264,16 @@ batcher_send_risc0_task:
 		--rpc_url $(RPC_URL) \
 		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
+batcher_send_risc0_task_no_pub_input:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
