@@ -1,4 +1,5 @@
 use futures_util::join;
+use k256::ecdsa::SigningKey;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::path::PathBuf;
@@ -113,19 +114,15 @@ async fn main() -> Result<(), AlignedError> {
     let args = Args::parse();
 
     let max_fee = U256::from_dec_str(&args.max_fee).map_err(|_| SubmitError::InvalidMaxFee)?;
-
     let burst_size = args.burst_size;
-
     let burst_time = args.burst_time;
 
     let keystore_path = &args.keystore_path;
     let private_key = &args.private_key;
-
     if keystore_path.is_some() && private_key.is_some() {
         warn!("Can't have a keystore path and a private key as input. Please use only one");
         return Ok(());
     }
-
     let mut wallet = if let Some(keystore_path) = keystore_path {
         let password = rpassword::prompt_password("Please enter your keystore password:")
             .map_err(|e| SubmitError::GenericError(e.to_string()))?;
@@ -148,7 +145,6 @@ async fn main() -> Result<(), AlignedError> {
             }
         }
     };
-
     let chain_id = get_chain_id(&args.eth_rpc_url).await.map_err(|e| {
                     SubmitError::GenericError(format!(
                         "Failed to retrieve chain id, verify `eth_rpc_url` is correct or local testnet is running on \"http://localhost:8545\": {}", e
@@ -166,55 +162,15 @@ async fn main() -> Result<(), AlignedError> {
     // Generate 50 groth16 data in parallel.
     // TODO(pat): persist between runs.
     // TODO(pat): add go bindings so proof info is generate and stored them directly in memory.
-    let threads: Vec<_> = if burst_size == 0 {
+    let cached_verification_data = if burst_size == 0 {
         vec![]
     } else {
-        (0..50)
-            .map(|_| {
-                let base_dir = base_dir.clone();
-                let count = count.clone();
-                thread::spawn(move || {
-                    let count = count.fetch_add(1, Ordering::Relaxed);
-                    Command::new("go")
-                        .arg("run")
-                        .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
-                        .arg(format!("{:?}", count))
-                        .status()
-                        .unwrap();
-
-                    let proof_path = base_dir.join(format!(
-                        "{}/ineq_{}_groth16.proof",
-                        GROTH_16_PROOF_DIR, count
-                    ));
-                    let public_input_path =
-                        base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count));
-                    let vk_path =
-                        base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count));
-
-                    let proof = std::fs::read(&proof_path)
-                        .map_err(|e| SubmitError::IoError(proof_path, e))
-                        .unwrap();
-                    let public_input = std::fs::read(&public_input_path)
-                        .map_err(|e| SubmitError::IoError(public_input_path, e))
-                        .unwrap();
-                    let vk = std::fs::read(&vk_path)
-                        .map_err(|e| SubmitError::IoError(vk_path, e))
-                        .unwrap();
-                    VerificationData {
-                        proving_system: ProvingSystemId::Groth16Bn254,
-                        proof,
-                        pub_input: Some(public_input),
-                        verification_key: Some(vk),
-                        vm_program_code: None,
-                        proof_generator_addr,
-                    }
-                })
-            })
-            .collect()
+        generate_proofs_and_get_verification_data(
+            count.clone(),
+            base_dir.clone(),
+            proof_generator_addr.clone(),
+        )
     };
-
-    let cached_verification_data: Vec<VerificationData> =
-        threads.into_iter().map(|t| t.join().unwrap()).collect();
 
     // We operate over a local network each thread sources its nonce by incrementing the global network nonce.
     // When multiple senders are spawned we just increment the atomic to grab the nonce.
@@ -232,59 +188,21 @@ async fn main() -> Result<(), AlignedError> {
 
             let handle = tokio::spawn(async move {
                 info!("Task Sender Started {}", sender_id);
-                info!("Burst size {}", burst_size);
 
                 if burst_size == 0 {
-                    info!("Going to only open a connection");
-                    let ws_url = batcher_url.clone();
-                    let conn = connect_async(ws_url).await;
-                    if let Ok((mut ws_stream, _)) = conn {
-                        while let Some(msg) = ws_stream.next().await {
-                            match msg {
-                                Ok(message) => info!("Received message: {:?}", message),
-                                Err(e) => {
-                                    info!("WebSocket error: {}", e);
-                                    break;
-                                }
-                            }
-                        }
-                    } else {
-                        error!("Could not connect to socket, err {:?}", conn.err());
-                    }
+                    infinitely_hang_connection(batcher_url.clone()).await;
                 } else {
-                    loop {
-                        let max_fees = vec![max_fee; args.burst_size];
-                        //TODO(pat): not sure how slow this is... open to faster alternatives
-                        let verification_data: Vec<_> = cached_verification_data
-                            .choose_multiple(&mut thread_rng(), burst_size)
-                            .cloned()
-                            .collect();
-                        info!(
-                            "Sending {:?} Proofs to Aligned Batcher on {:?}",
-                            burst_size, network
-                        );
-                        let nonce = nonce.fetch_add(burst_size as u64, Ordering::Relaxed);
-                        let batcher_url = batcher_url.clone();
-                        let wallet = wallet.clone();
-
-                        if let Err(e) = submit_multiple(
-                            &batcher_url.clone(),
-                            network,
-                            &verification_data.clone(),
-                            &max_fees,
-                            wallet.clone(),
-                            U256::from(nonce),
-                        )
-                        .await
-                        {
-                            error!("Error submitting proofs to aligned: {:?}", e);
-                        };
-                        info!(
-                            "{:?} Proofs to the Aligned Batcher on{:?}",
-                            burst_size, network
-                        );
-                        tokio::time::sleep((Duration::from_secs(burst_time as u64))).await;
-                    }
+                    infinitely_send_proofs_from(
+                        cached_verification_data,
+                        wallet.clone(),
+                        nonce.clone(),
+                        network.clone(),
+                        batcher_url.clone(),
+                        burst_size.clone(),
+                        burst_time.clone() as u64,
+                        max_fee.clone(),
+                    )
+                    .await;
                 }
             });
             handle
@@ -292,7 +210,7 @@ async fn main() -> Result<(), AlignedError> {
         .collect();
 
     for t in tasks {
-        join!(t);
+        let _ = join!(t);
     }
 
     //Clean infinite_proofs directory on exit
@@ -300,4 +218,117 @@ async fn main() -> Result<(), AlignedError> {
         error!("Failed to remove {}: {}", GROTH_16_PROOF_DIR, e);
     }
     Ok(())
+}
+
+fn generate_proofs_and_get_verification_data(
+    count: Arc<AtomicU64>,
+    base_dir: PathBuf,
+    proof_generator_addr: Address,
+) -> Vec<VerificationData> {
+    let threads: Vec<thread::JoinHandle<VerificationData>> = (0..50)
+        .map(|_| {
+            let count = count.clone();
+            let base_dir = base_dir.clone();
+            thread::spawn(move || {
+                let count = count.fetch_add(1, Ordering::Relaxed);
+                Command::new("go")
+                    .arg("run")
+                    .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
+                    .arg(format!("{:?}", count))
+                    .status()
+                    .unwrap();
+
+                let proof_path = base_dir.join(format!(
+                    "{}/ineq_{}_groth16.proof",
+                    GROTH_16_PROOF_DIR, count
+                ));
+                let public_input_path =
+                    base_dir.join(format!("{}/ineq_{}_groth16.pub", GROTH_16_PROOF_DIR, count));
+                let vk_path =
+                    base_dir.join(format!("{}/ineq_{}_groth16.vk", GROTH_16_PROOF_DIR, count));
+
+                let proof = std::fs::read(&proof_path)
+                    .map_err(|e| SubmitError::IoError(proof_path, e))
+                    .unwrap();
+                let public_input = std::fs::read(&public_input_path)
+                    .map_err(|e| SubmitError::IoError(public_input_path, e))
+                    .unwrap();
+                let vk = std::fs::read(&vk_path)
+                    .map_err(|e| SubmitError::IoError(vk_path, e))
+                    .unwrap();
+                VerificationData {
+                    proving_system: ProvingSystemId::Groth16Bn254,
+                    proof,
+                    pub_input: Some(public_input),
+                    verification_key: Some(vk),
+                    vm_program_code: None,
+                    proof_generator_addr,
+                }
+            })
+        })
+        .collect();
+
+    threads.into_iter().map(|t| t.join().unwrap()).collect()
+}
+
+async fn infinitely_send_proofs_from(
+    verification_data: Vec<VerificationData>,
+    wallet: Wallet<SigningKey>,
+    nonce: Arc<AtomicU64>,
+    network: Network,
+    batcher_url: String,
+    burst_size: usize,
+    burst_time: u64,
+    max_fee: U256,
+) {
+    loop {
+        let max_fees = vec![max_fee; burst_size];
+        let verification_data: Vec<_> = verification_data
+            .choose_multiple(&mut thread_rng(), burst_size)
+            .cloned()
+            .collect();
+        info!(
+            "Sending {:?} Proofs to Aligned Batcher on {:?}",
+            burst_size, network
+        );
+        let nonce = nonce.fetch_add(burst_size as u64, Ordering::Relaxed);
+        let batcher_url = batcher_url.clone();
+
+        if let Err(e) = submit_multiple(
+            &batcher_url.clone(),
+            network,
+            &verification_data.clone(),
+            &max_fees,
+            wallet.clone(),
+            U256::from(nonce),
+        )
+        .await
+        {
+            error!("Error submitting proofs to aligned: {:?}", e);
+        };
+        info!(
+            "{:?} Proofs to the Aligned Batcher on{:?}",
+            burst_size, network
+        );
+        tokio::time::sleep(Duration::from_secs(burst_time)).await;
+    }
+}
+
+async fn infinitely_hang_connection(batcher_url: String) {
+    info!("Going to only open a connection");
+    let ws_url = batcher_url.clone();
+    let conn = connect_async(ws_url).await;
+    if let Ok((mut ws_stream, _)) = conn {
+        while let Some(msg) = ws_stream.next().await {
+            match msg {
+                Ok(message) => info!("Received message: {:?}", message),
+                Err(e) => {
+                    info!("WebSocket error: {}", e);
+                    break;
+                }
+            }
+        }
+    } else {
+        error!("Could not connect to socket, err {:?}", conn.err());
+    }
 }
