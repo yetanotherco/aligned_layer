@@ -393,18 +393,18 @@ impl Batcher {
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
-            let blacklisted_verifiers = self.blacklisted_verifiers().await;
+            let disabled_verifiers = self.disabled_verifiers().await;
             let verification_data = nonced_verification_data.verification_data.clone();
-            if blacklisted_verifiers & (U256::one() << verification_data.proving_system as u64)
+            if disabled_verifiers & (U256::one() << verification_data.proving_system as u64)
                 != U256::zero()
             {
                 warn!(
-                    "Verifier for proving system {} is blacklisted, skipping verification",
+                    "Verifier for proving system {} is disabled, skipping verification",
                     verification_data.proving_system
                 );
                 send_message(
                     ws_conn_sink.clone(),
-                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::BlacklistedVerifier),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier),
                 )
                 .await;
                 return Ok(());
@@ -685,9 +685,9 @@ impl Batcher {
         };
     }
 
-    async fn blacklisted_verifiers(&self) -> U256 {
+    async fn disabled_verifiers(&self) -> U256 {
         self.service_manager
-            .blacklisted_verifiers()
+            .disabled_verifiers()
             .call()
             .await
             .unwrap_or_default()

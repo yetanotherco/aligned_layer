@@ -70,8 +70,8 @@ func (r *AvsReader) IsOperatorRegistered(address ethcommon.Address) (bool, error
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
 }
 
-func (r *AvsReader) BlacklistedVerifiers() (*big.Int, error) {
-	return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BlacklistedVerifiers(&bind.CallOpts{})
+func (r *AvsReader) DisabledVerifiers() (*big.Int, error) {
+	return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.DisabledVerifiers(&bind.CallOpts{})
 }
 
 // Returns all the "NewBatchV3" logs that have not been responded starting from the given block number

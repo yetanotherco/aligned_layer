@@ -207,29 +207,29 @@ contract AlignedLayerServiceManager is
         payable(alignedAggregator).transfer(txCost);
     }
 
-    function isVerifierBlacklisted(
+    function isVerifierDisabled(
         uint8 verifierIdx
     ) external view returns (bool) {
-        uint256 bit = blacklistedVerifiers & (1 << verifierIdx);
+        uint256 bit = disabledVerifiers & (1 << verifierIdx);
         return bit > 0;
     }
 
-    function blacklistVerifier(
+    function disableVerifier(
         uint8 verifierIdx
     ) external onlyOwner {
-        blacklistedVerifiers |= (1 << verifierIdx);
-        emit VerifierBlacklisted(verifierIdx);
+        disabledVerifiers |= (1 << verifierIdx);
+        emit VerifierDisabled(verifierIdx);
     }
 
-    function whitelistVerifier(
+    function enableVerifier(
         uint8 verifierIdx
     ) external onlyOwner {
-        blacklistedVerifiers &= ~(1 << verifierIdx);
-        emit VerifierWhitelisted(verifierIdx);
+        disabledVerifiers &= ~(1 << verifierIdx);
+        emit VerifierEnabled(verifierIdx);
     }
 
-    function setVerifiersBlacklist(uint256 bitmap) external onlyOwner {
-        blacklistedVerifiers = bitmap;
+    function setDisabledVerifiers(uint256 bitmap) external onlyOwner {
+        disabledVerifiers = bitmap;
     }
 
     function verifyBatchInclusion(

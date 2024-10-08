@@ -10,7 +10,7 @@ cd ../
 
 # Check if the number of arguments is correct
 if [ "$#" -ne 1 ]; then
-    echo "Usage: blacklist_verifier.sh <VERIFIER_ID>"
+    echo "Usage: enable_verifier.sh <VERIFIER_ID>"
     exit 1
 fi
 
@@ -19,7 +19,7 @@ VERIFIER_ID=$1
 # Read the service manager address from the JSON file
 SERVICE_MANAGER=$(jq -r '.addresses.alignedLayerServiceManager' "$OUTPUT_PATH")
 
-# Check if the servide manager address is empty
+# Check if the service manager address is empty
 if [ -z "$SERVICE_MANAGER" ]; then
     echo "Service manager address is empty"
     exit 1
@@ -37,9 +37,9 @@ if [ -z "$PRIVATE_KEY" ]; then
     exit 1
 fi
 
-# Call the blacklistVerifier function on the contract
+# Call the enableVerifier function on the contract
 cast send \
     --private-key=$PRIVATE_KEY \
     --rpc-url=$RPC_URL \
-    $SERVICE_MANAGER "blacklistVerifier(uint8)" \
+    $SERVICE_MANAGER "enableVerifier(uint8)" \
     $VERIFIER_ID

@@ -100,60 +100,60 @@ contract AlignedLayerServiceManagerTest is Test, BLSMockAVSDeployer {
         assertEq(_maxFeeToRespond, maxFeeToRespond);
     }
 
-    /* =============== Blacklist tests =============== */
+    /* =============== Disabled verifiers tests =============== */
 
     function test_SetVerifiersList_WorksAsExpected() public {
         vm.prank(address(0));
         uint256 newBitmap = 1234;
-        alignedLayerServiceManager.setVerifiersBlacklist(newBitmap);
-        uint256 actualBitmap = alignedLayerServiceManager.blacklistedVerifiers();
+        alignedLayerServiceManager.setDisabledVerifiers(newBitmap);
+        uint256 actualBitmap = alignedLayerServiceManager.disabledVerifiers();
 
         assertEq(newBitmap, actualBitmap);
     }
 
-    function test_BlacklistAndWhitelistVerifier_WorksAsExpected() public {
+    function test_DisabledAndEnableVerifier_WorksAsExpected() public {
         uint8 verifierIdx = 28;
 
         // make sure it is false by default
-        bool res = alignedLayerServiceManager.isVerifierBlacklisted(
+        bool res = alignedLayerServiceManager.isVerifierDisabled(
             verifierIdx
         );
         assertEq(res, false);
 
         vm.expectEmit(true, true, true, true);
-        emit IAlignedLayerServiceManager.VerifierBlacklisted(verifierIdx);
-        // blacklist the verifier and check that it has been actually blacklisted
+        emit IAlignedLayerServiceManager.VerifierDisabled(verifierIdx);
+        // disable the verifier and check that it has been actually disable
         vm.prank(address(0));
-        alignedLayerServiceManager.blacklistVerifier(verifierIdx);
-        res = alignedLayerServiceManager.isVerifierBlacklisted(verifierIdx);
+        alignedLayerServiceManager.disableVerifier(verifierIdx);
+        res = alignedLayerServiceManager.isVerifierDisabled(verifierIdx);
         assertEq(res, true);
 
-        // now whitelist the verifier again and make sure is not blacklisted anymore
+        // now whitelist the verifier again and make sure is not disabled anymore
         vm.expectEmit(true, true, true, true);
-        emit IAlignedLayerServiceManager.VerifierWhitelisted(verifierIdx);
+        emit IAlignedLayerServiceManager.VerifierEnabled(verifierIdx);
         vm.prank(address(0));
-        alignedLayerServiceManager.whitelistVerifier(verifierIdx);
-        res = alignedLayerServiceManager.isVerifierBlacklisted(verifierIdx);
+        alignedLayerServiceManager.enableVerifier(verifierIdx);
+        res = alignedLayerServiceManager.isVerifierDisabled(verifierIdx);
         assertEq(res, false);
     }
 
     // here we test the filures
 
     // test ownership
-    function test_SetVerifiersBlacklist_FailsWhenNotOwner() public {
+    function test_SetVerifiersDisabled_FailsWhenNotOwner() public {
         vm.expectRevert("Ownable: caller is not the owner");
-        alignedLayerServiceManager.setVerifiersBlacklist(213);
+        alignedLayerServiceManager.setDisabledVerifiers(213);
     }
 
-    function test_BlacklistVerifier_FailsWhenNotOwner() public {
+    function test_DisableVerifier_FailsWhenNotOwner() public {
         uint8 newBitmap = 10;
         vm.expectRevert("Ownable: caller is not the owner");
-        alignedLayerServiceManager.blacklistVerifier(newBitmap);
+        alignedLayerServiceManager.disableVerifier(newBitmap);
     }
 
-    function test_WhitelistVerifier_FailsWhenNotOwner() public {
+    function test_EnabledVerifier_FailsWhenNotOwner() public {
         uint8 newBitmap = 10;
         vm.expectRevert("Ownable: caller is not the owner");
-        alignedLayerServiceManager.whitelistVerifier(newBitmap);
+        alignedLayerServiceManager.enableVerifier(newBitmap);
     }
 }

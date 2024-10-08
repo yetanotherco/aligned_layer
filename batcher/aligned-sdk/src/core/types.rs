@@ -349,7 +349,7 @@ pub enum ValidityResponseMessage {
 pub enum ProofInvalidReason {
     RejectedProof,
     VerifierNotSupported,
-    BlacklistedVerifier,
+    DisabledVerifier,
 }
 
 impl Display for ValidityResponseMessage {
@@ -387,7 +387,7 @@ impl Display for ProofInvalidReason {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ProofInvalidReason::VerifierNotSupported => write!(f, "Verifier not supported"),
-            ProofInvalidReason::BlacklistedVerifier => write!(f, "Blacklisted verifier"),
+            ProofInvalidReason::DisabledVerifier => write!(f, "Disabled verifier"),
             ProofInvalidReason::RejectedProof => write!(f, "Proof did not verify"),
         }
     }

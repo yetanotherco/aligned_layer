@@ -443,9 +443,9 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	return nil
 }
 
-func (o *Operator) IsVerifierBlacklisted(blacklistedVerifiersBitmap *big.Int, verifierId common.ProvingSystemId) bool {
+func (o *Operator) IsVerifierDisabled(disabledVerifiersBitmap *big.Int, verifierId common.ProvingSystemId) bool {
 	verifierIdInt := uint8(verifierId)
-	bit := blacklistedVerifiersBitmap.Uint64() & (1 << verifierIdInt)
+	bit := disabledVerifiersBitmap.Uint64() & (1 << verifierIdInt)
 	return bit != 0
 }
 
@@ -462,15 +462,15 @@ func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayer
 }
 
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
-	blacklistedVerifiersBitmap, err := o.avsReader.BlacklistedVerifiers()
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
 	if err != nil {
 		o.Logger.Errorf("Could not check verifier status: %s", err)
 		results <- false
 		return
 	}
-	isVerifierBlacklisted := o.IsVerifierBlacklisted(blacklistedVerifiersBitmap, verificationData.ProvingSystemId)
-	if isVerifierBlacklisted {
-		o.Logger.Infof("Verifier %s is blacklisted. Skipping verifie", verificationData.ProvingSystemId.String())
+	IsVerifierDisabled := o.IsVerifierDisabled(disabledVerifiersBitmap, verificationData.ProvingSystemId)
+	if IsVerifierDisabled {
+		o.Logger.Infof("Verifier %s is disbled. Skipping verifie", verificationData.ProvingSystemId.String())
 		results <- false
 		return
 	}
