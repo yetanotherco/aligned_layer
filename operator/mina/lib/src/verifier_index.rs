@@ -277,10 +277,10 @@ pub fn zk_polynomial(domain: Radix2EvaluationDomain<Fq>) -> DensePolynomial<Fq> 
 
 #[cfg(test)]
 mod test {
-    use super::deserialize_blockchain_vk;
+    use super::{deserialize_blockchain_vk, MinaChain};
 
     #[test]
     fn deserialize_blockchain_vk_does_not_fail() {
-        deserialize_blockchain_vk().unwrap();
+        deserialize_blockchain_vk(MinaChain::Devnet).unwrap();
     }
 }
