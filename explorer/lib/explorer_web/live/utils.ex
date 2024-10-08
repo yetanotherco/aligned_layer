@@ -1,7 +1,5 @@
 # Frontend Utils
 defmodule ExplorerWeb.Helpers do
-  @request_timeout 10_000
-
   def shorten_hash(hash, decimals \\ 6) do
     case String.length(hash) do
       n when n < decimals -> hash
@@ -134,6 +132,8 @@ end
 # Backend utils
 defmodule Utils do
   require Logger
+  # 256 KB
+  @max_body_size 256 * 1024
 
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
@@ -170,21 +170,40 @@ defmodule Utils do
   end
 
   def calculate_proof_hashes({:ok, deserialized_batch}) do
-    proof_hashes =
-      deserialized_batch
-      |> Enum.map(fn s3_object ->
-        :crypto.hash(:sha3_256, s3_object["proof"])
-      end)
-
-    {:ok, proof_hashes}
+    deserialized_batch
+    |> Enum.map(fn s3_object ->
+      :crypto.hash(:sha3_256, s3_object["proof"])
+    end)
   end
 
-  def calculate_proof_hashes(error), do: error
+  def calculate_proof_hashes({:error, reason}) do
+    Logger.error("Error calculating proof hashes: #{inspect(reason)}")
+    []
+  end
+
+  defp stream_handler({:headers, _headers}, acc), do: {:cont, acc}
+  defp stream_handler({:status, 200}, acc), do: {:cont, acc}
+
+  defp stream_handler({:status, status_code}, _acc),
+    do: {:halt, {:error, {:http_error, status_code}}}
+
+  defp stream_handler({:data, chunk}, {_acc_body, size})
+       when size + byte_size(chunk) > @max_body_size do
+    {:halt, {:error, :body_too_large}}
+  end
+
+  defp stream_handler({:data, chunk}, {acc_body, size}) do
+    new_size = size + byte_size(chunk)
+    {:cont, {acc_body <> chunk, new_size}}
+  end
 
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer)
-         |> Finch.request(Explorer.Finch, request_timeout: @request_timeout) do
-      {:ok, %Finch.Response{status: 200, body: body}} ->
+         |> Finch.stream_while(Explorer.Finch, {"", 0}, &stream_handler(&1, &2)) do
+      {:ok, {:error, :body_too_large}} ->
+        {:error, {:http_error, :body_too_large}}
+
+      {:ok, {body, _size}} ->
         cond do
           is_json?(body) ->
             case Jason.decode(body) do
@@ -208,9 +227,6 @@ defmodule Utils do
             Logger.error("Unknown S3 object format")
             {:error, :unknown_format}
         end
-
-      {:ok, %Finch.Response{status: status_code}} ->
-        {:error, {:http_error, status_code}}
 
       {:error, reason} ->
         {:error, {:http_error, reason}}
@@ -243,7 +259,7 @@ defmodule Utils do
   def extract_info_from_data_pointer(%BatchDB{} = batch) do
     Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
     # only get from s3 if not already in DB
-    result =
+    proof_hashes =
       case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
         nil ->
           Logger.debug("Fetching from S3")
@@ -255,17 +271,12 @@ defmodule Utils do
         proof_hashes ->
           # already processed and stored the S3 data
           Logger.debug("Fetching from DB")
-          {:ok, proof_hashes}
+          proof_hashes
       end
 
-    with {:ok, proof_hashes} <- result do
-      batch_info =
-        batch
-        |> Map.put(:proof_hashes, proof_hashes)
-        |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
-
-      {:ok, batch_info}
-    end
+    batch
+    |> Map.put(:proof_hashes, proof_hashes)
+    |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
   end
 
   def fetch_eigen_operator_metadata(url) do
