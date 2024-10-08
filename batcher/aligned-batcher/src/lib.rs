@@ -1149,14 +1149,13 @@ impl Batcher {
         .await;
 
         let signature = client_msg.signature;
-        let nonpaying_addr = non_paying_config.address;
         if let Err(e) = self
             .add_to_batch(
                 batch_state_lock,
                 nonced_verification_data,
                 ws_sink.clone(),
                 signature,
-                nonpaying_addr,
+                replacement_addr,
             )
             .await
         {
