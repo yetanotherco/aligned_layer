@@ -1,4 +1,4 @@
-name: build-rust-projects
+name: build-and-test-rust-projects
 
 on:
   merge_group:
@@ -46,3 +46,30 @@ jobs:
         run: |
           cd batcher
           cargo build --all
+
+  test:
+    runs-on: ubuntu-custom
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            batcher/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
+      - name: Run tests
+        run: |
+          cd batcher
+          cargo test --all

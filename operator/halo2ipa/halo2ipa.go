@@ -10,9 +10,9 @@ import "C"
 import "unsafe"
 
 func VerifyHalo2IpaProof(
-	proofBuffer []byte, proofLen uint32,
-	paramsBuffer []byte, paramsLen uint32,
-	publicInputBuffer []byte, publicInputLen uint32,
+	proofBuffer []byte,
+	paramsBuffer []byte,
+	publicInputBuffer []byte,
 ) bool {
 	/*
 		For Halo2 the `paramsBuffer` contains the serialized cs, vk, and params with there respective sizes serialized as u32 values (4 bytes) => 3 * 4 bytes = 12 followed by the concatenated variable length buffers:
@@ -28,8 +28,8 @@ func VerifyHalo2IpaProof(
 	publicInputPtr := (*C.uchar)(unsafe.Pointer(&publicInputBuffer[0]))
 
 	return (bool)(C.verify_halo2_ipa_proof_ffi(
-		proofPtr, (C.uint32_t)(proofLen),
-		paramsPtr, (C.uint32_t)(paramsLen),
-		publicInputPtr, (C.uint32_t)(publicInputLen),
+		proofPtr, (C.uint32_t)(len(proofBuffer)),
+		paramsPtr, (C.uint32_t)(len(paramsBuffer)),
+		publicInputPtr, (C.uint32_t)(len(publicInputBuffer)),
 	))
 }

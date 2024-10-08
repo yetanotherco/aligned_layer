@@ -5,9 +5,13 @@ use crate::{
         protocol::check_protocol_version,
     },
     core::{
+        constants::{
+            ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
+            MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
+        },
         errors,
         types::{
-            AlignedVerificationData, Chain, ProvingSystemId, VerificationData,
+            AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
             VerificationDataCommitment,
         },
     },
@@ -18,9 +22,11 @@ use crate::{
 };
 
 use ethers::{
+    core::types::TransactionRequest,
+    middleware::SignerMiddleware,
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Middleware, Provider},
-    signers::Wallet,
+    signers::{LocalWallet, Wallet},
     types::{Address, H160, U256},
 };
 use sha3::{Digest, Keccak256};
@@ -69,16 +75,15 @@ use futures_util::{
 pub async fn submit_multiple_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
-    chain: Chain,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
     nonce: U256,
-    payment_service_addr: &str,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
     let aligned_verification_data = submit_multiple(
         batcher_url,
-        chain.clone(),
+        network,
         verification_data,
         max_fees,
         wallet,
@@ -87,16 +92,111 @@ pub async fn submit_multiple_and_wait_verification(
     .await?;
 
     for aligned_verification_data_item in aligned_verification_data.iter() {
-        await_batch_verification(
-            aligned_verification_data_item,
-            eth_rpc_url,
-            chain.clone(),
-            payment_service_addr,
-        )
-        .await?;
+        await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await?;
     }
 
     Ok(aligned_verification_data)
+}
+
+/// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, based on the max priority gas price.
+/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+/// To estimate the `max_fee` of a batch we use a compute the `max_fee` with respect to a batch of ~32 proofs present.
+/// The `max_fee` estimates therefore are:
+/// * `Min`: Specifies a `max_fee` equivalent to the cost of 1 proof in a 32 proof batch.
+///        This estimates the lowest possible `max_fee` the user should specify for there proof with lowest priority.
+/// * `Default`: Specifies a `max_fee` equivalent to the cost of 10 proofs in a 32 proof batch.
+///        This estimates the `max_fee` the user should specify for inclusion within the batch.
+/// * `Instant`: specifies a `max_fee` equivalent to the cost of all proofs within in a 32 proof batch.
+///        This estimates the `max_fee` the user should specify to pay for the entire batch of proofs and have there proof included instantly.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `estimate` - Enum specifying the type of price estimate: MIN, DEFAULT, INSTANT.
+/// # Returns
+/// The estimated `max_fee` in gas for a proof based on the users `PriceEstimate` as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
+pub async fn estimate_fee(
+    eth_rpc_url: &str,
+    estimate: PriceEstimate,
+) -> Result<U256, errors::MaxFeeEstimateError> {
+    // Price of 1 proof in 32 proof batch
+    let fee_per_proof = fee_per_proof(eth_rpc_url, MAX_FEE_BATCH_PROOF_NUMBER).await?;
+
+    let proof_price = match estimate {
+        PriceEstimate::Min => fee_per_proof,
+        PriceEstimate::Default => U256::from(MAX_FEE_DEFAULT_PROOF_NUMBER) * fee_per_proof,
+        PriceEstimate::Instant => U256::from(MAX_FEE_BATCH_PROOF_NUMBER) * fee_per_proof,
+    };
+    Ok(proof_price)
+}
+
+/// Returns the computed `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
+/// number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
+/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
+/// * `num_proofs` - number of proofs in a batch the user would pay for.
+/// * `num_proofs_per_batch` - number of proofs within a batch.
+/// # Returns
+/// * The calculated `max_fee` as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
+pub async fn compute_max_fee(
+    eth_rpc_url: &str,
+    num_proofs: usize,
+    num_proofs_per_batch: usize,
+) -> Result<U256, errors::MaxFeeEstimateError> {
+    let fee_per_proof = fee_per_proof(eth_rpc_url, num_proofs_per_batch).await?;
+    Ok(fee_per_proof * num_proofs)
+}
+
+/// Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
+/// i.e. (1 / `num_proofs_per_batch`).
+// NOTE: The `fee_per_proof` is computed from an rpc nodes max priority gas price.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
+/// * `num_proofs_per_batch` - number of proofs within a batch.
+/// # Returns
+/// * The fee per proof of a batch as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
+pub async fn fee_per_proof(
+    eth_rpc_url: &str,
+    num_proofs_per_batch: usize,
+) -> Result<U256, errors::MaxFeeEstimateError> {
+    let eth_rpc_provider =
+        Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
+            errors::MaxFeeEstimateError::EthereumProviderError(e.to_string())
+        })?;
+    let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
+
+    // Cost for estimate `num_proofs_per_batch` proofs
+    let estimated_gas_per_proof = (CONSTANT_GAS_COST
+        + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_per_batch as u128)
+        / num_proofs_per_batch as u128;
+
+    // Price of 1 proof in 32 proof batch
+    let fee_per_proof = U256::from(estimated_gas_per_proof) * gas_price;
+
+    Ok(fee_per_proof)
+}
+
+async fn fetch_gas_price(
+    eth_rpc_provider: &Provider<Http>,
+) -> Result<U256, errors::MaxFeeEstimateError> {
+    let gas_price = match eth_rpc_provider.get_gas_price().await {
+        Ok(price) => price,
+        Err(e) => {
+            return Err(errors::MaxFeeEstimateError::EthereumGasPriceError(
+                e.to_string(),
+            ))
+        }
+    };
+
+    Ok(gas_price)
 }
 
 /// Submits multiple proofs to the batcher to be verified in Aligned.
@@ -126,7 +226,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     batcher_url: &str,
-    chain: Chain,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -144,7 +244,7 @@ pub async fn submit_multiple(
     _submit_multiple(
         ws_write,
         ws_read,
-        chain.clone(),
+        network,
         verification_data,
         max_fees,
         wallet,
@@ -153,10 +253,30 @@ pub async fn submit_multiple(
     .await
 }
 
+pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
+    match network {
+        Network::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap(),
+        Network::Holesky => H160::from_str("0x815aeCA64a974297942D2Bbf034ABEe22a38A003").unwrap(),
+        Network::HoleskyStage => {
+            H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
+        }
+    }
+}
+
+pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H160 {
+    match network {
+        Network::Devnet => H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap(),
+        Network::Holesky => H160::from_str("0x58F280BeBE9B34c9939C3C39e0890C81f163B623").unwrap(),
+        Network::HoleskyStage => {
+            H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
+        }
+    }
+}
+
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    chain: Chain,
+    network: Network,
     verification_data: &[VerificationData],
     max_fees: &[U256],
     wallet: Wallet<SigningKey>,
@@ -177,35 +297,21 @@ async fn _submit_multiple(
 
     let response_stream = Arc::new(Mutex::new(response_stream));
 
-    let payment_service_addr = match chain {
-        Chain::Devnet => H160::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").ok(),
-        Chain::Holesky => H160::from_str(&std::env::var("BATCHER_ETH_ADDR").map_err(|_| {
-            errors::SubmitError::GenericError("BATCHER_ETH_ADDR env var not found".to_string())
-        })?)
-        .ok(),
-        Chain::HoleskyStage => H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").ok(),
-    };
+    let payment_service_addr = get_payment_service_address(network);
 
-    let sent_verification_data = match payment_service_addr {
+    let sent_verification_data = {
         // The sent verification data will be stored here so that we can calculate
         // their commitments later.
-        Some(payment_service_addr) => {
-            send_messages(
-                response_stream.clone(),
-                ws_write,
-                payment_service_addr,
-                verification_data,
-                max_fees,
-                wallet,
-                nonce,
-            )
-            .await?
-        }
-        None => {
-            return Err(errors::SubmitError::GenericError(
-                "Invalid chain".to_string(),
-            ))
-        }
+        send_messages(
+            response_stream.clone(),
+            ws_write,
+            payment_service_addr,
+            verification_data,
+            max_fees,
+            wallet,
+            nonce,
+        )
+        .await?
     };
 
     let num_responses = Arc::new(Mutex::new(0));
@@ -265,12 +371,11 @@ async fn _submit_multiple(
 pub async fn submit_and_wait_verification(
     batcher_url: &str,
     eth_rpc_url: &str,
-    chain: Chain,
+    network: Network,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
-    payment_service_addr: &str,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
@@ -279,12 +384,11 @@ pub async fn submit_and_wait_verification(
     let aligned_verification_data = submit_multiple_and_wait_verification(
         batcher_url,
         eth_rpc_url,
-        chain,
+        network,
         &verification_data,
         &max_fees,
         wallet,
         nonce,
-        payment_service_addr,
     )
     .await?;
 
@@ -318,7 +422,7 @@ pub async fn submit_and_wait_verification(
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     batcher_url: &str,
-    chain: Chain,
+    network: Network,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -329,7 +433,7 @@ pub async fn submit(
 
     let aligned_verification_data = submit_multiple(
         batcher_url,
-        chain.clone(),
+        network,
         &verification_data,
         &max_fees,
         wallet,
@@ -354,41 +458,24 @@ pub async fn submit(
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 pub async fn is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    chain: Chain,
+    network: Network,
     eth_rpc_url: &str,
-    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError> {
     let eth_rpc_provider =
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
             errors::VerificationError::EthereumProviderError(e.to_string())
         })?;
 
-    _is_proof_verified(
-        aligned_verification_data,
-        chain,
-        eth_rpc_provider,
-        payment_service_addr,
-    )
-    .await
+    _is_proof_verified(aligned_verification_data, network, eth_rpc_provider).await
 }
 
 async fn _is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    chain: Chain,
+    network: Network,
     eth_rpc_provider: Provider<Http>,
-    payment_service_addr: &str,
 ) -> Result<bool, errors::VerificationError> {
-    let contract_address = match chain {
-        Chain::Devnet => "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
-        // If we re-deploy the Aligned SM contract we need to change this value to the new contract address
-        Chain::Holesky => &std::env::var("ALIGNED_SERVICE_MANAGER_ADDR")
-            .map_err(|err| errors::VerificationError::HexDecodingError(err.to_string()))?,
-        Chain::HoleskyStage => "0x9C5231FC88059C086Ea95712d105A2026048c39B",
-    };
-
-    let payment_service_addr = payment_service_addr
-        .parse::<Address>()
-        .map_err(|e| errors::VerificationError::HexDecodingError(e.to_string()))?;
+    let contract_address = get_aligned_service_manager_address(network);
+    let payment_service_addr = get_payment_service_address(network);
 
     // All the elements from the merkle proof have to be concatenated
     let merkle_proof: Vec<u8> = aligned_verification_data
@@ -456,12 +543,14 @@ pub fn get_vk_commitment(
 pub async fn get_next_nonce(
     eth_rpc_url: &str,
     submitter_addr: Address,
-    payment_service_addr: &str,
+    network: Network,
 ) -> Result<U256, errors::NonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| errors::NonceError::EthereumProviderError(e.to_string()))?;
 
-    match batcher_payment_service(eth_rpc_provider, payment_service_addr).await {
+    let payment_service_address = get_payment_service_address(network);
+
+    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
         Ok(contract) => {
             let call = contract.user_nonces(submitter_addr);
 
@@ -496,218 +585,120 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
     Ok(chain_id.as_u64())
 }
 
+/// Funds the batcher payment service in name of the signer
+/// # Arguments
+/// * `amount` - The amount to be paid.
+/// * `signer` - The signer middleware of the payer.
+/// * `network` - The network on which the payment will be done.
+/// # Returns
+/// * The receipt of the payment transaction.
+/// # Errors
+/// * `SendError` if there is an error sending the transaction.
+/// * `SubmitError` if there is an error submitting the transaction.
+/// * `PaymentFailed` if the payment failed.
+pub async fn deposit_to_aligned(
+    amount: U256,
+    signer: SignerMiddleware<Provider<Http>, LocalWallet>,
+    network: Network,
+) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
+    let payment_service_address = get_payment_service_address(network);
+    let from = signer.address();
+
+    let tx = TransactionRequest::new()
+        .from(from)
+        .to(payment_service_address)
+        .value(amount);
+
+    match signer
+        .send_transaction(tx, None)
+        .await
+        .map_err(|e| errors::PaymentError::SendError(e.to_string()))?
+        .await
+        .map_err(|e| errors::PaymentError::SubmitError(e.to_string()))?
+    {
+        Some(receipt) => Ok(receipt),
+        None => Err(errors::PaymentError::PaymentFailed),
+    }
+}
+
+/// Returns the balance of a user in the payment service.
+/// # Arguments
+/// * `user` - The address of the user.
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `network` - The network on which the balance will be checked.
+/// # Returns
+/// * The balance of the user in the payment service.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumCallError` if there is an error in the Ethereum call.
+pub async fn get_balance_in_aligned(
+    user: Address,
+    eth_rpc_url: &str,
+    network: Network,
+) -> Result<U256, errors::BalanceError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| errors::BalanceError::EthereumProviderError(e.to_string()))?;
+
+    let payment_service_address = get_payment_service_address(network);
+
+    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
+        Ok(batcher_payment_service) => {
+            let call = batcher_payment_service.user_balances(user);
+
+            let result = call
+                .call()
+                .await
+                .map_err(|e| errors::BalanceError::EthereumCallError(e.to_string()))?;
+
+            Ok(result)
+        }
+        Err(e) => Err(errors::BalanceError::EthereumCallError(e.to_string())),
+    }
+}
+
 #[cfg(test)]
 mod test {
+    //Public constants for convenience
+    pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
     use super::*;
-    use crate::core::{errors::SubmitError, types::ProvingSystemId};
-    use ethers::types::Address;
-    use ethers::types::H160;
-
-    use std::path::PathBuf;
-    use std::str::FromStr;
-    use tokio::time::sleep;
-
-    use ethers::signers::LocalWallet;
-
-    const BATCHER_PAYMENT_SERVICE_ADDR: &str = "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0";
-    const MAX_FEE: U256 = U256::max_value();
 
     #[tokio::test]
-    async fn test_submit_success() {
-        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
-        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci.elf")).unwrap());
-
-        let proof_generator_addr =
-            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
-
-        let verification_data = VerificationData {
-            proving_system: ProvingSystemId::SP1,
-            proof,
-            pub_input: None,
-            verification_key: None,
-            vm_program_code: elf,
-            proof_generator_addr,
-        };
-
-        let verification_data = vec![verification_data];
-
-        let max_fees = vec![MAX_FEE];
-
-        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-            .parse::<LocalWallet>()
-            .map_err(|e| SubmitError::GenericError(e.to_string()))
+    async fn computed_max_fee_for_larger_batch_is_smaller() {
+        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 2, 10)
+            .await
+            .unwrap();
+        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
+            .await
             .unwrap();
 
-        let aligned_verification_data = submit_multiple_and_wait_verification(
-            "ws://localhost:8080",
-            "http://localhost:8545",
-            Chain::Devnet,
-            &verification_data,
-            &max_fees,
-            wallet,
-            U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(aligned_verification_data.len(), 1);
+        assert!(small_fee < large_fee);
     }
 
     #[tokio::test]
-    async fn test_submit_failure() {
-        //Create an erroneous verification data vector
-        let contract_addr = H160::from_str("0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8").unwrap();
-
-        let verification_data = vec![VerificationData {
-            proving_system: ProvingSystemId::SP1,
-            proof: vec![],
-            pub_input: None,
-            verification_key: None,
-            vm_program_code: None,
-            proof_generator_addr: contract_addr,
-        }];
-
-        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-            .parse::<LocalWallet>()
-            .map_err(|e| SubmitError::GenericError(e.to_string()))
+    async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
+        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 20)
+            .await
+            .unwrap();
+        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
+            .await
             .unwrap();
 
-        let max_fees = vec![MAX_FEE];
-
-        let result = submit_multiple_and_wait_verification(
-            "ws://localhost:8080",
-            "http://localhost:8545",
-            Chain::Devnet,
-            &verification_data,
-            &max_fees,
-            wallet,
-            U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await;
-
-        assert!(result.is_ok());
+        assert!(small_fee < large_fee);
     }
 
     #[tokio::test]
-    async fn test_verify_proof_onchain_success() {
-        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-        let proof = read_file(base_dir.join("test_files/groth16_bn254/plonk.proof")).unwrap();
-        let pub_input =
-            read_file(base_dir.join("test_files/groth16_bn254/plonk_pub_input.pub")).ok();
-        let vk = read_file(base_dir.join("test_files/groth16_bn254/plonk.vk")).ok();
-
-        let proof_generator_addr =
-            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
-
-        let verification_data = VerificationData {
-            proving_system: ProvingSystemId::Groth16Bn254,
-            proof,
-            pub_input,
-            verification_key: vk,
-            vm_program_code: None,
-            proof_generator_addr,
-        };
-
-        let verification_data = vec![verification_data];
-
-        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-            .parse::<LocalWallet>()
-            .map_err(|e| SubmitError::GenericError(e.to_string()))
+    async fn estimate_fee_are_larger_than_one_another() {
+        let min_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Min)
+            .await
+            .unwrap();
+        let default_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Default)
+            .await
+            .unwrap();
+        let instant_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Instant)
+            .await
             .unwrap();
 
-        let max_fees = vec![MAX_FEE];
-
-        let aligned_verification_data = submit_multiple_and_wait_verification(
-            "ws://localhost:8080",
-            "http://localhost:8545",
-            Chain::Devnet,
-            &verification_data,
-            &max_fees,
-            wallet,
-            U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        sleep(std::time::Duration::from_secs(20)).await;
-
-        let result = is_proof_verified(
-            &aligned_verification_data[0],
-            Chain::Devnet,
-            "http://localhost:8545",
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        assert!(result, "Proof was not verified on-chain");
-    }
-
-    #[tokio::test]
-    async fn test_verify_proof_onchain_failure() {
-        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-        let proof = read_file(base_dir.join("test_files/sp1/sp1_fibonacci.proof")).unwrap();
-        let elf = Some(read_file(base_dir.join("test_files/sp1/sp1_fibonacci.elf")).unwrap());
-
-        let proof_generator_addr =
-            Address::from_str("0x66f9664f97F2b50F62D13eA064982f936dE76657").unwrap();
-
-        let verification_data = VerificationData {
-            proving_system: ProvingSystemId::SP1,
-            proof,
-            pub_input: None,
-            verification_key: None,
-            vm_program_code: elf,
-            proof_generator_addr,
-        };
-
-        let verification_data = vec![verification_data];
-
-        let wallet = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-            .parse::<LocalWallet>()
-            .map_err(|e| SubmitError::GenericError(e.to_string()))
-            .unwrap();
-
-        let aligned_verification_data = submit_multiple_and_wait_verification(
-            "ws://localhost:8080",
-            "http://localhost:8545",
-            Chain::Devnet,
-            &verification_data,
-            &[MAX_FEE],
-            wallet,
-            U256::zero(),
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        sleep(std::time::Duration::from_secs(20)).await;
-
-        let mut aligned_verification_data_modified = aligned_verification_data[0].clone();
-
-        // Modify the batch merkle root so that the verification fails
-        aligned_verification_data_modified.batch_merkle_root[0] = 0;
-
-        let result = is_proof_verified(
-            &aligned_verification_data_modified,
-            Chain::Devnet,
-            "http://localhost:8545",
-            BATCHER_PAYMENT_SERVICE_ADDR,
-        )
-        .await
-        .unwrap();
-
-        assert!(!result, "Proof verified on chain");
-    }
-
-    fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
-        std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
+        assert!(min_fee < default_fee);
+        assert!(default_fee < instant_fee);
     }
 }

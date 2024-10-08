@@ -2,8 +2,6 @@ package operator
 
 import (
 	"context"
-	"math/big"
-	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/types"
 	"github.com/yetanotherco/aligned_layer/core/chainio"
@@ -25,13 +23,12 @@ func RegisterOperator(
 		return err
 	}
 
-	operatorToAvsRegistrationSigExpiry := big.NewInt(time.Now().Add(10 * time.Minute).Unix())
 	socket := "Not Needed"
 
 	quorumNumbers := types.QuorumNums{0}
 
-	_, err = writer.RegisterOperatorInQuorumWithAVSRegistryCoordinator(ctx, configuration.EcdsaConfig.PrivateKey,
-		operatorToAvsRegistrationSigSalt, operatorToAvsRegistrationSigExpiry, configuration.BlsConfig.KeyPair,
+	_, err = writer.RegisterOperator(ctx, configuration.EcdsaConfig.PrivateKey,
+		configuration.BlsConfig.KeyPair,
 		quorumNumbers, socket)
 
 	if err != nil {

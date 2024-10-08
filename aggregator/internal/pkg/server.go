@@ -7,8 +7,6 @@ import (
 	"net/rpc"
 	"time"
 
-	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
-
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
@@ -33,11 +31,8 @@ func (agg *Aggregator) ServeOperators() error {
 		agg.AggregatorConfig.Aggregator.ServerIpPortAddress)
 
 	err = http.ListenAndServe(agg.AggregatorConfig.Aggregator.ServerIpPortAddress, nil)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // Aggregator Methods
@@ -77,26 +72,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		return nil
 	}
 
-	// Note: we already have lock here
-	agg.logger.Debug("- Checking if operator already responded")
-	batchResponses, ok := agg.operatorRespondedBatch[taskIndex]
-	if !ok {
-		batchResponses = make(map[eigentypes.Bytes32]struct{})
-		agg.operatorRespondedBatch[taskIndex] = batchResponses
-	}
-
-	if _, ok := batchResponses[signedTaskResponse.OperatorId]; ok {
-		*reply = 0
-		agg.logger.Warn("Operator already responded, ignoring",
-			"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]),
-			"taskIndex", taskIndex, "batchMerkleRoot", hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]))
-
-		agg.taskMutex.Unlock()
-		return nil
-	}
-
-	batchResponses[signedTaskResponse.OperatorId] = struct{}{}
-
 	// Don't wait infinitely if it can't answer
 	// Create a context with a timeout of 5 seconds
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -114,9 +89,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 		if err != nil {
 			agg.logger.Warnf("BLS aggregation service error: %s", err)
-			// remove operator from the list of operators that responded
-			// so that it can try again
-			delete(batchResponses, signedTaskResponse.OperatorId)
+			// todo shouldn't we here close the channel with a reply = 1?
 		} else {
 			agg.logger.Info("BLS process succeeded")
 		}
