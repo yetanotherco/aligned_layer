@@ -132,8 +132,7 @@ end
 # Backend utils
 defmodule Utils do
   require Logger
-  # 256 KB
-  @max_body_size 256 * 1024
+  @max_batch_size String.to_integer(System.get_env("POOL_SIZE") || "268435456")
 
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
@@ -188,7 +187,7 @@ defmodule Utils do
     do: {:halt, {:error, {:http_error, status_code}}}
 
   defp stream_handler({:data, chunk}, {_acc_body, size})
-       when size + byte_size(chunk) > @max_body_size do
+       when size + byte_size(chunk) > @max_batch_size do
     {:halt, {:error, {:http, :body_too_large}}}
   end
 
