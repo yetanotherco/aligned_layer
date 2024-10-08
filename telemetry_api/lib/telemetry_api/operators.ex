@@ -24,17 +24,20 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Gets a single operator.
+  Gets a single operator by id or address.
 
   ## Examples
 
-      iex> get_operator("some_address"})
+      iex> get_operator(%Operator{id: some_id})
       {:ok, %Operator{}}
 
-      iex> get_operator("non_existent_address")
+      iex> get_operator(%Operator{address: some_address})
+      {:ok, %Operator{}}
+
+      iex> get_operator(%Operator{address: non_existent_address})
       {:error, :not_found, "Operator not found for address: non_existent_address"}
   """
-  def get_operator(address) do
+  def get_operator(%Operator{address: address}) do
     case Repo.get(Operator, address) do
       nil ->
         IO.inspect("Operator not found for address: #{address}")
@@ -45,18 +48,7 @@ defmodule TelemetryApi.Operators do
     end
   end
 
-  @doc """
-  Get a single operator by operator id.
-
-  ## Examples
-
-      iex> get_operator_by_id("some_id")
-      {:ok, %Operator{}}
-
-      iex> get_operator_by_id("non_existent_id")
-      {:error, :not_found, "Operator not found for id: non_existent_id"}
-  """
-  def get_operator_by_id(id) do
+  def get_operator(%Operator{id: id}) do
     query = from(o in Operator, where: o.id == ^id)
 
     case Repo.one(query) do
