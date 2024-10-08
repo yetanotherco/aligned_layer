@@ -16,8 +16,10 @@ defmodule Explorer.Periodically do
     one_second = 1000
     seconds_in_an_hour = 60 * 60
 
-    :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
-    :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
+    # every 12 seconds, once per block
+    :timer.send_interval(one_second * 12, :batches)
+    # every 1 hour
+    :timer.send_interval(one_second * seconds_in_an_hour, :restakings)
   end
 
   # Reads and process last blocks for operators and restaking changes
@@ -45,6 +47,7 @@ defmodule Explorer.Periodically do
 
     run_every_n_iterations = 8
     new_count = rem(count + 1, run_every_n_iterations)
+
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
     end
@@ -79,36 +82,34 @@ defmodule Explorer.Periodically do
       {:ok, lock} ->
         "Processing batch: #{batch.merkle_root}" |> Logger.debug()
 
-        with {:ok, batch_info} <- Utils.extract_info_from_data_pointer(batch),
-             {batch_changeset, proofs} <- Batches.generate_changesets(batch_info) do
-          Batches.insert_or_update(batch_changeset, proofs)
-          |> case do
-            {:ok, _} ->
-              PubSub.broadcast(Explorer.PubSub, "update_views", %{
-                eth_usd:
-                  case EthConverter.get_eth_price_usd() do
-                    {:ok, eth_usd_price} -> eth_usd_price
-                    {:error, _error} -> :empty
-                  end
-              })
+        {batch_changeset, proofs} =
+          batch
+          |> Utils.extract_info_from_data_pointer()
+          |> Batches.generate_changesets()
 
-            {:error, error} ->
-              Logger.error(
-                "Some error in DB operation, not broadcasting update_views: #{inspect(error)}"
-              )
+        Batches.insert_or_update(batch_changeset, proofs)
+        |> case do
+          {:ok, _} ->
+            PubSub.broadcast(Explorer.PubSub, "update_views", %{
+              eth_usd:
+                case EthConverter.get_eth_price_usd() do
+                  {:ok, eth_usd_price} -> eth_usd_price
+                  {:error, _error} -> :empty
+                end
+            })
 
-            # no changes in DB
-            nil ->
-              nil
-          end
+          {:error, error} ->
+            Logger.error(
+              "Some error in DB operation, not broadcasting update_views: #{inspect(error)}"
+            )
 
-          "Done processing batch: #{batch.merkle_root}" |> Logger.debug()
-          Mutex.release(BatchMutex, lock)
-        else
-          {:error, {:http_error, reason}} ->
-            Logger.error("Error when procesing request body: #{inspect(reason)}")
-            # Maybe delete the batch
+          # no changes in DB
+          nil ->
+            nil
         end
+
+        "Done processing batch: #{batch.merkle_root}" |> Logger.debug()
+        Mutex.release(BatchMutex, lock)
     end
   end
 
