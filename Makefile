@@ -1,5 +1,6 @@
 .PHONY: help tests
 
+SHELL := /bin/bash
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
@@ -14,6 +15,11 @@ endif
 ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
+
+ifeq ($(OS),Linux)
+	export LD_LIBRARY_PATH := $(CURDIR)/operator/risc_zero/lib
+endif
+
 
 FFI_FOR_RELEASE ?= true
 
@@ -32,7 +38,7 @@ submodules:
 	git submodule update --init --recursive
 	@echo "Updated submodules"
 
-deps: submodules build_all_ffi ## Install deps
+deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
@@ -90,6 +96,8 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
+_AGGREGATOR_:
+
 aggregator_start:
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
@@ -99,16 +107,21 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+
+__OPERATOR__:
+
 operator_start:
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
+
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -122,7 +135,6 @@ operator_valid_marshall_fuzz_macos:
 
 operator_valid_marshall_fuzz_linux:
 	@cd operator/pkg && \
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test -fuzz=FuzzValidMarshall
 
 operator_marshall_unmarshall_fuzz_macos:
@@ -130,7 +142,6 @@ operator_marshall_unmarshall_fuzz_macos:
 
 operator_marshall_unmarshall_fuzz_linux:
 	@cd operator/pkg && \
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test -fuzz=FuzzMarshalUnmarshal
 
 bindings:
@@ -182,9 +193,8 @@ operator_whitelist:
 	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
 
 operator_deposit_into_mock_strategy:
-	@echo "Depositing into strategy"
+	@echo "Depositing into mock strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
-
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
@@ -203,7 +213,6 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
 __BATCHER__:
 
@@ -496,7 +505,6 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:
@@ -620,6 +628,10 @@ explorer_fetch_old_operators_strategies_restakes:
 	@cd explorer && \
 	./scripts/fetch_old_operators_strategies_restakes.sh 0
 
+explorer_create_env:
+	@cd explorer && \
+	cp .env.dev .env
+
 __TRACKER__:
 
 tracker_devnet_start: tracker_run_db
@@ -648,3 +660,41 @@ tracker_dump_db:
 	@cd operator_tracker && \
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
+
+__TELEMETRY__:
+open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
+	## TODO(juarce) ADD DOCKER COMPOSE
+	@echo "Running telemetry..."
+	@docker compose -f telemetry-docker-compose.yaml up -d
+
+telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
+	@cd telemetry_api && \
+	 	./start.sh	
+
+telemetry_ecto_migrate: ##
+		@cd telemetry_api && \
+			./ecto_setup_db.sh	
+
+telemetry_build_db:
+	@cd telemetry_api && \
+		docker build -t telemetry-postgres-image .
+
+telemetry_run_db: telemetry_build_db telemetry_remove_db_container
+	@cd telemetry_api && \
+		docker run -d --name telemetry-postgres-container -p 5434:5432 -v telemetry-postgres-data:/var/lib/postgresql/data telemetry-postgres-image
+
+telemetry_remove_db_container:
+	@docker stop telemetry-postgres-container || true  && \
+	    docker rm telemetry-postgres-container || true
+
+telemetry_clean_db: telemetry_remove_db_container
+	@docker volume rm telemetry-postgres-data || true
+
+telemetry_dump_db:
+	@cd telemetry_api && \
+		docker exec -t telemetry-postgres-container pg_dumpall -c -U telemetry_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
+	@echo "Dumped database successfully to /telemetry_api"
+
+telemetry_create_env:
+	@cd telemetry_api && \
+		cp .env.dev .env
