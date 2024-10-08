@@ -1,8 +1,16 @@
+This file temporarily holds the previous multisig docs:
+
+## Multisig Usage
+
 > [!WARNING]  
 > Safe Multisig Wallet is not currently supported in Holesky Testnet.
-> This guide is ran in Sepolia
+> For this reason, we deployed EigenLayer contracts in Sepolia to test the upgrade on AlignedLayer Contracts.
 
-# Multisig
+> [!NOTE]
+> EigenLayer Sepolia contracts information is available in `contracts/script/output/sepolia/eigenlayer_deployment_output.json`.
+
+> [!NOTE]
+> You can find a guide on how to Deploy or Upgrade the contracts [here](./3_guides/setup_holesky.md).
 
 In this guide we make an upgrade of Aligned Layer Service Manager contract using a multisig wallet. This is important to ensure not one party can do an upgrade, and helps ensure the team is not locked out of upgrading the network due to a loss of keys.
 
