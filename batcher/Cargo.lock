@@ -118,6 +118,7 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "tokio-tungstenite 0.21.0",
+ "valida",
 ]
 
 [[package]]
@@ -251,6 +252,12 @@ checksum = "819e7219dbd41043ac279b19830f2efc897156490d7fd6ea916720117ee66311"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "anes"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
 name = "ansi_term"
@@ -1172,6 +1179,9 @@ name = "bitflags"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bitvec"
@@ -1371,6 +1381,12 @@ dependencies = [
  "serde_json",
  "thiserror",
 ]
+
+[[package]]
+name = "cast"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
@@ -1657,6 +1673,64 @@ dependencies = [
 ]
 
 [[package]]
+name = "criterion"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b12d017a929603d80db1831cd3a24082f8137ce19c69e6447f54f5fc8d692f"
+dependencies = [
+ "anes",
+ "cast",
+ "ciborium",
+ "clap",
+ "criterion-plot",
+ "is-terminal",
+ "itertools 0.10.5",
+ "num-traits",
+ "once_cell",
+ "oorandom",
+ "plotters",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "tinytemplate",
+ "walkdir",
+]
+
+[[package]]
+name = "criterion-plot"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
+dependencies = [
+ "cast",
+ "itertools 0.10.5",
+]
+
+[[package]]
+name = "crossbeam"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1137cd7e7fc0fb5d3c5a8678be38ec56e819125d8d7907411fe24ccb943faca8"
+dependencies = [
+ "crossbeam-channel",
+ "crossbeam-deque",
+ "crossbeam-epoch",
+ "crossbeam-queue",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.5.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33480d6946193aa8033910124896ca395333cae7e2d1113d1fef6c3272217df2"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-deque"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1676,10 +1750,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-queue"
+version = "0.3.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df0346b5d5e76ac2fe4e327c5fd1118d6be7c51dfb18f9b7922923f287471e35"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22ec99545bb0ed0ea7bb9b8e1e9122ea386ff8a48c0922e43f36d45ab09e0e80"
+
+[[package]]
+name = "crossterm"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f476fe445d41c9e991fd07515a6f463074b782242ccf4a5b7b1d1012e70824df"
+dependencies = [
+ "bitflags 2.6.0",
+ "crossterm_winapi",
+ "libc",
+ "mio",
+ "parking_lot",
+ "serde",
+ "signal-hook",
+ "signal-hook-mio",
+ "winapi",
+]
+
+[[package]]
+name = "crossterm_winapi"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acdd7c62a3665c7f6830a51635d9ac9b23ed385797f70a83bb8bafe9c572ab2b"
+dependencies = [
+ "winapi",
+]
 
 [[package]]
 name = "crunchy"
@@ -2614,7 +2723,7 @@ dependencies = [
  "tokio",
  "tracing",
  "walkdir",
- "yansi",
+ "yansi 0.5.1",
 ]
 
 [[package]]
@@ -2642,6 +2751,17 @@ dependencies = [
  "arrayvec",
  "auto_impl",
  "bytes",
+]
+
+[[package]]
+name = "fd-lock"
+version = "4.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e5768da2206272c81ef0b5e951a41862938a6070da63bcea197899942d3b947"
+dependencies = [
+ "cfg-if",
+ "rustix",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3116,6 +3236,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
 
 [[package]]
+name = "hermit-abi"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbf6a919d6cf397374f7dfeeea91d974c7c0a7221d0d0f4f20d859d329e53fcc"
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3476,6 +3602,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddc24109865250148c2e0f3d25d4f0f479571723792d3802153c60922a4fb708"
 
 [[package]]
+name = "is-terminal"
+version = "0.4.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "261f68e344040fbd0edea105bef17c66edf46f984ddb1115b775ce31be948f4b"
+dependencies = [
+ "hermit-abi 0.4.0",
+ "libc",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3820,6 +3957,7 @@ checksum = "80e04d1dcff3aae0704555fe5fee3bcfaf3d1fdf8a7e521d5b9d2b42acb52cec"
 dependencies = [
  "hermit-abi",
  "libc",
+ "log",
  "wasi",
  "windows-sys 0.52.0",
 ]
@@ -3880,6 +4018,15 @@ checksum = "77a8165726e8236064dbb45459242600304b42a5ea24ee2948e18e023bf7ba84"
 dependencies = [
  "overload",
  "winapi",
+]
+
+[[package]]
+name = "nu-ansi-term"
+version = "0.50.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4a28e057d01f97e61255210fcff094d74ed0466038633e95017f5beb68e4399"
+dependencies = [
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3979,7 +4126,7 @@ version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
 dependencies = [
- "hermit-abi",
+ "hermit-abi 0.3.9",
  "libc",
 ]
 
@@ -4060,6 +4207,12 @@ name = "oneshot"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e296cf87e61c9cfc1a61c3c63a0f7f286ed4554e0e22be84e8a38e1d264a2a29"
+
+[[package]]
+name = "oorandom"
+version = "11.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b410bbe7e14ab526a0e86877eb47c6996a2bd7746f027ba551028c925390e4e9"
 
 [[package]]
 name = "open-fastrlp"
@@ -4161,12 +4314,31 @@ dependencies = [
 
 [[package]]
 name = "p3-air"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+]
+
+[[package]]
+name = "p3-air"
 version = "0.1.3-succinct"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45e909ef66fa5d77ff0fd3cb5af4b33b27fa6fb68d02b9b1e70edbc29383e565"
 dependencies = [
- "p3-field",
- "p3-matrix",
+ "p3-field 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+]
+
+[[package]]
+name = "p3-baby-bear"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-field 0.1.0",
+ "rand",
+ "serde",
 ]
 
 [[package]]
@@ -4176,10 +4348,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46965470aac1cddfe52f535424b59d52f2fffef0fdeb9dbed19da39b1d8f048a"
 dependencies = [
  "num-bigint 0.4.6",
- "p3-field",
- "p3-mds",
+ "p3-field 0.1.3-succinct",
+ "p3-mds 0.1.3-succinct",
  "p3-poseidon2",
- "p3-symmetric",
+ "p3-symmetric 0.1.3-succinct",
  "rand",
  "serde",
 ]
@@ -4191,7 +4363,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36ef32d6ea21dd5cf9fec8a31bf0c64e6ceee8901dbf50966b83a443093c2aba"
 dependencies = [
  "blake3",
- "p3-symmetric",
+ "p3-symmetric 0.1.3-succinct",
 ]
 
 [[package]]
@@ -4202,11 +4374,22 @@ checksum = "7e3edfca6be3b3109adf8e3330baec30c3fc5f9f4d63d27aaec1b471ca51ed67"
 dependencies = [
  "ff 0.13.0",
  "num-bigint 0.4.6",
- "p3-field",
+ "p3-field 0.1.3-succinct",
  "p3-poseidon2",
- "p3-symmetric",
+ "p3-symmetric 0.1.3-succinct",
  "rand",
  "serde",
+]
+
+[[package]]
+name = "p3-challenger"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-field 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-symmetric 0.1.0",
+ "tracing",
 ]
 
 [[package]]
@@ -4215,11 +4398,22 @@ version = "0.1.3-succinct"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6662ea899a5d848b60c699944491d72757873b5e1fd46798e4712f90a03a4e9"
 dependencies = [
- "p3-field",
- "p3-maybe-rayon",
- "p3-symmetric",
- "p3-util",
+ "p3-field 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-symmetric 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "tracing",
+]
+
+[[package]]
+name = "p3-commit"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-challenger 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "serde",
 ]
 
 [[package]]
@@ -4229,11 +4423,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc3563918b5cc44ef5280bf9b51753e70dc78802de25e3fb81ed6c94617ccb6e"
 dependencies = [
  "itertools 0.12.1",
- "p3-challenger",
- "p3-field",
- "p3-matrix",
- "p3-util",
+ "p3-challenger 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "serde",
+]
+
+[[package]]
+name = "p3-dft"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-util 0.1.0",
 ]
 
 [[package]]
@@ -4242,11 +4447,22 @@ version = "0.1.3-succinct"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "510095701819d83c9509fe825bbf1ebfe50426ae75149df5fe1dcfd18261323a"
 dependencies = [
- "p3-field",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-util",
+ "p3-field 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "tracing",
+]
+
+[[package]]
+name = "p3-field"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "itertools 0.12.1",
+ "p3-util 0.1.0",
+ "rand",
+ "serde",
 ]
 
 [[package]]
@@ -4258,9 +4474,27 @@ dependencies = [
  "itertools 0.12.1",
  "num-bigint 0.4.6",
  "num-traits",
- "p3-util",
+ "p3-util 0.1.3-succinct",
  "rand",
  "serde",
+]
+
+[[package]]
+name = "p3-fri"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "itertools 0.12.1",
+ "p3-challenger 0.1.0",
+ "p3-commit 0.1.0",
+ "p3-dft 0.1.0",
+ "p3-field 0.1.0",
+ "p3-interpolation 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-util 0.1.0",
+ "serde",
+ "tracing",
 ]
 
 [[package]]
@@ -4270,16 +4504,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c22ddb958f200d9289cc73ff68847b0167ca0c14557b791dd9e318f98c2d1b28"
 dependencies = [
  "itertools 0.12.1",
- "p3-challenger",
- "p3-commit",
- "p3-dft",
- "p3-field",
- "p3-interpolation",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-util",
+ "p3-challenger 0.1.3-succinct",
+ "p3-commit 0.1.3-succinct",
+ "p3-dft 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-interpolation 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "serde",
  "tracing",
+]
+
+[[package]]
+name = "p3-goldilocks"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-field 0.1.0",
+ "p3-util 0.1.0",
+ "rand",
+ "serde",
+]
+
+[[package]]
+name = "p3-interpolation"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-util 0.1.0",
 ]
 
 [[package]]
@@ -4288,9 +4544,18 @@ version = "0.1.3-succinct"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d032cda212f6b408d7d5b0b9a8270a9455acb93742fe55a0880d82be8e90e500"
 dependencies = [
- "p3-field",
- "p3-matrix",
- "p3-util",
+ "p3-field 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
+]
+
+[[package]]
+name = "p3-keccak"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-symmetric 0.1.0",
+ "tiny-keccak",
 ]
 
 [[package]]
@@ -4299,7 +4564,7 @@ version = "0.1.3-succinct"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c56abdd5a8a780049d2f8e92cea1df57b55a2ef50a40d1103f2732f7a00e4b1"
 dependencies = [
- "p3-symmetric",
+ "p3-symmetric 0.1.3-succinct",
  "tiny-keccak",
 ]
 
@@ -4309,14 +4574,25 @@ version = "0.1.3-succinct"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8398f1694ccc38513df0b8cab5f9ef7325423f27cd9e4fa20bdc77d5079cf1b"
 dependencies = [
- "p3-air",
- "p3-field",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-util",
+ "p3-air 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "tracing",
  "tracing-forest",
  "tracing-subscriber 0.3.18",
+]
+
+[[package]]
+name = "p3-matrix"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-field 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-util 0.1.0",
+ "rand",
 ]
 
 [[package]]
@@ -4326,12 +4602,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d548ee0b834f8e2ebc5037073acd101a3b0ca41a2d1d28a15ba0ccd9059495b0"
 dependencies = [
  "itertools 0.12.1",
- "p3-field",
- "p3-maybe-rayon",
- "p3-util",
+ "p3-field 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "rand",
  "serde",
  "tracing",
+]
+
+[[package]]
+name = "p3-maybe-rayon"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "rayon",
 ]
 
 [[package]]
@@ -4345,17 +4629,49 @@ dependencies = [
 
 [[package]]
 name = "p3-mds"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-baby-bear 0.1.0",
+ "p3-dft 0.1.0",
+ "p3-field 0.1.0",
+ "p3-goldilocks",
+ "p3-matrix 0.1.0",
+ "p3-mersenne-31",
+ "p3-symmetric 0.1.0",
+ "p3-util 0.1.0",
+ "rand",
+]
+
+[[package]]
+name = "p3-mds"
 version = "0.1.3-succinct"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a6e57ed310d59245f93e24ee805ea7aa16fc9c505551b76a15f5e50f29d177e"
 dependencies = [
  "itertools 0.12.1",
- "p3-dft",
- "p3-field",
- "p3-matrix",
- "p3-symmetric",
- "p3-util",
+ "p3-dft 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-symmetric 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "rand",
+]
+
+[[package]]
+name = "p3-merkle-tree"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "itertools 0.12.1",
+ "p3-commit 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-symmetric 0.1.0",
+ "p3-util 0.1.0",
+ "serde",
+ "tracing",
 ]
 
 [[package]]
@@ -4365,14 +4681,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af46b41cba75d483ec8a553cbab1d2d794935ae3403d75394acfa4fb2c977cce"
 dependencies = [
  "itertools 0.12.1",
- "p3-commit",
- "p3-field",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-symmetric",
- "p3-util",
+ "p3-commit 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-symmetric 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "serde",
  "tracing",
+]
+
+[[package]]
+name = "p3-mersenne-31"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "criterion",
+ "itertools 0.12.1",
+ "p3-dft 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-util 0.1.0",
+ "rand",
+ "serde",
+]
+
+[[package]]
+name = "p3-poseidon"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "p3-field 0.1.0",
+ "p3-mds 0.1.0",
+ "p3-symmetric 0.1.0",
+ "rand",
 ]
 
 [[package]]
@@ -4382,10 +4725,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adaba6f14c197203530e233badce0ca1126ba3bf3c9ff766505b497bdad0bee1"
 dependencies = [
  "gcd",
- "p3-field",
- "p3-mds",
- "p3-symmetric",
+ "p3-field 0.1.3-succinct",
+ "p3-mds 0.1.3-succinct",
+ "p3-symmetric 0.1.3-succinct",
  "rand",
+]
+
+[[package]]
+name = "p3-symmetric"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "itertools 0.12.1",
+ "p3-field 0.1.0",
 ]
 
 [[package]]
@@ -4395,8 +4747,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57ecc4282566eb14f48be7707f6745c4dff6be664984d59ec0fb1849cd82b5c2"
 dependencies = [
  "itertools 0.12.1",
- "p3-field",
+ "p3-field 0.1.3-succinct",
  "serde",
+]
+
+[[package]]
+name = "p3-uni-stark"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "itertools 0.12.1",
+ "p3-air 0.1.0",
+ "p3-challenger 0.1.0",
+ "p3-commit 0.1.0",
+ "p3-dft 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-util 0.1.0",
+ "serde",
+ "tracing",
 ]
 
 [[package]]
@@ -4406,19 +4776,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1af5c038b22b058bf1d49fb1ea3dd6c240a3e46c3278fde5c444e0034f7ffe37"
 dependencies = [
  "itertools 0.12.1",
- "p3-air",
- "p3-challenger",
- "p3-commit",
- "p3-dft",
- "p3-field",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-util",
+ "p3-air 0.1.3-succinct",
+ "p3-challenger 0.1.3-succinct",
+ "p3-commit 0.1.3-succinct",
+ "p3-dft 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "postcard",
  "serde",
  "tracing",
  "tracing-forest",
  "tracing-subscriber 0.3.18",
+]
+
+[[package]]
+name = "p3-util"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/Plonky3.git?branch=valida-main#bdd338d61b3c1f24f17abd3b2848f1c910c49428"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -4590,6 +4968,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "pest_derive"
+version = "2.7.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "664d22978e2815783adbdd2c588b455b1bd625299ce36b2a99881ac9627e6d8d"
+dependencies = [
+ "pest",
+ "pest_generator",
+]
+
+[[package]]
+name = "pest_generator"
+version = "2.7.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2d5487022d5d33f4c30d91c22afa240ce2a644e87fe08caad974d4eab6badbe"
+dependencies = [
+ "pest",
+ "pest_meta",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.77",
+]
+
+[[package]]
+name = "pest_meta"
+version = "2.7.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0091754bbd0ea592c4deb3a122ce8ecbb0753b738aa82bc055fcc2eccc8d8174"
+dependencies = [
+ "once_cell",
+ "pest",
+ "sha2",
+]
+
+[[package]]
 name = "petgraph"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4717,6 +5129,34 @@ name = "pkg-config"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
+
+[[package]]
+name = "plotters"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5aeb6f403d7a4911efb1e33402027fc44f29b5bf6def3effcc22d7bb75f2b747"
+dependencies = [
+ "num-traits",
+ "plotters-backend",
+ "plotters-svg",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "plotters-backend"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df42e13c12958a16b3f7f4386b9ab1f3e7933914ecea48da7139435263a4172a"
+
+[[package]]
+name = "plotters-svg"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51bae2ac328883f7acdfea3d66a7c35751187f870bc81f94563733a154d7a670"
+dependencies = [
+ "plotters-backend",
+]
 
 [[package]]
 name = "portable-atomic"
@@ -4996,6 +5436,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_pcg"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59cad018caf63deb318e5a4586d99a24424a364f40f1e5778c29aca23f4fc73e"
+dependencies = [
+ "rand_core",
+]
+
+[[package]]
+name = "rand_seeder"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf2890aaef0aa82719a50e808de264f9484b74b442e1a3a0e5ee38243ac40bdb"
+dependencies = [
+ "rand_core",
+]
+
+[[package]]
 name = "rand_xorshift"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5051,6 +5509,42 @@ dependencies = [
  "getrandom",
  "libredox",
  "thiserror",
+]
+
+[[package]]
+name = "reedline"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f8c676a3f3814a23c6a0fc9dff6b6c35b2e04df8134aae6f3929cc34de21a53"
+dependencies = [
+ "chrono",
+ "crossbeam",
+ "crossterm",
+ "fd-lock",
+ "itertools 0.12.1",
+ "nu-ansi-term 0.50.1",
+ "serde",
+ "strip-ansi-escapes",
+ "strum",
+ "strum_macros",
+ "thiserror",
+ "unicode-segmentation",
+ "unicode-width",
+]
+
+[[package]]
+name = "reedline-repl-rs"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea7d1add283dfbc9373f3997a778e52c7a0af28ae1a039e726cda2c38fd6b548"
+dependencies = [
+ "clap",
+ "crossterm",
+ "nu-ansi-term 0.50.1",
+ "reedline",
+ "regex",
+ "winapi-util",
+ "yansi 1.0.1",
 ]
 
 [[package]]
@@ -6044,6 +6538,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
+name = "signal-hook"
+version = "0.3.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8621587d4798caf8eb44879d42e56b9a93ea5dcd315a6487c357130095b62801"
+dependencies = [
+ "libc",
+ "signal-hook-registry",
+]
+
+[[package]]
+name = "signal-hook-mio"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34db1a06d485c9142248b7a054f034b349b212551f3dfd19c94d45a754a217cd"
+dependencies = [
+ "libc",
+ "mio",
+ "signal-hook",
+]
+
+[[package]]
 name = "signal-hook-registry"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6169,23 +6684,23 @@ dependencies = [
  "num",
  "num-bigint 0.4.6",
  "num_cpus",
- "p3-air",
- "p3-baby-bear",
+ "p3-air 0.1.3-succinct",
+ "p3-baby-bear 0.1.3-succinct",
  "p3-blake3",
- "p3-challenger",
- "p3-commit",
- "p3-dft",
- "p3-field",
- "p3-fri",
- "p3-keccak",
+ "p3-challenger 0.1.3-succinct",
+ "p3-commit 0.1.3-succinct",
+ "p3-dft 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-fri 0.1.3-succinct",
+ "p3-keccak 0.1.3-succinct",
  "p3-keccak-air",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-merkle-tree",
+ "p3-matrix 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-merkle-tree 0.1.3-succinct",
  "p3-poseidon2",
- "p3-symmetric",
- "p3-uni-stark",
- "p3-util",
+ "p3-symmetric 0.1.3-succinct",
+ "p3-uni-stark 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "rand",
  "rayon-scan",
  "rrs-succinct",
@@ -6223,10 +6738,10 @@ source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.1#dd032eb23949828
 dependencies = [
  "itertools 0.13.0",
  "lazy_static",
- "p3-baby-bear",
- "p3-field",
+ "p3-baby-bear 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
  "p3-poseidon2",
- "p3-symmetric",
+ "p3-symmetric 0.1.3-succinct",
 ]
 
 [[package]]
@@ -6242,11 +6757,11 @@ dependencies = [
  "itertools 0.13.0",
  "num-bigint 0.4.6",
  "oneshot",
- "p3-baby-bear",
+ "p3-baby-bear 0.1.3-succinct",
  "p3-bn254-fr",
- "p3-challenger",
- "p3-commit",
- "p3-field",
+ "p3-challenger 0.1.3-succinct",
+ "p3-commit 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
  "rayon",
  "serde",
  "serde_json",
@@ -6272,14 +6787,14 @@ source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.1#dd032eb23949828
 dependencies = [
  "bincode",
  "itertools 0.13.0",
- "p3-air",
- "p3-baby-bear",
+ "p3-air 0.1.3-succinct",
+ "p3-baby-bear 0.1.3-succinct",
  "p3-bn254-fr",
- "p3-commit",
- "p3-field",
- "p3-fri",
- "p3-matrix",
- "p3-util",
+ "p3-commit 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-fri 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "serde",
  "sp1-core",
  "sp1-recursion-compiler",
@@ -6295,16 +6810,16 @@ source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.1#dd032eb23949828
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
- "p3-air",
- "p3-baby-bear",
+ "p3-air 0.1.3-succinct",
+ "p3-baby-bear 0.1.3-succinct",
  "p3-bn254-fr",
- "p3-commit",
- "p3-field",
- "p3-fri",
- "p3-matrix",
+ "p3-commit 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-fri 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
  "p3-poseidon2",
- "p3-symmetric",
- "p3-util",
+ "p3-symmetric 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "serde",
  "sp1-core",
  "sp1-primitives",
@@ -6324,20 +6839,20 @@ dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
  "num_cpus",
- "p3-air",
- "p3-baby-bear",
+ "p3-air 0.1.3-succinct",
+ "p3-baby-bear 0.1.3-succinct",
  "p3-bn254-fr",
- "p3-challenger",
- "p3-commit",
- "p3-dft",
- "p3-field",
- "p3-fri",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-merkle-tree",
+ "p3-challenger 0.1.3-succinct",
+ "p3-commit 0.1.3-succinct",
+ "p3-dft 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-fri 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-merkle-tree 0.1.3-succinct",
  "p3-poseidon2",
- "p3-symmetric",
- "p3-util",
+ "p3-symmetric 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "serde",
  "serde_with",
  "sp1-core",
@@ -6371,9 +6886,9 @@ dependencies = [
  "hex",
  "log",
  "num-bigint 0.4.6",
- "p3-baby-bear",
- "p3-field",
- "p3-symmetric",
+ "p3-baby-bear 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-symmetric 0.1.3-succinct",
  "rand",
  "serde",
  "serde_json",
@@ -6389,19 +6904,19 @@ version = "1.0.1"
 source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.1#dd032eb23949828d244d1ad1f1569aa78155837c"
 dependencies = [
  "itertools 0.13.0",
- "p3-air",
- "p3-baby-bear",
- "p3-challenger",
- "p3-commit",
- "p3-dft",
- "p3-field",
- "p3-fri",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-merkle-tree",
+ "p3-air 0.1.3-succinct",
+ "p3-baby-bear 0.1.3-succinct",
+ "p3-challenger 0.1.3-succinct",
+ "p3-commit 0.1.3-succinct",
+ "p3-dft 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-fri 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
+ "p3-maybe-rayon 0.1.3-succinct",
+ "p3-merkle-tree 0.1.3-succinct",
  "p3-poseidon2",
- "p3-symmetric",
- "p3-util",
+ "p3-symmetric 0.1.3-succinct",
+ "p3-util 0.1.3-succinct",
  "rand",
  "serde",
  "sp1-core",
@@ -6431,11 +6946,11 @@ dependencies = [
  "indicatif",
  "log",
  "num-bigint 0.4.6",
- "p3-baby-bear",
- "p3-commit",
- "p3-field",
- "p3-fri",
- "p3-matrix",
+ "p3-baby-bear 0.1.3-succinct",
+ "p3-commit 0.1.3-succinct",
+ "p3-field 0.1.3-succinct",
+ "p3-fri 0.1.3-succinct",
+ "p3-matrix 0.1.3-succinct",
  "prost",
  "reqwest 0.12.8",
  "reqwest-middleware",
@@ -6517,6 +7032,15 @@ dependencies = [
  "parking_lot",
  "phf_shared 0.10.0",
  "precomputed-hash",
+]
+
+[[package]]
+name = "strip-ansi-escapes"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55ff8ef943b384c414f54aefa961dd2bd853add74ec75e7ac74cf91dba62bcfa"
+dependencies = [
+ "vte",
 ]
 
 [[package]]
@@ -6788,6 +7312,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
 dependencies = [
  "crunchy",
+]
+
+[[package]]
+name = "tinytemplate"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be4d6b5f19ff7664e8c98d03e2139cb510db9b0a60b55f8e8709b689d939b6bc"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -7079,7 +7613,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad0f048c97dbd9faa9b7df56362b8ebcaa52adb06b498c050d2f4e32f90a7a8b"
 dependencies = [
  "matchers",
- "nu-ansi-term",
+ "nu-ansi-term 0.46.0",
  "once_cell",
  "regex",
  "sharded-slab",
@@ -7231,6 +7765,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "unicode-segmentation"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
+
+[[package]]
 name = "unicode-width"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7306,6 +7846,295 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
 
 [[package]]
+name = "valida"
+version = "0.1.0"
+dependencies = [
+ "ciborium",
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-challenger 0.1.0",
+ "p3-commit 0.1.0",
+ "p3-dft 0.1.0",
+ "p3-field 0.1.0",
+ "p3-fri 0.1.0",
+ "p3-goldilocks",
+ "p3-keccak 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-mds 0.1.0",
+ "p3-merkle-tree 0.1.0",
+ "p3-poseidon",
+ "p3-symmetric 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "p3-util 0.1.0",
+ "rand_pcg",
+ "rand_seeder",
+ "valida-basic",
+ "valida-cpu",
+ "valida-elf",
+ "valida-machine",
+ "valida-program",
+ "valida-static-data",
+]
+
+[[package]]
+name = "valida-alu-u32"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "itertools 0.12.1",
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "valida-bus",
+ "valida-cpu",
+ "valida-derive",
+ "valida-machine",
+ "valida-memory",
+ "valida-opcodes",
+ "valida-range",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-assembler"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "byteorder",
+ "clap",
+ "pest",
+ "pest_derive",
+ "pest_generator",
+ "pest_meta",
+ "valida-opcodes",
+]
+
+[[package]]
+name = "valida-basic"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "byteorder",
+ "ciborium",
+ "clap",
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-challenger 0.1.0",
+ "p3-commit 0.1.0",
+ "p3-dft 0.1.0",
+ "p3-field 0.1.0",
+ "p3-fri 0.1.0",
+ "p3-goldilocks",
+ "p3-keccak 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-mds 0.1.0",
+ "p3-merkle-tree 0.1.0",
+ "p3-poseidon",
+ "p3-symmetric 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "p3-util 0.1.0",
+ "rand",
+ "rand_pcg",
+ "rand_seeder",
+ "reedline-repl-rs",
+ "tracing",
+ "valida-alu-u32",
+ "valida-assembler",
+ "valida-bus",
+ "valida-cpu",
+ "valida-derive",
+ "valida-elf",
+ "valida-machine",
+ "valida-memory",
+ "valida-opcodes",
+ "valida-output",
+ "valida-program",
+ "valida-range",
+ "valida-static-data",
+]
+
+[[package]]
+name = "valida-bus"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "valida-machine",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-cpu"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "valida-bus",
+ "valida-derive",
+ "valida-machine",
+ "valida-memory",
+ "valida-opcodes",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-derive"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "valida-elf"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "elf",
+ "valida-machine",
+]
+
+[[package]]
+name = "valida-machine"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "byteorder",
+ "itertools 0.12.1",
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-challenger 0.1.0",
+ "p3-commit 0.1.0",
+ "p3-dft 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "p3-util 0.1.0",
+ "serde",
+ "tracing",
+ "valida-opcodes",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-memory"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "valida-bus",
+ "valida-derive",
+ "valida-machine",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-opcodes"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "num_enum 0.5.11",
+]
+
+[[package]]
+name = "valida-output"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "valida-bus",
+ "valida-cpu",
+ "valida-derive",
+ "valida-machine",
+ "valida-memory",
+ "valida-opcodes",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-program"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "p3-air 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "valida-bus",
+ "valida-derive",
+ "valida-machine",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-range"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "valida-bus",
+ "valida-machine",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-static-data"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "p3-air 0.1.0",
+ "p3-baby-bear 0.1.0",
+ "p3-field 0.1.0",
+ "p3-matrix 0.1.0",
+ "p3-maybe-rayon 0.1.0",
+ "p3-uni-stark 0.1.0",
+ "valida-bus",
+ "valida-derive",
+ "valida-machine",
+ "valida-memory",
+ "valida-util",
+]
+
+[[package]]
+name = "valida-util"
+version = "0.1.0"
+source = "git+https://github.com/valida-xyz/valida.git?branch=main#a39c986f328457239aadcf8917e943dfaf4df875"
+dependencies = [
+ "p3-field 0.1.0",
+]
+
+[[package]]
 name = "valuable"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7341,6 +8170,26 @@ name = "vsimd"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c3082ca00d5a5ef149bb8b555a72ae84c9c59f7250f013ac822ac2e49b19c64"
+
+[[package]]
+name = "vte"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5022b5fbf9407086c180e9557be968742d839e68346af7792b8592489732197"
+dependencies = [
+ "utf8parse",
+ "vte_generate_state_changes",
+]
+
+[[package]]
+name = "vte_generate_state_changes"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e369bee1b05d510a7b4ed645f5faa90619e05437111783ea5848f28d97d3c2e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
 
 [[package]]
 name = "wait-timeout"
@@ -7798,6 +8647,12 @@ name = "yansi"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
+
+[[package]]
+name = "yansi"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "zerocopy"

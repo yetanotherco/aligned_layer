@@ -174,6 +174,73 @@ aligned submit \
 
 For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
 
+## Lita 
+
+### Dependencies
+
+This guide assumes that:
+
+- You have Lita `v0.3.0` installed with `clang` and `llvm-valida` clang compiler (instructions [here](https://lita.gitbook.io/lita-documentation/quick-start/getting-started-with-llvm-valida#build))
+- aligned installed (instructions [here](../1_introduction/1_getting_started.md#quickstart))
+
+### How to generate a proof
+
+> Aligned only verifies Lita `v0.1.0`, which is only supported on linux.
+
+First, install lita `v0.1.0`: 
+
+```bash
+wget https://github.com/lita-xyz/llvm-valida-releases/releases/download/v0.1.0-alpha/llvm-valida-v0.1.0-alpha-linux-x86_64.tar.gz
+```
+
+Then compile your program with clang;
+
+```bash
+./clang -c -target delendum <your_program>.c -o <your_program>.o
+```
+
+Link the object file:
+
+```bash
+./ld.lld --script=valida.ld -o <your_program>.bin <your_program>.o
+```
+
+Then, to create your proof do:
+
+```bash
+./valida proof <your_program>.bin <your_program>.poof
+```
+
+You can valida it doing:
+
+```bash
+./valida verify <your_program>.bin <your_program>.poof
+```
+
+### How to get the proof verified by Aligned
+
+After generating the proof, you will have to find two different files:
+
+- **proof file**
+- **elf file**
+
+Then, you can send the proof to the Aligned network by running the following command
+
+```bash
+aligned submit \
+--proving_system Valida \
+--proof <proof_path> \
+--vm_program <vm_program_path> \
+--batcher_url wss://batcher.alignedlayer.com \
+--proof_generator_addr <proof_generator_addr> \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+```
+
+Where `proof_path` is the path to the proof file, `vm_program_path` is the path to the ELF file. `proof_generator_addr` is an optional parameter that works as a helper for some applications where you can be frontrunned.
+
+For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
+
 ## ZkRust
 
 `zkRust` is a CLI tool maintained by Aligned that aims to simplify the developing applications in Rust using zkVM's such as SP1 or Risc0.

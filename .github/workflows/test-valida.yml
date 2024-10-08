@@ -1,0 +1,28 @@
+name: test-valida
+
+on:
+  merge_group:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["*"]
+    paths:
+      - 'operator/valida/**'
+      - '.github/workflows/test-valida.yml'
+
+jobs:
+    test:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-go@v5
+          with:
+            go-version: '1.22'
+            cache: false
+        - uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+        - name: Test Valida Rust
+          run: make test_valida_rust_ffi
+        - name: Test Valida go bindings
+          run: make test_valida_go_bindings_linux

@@ -32,6 +32,7 @@ pub enum ProvingSystemId {
     #[default]
     SP1,
     Risc0,
+    Valida,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -1,5 +1,6 @@
 .PHONY: help tests
 
+SHELL := /bin/bash
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
@@ -112,7 +113,7 @@ operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/valida/lib" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -365,6 +366,27 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
+batcher_send_valida_task: batcher/target/release/aligned
+	@echo "Sending Valida fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Valida \
+		--proof ../../scripts/test_files/valida/fibonacci.proof \
+		--vm_program ../../scripts/test_files/valida/fibonacci.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_valida_burst: batcher/target/release/aligned
+	@echo "Sending Valida fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Valida \
+		--proof ../../scripts/test_files/valida/fibonacci.proof \
+		--vm_program ../../scripts/test_files/valida/fibonacci.bin \
+		--repetitions $(BURST_SIZE) \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
@@ -557,6 +579,29 @@ test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree_old/... -v
 
+
+__VALIDA_FFI__: ##
+build_valida_macos:
+	@cd operator/valida/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/valida/lib/target/$(TARGET_REL_PATH)/libvalida_verifier_ffi.dylib operator/valida/lib/libvalida_verifier_ffi.dylib
+
+build_valida_linux:
+	@cd operator/valida/lib && cargo build $(RELEASE_FLAG)
+	@cp operator/valida/lib/target/$(TARGET_REL_PATH)/libvalida_verifier_ffi.so operator/valida/lib/libvalida_verifier_ffi.so
+
+test_valida_rust_ffi:
+	@echo "Testing RISC Zero Rust FFI source code..."
+	@cd operator/valida/lib && cargo test --release
+
+test_valida_go_bindings_macos: build_valida_macos
+	@echo "Testing RISC Zero Go bindings..."
+	go test ./operator/valida/... -v
+
+test_valida_go_bindings_linux: build_valida_linux
+	@echo "Testing RISC Zero Go bindings..."
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/valida/lib \
+	go test ./operator/valida/... -v
+
 __BUILD_ALL_FFI__:
 
 build_all_ffi: ## Build all FFIs
@@ -569,6 +614,7 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_merkle_tree_macos_old
+	@$(MAKE) build_valida_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -577,6 +623,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_merkle_tree_linux_old
+	@$(MAKE) build_valida_linux
 	@echo "All Linux FFIs built successfully."
 
 

@@ -229,6 +229,8 @@ pub enum ProvingSystemArg {
     SP1,
     #[clap(name = "Risc0")]
     Risc0,
+    #[clap(name = "Valida")]
+    Valida,
 }
 
 const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
@@ -241,6 +243,7 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::Groth16Bn254 => ProvingSystemId::Groth16Bn254,
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
+            ProvingSystemArg::Valida => ProvingSystemId::Valida,
         }
     }
 }
@@ -509,6 +512,12 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
             pub_input = Some(read_file_option(
                 "--public_input",
                 args.pub_input_file_name.clone(),
+            )?);
+        }
+        ProvingSystemId::Valida => {
+            vm_program_code = Some(read_file_option(
+                "--vm_program",
+                args.vm_program_code_file_name.clone(),
             )?);
         }
         ProvingSystemId::GnarkPlonkBls12_381
