@@ -344,10 +344,30 @@ async fn send_multiple_senders_infinite_proofs(
     burst_time: u64,
     max_fee: U256,
 ) {
+    info!("Loading wallets");
+    let mut senders = vec![];
+    let Ok(chain_id) = get_chain_id(&eth_rpc_url).await else {
+        error!("Could not get chain_id");
+        return;
+    };
+
     // now here we need to load the senders
+    for i in 0..num_senders {
+        let file_path = base_dir.join(format!("{}/private_key-{}", WALLETS_DIR, i));
+        let Ok(private_key_str) = std::fs::read(file_path) else {
+            error!("Could not read private key");
+            return;
+        };
+        let wallet = Wallet::from_bytes(private_key_str.as_slice()).expect("Invalid private key");
+        let wallet = wallet.with_chain_id(chain_id);
+        let sender = Sender { wallet };
+
+        info!("Wallet {} loaded", i);
+        senders.push(sender);
+    }
 
     send_infinite_proofs(
-        vec![],
+        senders,
         base_dir,
         eth_rpc_url,
         batcher_url,
