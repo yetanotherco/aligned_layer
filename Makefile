@@ -378,11 +378,13 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 __TASK_SENDER__:
 task_sender_generate_groth16_proofs:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action generate-proofs
+	cargo run --release -- --action generate-proofs --number-of-proofs $(NUMBER_PROOFS)
 
 task_sender_generate_and_fund_wallets:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action generate-and-fund-wallets --num-senders $(NUM_SENDERS)
+	cargo run --release -- --action generate-and-fund-wallets \
+	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) --amount-to-deposit-to-aligned \
+	$(AMOUNT_TO_DEPOSIT_TO_ALIGNED) --num-senders $(NUM_SENDERS)
 
 task_sender_infinite_proofs:
 	@cd batcher/aligned-task-sender && \

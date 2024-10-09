@@ -92,6 +92,21 @@ pub struct Args {
         default_value = "devnet"
     )]
     network: NetworkArg,
+    #[arg(
+        name = "The number of proofs to generate in generate-proofs",
+        long = "number-of-proofs"
+    )]
+    number_of_proofs: Option<usize>,
+    #[arg(
+        name = "The amount to deposit to the wallets in generate-and-fund-wallets",
+        long = "amount-to-deposit"
+    )]
+    amount_to_deposit: Option<String>,
+    #[arg(
+        name = "The amount to deposit to aligned in generate-and-fund-wallets",
+        long = "amount-to-deposit-to-aligned"
+    )]
+    amount_to_deposit_to_aligned: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -188,8 +203,10 @@ async fn main() -> Result<(), AlignedError> {
                 funding_wallet,
                 base_dir,
                 args.num_senders,
-                "1".to_string(),
-                "0.1".to_string(),
+                args.amount_to_deposit
+                    .expect("Amount to deposit not provided"),
+                args.amount_to_deposit_to_aligned
+                    .expect("Amount to deposit to aligned not provided"),
                 args.eth_rpc_url.clone(),
                 args.network.into(),
             )
@@ -208,7 +225,10 @@ async fn main() -> Result<(), AlignedError> {
             )
             .await;
         }
-        Action::GenerateProofs => generate_proofs(50)?,
+        Action::GenerateProofs => generate_proofs(
+            args.number_of_proofs
+                .expect("Number of proofs not provided provided"),
+        )?,
         Action::CleanProofs => {
             if let Err(e) = std::fs::remove_dir_all(GROTH_16_PROOF_DIR) {
                 error!("Failed to remove {}: {}", GROTH_16_PROOF_DIR, e);
@@ -293,10 +313,13 @@ async fn generate_and_fund_wallets(
 
         let wallet = Wallet::new(&mut thread_rng());
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), funding_wallet.clone());
+        let amount_to_deposit =
+            parse_ether(&amount_to_deposit).expect("Ether format should be: XX.XX");
+        info!("Depositing {}wei to wallet {}", amount_to_deposit, i);
         let tx = TransactionRequest::new()
             .from(funding_wallet.address())
             .to(wallet.address())
-            .value(parse_ether(&amount_to_deposit).expect("Ether format should be: XX.XX"));
+            .value(amount_to_deposit);
 
         let pending_transaction = match signer.send_transaction(tx, None).await {
             Ok(tx) => tx,
@@ -310,18 +333,20 @@ async fn generate_and_fund_wallets(
         }
         let wallet = wallet.with_chain_id(chain_id);
         info!("Wallet {} funded", i);
-        info!("Depositing to aligned");
+
+        let amount_to_deposit_to_aligned =
+            parse_ether(&amount_to_deposit_aligned).expect("Ether format should be: XX.XX");
+        info!(
+            "Depositing {}wei to aligned {}",
+            amount_to_deposit_to_aligned, i
+        );
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
-        if let Err(err) = deposit_to_aligned(
-            parse_ether(&amount_to_deposit_aligned).expect("Ether format should be: XX.XX"),
-            signer,
-            network,
-        )
-        .await
-        {
+        if let Err(err) = deposit_to_aligned(amount_to_deposit_to_aligned, signer, network).await {
             error!("Could not deposit to aligned, err: {:?}", err);
             return;
         }
+        info!("Successfully deposited to aligned for wallet {}", i);
+
         info!("Storing private key");
         let file_path = base_dir.join(format!("{}/private_key-{}", WALLETS_DIR, i));
 
@@ -436,7 +461,7 @@ async fn send_infinite_proofs(
     }
 }
 
-fn generate_proofs(number: u64) -> Result<(), SubmitError> {
+fn generate_proofs(number: usize) -> Result<(), SubmitError> {
     std::fs::create_dir_all(GROTH_16_PROOF_DIR)
         .map_err(|e| SubmitError::IoError(PathBuf::from(GROTH_16_PROOF_DIR), e))?;
 
