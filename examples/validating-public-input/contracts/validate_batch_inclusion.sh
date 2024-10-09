@@ -26,14 +26,14 @@ if [ -z "$PRIVATE_KEY" ]; then
     exit 1
 fi
 
-proof_commitment=$(jq -r '.proof_commitment' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME.json")
-pub_input_commitment=$(jq -r '.pub_input_commitment' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME.json")
-program_id_commitment=$(jq -r '.program_id_commitment' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME.json")
-proof_generator_addr=$(jq -r '.proof_generator_addr' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME.json")
-batch_merkle_root=$(jq -r '.batch_merkle_root' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME.json")
-merkle_proof=$(jq -r '.merkle_proof' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME.json")
-verification_data_batch_index=$(jq -r '.verification_data_batch_index' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME.json")
-pub_input=$(jq -r '.pub_input' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME.json")
+proof_commitment=$(jq -r '.proof_commitment' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME")
+pub_input_commitment=$(jq -r '.pub_input_commitment' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME")
+program_id_commitment=$(jq -r '.program_id_commitment' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME")
+proof_generator_addr=$(jq -r '.proof_generator_addr' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME")
+batch_merkle_root=$(jq -r '.batch_merkle_root' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME")
+merkle_proof=$(jq -r '.merkle_proof' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME")
+verification_data_batch_index=$(jq -r '.verification_data_batch_index' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME")
+pub_input=$(jq -r '.pub_input' "../aligned-integration/batch_inclusion_data/$DATA_FILE_NAME")
 
 cast send --rpc-url $RPC_URL $FIBONACCI_VALIDATOR_ADDRESS \
 	"verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256, bytes, string)" \

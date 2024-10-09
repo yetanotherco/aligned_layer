@@ -13,12 +13,12 @@ This example is designed to do either with SP1 or risc0 proofs these are the com
 2. `make submit_fibonacci_risc0_proof_devnet`
 
 > The command will log the file where all the aligned verification data was saved, save the name since it will be necessary.
-3. `deploy_local_fibonacci_validator`
+3. `make deploy_fibonacci_validator_devnet`
 
 > The command will log the address where the validator was deployed, save it for the next command.
-4. `make verify_risc0_local_batch_inclusion <FIBONACCI_VALIDATOR_ADDRESS> <DATA_FILE_NAME>`
+4. `make verify_risc0_batch_inclusion_devnet FIBONACCI_VALIDATOR_ADDRESS=<FIBONACCI_VALIDATOR_ADDRESS> DATA_FILE_NAME=<DATA_FILE_NAME>`
 
-Where `FIBONACCI_VALIDATOR_ADDRESS` is the address of the deployed validator contract and `DATA_FILE_NAME` the name of the file where the aligned verification data was saved (without the extension `.json`).
+Where `FIBONACCI_VALIDATOR_ADDRESS` is the address of the deployed validator contract and `DATA_FILE_NAME` the name of the file where the aligned verification data was saved (including the extension `.json`).
 
 ### SP1
 
@@ -27,9 +27,9 @@ Where `FIBONACCI_VALIDATOR_ADDRESS` is the address of the deployed validator con
 2. `make submit_fibonacci_sp1_proof_devnet`
 
 > The command will log the file where all the aligned verification data was saved, save the name since it will be necessary.
-3. `deploy_local_fibonacci_validator`
+3. `make deploy_fibonacci_validator_devnet`
 
 > The command will log the address where the validator was deployed, save it for the next command.
-4. `make verify_sp1_local_batch_inclusion <FIBONACCI_VALIDATOR_ADDRESS> <DATA_FILE_NAME>`
+4. `make verify_sp1_batch_inclusion_devnet FIBONACCI_VALIDATOR_ADDRESS=<FIBONACCI_VALIDATOR_ADDRESS> DATA_FILE_NAME=<DATA_FILE_NAME>`
 
-Where `FIBONACCI_VALIDATOR_ADDRESS` is the address of the deployed validator contract and `DATA_FILE_NAME` the name of the file where the aligned verification data was saved (without the extension `.json`).
+Where `FIBONACCI_VALIDATOR_ADDRESS` is the address of the deployed validator contract and `DATA_FILE_NAME` the name of the file where the aligned verification data was saved (including the extension `.json`).
