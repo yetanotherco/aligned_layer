@@ -414,10 +414,8 @@ impl Batcher {
                     return Ok(());
                 }
             };
-            let verification_data = nonced_verification_data.verification_data.clone();
-            if disabled_verifiers & (U256::one() << verification_data.proving_system as u64)
-                != U256::zero()
-            {
+            let verification_data = &nonced_verification_data.verification_data;
+            if zk_utils::is_verifier_disabled(disabled_verifiers, verification_data) {
                 warn!(
                     "Verifier for proving system {} is disabled, skipping verification",
                     verification_data.proving_system
@@ -430,7 +428,7 @@ impl Batcher {
                 return Ok(());
             }
 
-            if !zk_utils::verify(&verification_data).await {
+            if !zk_utils::verify(verification_data).await {
                 error!("Invalid proof detected. Verification failed");
                 send_message(
                     ws_conn_sink.clone(),
