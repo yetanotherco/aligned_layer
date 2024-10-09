@@ -9,8 +9,5 @@
   },
   "permissions": {
     "owner": "<owner_address>"
-  },
-  "eip712": {
-    "noncedVerificationDataTypeHash": "41817b5c5b0c3dcda70ccb43ba175fdcd7e586f9e0484422a2c6bba678fdf4a3"
   }
 }
