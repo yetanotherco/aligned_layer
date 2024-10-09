@@ -8,14 +8,14 @@ If you are unfamiliar with ZK and why this is useful, see [Why ZK and Aligned?](
 
 ## Mission
 
-Our mission is to accelerate Ethereum's roadmap and the adoption of verifiable computation by enabling fast and economical verification of ZK and validity proofs. 
+Our mission is to accelerate Ethereum's roadmap and the adoption of verifiable computation by enabling fast and economical verification of ZK and validity proofs.
 
 ## What real value does Aligned bring to the table?
 
 Blockchains are verifiable computers.
-We live in a chaotic world where there will be a huge demand for computation that needs to be trusted. 
+We live in a chaotic world where there will be a huge demand for computation that needs to be trusted.
 
-Current blockchain models are inefficient: each node must re-execute each transaction or operation, making the weakest and slowest devices the bottleneck. Unlike in Web2, where adding more hardware can increase performance, in these systems, additional hardware primarily enhances reliability rather than speed. Alternative L1s to Ethereum make trade-offs, accepting bigger hardware or changing the consensus to be faster but with fewer security guarantees. In other words, they reduce costs and increase speed at a great expense of lower security guarantees. 
+Current blockchain models are inefficient: each node must re-execute each transaction or operation, making the weakest and slowest devices the bottleneck. Unlike in Web2, where adding more hardware can increase performance, in these systems, additional hardware primarily enhances reliability rather than speed. Alternative L1s to Ethereum make trade-offs, accepting bigger hardware or changing the consensus to be faster but with fewer security guarantees. In other words, they reduce costs and increase speed at a great expense of lower security guarantees.
 
 On the other hand, Zero-knowledge/validity proofs (ZK) provide a new framework where we do not have to make such compromises. The basic premise is that a party can generate a very short proof of a computation, and the nodes can quickly verify that proof instead of re-executing the computation. The computation can be quite large, comprising many different transactions. This enables the delegation of execution off-chain with the same guarantees, leading to increased throughput and lower operational costs. This led to the rollup-centric roadmap of Ethereum, featuring multiple L2s, but at the expense of fragmented liquidity and complex user experience. Many of these problems could be solved by ZK bridges, but they remain expensive, and the go-to-market time is high.
 
@@ -63,25 +63,24 @@ Other solutions focus on building a separate L1 for proof verification (which se
 
 The following table contains costs estimates for Aligned, assuming a batch size of 20 proofs.
 
-| Proof system | Ethereum | Aligned - Fast mode | Aligned - Aggregation |
-| --------     | -------- | --------            | ----------            |
-| Groth16      | 250,000     | 40,000     | TBD |
-| STARKs       | >1,000,000  | 40,000    | TBD |
-| Kimchi-IPA   | ??????  | 40,000    | TBD |
-| Halo2-KZG    | 350,000 | 40,000    | TBD |
-| Binius.      | ??????  | 40,000    | TBD |
+| Proof system | Ethereum   | Aligned - Fast mode | Aligned - Aggregation |
+| ------------ | ---------- | ------------------- | --------------------- |
+| Groth16      | 250,000    | 40,000              | TBD                   |
+| STARKs       | >1,000,000 | 40,000              | TBD                   |
+| Kimchi-IPA   | ??????     | 40,000              | TBD                   |
+| Binius.      | ??????     | 40,000              | TBD                   |
 
 ## Why are we building Aligned?
 
 In recent months, we have witnessed the development and enhancement of general proving virtual machines such as Risc0, Valida, Jolt, and SP1. These innovations allow users to write ordinary code in languages like Rust or C and generate proofs demonstrating the integrity of computations. This evolution is poised to transform application development, provided we have verification networks with high throughput and low cost. This is the core vision of Aligned and the reason we are building it: the future belongs to provable applications.
 
-Currently, proof verification in Ethereum is expensive and throughput is limited to around 10 proofs per second. The cost depends on the proof system used, and the availability of precompiles. Groth16 costs around 250,000 gas, STARKs, over 1,000,000, and other proof systems are too expensive to be used in Ethereum. 
+Currently, proof verification in Ethereum is expensive and throughput is limited to around 10 proofs per second. The cost depends on the proof system used, and the availability of precompiles. Groth16 costs around 250,000 gas, STARKs, over 1,000,000, and other proof systems are too expensive to be used in Ethereum.
 
 Proof technology has been evolving over the last decade, with new arguments, fields, commitments and other tools appearing every day. It is hard to try new ideas if verification costs are high, and there is a considerable go-to-market time, as a consequence of development time of new, gas-optimized smart contracts, or the inclusion of new precompiles to make them affordable.
 
-Aligned provides an alternative to reduce costs and increase throughput significantly. This is achieved by two different modes: **fast mode** and **aggregation mode**. 
+Aligned provides an alternative to reduce costs and increase throughput significantly. This is achieved by two different modes: **fast mode** and **aggregation mode**.
 
-The fast mode works with a subset of Ethereum’s validators via restaking. Validators (also known as Operators) receive proofs, verify them using the verification code written in Rust or any other higher-level language, and then sign messages with BLS signatures. If a two-thirds (2/3) majority agrees, the results are posted in Ethereum. 
+The fast mode works with a subset of Ethereum’s validators via restaking. Validators (also known as Operators) receive proofs, verify them using the verification code written in Rust or any other higher-level language, and then sign messages with BLS signatures. If a two-thirds (2/3) majority agrees, the results are posted in Ethereum.
 
 Since Aligned’s operators only need to run the verification code on bare metal, we have several advantages compared to running it on top of the EVM:
 
@@ -91,3 +90,7 @@ Since Aligned’s operators only need to run the verification code on bare metal
 - Adding new proof systems is straightforward.
 
 Preliminary numbers show that Aligned can verify more than 1000 proofs per second, over two orders of magnitude than the EVM at nominal capacity. Using effective batching techniques, we can split the task creation and verification cost between thousands of proofs.
+
+## Future additions
+
+- Propagation of the results to different L2s

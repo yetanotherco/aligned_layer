@@ -1,10 +1,10 @@
 #![feature(slice_flatten)]
-
 use std::io;
-use std::str::FromStr;
-use std::sync::Arc;
 
-use aligned_sdk::core::types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData};
+use aligned_sdk::core::types::{
+    AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
+};
+use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
 use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
@@ -13,14 +13,10 @@ use ethers::providers::{Http, Provider};
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::{Address, Bytes, H160, U256};
 use sp1_sdk::{ProverClient, SP1Stdin};
-use aligned_sdk::sdk::get_payment_service_address;
 
 abigen!(VerifierContract, "VerifierContract.json",);
 
-const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
-
-const NETWORK: Network = Network::Holesky;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -33,25 +29,50 @@ struct Args {
         default_value = "https://ethereum-holesky-rpc.publicnode.com"
     )]
     rpc_url: String,
+    #[arg(short, long, default_value = "wss://batcher.alignedlayer.com")]
+    batcher_url: String,
+    #[arg(short, long, default_value = "holesky")]
+    network: Network,
     #[arg(short, long)]
     verifier_contract_address: H160,
 }
 
 #[tokio::main]
 async fn main() {
+    println!("Welcome to the zkQuiz! Answer questions, generate a zkProof, and claim your NFT!");
+
     let args = Args::parse();
+    let rpc_url = args.rpc_url.clone();
 
     let keystore_password = rpassword::prompt_password("Enter keystore password: ")
         .expect("Failed to read keystore password");
 
+    let provider =
+        Provider::<Http>::try_from(rpc_url.as_str()).expect("Failed to connect to provider");
+
+    let chain_id = provider
+        .get_chainid()
+        .await
+        .expect("Failed to get chain_id");
+
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
-        .with_chain_id(17000u64);
+        .with_chain_id(chain_id.as_u64());
+
+    let signer = SignerMiddleware::new(provider.clone(), wallet.clone());
+
+    if Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
+        .with_prompt("Do you want to deposit 0.004eth in Aligned ?\nIf you already deposited Ethereum to Aligned before, this is not needed")
+        .interact()
+        .expect("Failed to read user input") {   
+
+        deposit_to_aligned(U256::from(4000000000000000u128), signer.clone(), args.network).await
+        .expect("Failed to pay for proof submission");
+    }
 
     // Generate proof.
     let mut stdin = SP1Stdin::new();
 
-    println!("Welcome to the quiz! Please answer the following questions to generate a proof for the program.");
     println!(
         "You will be asked 3 questions. Please answer with the corresponding letter (a, b or c)."
     );
@@ -70,86 +91,78 @@ async fn main() {
     user_awnsers.push(ask_question(question3, &answers3));
 
     stdin.write(&user_awnsers);
+
     println!("Generating Proof ");
 
     let client = ProverClient::new();
     let (pk, vk) = client.setup(ELF);
-    match client.prove(&pk, stdin).run() {
-        Ok(proof) => {
-            println!("Proof generated successfully. Verifying proof...");
 
-            client.verify(&proof, &vk).expect("verification failed");
+    let Ok(proof) = client.prove(&pk, stdin).run() else {
+        println!("Incorrect answers!");
+        return;
+    };
 
-            println!("Proof verified successfully.");
+    println!("Proof generated successfully. Verifying proof...");
+    client.verify(&proof, &vk).expect("verification failed");
+    println!("Proof verified successfully.");
 
-            let rpc_url = args.rpc_url.clone();
+    println!("Payment successful. Submitting proof...");
 
-            let provider = Provider::<Http>::try_from(rpc_url.as_str())
-                .expect("Failed to connect to provider");
+    // Serialize proof into bincode (format used by sp1)
+    let proof = bincode::serialize(&proof).expect("Failed to serialize proof");
 
-            let signer = Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
+    let verification_data = VerificationData {
+        proving_system: ProvingSystemId::SP1,
+        proof,
+        proof_generator_addr: wallet.address(),
+        vm_program_code: Some(ELF.to_vec()),
+        verification_key: None,
+        pub_input: None,
+    };
 
-            // Pay for proof submission
-            pay_batcher(wallet.address(), signer.clone())
-                .await
-                .expect("Failed to pay for proof submission");
+    let max_fee = estimate_fee(&rpc_url, PriceEstimate::Instant)
+        .await
+        .expect("failed to fetch gas price from the blockchain");
 
-            println!("Payment successful. Submitting proof...");
+    let max_fee_string = ethers::utils::format_units(max_fee, 18).unwrap();
 
-            // Serialize proof into bincode (format used by sp1)
-            let proof = bincode::serialize(&proof).expect("Failed to serialize proof");
+    if !Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
+        .with_prompt(format!("Aligned will use at most {max_fee_string} eth to verify your proof. Do you want to continue?"))
+        .interact()
+        .expect("Failed to read user input")
+    {   return; }
 
-            let verification_data = VerificationData {
-                proving_system: ProvingSystemId::SP1,
-                proof,
-                proof_generator_addr: wallet.address(),
-                vm_program_code: Some(ELF.to_vec()),
-                verification_key: None,
-                pub_input: None,
-            };
+    let nonce = get_next_nonce(&rpc_url, wallet.address(), args.network)
+        .await
+        .expect("Failed to get next nonce");
 
-            // Set a `max_fee` of 0.5 Eth
-            let max_fee = U256::from(5) * U256::from(100_000_000_000_000_000u128);
-            let nonce = get_next_nonce(&rpc_url, wallet.address(), NETWORK)
-                .await
-                .expect("Failed to get next nonce");
-            
-            match submit_and_wait_verification(
-                BATCHER_URL,
-                &rpc_url,
-                NETWORK,
-                &verification_data,
-                max_fee,
-                wallet.clone(),
-                nonce,
-            )
-            .await
-            {
-                Ok(aligned_verification_data) => {
-                    println!(
-                        "Proof submitted and verified successfully on batch {}, claiming prize...",
-                        hex::encode(aligned_verification_data.batch_merkle_root)
-                    );
+        println!("Submitting your proof...");
 
-                    if let Err(e) = verify_batch_inclusion(
-                        aligned_verification_data.clone(),
-                        signer.clone(),
-                        args.verifier_contract_address,
-                    )
-                    .await
-                    {
-                        println!("Failed to claim prize: {:?}", e);
-                    }
-                }
-                Err(e) => {
-                    println!("Proof verification failed: {:?}", e);
-                }
-            }
-        }
-        Err(_) => {
-            println!("Proof generation failed. Incorrect answer");
-        }
-    }
+    let aligned_verification_data = submit_and_wait_verification(
+        &args.batcher_url,
+        &rpc_url,
+        args.network,
+        &verification_data,
+        max_fee,
+        wallet.clone(),
+        nonce,
+    )
+    .await
+    .unwrap();
+
+    println!(
+        "Proof submitted and verified successfully on batch {}",
+        hex::encode(aligned_verification_data.batch_merkle_root)
+    );
+    println!("Claiming NFT prize...");
+
+    claim_nft_with_verified_proof(
+        &aligned_verification_data,
+        signer,
+        &args.verifier_contract_address,
+    )
+    .await
+    .expect("Claiming of NFT failed ...");
 }
 
 fn ask_question(question: &str, answers: &[&str]) -> char {
@@ -189,51 +202,12 @@ fn read_answer() -> char {
     }
 }
 
-async fn pay_batcher(
-    from: Address,
-    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
+async fn claim_nft_with_verified_proof(
+    aligned_verification_data: &AlignedVerificationData,
+    signer: SignerMiddleware<Provider<Http>, LocalWallet>,
+    verifier_contract_addr: &Address,
 ) -> anyhow::Result<()> {
-    if !Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
-        .with_prompt("We are going to pay 0.004eth for the proof submission to aligned. Do you want to continue?")
-        .interact()
-        .expect("Failed to read user input")
-    {
-        anyhow::bail!("Payment cancelled")
-    }
-
-    let addr = get_payment_service_address(NETWORK);
-
-    let tx = TransactionRequest::new()
-        .from(from)
-        .to(addr)
-        .value(4000000000000000u128);
-
-    match signer
-        .send_transaction(tx, None)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to send tx {}", e))?
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to submit tx {}", e))?
-    {
-        Some(receipt) => {
-            println!(
-                "Payment sent. Transaction hash: {:x}",
-                receipt.transaction_hash
-            );
-            Ok(())
-        }
-        None => {
-            anyhow::bail!("Payment failed");
-        }
-    }
-}
-
-async fn verify_batch_inclusion(
-    aligned_verification_data: AlignedVerificationData,
-    signer: Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
-    verifier_contract_addr: Address,
-) -> anyhow::Result<()> {
-    let verifier_contract = VerifierContract::new(verifier_contract_addr, signer);
+    let verifier_contract = VerifierContract::new(*verifier_contract_addr, signer.into());
 
     let index_in_batch = U256::from(aligned_verification_data.index_in_batch);
     let merkle_path = Bytes::from(

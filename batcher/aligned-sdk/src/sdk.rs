@@ -5,9 +5,13 @@ use crate::{
         protocol::check_protocol_version,
     },
     core::{
+        constants::{
+            ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST,
+            MAX_FEE_BATCH_PROOF_NUMBER, MAX_FEE_DEFAULT_PROOF_NUMBER,
+        },
         errors,
         types::{
-            AlignedVerificationData, Network, ProvingSystemId, VerificationData,
+            AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
             VerificationDataCommitment,
         },
     },
@@ -18,9 +22,11 @@ use crate::{
 };
 
 use ethers::{
+    core::types::TransactionRequest,
+    middleware::SignerMiddleware,
     prelude::k256::ecdsa::SigningKey,
     providers::{Http, Middleware, Provider},
-    signers::Wallet,
+    signers::{LocalWallet, Wallet},
     types::{Address, H160, U256},
 };
 use sha3::{Digest, Keccak256};
@@ -90,6 +96,107 @@ pub async fn submit_multiple_and_wait_verification(
     }
 
     Ok(aligned_verification_data)
+}
+
+/// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, based on the max priority gas price.
+/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+/// To estimate the `max_fee` of a batch we use a compute the `max_fee` with respect to a batch of ~32 proofs present.
+/// The `max_fee` estimates therefore are:
+/// * `Min`: Specifies a `max_fee` equivalent to the cost of 1 proof in a 32 proof batch.
+///        This estimates the lowest possible `max_fee` the user should specify for there proof with lowest priority.
+/// * `Default`: Specifies a `max_fee` equivalent to the cost of 10 proofs in a 32 proof batch.
+///        This estimates the `max_fee` the user should specify for inclusion within the batch.
+/// * `Instant`: specifies a `max_fee` equivalent to the cost of all proofs within in a 32 proof batch.
+///        This estimates the `max_fee` the user should specify to pay for the entire batch of proofs and have there proof included instantly.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `estimate` - Enum specifying the type of price estimate: MIN, DEFAULT, INSTANT.
+/// # Returns
+/// The estimated `max_fee` in gas for a proof based on the users `PriceEstimate` as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
+pub async fn estimate_fee(
+    eth_rpc_url: &str,
+    estimate: PriceEstimate,
+) -> Result<U256, errors::MaxFeeEstimateError> {
+    // Price of 1 proof in 32 proof batch
+    let fee_per_proof = fee_per_proof(eth_rpc_url, MAX_FEE_BATCH_PROOF_NUMBER).await?;
+
+    let proof_price = match estimate {
+        PriceEstimate::Min => fee_per_proof,
+        PriceEstimate::Default => U256::from(MAX_FEE_DEFAULT_PROOF_NUMBER) * fee_per_proof,
+        PriceEstimate::Instant => U256::from(MAX_FEE_BATCH_PROOF_NUMBER) * fee_per_proof,
+    };
+    Ok(proof_price)
+}
+
+/// Returns the computed `max_fee` for a proof based on the number of proofs in a batch (`num_proofs_per_batch`) and
+/// number of proofs (`num_proofs`) in that batch the user would pay for i.e (`num_proofs` / `num_proofs_per_batch`).
+/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
+/// * `num_proofs` - number of proofs in a batch the user would pay for.
+/// * `num_proofs_per_batch` - number of proofs within a batch.
+/// # Returns
+/// * The calculated `max_fee` as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
+pub async fn compute_max_fee(
+    eth_rpc_url: &str,
+    num_proofs: usize,
+    num_proofs_per_batch: usize,
+) -> Result<U256, errors::MaxFeeEstimateError> {
+    let fee_per_proof = fee_per_proof(eth_rpc_url, num_proofs_per_batch).await?;
+    Ok(fee_per_proof * num_proofs)
+}
+
+/// Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
+/// i.e. (1 / `num_proofs_per_batch`).
+// NOTE: The `fee_per_proof` is computed from an rpc nodes max priority gas price.
+/// # Arguments
+/// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
+/// * `num_proofs_per_batch` - number of proofs within a batch.
+/// # Returns
+/// * The fee per proof of a batch as a `U256`.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
+pub async fn fee_per_proof(
+    eth_rpc_url: &str,
+    num_proofs_per_batch: usize,
+) -> Result<U256, errors::MaxFeeEstimateError> {
+    let eth_rpc_provider =
+        Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
+            errors::MaxFeeEstimateError::EthereumProviderError(e.to_string())
+        })?;
+    let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
+
+    // Cost for estimate `num_proofs_per_batch` proofs
+    let estimated_gas_per_proof = (CONSTANT_GAS_COST
+        + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_per_batch as u128)
+        / num_proofs_per_batch as u128;
+
+    // Price of 1 proof in 32 proof batch
+    let fee_per_proof = U256::from(estimated_gas_per_proof) * gas_price;
+
+    Ok(fee_per_proof)
+}
+
+async fn fetch_gas_price(
+    eth_rpc_provider: &Provider<Http>,
+) -> Result<U256, errors::MaxFeeEstimateError> {
+    let gas_price = match eth_rpc_provider.get_gas_price().await {
+        Ok(price) => price,
+        Err(e) => {
+            return Err(errors::MaxFeeEstimateError::EthereumGasPriceError(
+                e.to_string(),
+            ))
+        }
+    };
+
+    Ok(gas_price)
 }
 
 /// Submits multiple proofs to the batcher to be verified in Aligned.
@@ -475,4 +582,122 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
         .map_err(|e| errors::ChainIdError::EthereumCallError(e.to_string()))?;
 
     Ok(chain_id.as_u64())
+}
+
+/// Funds the batcher payment service in name of the signer
+/// # Arguments
+/// * `amount` - The amount to be paid.
+/// * `signer` - The signer middleware of the payer.
+/// * `network` - The network on which the payment will be done.
+/// # Returns
+/// * The receipt of the payment transaction.
+/// # Errors
+/// * `SendError` if there is an error sending the transaction.
+/// * `SubmitError` if there is an error submitting the transaction.
+/// * `PaymentFailed` if the payment failed.
+pub async fn deposit_to_aligned(
+    amount: U256,
+    signer: SignerMiddleware<Provider<Http>, LocalWallet>,
+    network: Network,
+) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
+    let payment_service_address = get_payment_service_address(network);
+    let from = signer.address();
+
+    let tx = TransactionRequest::new()
+        .from(from)
+        .to(payment_service_address)
+        .value(amount);
+
+    match signer
+        .send_transaction(tx, None)
+        .await
+        .map_err(|e| errors::PaymentError::SendError(e.to_string()))?
+        .await
+        .map_err(|e| errors::PaymentError::SubmitError(e.to_string()))?
+    {
+        Some(receipt) => Ok(receipt),
+        None => Err(errors::PaymentError::PaymentFailed),
+    }
+}
+
+/// Returns the balance of a user in the payment service.
+/// # Arguments
+/// * `user` - The address of the user.
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `network` - The network on which the balance will be checked.
+/// # Returns
+/// * The balance of the user in the payment service.
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumCallError` if there is an error in the Ethereum call.
+pub async fn get_balance_in_aligned(
+    user: Address,
+    eth_rpc_url: &str,
+    network: Network,
+) -> Result<U256, errors::BalanceError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| errors::BalanceError::EthereumProviderError(e.to_string()))?;
+
+    let payment_service_address = get_payment_service_address(network);
+
+    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
+        Ok(batcher_payment_service) => {
+            let call = batcher_payment_service.user_balances(user);
+
+            let result = call
+                .call()
+                .await
+                .map_err(|e| errors::BalanceError::EthereumCallError(e.to_string()))?;
+
+            Ok(result)
+        }
+        Err(e) => Err(errors::BalanceError::EthereumCallError(e.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    //Public constants for convenience
+    pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
+    use super::*;
+
+    #[tokio::test]
+    async fn computed_max_fee_for_larger_batch_is_smaller() {
+        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 2, 10)
+            .await
+            .unwrap();
+        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
+            .await
+            .unwrap();
+
+        assert!(small_fee < large_fee);
+    }
+
+    #[tokio::test]
+    async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
+        let small_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 20)
+            .await
+            .unwrap();
+        let large_fee = compute_max_fee(HOLESKY_PUBLIC_RPC_URL, 5, 10)
+            .await
+            .unwrap();
+
+        assert!(small_fee < large_fee);
+    }
+
+    #[tokio::test]
+    async fn estimate_fee_are_larger_than_one_another() {
+        let min_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Min)
+            .await
+            .unwrap();
+        let default_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Default)
+            .await
+            .unwrap();
+        let instant_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, PriceEstimate::Instant)
+            .await
+            .unwrap();
+
+        assert!(min_fee < default_fee);
+        assert!(default_fee < instant_fee);
+    }
 }

@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract, SignatureData};
+use aligned_sdk::eth::batcher_payment_service::BatcherPaymentServiceContract;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use gas_escalator::{Frequency, GeometricGasPrice};
@@ -91,8 +91,7 @@ pub async fn get_batcher_payment_service(
 pub async fn try_create_new_task(
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
-    padded_leaves: Vec<[u8; 32]>,
-    signatures: Vec<SignatureData>,
+    proofs_submitters: Vec<Address>,
     fee_params: CreateNewTaskFeeParams,
     payment_service: &BatcherPaymentService,
 ) -> Result<TransactionReceipt, BatcherSendError> {
@@ -100,8 +99,7 @@ pub async fn try_create_new_task(
         .create_new_task(
             batch_merkle_root,
             batch_data_pointer,
-            padded_leaves,
-            signatures,
+            proofs_submitters,
             fee_params.fee_for_aggregator,
             fee_params.fee_per_proof,
             fee_params.respond_to_task_fee_limit,

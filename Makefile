@@ -1,11 +1,12 @@
 .PHONY: help tests
 
+SHELL := /bin/bash
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.7.3
+OPERATOR_VERSION=v0.8.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -14,6 +15,11 @@ endif
 ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
+
+ifeq ($(OS),Linux)
+	export LD_LIBRARY_PATH := $(CURDIR)/operator/risc_zero/lib
+endif
+
 
 FFI_FOR_RELEASE ?= true
 
@@ -32,7 +38,7 @@ submodules:
 	git submodule update --init --recursive
 	@echo "Updated submodules"
 
-deps: submodules build_all_ffi ## Install deps
+deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
@@ -79,10 +85,6 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
-anvil_add_type_hash_to_batcher_payment_service:
-	@echo "Adding Type Hash to Batcher Payment Service..."
-	. contracts/scripts/anvil/upgrade_add_type_hash_to_batcher_payment_service.sh
-
 pause_all_aligned_service_manager:
 	@echo "Pausing all contracts..."
 	. contracts/scripts/pause_aligned_service_manager.sh all
@@ -114,6 +116,8 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
+_AGGREGATOR_:
+
 aggregator_start:
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
@@ -123,16 +127,21 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+
+__OPERATOR__:
+
 operator_start:
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
+
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -140,6 +149,20 @@ update_operator:
 	@./scripts/fetch_latest_release.sh
 	@make build_operator
 	@./operator/build/aligned-operator --version
+
+operator_valid_marshall_fuzz_macos:
+	@cd operator/pkg && go test -fuzz=FuzzValidMarshall -ldflags=-extldflags=-Wl,-ld_classic
+
+operator_valid_marshall_fuzz_linux:
+	@cd operator/pkg && \
+	go test -fuzz=FuzzValidMarshall
+
+operator_marshall_unmarshall_fuzz_macos:
+	@cd operator/pkg && go test -fuzz=FuzzMarshalUnmarshal -ldflags=-extldflags=-Wl,-ld_classic
+
+operator_marshall_unmarshall_fuzz_linux:
+	@cd operator/pkg && \
+	go test -fuzz=FuzzMarshalUnmarshal
 
 bindings:
 	cd contracts && ./generate-go-bindings.sh
@@ -190,9 +213,8 @@ operator_whitelist:
 	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
 
 operator_deposit_into_mock_strategy:
-	@echo "Depositing into strategy"
+	@echo "Depositing into mock strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
-
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
@@ -211,7 +233,6 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
 __BATCHER__:
 
@@ -369,50 +390,6 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
-batcher_send_halo2_ipa_task: batcher/target/release/aligned
-	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Halo2IPA \
-		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
-		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
-		--vk ../../scripts/test_files/halo2_ipa/params.bin \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_halo2_ipa_task_burst_5: batcher/target/release/aligned
-	@echo "Sending Halo2 IPA 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Halo2IPA \
-		--proof ../../scripts/test_files/halo2_ipa/proof.bin \
-		--public_input ../../scripts/test_files/halo2_ipa/pub_input.bin \
-		--vk ../../scripts/test_files/halo2_ipa/params.bin \
-		--repetitions 5 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_halo2_kzg_task: batcher/target/release/aligned
-	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Halo2KZG \
-		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
-		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
-		--vk ../../scripts/test_files/halo2_kzg/params.bin \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_halo2_kzg_task_burst_5: batcher/target/release/aligned
-	@echo "Sending Halo2 KZG 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Halo2KZG \
-		--proof ../../scripts/test_files/halo2_kzg/proof.bin \
-		--public_input ../../scripts/test_files/halo2_kzg/pub_input.bin \
-		--vk ../../scripts/test_files/halo2_kzg/params.bin \
-		--repetitions 5 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
@@ -478,10 +455,6 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
-
-upgrade_batcher_payments_add_type_hash: ## Add Type Hash to Batcher Payment Service
-	@echo "Adding Type Hash to Batcher Payment Service..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_type_hash_to_batcher_payment_service.sh
 
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
@@ -560,7 +533,6 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:
@@ -613,69 +585,6 @@ test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree_old/... -v
 
-__HALO2_KZG_FFI__: ##
-build_halo2_kzg_macos:
-	@cd operator/halo2kzg/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.dylib operator/halo2kzg/lib/libhalo2kzg_verifier.dylib
-	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
-
-build_halo2_kzg_linux:
-	@cd operator/halo2kzg/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.so operator/halo2kzg/lib/libhalo2kzg_verifier.so
-	@cp operator/halo2kzg/lib/target/$(TARGET_REL_PATH)/libhalo2kzg_verifier_ffi.a operator/halo2kzg/lib/libhalo2kzg_verifier.a
-
-test_halo2_kzg_rust_ffi:
-	@echo "Testing Halo2-KZG Rust FFI source code..."
-	@cd operator/halo2kzg/lib && cargo t --release
-
-test_halo2_kzg_go_bindings_macos: build_halo2_kzg_macos
-	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2kzg/... -v
-
-test_halo2_kzg_go_bindings_linux: build_halo2_kzg_linux
-	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2kzg/... -v
-
-generate_halo2_kzg_proof:
-	@cd scripts/test_files/halo2_kzg && \
-	cargo clean && \
-	rm -f params.bin proof.bin pub_input.bin && \
-	RUST_LOG=info cargo run --release && \
-	echo "Generating halo2 plonk proof..." && \
-	echo "Generated halo2 plonk proof!"
-
-__HALO2_IPA_FFI__: ##
-build_halo2_ipa_macos:
-	@cd operator/halo2ipa/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.dylib operator/halo2ipa/lib/libhalo2ipa_verifier.dylib
-	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
-
-build_halo2_ipa_linux:
-	@cd operator/halo2ipa/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.so operator/halo2ipa/lib/libhalo2ipa_verifier.so
-	@cp operator/halo2ipa/lib/target/$(TARGET_REL_PATH)/libhalo2ipa_verifier_ffi.a operator/halo2ipa/lib/libhalo2ipa_verifier.a
-
-test_halo2_ipa_rust_ffi:
-	@echo "Testing Halo2-KZG Rust FFI source code..."
-	@cd operator/halo2ipa/lib && cargo t --release
-
-test_halo2_ipa_go_bindings_macos: build_halo2_ipa_macos
-	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2ipa/... -v
-
-test_halo2_ipa_go_bindings_linux: build_halo2_ipa_linux
-	@echo "Testing Halo2-KZG Go bindings..."
-	go test ./operator/halo2ipa/... -v
-
-generate_halo2_ipa_proof:
-	@cd scripts/test_files/halo2_ipa && \
-	cargo clean && \
-	rm -f params.bin proof.bin pub_input.bin && \
-	RUST_LOG=info cargo run --release && \
-	echo "Generating halo2 plonk proof..." && \
-	echo "Generated halo2 plonk proof!"
-
-
 __BUILD_ALL_FFI__:
 
 build_all_ffi: ## Build all FFIs
@@ -688,8 +597,6 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
 	@$(MAKE) build_merkle_tree_macos_old
-	@$(MAKE) build_halo2_ipa_macos
-	@$(MAKE) build_halo2_kzg_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -698,8 +605,6 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
 	@$(MAKE) build_merkle_tree_linux_old
-	@$(MAKE) build_halo2_ipa_linux
-	@$(MAKE) build_halo2_kzg_linux
 	@echo "All Linux FFIs built successfully."
 
 
@@ -751,6 +656,10 @@ explorer_fetch_old_operators_strategies_restakes:
 	@cd explorer && \
 	./scripts/fetch_old_operators_strategies_restakes.sh 0
 
+explorer_create_env:
+	@cd explorer && \
+	cp .env.dev .env
+
 __TRACKER__:
 
 tracker_devnet_start: tracker_run_db
@@ -779,3 +688,41 @@ tracker_dump_db:
 	@cd operator_tracker && \
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
+
+__TELEMETRY__:
+open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
+	## TODO(juarce) ADD DOCKER COMPOSE
+	@echo "Running telemetry..."
+	@docker compose -f telemetry-docker-compose.yaml up -d
+
+telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
+	@cd telemetry_api && \
+	 	./start.sh	
+
+telemetry_ecto_migrate: ##
+		@cd telemetry_api && \
+			./ecto_setup_db.sh	
+
+telemetry_build_db:
+	@cd telemetry_api && \
+		docker build -t telemetry-postgres-image .
+
+telemetry_run_db: telemetry_build_db telemetry_remove_db_container
+	@cd telemetry_api && \
+		docker run -d --name telemetry-postgres-container -p 5434:5432 -v telemetry-postgres-data:/var/lib/postgresql/data telemetry-postgres-image
+
+telemetry_remove_db_container:
+	@docker stop telemetry-postgres-container || true  && \
+	    docker rm telemetry-postgres-container || true
+
+telemetry_clean_db: telemetry_remove_db_container
+	@docker volume rm telemetry-postgres-data || true
+
+telemetry_dump_db:
+	@cd telemetry_api && \
+		docker exec -t telemetry-postgres-container pg_dumpall -c -U telemetry_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
+	@echo "Dumped database successfully to /telemetry_api"
+
+telemetry_create_env:
+	@cd telemetry_api && \
+		cp .env.dev .env
