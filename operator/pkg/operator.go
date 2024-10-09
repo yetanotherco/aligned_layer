@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -347,10 +348,18 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
+
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
+	if err != nil {
+		o.Logger.Errorf("Could not check verifiers status: %s", err)
+		results <- false
+		return err
+	}
+
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
 			defer wg.Done()
-			o.verify(data, results)
+			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
 	}
@@ -420,10 +429,16 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
+	if err != nil {
+		o.Logger.Errorf("Could not check verifiers status: %s", err)
+		results <- false
+		return err
+	}
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
 			defer wg.Done()
-			o.verify(data, results)
+			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
 	}
@@ -454,13 +469,7 @@ func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayer
 	}
 }
 
-func (o *Operator) verify(verificationData VerificationData, results chan bool) {
-	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
-	if err != nil {
-		o.Logger.Errorf("Could not check verifier status: %s", err)
-		results <- false
-		return
-	}
+func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBitmap *big.Int, results chan bool) {
 	IsVerifierDisabled := IsVerifierDisabled(disabledVerifiersBitmap, verificationData.ProvingSystemId)
 	if IsVerifierDisabled {
 		o.Logger.Infof("Verifier %s is disbled. Skipping verifie", verificationData.ProvingSystemId.String())
