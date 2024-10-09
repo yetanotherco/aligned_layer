@@ -254,11 +254,6 @@ NETWORK=devnet # devnet | holesky-stage | holesky
 batcher_send_infinite_stream:
 	@cd batcher/aligned-task-sender && cargo run --release -- --burst-size 1 --action infinite-proofs
 
-# Infinite connections
-# To test: `make batcher_test_connection NUM_SENDERS=10000`
-batcher_test_connections:
-	@cd batcher/aligned-task-sender && cargo run --release -- --num-senders $(NUM_SENDERS) --action test-connections
-
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
@@ -376,38 +371,77 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 
 
 __TASK_SENDER__:
+
+# ===== DEVNET =====
 task_sender_generate_groth16_proofs:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action generate-proofs --number-of-proofs $(NUMBER_PROOFS)
 
-task_sender_generate_and_fund_wallets:
+task_sender_generate_and_fund_wallets_devnet:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action generate-and-fund-wallets \
 	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) --amount-to-deposit-to-aligned \
-	$(AMOUNT_TO_DEPOSIT_TO_ALIGNED) --num-senders $(NUM_SENDERS)
+	$(AMOUNT_TO_DEPOSIT_TO_ALIGNED) --num-senders $(NUM_WALLETS) \
+	--private-keys-file $(PRIVATE_KEYS_FILE)
 
-task_sender_infinite_proofs:
+task_sender_infinite_proofs_devnet:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action infinite-proofs --burst-size $(BURST_SIZE) 
+	cargo run --release -- --action infinite-proofs --burst-size $(BURST_SIZE)  
 
-task_sender_multiple_senders_infinite_proofs:
+task_sender_multiple_senders_infinite_proofs_devnet:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action multiple-senders-infinite-proofs --burst-size $(BURST_SIZE) --num-senders $(NUM_SENDERS)
+	cargo run --release -- --action multiple-senders-infinite-proofs \
+	--burst-size $(BURST_SIZE) \
+	--private-keys-file $(PRIVATE_KEYS_FILE)
 
-task_sender_test_connections:
+task_sender_test_connections_devnet:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action test-connections --num-senders $(NUM_SENDERS)
+
+# ===== HOLESKY =====
+task_sender_generate_and_fund_wallets_holesky:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action generate-and-fund-wallets \
+	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) --amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
+	--network holesky --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+	--private_key $(PRIVATE_KEY) --num-senders $(NUM_WALLETS) \
+	--private-keys-file $(PRIVATE_KEYS_FILE)
+
+task_sender_infinite_proofs_holesky:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action infinite-proofs --burst-size $(BURST_SIZE) \
+	--network holesky --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://batcher.alignedlayer.com  --private_key $(PRIVATE_KEY)
+
+task_sender_multiple_senders_infinite_proofs_holesky:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action multiple-senders-infinite-proofs \
+	--burst-size $(BURST_SIZE) \
+	--network holesky --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://batcher.alignedlayer.com \
+	--private-keys-file $(PRIVATE_KEYS_FILE)
+
+task_sender_test_connections_holesky:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action test-connections --num-senders $(NUM_SENDERS) \
+	--network holesky --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://batcher.alignedlayer.com 
 
 task_sender_clean_proofs:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action clean-proofs
 
 __UTILS__:
-aligned_get_user_balance:
+aligned_get_user_balance_devnet:
 	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK) \
 		--user_addr $(USER_ADDR)
+
+aligned_get_user_balance_holesky:
+	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+		--rpc_url https://ethereum-holesky-rpc.publicnode.com \
+		--network holesky \
+		--user_addr $(USER_ADDR)
+
 
 __GENERATE_PROOFS__:
  # TODO add a default proving system
