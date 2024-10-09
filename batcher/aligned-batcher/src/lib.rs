@@ -75,6 +75,7 @@ pub struct Batcher {
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
     service_manager: ServiceManager,
+    service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -126,6 +127,9 @@ impl Batcher {
         let eth_rpc_provider_service_manager =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
 
+        let eth_rpc_provider_service_manager_fallback =
+            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
+
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
         let last_uploaded_batch_block = match eth_rpc_provider.get_block_number().await {
@@ -173,11 +177,19 @@ impl Batcher {
 
         let service_manager = eth::service_manager::get_service_manager(
             eth_rpc_provider_service_manager,
-            config.ecdsa,
+            config.ecdsa.clone(),
             deployment_output.addresses.service_manager.clone(),
         )
         .await
         .expect("Failed to get Service Manager contract");
+
+        let service_manager_fallback = eth::service_manager::get_service_manager(
+            eth_rpc_provider_service_manager_fallback,
+            config.ecdsa,
+            deployment_output.addresses.service_manager,
+        )
+        .await
+        .expect("Failed to get fallback Service Manager contract");
 
         let mut user_states = HashMap::new();
         let mut batch_state = BatchState::new();
@@ -214,6 +226,7 @@ impl Batcher {
             payment_service,
             payment_service_fallback,
             service_manager,
+            service_manager_fallback,
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
@@ -393,7 +406,14 @@ impl Batcher {
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
-            let disabled_verifiers = self.disabled_verifiers().await;
+            let disabled_verifiers = match self.disabled_verifiers().await {
+                Ok(disabled_verifiers) => disabled_verifiers,
+                Err(e) => {
+                    error!("Failed to get disabled verifiers: {e:?}");
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+                    return Ok(());
+                }
+            };
             let verification_data = nonced_verification_data.verification_data.clone();
             if disabled_verifiers & (U256::one() << verification_data.proving_system as u64)
                 != U256::zero()
@@ -685,12 +705,16 @@ impl Batcher {
         };
     }
 
-    async fn disabled_verifiers(&self) -> U256 {
-        self.service_manager
-            .disabled_verifiers()
-            .call()
-            .await
-            .unwrap_or_default()
+    async fn disabled_verifiers(&self) -> Result<U256, ContractError<SignerMiddlewareT>> {
+        match self.service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => {
+                self.service_manager_fallback
+                    .disabled_verifiers()
+                    .call()
+                    .await
+            }
+        }
     }
 
     async fn get_user_nonce_from_ethereum(
