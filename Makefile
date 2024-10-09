@@ -211,7 +211,7 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 __BATCHER__:
 
-BURST_SIZE=5
+BURST_SIZE ?= 5
 
 user_fund_payment_service:
 	@. ./scripts/user_fund_payment_service_devnet.sh
