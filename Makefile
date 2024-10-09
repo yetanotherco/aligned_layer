@@ -250,31 +250,6 @@ batcher/target/release/aligned:
 RPC_URL=http://localhost:8545
 NETWORK=devnet # devnet | holesky-stage | holesky
 
-# Generate 
-batcher_generate_groth16_proofs:
-	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action generate-proofs
-
-# Infinite stream of burst of 10 proofs
-batcher_generate_and_fund_wallets:
-	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action generate-and-fund-wallets --num-senders $(NUM_SENDERS)
-
-
-# Infinite stream of burst of 10 proofs
-batcher_send_infinite_multiple_senders:
-	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action multiple-senders-infinite-proofs --burst-size $(BURST_SIZE) --num-senders $(NUM_SENDERS)
-
-# Infinite stream of burst of 10 proofs
-batcher_send_infinite_burst:
-	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action infinite-proofs
-
-batcher_clean_infinite_proofs:
-	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action clean-proofs
-
 # Infinite stream of one proof
 batcher_send_infinite_stream:
 	@cd batcher/aligned-task-sender && cargo run --release -- --burst-size 1 --action infinite-proofs
@@ -398,6 +373,32 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@echo "Sending a burst of tasks to Batcher..."
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
+
+
+__TASK_SENDER__:
+task_sender_generate_groth16_proofs:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action generate-proofs
+
+task_sender_generate_and_fund_wallets:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action generate-and-fund-wallets --num-senders $(NUM_SENDERS)
+
+task_sender_infinite_proofs:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action infinite-proofs
+
+task_sender_mutliple_senders_infinite_proofs:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action multiple-senders-infinite-proofs --burst-size $(BURST_SIZE) --num-senders $(NUM_SENDERS)
+
+task_sender_test_connections:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action test-connections --num-senders $(NUM_SENDERS)
+
+task_sender_clean_proofs:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action clean-proofs
 
 __GENERATE_PROOFS__:
  # TODO add a default proving system
