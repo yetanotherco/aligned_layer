@@ -32,6 +32,8 @@ pub enum ProvingSystemId {
     #[default]
     SP1,
     Risc0,
+    Mina,
+    MinaAccount,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
