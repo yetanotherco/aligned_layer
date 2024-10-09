@@ -38,6 +38,7 @@ jobs:
   post-cleanup:
     name: "Cleanup"
     runs-on: docker
+    if: ${{ always() }}
     needs: network-test-docker-compose
 
     steps:
