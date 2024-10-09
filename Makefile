@@ -386,7 +386,7 @@ task_sender_generate_and_fund_wallets:
 
 task_sender_infinite_proofs:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action infinite-proofs
+	cargo run --release -- --action infinite-proofs --burst-size $(BURST_SIZE) 
 
 task_sender_mutliple_senders_infinite_proofs:
 	@cd batcher/aligned-task-sender && \

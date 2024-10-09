@@ -151,7 +151,9 @@ async fn main() -> Result<(), AlignedError> {
     }
 
     match args.action {
-        Action::TestConnections => infinitely_hang_connection(args.batcher_url).await,
+        Action::TestConnections => {
+            infinitely_hang_connection(args.batcher_url, args.num_senders).await
+        }
         Action::InfiniteProofs => {
             let wallet = get_sender_from_keystore_or_private_key(
                 keystore_path,
@@ -547,21 +549,33 @@ async fn infinitely_send_proofs_from(
     }
 }
 
-async fn infinitely_hang_connection(batcher_url: String) {
+async fn infinitely_hang_connection(batcher_url: String, num_senders: usize) {
     info!("Going to only open a connection");
-    let ws_url = batcher_url.clone();
-    let conn = connect_async(ws_url).await;
-    if let Ok((mut ws_stream, _)) = conn {
-        while let Some(msg) = ws_stream.next().await {
-            match msg {
-                Ok(message) => info!("Received message: {:?}", message),
-                Err(e) => {
-                    info!("WebSocket error: {}", e);
-                    break;
+    let mut handlers = vec![];
+
+    for i in 0..num_senders {
+        let ws_url = batcher_url.clone();
+        let handle = tokio::spawn(async move {
+            let conn = connect_async(ws_url).await;
+            if let Ok((mut ws_stream, _)) = conn {
+                info!("Opened connection for {}", i);
+                while let Some(msg) = ws_stream.next().await {
+                    match msg {
+                        Ok(message) => info!("Received message: {:?}", message),
+                        Err(e) => {
+                            info!("WebSocket error: {}", e);
+                            break;
+                        }
+                    }
                 }
+            } else {
+                error!("Could not connect to socket, err {:?}", conn.err());
             }
-        }
-    } else {
-        error!("Could not connect to socket, err {:?}", conn.err());
+        });
+        handlers.push(handle);
+    }
+
+    for handle in handlers {
+        let _ = join!(handle);
     }
 }
