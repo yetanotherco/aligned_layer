@@ -43,6 +43,7 @@ jobs:
 
     steps:
     - name: Stop containers
+      continue-on-error: true
       if: always()
       run: make docker_down
 
