@@ -1,10 +1,8 @@
 use ethers::utils::parse_ether;
 use futures_util::join;
-use futures_util::lock::Mutex;
 use k256::ecdsa::SigningKey;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::ops::Add;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{
@@ -287,7 +285,6 @@ async fn generate_and_fund_wallets(
         // this is necessary because of the move
         let eth_rpc_provider = eth_rpc_provider.clone();
         let funding_wallet = funding_wallet.clone();
-        let network = network.clone();
         let amount_to_deposit = amount_to_deposit.clone();
         let amount_to_deposit_aligned = amount_to_deposit_aligned.clone();
         let base_dir = base_dir.clone();
@@ -334,6 +331,7 @@ async fn generate_and_fund_wallets(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn send_multiple_senders_infinite_proofs(
     base_dir: PathBuf,
     num_senders: usize,
@@ -379,6 +377,7 @@ async fn send_multiple_senders_infinite_proofs(
     .await;
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn send_infinite_proofs(
     senders: Vec<Sender>,
     base_dir: PathBuf,
@@ -389,7 +388,7 @@ async fn send_infinite_proofs(
     burst_time: u64,
     max_fee: U256,
 ) {
-    if senders.len() == 0 {
+    if senders.is_empty() {
         return;
     }
 
@@ -411,8 +410,6 @@ async fn send_infinite_proofs(
         // this is necessary because of the move
         let eth_rpc_url = eth_rpc_url.clone();
         let batcher_url = batcher_url.clone();
-        let network = network.clone();
-        let max_fee = max_fee.clone();
         let wallet = sender.wallet.clone();
 
         let handle = tokio::spawn(async move {
@@ -503,6 +500,7 @@ fn get_verification_data_from_generated(
     verifications_data
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn infinitely_send_proofs_from(
     verification_data: Vec<VerificationData>,
     wallet: Wallet<SigningKey>,
