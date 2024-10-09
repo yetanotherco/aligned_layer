@@ -132,11 +132,14 @@ end
 # Backend utils
 defmodule Utils do
   require Logger
+
   @max_batch_size (case System.fetch_env("MAX_BATCH_SIZE") do
-    {:ok, ""} -> 268_435_456 #empty env var
-    {:ok, value} -> String.to_integer(value)
-    _ -> 268_435_456 # error
-  end)
+                     # empty env var
+                     {:ok, ""} -> 268_435_456
+                     {:ok, value} -> String.to_integer(value)
+                     # error
+                     _ -> 268_435_456
+                   end)
 
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
@@ -179,20 +182,27 @@ defmodule Utils do
     end)
   end
 
-  defp stream_handler({:headers, _headers}, acc), do: {:cont, acc}
+  defp stream_handler({:headers, headers}, acc) do
+    {_, batch_size} = List.keyfind(headers, "content-length", 0)
+    check_batch_size(batch_size, acc)
+  end
+
   defp stream_handler({:status, 200}, acc), do: {:cont, acc}
 
   defp stream_handler({:status, status_code}, _acc),
     do: {:halt, {:error, {:http_error, status_code}}}
 
-  defp stream_handler({:data, chunk}, {_acc_body, size})
-       when size + byte_size(chunk) > @max_batch_size do
-    {:halt, {:error, {:http, :body_too_large}}}
+  defp stream_handler({:data, chunk}, {acc_body, acc_size}) do
+    new_size = acc_size + byte_size(chunk)
+    check_batch_size(new_size, {acc_body <> chunk, new_size})
   end
 
-  defp stream_handler({:data, chunk}, {acc_body, size}) do
-    new_size = size + byte_size(chunk)
-    {:cont, {acc_body <> chunk, new_size}}
+  defp check_batch_size(size, acc) do
+    if size > @max_batch_size do
+      {:halt, {:error, {:http, :body_too_large}}}
+    else
+      {:cont, acc}
+    end
   end
 
   def fetch_batch_data_pointer(batch_data_pointer) do
@@ -263,6 +273,7 @@ defmodule Utils do
           Logger.debug("Fetching from S3")
 
           batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
+
           case batch_content do
             {:ok, batch_content} ->
               batch_content
