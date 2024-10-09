@@ -38,5 +38,5 @@ jobs:
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
       - name: Run tests
-        run: go test -v ./operator/pkg
+        run: make test
       
