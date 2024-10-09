@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 # If you want to try (experimental) std support, add `features = [ "std" ]` to risc0-zkvm
-risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.0.1", default-features = false }
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.1.2", default-features = false }

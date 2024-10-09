@@ -5,7 +5,7 @@ name = "quiz-script"
 edition = "2021"
 
 [dependencies]
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.1" }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v2.0.0" }
 aligned-sdk = { path = "../../../../batcher/aligned-sdk" }
 ethers = { tag = "v2.0.15-fix-reconnections", features = [
     "ws",
