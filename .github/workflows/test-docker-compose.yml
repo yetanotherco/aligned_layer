@@ -6,7 +6,8 @@ on:
       - docker-compose
 
 jobs:
-  docker:
+  network-test-docker-compose:
+    name: "Test network with Docker Compose"
     timeout-minutes: 30
     runs-on: docker
     permissions:
@@ -25,7 +26,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Start containers
+    - name: Start containers and initialize network
       run: make docker_up && sleep 15
 
     - name: Send proofs batches
@@ -34,9 +35,10 @@ jobs:
     - name: Verify all sent proofs
       run: make docker_verify_proof_submission_success
 
-  post:
+  post-cleanup:
+    name: "Cleanup"
     runs-on: docker
-    needs: docker
+    needs: network-test-docker-compose
 
     steps:
     - name: Stop containers
