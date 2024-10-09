@@ -918,8 +918,8 @@ docker_verify_proof_submission_success:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
 	sh -c ' \
 			if [ ! -d "./aligned_verification_data" ]; then echo "ERROR: aligned_verification_data direcroty does not exist." && exit 1; fi; \
-			echo "Waiting 60 seconds before starting proof verification. \n"; \
-			sleep 60; \
+			echo "Waiting 2 minutes before starting proof verification. \n"; \
+			sleep 120; \
 			for proof in ./aligned_verification_data/*; do \
 				echo "Verifying proof $${proof} \n"; \
 				verification=$$(aligned verify-proof-onchain \
