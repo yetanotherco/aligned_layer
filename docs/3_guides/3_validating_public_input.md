@@ -2,7 +2,7 @@
 
 In some applications, it is crucial to ensure that a third party has performed a computation correctly and to make use of the result of that computation. To achieve this, the third party must first interact with Aligned and obtain the `AlignedVerificationData`, a receipt indicating that the proof of the computation was verified correctly. The application should then receive both the `AlignedVerificationData` and the result of the computation. After confirming that the proof was verified by Aligned, it must check that the posted result matches the one committed in the `AlignedVerificationData`.
 
-This guide demonstrates how to validate a Risc0 and SP1 proofs using the Aligned SDK. The program in this example is a Fibonacci sequence calculator. It generates a public input that corresponds to the number of fibonacci being calculated and the last two Fibonacci numbers of the sequence, taken modulo 7919. Our goal is to validate, within a smart contract, that the public input commitments match these two numbers.
+This guide demonstrates how to validate Risc0 and SP1 proofs using the Aligned SDK. The program in this example is a Fibonacci sequence calculator. It generates a public input that corresponds to the number of fibonacci being calculated and the last two Fibonacci numbers of the sequence, taken modulo 7919. Our goal is to validate, within a smart contract, that the public input commitments match these two numbers.
 
 In this case, the Fibonacci number to be calculated is **500** and the last two numbers of the sequence modulo 7919 are **1268** and **1926**.
 
@@ -11,7 +11,7 @@ In this case, the Fibonacci number to be calculated is **500** and the last two 
 - [Risc0](https://dev.risczero.com/api/zkvm/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
-## The program 
+## The program
 
 The Fibonacci program to be proven is essentially a Rust program with a few additional functions from the `risc0` and `sp1` libraries. These extra functions allow for the submission of public inputs and enable the generation of a proof.
 
@@ -27,7 +27,7 @@ For `SP1`, the Fibonacci program is located in `sp1/fibonacci/program/src/main.r
 
 ## Generate your ZK Proof
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > To generate the proof ensure you have [docker](https://www.docker.com/get-started/) installed and the docker daemon running.
 > This is necessary to ensure deterministic builds of the binary we want to generate a proof of. If not used, builds may differ depending on the system you are running on. To know more about this, check [this link](https://dev.risczero.com/terminology#deterministic-builds) from RiscZero docs or [this](https://docs.succinct.xyz/writing-programs/compiling.html#advanced-build-options-1) from SP1.
 
@@ -40,7 +40,7 @@ To generate the proof required for this example, run the following commands:
 - For **Risc0**: `make generate_risc0_fibonacci_proof`
 - For **SP1**: `make generate_sp1_fibonacci_proof`
 
-Once completed, you will see output that includes the program ID, the public inputs (which are the initial number and the last two Fibonacci numbers of the sequence), and the verification result, like so:
+Once completed, you will see output that includes the program ID, the public inputs (which are the initial number of steps in the sequence and the last two Fibonacci numbers of the sequence), and the verification result, like so:
 
 ```
 Program ID: 0xf000637ed63d26fc664f16666aebf05440ddb7071931240dc49d9bbcfbac304a
@@ -65,13 +65,13 @@ The proof submission and verification process can be done either using the SDK o
 To submit the **Risc0** proof generated in this example, run:
 
 ```sh
-make submit_fibonacci_risc0_proof KEYSTORE_PATH=<KEYSTORE_PATH> 
+make submit_fibonacci_risc0_proof KEYSTORE_PATH=<KEYSTORE_PATH>
 ```
 
 Alternatively, you can submit the one generated with **SP1** by running:
 
 ```sh
-make submit_fibonacci_sp1_proof KEYSTORE_PATH=<KEYSTORE_PATH> 
+make submit_fibonacci_sp1_proof KEYSTORE_PATH=<KEYSTORE_PATH>
 ```
 
 This command will execute the Rust code that handles the proof submission with the appropriate verifier. You can find this code in the file `aligned-integration/src/main.rs`. It acts as the integration layer between the proof-generating program and the proof submission process to **Aligned**.
@@ -109,7 +109,7 @@ Each generated proof gets its own file name, so ensure to save the filename or r
 
 To check if a proof was verified in Aligned, you need to make a call to the `AlignedServiceManager` contract from within your smart contract.
 
-We previously reviewed the structure of a Verifier contract when building our first application; you can find that information [here](./2_build_your_first_aligned_application.md#verifier-contract) if you'd like to revisit it. 
+We previously reviewed the structure of a Verifier contract when building our first application; you can find that information [here](./2_build_your_first_aligned_application.md#verifier-contract) if you'd like to revisit it.
 Now, we need to implement a check to ensure that the public inputs match the expected values. To accomplish this, we have added a new parameter to our `verifyBatchInclusion` function in the smart contract, which will receive the bytes of the public inputs directly from the `.pub` file generated during compilation.
 
 Now the function should look like this for both sp1 and risc0 proofs.
@@ -129,7 +129,7 @@ function verifyBatchInclusion(
         pubInputCommitment == keccak256(abi.encodePacked(pubInputBytes)),
         "Fibonacci numbers don't match with public input"
     );
-```        
+```
 
 Since the format of the generated byts is the same for both of the verifiers, we can later decode the inputs if we want to do something with them, in this case we emit an event:
 
@@ -152,7 +152,7 @@ function bytesToTwoUint32(
         (uint32(uint8(data[5])) << 8) |
         (uint32(uint8(data[6])) << 16) |
         (uint32(uint8(data[7])) << 24);
-        
+
     uint32 third = uint32(uint8(data[8])) |
         (uint32(uint8(data[9])) << 8) |
         (uint32(uint8(data[10])) << 16) |
@@ -187,7 +187,7 @@ Now, to call our verifier contract and check the inclusion of the proof along wi
 
 In these commands:
 - `<FIBONACCI_VALIDATOR_ADDRESS>` is the address of the validator you deployed in the previous step.
-- `<DATA_FILE_NAME>` is the name of the file where the aligned data for this proof was saved (without the `.json` extension)
+- `<DATA_FILE_NAME>` is the name of the file where the aligned data for this proof was saved (including the `.json` extension)
 
 When you run this command, it will gather all necessary information from the file containing the aligned data and send a transaction to the Fibonacci validator using the `cast send` tool, like so:
 

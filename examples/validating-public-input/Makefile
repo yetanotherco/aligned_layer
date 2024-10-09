@@ -7,7 +7,7 @@ generate_sp1_fibonacci_proof:
 	@cd sp1/fibonacci/script && \
 		cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in sp1 folder"
-	
+
 
 submit_fibonacci_sp1_proof_devnet:
 	@cd aligned-integration && \
@@ -31,14 +31,14 @@ verify_sp1_batch_inclusion:
 verify_risc0_batch_inclusion:
 	@. ./contracts/.env  && . ./contracts/validate_batch_inclusion.sh $(FIBONACCI_VALIDATOR_ADDRESS) $(DATA_FILE_NAME) Risc0
 
-verify_risc0_local_batch_inclusion:
+verify_risc0_batch_inclusion_devnet:
 	@. ./contracts/.env.devnet  && . ./contracts/validate_batch_inclusion.sh $(FIBONACCI_VALIDATOR_ADDRESS) $(DATA_FILE_NAME) Risc0
 
-verify_sp1_local_batch_inclusion:
+verify_sp1_batch_inclusion_devnet:
 	@. ./contracts/.env.devnet  && . ./contracts/validate_batch_inclusion.sh $(FIBONACCI_VALIDATOR_ADDRESS) $(DATA_FILE_NAME) SP1
 
 deploy_fibonacci_validator:
 	@. ./contracts/.env && . ./contracts/deploy.sh
 
-deploy_local_fibonacci_validator:
+deploy_fibonacci_validator_devnet:
 	@. ./contracts/.env.devnet && . ./contracts/deploy.sh
