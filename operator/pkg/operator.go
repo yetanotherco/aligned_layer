@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -443,12 +442,6 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	return nil
 }
 
-func (o *Operator) IsVerifierDisabled(disabledVerifiersBitmap *big.Int, verifierId common.ProvingSystemId) bool {
-	verifierIdInt := uint8(verifierId)
-	bit := disabledVerifiersBitmap.Uint64() & (1 << verifierIdInt)
-	return bit != 0
-}
-
 func (o *Operator) afterHandlingBatchV2(log *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, succeeded bool) {
 	if succeeded {
 		o.lastProcessedBatch.batchProcessedChan <- uint32(log.Raw.BlockNumber)
@@ -468,7 +461,7 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- false
 		return
 	}
-	IsVerifierDisabled := o.IsVerifierDisabled(disabledVerifiersBitmap, verificationData.ProvingSystemId)
+	IsVerifierDisabled := IsVerifierDisabled(disabledVerifiersBitmap, verificationData.ProvingSystemId)
 	if IsVerifierDisabled {
 		o.Logger.Infof("Verifier %s is disbled. Skipping verifie", verificationData.ProvingSystemId.String())
 		results <- false
