@@ -116,21 +116,16 @@ defmodule TelemetryApi.Operators do
 
   ## Examples
 
-      iex> update_operator_version(%{field: value})
+      iex> update_operator(%{field: value})
       {:ok, %Ecto.Changeset{}}
 
       iex> update_operator_version(%{field: bad_value})
       {:error, "Some status", "Some message"}
 
   """
-  def update_operator_version(%{"version" => version, "signature" => signature}) do
+  def update_operator(version, signature, changes) do
     with {:ok, address} <- SignatureVerifier.recover_address(version, signature) do
       address = "0x" <> address
-      # We only want to allow changes on version
-      changes = %{
-        version: version
-      }
-
       case Repo.get(Operator, address) do
         nil ->
           {:error, :bad_request,
@@ -140,24 +135,6 @@ defmodule TelemetryApi.Operators do
           operator |> Operator.changeset(changes) |> Repo.insert_or_update()
       end
     end
-  end
-
-  @doc """
-  Updates a operator.
-
-  ## Examples
-
-      iex> update_operator(operator, %{field: new_value})
-      {:ok, %Operator{}}
-
-      iex> update_operator(operator, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_operator(%Operator{} = operator, attrs) do
-    operator
-    |> Operator.changeset(attrs)
-    |> Repo.update()
   end
 
   @doc """

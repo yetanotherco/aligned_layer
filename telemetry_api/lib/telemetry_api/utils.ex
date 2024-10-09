@@ -1,4 +1,6 @@
 defmodule TelemetryApi.Utils do
+  use TelemetryApiWeb, :controller
+
   @moduledoc """
   Some utility functions
   """
@@ -49,5 +51,16 @@ defmodule TelemetryApi.Utils do
       {:error, _} ->
         {:error, error_message}
     end
+  end
+
+
+  @doc """
+  Returns json encoded error using http
+  """
+  def return_error(conn, message) do
+    conn
+      |> put_status(:bad_request)
+      |> put_resp_content_type("application/json")
+      |> send_resp(:bad_request, Jason.encode!(%{error: message}))
   end
 end
