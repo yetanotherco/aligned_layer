@@ -18,5 +18,4 @@ fn main() {
         b = c;
     }
 
-    env::commit(&(a, b));
 }

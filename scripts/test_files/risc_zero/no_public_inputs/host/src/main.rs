@@ -34,14 +34,6 @@ fn main() {
     // Produce a receipt by proving the specified ELF binary.
     let receipt = prover.prove(env, FIBONACCI_ELF).unwrap().receipt;
 
-    // Retrieve receipt journal here.
-    let vars: (u32, u32) = receipt.journal.decode().unwrap();
-
-    let (a, b) = vars;
-
-    println!("a: {}", a);
-    println!("b: {}", b);
-
     let verification_result = receipt.verify(FIBONACCI_ID).is_ok();
 
     println!("Verification result: {}", verification_result);
