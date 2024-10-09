@@ -132,7 +132,11 @@ end
 # Backend utils
 defmodule Utils do
   require Logger
-  @max_batch_size String.to_integer(System.get_env("MAX_BATCH_SIZE") || "268435456")
+  @max_batch_size (case System.fetch_env("MAX_BATCH_SIZE") do
+    {:ok, ""} -> 268_435_456 #empty env var
+    {:ok, value} -> String.to_integer(value)
+    _ -> 268_435_456 # error
+  end)
 
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
