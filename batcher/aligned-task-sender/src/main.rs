@@ -1,3 +1,4 @@
+use ethers::utils::parse_ether;
 use futures_util::join;
 use k256::ecdsa::SigningKey;
 use rand::seq::SliceRandom;
@@ -16,9 +17,9 @@ use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{Network, ProvingSystemId, VerificationData},
 };
-use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::submit_multiple;
+use aligned_sdk::sdk::{deposit_to_aligned, get_chain_id};
 
 use clap::Parser;
 use clap::ValueEnum;
@@ -260,15 +261,19 @@ async fn send_multiple_senders_infinite_proofs(
         error!("Could not connect to eth rpc");
         return;
     };
+    let Ok(chain_id) = get_chain_id(&eth_rpc_url).await else {
+        error!("Could not get chain id");
+        return;
+    };
 
     for i in 0..num_senders {
         let wallet = Wallet::new(&mut thread_rng());
-        let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
+        let signer = SignerMiddleware::new(eth_rpc_provider.clone(), funding_wallet.clone());
         let tx = TransactionRequest::new()
-            .from(funding_wallet.address())
+            .from(signer.address())
             .to(wallet.address())
-            .value(U256::from(1));
-        let pending_transaction = match client.send_transaction(tx, None).await {
+            .value(parse_ether("1").unwrap());
+        let pending_transaction = match signer.send_transaction(tx, None).await {
             Ok(tx) => tx,
             Err(err) => {
                 error!("Could not fund wallet {}", err.to_string());
@@ -278,9 +283,22 @@ async fn send_multiple_senders_infinite_proofs(
         if let Err(err) = pending_transaction.await {
             error!("Could not fund wallet {}", err.to_string());
         }
+        let wallet = wallet.with_chain_id(chain_id);
+        info!("Wallet {} funded", i);
+        info!("Depositing to aligned");
+        let signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
+        if let Err(err) = deposit_to_aligned(
+            parse_ether("0.1").expect("Ether format should be: XX.XX"),
+            signer,
+            network,
+        )
+        .await
+        {
+            error!("Could not deposit to aligned, err: {:?}", err);
+            return;
+        }
         let sender = Sender { wallet };
         senders.push(sender);
-        info!("Wallet {} funded", i);
     }
 
     send_infinite_proofs(
@@ -461,7 +479,7 @@ async fn infinitely_send_proofs_from(
             "{:?} Proofs to the Aligned Batcher on{:?}",
             burst_size, network
         );
-        nonce += U256::one();
+        nonce += U256::from(burst_size);
         tokio::time::sleep(Duration::from_secs(burst_time)).await;
     }
 }
