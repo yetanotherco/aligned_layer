@@ -255,6 +255,11 @@ batcher_generate_groth16_proofs:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action generate-proofs
 
+# Infinite stream of burst of 10 proofs
+batcher_generate_and_fund_wallets:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- --action generate-and-fund-wallets --num-senders $(NUM_SENDERS)
+
 
 # Infinite stream of burst of 10 proofs
 batcher_send_infinite_multiple_senders:

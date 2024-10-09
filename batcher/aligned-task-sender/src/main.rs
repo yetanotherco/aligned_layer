@@ -1,8 +1,10 @@
 use ethers::utils::parse_ether;
 use futures_util::join;
+use futures_util::lock::Mutex;
 use k256::ecdsa::SigningKey;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use std::ops::Add;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{
@@ -34,6 +36,7 @@ const GROTH_16_PROOF_GENERATOR_FILE_PATH: &str =
     "../../scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go";
 const GROTH_16_PROOF_DIR: &str =
     "../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs";
+const WALLETS_DIR: &str = "../../../scripts/test_files/wallets";
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -100,6 +103,7 @@ pub enum Action {
     TestConnections,
     InfiniteProofs,
     MultipleSendersInfiniteProofs,
+    GenerateAndFundWallets,
 }
 
 impl FromStr for Action {
@@ -111,6 +115,7 @@ impl FromStr for Action {
             "infinite-proofs" => Ok(Action::InfiniteProofs),
             "multiple-senders-infinite-proofs" => Ok(Action::MultipleSendersInfiniteProofs),
             "clean-proofs" => Ok(Action::CleanProofs),
+            "generate-and-fund-wallets" => Ok(Action::GenerateAndFundWallets),
             _ => Err("Invalid action".to_string()),
         }
     }
@@ -171,7 +176,7 @@ async fn main() -> Result<(), AlignedError> {
             )
             .await;
         }
-        Action::MultipleSendersInfiniteProofs => {
+        Action::GenerateAndFundWallets => {
             let funding_wallet = get_sender_from_keystore_or_private_key(
                 keystore_path,
                 private_key,
@@ -179,8 +184,19 @@ async fn main() -> Result<(), AlignedError> {
             )
             .await
             .unwrap();
-            send_multiple_senders_infinite_proofs(
+            generate_and_fund_wallets(
                 funding_wallet,
+                base_dir,
+                args.num_senders,
+                "1".to_string(),
+                "0.1".to_string(),
+                args.eth_rpc_url.clone(),
+                args.network.into(),
+            )
+            .await;
+        }
+        Action::MultipleSendersInfiniteProofs => {
+            send_multiple_senders_infinite_proofs(
                 base_dir,
                 args.num_senders,
                 args.eth_rpc_url,
@@ -244,19 +260,20 @@ async fn get_sender_from_keystore_or_private_key(
     Ok(wallet)
 }
 
-async fn send_multiple_senders_infinite_proofs(
+async fn generate_and_fund_wallets(
     funding_wallet: Wallet<SigningKey>,
     base_dir: PathBuf,
-    num_senders: usize,
+    num_wallets: usize,
+    amount_to_deposit: String,
+    amount_to_deposit_aligned: String,
     eth_rpc_url: String,
-    batcher_url: String,
     network: Network,
-    burst_size: usize,
-    burst_time: u64,
-    max_fee: U256,
 ) {
-    info!("Creating senders");
-    let mut senders = vec![];
+    info!("Creating and funding wallets");
+    if let Err(e) = std::fs::create_dir_all(WALLETS_DIR) {
+        error!("Could not create wallets directory, err: {}", e.to_string());
+        return;
+    }
     let Ok(eth_rpc_provider) = Provider::<Http>::try_from(eth_rpc_url.clone()) else {
         error!("Could not connect to eth rpc");
         return;
@@ -266,13 +283,22 @@ async fn send_multiple_senders_infinite_proofs(
         return;
     };
 
-    for i in 0..num_senders {
+    for i in 0..num_wallets {
+        // this is necessary because of the move
+        let eth_rpc_provider = eth_rpc_provider.clone();
+        let funding_wallet = funding_wallet.clone();
+        let network = network.clone();
+        let amount_to_deposit = amount_to_deposit.clone();
+        let amount_to_deposit_aligned = amount_to_deposit_aligned.clone();
+        let base_dir = base_dir.clone();
+
         let wallet = Wallet::new(&mut thread_rng());
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), funding_wallet.clone());
         let tx = TransactionRequest::new()
-            .from(signer.address())
+            .from(funding_wallet.address())
             .to(wallet.address())
-            .value(parse_ether("1").unwrap());
+            .value(parse_ether(&amount_to_deposit).expect("Ether format should be: XX.XX"));
+
         let pending_transaction = match signer.send_transaction(tx, None).await {
             Ok(tx) => tx,
             Err(err) => {
@@ -288,7 +314,7 @@ async fn send_multiple_senders_infinite_proofs(
         info!("Depositing to aligned");
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
         if let Err(err) = deposit_to_aligned(
-            parse_ether("0.1").expect("Ether format should be: XX.XX"),
+            parse_ether(&amount_to_deposit_aligned).expect("Ether format should be: XX.XX"),
             signer,
             network,
         )
@@ -297,12 +323,31 @@ async fn send_multiple_senders_infinite_proofs(
             error!("Could not deposit to aligned, err: {:?}", err);
             return;
         }
-        let sender = Sender { wallet };
-        senders.push(sender);
+        info!("Storing private key");
+        let file_path = base_dir.join(format!("{}/private_key-{}", WALLETS_DIR, i));
+
+        if let Err(err) = std::fs::write(&file_path, wallet.signer().to_bytes()) {
+            error!("Could not store private key: {}", err.to_string());
+        } else {
+            info!("Private key stored in {}", file_path.to_str().unwrap());
+        }
     }
+}
+
+async fn send_multiple_senders_infinite_proofs(
+    base_dir: PathBuf,
+    num_senders: usize,
+    eth_rpc_url: String,
+    batcher_url: String,
+    network: Network,
+    burst_size: usize,
+    burst_time: u64,
+    max_fee: U256,
+) {
+    // now here we need to load the senders
 
     send_infinite_proofs(
-        senders,
+        vec![],
         base_dir,
         eth_rpc_url,
         batcher_url,
