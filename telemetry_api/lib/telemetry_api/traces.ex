@@ -76,10 +76,10 @@ defmodule TelemetryApi.Traces do
           {:operator_id, operator_id},
           {:name, operator.name},
           {:address, operator.address},
-          {:operator_stake, operator_stake},
-          {:current_stake, new_stake},
-          {:current_stake_fraction, new_stake_fraction},
-          {:operator_stake_fraction, operator_stake_fraction}
+          {:operator_stake, Decimal.to_string(operator_stake)},
+          {:current_stake, Decimal.to_string(new_stake)},
+          {:current_stake_fraction, Decimal.to_string(new_stake_fraction)},
+          {:operator_stake_fraction, Decimal.to_string(operator_stake_fraction)}
         ]
       )
 
