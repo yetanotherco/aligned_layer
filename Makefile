@@ -390,7 +390,7 @@ task_sender_infinite_proofs:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action infinite-proofs --burst-size $(BURST_SIZE) 
 
-task_sender_mutliple_senders_infinite_proofs:
+task_sender_multiple_senders_infinite_proofs:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action multiple-senders-infinite-proofs --burst-size $(BURST_SIZE) --num-senders $(NUM_SENDERS)
 
@@ -401,6 +401,13 @@ task_sender_test_connections:
 task_sender_clean_proofs:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- --action clean-proofs
+
+__UTILS__:
+aligned_get_user_balance:
+	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK) \
+		--user_addr $(USER_ADDR)
 
 __GENERATE_PROOFS__:
  # TODO add a default proving system

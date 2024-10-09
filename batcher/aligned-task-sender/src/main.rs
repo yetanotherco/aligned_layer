@@ -34,7 +34,7 @@ const GROTH_16_PROOF_GENERATOR_FILE_PATH: &str =
     "../../scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go";
 const GROTH_16_PROOF_DIR: &str =
     "../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs";
-const WALLETS_DIR: &str = "../../../scripts/test_files/wallets";
+const WALLETS_DIR: &str = "../../scripts/test_files/wallets";
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -312,6 +312,7 @@ async fn generate_and_fund_wallets(
         let base_dir = base_dir.clone();
 
         let wallet = Wallet::new(&mut thread_rng());
+        info!("Generated wallet {} with address {:?}", i, wallet.address());
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), funding_wallet.clone());
         let amount_to_deposit =
             parse_ether(&amount_to_deposit).expect("Ether format should be: XX.XX");
@@ -349,8 +350,10 @@ async fn generate_and_fund_wallets(
 
         info!("Storing private key");
         let file_path = base_dir.join(format!("{}/private_key-{}", WALLETS_DIR, i));
+        let signer_bytes = wallet.signer().to_bytes();
+        let secret_key_hex = ethers::utils::hex::encode(signer_bytes);
 
-        if let Err(err) = std::fs::write(&file_path, wallet.signer().to_bytes()) {
+        if let Err(err) = std::fs::write(&file_path, secret_key_hex) {
             error!("Could not store private key: {}", err.to_string());
         } else {
             info!("Private key stored in {}", file_path.to_str().unwrap());
@@ -379,11 +382,11 @@ async fn send_multiple_senders_infinite_proofs(
     // now here we need to load the senders
     for i in 0..num_senders {
         let file_path = base_dir.join(format!("{}/private_key-{}", WALLETS_DIR, i));
-        let Ok(private_key_str) = std::fs::read(file_path) else {
+        let Ok(private_key_str) = std::fs::read_to_string(file_path) else {
             error!("Could not read private key");
             return;
         };
-        let wallet = Wallet::from_bytes(private_key_str.as_slice()).expect("Invalid private key");
+        let wallet = Wallet::from_str(private_key_str.trim()).expect("Invalid private key");
         let wallet = wallet.with_chain_id(chain_id);
         let sender = Sender { wallet };
 
