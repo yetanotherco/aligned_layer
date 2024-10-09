@@ -3,6 +3,8 @@ use futures_util::join;
 use k256::ecdsa::SigningKey;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{
@@ -107,6 +109,11 @@ pub struct Args {
         long = "amount-to-deposit-to-aligned"
     )]
     amount_to_deposit_to_aligned: Option<String>,
+    #[arg(
+        name = "The file path from which to read the private keys to send transactions or store private keys when generating file",
+        long = "private-keys-file"
+    )]
+    private_keys_file: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -201,7 +208,8 @@ async fn main() -> Result<(), AlignedError> {
             .unwrap();
             generate_and_fund_wallets(
                 funding_wallet,
-                base_dir,
+                args.private_keys_file
+                    .expect("Private keys file path not provided"),
                 args.num_senders,
                 args.amount_to_deposit
                     .expect("Amount to deposit not provided"),
@@ -215,7 +223,8 @@ async fn main() -> Result<(), AlignedError> {
         Action::MultipleSendersInfiniteProofs => {
             send_multiple_senders_infinite_proofs(
                 base_dir,
-                args.num_senders,
+                args.private_keys_file
+                    .expect("Private keys file path not provided"),
                 args.eth_rpc_url,
                 args.batcher_url,
                 args.network.into(),
@@ -258,7 +267,7 @@ async fn get_sender_from_keystore_or_private_key(
             .parse::<LocalWallet>()
             .map_err(|e| SubmitError::GenericError(e.to_string()))?
     } else {
-        warn!("Missing keystore used for payment. This proof will not be included if sent to Eth Mainnet");
+        warn!("Missing wallet. Loading a rich account anvil");
         match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
             Ok(wallet) => wallet,
             Err(e) => {
@@ -282,7 +291,7 @@ async fn get_sender_from_keystore_or_private_key(
 
 async fn generate_and_fund_wallets(
     funding_wallet: Wallet<SigningKey>,
-    base_dir: PathBuf,
+    file_path: String,
     num_wallets: usize,
     amount_to_deposit: String,
     amount_to_deposit_aligned: String,
@@ -303,13 +312,21 @@ async fn generate_and_fund_wallets(
         return;
     };
 
+    let file = File::create(&file_path);
+    let mut file = match file {
+        Ok(f) => f,
+        Err(err) => {
+            error!("Could not open private keys file: {}", err.to_string());
+            return;
+        }
+    };
+
     for i in 0..num_wallets {
         // this is necessary because of the move
         let eth_rpc_provider = eth_rpc_provider.clone();
         let funding_wallet = funding_wallet.clone();
         let amount_to_deposit = amount_to_deposit.clone();
         let amount_to_deposit_aligned = amount_to_deposit_aligned.clone();
-        let base_dir = base_dir.clone();
 
         let wallet = Wallet::new(&mut thread_rng());
         info!("Generated wallet {} with address {:?}", i, wallet.address());
@@ -349,14 +366,13 @@ async fn generate_and_fund_wallets(
         info!("Successfully deposited to aligned for wallet {}", i);
 
         info!("Storing private key");
-        let file_path = base_dir.join(format!("{}/private_key-{}", WALLETS_DIR, i));
         let signer_bytes = wallet.signer().to_bytes();
         let secret_key_hex = ethers::utils::hex::encode(signer_bytes);
 
-        if let Err(err) = std::fs::write(&file_path, secret_key_hex) {
+        if let Err(err) = writeln!(file, "{}", secret_key_hex) {
             error!("Could not store private key: {}", err.to_string());
         } else {
-            info!("Private key stored in {}", file_path.to_str().unwrap());
+            info!("Private key {} stored", i);
         }
     }
 }
@@ -364,7 +380,7 @@ async fn generate_and_fund_wallets(
 #[allow(clippy::too_many_arguments)]
 async fn send_multiple_senders_infinite_proofs(
     base_dir: PathBuf,
-    num_senders: usize,
+    file_path: String,
     eth_rpc_url: String,
     batcher_url: String,
     network: Network,
@@ -379,12 +395,27 @@ async fn send_multiple_senders_infinite_proofs(
         return;
     };
 
-    // now here we need to load the senders
-    for i in 0..num_senders {
-        let file_path = base_dir.join(format!("{}/private_key-{}", WALLETS_DIR, i));
-        let Ok(private_key_str) = std::fs::read_to_string(file_path) else {
-            error!("Could not read private key");
+    let file = match File::open(&file_path) {
+        Ok(file) => file,
+        Err(err) => {
+            error!("Could not open private keys file: {}", err.to_string());
             return;
+        }
+    };
+
+    let reader = BufReader::new(file);
+
+    // now here we need to load the senders from the provided files
+    for (i, line) in reader.lines().enumerate() {
+        let private_key_str = match line {
+            Ok(line) => line,
+            Err(err) => {
+                error!(
+                    "Could not read line from private keys file: {}",
+                    err.to_string()
+                );
+                return;
+            }
         };
         let wallet = Wallet::from_str(private_key_str.trim()).expect("Invalid private key");
         let wallet = wallet.with_chain_id(chain_id);
@@ -422,6 +453,7 @@ async fn send_infinite_proofs(
         return;
     }
 
+    // todo(marcos): the number 50 could be a param
     let verification_data =
         get_verification_data_from_generated(50, base_dir.clone(), senders[0].wallet.address());
 
