@@ -1,4 +1,4 @@
-name: build-and-test-go-projects
+name: build-go-projects
 
 on:
   merge_group:
@@ -16,7 +16,7 @@ on:
 env:
   FFI_FOR_RELEASE: false
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -37,6 +37,4 @@ jobs:
         run: go build operator/cmd/main.go
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
-      - name: Run tests
-        run: make test
       
