@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use aligned_sdk::eth::batcher_payment_service::{BatcherPaymentServiceContract};
+use aligned_sdk::eth::batcher_payment_service::BatcherPaymentServiceContract;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use gas_escalator::{Frequency, GeometricGasPrice};
