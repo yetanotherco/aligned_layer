@@ -282,7 +282,7 @@ defmodule Utils do
             {:error, reason} ->
               Logger.error("Error fetching batch content: #{inspect(reason)}")
               # Returning something ensures we avoid attempting to fetch the invalid data again.
-              ["0"]
+              [<<0>>]
           end
 
         proof_hashes ->
