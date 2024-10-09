@@ -24,7 +24,6 @@ contract BatcherPaymentServiceUpgrader is Script {
         );
 
         BatcherPaymentService newBatcherPaymentServiceImplementation = new BatcherPaymentService();
-        BatcherPaymentServiceProxy.upgradeToAndCall(address(newBatcherPaymentServiceImplementation), ""); 
 
         vm.stopBroadcast();
 

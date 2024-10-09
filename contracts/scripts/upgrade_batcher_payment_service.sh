@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "$MULTISIG" ]; then
+  echo "Missing MULTISIG env variable"
+  exit 1
+fi
+
 # cd to the directory of this script so that this can be run from anywhere
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 # At this point we are in contracts/scripts
@@ -24,6 +29,7 @@ forge_output=$(forge script script/upgrade/BatcherPaymentServiceUpgrader.s.sol \
 echo "$forge_output"
 
 # Extract the batcher payment service values from the output
+batcher_payment_service_proxy=$(echo "$forge_output" | awk '/0: address/ {print $3}')
 batcher_payment_service_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 
 # Use the extracted value to replace the  batcher payment service values in alignedlayer_deployment_output.json and save it to a temporary file
@@ -35,4 +41,14 @@ mv "$OUTPUT_PATH.temp" $OUTPUT_PATH
 # Delete the temporary file
 rm -f "$OUTPUT_PATH.temp"
 
+data=$(cast calldata "upgradeToAndCall(address, bytes)" $batcher_payment_service_implementation "0x")
 
+if [ "$MULTISIG" = false ]; then
+  echo "Executing upgrade transaction"
+  cast send $batcher_payment_service_proxy $data \
+    --rpc-url $RPC_URL \
+    --private-key $PRIVATE_KEY
+else
+  echo "You can propose the upgrade transaction with the multisig using this calldata"
+  echo $data
+fi
