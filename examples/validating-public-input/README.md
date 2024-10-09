@@ -12,6 +12,8 @@ This example is designed to do either with SP1 or risc0 proofs these are the com
 
 2. `make submit_fibonacci_risc0_proof_devnet`
 
+> The batch needs at least two proofs to be selaed, in another terminal run `make batcher_send_risc0_task` to actually submit the batch to aligned.
+
 The command will log the file where all the aligned verification data was saved like so:
 
 ```
@@ -53,6 +55,8 @@ transactionHash         <TX_HASH>
 1. `make generate_sp1_fibonacci_proof`
 
 2. `make submit_fibonacci_sp1_proof_devnet`
+
+> The batch needs at least two proofs to be selaed, in another terminal run `make batcher_send_sp1_task` to actually submit the batch to aligned.
 
 The command will log the file where all the aligned verification data was saved like so:
 
