@@ -31,6 +31,9 @@ jobs:
     - name: Send proofs batches
       run: make docker_batcher_send_all_proofs_burst
 
+    - name: Verify all sent proofs
+      run: make docker_verify_proof_submission_success
+
   post:
     runs-on: docker
     needs: docker
