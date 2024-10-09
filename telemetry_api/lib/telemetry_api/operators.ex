@@ -37,7 +37,7 @@ defmodule TelemetryApi.Operators do
       iex> get_operator(%Operator{address: non_existent_address})
       {:error, :not_found, "Operator not found for address: non_existent_address"}
   """
-  def get_operator(%Operator{address: address}) do
+  def get_operator(%{address: address}) do
     case Repo.get(Operator, address) do
       nil ->
         IO.inspect("Operator not found for address: #{address}")
@@ -48,7 +48,7 @@ defmodule TelemetryApi.Operators do
     end
   end
 
-  def get_operator(%Operator{id: id}) do
+  def get_operator(%{id: id}) do
     query = from(o in Operator, where: o.id == ^id)
 
     case Repo.one(query) do
