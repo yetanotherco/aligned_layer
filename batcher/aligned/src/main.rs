@@ -598,7 +598,11 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
             )?);
 
             // Risc0 and have zero or none public inputs
-            pub_input = args.pub_input_file_name.clone().map(read_file).transpose()?;
+            pub_input = args
+                .pub_input_file_name
+                .clone()
+                .map(read_file)
+                .transpose()?;
         }
         ProvingSystemId::Halo2KZG
         | ProvingSystemId::Halo2IPA

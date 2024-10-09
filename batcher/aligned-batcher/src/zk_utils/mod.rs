@@ -74,7 +74,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             // Risc0 can have 0 public input. In which case we supply an empty Vec<u8>.
             let mut public_input = &vec![];
             if let Some(pub_input) = &verification_data.pub_input {
-              public_input = pub_input;
+                public_input = pub_input;
             }
 
             let mut image_id = [0u8; 32];
@@ -82,7 +82,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             return verify_risc_zero_proof(
                 verification_data.proof.as_slice(),
                 &image_id,
-                &public_input,
+                public_input,
             );
         }
         ProvingSystemId::GnarkPlonkBls12_381
