@@ -69,6 +69,7 @@ contract BatcherPaymentService is
         }
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
+        __Pausable_init();
         _transferOwnership(_batcherPaymentServiceOwner);
 
         alignedLayerServiceManager = _alignedLayerServiceManager;
