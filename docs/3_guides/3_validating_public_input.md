@@ -1,8 +1,8 @@
 # Validating public input
 
-In some applications, it is crucial to ensure that a third party has performed a computation correctly and to make use of the result of that computation. To achieve this, the third party must first interact with Aligned and obtain the `AlignedVerificationData`, a receipt indicating that the proof of the computation was verified correctly. The application should then receive both the `AlignedVerificationData` and the result of the computation. After confirming that the proof was verified by Aligned, it must check that the posted result matches the one committed in the `AlignedVerificationData`.
+In some applications, it is crucial to ensure that a third party has performed a computation correctly and to make use of the result of that computation. To achieve this, the third party must interact with Aligned, using the Aligned SDK, to obtain the `AlignedVerificationData`, a receipt indicating that the proof of the computation was verified correctly. The application should then receive both the `AlignedVerificationData` and the result of the computation. After confirming that the proof was verified by Aligned, it must check that the posted result matches the one committed in the `AlignedVerificationData`.
 
-This guide demonstrates how to validate Risc0 and SP1 proofs using the Aligned SDK. The program in this example is a Fibonacci sequence calculator. It generates a public input that corresponds to the number of fibonacci being calculated and the last two Fibonacci numbers of the sequence, taken modulo 7919. Our goal is to validate, within a smart contract, that the public input commitments match these two numbers.
+This guide demonstrates how to validate Risc0 and SP1 proofs using the Aligned SDK. The program in this example is a Fibonacci sequence calculator. It generates a public input that corresponds to the number of fibonacci being calculated and the last two Fibonacci numbers of the sequence, taken modulo 7919. Our goal is to validate, within a smart contract, that the public input commitments match these numbers.
 
 In this case, the Fibonacci number to be calculated is **500** and the last two numbers of the sequence modulo 7919 are **1268** and **1926**.
 
@@ -95,7 +95,7 @@ VerificationData {
 }
 ```
 
-Once this proof is submitted and executed within Aligned, you should see an output similar to:
+It could take some time but once this proof is submitted and executed within Aligned, you should see an output similar to:
 
 ```
 INFO  aligned_integration: Saved batch inclusion data to ".../aligned_layer/examples/validating-public-input/aligned-integration/batch_inclusion_data/<JSON_FILE_NAME>"
@@ -103,7 +103,7 @@ INFO  aligned_integration: Saved batch inclusion data to ".../aligned_layer/exam
 
 The file logged in `<JSON_FILE_NAME>` will contain the `AlignedVerificationData`. This data is essential for sending the transaction to the `verifyBatchInclusion` method of the smart contract, which verifies the inclusion of your proof in Aligned and checks the correctness of the compiled program and public inputs.
 
-Each generated proof gets its own file name, so ensure to save the filename or remember it for future steps, as it will be required later.
+Each generated proof gets its own file name, so ensure to save the filename or remember it for future steps, as it will be required later. You can check the generated data files in `aligned-layer/examples/validating-public-input/aligned-integration/batch_inclusion_data`
 
 ## Validating the public inputs
 
@@ -171,7 +171,14 @@ Once your `.env` file is set up, you can deploy the contract using the following
 make deploy_fibonacci_validator
 ```
 
-This command will log the address of the deployed contract. Make sure to save this address, as you'll need it for the next step.
+This command will log the address of the deployed contract like so: 
+
+```
+== Return ==
+0: address 0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f
+```
+
+Make sure to save this address, as you'll need it for the next step.
 
 Now, to call our verifier contract and check the inclusion of the proof along with the validation of the public inputs, use the following command based on the verifier you used:
 
@@ -206,4 +213,4 @@ cast send --rpc-url $RPC_URL $FIBONACCI_VALIDATOR_ADDRESS \
     --private-key $PRIVATE_KEY
 ```
 
-If the output of this transaction indicates success, then we can confirm that our proof has been successfully included in Aligned. Additionally, this outcome verifies that the public inputs we generated match the expected values from the proof generation process.
+If the output of this transaction indicates `success`, then we can confirm that our proof has been successfully included in Aligned. Additionally, this outcome verifies that the public inputs we generated match the expected values from the proof generation process.
