@@ -6,10 +6,13 @@ contract FibonacciValidator {
     address public paymentServiceAddr;
     bytes32 public fibonacciProgramId;
 
-    bytes32 public fibonacciProgramIdCommitment =
-        0x069ed9f3972550a2901523723f4beb5e240749dcafa30e1623d0778e17d69d70;
+    bytes32 public fibonacciProgramIdCommitmentSp1 =
+        0xc2633817b79f9a9bf340981ecc6d693ce8b0b0494114277bd5a4b4083675fa32;
+    
+    bytes32 public fibonacciProgramIdCommitmentRisc0 =
+        0x0d5a7c5ae964f52be4c8d288b41fece9e6fec521ad813b323719bc86e859a5d2;
 
-    event FibonacciNumbers(uint32 fibN, uint32 fibNPlusOne);
+    event FibonacciNumbers(uint32 n, uint32 fibN, uint32 fibNPlusOne);
 
     constructor(address _alignedServiceManager, address _paymentServiceAddr) {
         alignedServiceManager = _alignedServiceManager;
@@ -24,12 +27,22 @@ contract FibonacciValidator {
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex,
-        bytes memory pubInputBytes
+        bytes memory pubInputBytes,
+        string memory verifierId
     ) public returns (bool) {
-        require(
-            fibonacciProgramIdCommitment == programIdCommitment,
-            "Program ID doesn't match"
-        );
+        if (keccak256(abi.encodePacked(verifierId)) == keccak256(abi.encodePacked("SP1"))) {
+            require(
+                fibonacciProgramIdCommitmentSp1 == programIdCommitment,
+                "Program ID doesn't match"
+            );
+        } else if (keccak256(abi.encodePacked(verifierId)) == keccak256(abi.encodePacked("Risc0"))) {
+            require(
+                fibonacciProgramIdCommitmentRisc0 == programIdCommitment,
+                "Program ID doesn't match"
+            );
+        } else {
+            revert("Verifier ID not recognized, use Risc0 or SP1");
+        }
 
         require(
             pubInputCommitment == keccak256(abi.encodePacked(pubInputBytes)),
@@ -55,16 +68,16 @@ contract FibonacciValidator {
 
         require(callWasSuccessful, "static_call failed");
 
-        (uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(pubInputBytes);
+        (uint32 n ,uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(pubInputBytes);
 
-        emit FibonacciNumbers(fibN, fibNPlusOne);
+        emit FibonacciNumbers(n, fibN, fibNPlusOne);
 
         return abi.decode(proofIsIncluded, (bool));
     }
 
     function bytesToTwoUint32(
         bytes memory data
-    ) public pure returns (uint32, uint32) {
+    ) public pure returns (uint32, uint32, uint32) {
         require(data.length >= 8, "Input bytes must be at least 8 bytes long");
 
         uint32 first = uint32(uint8(data[0])) |
@@ -76,7 +89,12 @@ contract FibonacciValidator {
             (uint32(uint8(data[5])) << 8) |
             (uint32(uint8(data[6])) << 16) |
             (uint32(uint8(data[7])) << 24);
+        
+        uint32 third = uint32(uint8(data[8])) |
+            (uint32(uint8(data[9])) << 8) |
+            (uint32(uint8(data[10])) << 16) |
+            (uint32(uint8(data[11])) << 24);
 
-        return (first, second);
+        return (first, second, third);
     }
 }
