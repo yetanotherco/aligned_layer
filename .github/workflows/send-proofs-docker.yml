@@ -1,4 +1,4 @@
-name: Test
+name: "[CI] Send proofs to network"
 
 on:
   push:
