@@ -28,6 +28,9 @@ jobs:
     - name: Start containers
       run: make docker_up
 
+    - name: Send proofs batches
+      run: make docker_batcher_send_all_proofs_burst
+
   post:
     runs-on: docker
     needs: docker
