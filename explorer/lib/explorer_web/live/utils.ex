@@ -175,11 +175,6 @@ defmodule Utils do
     end)
   end
 
-  def calculate_proof_hashes({:error, reason}) do
-    Logger.error("Error calculating proof hashes: #{inspect(reason)}")
-    ["invalid"]
-  end
-
   defp stream_handler({:headers, _headers}, acc), do: {:cont, acc}
   defp stream_handler({:status, 200}, acc), do: {:cont, acc}
 
@@ -263,9 +258,17 @@ defmodule Utils do
         nil ->
           Logger.debug("Fetching from S3")
 
-          batch.data_pointer
-          |> Utils.fetch_batch_data_pointer()
-          |> Utils.calculate_proof_hashes()
+          batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
+          case batch_content do
+            {:ok, batch_content} ->
+              batch_content
+              |> Utils.calculate_proof_hashes()
+
+            {:error, reason} ->
+              Logger.error("Error fetching batch content: #{inspect(reason)}")
+              # Returning something ensures we avoid attempting to fetch the invalid data again.
+              ["invalid batch"]
+          end
 
         proof_hashes ->
           # already processed and stored the S3 data
