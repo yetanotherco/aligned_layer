@@ -9,6 +9,10 @@ jobs:
   docker:
     timeout-minutes: 30
     runs-on: docker
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
 
     steps:
     - name: Log in to GitHub Container Registry
@@ -16,7 +20,7 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.TOMI_GITHUB_TOKEN }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Checkout
       uses: actions/checkout@v1
