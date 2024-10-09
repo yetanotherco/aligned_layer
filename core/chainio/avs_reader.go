@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -101,4 +102,50 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 	}
 
 	return tasks, nil
+}
+
+// This function is a helper to get a task hash of aproximately nBlocksOld blocks ago
+func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64) (*[32]byte, error) {
+	// r.ChainReader.ethClient.CallContext(context.Background(), &blockNumber, "eth_blockNumber")
+	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
+	if err != nil {
+		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get latest block number: %w", err)
+		}
+	}
+
+	var fromBlock uint64
+	var toBlock uint64
+
+	if latestBlock < nBlocksOld {
+		// upToBlock = latestBlock
+		return nil, fmt.Errorf("latest block is less than nBlocksOld")
+	}
+	interval := uint64(10) // TODO set 1000, Arbitrary number, aproximately blocks in 3hs
+	toBlock = latestBlock - nBlocksOld
+	fromBlock = toBlock - interval
+	// Maybe there is a way to only get 1 task?
+	// this is the MVP
+
+	var lastLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: &toBlock, Context: context.Background()}, nil)
+	if err != nil {
+		return nil, err
+	}
+	if err := logs.Error(); err != nil {
+		return nil, err
+	}
+
+	// Any log from the list is good enough.
+	lastLog = logs.Event
+
+	if lastLog == nil {
+		return nil, fmt.Errorf("no batches found of at least %d blocks old", interval)
+	}
+
+	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
+	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	return &batchIdentifierHash, nil
+
 }
