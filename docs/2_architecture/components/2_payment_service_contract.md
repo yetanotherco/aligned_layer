@@ -17,7 +17,7 @@ Once a batch is complete, the Batcher calls its smart contract with the collecte
 
 The smart contract deducts funds from senders' balances and creates a new Batch in
 the [Aligned Service Manager](./3_service_manager_contract.md),
-including tokens for batch verification payment to the [Aggregator](./5_aggregator.md).
+including funds for batch verification payment to the [Aggregator](./5_aggregator.md).
 
 Users can then withdraw extra funds deposited to the Batcher Payments smart contract,
 or leave them to fund future proofs.
@@ -26,18 +26,6 @@ and then call `withdraw` at least 100 blocks later, to finish their withdrawal p
 This enables the Batcher to be sure the User will have funds to pay for his proofs when `createNewTask` is called.
 
 This way, the Batcher can only use the User's funds to pay for the verification of the User's proofs. The Batcher Payment Service guarantees that the Batcher will not be able to spend the user funds for anything other than submitting the user's proofs to Aligned.
-
-The flow is:
-
-- When the batcher calls the smart contract to create a new batch,
-  it gets the batch merkle tree leaves, with each leaf, signed by the user.
-- The contract then rebuilds the merkle tree to check the
-  batch merkle root and verifies the user signatures.
-- Each signature also contains a nonce that can only be used once per user,
-  to avoid the batcher being able to reuse the same signature.
-- Only if the merkle root and the signatures are valid, the contract will
-  discount the corresponding funds from the user's balance and
-  create a new batch in the [Aligned Service Manager](./3_service_manager_contract.md).
 
 ## Payment service architecture and flow
 
