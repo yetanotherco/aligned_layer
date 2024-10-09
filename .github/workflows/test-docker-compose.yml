@@ -28,6 +28,15 @@ jobs:
     - name: Start containers
       run: make docker_up
 
+  post:
+    runs-on: docker
+    needs: docker
+
+    steps:
     - name: Stop containers
       if: always()
-      run: sudo make docker_down
+      run: make docker_down
+
+    - name: Delete _work
+      if: always()
+      run: sudo rm -rf /home/admin/actions-runner/_work/aligned_layer/
