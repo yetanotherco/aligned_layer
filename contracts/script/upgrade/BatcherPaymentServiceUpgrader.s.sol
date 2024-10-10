@@ -25,6 +25,9 @@ contract BatcherPaymentServiceUpgrader is Script {
 
         BatcherPaymentService newBatcherPaymentServiceImplementation = new BatcherPaymentService();
 
+        // Not link the new implementation to the proxy
+        // Because this must be executed in the multisig
+        
         vm.stopBroadcast();
 
         return (address(BatcherPaymentServiceProxy), address(newBatcherPaymentServiceImplementation));

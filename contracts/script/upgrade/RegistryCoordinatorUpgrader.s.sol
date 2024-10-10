@@ -82,12 +82,8 @@ contract RegistryCoordinatorUpgrader is Script {
             );
         vm.stopBroadcast();
 
-        vm.startBroadcast();
-        alignedLayerProxyAdmin.upgrade(
-            registryCoordinator,
-            address(registryCoordinatorImplementation)
-        );
-        vm.stopBroadcast();
+        // Not link the new implementation to the proxy
+        // Because this must be executed in the multisig
 
         return (
             address(registryCoordinator),

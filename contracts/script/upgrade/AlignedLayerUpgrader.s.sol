@@ -80,6 +80,9 @@ contract AlignedLayerUpgrader is Script {
                 )
             );
 
+        // Not link the new implementation to the proxy
+        // Because this must be executed in the multisig
+
         return (
             address(alignedLayerServiceManager),
             address(alignedLayerServiceManagerImplementation)
