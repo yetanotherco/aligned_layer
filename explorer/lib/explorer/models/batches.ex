@@ -18,7 +18,7 @@ defmodule Batches do
     field :fee_per_proof, :integer
     field :sender_address, :binary
     field :max_aggregator_fee, :decimal
-    field :is_valid, :boolean
+    field :is_valid, :boolean, default: true
 
     timestamps()
   end
