@@ -1,4 +1,4 @@
-FROM ghcr.io/lambdaclass/aligned_layer/foundry:latest
+FROM ghcr.io/yetanotherco/aligned_layer/foundry:latest
 
 COPY contracts/scripts/anvil/state/* .
 
