@@ -1,0 +1,38 @@
+{
+  "addresses": {
+    "avsDirectory": "0x2f1F293185c7b57E1E8e07B95C9f04D33418854c",
+    "avsDirectoryImplementation": "0x6DC4C39E3e6FC3bdbb054C6Cf87FEf8E33DBBCa9",
+    "baseStrategyImplementation": "0x942CfD2F80f517D6e6129277b027750D01Aa3Eb1",
+    "beaconOracle": "0x0000000000000000000000000000000000000000",
+    "delayedWithdrawalRouter": "0x02eE8752d9d6ee1B366BD04d24Bbaa3547ABc0c1",
+    "delayedWithdrawalRouterImplementation": "0x5FC324E99fb6db1859225C3E53b2688ce7FbF5E1",
+    "delegationManager": "0x7F250FA1f844Ae88eAdF919ca3a95e327B639d8F",
+    "delegationManagerImplementation": "0x77E8329dc5290Ef8BA61A997132316a39f731968",
+    "eigenLayerPauserReg": "0xC2316E03d0871f667e75C62181089988Eb4DB7Db",
+    "eigenLayerProxyAdmin": "0x3b9b847F251260d6681E2dF937E84Ae4Db1191e5",
+    "eigenPodBeacon": "0x879Fce476F58b5691a6AF29C2895e9fDF956642C",
+    "eigenPodImplementation": "0x953F32aE91ec538eBAD2110b3276dEDe9a886519",
+    "eigenPodManager": "0x1c49661c978c587d98a4dF730CfBaAeE8836d813",
+    "eigenPodManagerImplementation": "0xE3A2b29e35E878f24bcf46b3d53004aBD5105d99",
+    "emptyContract": "0xCf334DbB9bEefC53e3e9Fa0feb7319B702155408",
+    "rewardsCoordinator": "0x420324e8834D2bfF217319D497DDB2B221dea46C",
+    "rewardsCoordinatorImplementation": "0xF2Fdf5cDBd262DAE8aCF77f85fc1A7546B5FBa3D",
+    "slasher": "0xF953eDdb64b624FcEbb133f3D991BA05B122bEC8",
+    "slasherImplementation": "0xB4Fe2669dA4ee0A67E292F1f09d2b83E07C0fb26",
+    "strategies": {
+      "MOCK": "0x3eb924d928c138898FC089328f840105969bD6a0"
+    },
+    "strategyManager": "0xAcd358E6CCdE1634A1e80F143cF467Bf40fac4BA",
+    "strategyManagerImplementation": "0x7A7122D7a5194217Be6181c76484dCc10E8BFf83"
+  },
+  "chainInfo": {
+    "chainId": 11155111,
+    "deploymentBlock": 6200286
+  },
+  "numStrategies": 1,
+  "parameters": {
+    "executorMultisig": "0x97aEC5F28181abe5d2aD40dBe7FbaEe014529b7D",
+    "operationsMultisig": "0x97aEC5F28181abe5d2aD40dBe7FbaEe014529b7D",
+    "pauserMultisig": "0x97aEC5F28181abe5d2aD40dBe7FbaEe014529b7D"
+  }
+}

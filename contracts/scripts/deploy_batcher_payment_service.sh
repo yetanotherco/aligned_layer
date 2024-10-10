@@ -29,13 +29,12 @@ batcher_payment_service_proxy=$(echo "$forge_output" | awk '/0: address/ {print 
 batcher_payment_service_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 
 # Use the extracted value to replace the  batcher payment service values in alignedlayer_deployment_output.json and save it to a temporary file
-jq --arg batcher_payment_service_proxy "$batcher_payment_service_proxy" '.addresses.batcherPaymentService = $batcher_payment_service_proxy' "script/output/holesky/alignedlayer_deployment_output.json" > "script/output/holesky/alignedlayer_deployment_output.temp.temp.json"
-jq --arg batcher_payment_service_implementation "$batcher_payment_service_implementation" '.addresses.batcherPaymentServiceImplementation = $batcher_payment_service_implementation' "script/output/holesky/alignedlayer_deployment_output.temp.temp.json" > "script/output/holesky/alignedlayer_deployment_output.temp.json"
-
+jq --arg batcher_payment_service_proxy "$batcher_payment_service_proxy" '.addresses.batcherPaymentService = $batcher_payment_service_proxy' $OUTPUT_PATH > $OUTPUT_PATH.temp2
+jq --arg batcher_payment_service_implementation "$batcher_payment_service_implementation" '.addresses.batcherPaymentServiceImplementation = $batcher_payment_service_implementation' $OUTPUT_PATH.temp2 > $OUTPUT_PATH.temp
 
 # Replace the original file with the temporary file
-mv "script/output/holesky/alignedlayer_deployment_output.temp.json" "script/output/holesky/alignedlayer_deployment_output.json"
+mv $OUTPUT_PATH.temp $OUTPUT_PATH
 
 # Delete the temporary file
-rm -f "script/output/holesky/alignedlayer_deployment_output.temp.json"
-rm -f "script/output/holesky/alignedlayer_deployment_output.temp.temp.json"
+rm -f $OUTPUT_PATH.temp
+rm -f $OUTPUT_PATH.temp2

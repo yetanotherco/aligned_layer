@@ -17,7 +17,7 @@ anvil --load-state scripts/anvil/state/alignedlayer-deployed-anvil-state.json --
 
 sleep 2
 
-# Deploy Batcher Payments Contract
+# Deploy new Batcher Payments implementation, but don't upgrade yet 
 forge_output=$(forge script script/upgrade/BatcherPaymentServiceUpgrader.s.sol \
     "./script/output/devnet/alignedlayer_deployment_output.json" \
     --rpc-url "http://localhost:8545" \
@@ -29,10 +29,24 @@ forge_output=$(forge script script/upgrade/BatcherPaymentServiceUpgrader.s.sol \
 
 echo "$forge_output"
 
-pkill anvil
+data=$(cast calldata "upgradeToAndCall(address, bytes)" $batcher_payment_service_implementation "0x")
 
 # Extract the batcher payment service values from the output
+batcher_payment_service_proxy=$(echo "$forge_output" | awk '/0: address/ {print $3}')
 batcher_payment_service_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
+
+MULTISIG=false # hardcoding non-multisig for devnet.
+if [ "$MULTISIG" = false ]; then
+  echo "Executing upgrade transaction"
+  cast send $batcher_payment_service_proxy $data \
+    --rpc-url "http://localhost:8545" \
+    --private-key "0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356"
+else
+  echo "You can propose the upgrade transaction with the multisig using this calldata"
+  echo $data
+fi
+
+pkill anvil
 
 # Use the extracted value to replace the  batcher payment service values in alignedlayer_deployment_output.json and save it to a temporary file
 jq --arg batcher_payment_service_implementation "$batcher_payment_service_implementation" '.addresses.batcherPaymentServiceImplementation = $batcher_payment_service_implementation' "./script/output/devnet/alignedlayer_deployment_output.json" > "./script/output/devnet/alignedlayer_deployment_output.temp.json"

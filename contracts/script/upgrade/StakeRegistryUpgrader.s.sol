@@ -64,12 +64,8 @@ contract StakeRegistryUpgrader is Script {
         );
         vm.stopBroadcast();
 
-        vm.startBroadcast();
-        alignedLayerProxyAdmin.upgrade(
-            stakeRegistry,
-            address(stakeRegistryImplementation)
-        ); 
-        vm.stopBroadcast();
+        // Not link the new implementation to the proxy
+        // Because this must be executed in the multisig
         
         return (
             address(stakeRegistry),
