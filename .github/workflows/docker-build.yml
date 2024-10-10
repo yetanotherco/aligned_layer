@@ -5,6 +5,11 @@ on:
     branches:
       - docker-compose
 
+env:
+  IMAGE_NAME: aligned_base
+  FULL_REPO_NAME: ${{ github.repository }}
+  GIT_BRANCH: ${{ github.ref_name }}
+
 jobs:
   docker-build-push:
     name: Build docker
@@ -28,8 +33,8 @@ jobs:
 
     - name: Build Docker image
       run: |
-        make docker_build_aggregator
+        docker build -t ghcr.io/${FULL_REPO_NAME}/${IMAGE_NAME}:${GIT_BRANCH} -f docker/${IMAGE_NAME}.Dockerfile .
 
     - name: Push Docker image
       run: |
-        docker push ghcr.io/lambdaclass/aligned_layer/aggregator:v0.8.0
+        docker push ghcr.io/${FULL_REPO_NAME}/${IMAGE_NAME}:${GIT_BRANCH}
