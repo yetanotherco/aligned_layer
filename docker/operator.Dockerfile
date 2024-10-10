@@ -10,9 +10,10 @@ ENV CGO_ENABLED=1
 COPY go.mod .
 COPY go.sum .
 
-COPY core     ./core
-COPY metrics  ./metrics
-COPY common   ./common
+COPY core       ./core
+COPY metrics    ./metrics
+COPY common     ./common
+COPY contracts/bindings/ ./contracts/bindings
 
 RUN go build -o /aligned_layer/aligned-layer-operator operator/cmd/main.go
 
