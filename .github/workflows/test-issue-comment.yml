@@ -1,0 +1,19 @@
+name: Trigger on Specific PR Comment
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  run-workflow-on-comment:
+    if: github.event.issue.pull_request != null && contains(github.event.comment.body, 'run docker ci')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run Docker CI
+        run: |
+          docker run hello-world
+
