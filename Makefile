@@ -786,6 +786,7 @@ docker_build:
 	docker compose -f docker-compose.yaml --profile base build
 	docker compose -f docker-compose.yaml --profile operator build --build-arg GOARCH=$(GOARCH)
 	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
+	docker compose -f docker-compose.yaml --profile aggregator build
 
 docker_up:
 	docker compose -f docker-compose.yaml --profile base up -d --remove-orphans --force-recreate
