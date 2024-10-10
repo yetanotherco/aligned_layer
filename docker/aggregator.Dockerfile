@@ -1,4 +1,4 @@
-FROM ghcr.io/lambdaclass/aligned_layer/aligned_base:v0.8.0 AS builder
+FROM ghcr.io/lambdaclass/aligned_layer/aligned_base:testnet AS builder
 
 WORKDIR /aligned_layer
 
