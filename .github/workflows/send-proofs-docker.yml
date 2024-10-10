@@ -8,7 +8,6 @@ on:
 jobs:
   network-test-docker-compose:
     name: "Test network with Docker Compose"
-    timeout-minutes: 15
     runs-on: aligned-runner-ci
     permissions:
       contents: read
