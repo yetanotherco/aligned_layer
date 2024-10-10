@@ -809,6 +809,8 @@ docker_down:
 	@echo "Everything down"
 	docker ps
 
+DOCKER_BURST_SIZE=2
+
 docker_batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
@@ -816,7 +818,7 @@ docker_batcher_send_sp1_burst:
               --proving_system SP1 \
               --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
               --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
-              --repetitions $(BURST_SIZE) \
+              --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
@@ -829,7 +831,7 @@ docker_batcher_send_risc0_burst:
               --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
               --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
               --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
-              --repetitions $(BURST_SIZE) \
+              --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
@@ -844,7 +846,7 @@ docker_batcher_send_plonk_bn254_burst:
               --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
-              --repetitions $(BURST_SIZE) \
+              --repetitions $(DOCKER_BURST_SIZE) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 docker_batcher_send_plonk_bls12_381_burst:
@@ -856,7 +858,7 @@ docker_batcher_send_plonk_bls12_381_burst:
               --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
               --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --repetitions $(BURST_SIZE) \
+              --repetitions $(DOCKER_BURST_SIZE) \
               --rpc_url $(DOCKER_RPC_URL) \
               --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
@@ -868,7 +870,7 @@ docker_batcher_send_groth16_burst:
 							--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
 							--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
 							--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-  						--repetitions $(BURST_SIZE) \
+  						--repetitions $(DOCKER_BURST_SIZE) \
 							--rpc_url $(DOCKER_RPC_URL)
 
 # Update target as new proofs are supported.
@@ -890,7 +892,7 @@ docker_batcher_send_infinite_groth16:
 	    gnark_groth16_bn254_infinite_script $${counter}; \
 	    aligned submit \
 	              --rpc_url $(DOCKER_RPC_URL) \
-	              --repetitions 2 \
+	              --repetitions $(DOCKER_BURST_SIZE) \
 	              --proving_system Groth16Bn254 \
 	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.proof \
 	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
@@ -918,8 +920,8 @@ docker_verify_proof_submission_success:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
 	sh -c ' \
 			if [ ! -d "./aligned_verification_data" ]; then echo "ERROR: aligned_verification_data direcroty does not exist." && exit 1; fi; \
-			echo "Waiting 2 minutes before starting proof verification. \n"; \
-			sleep 120; \
+			echo "Waiting 1 minute before starting proof verification. \n"; \
+			sleep 60; \
 			for proof in ./aligned_verification_data/*; do \
 				echo "Verifying proof $${proof} \n"; \
 				verification=$$(aligned verify-proof-onchain \
