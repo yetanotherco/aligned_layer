@@ -10,3 +10,6 @@ answer_quiz:
 		--keystore-path $(KEYSTORE_PATH) \
  		--rpc-url $(RPC_URL) \
   		--verifier-contract-address $(CONTRACT_ADDRESS)
+
+compile_elf:
+	cd quiz/program && cargo prove build
