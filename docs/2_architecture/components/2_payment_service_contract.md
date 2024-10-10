@@ -3,9 +3,9 @@
 The Payment Service handles users payments to fund the verification of their proofs.
 
 To be able to use the batcher, a user must fund its transactions.
-For this, there is a simple Batcher Payment System.
+For this, there is a simple Payment Service.
 
-The Batcher has an associated Batcher Payments smart contract,
+The Batcher has an associated `Batcher Payments` smart contract,
 which is in charge of receiving user's payments,
 and it guarantees that it can only spend these funds to send users' proofs to Aligned.
 
