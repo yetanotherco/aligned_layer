@@ -2,6 +2,7 @@ use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize
 use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
+use eth::service_manager::ServiceManager;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use types::batch_state::BatchState;
@@ -13,11 +14,14 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{
-    ClientMessage, NoncedVerificationData, ResponseMessage, ValidityResponseMessage,
-    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+    ClientMessage, NoncedVerificationData, ProofInvalidReason, ResponseMessage,
+    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
+use eth::payment_service::{
+    try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT,
+};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
@@ -66,6 +70,8 @@ pub struct Batcher {
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
+    service_manager: ServiceManager,
+    service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
     min_batch_len: usize,
@@ -114,6 +120,12 @@ impl Batcher {
         let eth_rpc_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
             .expect("Failed to get fallback provider");
 
+        let eth_rpc_provider_service_manager =
+            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
+
+        let eth_rpc_provider_service_manager_fallback =
+            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
+
         // FIXME(marian): We are getting just the last block number right now, but we should really
         // have the last submitted batch block registered and query it when the batcher is initialized.
         let last_uploaded_batch_block = match eth_rpc_provider.get_block_number().await {
@@ -143,7 +155,7 @@ impl Batcher {
             }
         };
 
-        let payment_service = eth::get_batcher_payment_service(
+        let payment_service = eth::payment_service::get_batcher_payment_service(
             eth_rpc_provider,
             config.ecdsa.clone(),
             deployment_output.addresses.batcher_payment_service.clone(),
@@ -151,13 +163,29 @@ impl Batcher {
         .await
         .expect("Failed to get Batcher Payment Service contract");
 
-        let payment_service_fallback = eth::get_batcher_payment_service(
+        let payment_service_fallback = eth::payment_service::get_batcher_payment_service(
             eth_rpc_provider_fallback,
-            config.ecdsa,
+            config.ecdsa.clone(),
             deployment_output.addresses.batcher_payment_service,
         )
         .await
         .expect("Failed to get fallback Batcher Payment Service contract");
+
+        let service_manager = eth::service_manager::get_service_manager(
+            eth_rpc_provider_service_manager,
+            config.ecdsa.clone(),
+            deployment_output.addresses.service_manager.clone(),
+        )
+        .await
+        .expect("Failed to get Service Manager contract");
+
+        let service_manager_fallback = eth::service_manager::get_service_manager(
+            eth_rpc_provider_service_manager_fallback,
+            config.ecdsa,
+            deployment_output.addresses.service_manager,
+        )
+        .await
+        .expect("Failed to get fallback Service Manager contract");
 
         let mut user_states = HashMap::new();
         let mut batch_state = BatchState::new();
@@ -193,6 +221,8 @@ impl Batcher {
             chain_id,
             payment_service,
             payment_service_fallback,
+            service_manager,
+            service_manager_fallback,
             max_block_interval: config.batcher.block_interval,
             min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
@@ -337,7 +367,6 @@ impl Batcher {
         let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
         if msg_payment_service_addr != self.payment_service.address() {
             warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
-
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InvalidPaymentServiceAddress(
@@ -372,12 +401,38 @@ impl Batcher {
         let nonced_verification_data = client_msg.verification_data.clone();
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-        if self.pre_verification_is_enabled
-            && !zk_utils::verify(&nonced_verification_data.verification_data).await
-        {
-            error!("Invalid proof detected. Verification failed.");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidProof).await;
-            return Ok(());
+        if self.pre_verification_is_enabled {
+            let disabled_verifiers = match self.disabled_verifiers().await {
+                Ok(disabled_verifiers) => disabled_verifiers,
+                Err(e) => {
+                    error!("Failed to get disabled verifiers: {e:?}");
+                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
+                    return Ok(());
+                }
+            };
+            let verification_data = &nonced_verification_data.verification_data;
+            if zk_utils::is_verifier_disabled(disabled_verifiers, verification_data) {
+                warn!(
+                    "Verifier for proving system {} is disabled, skipping verification",
+                    verification_data.proving_system
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier),
+                )
+                .await;
+                return Ok(());
+            }
+
+            if !zk_utils::verify(verification_data).await {
+                error!("Invalid proof detected. Verification failed");
+                send_message(
+                    ws_conn_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
+                )
+                .await;
+                return Ok(());
+            }
         }
 
         if self.is_nonpaying(&addr) {
@@ -642,6 +697,18 @@ impl Batcher {
             std::mem::drop(batch_state_lock);
             warn!("User state for address {addr:?} was not present in batcher user states, but it should be");
         };
+    }
+
+    async fn disabled_verifiers(&self) -> Result<U256, ContractError<SignerMiddlewareT>> {
+        match self.service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => {
+                self.service_manager_fallback
+                    .disabled_verifiers()
+                    .call()
+                    .await
+            }
+        }
     }
 
     async fn get_user_nonce_from_ethereum(
@@ -1128,7 +1195,7 @@ impl Batcher {
         else {
             std::mem::drop(batch_state_lock);
             error!("Nonce for non-paying address {replacement_addr:?} not found in cache.");
-            send_message(ws_sink.clone(), ValidityResponseMessage::InvalidProof).await;
+            send_message(ws_sink.clone(), ValidityResponseMessage::EthRpcError).await;
             return Ok(());
         };
 
