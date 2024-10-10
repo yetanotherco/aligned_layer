@@ -264,6 +264,22 @@ defmodule Utils do
     end
   end
 
+  def extract_info_from_data_pointer(%BatchDB{} = batch) do
+    Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
+
+    {status, proof_hashes} = get_proof_hashes(batch)
+
+    updated_batch =
+      batch
+      |> Map.put(:proof_hashes, proof_hashes)
+      |> Map.put(:amount_of_proofs, Enum.count(proof_hashes))
+
+    case status do
+      :error -> Map.put(updated_batch, :is_valid, false)
+      _ -> updated_batch
+    end
+  end
+
   defp get_proof_hashes(%BatchDB{} = batch) do
     # only get from s3 if not already in DB
     case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
@@ -290,22 +306,6 @@ defmodule Utils do
         # already processed and stored the S3 data
         Logger.debug("Fetching from DB")
         {:ok, proof_hashes}
-    end
-  end
-
-  def extract_info_from_data_pointer(%BatchDB{} = batch) do
-    Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
-
-    {status, proof_hashes} = get_proof_hashes(batch)
-
-    updated_batch =
-      batch
-      |> Map.put(:proof_hashes, proof_hashes)
-      |> Map.put(:amount_of_proofs, Enum.count(proof_hashes))
-
-    case status do
-      :error -> Map.put(updated_batch, :is_valid, false)
-      _ -> updated_batch
     end
   end
 

@@ -38,7 +38,7 @@ defmodule Batches do
     |> validate_format(:response_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
     |> validate_number(:max_aggregator_fee, greater_than: 0)
     |> validate_number(:fee_per_proof, greater_than_or_equal_to: 0)
-    |> validate_inclusion(:is_verified, [true, false])
+    |> validate_inclusion(:is_valid, [true, false])
   end
 
   def cast_to_batches(%BatchDB{} = batch_db) do
