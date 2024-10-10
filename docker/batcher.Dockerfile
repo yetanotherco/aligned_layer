@@ -25,6 +25,9 @@ RUN cargo install --path ./batcher/aligned/
 
 RUN cargo build --manifest-path ./batcher/aligned-batcher/Cargo.toml --release
 RUN cargo build --manifest-path ./batcher/aligned/Cargo.toml --release
+
+COPY scripts/test_files/gnark_groth16_bn254_infinite_script scripts/test_files/gnark_groth16_bn254_infinite_script
+
 RUN go build -o ./gnark_groth16_bn254_infinite_script scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go
 
 RUN rm -rf operator/
