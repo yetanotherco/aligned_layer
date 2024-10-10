@@ -41,8 +41,7 @@ aligned submit \
 --vm_program <vm_program_path> \
 --batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 Where `proof_path` is the path to the proof file, `vm_program_path` is the path to the ELF file. `proof_generator_addr` is an optional parameter that works as a helper for some applications where you can be frontrunned.
@@ -57,10 +56,9 @@ This guide assumes that:
 
 - Gnark library is installed. If not, install it using the following command inside your Go module:
 
-```bash
-go get github.com/consensys/gnark@v0.11.0
-go get github.com/consensys/gnark-crypto@v0.14.0
-```
+ ```bash
+ go get github.com/consensys/gnark@v0.10.0
+ ```
 
 - Gnark project to generate the proofs' instructions [here](https://docs.gnark.consensys.io/category/how-to)
 
@@ -68,9 +66,9 @@ go get github.com/consensys/gnark-crypto@v0.14.0
 
 Open a terminal and navigate to the Gnark project directory. Then, run the following command to generate the proof:
 
-```bash
-go run circuit.go
-```
+ ```bash
+ go run circuit.go
+ ```
 
 ### How to get the proof verified by Aligned
 
@@ -92,8 +90,7 @@ aligned submit \
 --vk <verification_key_path> \
 --batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+--rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
 Where proof path is the path to the proof file, `public_input_path` is the path to the public input file,
@@ -177,110 +174,135 @@ aligned submit \
 
 For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
 
-## Halo2
+## ZkRust
 
-### Dependencies
+`zkRust` is a CLI tool maintained by Aligned that aims to simplify the developing applications in Rust using zkVM's such as SP1 or Risc0.
 
-This guide assumes that:
+zkRust can be installed directly by downloading the latest release binaries:
 
-- You are using PSE fork of the Halo2 [proof system](https://github.com/privacy-scaling-explorations/halo2).
-- You have a strong understanding of Halo2 circuit development and are familiar with the Halo2 proof system.
-- Aligned installed (instructions [here](../1_introduction/1_getting_started.md#quickstart)).
-
-### Import the Halo2 fork library
-
-Aligned supports verification of Halo2 proofs using the IPA and KZG backends. To verify Halo2 proofs on Aligned a description of your Halo2 circuits [constraint system](https://github.com/privacy-scaling-explorations/halo2/blob/main/halo2_backend/src/plonk/circuit.rs#L63) must be serialized and sent over the wire to Aligned in addition to the ciruits verification parameters, verification key, and public inputs.
-
-Aligned maintains its own fork of the PSE's Halo2 repository that provides helper methods to serialize and send Halo2 proofs to Aligned.
-
-```rust
-halo2_backend = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", branch = "feat/serde_constraint_system" }
-halo2_proofs = { git = "https://github.com/yetanotherco/yet-another-halo2-fork.git", branch = "feat/serde_constraint_system" }
+```sh
+curl -L https://raw.githubusercontent.com/yetanotherco/zkRust/main/install_zkrust.sh | bash
 ```
 
-### How to generate a proof
+Then, to get started you can create a workspace for your project in zkRust by running:
 
-Once you have developed your circuit and generated its respective, prover key, verifier key, and public input.
+```sh
+cargo new <PROGRAM_DIRECTORY>
+```
 
-You can add `prove_and_serialize_kzg_circuit` or `prove_and_serialize_ipa_circuit` from Aligned's Halo2 fork to generate a proof for your cicuit and serialize the circuit and its public inputs to be sent to Aligned.
+It is that simple.
+
+## Usage
+
+To use zkRust, users specify a `fn main()` whose execution is proven within the zkVM. This function must be defined in a `main.rs` file in a directory with the following structure:
+
+```
+.
+└── <PROGRAM_DIRECTORY>
+    ├── Cargo.toml
+    └── src
+        └── main.rs
+```
+
+For using more complex programs you can import a separate lib/ crate into the `PROGRAM_DIRECTORY`
+
+```
+.
+└── <PROGRAM_DIRECTORY>
+    ├── Cargo.toml
+    ├── lib/
+    └── src
+        └── lib
+```
+
+### Inputs and Outputs
+
+The user may also define a `input()` and `output()` functions in addition to `main()`, that define code that runs outside of the zkVM, before and after the VM executes
+
+- The `input()` function executes before the zkVM code is executed and allows the user to define inputs passed to the vm such as a deserialized Tx or data fetched from an external source at runtime.
+- Within the `main()` (guest) function the user may write information from the computation performed in the zkVM to an output buffer to be used after proof generation.
+- The `output()` defines code that allows the user to read the information written to that buffer of the and perform post-processing of that data.
+
+The user may specify inputs into the VM (guest) code using `zk_rust_io::write()` as long on the type of rust object they are writing implements `Serializable`.
+
+Within the `main()` function (guest) the user may read in the inputs by specifying `zk_rust_io::read()` and output data computed during the execution phase of the code within the VM (guest) program by specifying `zk_rust_io::commit()`.
+
+To read the output of the output of the VM (guest) program you declare `zk_rust_io::out()`. The `zk_rust_io` crate defines function headers that are not inlined and are purely used as compile time symbols to ensure a user can compile their rust code before running it within one of the zkVMs available in zkRust.
+
+To use the I/O imports import the `zk_rust_io` crate by adding the following to the `Cargo.toml` in your project directory.
+
+```sh
+zk_rust_io = { git = "https://github.com/yetanotherco/zkRust.git", version = "v0.1.0" }
+```
+
+## Example
+
+### input.rs
 
 ```rust
-fn main() {
+use zk_rust_io;
 
-  // your code here
-  pub struct YourCircuit (pub Fr);
+pub fn input() {
+    let pattern = "a+".to_string();
+    let target_string = "an era of truth, not trust".to_string();
 
-  impl Circuit<Fr> for YourCircuit {
-    type Config = YourCircuitConfig;
-    type FloorPlanner = YourCircuitPlanner;
-
-    fn without_witnesses(&self) -> Self {
-      // ... //
-    }
-
-    fn configure(meta: &mut ConstraintSystem<Fr>) -> Self::Config {
-        YourCircuitConfig::configure(meta)
-    }
-
-    fn synthesize(
-        &self,
-        config: Self::Config,
-        mut layouter: impl Layouter<Fr>,
-    ) -> Result<(), ErrorFront> {
-      // ... //
-    }
-  }
-
-  let circuit = YourCircuit(Fr::random(OsRng));
-  let params = ParamsKZG::setup(4, OsRng);
-  let compress_selectors = true;
-  let vk = keygen_vk_custom(&params, &circuit, compress_selectors).expect("vk should not fail");
-  let pk = keygen_pk(&params, vk.clone(), &circuit).expect("pk should not fail");
-  let input: Vec<Vec<Fr>> = vec![vec![circuit.0]];
-  prove_and_serialize_kzg_circuit(&params, &pk, &vk, circuit.clone(), &vec![input.clone()])
-      .unwrap();
+    // Write in a simple regex pattern.
+    zk_rust_io::write(&pattern);
+    zk_rust_io::write(&target_string);
 }
 ```
 
-Then run the following command to generate the proof, parameters, and public inputs:
+### main.rs
 
-```bash
-cargo run --release
+```rust
+use regex::Regex;
+use zk_rust_io;
+
+pub fn main() {
+    // Read two inputs from the prover: a regex pattern and a target string.
+    let pattern: String = zk_rust_io::read();
+    let target_string: String = zk_rust_io::read();
+
+    // Try to compile the regex pattern. If it fails, write `false` as output and return.
+    let regex = match Regex::new(&pattern) {
+        Ok(regex) => regex,
+        Err(_) => {
+            panic!("Invalid regex pattern");
+        }
+    };
+
+    // Perform the regex search on the target string.
+    let result = regex.is_match(&target_string);
+
+    // Write the result (true or false) to the output.
+    zk_rust_io::commit(&result);
+}
 ```
 
-The files will be saved within a `proof_files/` directory containing:
+### output.rs
 
-- `proof.bin`
-- `params.bin`
-- `public_input.bin`
+```rust
+use zk_rust_io;
 
-### How to get the proof verified by Aligned
-
-After generating the proof, you can send the proof for the respective proof systems of Halo2 to the Aligned network by running one of the following commands:
-
-```bash
-aligned submit \
-  --proving_system Halo2KZG \
-  --proof <proof_file_path> \
-  --vk <method_id_file_path> \
-  --public_input <pub_input_file_path> \
-  --conn wss://batcher.alignedlayer.com \
-  --proof_generator_addr <proof_generator_addr> \
-  --rpc https://ethereum-holesky-rpc.publicnode.com \
-  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+pub fn output() {
+    // Read the output.
+    let res: bool = zk_rust_io::out();
+    println!("res: {}", res);
+}
 ```
 
-```bash
-aligned submit \
-  --proving_system Halo2IPA \
-  --proof <proof_file_path> \
-  --vk <method_id_file_path> \
-  --public_input <pub_input_file_path> \
-  --conn wss://batcher.alignedlayer.com \
-  --proof_generator_addr <proof_generator_addr> \
-  --chain holesky \
-  --rpc https://ethereum-holesky-rpc.publicnode.com \
-  --batcher_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+To generate a proof of the execution of your code run the following:
+
+- **Sp1**:
+
+```sh
+  cargo run --release -- prove-sp1 <PROGRAM_DIRECTORY_PATH> .
 ```
 
-For more instructions on how to submit proofs, check the [Submitting proofs guide](../3_guides/0_submitting_proofs.md).
+- **Risc0**:
+  ```sh
+  cargo run --release -- prove-risc0  <PROGRAM_DIRECTORY_PATH> .
+  ```
+  Make sure to have [Risc0](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain) installed with version `v1.0.1`
+
+For additional information on using zkRust and using it to submit proofs to Aligned see the [zkRust](https://github.com/yetanotherco/zkRust) Github Repository.

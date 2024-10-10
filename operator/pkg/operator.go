@@ -5,8 +5,10 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -16,8 +18,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
-	"github.com/yetanotherco/aligned_layer/operator/halo2ipa"
-	"github.com/yetanotherco/aligned_layer/operator/halo2kzg"
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
@@ -37,20 +37,23 @@ import (
 )
 
 type Operator struct {
-	Config             config.OperatorConfig
-	Address            ethcommon.Address
-	Socket             string
-	Timeout            time.Duration
-	PrivKey            *ecdsa.PrivateKey
-	KeyPair            *bls.KeyPair
-	OperatorId         eigentypes.OperatorId
-	avsSubscriber      chainio.AvsSubscriber
-	NewTaskCreatedChanV2 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
-	NewTaskCreatedChanV3 chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	Logger             logging.Logger
-	aggRpcClient       AggregatorRpcClient
-	metricsReg         *prometheus.Registry
-	metrics            *metrics.Metrics
+	Config                    config.OperatorConfig
+	Address                   ethcommon.Address
+	Socket                    string
+	Timeout                   time.Duration
+	PrivKey                   *ecdsa.PrivateKey
+	KeyPair                   *bls.KeyPair
+	OperatorId                eigentypes.OperatorId
+	avsSubscriber             chainio.AvsSubscriber
+	avsReader                 chainio.AvsReader
+	NewTaskCreatedChanV2      chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+	NewTaskCreatedChanV3      chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+	Logger                    logging.Logger
+	aggRpcClient              AggregatorRpcClient
+	metricsReg                *prometheus.Registry
+	metrics                   *metrics.Metrics
+	lastProcessedBatch        OperatorLastProcessedBatch
+	lastProcessedBatchLogFile string
 	//Socket  string
 	//Timeout time.Duration
 }
@@ -59,6 +62,7 @@ const (
 	BatchDownloadTimeout    = 1 * time.Minute
 	BatchDownloadMaxRetries = 3
 	BatchDownloadRetryDelay = 5 * time.Second
+	UnverifiedBatchOffset   = 100
 )
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
@@ -104,29 +108,38 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 
 	operatorId := eigentypes.OperatorIdFromKeyPair(configuration.BlsConfig.KeyPair)
 	address := configuration.Operator.Address
+	lastProcessedBatchLogFile := configuration.Operator.LastProcessedBatchFilePath
 
 	// Metrics
 	reg := prometheus.NewRegistry()
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
 
 	operator := &Operator{
-		Config:             configuration,
-		Logger:             logger,
-		avsSubscriber:      *avsSubscriber,
-		Address:            address,
-		NewTaskCreatedChanV2: newTaskCreatedChanV2,
-		NewTaskCreatedChanV3: newTaskCreatedChanV3,
-		aggRpcClient:       *rpcClient,
-		OperatorId:         operatorId,
-		metricsReg:         reg,
-		metrics:            operatorMetrics,
+		Config:                    configuration,
+		Logger:                    logger,
+		avsSubscriber:             *avsSubscriber,
+		avsReader:                 *avsReader,
+		Address:                   address,
+		NewTaskCreatedChanV2:      newTaskCreatedChanV2,
+		NewTaskCreatedChanV3:      newTaskCreatedChanV3,
+		aggRpcClient:              *rpcClient,
+		OperatorId:                operatorId,
+		metricsReg:                reg,
+		metrics:                   operatorMetrics,
+		lastProcessedBatchLogFile: lastProcessedBatchLogFile,
+		lastProcessedBatch: OperatorLastProcessedBatch{
+			BlockNumber:        0,
+			batchProcessedChan: make(chan uint32),
+		},
+
 		// Timeout
 		// Socket
 	}
 
+	_ = operator.LoadLastProcessedBatch()
+
 	return operator, nil
 }
-
 
 func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
@@ -134,6 +147,52 @@ func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
 
 func (o *Operator) SubscribeToNewTasksV3() (chan error, error) {
 	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3)
+}
+
+type OperatorLastProcessedBatch struct {
+	BlockNumber        uint32      `json:"block_number"`
+	batchProcessedChan chan uint32 `json:"-"`
+}
+
+func (o *Operator) LoadLastProcessedBatch() error {
+	file, err := os.ReadFile(o.lastProcessedBatchLogFile)
+
+	if err != nil {
+		return fmt.Errorf("failed read from file: %v", err)
+	}
+
+	err = json.Unmarshal(file, &o.lastProcessedBatch)
+
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal batch: %v", err)
+	}
+
+	return nil
+}
+
+func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
+	// we want to store the latest block number
+	if blockNumber < o.lastProcessedBatch.BlockNumber {
+		return nil
+	}
+
+	o.lastProcessedBatch.BlockNumber = blockNumber
+
+	// write to a file so it can be recovered in case of operator outage
+	json, err := json.Marshal(o.lastProcessedBatch)
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal batch: %v", err)
+	}
+
+	err = os.WriteFile(o.lastProcessedBatchLogFile, json, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to write to file: %v", err)
+	}
+
+	o.Logger.Infof("Updated latest block json file, new block: %v", blockNumber)
+
+	return nil
 }
 
 func (o *Operator) Start(ctx context.Context) error {
@@ -154,13 +213,15 @@ func (o *Operator) Start(ctx context.Context) error {
 		metricsErrChan = make(chan error, 1)
 	}
 
+	go o.ProcessMissedBatchesWhileOffline()
+
 	for {
 		select {
 		case <-context.Background().Done():
 			o.Logger.Info("Operator shutting down...")
 			return nil
 		case err := <-metricsErrChan:
-			o.Logger.Fatal("Metrics server failed", "err", err)
+			o.Logger.Errorf("Metrics server failed", "err", err)
 		case err := <-subV2:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
 			subV2, err = o.SubscribeToNewTasksV2()
@@ -177,8 +238,52 @@ func (o *Operator) Start(ctx context.Context) error {
 			go o.handleNewBatchLogV2(newBatchLogV2)
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
 			go o.handleNewBatchLogV3(newBatchLogV3)
+		case blockNumber := <-o.lastProcessedBatch.batchProcessedChan:
+			err = o.UpdateLastProcessBatch(blockNumber)
+			if err != nil {
+				o.Logger.Errorf("Error while updating last process batch", "err", err)
+			}
 		}
 	}
+}
+
+// Here we query all the batches that have not yet been verified starting from
+// the latest verified batch by the operator. We also read from the previous
+// `UnverifiedBatchOffset` blocks, because as batches are processed in parallel, there could be
+// unverified batches slightly before the latest verified batch
+func (o *Operator) ProcessMissedBatchesWhileOffline() {
+	// this is the default value
+	// and it means there was no file so no batches have been verified
+	if o.lastProcessedBatch.BlockNumber == 0 {
+		o.Logger.Info("Not continuing with missed batch processing, as operator hasn't verified anything yet...")
+		return
+	}
+
+	o.Logger.Info("Getting missed tasks")
+
+	// this check is necessary for overflows as go does not do saturating arithmetic
+	var fromBlock uint64
+	if o.lastProcessedBatch.BlockNumber < UnverifiedBatchOffset {
+		fromBlock = 0
+	} else {
+		fromBlock = uint64(o.lastProcessedBatch.BlockNumber - UnverifiedBatchOffset)
+	}
+
+	logs, err := o.avsReader.GetNotRespondedTasksFrom(fromBlock)
+	if err != nil {
+		return
+	}
+	o.Logger.Infof(fmt.Sprintf("Missed tasks retrieved, total tasks to process: %v", len(logs)))
+
+	if len(logs) == 0 {
+		return
+	}
+
+	o.Logger.Infof("Starting to verify missed batches while offline")
+	for _, logEntry := range logs {
+		go o.handleNewBatchLogV3(&logEntry)
+	}
+	o.Logger.Info("Finished verifying all batches missed while offline")
 }
 
 // Currently, Operator can handle NewBatchV2 and NewBatchV3 events.
@@ -192,8 +297,11 @@ func (o *Operator) Start(ctx context.Context) error {
 
 // Process of handling batches from V2 events:
 func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
-	o.Logger.Infof("Received new batch log V2")
-	err := o.ProcessNewBatchLogV2(newBatchLog)
+	var err error
+	defer func() { o.afterHandlingBatchV2(newBatchLog, err == nil) }()
+
+	o.Logger.Info("Received new batch log V2")
+	err = o.ProcessNewBatchLogV2(newBatchLog)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 		return
@@ -206,10 +314,10 @@ func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlign
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
@@ -263,8 +371,10 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 
 // Process of handling batches from V3 events:
 func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
+	var err error
+	defer func() { o.afterHandlingBatchV3(newBatchLog, err == nil) }()
 	o.Logger.Infof("Received new batch log V3")
-	err := o.ProcessNewBatchLogV3(newBatchLog)
+	err = o.ProcessNewBatchLogV3(newBatchLog)
 	if err != nil {
 		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
 		return
@@ -277,10 +387,10 @@ func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlign
 
 	signedTaskResponse := types.SignedTaskResponse{
 		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot: newBatchLog.BatchMerkleRoot,
-		SenderAddress:   newBatchLog.SenderAddress,
-		BlsSignature:    *responseSignature,
-		OperatorId:      o.OperatorId,
+		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
+		SenderAddress:       newBatchLog.SenderAddress,
+		BlsSignature:        *responseSignature,
+		OperatorId:          o.OperatorId,
 	}
 	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
 		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
@@ -332,6 +442,18 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	return nil
 }
 
+func (o *Operator) afterHandlingBatchV2(log *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, succeeded bool) {
+	if succeeded {
+		o.lastProcessedBatch.batchProcessedChan <- uint32(log.Raw.BlockNumber)
+	}
+}
+
+func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, succeeded bool) {
+	if succeeded {
+		o.lastProcessedBatch.batchProcessedChan <- uint32(log.Raw.BlockNumber)
+	}
+}
+
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
 	switch verificationData.ProvingSystemId {
 	case common.GnarkPlonkBls12_381:
@@ -348,48 +470,18 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 	case common.Groth16Bn254:
 		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
-
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
+
 		results <- verificationResult
 
 	case common.SP1:
-		proofLen := (uint32)(len(verificationData.Proof))
-		elfLen := (uint32)(len(verificationData.VmProgramCode))
-
-		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, proofLen, verificationData.VmProgramCode, elfLen)
+		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		results <- verificationResult
-	case common.Halo2IPA:
-		proofLen := (uint32)(len(verificationData.Proof))
-		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		publicInputLen := (uint32)(len(verificationData.PubInput))
 
-		verificationResult := halo2ipa.VerifyHalo2IpaProof(
-			verificationData.Proof, proofLen,
-			verificationData.VerificationKey, paramsLen,
-			verificationData.PubInput, publicInputLen)
-
-		o.Logger.Infof("Halo2-IPA proof verification result: %t", verificationResult)
-		results <- verificationResult
-	case common.Halo2KZG:
-		proofLen := (uint32)(len(verificationData.Proof))
-		paramsLen := (uint32)(len(verificationData.VerificationKey))
-		publicInputLen := (uint32)(len(verificationData.PubInput))
-
-		verificationResult := halo2kzg.VerifyHalo2KzgProof(
-			verificationData.Proof, proofLen,
-			verificationData.VerificationKey, paramsLen,
-			verificationData.PubInput, publicInputLen)
-
-		o.Logger.Infof("Halo2-KZG proof verification result: %t", verificationResult)
-		results <- verificationResult
 	case common.Risc0:
-		proofLen := (uint32)(len(verificationData.Proof))
-		imageIdLen := (uint32)(len(verificationData.VmProgramCode))
-		pubInputLen := (uint32)(len(verificationData.PubInput))
-
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof, proofLen,
-			verificationData.VmProgramCode, imageIdLen, verificationData.PubInput, pubInputLen)
+		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
+			verificationData.VmProgramCode, verificationData.PubInput)
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult

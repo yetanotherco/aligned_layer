@@ -114,6 +114,25 @@ pub async fn send_messages(
                 error!("Invalid replacement message!");
                 return Err(SubmitError::InvalidReplacementMessage);
             }
+            ValidityResponseMessage::AddToBatchError => {
+                error!("Error while pushing the entry to queue");
+                return Err(SubmitError::AddToBatchError);
+            }
+            ValidityResponseMessage::EthRpcError => {
+                return Err(SubmitError::EthereumProviderError(
+                    "Batcher experienced Eth RPC connection error".to_string(),
+                ));
+            }
+            ValidityResponseMessage::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
+                error!(
+                    "Invalid payment service address, received: {}, expected: {}",
+                    received_addr, expected_addr
+                );
+                return Err(SubmitError::InvalidPaymentServiceAddress(
+                    received_addr,
+                    expected_addr,
+                ));
+            }
         };
 
         sent_verification_data.push(verification_data.clone());

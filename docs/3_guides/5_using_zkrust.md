@@ -36,10 +36,14 @@ cd zkRust
 and running the installation script:
 
 ```sh
-make install
+./install_aligned.sh
 ```
 
 ### 2. Generate a keystore:
+
+{% hint style="warning" %}
+When creating a new wallet keystore and private key please use strong passwords for your own protection.
+{% endhint %}
 
 You can use cast to create a local keystore.
 If you already have one, you can skip this step.
@@ -64,10 +68,10 @@ You can find them in `zkRust/examples`.
 For example, to generate a proof of a `fibonacci` program with Risc0 or SP1 and submit it to aligned, run:
 
 ```sh
-cargo run --release --  prove-risc0 \
-    --submit-to-aligned-with-keystore \
-    <PATH_TO_KEYSTORE> \
-    examples/fibonacci .
+zkrust prove-risc0 \
+    --submit-to-aligned \
+    --keystore-path <PATH_TO_KEYSTORE> \
+    examples/fibonacci
 ```
 
 This command will generate a proof for the fibonacci example program and submit it to Aligned using the keystore
@@ -80,9 +84,10 @@ Aligned.
 The same program can be proved using SP1 just changing the zkRust subcommand:
 
 ```bash
-cargo run --release -- prove-sp1 \
-    --submit-to-aligned-with-keystore <path_to_keystore> \
-    examples/fibonacci .
+zkrust prove-sp1 \
+    --submit-to-aligned \
+    --keystore-path <PATH_TO_KEYSTORE> \
+    examples/fibonacci
 ```
 
 ## Caveats
