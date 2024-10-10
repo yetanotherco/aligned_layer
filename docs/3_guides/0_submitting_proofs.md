@@ -88,13 +88,14 @@ After depositing funds, you can verify the Service has correctly received them b
 ```bash
 aligned get-user-balance  \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network holesky \
 --user_addr <user_addr>
 ```
 
 These commands allow the usage of the following flags:
 
-- `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
+- `--network` to specify the chain id to be used. Could be holesky or devnet.
 - `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Submit your proof to the batcher
