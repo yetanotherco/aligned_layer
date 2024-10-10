@@ -3,14 +3,15 @@ FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS builder
 RUN apt update -y
 RUN apt install -y gcc
 
+COPY go.mod .
+COPY go.sum .
+COPY batcher ./batcher
+
 WORKDIR /aligned_layer/batcher/aligned-batcher
 
 ENV GOOS=linux
 ARG GOARCH
 ENV CGO_ENABLED=1
-
-COPY go.mod .
-copy go.sum .
 
 RUN go build -buildmode=c-archive -o libverifier.a ./gnark/verifier.go
 
@@ -21,9 +22,6 @@ COPY batcher/aligned/Cargo.toml batcher/aligned/Cargo.toml
 
 RUN cargo install --path ./batcher/aligned-batcher/
 RUN cargo install --path ./batcher/aligned/
-
-COPY batcher/aligned-batcher/ batcher/aligned-batcher/
-COPY batcher/aligned/ batcher/aligned/
 
 RUN cargo build --manifest-path ./batcher/aligned-batcher/Cargo.toml --release
 RUN cargo build --manifest-path ./batcher/aligned/Cargo.toml --release
