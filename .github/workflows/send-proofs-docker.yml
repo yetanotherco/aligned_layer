@@ -9,7 +9,7 @@ jobs:
   network-test-docker-compose:
     name: "Test network with Docker Compose"
     timeout-minutes: 15
-    runs-on: docker
+    runs-on: aligned-runner-ci
     permissions:
       contents: read
       packages: write
