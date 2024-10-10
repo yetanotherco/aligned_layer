@@ -40,6 +40,7 @@ COPY --from=builder /aligned_layer /aligned_layer
 COPY --from=builder /aligned_layer/batcher/target/release/aligned-batcher /usr/local/bin/
 COPY --from=builder /aligned_layer/batcher/target/release/aligned /usr/local/bin/
 COPY --from=builder /aligned_layer/gnark_groth16_bn254_infinite_script /usr/local/bin
+COPY ./config-files/config-batcher-docker.yaml ./config-files/
 
 RUN apt update -y
 RUN apt install -y libssl-dev ca-certificates
