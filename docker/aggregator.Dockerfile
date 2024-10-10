@@ -2,6 +2,9 @@ FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS builder
 
 WORKDIR /aligned_layer
 
+COPY go.mod .
+COPY go.sum .
+
 RUN go build -o ./aligned-layer-aggregator aggregator/cmd/main.go
 
 FROM debian:bookworm-slim

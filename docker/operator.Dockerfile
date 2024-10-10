@@ -6,6 +6,10 @@ RUN apt install -y gcc
 ENV GOOS=linux
 ARG GOARCH
 ENV CGO_ENABLED=1
+
+COPY go.mod .
+COPY go.sum .
+
 RUN go build -o /aligned_layer/aligned-layer-operator operator/cmd/main.go
 
 FROM debian:bookworm-slim
