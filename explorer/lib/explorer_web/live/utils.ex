@@ -127,6 +127,14 @@ defmodule ExplorerWeb.Helpers do
   def binary_to_hex_string(binary) do
     Utils.binary_to_hex_string(binary)
   end
+
+  def get_batch_status(batch) do
+    cond do
+      not batch.is_valid -> :invalid
+      batch.is_verified -> :verified
+      true -> :pending
+    end
+  end
 end
 
 # Backend utils
@@ -266,34 +274,47 @@ defmodule Utils do
 
   def extract_info_from_data_pointer(%BatchDB{} = batch) do
     Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
+
+    {status, proof_hashes} = get_proof_hashes(batch)
+
+    updated_batch =
+      batch
+      |> Map.put(:proof_hashes, proof_hashes)
+      |> Map.put(:amount_of_proofs, Enum.count(proof_hashes))
+
+    case status do
+      :error -> Map.put(updated_batch, :is_valid, false)
+      _ -> updated_batch
+    end
+  end
+
+  defp get_proof_hashes(%BatchDB{} = batch) do
     # only get from s3 if not already in DB
-    proof_hashes =
-      case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
-        nil ->
-          Logger.debug("Fetching from S3")
+    case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
+      nil ->
+        Logger.debug("Fetching from S3")
 
-          batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
+        batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
 
-          case batch_content do
-            {:ok, batch_content} ->
+        case batch_content do
+          {:ok, batch_content} ->
+            proof_hashes =
               batch_content
               |> Utils.calculate_proof_hashes()
 
-            {:error, reason} ->
-              Logger.error("Error fetching batch content: #{inspect(reason)}")
-              # Returning something ensures we avoid attempting to fetch the invalid data again.
-              [<<0>>]
-          end
+            {:ok, proof_hashes}
 
-        proof_hashes ->
-          # already processed and stored the S3 data
-          Logger.debug("Fetching from DB")
-          proof_hashes
-      end
+          {:error, reason} ->
+            Logger.error("Error fetching batch content: #{inspect(reason)}")
+            # Returning something ensures we avoid attempting to fetch the invalid data again.
+            {:error, [<<0>>]}
+        end
 
-    batch
-    |> Map.put(:proof_hashes, proof_hashes)
-    |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
+      proof_hashes ->
+        # already processed and stored the S3 data
+        Logger.debug("Fetching from DB")
+        {:ok, proof_hashes}
+    end
   end
 
   def fetch_eigen_operator_metadata(url) do

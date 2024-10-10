@@ -25,7 +25,7 @@
         <h3>
           Status:
         </h3>
-        <.dynamic_badge class="w-fit" status={@current_batch.is_verified} />
+        <.dynamic_badge_for_batcher class="w-fit" status={Helpers.get_batch_status(@current_batch)} />
       </div>
       <div>
         <h3>

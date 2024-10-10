@@ -14,7 +14,7 @@
         </.link>
       </:col>
       <:col :let={batch} label="Status">
-        <.dynamic_badge status={batch.is_verified} />
+        <.dynamic_badge_for_batcher status={Helpers.get_batch_status(batch)} />
       </:col>
       <:col :let={batch} label="Age">
         <span class="md:px-0" title={batch.submission_timestamp}>

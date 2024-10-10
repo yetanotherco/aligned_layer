@@ -83,7 +83,7 @@ defmodule ExplorerWeb.Operators.Index do
             <%= operator.total_stake |> EthConverter.wei_to_eth(2) |> Helpers.format_number() %> ETH
           </:col>
           <:col :let={operator} label="Status">
-            <.dynamic_badge status={operator.is_active} truthy_text="Active" falsy_text="Inactive" />
+            <.dynamic_badge_boolean status={operator.is_active} truthy_text="Active" falsy_text="Inactive" />
           </:col>
         </.table>
       <% else %>
