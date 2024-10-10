@@ -4,7 +4,9 @@ WORKDIR /aligned_layer
 
 COPY go.mod .
 COPY go.sum .
-COPY aggregator ./aggregator
+COPY aggregator   ./aggregator
+COPY core         ./core
+COPY metrics      ./metrics
 
 RUN go build -o ./aligned-layer-aggregator aggregator/cmd/main.go
 
