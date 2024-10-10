@@ -110,6 +110,10 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	address := configuration.Operator.Address
 	lastProcessedBatchLogFile := configuration.Operator.LastProcessedBatchFilePath
 
+	if lastProcessedBatchLogFile == "" {
+		log.Fatalf("Config file field: `lastProcessedBatchLogFile` not provided.")
+	}
+
 	// Metrics
 	reg := prometheus.NewRegistry()
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
