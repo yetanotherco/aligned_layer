@@ -32,7 +32,8 @@ defmodule BatchDB do
     :proof_hashes,
     :fee_per_proof,
     :sender_address,
-    :max_aggregator_fee
+    :max_aggregator_fee,
+    :is_valid
   ]
   defstruct [
     :merkle_root,
@@ -48,6 +49,7 @@ defmodule BatchDB do
     :proof_hashes,
     :fee_per_proof,
     :sender_address,
-    :max_aggregator_fee
+    :max_aggregator_fee,
+    :is_valid
   ]
 end

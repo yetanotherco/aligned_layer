@@ -18,6 +18,7 @@ defmodule Batches do
     field :fee_per_proof, :integer
     field :sender_address, :binary
     field :max_aggregator_fee, :decimal
+    field :is_valid, :boolean
 
     timestamps()
   end
@@ -25,8 +26,8 @@ defmodule Batches do
   @doc false
   def changeset(new_batch, updates) do
     new_batch
-    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer, :fee_per_proof, :sender_address, :max_aggregator_fee])
-    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :fee_per_proof, :sender_address])
+    |> cast(updates, [:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :submission_timestamp, :response_block_number, :response_transaction_hash, :response_timestamp, :data_pointer, :fee_per_proof, :sender_address, :max_aggregator_fee, :is_valid])
+    |> validate_required([:merkle_root, :amount_of_proofs, :is_verified, :submission_block_number, :submission_transaction_hash, :fee_per_proof, :sender_address, :is_valid])
     |> validate_format(:merkle_root, ~r/0x[a-fA-F0-9]{64}/)
     |> unique_constraint(:merkle_root)
     |> validate_number(:amount_of_proofs, greater_than: 0)
@@ -37,6 +38,7 @@ defmodule Batches do
     |> validate_format(:response_transaction_hash, ~r/0x[a-fA-F0-9]{64}/)
     |> validate_number(:max_aggregator_fee, greater_than: 0)
     |> validate_number(:fee_per_proof, greater_than_or_equal_to: 0)
+    |> validate_inclusion(:is_verified, [true, false])
   end
 
   def cast_to_batches(%BatchDB{} = batch_db) do
@@ -53,7 +55,8 @@ defmodule Batches do
       data_pointer: batch_db.data_pointer,
       fee_per_proof: batch_db.fee_per_proof,
       sender_address: batch_db.sender_address,
-      max_aggregator_fee: batch_db.max_aggregator_fee
+      max_aggregator_fee: batch_db.max_aggregator_fee,
+      is_valid: batch_db.is_valid
     }
   end
 
@@ -193,5 +196,4 @@ defmodule Batches do
         end
     end
   end
-
 end
