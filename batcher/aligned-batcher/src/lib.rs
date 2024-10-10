@@ -42,6 +42,7 @@ pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
+mod prometheus;
 
 const AGGREGATOR_GAS_COST: u128 = 400_000;
 const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
@@ -216,8 +217,10 @@ impl Batcher {
 
         // Let's spawn the handling of each connection in a separate task.
         while let Ok((stream, addr)) = listener.accept().await {
+            prometheus::OPEN_CONNECTIONS.inc();
             let batcher = self.clone();
             tokio::spawn(batcher.handle_connection(stream, addr));
+            prometheus::OPEN_CONNECTIONS.dec(); //TODO what if panics?
         }
         Ok(())
     }
@@ -317,6 +320,7 @@ impl Batcher {
         };
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}",);
+        prometheus::RECEIVED_PROOFS.inc(); //TODO wip testing
         {
             let mut received_proofs_counter = self.received_proofs_counter.lock().await;
             *received_proofs_counter += U256::one();
