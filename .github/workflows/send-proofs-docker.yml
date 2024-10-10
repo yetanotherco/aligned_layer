@@ -1,9 +1,12 @@
 name: "[CI] Send proofs to network"
 
 on:
-  push:
-    branches:
-      - docker-compose
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: pull_request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   network-test-docker-compose:
