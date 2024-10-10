@@ -50,7 +50,7 @@ pub struct CleanProofsArgs {}
 pub struct GenerateAndFundWalletsArgs {
     #[arg(
         name = "Ethereum RPC provider connection address",
-        long = "rpc_url",
+        long = "eth-rpc-url",
         default_value = "http://localhost:8545"
     )]
     pub eth_rpc_url: String,
@@ -138,12 +138,12 @@ pub struct SendInfiniteProofsArgs {
     pub network: NetworkArg,
     #[arg(
         name = "Private keys filepath for the senders",
-        long = "private-keys-file"
+        long = "private-keys-filepath"
     )]
     pub private_keys_filepath: String,
     #[arg(
         name = "The generated proofs directory",
-        long = "proof-dir-path",
+        long = "proofs-dirpath",
         default_value = "devnet"
     )]
     pub proofs_dir: String,
