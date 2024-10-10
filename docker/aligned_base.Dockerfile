@@ -33,6 +33,6 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /aligned_layer
 
-COPY . .
+COPY operator .
 
 RUN make build_all_ffi_linux
