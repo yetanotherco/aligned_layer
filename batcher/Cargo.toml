@@ -1,7 +1,3 @@
 [workspace]
-members = [
-    "aligned-batcher",
-    "aligned-sdk",
-    "aligned"
-]
+members = ["aligned-batcher", "aligned-sdk", "aligned", "aligned-task-sender"]
 resolver = "2"
