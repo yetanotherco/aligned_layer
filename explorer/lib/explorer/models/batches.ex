@@ -116,7 +116,7 @@ defmodule Batches do
     threshold_datetime = DateTime.utc_now() |> DateTime.add(-43200, :second) # 12 hours ago
 
     query = from(b in Batches,
-    where: b.is_verified == false and b.submission_timestamp > ^threshold_datetime,
+    where: b.is_valid == true and b.is_verified == false and b.submission_timestamp > ^threshold_datetime,
     select: b)
 
     Explorer.Repo.all(query)

@@ -127,6 +127,14 @@ defmodule ExplorerWeb.Helpers do
   def binary_to_hex_string(binary) do
     Utils.binary_to_hex_string(binary)
   end
+
+  def get_batch_status(batch) do
+    cond do
+      not batch.is_valid -> :invalid
+      batch.is_verified -> :verified
+      true -> :pending
+    end
+  end
 end
 
 # Backend utils
