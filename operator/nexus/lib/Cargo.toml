@@ -12,6 +12,13 @@ ark-serialize = "0.4.2"
 zstd = { version = "0.12", default-features = false }
 log = "0.4.22"
 
+[profile.debug]
+lto=false
+
+[profile.release]
+strip="symbols"
+lto=false
+
 [patch.crates-io]
 ark-crypto-primitives = { git = "https://github.com/arkworks-rs/crypto-primitives", rev = "d27a5c8" }
 

@@ -1,25 +1,23 @@
-use ark_serialize::CanonicalDeserialize;
-use log::{info, warn};
-use nexus_core::{
-    self,
-    prover::nova::types::{IVCProof, SeqPP},
-};
+use log::info;
 
-use zstd::stream::Decoder;
+#[link(name = "nexus_verifier", kind = "static")]
+extern "C" {
+    fn verify_nexus_proof_ffi(
+        proof_bytes: *const u8,
+        proof_len: u32,
+        params_bytes: *const u8,
+        params_len: u32,
+    ) -> bool;
+}
 
 pub fn verify_nexus_proof(proof: &[u8], params: &[u8]) -> bool {
     info!("Verifying Nexus Proof");
-    let params_dec = Decoder::new(params).unwrap();
-
-    let Ok(proof) = IVCProof::deserialize_compressed(proof) else {
-        warn!("Failed to deserialize Nexus Proof");
-        return false;
-    };
-
-    let Ok(params) = SeqPP::deserialize_compressed(params_dec) else {
-        warn!("Failed to deserialize Nexus Parameters");
-        return false;
-    };
-
-    proof.verify(&params).is_ok()
+    unsafe {
+        verify_nexus_proof_ffi(
+            proof.as_ptr(),
+            proof.len() as u32,
+            params.as_ptr(),
+            params.len() as u32,
+        )
+    }
 }

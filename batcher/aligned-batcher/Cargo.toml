@@ -31,9 +31,3 @@ bincode = "1.3.3"
 aligned-sdk = { path = "../aligned-sdk" }
 ciborium = "=0.2.2"
 priority-queue = "2.1.0"
-
-# Nexus
-nexus-core = { git = "https://github.com/nexus-xyz/nexus-zkvm.git", tag = "0.2.3", version = "0.2.3", features = ["prover_nova"], default-features = false }
-zstd = { version = "0.12", default-features = false }
-ark-serialize = "0.4.2"
-ark-groth16 = "0.4.0"

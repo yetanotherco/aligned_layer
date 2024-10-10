@@ -1,18 +1,3 @@
 [workspace]
 members = ["aligned-batcher", "aligned-sdk", "aligned"]
 resolver = "2"
-
-[patch.crates-io]
-ark-groth16 = { git = "https://github.com/arkworks-rs/groth16", rev = "16ac1dd" }
-ark-crypto-primitives = { git = "https://github.com/arkworks-rs/crypto-primitives/", rev = "d27a5c8" }
-ark-r1cs-std = { git = "https://github.com/arkworks-rs/r1cs-std/", rev = "2ca3bd7" }
-ark-ff = { git = "https://github.com/arkworks-rs/algebra/", rev = "2a80c54" }
-ark-ec = { git = "https://github.com/arkworks-rs/algebra/", rev = "2a80c54" }
-ark-serialize = { git = "https://github.com/arkworks-rs/algebra/", rev = "2a80c54" }
-ark-poly = { git = "https://github.com/arkworks-rs/algebra/", rev = "2a80c54" }
-ark-test-curves = { git = "https://github.com/arkworks-rs/algebra/", rev = "2a80c54" }
-ark-poly-commit = { git = "https://github.com/arkworks-rs/poly-commit/", rev = "12f5529" }
-ark-bn254 = { git = "https://github.com/arkworks-rs/curves/", rev = "8c0256a" }
-ark-pallas = { git = "https://github.com/arkworks-rs/curves/", rev = "8c0256a" }
-ark-vesta = { git = "https://github.com/arkworks-rs/curves/", rev = "8c0256a" }
-ark-bls12-381 = { git = "https://github.com/arkworks-rs/curves/", rev = "3fded1f" }
