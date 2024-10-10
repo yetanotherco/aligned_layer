@@ -371,65 +371,97 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 
 
 __TASK_SENDER__:
+BURST_TIME_SECS ?= 3
 
-# ===== DEVNET =====
 task_sender_generate_groth16_proofs:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action generate-proofs --number-of-proofs $(NUMBER_PROOFS)
+	cargo run --release -- generate-proofs \
+	--number-of-proofs $(NUMBER_PROOFS) --proof-type groth16 \
+	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
 
+# ===== DEVNET =====
 task_sender_generate_and_fund_wallets_devnet:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action generate-and-fund-wallets \
-	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) --amount-to-deposit-to-aligned \
-	$(AMOUNT_TO_DEPOSIT_TO_ALIGNED) --num-senders $(NUM_WALLETS) \
-	--private-keys-file $(PRIVATE_KEYS_FILE)
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url http://localhost:8545 \
+	--network devnet \
+	--funding-wallet-private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80  \
+	--number-wallets $(NUM_WALLETS) \
+	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
+	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
+	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
 
 task_sender_infinite_proofs_devnet:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action infinite-proofs --burst-size $(BURST_SIZE)  
-
-task_sender_multiple_senders_infinite_proofs_devnet:
-	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action multiple-senders-infinite-proofs \
-	--burst-size $(BURST_SIZE) \
-	--private-keys-file $(PRIVATE_KEYS_FILE)
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url http://localhost:8545 \
+	--batcher-url ws://localhost:8080 \
+	--network devnet \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
 
 task_sender_test_connections_devnet:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action test-connections --num-senders $(NUM_SENDERS)
+	cargo run --release -- test-connections \
+	--batcher-url ws://localhost:8080 \
+	--num-senders $(NUM_SENDERS)
+
+# ===== HOLESKY-STAGE =====
+task_sender_generate_and_fund_wallets_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--network holesky-stage \
+	--funding-wallet-private-key $(FUNDING_WALLET_PRIVATE_KEY) \
+	--number-wallets $(NUM_WALLETS) \
+	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
+	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
+	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
+
+task_sender_infinite_proofs_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url  https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://batcher.alignedlayer.com  \
+	--network holesky-stage \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
+
+task_sender_test_connections_holesky_stage:
+	@cd batcher/aligned-task-sender && \
+	cargo run --release -- test-connections \
+	--batcher-url  wss://batcher.alignedlayer.com \
+	--num-senders $(NUM_SENDERS)
 
 # ===== HOLESKY =====
 task_sender_generate_and_fund_wallets_holesky:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action generate-and-fund-wallets \
-	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) --amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
-	--network holesky --rpc_url https://ethereum-holesky-rpc.publicnode.com \
-	--private_key $(PRIVATE_KEY) --num-senders $(NUM_WALLETS) \
-	--private-keys-file $(PRIVATE_KEYS_FILE)
+	cargo run --release -- generate-and-fund-wallets \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--network holesky \
+	--funding-wallet-private-key $(FUNDING_WALLET_PRIVATE_KEY) \
+	--number-wallets $(NUM_WALLETS) \
+	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
+	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
+	--private-keys-filepath $(CURDIR)/scripts/test-file/task_sender/wallets/funded_wallets.holesky
 
 task_sender_infinite_proofs_holesky:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action infinite-proofs --burst-size $(BURST_SIZE) \
-	--network holesky --rpc_url https://ethereum-holesky-rpc.publicnode.com \
-	--batcher-url wss://batcher.alignedlayer.com  --private_key $(PRIVATE_KEY)
-
-task_sender_multiple_senders_infinite_proofs_holesky:
-	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action multiple-senders-infinite-proofs \
-	--burst-size $(BURST_SIZE) \
-	--network holesky --rpc_url https://ethereum-holesky-rpc.publicnode.com \
-	--batcher-url wss://batcher.alignedlayer.com \
-	--private-keys-file $(PRIVATE_KEYS_FILE)
+	cargo run --release -- send-infinite-proofs \
+	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
+	--eth-rpc-url  https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://batcher.alignedlayer.com  \
+	--network holesky \
+	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
+	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
 
 task_sender_test_connections_holesky:
 	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action test-connections --num-senders $(NUM_SENDERS) \
-	--network holesky --rpc_url https://ethereum-holesky-rpc.publicnode.com \
-	--batcher-url wss://batcher.alignedlayer.com 
-
-task_sender_clean_proofs:
-	@cd batcher/aligned-task-sender && \
-	cargo run --release -- --action clean-proofs
+	cargo run --release -- test-connections \
+	--batcher-url  wss://batcher.alignedlayer.com \
+	--num-senders $(NUM_SENDERS)
 
 __UTILS__:
 aligned_get_user_balance_devnet:
