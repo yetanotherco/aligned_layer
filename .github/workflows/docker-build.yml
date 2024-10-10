@@ -36,7 +36,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t ghcr.io/${FULL_REPO_NAME}/${IMAGE_NAME}:${GIT_BRANCH} -f ./docker/${IMAGE_NAME}.Dockerfile
+        docker build -t ghcr.io/${FULL_REPO_NAME}/${IMAGE_NAME}:${GIT_BRANCH} -f ./docker/${IMAGE_NAME}.Dockerfile .
 
     - name: Push Docker image
       run: |
