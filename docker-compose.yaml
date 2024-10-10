@@ -22,7 +22,7 @@ services:
       - base
 
   aggregator:
-    image: ghcr.io/lambdaclass/aligned_layer/aggregator:v0.8.0
+    image: ghcr.io/lambdaclass/aligned_layer/aggregator:latest
     build:
       context: .
       dockerfile: docker/aggregator.Dockerfile
@@ -57,7 +57,7 @@ services:
       - excluded
 
   operator-deposit-into-mock-strategy:
-    image: ghcr.io/lambdaclass/aligned_layer/operator:v0.8.0
+    image: ghcr.io/lambdaclass/aligned_layer/operator:latest
     command: ["aligned-layer-operator", "deposit-into-strategy", "--config", "./config-files/config-docker.yaml", "--strategy-address", "0xc5a5C42992dECbae36851359345FE25997F5C42d", "--amount", "100000000000000000"]
     build:
       context: .
@@ -75,7 +75,7 @@ services:
       - excluded
 
   operator-register-with-aligned-layer:
-    image: ghcr.io/lambdaclass/aligned_layer/operator:v0.8.0
+    image: ghcr.io/lambdaclass/aligned_layer/operator:latest
     command: ["aligned-layer-operator", "register", "--config", "./config-files/config-docker.yaml"]
     build:
       context: .
@@ -84,7 +84,7 @@ services:
       - excluded
 
   operator:
-    image: ghcr.io/lambdaclass/aligned_layer/operator:v0.8.0
+    image: ghcr.io/lambdaclass/aligned_layer/operator:latest
     command: ["aligned-layer-operator", "start", "--config", "./config-files/config-docker.yaml"]
     build:
       context: .
@@ -102,7 +102,7 @@ services:
       - excluded
 
   batcher:
-    image: ghcr.io/lambdaclass/aligned_layer/batcher:v0.8.0
+    image: ghcr.io/lambdaclass/aligned_layer/batcher:latest
     environment:
       AWS_SECRET_ACCESS_KEY: test
       AWS_REGION: us-east-2
@@ -119,7 +119,7 @@ services:
       - batcher
 
   aligned_base:
-    image: ghcr.io/lambdaclass/aligned_layer/aligned_base:v0.8.0
+    image: ghcr.io/lambdaclass/aligned_layer/aligned_base:latest
     build:
       context: .
       dockerfile: docker/aligned_base.Dockerfile
