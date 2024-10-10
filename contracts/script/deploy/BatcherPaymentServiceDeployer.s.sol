@@ -29,11 +29,6 @@ contract BatcherPaymentServiceDeployer is Script {
             ".permissions.owner"
         );
 
-        bytes32 noncedVerificationDataTypeHash = stdJson.readBytes32(
-            config_data,
-            ".eip712.noncedVerificationDataTypeHash"
-        );
-
         vm.startBroadcast();
 
         BatcherPaymentService batcherPaymentService = new BatcherPaymentService();
@@ -41,11 +36,10 @@ contract BatcherPaymentServiceDeployer is Script {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(batcherPaymentService),
             abi.encodeWithSignature(
-                "initialize(address,address,address,bytes32)",
+                "initialize(address,address,address)",
                 IAlignedLayerServiceManager(alignedLayerServiceManager),
                 batcherPaymentServiceOwner,
-                batcherWallet,
-                noncedVerificationDataTypeHash
+                batcherWallet
             )
         );
 

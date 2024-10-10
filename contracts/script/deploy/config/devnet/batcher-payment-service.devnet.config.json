@@ -10,8 +10,5 @@
   },
   "permissions": {
     "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
-  },
-  "eip712": {
-    "noncedVerificationDataTypeHash": "41817b5c5b0c3dcda70ccb43ba175fdcd7e586f9e0484422a2c6bba678fdf4a3"
   }
 }

@@ -21,7 +21,7 @@ tokio = { version = "1.37.0", features = [
     "rt-multi-thread",
     "sync",
 ] }
-lambdaworks-crypto = { version = "0.7.0", features = ["serde"] }
+lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "efd46f0b0aea3aa95d94bba7de86cb96611b40d3", features = ["serde"] }
 serde = { version = "1.0.201", features = ["derive"] }
 sha3 = { version = "0.10.8" }
 url = "2.5.0"

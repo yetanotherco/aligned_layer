@@ -90,6 +90,7 @@ pub enum SubmitError {
     InsufficientBalance,
     InvalidPaymentServiceAddress(H160, H160),
     BatchSubmissionFailed(String),
+    AddToBatchError,
     GenericError(String),
 }
 
@@ -198,6 +199,7 @@ impl fmt::Display for SubmitError {
                 )
             }
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
+            SubmitError::AddToBatchError => write!(f, "Error while adding entry to batch"),
         }
     }
 }

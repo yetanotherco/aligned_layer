@@ -7,12 +7,6 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 )
 
-const ProofFilePath = "../../scripts/test_files/halo2_kzg/proof.bin"
-
-const PublicInputPath = "../../scripts/test_files/halo2_kzg/pub_input.bin"
-
-const ParamsFilePath = "../../scripts/test_files/halo2_kzg/params.bin"
-
 func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
 	innerReceiptBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof")
 	if err != nil {

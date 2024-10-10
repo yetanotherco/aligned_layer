@@ -1,6 +1,6 @@
 use std::fmt;
 
-use ethers::types::SignatureError;
+use ethers::types::{Address, SignatureError};
 use tokio_tungstenite::tungstenite;
 
 pub enum BatcherError {
@@ -18,6 +18,7 @@ pub enum BatcherError {
     GasPriceError,
     BatchCostTooHigh,
     WsSinkEmpty,
+    AddressNotFoundInUserStates(Address),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -81,6 +82,12 @@ impl fmt::Debug for BatcherError {
                 write!(
                     f,
                     "Websocket sink was found empty. This should only happen in tests"
+                )
+            }
+            BatcherError::AddressNotFoundInUserStates(addr) => {
+                write!(
+                    f,
+                    "User with address {addr:?} was not found in Batcher user states cache"
                 )
             }
         }

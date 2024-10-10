@@ -52,3 +52,25 @@ This will:
 3. Pay & submit proof to aligned for verification
 4. Wait for proof to be verified in aligned
 5. Claim NFT if proof is verified
+
+## Testing locally
+
+If you want to test the zk quiz on a local network follow these steps:
+
+1. Setup Aligned locally following [this guide](../../docs/3_guides/6_setup_aligned.md)
+
+3. Move into the zkquiz example:
+    ```
+    cd examples/zkquiz
+    ```
+
+4. Deploy the ZKQuiz verifier contract, and locate the `CONTRACT_ADDRESS` from its output:
+    ```
+    make deploy_verifier_devnet
+    ```
+
+
+5. Run the quiz:
+    ```
+    CONTRACT_ADDRESS=<VERIFIER_CONTRACT_ADDRESS> make answer_quiz_local
+    ```

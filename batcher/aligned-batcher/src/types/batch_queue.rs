@@ -1,22 +1,16 @@
-use ethers::types::{Address, Signature, U256};
-use futures_util::stream::SplitSink;
-use priority_queue::PriorityQueue;
-use std::{
-    hash::{Hash, Hasher},
-    ops::ControlFlow,
-    sync::Arc,
-};
-use tokio::{net::TcpStream, sync::RwLock};
-use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
-
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
     core::types::{NoncedVerificationData, VerificationDataCommitment},
 };
+use ethers::types::{Address, Signature, U256};
+use priority_queue::PriorityQueue;
+use std::{
+    hash::{Hash, Hasher},
+    ops::ControlFlow,
+};
 
 use super::errors::BatcherError;
-
-type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
+use crate::connection::WsMessageSink;
 
 #[derive(Clone)]
 pub(crate) struct BatchQueueEntry {

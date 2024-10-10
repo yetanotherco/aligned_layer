@@ -41,6 +41,10 @@ and running the installation script:
 
 ### 2. Generate a keystore:
 
+{% hint style="warning" %}
+When creating a new wallet keystore and private key please use strong passwords for your own protection.
+{% endhint %}
+
 You can use cast to create a local keystore.
 If you already have one, you can skip this step.
 

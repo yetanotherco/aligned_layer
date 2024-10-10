@@ -4,13 +4,10 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"math/big"
-	"strings"
 	"sync"
 	"time"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -97,12 +94,14 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 			case newBatch := <-internalChannel:
 				s.processNewBatchV2(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			case <-pollLatestBatchTicker.C:
-				latestBatch, err := s.getLatestTaskFromEthereumV2()
+				latestBatch, err := s.getLatestNotRespondedTaskFromEthereumV2()
 				if err != nil {
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
 				}
-				s.processNewBatchV2(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				if latestBatch != nil {
+					s.processNewBatchV2(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				}
 			}
 		}
 
@@ -132,7 +131,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 
 	return errorChannel, nil
 }
-	
+
 func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) (chan error, error) {
 	// Create a new channel to receive new tasks
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
@@ -165,12 +164,14 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 			case newBatch := <-internalChannel:
 				s.processNewBatchV3(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			case <-pollLatestBatchTicker.C:
-				latestBatch, err := s.getLatestTaskFromEthereumV3()
+				latestBatch, err := s.getLatestNotRespondedTaskFromEthereumV3()
 				if err != nil {
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
 				}
-				s.processNewBatchV3(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				if latestBatch != nil {
+					s.processNewBatchV3(latestBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
+				}
 			}
 		}
 
@@ -254,9 +255,9 @@ func (s *AvsSubscriber) processNewBatchV2(batch *servicemanager.ContractAlignedL
 
 	if _, ok := batchesSet[batchIdentifierHash]; !ok {
 		s.logger.Info("Received new task",
-		"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
-		"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
-		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]),)
+			"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
+			"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
+			"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
 		batchesSet[batchIdentifierHash] = struct{}{}
 		newTaskCreatedChan <- batch
@@ -280,9 +281,9 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 
 	if _, ok := batchesSet[batchIdentifierHash]; !ok {
 		s.logger.Info("Received new task",
-		"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
-		"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
-		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]),)
+			"batchMerkleRoot", hex.EncodeToString(batch.BatchMerkleRoot[:]),
+			"senderAddress", hex.EncodeToString(batch.SenderAddress[:]),
+			"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
 		batchesSet[batchIdentifierHash] = struct{}{}
 		newTaskCreatedChan <- batch
@@ -297,15 +298,13 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 	}
 }
 
-// getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
-// The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
-// to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
-func (s *AvsSubscriber) getLatestTaskFromEthereumV2() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
+// getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
+func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get latest block number: %w", err)
+			return nil, err
 		}
 	}
 
@@ -317,59 +316,48 @@ func (s *AvsSubscriber) getLatestTaskFromEthereumV2() (*servicemanager.ContractA
 		fromBlock = latestBlock - BlockInterval
 	}
 
-	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
+	logs, err := s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ABI: %w", err)
+		return nil, err
 	}
 
-	// We just care about the NewBatch event
-	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatchV2"]
-	if newBatchEvent.ID == (ethcommon.Hash{}) {
-		return nil, fmt.Errorf("NewBatch event not found in ABI")
+	var lastLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
+
+	// Iterate over the logs until the end
+	for logs.Next() {
+		lastLog = logs.Event
 	}
 
-	query := ethereum.FilterQuery{
-		FromBlock: big.NewInt(int64(fromBlock)),
-		ToBlock:   big.NewInt(int64(latestBlock)),
-		Addresses: []ethcommon.Address{s.AlignedLayerServiceManagerAddr},
-		Topics:    [][]ethcommon.Hash{{newBatchEvent.ID, {}}},
+	if err := logs.Error(); err != nil {
+		return nil, err
 	}
 
-	logs, err := s.AvsContractBindings.ethClient.FilterLogs(context.Background(), query)
+	if lastLog == nil {
+		return nil, nil
+	}
+
+	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
+	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+
 	if err != nil {
-		logs, err = s.AvsContractBindings.ethClientFallback.FilterLogs(context.Background(), query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get logs: %w", err)
-		}
+		return nil, err
 	}
 
-	if len(logs) == 0 {
-		return nil, fmt.Errorf("no logs found")
+	if state.Responded {
+		return nil, nil
 	}
 
-	lastLog := logs[len(logs)-1]
-
-	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
-	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatchV2", lastLog.Data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unpack log data: %w", err)
-	}
-
-	// The second topic is the batch merkle root, as it is an indexed variable in the contract
-	latestTask.BatchMerkleRoot = lastLog.Topics[1]
-
-	return &latestTask, nil
+	return lastLog, nil
 }
 
-// getLatestTaskFromEthereum queries the blockchain for the latest task using the FilterLogs method.
-// The alternative to this is using the FilterNewBatch method from the contract's filterer, but it requires
-// to iterate over all the logs, which is not efficient and not needed since we only need the latest task.
-func (s *AvsSubscriber) getLatestTaskFromEthereumV3() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+// getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
+func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
 	latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get latest block number: %w", err)
+			return nil, err
 		}
 	}
 
@@ -381,48 +369,39 @@ func (s *AvsSubscriber) getLatestTaskFromEthereumV3() (*servicemanager.ContractA
 		fromBlock = latestBlock - BlockInterval
 	}
 
-	alignedLayerServiceManagerABI, err := abi.JSON(strings.NewReader(servicemanager.ContractAlignedLayerServiceManagerMetaData.ABI))
+	logs, err := s.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: context.Background()}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ABI: %w", err)
+		return nil, err
 	}
 
-	// We just care about the NewBatch event
-	newBatchEvent := alignedLayerServiceManagerABI.Events["NewBatchV3"]
-	if newBatchEvent.ID == (ethcommon.Hash{}) {
-		return nil, fmt.Errorf("NewBatch event not found in ABI")
+	var lastLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
+
+	// Iterate over the logs until the end
+	for logs.Next() {
+		lastLog = logs.Event
 	}
 
-	query := ethereum.FilterQuery{
-		FromBlock: big.NewInt(int64(fromBlock)),
-		ToBlock:   big.NewInt(int64(latestBlock)),
-		Addresses: []ethcommon.Address{s.AlignedLayerServiceManagerAddr},
-		Topics:    [][]ethcommon.Hash{{newBatchEvent.ID, {}}},
+	if err := logs.Error(); err != nil {
+		return nil, err
 	}
 
-	logs, err := s.AvsContractBindings.ethClient.FilterLogs(context.Background(), query)
+	if lastLog == nil {
+		return nil, nil
+	}
+
+	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
+	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
+	state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+
 	if err != nil {
-		logs, err = s.AvsContractBindings.ethClientFallback.FilterLogs(context.Background(), query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get logs: %w", err)
-		}
+		return nil, err
 	}
 
-	if len(logs) == 0 {
-		return nil, fmt.Errorf("no logs found")
+	if state.Responded {
+		return nil, nil
 	}
 
-	lastLog := logs[len(logs)-1]
-
-	var latestTask servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
-	err = alignedLayerServiceManagerABI.UnpackIntoInterface(&latestTask, "NewBatchV3", lastLog.Data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unpack log data: %w", err)
-	}
-
-	// The second topic is the batch merkle root, as it is an indexed variable in the contract
-	latestTask.BatchMerkleRoot = lastLog.Topics[1]
-
-	return &latestTask, nil
+	return lastLog, nil
 }
 
 func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
