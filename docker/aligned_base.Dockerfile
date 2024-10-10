@@ -35,5 +35,6 @@ WORKDIR /aligned_layer
 
 COPY Makefile .
 COPY operator ./operator
+COPY batcher/aligned-sdk ./batcher/aligned-sdk
 
 RUN make build_all_ffi_linux
