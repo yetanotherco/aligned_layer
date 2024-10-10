@@ -133,6 +133,14 @@ end
 defmodule Utils do
   require Logger
 
+  @max_batch_size (case System.fetch_env("MAX_BATCH_SIZE") do
+                     # empty env var
+                     {:ok, ""} -> 268_435_456
+                     {:ok, value} -> String.to_integer(value)
+                     # error
+                     _ -> 268_435_456
+                   end)
+
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
     hex =
@@ -167,21 +175,43 @@ defmodule Utils do
     |> Enum.reverse()
   end
 
-  def calculate_proof_hashes({:ok, deserialized_batch}) do
+  def calculate_proof_hashes(deserialized_batch) do
     deserialized_batch
     |> Enum.map(fn s3_object ->
       :crypto.hash(:sha3_256, s3_object["proof"])
     end)
   end
 
-  def calculate_proof_hashes({:error, reason}) do
-    Logger.error("Error calculating proof hashes: #{inspect(reason)}")
-    []
+  defp stream_handler({:headers, headers}, acc) do
+    {_, batch_size} = List.keyfind(headers, "content-length", 0, {nil, "0"})
+    check_batch_size(String.to_integer(batch_size), acc)
+  end
+
+  defp stream_handler({:status, 200}, acc), do: {:cont, acc}
+
+  defp stream_handler({:status, status_code}, _acc),
+    do: {:halt, {:error, {:http_error, status_code}}}
+
+  defp stream_handler({:data, chunk}, {acc_body, acc_size}) do
+    new_size = acc_size + byte_size(chunk)
+    check_batch_size(new_size, {acc_body <> chunk, new_size})
+  end
+
+  defp check_batch_size(size, acc) do
+    if size > @max_batch_size do
+      {:halt, {:error, {:http, :body_too_large}}}
+    else
+      {:cont, acc}
+    end
   end
 
   def fetch_batch_data_pointer(batch_data_pointer) do
-    case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
-      {:ok, %Finch.Response{status: 200, body: body}} ->
+    case Finch.build(:get, batch_data_pointer)
+         |> Finch.stream_while(Explorer.Finch, {"", 0}, &stream_handler(&1, &2)) do
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      {:ok, {body, _size}} ->
         cond do
           is_json?(body) ->
             case Jason.decode(body) do
@@ -205,9 +235,6 @@ defmodule Utils do
             Logger.error("Unknown S3 object format")
             {:error, :unknown_format}
         end
-
-      {:ok, %Finch.Response{status: status_code}} ->
-        {:error, {:http_error, status_code}}
 
       {:error, reason} ->
         {:error, {:http_error, reason}}
@@ -245,9 +272,18 @@ defmodule Utils do
         nil ->
           Logger.debug("Fetching from S3")
 
-          batch.data_pointer
-          |> Utils.fetch_batch_data_pointer()
-          |> Utils.calculate_proof_hashes()
+          batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
+
+          case batch_content do
+            {:ok, batch_content} ->
+              batch_content
+              |> Utils.calculate_proof_hashes()
+
+            {:error, reason} ->
+              Logger.error("Error fetching batch content: #{inspect(reason)}")
+              # Returning something ensures we avoid attempting to fetch the invalid data again.
+              [<<0>>]
+          end
 
         proof_hashes ->
           # already processed and stored the S3 data
