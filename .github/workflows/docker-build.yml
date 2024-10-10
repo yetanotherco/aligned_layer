@@ -8,12 +8,12 @@ on:
 env:
   IMAGE_NAME: aligned_base
   FULL_REPO_NAME: ${{ github.repository }}
-  GIT_BRANCH: ${{ github.ref_name }}
+  GIT_BRANCH: testnet
 
 jobs:
   docker-build-push:
     name: Build docker
-    runs-on: ubuntu-latest
+    runs-on: aligned-runner-ci
 
     permissions:
       contents: read
@@ -30,6 +30,9 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v1
+      with:
+        ref: testnet
+
 
     - name: Build Docker image
       run: |
