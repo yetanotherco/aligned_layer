@@ -40,7 +40,7 @@ jobs:
 
   post-cleanup:
     name: "Cleanup"
-    runs-on: docker
+    runs-on: aligned-runner-ci
     if: ${{ always() }}
     needs: network-test-docker-compose
 
