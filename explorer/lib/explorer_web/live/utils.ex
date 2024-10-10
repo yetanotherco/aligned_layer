@@ -191,8 +191,8 @@ defmodule Utils do
   end
 
   defp stream_handler({:headers, headers}, acc) do
-    {_, batch_size} = List.keyfind(headers, "content-length", 0, {nil, 0})
-    check_batch_size(batch_size, acc)
+    {_, batch_size} = List.keyfind(headers, "content-length", 0, {nil, "0"})
+    check_batch_size(String.to_integer(batch_size), acc)
   end
 
   defp stream_handler({:status, 200}, acc), do: {:cont, acc}
