@@ -26,6 +26,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
 
+    - name: Build containers
+      run: make docker_build
+
     - name: Start containers and initialize network
       run: make docker_up && sleep 15
 
