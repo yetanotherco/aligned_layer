@@ -7,7 +7,7 @@ use k256::ecdsa::SigningKey;
 use log::{error, info};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Write};
 use std::process::Command;
 use std::str::FromStr;
@@ -19,7 +19,7 @@ use tokio::join;
 use tokio_tungstenite::connect_async;
 
 use crate::structs::{
-    GenerateAndFundWalletsArgs, GenerateProofsArgs, InfiniteProofsArgs, ProofType,
+    GenerateAndFundWalletsArgs, GenerateProofsArgs, ProofType, SendInfiniteProofsArgs,
     TestConnectionsArgs,
 };
 
@@ -30,13 +30,21 @@ pub async fn generate_proofs(args: GenerateProofsArgs) {
 
     let count = Arc::new(AtomicU64::new(0));
     let mut handles = vec![];
-    for _ in 0..args.number_of_proofs {
+    for i in 0..args.number_of_proofs {
         let count = count.clone();
         let dir_to_save_proofs = args.dir_to_save_proofs.clone();
+
         let handle = thread::spawn(move || {
             let count = count.fetch_add(1, Ordering::Relaxed);
             match args.proof_type {
                 ProofType::Groth16 => {
+                    let dir_to_save_proofs =
+                        format!("{}/groth16_{}/", dir_to_save_proofs.clone(), i);
+
+                    // we need to create the directory as the go script does not handle it
+                    std::fs::create_dir(dir_to_save_proofs.clone())
+                        .expect("Could not create directory");
+
                     Command::new("go")
                         .arg("run")
                         .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
@@ -78,7 +86,8 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
     let funding_wallet = args
         .funding_wallet_private_key
         .parse::<Wallet<SigningKey>>()
-        .expect("Invalid private key");
+        .expect("Invalid private key")
+        .with_chain_id(chain_id.as_u64());
 
     for i in 0..args.number_of_wallets {
         // this is necessary because of the move
@@ -87,7 +96,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         let amount_to_deposit = args.amount_to_deposit.clone();
         let amount_to_deposit_aligned = args.amount_to_deposit_to_aligned.clone();
 
-        let wallet = Wallet::new(&mut thread_rng());
+        let wallet = Wallet::new(&mut thread_rng()).with_chain_id(chain_id.as_u64());
         info!("Generated wallet {} with address {:?}", i, wallet.address());
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), funding_wallet.clone());
         let amount_to_deposit =
@@ -108,7 +117,6 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         if let Err(err) = pending_transaction.await {
             error!("Could not fund wallet {}", err.to_string());
         }
-        let wallet = wallet.with_chain_id(chain_id.as_u64());
         info!("Wallet {} funded", i);
 
         let amount_to_deposit_to_aligned =
@@ -174,7 +182,7 @@ struct Sender {
     wallet: Wallet<SigningKey>,
 }
 
-pub async fn infinite_proofs(args: InfiniteProofsArgs) {
+pub async fn infinite_proofs(args: SendInfiniteProofsArgs) {
     info!("Loading wallets");
     let mut senders = vec![];
     let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
@@ -220,10 +228,15 @@ pub async fn infinite_proofs(args: InfiniteProofsArgs) {
         error!("No wallets in file");
         return;
     }
+    info!("All wallets loaded");
 
     info!("Loading proofs verification data");
     let verification_data =
         get_verification_data_from_generated(args.proofs_dir, senders[0].wallet.address());
+    if verification_data.is_empty() {
+        error!("Verification data empty, not continuing");
+        return;
+    }
     info!("Proofs loaded!");
 
     let max_fee = U256::from_dec_str(&args.max_fee).expect("Invalid max fee");
@@ -282,7 +295,7 @@ pub async fn infinite_proofs(args: InfiniteProofsArgs) {
                     args.burst_size, args.network, i
                 );
                 nonce += U256::from(args.burst_size);
-                tokio::time::sleep(Duration::from_secs(args.burst_time)).await;
+                tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
             }
         });
 
@@ -304,34 +317,39 @@ fn get_verification_data_from_generated(
     let dir = std::fs::read_dir(dir_path).expect("Directory does not exists");
 
     for entry in dir {
-        let entry = entry.unwrap().path();
-        if entry.is_dir() {
-            let dirname = entry.to_str().unwrap();
+        let dir = entry.unwrap().path();
+        if dir.is_dir() {
+            let dirname = dir.to_str().unwrap();
             // todo(marcos): this should be improved if we want to support more proofs
+            // currently we stored the proofs on subdirs with a prefix for the proof type
+            // and here we check the subdir name and based on build the verification data accordingly
             if dirname.contains("groth16") {
-                let proof_path = entry.join(format!("ineq_groth16.proof"));
-                let public_input_path = entry.join(format!("ineq_groth16.pub"));
-                let vk_path = entry.join(format!("ineq_groth16.vk"));
+                for entry in fs::read_dir(dir).expect("Can't read directory") {
+                    let entry = entry.expect("Invalid file");
+                    let proof_path = entry.path().with_extension("proof");
+                    let public_input_path = entry.path().with_extension("pub");
+                    let vk_path = entry.path().with_extension("vk");
 
-                let Ok(proof) = std::fs::read(&proof_path) else {
-                    continue;
-                };
-                let Ok(public_input) = std::fs::read(&public_input_path) else {
-                    continue;
-                };
-                let Ok(vk) = std::fs::read(&vk_path) else {
-                    continue;
-                };
+                    let Ok(proof) = std::fs::read(&proof_path) else {
+                        continue;
+                    };
+                    let Ok(public_input) = std::fs::read(&public_input_path) else {
+                        continue;
+                    };
+                    let Ok(vk) = std::fs::read(&vk_path) else {
+                        continue;
+                    };
 
-                let verification_data = VerificationData {
-                    proving_system: ProvingSystemId::Groth16Bn254,
-                    proof,
-                    pub_input: Some(public_input),
-                    verification_key: Some(vk),
-                    vm_program_code: None,
-                    proof_generator_addr: default_addr,
-                };
-                verifications_data.push(verification_data);
+                    let verification_data = VerificationData {
+                        proving_system: ProvingSystemId::Groth16Bn254,
+                        proof,
+                        pub_input: Some(public_input),
+                        verification_key: Some(vk),
+                        vm_program_code: None,
+                        proof_generator_addr: default_addr,
+                    };
+                    verifications_data.push(verification_data);
+                }
             }
         }
     }

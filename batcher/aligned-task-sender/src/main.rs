@@ -13,7 +13,7 @@ async fn main() {
             commands::generate_and_fund_wallets(args).await
         }
         TaskSenderCommands::GenerateProofs(args) => commands::generate_proofs(args).await,
-        TaskSenderCommands::InfiniteProofs(args) => commands::infinite_proofs(args).await,
+        TaskSenderCommands::SendInfiniteProofs(args) => commands::infinite_proofs(args).await,
         TaskSenderCommands::TestConnections(args) => commands::test_connection(args).await,
     }
 }
