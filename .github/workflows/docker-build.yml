@@ -8,7 +8,7 @@ on:
 env:
   IMAGE_NAME: aligned_base
   FULL_REPO_NAME: ${{ github.repository }}
-  GIT_BRANCH: testnet
+  GIT_BRANCH: ${{ github.ref_name }}
 
 jobs:
   docker-build-push:
@@ -30,9 +30,6 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v1
-      with:
-        ref: testnet
-
 
     - name: Build Docker image
       run: |
