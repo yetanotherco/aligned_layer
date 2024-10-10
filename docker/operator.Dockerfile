@@ -10,6 +10,10 @@ ENV CGO_ENABLED=1
 COPY go.mod .
 COPY go.sum .
 
+COPY core     ./core
+COPY metrics  ./metrics
+COPY common   ./common
+
 RUN go build -o /aligned_layer/aligned-layer-operator operator/cmd/main.go
 
 FROM debian:bookworm-slim
