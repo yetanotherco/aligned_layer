@@ -35,6 +35,4 @@ WORKDIR /aligned_layer
 
 COPY . .
 
-RUN git submodule update --init --recursive
-
 RUN make build_all_ffi_linux

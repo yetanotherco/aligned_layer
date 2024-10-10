@@ -25,6 +25,8 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v1
+      with:
+        submodules: recursive
 
     - name: Build containers
       run: make docker_build
