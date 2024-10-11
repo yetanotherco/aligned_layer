@@ -749,7 +749,7 @@ impl Batcher {
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
         if current_batch_len < 2 {
-            info!("Current batch has one proof. Waiting for more proofs...");
+            info!("Current batch has {} proof. Waiting for more proofs...",current_batch_len);
             return None;
         }
 
