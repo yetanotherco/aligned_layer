@@ -62,6 +62,8 @@ async fn main() -> Result<(), BatcherError> {
         }
     });
 
+    metrics::BATCHER_STARTED.inc();
+
     batcher.listen_connections(&addr).await?;
 
     Ok(())

@@ -1027,6 +1027,7 @@ impl Batcher {
         {
             Ok(_) => {
                 info!("Batch verification task created on Aligned contract");
+
                 metrics::SENT_BATCHES.inc();
                 Ok(())
             }
@@ -1035,8 +1036,8 @@ impl Batcher {
                     "Failed to send batch to contract, batch will be lost: {:?}",
                     e
                 );
-                metrics::REVERTED_BATCHES.inc();
 
+                metrics::REVERTED_BATCHES.inc();
                 Err(e)
             }
         }
