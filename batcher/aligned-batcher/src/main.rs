@@ -46,9 +46,11 @@ async fn main() -> Result<(), BatcherError> {
     let metrics_route = warp::path!("metrics").and_then(prometheus::metrics_handler);
     // println!("metrics route: {:?}", metrics_route);
     println!("Starting Batcher metrics on port 9093");
-    warp::serve(metrics_route)
-        .run(([0, 0, 0, 0], 9093))
-        .await;
+    tokio::task::spawn(async move {
+        warp::serve(metrics_route)
+            .run(([0, 0, 0, 0], 9093))
+            .await;
+    });
 
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
