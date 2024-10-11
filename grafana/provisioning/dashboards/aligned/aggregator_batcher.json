@@ -36,12 +36,78 @@
       "type": "row"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 0,
+        "y": 1
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.1.10",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "floor(increase(received_proofs{job=\"aligned-batcher\"}[10y]))",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Total Proofs Received",
+      "type": "stat"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 9
       },
       "id": 10,
       "panels": [],
@@ -87,7 +153,7 @@
         "h": 7,
         "w": 10,
         "x": 0,
-        "y": 2
+        "y": 10
       },
       "id": 9,
       "options": {
@@ -240,7 +306,7 @@
         "h": 7,
         "w": 10,
         "x": 10,
-        "y": 2
+        "y": 10
       },
       "id": 1,
       "options": {
@@ -305,7 +371,7 @@
         "h": 7,
         "w": 5,
         "x": 0,
-        "y": 9
+        "y": 17
       },
       "id": 8,
       "options": {
@@ -376,7 +442,7 @@
         "h": 7,
         "w": 5,
         "x": 5,
-        "y": 9
+        "y": 17
       },
       "id": 7,
       "options": {
@@ -442,7 +508,7 @@
         "h": 7,
         "w": 5,
         "x": 0,
-        "y": 16
+        "y": 24
       },
       "id": 2,
       "options": {
@@ -513,7 +579,7 @@
         "h": 7,
         "w": 5,
         "x": 5,
-        "y": 16
+        "y": 24
       },
       "id": 5,
       "options": {
@@ -571,6 +637,6 @@
   "timezone": "browser",
   "title": "Aggregator Data",
   "uid": "aggregator",
-  "version": 19,
+  "version": 25,
   "weekStart": ""
 }
