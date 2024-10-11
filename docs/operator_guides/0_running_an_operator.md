@@ -26,7 +26,7 @@ Minimum hardware requirements:
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.7.3
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.9.0
 cd aligned_layer
 ```
 
