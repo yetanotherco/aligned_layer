@@ -4,6 +4,7 @@ use prometheus::{opts, register_int_counter, register_int_gauge, IntCounter, Int
 use warp::{Rejection, Reply};
 
 use once_cell::sync::Lazy;
+use std::{thread,time};
 
 // Prometheus setup
 pub static BATCHER_STARTED: Lazy<IntCounter> =
@@ -43,4 +44,23 @@ pub async fn metrics_handler() -> Result<impl Reply, Rejection> {
     buffer.clear();
 
     Ok(res)
+}
+
+pub fn init_variables() {
+    BATCHER_STARTED.reset();
+
+    OPEN_CONNECTIONS.set(0);
+
+    RECEIVED_PROOFS.reset();
+
+    SENT_BATCHES.reset();
+
+    REVERTED_BATCHES.reset();
+
+    GAS_PRICE_USED_ON_LATEST_BATCH.set(0);
+}
+
+pub fn batcher_started() {
+    thread::sleep(time::Duration::from_secs(10));
+    BATCHER_STARTED.inc();
 }
