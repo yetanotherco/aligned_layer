@@ -1,5 +1,5 @@
 // Prometheus
-use prometheus::{opts, register_int_counter, register_int_gauge, IntCounter, IntGauge, Registry};
+use prometheus::{opts, register_int_counter, register_int_gauge, IntCounter, IntGauge};
 
 use warp::{Rejection, Reply};
 
