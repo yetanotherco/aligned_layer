@@ -1,0 +1,9 @@
+[package]
+name = "tokio_retry_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8.5"
+tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio-retry = "0.3.0"
