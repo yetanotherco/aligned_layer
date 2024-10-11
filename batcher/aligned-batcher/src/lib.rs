@@ -216,7 +216,6 @@ impl Batcher {
             metrics::OPEN_CONNECTIONS.inc();
             let batcher = self.clone();
             tokio::spawn(batcher.handle_connection(stream, addr));
-            metrics::OPEN_CONNECTIONS.dec(); //TODO what if panics?
         }
         Ok(())
     }
@@ -297,6 +296,7 @@ impl Batcher {
             Ok(_) => info!("{} disconnected", &addr),
         }
 
+        metrics::OPEN_CONNECTIONS.dec();
         Ok(())
     }
 
