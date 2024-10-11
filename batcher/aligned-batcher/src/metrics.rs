@@ -18,9 +18,6 @@ pub static SENT_BATCHES: Lazy<IntCounter> =
 pub static REVERTED_BATCHES: Lazy<IntCounter> =
     Lazy::new(|| register_int_counter!(opts!("reverted_batches", "Reverted Batches")).unwrap());
 
-// pub static RESPONDED_BATCHES: Lazy<IntCounter> =
-//     Lazy::new(|| register_int_counter!(opts!("responded_batches", "Resolved Batches")).unwrap());
-
 pub static BATCHER_STARTED: Lazy<IntGauge> =
     Lazy::new(|| register_int_gauge!(opts!("batcher_started", "Batcher Started")).unwrap());
 
