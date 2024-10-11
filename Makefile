@@ -716,8 +716,7 @@ docker_batcher_send_sp1_burst:
               --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL) \
-              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+              --rpc_url $(DOCKER_RPC_URL)
 
 docker_batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -729,8 +728,7 @@ docker_batcher_send_risc0_burst:
               --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL) \
-              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+              --rpc_url $(DOCKER_RPC_URL)
 
 docker_batcher_send_plonk_bn254_burst:
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
@@ -742,8 +740,7 @@ docker_batcher_send_plonk_bn254_burst:
               --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
-              --repetitions $(DOCKER_BURST_SIZE) \
-              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+              --repetitions $(DOCKER_BURST_SIZE)
 
 docker_batcher_send_plonk_bls12_381_burst:
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
@@ -755,8 +752,7 @@ docker_batcher_send_plonk_bls12_381_burst:
               --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --repetitions $(DOCKER_BURST_SIZE) \
-              --rpc_url $(DOCKER_RPC_URL) \
-              --payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+              --rpc_url $(DOCKER_RPC_URL)
 
 docker_batcher_send_groth16_burst:
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
