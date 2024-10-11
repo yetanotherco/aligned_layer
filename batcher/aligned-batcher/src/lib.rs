@@ -1,7 +1,4 @@
-extern crate core;
-
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
-use aligned_sdk::eth::batcher_payment_service::SignatureData;
 use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
@@ -12,7 +9,6 @@ use types::user_state::UserState;
 
 use std::collections::HashMap;
 use std::env;
-use std::iter::repeat;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -72,7 +68,6 @@ pub struct Batcher {
     payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
-    min_batch_len: usize,
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
@@ -198,7 +193,6 @@ impl Batcher {
             payment_service,
             payment_service_fallback,
             max_block_interval: config.batcher.block_interval,
-            min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
@@ -754,19 +748,18 @@ impl Batcher {
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        // FIXME(marian): This condition should be changed to current_batch_size == 0
-        // once the bug in Lambdaworks merkle tree is fixed.
         if current_batch_len < 2 {
-            info!("Current batch is empty or length 1. Waiting for more proofs...");
+            info!(
+                "Current batch has {} proof. Waiting for more proofs...",
+                current_batch_len
+            );
             return None;
         }
 
-        if current_batch_len < self.min_batch_len
-            && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
-        {
+        if block_number < *last_uploaded_batch_block_lock + self.max_block_interval {
             info!(
-                "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
-                block_number, *last_uploaded_batch_block_lock, current_batch_len, self.min_batch_len
+                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.max_block_interval,
+                block_number - *last_uploaded_batch_block_lock,
             );
             return None;
         }
@@ -853,7 +846,11 @@ impl Batcher {
             .collect();
 
         let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
-            MerkleTree::build(&batch_data_comm);
+            MerkleTree::build(&batch_data_comm).ok_or_else(|| {
+                BatcherError::TaskCreationError(
+                    "Failed to Build Merkle Tree: Empty Batch".to_string(),
+                )
+            })?;
 
         {
             let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
@@ -972,22 +969,6 @@ impl Batcher {
         finalized_batch: &[BatchQueueEntry],
         gas_price: U256,
     ) -> Result<(), BatcherError> {
-        let signatures: Vec<_> = finalized_batch
-            .iter()
-            .map(|entry| &entry.signature)
-            .cloned()
-            .collect();
-
-        let nonces: Vec<_> = finalized_batch
-            .iter()
-            .map(|entry| entry.nonced_verification_data.nonce)
-            .collect();
-
-        let max_fees: Vec<_> = finalized_batch
-            .iter()
-            .map(|entry| entry.nonced_verification_data.max_fee)
-            .collect();
-
         let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
@@ -1029,18 +1010,13 @@ impl Batcher {
             respond_to_task_fee_limit,
         );
 
-        let signatures = signatures
-            .iter()
-            .enumerate()
-            .map(|(i, signature)| SignatureData::new(signature, nonces[i], max_fees[i]))
-            .collect();
+        let proof_submitters = finalized_batch.iter().map(|entry| entry.sender).collect();
 
         match self
             .create_new_task(
                 *batch_merkle_root,
                 batch_data_pointer,
-                leaves,
-                signatures,
+                proof_submitters,
                 fee_params,
             )
             .await
@@ -1064,20 +1040,15 @@ impl Batcher {
         &self,
         batch_merkle_root: [u8; 32],
         batch_data_pointer: String,
-        leaves: Vec<[u8; 32]>,
-        signatures: Vec<SignatureData>,
+        proof_submitters: Vec<Address>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
-        // pad leaves to next power of 2
-        let padded_leaves = Self::pad_leaves(leaves);
-
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
 
         match try_create_new_task(
             batch_merkle_root,
             batch_data_pointer.clone(),
-            padded_leaves.clone(),
-            signatures.clone(),
+            proof_submitters.clone(),
             fee_params.clone(),
             &self.payment_service,
         )
@@ -1094,8 +1065,7 @@ impl Batcher {
                 let receipt = try_create_new_task(
                     batch_merkle_root,
                     batch_data_pointer,
-                    padded_leaves,
-                    signatures,
+                    proof_submitters,
                     fee_params,
                     &self.payment_service_fallback,
                 )
@@ -1104,15 +1074,6 @@ impl Batcher {
                 Ok(receipt)
             }
         }
-    }
-
-    fn pad_leaves(leaves: Vec<[u8; 32]>) -> Vec<[u8; 32]> {
-        let leaves_len = leaves.len();
-        let last_leaf = leaves[leaves_len - 1];
-        leaves
-            .into_iter()
-            .chain(repeat(last_leaf).take(leaves_len.next_power_of_two() - leaves_len))
-            .collect()
     }
 
     /// Only relevant for testing and for users to easily use Aligned
@@ -1187,14 +1148,13 @@ impl Batcher {
         .await;
 
         let signature = client_msg.signature;
-        let nonpaying_addr = non_paying_config.address;
         if let Err(e) = self
             .add_to_batch(
                 batch_state_lock,
                 nonced_verification_data,
                 ws_sink.clone(),
                 signature,
-                nonpaying_addr,
+                replacement_addr,
             )
             .await
         {

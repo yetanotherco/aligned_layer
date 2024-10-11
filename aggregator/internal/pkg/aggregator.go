@@ -315,6 +315,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 	receipt, err := utils.WaitForTransactionReceipt(
 		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
 	if err != nil {
+		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
 
@@ -371,6 +372,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}
 
+	agg.metrics.IncAggregatorReceivedTasks()
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))

@@ -1,12 +1,7 @@
 defmodule TelemetryApi.Periodic.OperatorFetcher do
-  use Task
-  require Logger
+  use GenServer
   alias TelemetryApi.Operators
   alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
-
-  @never_registered 0
-  @registered 1
-  @deregistered 2
 
   wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
     raise """
@@ -21,18 +16,23 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   )
 
   def start_link(_) do
-    Task.start_link(&poll_service/0)
+    GenServer.start_link(__MODULE__, %{})
   end
 
-  defp poll_service() do
-    receive do
-    after
-      @wait_time_ms ->
-        fetch_operators_info()
-        fetch_operators_status()
-        poll_service()
-    end
+  def init(_) do
+    send_work()
+    {:ok, %{}}
   end
+
+  def send_work() do
+    :timer.send_interval(@wait_time_ms, :poll_service)
+  end
+
+  def handle_info(:poll_service, _state) do
+    fetch_operators_info()
+    fetch_operators_status()
+  end
+end
 
   defp fetch_operators_info() do
     case Operators.fetch_all_operators() do
@@ -53,7 +53,6 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
           Logger.error("Error when updating status: #{error}")
       end
     end)
-  end
 
   defp string_status(@never_registered), do: "NEVER_REGISTERED"
   defp string_status(@registered), do: "REGISTERED"

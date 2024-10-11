@@ -78,7 +78,7 @@ dependencies = [
 
 [[package]]
 name = "aligned"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "aligned-sdk",
  "clap",
@@ -3618,9 +3618,8 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-crypto"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fb5d4f22241504f7c7b8d2c3a7d7835d7c07117f10bff2a7d96a9ef6ef217c3"
+version = "0.10.0"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=efd46f0b0aea3aa95d94bba7de86cb96611b40d3#efd46f0b0aea3aa95d94bba7de86cb96611b40d3"
 dependencies = [
  "lambdaworks-math",
  "serde",
@@ -3630,9 +3629,8 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-math"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "358e172628e713b80a530a59654154bfc45783a6ed70ea284839800cebdf8f97"
+version = "0.10.0"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=efd46f0b0aea3aa95d94bba7de86cb96611b40d3#efd46f0b0aea3aa95d94bba7de86cb96611b40d3"
 dependencies = [
  "serde",
  "serde_json",
