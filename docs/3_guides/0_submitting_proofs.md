@@ -12,8 +12,6 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
 - :white_check_mark: SP1 [(v1.0.1)](https://github.com/succinctlabs/sp1/releases/tag/v1.0.1)
 - :white_check_mark: Risc0 [(v1.0.1)](https://github.com/risc0/risc0/releases/tag/v1.0.1)
-- :white_check_mark: Halo2 - Plonk/KZG
-- :white_check_mark: Halo2 - Plonk/IPA
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
 
@@ -24,6 +22,10 @@ If you already have a keystore file, you can ignore this section and start sendi
 ### Alternative 1: With foundry
 
 You need to have installed [Foundry](https://book.getfoundry.sh/getting-started/installation).
+
+{% hint style="warning" %}
+When creating a new wallet keystore and private key please use strong passwords for your own protection.
+{% endhint %}
 
 - If you are creating a new account, create a private key with:
 
@@ -168,6 +170,16 @@ aligned submit \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com 
 ```
 
+**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.0.1`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.0.1` or your proof will not be verified. 
+
+If you can't install `cargo-risczero` `v1.0.1`, you can manually modify your `cargo.toml` on the host project to point to `v1.0.1`:
+
+```toml
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.0.1", default-features = false, features = [
+    "prove",
+] }
+```
+
 **Example**
 
 ```bash
@@ -242,74 +254,4 @@ aligned submit \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com 
-```
-
-### Halo2 KZG and Halo2 IPA
-
-The Halo2PlonkKzg and Halo2PlonkIpa proofs need the proof file, the public input file and the verification key file.
-
-If you are using the Halo2PlonkKzg proving system, you need to specify the `--proving_system Halo2KZG` flag.
-
-```bash
-rm -rf ./aligned_verification_data/ &&
-aligned submit \
-  --proving_system Halo2KZG \
-  --proof <proof_file_path> \
-  --vk <method_id_file_path> \
-  --public_input <pub_input_file_path> \
-  --batcher_url wss://batcher.alignedlayer.com \
-  --keystore_path <path_to_ecdsa_keystore> \
-  --proof_generator_addr <proof_generator_addr> \
-  --network holesky \
-  --rpc_url https://ethereum-holesky-rpc.publicnode.com \
-  --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003 \
-```
-
-If you are using the Halo2PlonkIpa proving system, you need to specify the `--proving_system Halo2IPA` flag.
-
-```bash
-rm -rf ./aligned_verification_data/ &&
-aligned submit \
-  --proving_system Halo2IPA \
-  --proof <proof_file_path> \
-  --vk <method_id_file_path> \
-  --public_input <pub_input_file_path> \
-  --batcher_url wss://batcher.alignedlayer.com \
-  --keystore_path <path_to_ecdsa_keystore> \
-  --proof_generator_addr <proof_generator_addr> \
-  --network holesky \
-  --rpc_url https://ethereum-holesky-rpc.publicnode.com \
-  --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
-```
-
-**Examples**:
-
-```bash
-rm -rf ./aligned_verification_data/ &&
-aligned submit \
-  --proving_system Halo2KZG \
-  --proof ./scripts/test_files/halo2_kzg/proof.bin \
-  --vk ./scripts/test_files/halo2_kzg/params.bin \
-  --public_input ./scripts/test_files/halo2_kzg/pub_input.bin \
-  --batcher_url wss://batcher.alignedlayer.com \
-  --keystore_path ~/.aligned_keystore/keystore0 \
-  --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-  --network holesky \
-  --rpc_url https://ethereum-holesky-rpc.publicnode.com \
-  --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
-```
-
-```bash
-rm -rf ./aligned_verification_data/ &&
-aligned submit \
-  --proving_system Halo2IPA \
-  --proof ./scripts/test_files/halo2_ipa/proof.bin \
-  --vk ./scripts/test_files/halo2_ipa/params.bin \
-  --public_input ./scripts/test_files/halo2_ipa/pub_input.bin \
-  --batcher_url wss://batcher.alignedlayer.com \
-  --keystore_path ~/.aligned_keystore/keystore0 \
-  --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-  --network holesky \
-  --rpc_url https://ethereum-holesky-rpc.publicnode.com \
-  --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
