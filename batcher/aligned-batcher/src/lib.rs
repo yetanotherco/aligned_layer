@@ -756,8 +756,8 @@ impl Batcher {
         if block_number < *last_uploaded_batch_block_lock + self.max_block_interval
         {
             info!(
-                "Current batch not ready to be posted. Minimium amount of blocks has not passed. Current block: {} - Last uploaded block: {}.",
-                block_number, *last_uploaded_batch_block_lock
+                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.max_block_interval,
+                block_number - *last_uploaded_batch_block_lock,
             );
             return None;
         }
