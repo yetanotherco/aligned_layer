@@ -2,6 +2,11 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   use GenServer
   alias TelemetryApi.Operators
   alias TelemetryApi.ContractManagers.RegistryCoordinatorManager
+  require Logger
+
+  @never_registered 0
+  @registered 1
+  @deregistered 2
 
   wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
     raise """
@@ -28,11 +33,11 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
     :timer.send_interval(@wait_time_ms, :poll_service)
   end
 
-  def handle_info(:poll_service, _state) do
+  def handle_info(:poll_service, state) do
     fetch_operators_info()
     fetch_operators_status()
+    {:noreply, state}
   end
-end
 
   defp fetch_operators_info() do
     case Operators.fetch_all_operators() do
@@ -46,13 +51,14 @@ end
     |> Enum.map(fn op ->
       case RegistryCoordinatorManager.fetch_operator_status(op.address) do
         {:ok, status} ->
-
           Operators.update_operator(op, %{status: string_status(status)})
 
         error ->
           Logger.error("Error when updating status: #{error}")
       end
     end)
+    :ok
+  end
 
   defp string_status(@never_registered), do: "NEVER_REGISTERED"
   defp string_status(@registered), do: "REGISTERED"
