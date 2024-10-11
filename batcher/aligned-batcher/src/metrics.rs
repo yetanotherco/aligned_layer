@@ -4,7 +4,7 @@ use prometheus::{opts, register_int_counter, register_int_gauge, IntCounter, Int
 use warp::{Rejection, Reply};
 
 use once_cell::sync::Lazy;
-use std::{thread,time};
+use std::{thread, time};
 
 // Prometheus setup
 pub static BATCHER_STARTED: Lazy<IntCounter> =
@@ -22,9 +22,10 @@ pub static SENT_BATCHES: Lazy<IntCounter> =
 pub static REVERTED_BATCHES: Lazy<IntCounter> =
     Lazy::new(|| register_int_counter!(opts!("reverted_batches", "Reverted Batches")).unwrap());
 
-pub static GAS_PRICE_USED_ON_LATEST_BATCH: Lazy<IntGauge> =
-    Lazy::new(|| register_int_gauge!(opts!("gas_price_used_on_latest_batch", "Gas Price")).unwrap());
-    
+pub static GAS_PRICE_USED_ON_LATEST_BATCH: Lazy<IntGauge> = Lazy::new(|| {
+    register_int_gauge!(opts!("gas_price_used_on_latest_batch", "Gas Price")).unwrap()
+});
+
 // so Prometheus can collect our metrics.
 pub async fn metrics_handler() -> Result<impl Reply, Rejection> {
     use prometheus::Encoder;
