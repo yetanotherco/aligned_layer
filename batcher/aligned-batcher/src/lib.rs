@@ -24,10 +24,10 @@ use ethers::types::{Address, Signature, TransactionReceipt, U256};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
-use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
+use tracing::{debug, error, info, warn};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
 
@@ -40,6 +40,7 @@ pub mod gnark;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
+pub mod telemetry;
 pub mod types;
 mod zk_utils;
 
@@ -57,6 +58,7 @@ const RESPOND_TO_TASK_FEE_LIMIT_DIVIDER: u128 = 2;
 const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
 const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
 
+#[derive(Debug)]
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
@@ -260,6 +262,7 @@ impl Batcher {
         Ok(())
     }
 
+    #[tracing::instrument]
     async fn handle_connection(
         self: Arc<Self>,
         raw_stream: TcpStream,
@@ -298,6 +301,7 @@ impl Batcher {
     }
 
     /// Handle an individual message from the client.
+    #[tracing::instrument]
     async fn handle_message(
         self: Arc<Self>,
         message: Message,
@@ -818,6 +822,7 @@ impl Batcher {
     /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
     /// to s3, creates new task in Aligned contract and sends responses to all clients that added proofs
     /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
+    #[tracing::instrument]
     async fn finalize_batch(
         &self,
         block_number: u64,
@@ -961,6 +966,7 @@ impl Batcher {
     }
 
     /// Post batch to s3 and submit new task to Ethereum
+    #[tracing::instrument]
     async fn submit_batch(
         &self,
         batch_bytes: &[u8],
@@ -1036,6 +1042,7 @@ impl Batcher {
         }
     }
 
+    #[tracing::instrument]
     async fn create_new_task(
         &self,
         batch_merkle_root: [u8; 32],

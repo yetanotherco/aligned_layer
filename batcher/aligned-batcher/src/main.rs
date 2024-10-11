@@ -3,9 +3,11 @@ extern crate dotenvy;
 use std::sync::Arc;
 
 use clap::Parser;
-use env_logger::Env;
 
-use aligned_batcher::{types::errors::BatcherError, Batcher};
+use aligned_batcher::{telemetry, types::errors::BatcherError, Batcher};
+use opentelemetry::global::shutdown_tracer_provider;
+use tracing_opentelemetry::OpenTelemetryLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 /// Batcher main flow:
 /// There are two main tasks spawned: `listen_connections` and `listen_new_blocks`
@@ -36,7 +38,18 @@ async fn main() -> Result<(), BatcherError> {
         None => dotenvy::dotenv().ok(),
     };
 
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    // Intialize tokio::tracing_subscriber with OpenTelemetry.
+    let tracer = telemetry::init_tracer("http://localhost:4317")
+        .expect("Failed to initialize tracer provider.");
+    tracing_subscriber::registry()
+        .with(
+            EnvFilter::try_from_default_env()
+                .or_else(|_| EnvFilter::try_new("info"))
+                .unwrap(),
+        )
+        .with(tracing_subscriber::fmt::layer().compact())
+        .with(OpenTelemetryLayer::new(tracer))
+        .init();
 
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
@@ -55,5 +68,6 @@ async fn main() -> Result<(), BatcherError> {
 
     batcher.listen_connections(&addr).await?;
 
+    shutdown_tracer_provider();
     Ok(())
 }

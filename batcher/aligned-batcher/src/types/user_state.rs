@@ -1,5 +1,6 @@
 use ethers::types::U256;
 
+#[derive(Debug)]
 pub(crate) struct UserState {
     pub nonce: U256,
     /// The minimum fee of a pending proof for a user.

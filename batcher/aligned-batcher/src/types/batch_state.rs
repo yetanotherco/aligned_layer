@@ -7,6 +7,7 @@ use super::{
 use ethers::types::{Address, U256};
 use log::debug;
 
+#[derive(Debug)]
 pub(crate) struct BatchState {
     pub(crate) batch_queue: BatchQueue,
     pub(crate) user_states: HashMap<Address, UserState>,
