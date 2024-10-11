@@ -1,7 +1,7 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.8.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.8.0)
+> Aligned Operator [v0.9.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.9.0)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
