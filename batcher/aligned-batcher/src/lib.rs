@@ -68,7 +68,6 @@ pub struct Batcher {
     payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
-    min_batch_len: usize,
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
@@ -194,7 +193,6 @@ impl Batcher {
             payment_service,
             payment_service_fallback,
             max_block_interval: config.batcher.block_interval,
-            min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
@@ -750,17 +748,16 @@ impl Batcher {
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        if current_batch_len == 0 {
-            info!("Current batch is empty. Waiting for more proofs...");
+        if current_batch_len < 2 {
+            info!("Current batch has one proof. Waiting for more proofs...");
             return None;
         }
 
-        if batch_state_lock.batch_queue.len() < self.min_batch_len
-            && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
+        if block_number < *last_uploaded_batch_block_lock + self.max_block_interval
         {
             info!(
-                "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
-                block_number, *last_uploaded_batch_block_lock, batch_state_lock.batch_queue.len(), self.min_batch_len
+                "Current batch not ready to be posted. Minimium amount of blocks has not passed. Current block: {} - Last uploaded block: {}.",
+                block_number, *last_uploaded_batch_block_lock
             );
             return None;
         }
