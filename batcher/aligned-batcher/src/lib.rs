@@ -1016,6 +1016,8 @@ impl Batcher {
 
         let proof_submitters = finalized_batch.iter().map(|entry| entry.sender).collect();
 
+        metrics::GAS_PRICE_USED_ON_LATEST_BATCH.set(gas_price.as_u64() as i64);
+
         match self
             .create_new_task(
                 *batch_merkle_root,
@@ -1027,7 +1029,6 @@ impl Batcher {
         {
             Ok(_) => {
                 info!("Batch verification task created on Aligned contract");
-
                 metrics::SENT_BATCHES.inc();
                 Ok(())
             }

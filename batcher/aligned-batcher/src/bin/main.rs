@@ -45,7 +45,7 @@ async fn main() -> Result<(), BatcherError> {
     println!("Starting Batcher metrics on port 9093");
     tokio::task::spawn(async move {
         warp::serve(metrics_route).run(([0, 0, 0, 0], 9093)).await;
-    });
+    }); //TODO read from config
 
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
