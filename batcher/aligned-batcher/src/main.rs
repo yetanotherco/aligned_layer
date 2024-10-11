@@ -42,7 +42,6 @@ async fn main() -> Result<(), BatcherError> {
 
     // Endpoint for Prometheus
     let metrics_route = warp::path!("metrics").and_then(prometheus::metrics_handler);
-
     println!("Starting Batcher metrics on port 9093");
     tokio::task::spawn(async move {
         warp::serve(metrics_route).run(([0, 0, 0, 0], 9093)).await;

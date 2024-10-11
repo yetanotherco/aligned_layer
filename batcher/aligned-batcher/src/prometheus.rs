@@ -12,6 +12,15 @@ pub static OPEN_CONNECTIONS: Lazy<IntGauge> =
 pub static RECEIVED_PROOFS: Lazy<IntCounter> =
     Lazy::new(|| register_int_counter!(opts!("received_proofs", "Received Proofs")).unwrap());
 
+pub static SENT_BATCHES: Lazy<IntCounter> =
+    Lazy::new(|| register_int_counter!(opts!("sent_batches", "Sent Batches")).unwrap());
+
+pub static REVERTED_BATCHES: Lazy<IntCounter> =
+    Lazy::new(|| register_int_counter!(opts!("reverted_batches", "Reverted Batches")).unwrap());
+
+pub static RESPONDED_BATCHES: Lazy<IntCounter> =
+    Lazy::new(|| register_int_counter!(opts!("responded_batches", "Resolved Batches")).unwrap());
+
 // so Prometheus can collect our metrics.
 pub async fn metrics_handler() -> Result<impl Reply, Rejection> {
     use prometheus::Encoder;
@@ -21,7 +30,7 @@ pub async fn metrics_handler() -> Result<impl Reply, Rejection> {
     if let Err(e) = encoder.encode(&prometheus::gather(), &mut buffer) {
         eprintln!("could not encode prometheus metrics: {}", e);
     };
-    let res_custom = match String::from_utf8(buffer.clone()) {
+    let res = match String::from_utf8(buffer.clone()) {
         Ok(v) => v,
         Err(e) => {
             eprintln!("prometheus metrics could not be from_utf8'd: {}", e);
@@ -30,5 +39,5 @@ pub async fn metrics_handler() -> Result<impl Reply, Rejection> {
     };
     buffer.clear();
 
-    Ok(res_custom)
+    Ok(res)
 }

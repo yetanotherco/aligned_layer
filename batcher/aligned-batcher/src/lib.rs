@@ -75,7 +75,6 @@ pub struct Batcher {
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
-    received_proofs_counter: Mutex<U256>,
 }
 
 impl Batcher {
@@ -202,7 +201,6 @@ impl Batcher {
             non_paying_config,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
-            received_proofs_counter: Mutex::new(U256::zero()),
         }
     }
 
@@ -319,11 +317,6 @@ impl Batcher {
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}",);
         prometheus::RECEIVED_PROOFS.inc(); //TODO wip testing
-        {
-            let mut received_proofs_counter = self.received_proofs_counter.lock().await;
-            *received_proofs_counter += U256::one();
-            info!("Received proofs counter: {:?}", *received_proofs_counter);
-        }
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
