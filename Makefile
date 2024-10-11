@@ -705,7 +705,6 @@ docker_down:
 	docker ps
 
 DOCKER_BURST_SIZE=2
-BATCHER_PAYMENTS_CONTRACT_ADDRESS=0x7969c5eD335650692Bc04293B07F5BF2e7A673C0
 
 docker_batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
