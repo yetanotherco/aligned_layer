@@ -5,9 +5,9 @@ use std::sync::Arc;
 use clap::Parser;
 use env_logger::Env;
 
+use aligned_batcher::metrics;
 use aligned_batcher::{types::errors::BatcherError, Batcher};
 use warp::Filter;
-mod prometheus;
 
 /// Batcher main flow:
 /// There are two main tasks spawned: `listen_connections` and `listen_new_blocks`
@@ -41,7 +41,7 @@ async fn main() -> Result<(), BatcherError> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     // Endpoint for Prometheus
-    let metrics_route = warp::path!("metrics").and_then(prometheus::metrics_handler);
+    let metrics_route = warp::path!("metrics").and_then(metrics::metrics_handler);
     println!("Starting Batcher metrics on port 9093");
     tokio::task::spawn(async move {
         warp::serve(metrics_route).run(([0, 0, 0, 0], 9093)).await;

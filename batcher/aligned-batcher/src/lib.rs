@@ -37,7 +37,7 @@ mod config;
 mod connection;
 mod eth;
 pub mod gnark;
-mod prometheus;
+pub mod metrics;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
@@ -213,10 +213,10 @@ impl Batcher {
 
         // Let's spawn the handling of each connection in a separate task.
         while let Ok((stream, addr)) = listener.accept().await {
-            prometheus::OPEN_CONNECTIONS.inc();
+            metrics::OPEN_CONNECTIONS.inc();
             let batcher = self.clone();
             tokio::spawn(batcher.handle_connection(stream, addr));
-            prometheus::OPEN_CONNECTIONS.dec(); //TODO what if panics?
+            metrics::OPEN_CONNECTIONS.dec(); //TODO what if panics?
         }
         Ok(())
     }
@@ -316,7 +316,7 @@ impl Batcher {
         };
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}",);
-        prometheus::RECEIVED_PROOFS.inc(); //TODO wip testing
+        metrics::RECEIVED_PROOFS.inc(); //TODO wip testing
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
