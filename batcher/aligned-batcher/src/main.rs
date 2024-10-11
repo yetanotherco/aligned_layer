@@ -40,16 +40,12 @@ async fn main() -> Result<(), BatcherError> {
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    prometheus::register_custom_metrics(); // Register metrics for Prometheus
-
     // Endpoint for Prometheus
     let metrics_route = warp::path!("metrics").and_then(prometheus::metrics_handler);
-    // println!("metrics route: {:?}", metrics_route);
+
     println!("Starting Batcher metrics on port 9093");
     tokio::task::spawn(async move {
-        warp::serve(metrics_route)
-            .run(([0, 0, 0, 0], 9093))
-            .await;
+        warp::serve(metrics_route).run(([0, 0, 0, 0], 9093)).await;
     });
 
     let batcher = Batcher::new(cli.config).await;

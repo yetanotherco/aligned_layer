@@ -37,12 +37,12 @@ mod config;
 mod connection;
 mod eth;
 pub mod gnark;
+mod prometheus;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
-mod prometheus;
 
 const AGGREGATOR_GAS_COST: u128 = 400_000;
 const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
