@@ -8,6 +8,39 @@ generate_sp1_fibonacci_proof:
 		cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in sp1 folder"
 
+prove_zkRust_risc0_fibonacci_devnet:
+	zkRust prove-risc0 \
+		./zkRust/fibonacci \
+		--network devnet \
+		--submit-to-aligned \
+		--keystore-path $(KEYSTORE_PATH) \
+		--rpc-url "http://localhost:8545" \
+		--batcher-url "ws://localhost:8080" \
+		--aligned-verification-data-path ./aligned-integration/batch_inclusion_data
+
+prove_zkRust_sp1_fibonacci_devnet:
+	zkRust prove-sp1 \
+		./zkRust/fibonacci \
+		--network devnet \
+		--submit-to-aligned \
+		--keystore-path $(KEYSTORE_PATH) \
+		--rpc-url "http://localhost:8545" \
+		--batcher-url "ws://localhost:8080" \
+		--aligned-verification-data-path ./aligned-integration/batch_inclusion_data
+
+prove_zkRust_risc0_fibonacci_testnet:
+	zkRust prove-risc0 \
+		./zkRust/fibonacci \
+		--submit-to-aligned \
+		--keystore-path $(KEYSTORE_PATH) \
+		--aligned-verification-data-path ./aligned-integration/batch_inclusion_data
+
+prove_zkRust_sp1_fibonacci_testnet:
+	zkRust prove-sp1 \
+		./zkRust/fibonacci \
+		--submit-to-aligned \
+		--keystore-path $(KEYSTORE_PATH) \
+		--aligned-verification-data-path ./aligned-integration/batch_inclusion_data
 
 submit_fibonacci_sp1_proof_devnet:
 	@cd aligned-integration && \
