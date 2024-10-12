@@ -166,7 +166,7 @@ Verifiable computation allows developers to build applications that help Ethereu
 
 ### What are the use cases for Aligned?
     
-We believe that there are many things that will be built using Aligned that we have not even imagined yet. For some possible use cases please see [this page](../1_introduction/3_use_cases.md).
+We believe that there are many things that will be built using Aligned that we have not even imagined yet. For some possible use cases please see [this page](../1_introduction/2_use_cases.md).
 
 ### Why don’t you run Aligned on top of a virtual machine?
     
