@@ -207,7 +207,7 @@ defmodule Utils do
 
   defp check_batch_size(size, acc) do
     if size > @max_batch_size do
-      {:halt, {:error, {:http, :body_too_large}}}
+      {:halt, {:error, {:invalid, body_too_large}}}
     else
       {:cont, acc}
     end
@@ -241,7 +241,7 @@ defmodule Utils do
 
           true ->
             Logger.error("Unknown S3 object format")
-            {:error, :unknown_format}
+            {:error, {:invalid, :unknown_format}}
         end
 
       {:error, reason} ->
@@ -272,23 +272,33 @@ defmodule Utils do
     end
   end
 
-  def extract_info_from_data_pointer(%BatchDB{} = batch) do
-    Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
+  def process_batch(%BatchDB{} = batch) do
+    case get_proof_hashes(batch) do
+      {:ok, proof_hashes} ->
+        {:ok, add_proof_hashes_to_batch(batch, proof_hashes)}
 
-    {status, proof_hashes} = get_proof_hashes(batch)
+      {:error, {:invalid, reason}} ->
+        # Returning something ensures we avoid attempting to fetch the invalid data again.
+        updated_batch =
+          batch
+          |> Map.put(:is_valid, false)
+          |> add_proof_hashes_to_batch(<<0>>)
 
-    updated_batch =
-      batch
-      |> Map.put(:proof_hashes, proof_hashes)
-      |> Map.put(:amount_of_proofs, Enum.count(proof_hashes))
+        {:ok, updated_batch}
 
-    case status do
-      :error -> Map.put(updated_batch, :is_valid, false)
-      _ -> updated_batch
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
+  defp add_proof_hashes_to_batch(batch, proof_hashes) do
+    batch
+    |> Map.put(:proof_hashes, proof_hashes)
+    |> Map.put(:amount_of_proofs, Enum.count(proof_hashes))
+  end
+
   defp get_proof_hashes(%BatchDB{} = batch) do
+    Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
     # only get from s3 if not already in DB
     case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
       nil ->
@@ -305,9 +315,7 @@ defmodule Utils do
             {:ok, proof_hashes}
 
           {:error, reason} ->
-            Logger.error("Error fetching batch content: #{inspect(reason)}")
-            # Returning something ensures we avoid attempting to fetch the invalid data again.
-            {:error, [<<0>>]}
+            {:error, "Error fetching batch content: #{inspect(reason)}"}
         end
 
       proof_hashes ->
