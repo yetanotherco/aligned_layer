@@ -278,6 +278,7 @@ defmodule Utils do
         {:ok, add_proof_hashes_to_batch(batch, proof_hashes)}
 
       {:error, {:invalid, reason}} ->
+        Logger.error("Invalid batch content for #{batch.merkle_root}: #{inspect(reason)}")
         # Returning something ensures we avoid attempting to fetch the invalid data again.
         updated_batch =
           batch
@@ -315,7 +316,7 @@ defmodule Utils do
             {:ok, proof_hashes}
 
           {:error, reason} ->
-            {:error, "Error fetching batch content: #{inspect(reason)}"}
+            {:error, reason}
         end
 
       proof_hashes ->
