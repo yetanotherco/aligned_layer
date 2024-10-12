@@ -81,7 +81,7 @@ This will:
 
 ## Deep dive
 
-The ZkQuiz source coude is available [here](../../examples/zkquiz).
+The ZkQuiz source code is available [here](../../examples/zkquiz).
 
 ZkQuiz has three main components:
 - App/script
