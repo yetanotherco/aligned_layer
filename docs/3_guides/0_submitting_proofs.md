@@ -100,7 +100,7 @@ These commands allow the usage of the following flags:
 
 ## 3. Submit your proof to the batcher
 
-This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [Aligned SDK guide](../3_guides/2_integrating_aligned_into_your_application.md).
+This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [First Aligned Application tutorial](../3_guides/2_build_your_first_aligned_application.md#app) where we explain how a program to generates a submit a proof looks like using the Aligned SDK.
 
 Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are:
 
