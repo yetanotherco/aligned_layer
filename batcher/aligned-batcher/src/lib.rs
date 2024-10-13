@@ -316,7 +316,7 @@ impl Batcher {
         };
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}",);
-        metrics::RECEIVED_PROOFS.inc(); //TODO wip testing
+        metrics::RECEIVED_PROOFS.inc();
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
