@@ -651,6 +651,9 @@ endif
 DOCKER_RPC_URL=http://anvil:8545
 PROOF_GENERATOR_ADDRESS=0x66f9664f97F2b50F62D13eA064982f936dE76657
 
+docker_build_base_image:
+	docker compose -f docker-compose.yaml --profile aligned_base build --build-arg GOARCH=$(GOARCH)
+
 docker_build_aggregator:
 	docker compose -f docker-compose.yaml --profile aggregator build
 
