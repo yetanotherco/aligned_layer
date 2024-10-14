@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use ethers::core::k256::ecdsa::SigningKey;
 use ethers::signers::Signer;
 use ethers::signers::Wallet;
