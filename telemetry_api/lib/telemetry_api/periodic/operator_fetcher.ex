@@ -2,14 +2,14 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   use GenServer
   alias TelemetryApi.Operators
 
-  wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
+  @wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
     raise """
     environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
     """
 
   @wait_time_ms (
-    case Integer.parse(wait_time_str) do
-      :error -> raise("OPERATOR_FETCHER_WAIT_TIME_MS is not a number, received: #{wait_time_str}")
+    case Integer.parse(@wait_time_str) do
+      :error -> raise("OPERATOR_FETCHER_WAIT_TIME_MS is not a number, received: #{@wait_time_str}")
       {num, _} -> num
     end
   )
