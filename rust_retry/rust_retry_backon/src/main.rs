@@ -1,4 +1,3 @@
-use anyhow::Result;
 use backon::ExponentialBuilder;
 use backon::Retryable;
 use rand::Rng;
@@ -25,7 +24,7 @@ impl std::fmt::Display for RetryError {
 impl std::error::Error for RetryError {}
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     // * ---------------------------------------------------------------------------------------- *
     // *                          DEFINE THE ACTION TO BE RETRIED                                 *
     // * ---------------------------------------------------------------------------------------- *
@@ -37,17 +36,16 @@ async fn main() -> Result<()> {
     // stop conditions is met.
     // For the not recoverable case, it will return without retrying again.
     // This behavior is simulated here with some randomness.
-    async fn action() -> anyhow::Result<u64> {
+    async fn action() -> Result<u64, RetryError> {
         println!("Doing some operation...");
         println!("Actual time: {:?}", SystemTime::now());
 
         let mut rng = rand::thread_rng();
         let random_num: f64 = rng.gen(); // generates a float between 0 and 1
         if random_num > 0.5 {
-            return anyhow::bail!(RetryError::NonRecoverableError);
+            return Err(RetryError::NonRecoverableError);
         };
-
-        anyhow::bail!(RetryError::RecoverableError)
+        Err(RetryError::RecoverableError)
     }
 
     // jitter: false
@@ -67,11 +65,9 @@ async fn main() -> Result<()> {
         // When to retry
         .when(|e| e.to_string() == "Recoverable")
         // Notify when retrying
-        .notify(|err: &anyhow::Error, dur: Duration| {
+        .notify(|err: &RetryError, dur: Duration| {
             println!("retrying {:?} after {:?}", err, dur);
         })
-        .await?;
-    println!("action succeeded: {}", content);
-
-    Ok(())
+        .await;
+    println!("action succeeded: {:?}", content);
 }
