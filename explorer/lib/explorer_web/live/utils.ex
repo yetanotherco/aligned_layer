@@ -207,7 +207,7 @@ defmodule Utils do
 
   defp check_batch_size(size, acc) do
     if size > @max_batch_size do
-      {:halt, {:error, {:invalid, body_too_large}}}
+      {:halt, {:error, {:invalid, :body_too_large}}}
     else
       {:cont, acc}
     end
@@ -283,7 +283,7 @@ defmodule Utils do
         updated_batch =
           batch
           |> Map.put(:is_valid, false)
-          |> add_proof_hashes_to_batch(<<0>>)
+          |> add_proof_hashes_to_batch([<<0>>])
 
         {:ok, updated_batch}
 
