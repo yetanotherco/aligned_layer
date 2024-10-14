@@ -70,6 +70,11 @@ async fn main() -> Result<()> {
 
     let content = action
         // Retry with exponential backoff
+        // jitter: false
+        // factor: 2
+        // min_delay: 1s
+        // max_delay: 60s
+        // max_times: 3
         .retry(ExponentialBuilder::default())
         // Sleep implementation, required if no feature has been enabled
         .sleep(tokio::time::sleep)
