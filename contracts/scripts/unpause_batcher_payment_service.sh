@@ -5,8 +5,8 @@ if  [ -z "$BATCHER_PAYMENT_SERVICE" ]; then
     exit 1
 fi
 
-if  [ -z "$PRIVATE_KEY" ]; then
-    echo "PRIVATE_KEY env var is not set"
+if  [ -z "$BATCHER_PAYMENT_SERVICE_PAUSER_PRIVATE_KEY" ]; then
+    echo "BATCHER_PAYMENT_SERVICE_PAUSER_PRIVATE_KEY env var is not set"
     exit 1
 fi
 
@@ -19,4 +19,4 @@ echo "Unpausing batcher payments contract"
 cast send $BATCHER_PAYMENT_SERVICE \
     "unpause()()" \
     --rpc-url $RPC_URL \
-    --private-key $PRIVATE_KEY
+    --private-key $BATCHER_PAYMENT_SERVICE_PAUSER_PRIVATE_KEY

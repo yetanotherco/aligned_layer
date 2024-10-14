@@ -94,7 +94,7 @@ unpause_all_aligned_service_manager:
 	. contracts/scripts/unpause_aligned_service_manager.sh all
 
 get_paused_state_aligned_service_manager:
-	@echo "Getting paused state of all contracts..."
+	@echo "Getting paused state of Aligned Service Manager contract..."
 	. contracts/scripts/get_paused_state_aligned_service_manager.sh
 
 pause_batcher_payment_service:
@@ -104,6 +104,10 @@ pause_batcher_payment_service:
 unpause_batcher_payment_service:
 	@echo "Unpausing BatcherPayments contract..."
 	. contracts/scripts/unpause_batcher_payment_service.sh
+
+get_paused_state_batcher_payments_service:
+	@echo "Getting paused state of Batcher Payments Service contract..."
+	. contracts/scripts/get_paused_state_batcher_payments_service.sh
 
 lint_contracts:
 	@cd contracts && npm run lint:sol
@@ -697,11 +701,11 @@ open_telemetry_start: ## Run open telemetry services using telemetry-docker-comp
 
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
-	 	./start.sh	
+	 	./start.sh
 
 telemetry_ecto_migrate: ##
 		@cd telemetry_api && \
-			./ecto_setup_db.sh	
+			./ecto_setup_db.sh
 
 telemetry_build_db:
 	@cd telemetry_api && \
