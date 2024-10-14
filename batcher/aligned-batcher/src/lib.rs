@@ -75,6 +75,7 @@ pub struct Batcher {
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
+    pub metrics: metrics::BatcherMetrics,
 }
 
 impl Batcher {
@@ -100,6 +101,11 @@ impl Batcher {
             Provider::connect_with_reconnects(&config.eth_ws_url, config.batcher.eth_ws_reconnects)
                 .await
                 .expect("Failed to get ethereum websocket provider");
+
+        let metrics_port: u16 = config.batcher.metrics_port.parse().unwrap_or(9093);
+        log::info!("Starting metrics server on port {}", metrics_port);
+        let metrics =
+            metrics::BatcherMetrics::start(metrics_port).expect("Failed to start metrics server");
 
         let eth_ws_provider_fallback = Provider::connect_with_reconnects(
             &config.eth_ws_url_fallback,
@@ -201,6 +207,7 @@ impl Batcher {
             non_paying_config,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
+            metrics,
         }
     }
 
@@ -213,7 +220,7 @@ impl Batcher {
 
         // Let's spawn the handling of each connection in a separate task.
         while let Ok((stream, addr)) = listener.accept().await {
-            metrics::OPEN_CONNECTIONS.inc();
+            self.metrics.open_connections.inc();
             let batcher = self.clone();
             tokio::spawn(batcher.handle_connection(stream, addr));
         }
@@ -296,7 +303,7 @@ impl Batcher {
             Ok(_) => info!("{} disconnected", &addr),
         }
 
-        metrics::OPEN_CONNECTIONS.dec();
+        self.metrics.open_connections.dec();
         Ok(())
     }
 
@@ -316,7 +323,7 @@ impl Batcher {
         };
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}",);
-        metrics::RECEIVED_PROOFS.inc();
+        self.metrics.received_proofs.inc();
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
@@ -1016,7 +1023,9 @@ impl Batcher {
 
         let proof_submitters = finalized_batch.iter().map(|entry| entry.sender).collect();
 
-        metrics::GAS_PRICE_USED_ON_LATEST_BATCH.set(gas_price.as_u64() as i64);
+        self.metrics
+            .gas_price_used_on_latest_batch
+            .set(gas_price.as_u64() as i64);
 
         match self
             .create_new_task(
@@ -1029,7 +1038,7 @@ impl Batcher {
         {
             Ok(_) => {
                 info!("Batch verification task created on Aligned contract");
-                metrics::SENT_BATCHES.inc();
+                self.metrics.sent_batches.inc();
                 Ok(())
             }
             Err(e) => {
@@ -1038,7 +1047,7 @@ impl Batcher {
                     e
                 );
 
-                metrics::REVERTED_BATCHES.inc();
+                self.metrics.reverted_batches.inc();
                 Err(e)
             }
         }
