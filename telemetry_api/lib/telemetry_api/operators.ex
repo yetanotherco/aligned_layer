@@ -24,19 +24,37 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Gets a single operator.
+  Gets a single operator by id or address.
 
   ## Examples
 
-      iex> get_operator("some_address"})
-      %Operator{}
+      iex> get_operator(%Operator{id: some_id})
+      {:ok, %Operator{}}
 
-      iex> get_operator("non_existent_address")
-      nil
+      iex> get_operator(%Operator{address: some_address})
+      {:ok, %Operator{}}
 
+      iex> get_operator(%Operator{address: non_existent_address})
+      {:error, :not_found, "Operator not found for address: non_existent_address"}
   """
-  def get_operator(address) do
-    Repo.get(Operator, address)
+  def get_operator(%{address: address}) do
+    case Repo.get(Operator, address) do
+      nil ->
+        IO.inspect("Operator not found for address: #{address}")
+        {:error, :not_found, "Operator not found for address: #{address}"}
+
+      operator ->
+        {:ok, operator}
+    end
+  end
+
+  def get_operator(%{id: id}) do
+    query = from(o in Operator, where: o.id == ^id)
+
+    case Repo.one(query) do
+      nil -> {:error, :not_found, "Operator not found for id: {id}"}
+      operator -> {:ok, operator}
+    end
   end
 
   @doc """
@@ -102,7 +120,7 @@ defmodule TelemetryApi.Operators do
       {:ok, %Ecto.Changeset{}}
 
       iex> update_operator_version(%{field: bad_value})
-      {:error, string}
+      {:error, "Some status", "Some message"}
 
   """
   def update_operator_version(%{"version" => version, "signature" => signature}) do
@@ -114,8 +132,12 @@ defmodule TelemetryApi.Operators do
       }
 
       case Repo.get(Operator, address) do
-        nil -> {:error, "Provided address does not correspond to any registered operator"}
-        operator -> operator |> Operator.changeset(changes) |> Repo.insert_or_update()
+        nil ->
+          {:error, :bad_request,
+           "Provided address does not correspond to any registered operator"}
+
+        operator ->
+          operator |> Operator.changeset(changes) |> Repo.insert_or_update()
       end
     end
   end
