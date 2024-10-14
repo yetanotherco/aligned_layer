@@ -49,7 +49,6 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
-
 	taskIndex := uint32(0)
 	ok := false
 
@@ -71,6 +70,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		*reply = 1
 		return nil
 	}
+	agg.telemetry.LogOperatorResponse(signedTaskResponse.BatchMerkleRoot, signedTaskResponse.OperatorId)
 
 	// Don't wait infinitely if it can't answer
 	// Create a context with a timeout of 5 seconds

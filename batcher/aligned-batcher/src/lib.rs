@@ -37,6 +37,7 @@ mod config;
 mod connection;
 mod eth;
 pub mod gnark;
+pub mod metrics;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
@@ -68,7 +69,6 @@ pub struct Batcher {
     payment_service_fallback: BatcherPaymentService,
     batch_state: Mutex<BatchState>,
     max_block_interval: u64,
-    min_batch_len: usize,
     max_proof_size: usize,
     max_batch_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
@@ -194,7 +194,6 @@ impl Batcher {
             payment_service,
             payment_service_fallback,
             max_block_interval: config.batcher.block_interval,
-            min_batch_len: config.batcher.batch_size_interval,
             max_proof_size: config.batcher.max_proof_size,
             max_batch_size: config.batcher.max_batch_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
@@ -214,6 +213,7 @@ impl Batcher {
 
         // Let's spawn the handling of each connection in a separate task.
         while let Ok((stream, addr)) = listener.accept().await {
+            metrics::OPEN_CONNECTIONS.inc();
             let batcher = self.clone();
             tokio::spawn(batcher.handle_connection(stream, addr));
         }
@@ -296,6 +296,7 @@ impl Batcher {
             Ok(_) => info!("{} disconnected", &addr),
         }
 
+        metrics::OPEN_CONNECTIONS.dec();
         Ok(())
     }
 
@@ -315,6 +316,7 @@ impl Batcher {
         };
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}",);
+        metrics::RECEIVED_PROOFS.inc();
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
@@ -750,17 +752,18 @@ impl Batcher {
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        if current_batch_len == 0 {
-            info!("Current batch is empty. Waiting for more proofs...");
+        if current_batch_len < 2 {
+            info!(
+                "Current batch has {} proof. Waiting for more proofs...",
+                current_batch_len
+            );
             return None;
         }
 
-        if batch_state_lock.batch_queue.len() < self.min_batch_len
-            && block_number < *last_uploaded_batch_block_lock + self.max_block_interval
-        {
+        if block_number < *last_uploaded_batch_block_lock + self.max_block_interval {
             info!(
-                "Current batch not ready to be posted. Current block: {} - Last uploaded block: {}. Current batch length: {} - Minimum batch length: {}",
-                block_number, *last_uploaded_batch_block_lock, batch_state_lock.batch_queue.len(), self.min_batch_len
+                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.max_block_interval,
+                block_number - *last_uploaded_batch_block_lock,
             );
             return None;
         }
@@ -1013,6 +1016,8 @@ impl Batcher {
 
         let proof_submitters = finalized_batch.iter().map(|entry| entry.sender).collect();
 
+        metrics::GAS_PRICE_USED_ON_LATEST_BATCH.set(gas_price.as_u64() as i64);
+
         match self
             .create_new_task(
                 *batch_merkle_root,
@@ -1024,6 +1029,7 @@ impl Batcher {
         {
             Ok(_) => {
                 info!("Batch verification task created on Aligned contract");
+                metrics::SENT_BATCHES.inc();
                 Ok(())
             }
             Err(e) => {
@@ -1032,6 +1038,7 @@ impl Batcher {
                     e
                 );
 
+                metrics::REVERTED_BATCHES.inc();
                 Err(e)
             }
         }
