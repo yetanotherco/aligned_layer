@@ -102,10 +102,12 @@ impl Batcher {
                 .await
                 .expect("Failed to get ethereum websocket provider");
 
-        let metrics_port: u16 = config.batcher.metrics_port.parse().unwrap_or(9093);
-        log::info!("Starting metrics server on port {}", metrics_port);
-        let metrics =
-            metrics::BatcherMetrics::start(metrics_port).expect("Failed to start metrics server");
+        log::info!(
+            "Starting metrics server on port {}",
+            config.batcher.metrics_port
+        );
+        let metrics = metrics::BatcherMetrics::start(config.batcher.metrics_port)
+            .expect("Failed to start metrics server");
 
         let eth_ws_provider_fallback = Provider::connect_with_reconnects(
             &config.eth_ws_url_fallback,

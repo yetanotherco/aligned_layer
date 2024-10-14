@@ -42,7 +42,7 @@ pub struct BatcherConfigFromYaml {
     pub max_batch_size: usize,
     pub eth_ws_reconnects: usize,
     pub pre_verification_is_enabled: bool,
-    pub metrics_port: String,
+    pub metrics_port: u16,
     pub non_paying: Option<NonPayingConfigFromYaml>,
 }
 
