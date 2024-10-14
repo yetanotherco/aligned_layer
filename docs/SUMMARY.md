@@ -38,6 +38,8 @@
 * [Running an operator](operator_guides/0_running_an_operator.md)
 * [Operator FAQ](operator_guides/1_operator_FAQ.md)
 * [Troubleshooting](operator_guides/2_troubleshooting.md)
+* Upgrading Guides
+    * [Upgrading to v0.9.1](operator_guides/upgrading_guides/v0_9_1.md)
 
 ## Useful links
 
