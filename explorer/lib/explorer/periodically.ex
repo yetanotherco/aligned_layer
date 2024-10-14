@@ -93,6 +93,9 @@ defmodule Explorer.Periodically do
         else
           {:error, reason} ->
             Logger.error("Error processing batch #{batch.merkle_root}. Error: #{inspect(reason)}")
+          # no changes in DB
+          nil ->
+            nil
         end
 
         "Done processing batch: #{batch.merkle_root}" |> Logger.debug()
