@@ -44,6 +44,9 @@ func main() {
 
 	// marcos: This library does not implement a multiplier, but it shifts based on `n`, so it is using b = 2 under the hood
 	delay := retry.Delay(time.Millisecond * 2000)
+	// if we would like to add randomness here, we should do:
+	// `retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay))
+	// and we would change the factor by retry.MaxJitter(n)
 	delayFn := retry.DelayType(retry.BackOffDelay)
 	attempts := retry.Attempts(3)
 
