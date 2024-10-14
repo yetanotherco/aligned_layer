@@ -42,8 +42,9 @@ func main() {
 	// *    0 <= n <= 2
 	// There is no randomization factor
 
+	// marcos: This library does not implement a multiplier, but it shifts based on `n`, so it is using b = 2 under the hood
 	delay := retry.Delay(time.Millisecond * 2000)
-	delayFn := retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay))
+	delayFn := retry.DelayType(retry.BackOffDelay)
 	attempts := retry.Attempts(3)
 
 	// * ---------------------------------------------------------------------------------------- *
