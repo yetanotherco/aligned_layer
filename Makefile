@@ -641,18 +641,11 @@ tracker_dump_db:
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
 
-ARCH := $(shell uname -m)
-ifeq ($(ARCH), x86_64)
-  GOARCH := amd64
-else ifeq ($(ARCH), arm64)
-  GOARCH := arm64
-endif
-
 DOCKER_RPC_URL=http://anvil:8545
 PROOF_GENERATOR_ADDRESS=0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 docker_build_base_image:
-	docker compose -f docker-compose.yaml --profile aligned_base build --build-arg GOARCH=$(GOARCH)
+	docker compose -f docker-compose.yaml --profile aligned_base build
 
 docker_build_aggregator:
 	docker compose -f docker-compose.yaml --profile aggregator build
@@ -676,8 +669,7 @@ docker_restart_batcher:
 	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
 
 docker_build:
-	@echo "Host architecture: $(GOARCH)"
-	docker compose -f docker-compose.yaml --profile aligned_base build --build-arg GOARCH=$(GOARCH)
+	docker compose -f docker-compose.yaml --profile aligned_base build
 	docker compose -f docker-compose.yaml --profile eigenlayer-cli build
 	docker compose -f docker-compose.yaml --profile foundry build
 	docker compose -f docker-compose.yaml --profile base build
