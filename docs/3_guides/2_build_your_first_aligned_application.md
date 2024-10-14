@@ -81,7 +81,7 @@ This will:
 
 ## Deep dive
 
-The ZkQuiz source coude is available [here](../../examples/zkquiz).
+The ZkQuiz source code is available [here](../../examples/zkquiz).
 
 ZkQuiz has three main components:
 - App/script
@@ -147,17 +147,11 @@ It is not mandatory to create an Smart Contract. You can make off-chain apps tha
 **Program Identifier Validation**
 
 The contract first checks that the commitment of the program matches with the one that we expect.
-
-In our zkquiz example, we get the following elf_commitment:
+In our zkquiz example, we get the following elf commitment:
 
 ```solidity
 // contracts/src/VerifierContract.sol
-
 bytes32 public elfCommitment = 0x3f99615fdf3b67a01e41b38eee75a32c778ee2fa631bd74e01c89afc2f70f5de;
-
-if (elfCommitment != provingSystemAuxDataCommitment) {
-    revert InvalidElf(provingSystemAuxDataCommitment);
-}
 ```
 
 You can generate the expected commitment without actually generating and submitting a proof using the Aligned CLI tool running:
