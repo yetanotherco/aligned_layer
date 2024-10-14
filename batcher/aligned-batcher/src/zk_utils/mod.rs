@@ -65,24 +65,20 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             is_valid
         }
         ProvingSystemId::Risc0 => {
-            // Allow for empty public input
             let Some(image_id_slice) = &verification_data.vm_program_code else {
-                warn!("Trying to verify Risc0 proof but image id. Returning false");
+                warn!("Trying to verify Risc0 proof but image id was not provided. Returning false");
                 return false;
             };
 
             // Risc0 can have 0 public input. In which case we supply an empty Vec<u8>.
-            let mut public_input = &vec![];
-            if let Some(pub_input) = &verification_data.pub_input {
-                public_input = pub_input;
-            }
+            let pub_input = verification_data.pub_input.clone().unwrap_or_default();
 
             let mut image_id = [0u8; 32];
             image_id.copy_from_slice(image_id_slice.as_slice());
             return verify_risc_zero_proof(
                 verification_data.proof.as_slice(),
                 &image_id,
-                public_input,
+                &pub_input,
             );
         }
         ProvingSystemId::GnarkPlonkBls12_381
