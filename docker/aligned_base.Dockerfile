@@ -1,11 +1,9 @@
 FROM debian:bookworm-slim
 
-ARG GOARCH
+ARG BUILDARCH
+ENV GO_VERSION=1.22.2
 
 RUN apt update -y && apt upgrade -y
-
-# Install golang 1.22.2
-ENV GO_VERSION=1.22.2
 RUN apt install -y wget \
                    tar \
                    curl \
@@ -17,9 +15,10 @@ RUN apt install -y wget \
                    libssl-dev \
                    yq \
                    jq
-RUN wget https://golang.org/dl/go$GO_VERSION.linux-$GOARCH.tar.gz
-RUN tar -C /usr/local -xzf go$GO_VERSION.linux-$GOARCH.tar.gz
-RUN rm go$GO_VERSION.linux-$GOARCH.tar.gz
+
+RUN wget https://golang.org/dl/go$GO_VERSION.linux-${BUILDARCH}.tar.gz
+RUN tar -C /usr/local -xzf go$GO_VERSION.linux-${BUILDARCH}.tar.gz
+RUN rm go$GO_VERSION.linux-${BUILDARCH}.tar.gz
 RUN apt clean -y
 RUN rm -rf /var/lib/apt/lists/*
 ENV PATH="/usr/local/go/bin:${PATH}"
