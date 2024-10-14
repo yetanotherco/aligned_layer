@@ -111,7 +111,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	lastProcessedBatchLogFile := configuration.Operator.LastProcessedBatchFilePath
 
 	if lastProcessedBatchLogFile == "" {
-		log.Fatalf("Config file field: `lastProcessedBatchLogFile` not provided.")
+		logger.Fatalf("Config file field: `lastProcessedBatchLogFile` not provided.")
 	}
 
 	// Metrics
