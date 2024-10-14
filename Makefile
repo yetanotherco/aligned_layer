@@ -674,7 +674,7 @@ docker_restart_batcher:
 
 docker_build:
 	@echo "Host architecture: $(GOARCH)"
-	docker compose -f docker-compose.yaml --profile aligned_base build
+	docker compose -f docker-compose.yaml --profile aligned_base build --build-arg GOARCH=$(GOARCH)
 	docker compose -f docker-compose.yaml --profile eigenlayer-cli build
 	docker compose -f docker-compose.yaml --profile foundry build
 	docker compose -f docker-compose.yaml --profile base build
