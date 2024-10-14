@@ -14,7 +14,10 @@ use tokio_tungstenite::{
     WebSocketStream,
 };
 
-use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
+use crate::{
+    metrics,
+    types::{batch_queue::BatchQueueEntry, errors::BatcherError},
+};
 
 pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
@@ -41,7 +44,10 @@ pub(crate) async fn send_batch_inclusion_data_responses(
 
         match sending_result {
             Err(Error::AlreadyClosed) => (),
-            Err(e) => error!("Error while sending batch inclusion data response: {}", e),
+            Err(e) => {
+                metrics::BROKEN_SOCKETS_LATEST_BATCH.inc();
+                error!("Error while sending batch inclusion data response: {}", e);
+            }
             Ok(_) => (),
         }
 
@@ -60,6 +66,7 @@ pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, mess
                 .send(Message::binary(serialized_response))
                 .await
             {
+                metrics::BROKEN_SOCKETS_LATEST_BATCH.inc();
                 error!("Error while sending message: {}", err)
             }
         }

@@ -899,7 +899,18 @@ impl Batcher {
             return Err(e);
         };
 
-        connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
+        metrics::BROKEN_SOCKETS_LATEST_BATCH.set(0);
+        let res =
+            connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree)
+                .await;
+
+        let avg = metrics::AVG_BROKEN_SOCKETS_PER_BATCH.get()
+            * (metrics::SENT_BATCHES.get() - 1) as i64
+            + metrics::BROKEN_SOCKETS_LATEST_BATCH.get();
+
+        metrics::AVG_BROKEN_SOCKETS_PER_BATCH.set(avg / metrics::SENT_BATCHES.get() as i64);
+
+        res
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
