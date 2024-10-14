@@ -518,6 +518,11 @@ generate_sp1_fibonacci_proof:
 	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
+generate_risc_zero_empty_journal_proof:
+	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
+
+
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
