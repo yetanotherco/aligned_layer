@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -141,8 +142,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	}
 
 	err = operator.LoadLastProcessedBatch()
-	if os.IsNotExist(err) {
-		logger.Fatalf("Config file err: `last_processed_batch_filepath` provided directory does not exist")
+	if err != nil {
+		logger.Fatalf("Error while loading last process batch: %v. This is probably related to the `last_processed_batch_filepath` field passed in the config file", err)
 	}
 
 	return operator, nil
@@ -162,10 +163,20 @@ type OperatorLastProcessedBatch struct {
 }
 
 func (o *Operator) LoadLastProcessedBatch() error {
+	// check if the directory exist
+	folderPath := filepath.Dir(o.lastProcessedBatchLogFile)
+	_, err := os.Stat(folderPath)
+
+	if os.IsNotExist(err) {
+		return err
+	}
+
 	file, err := os.ReadFile(o.lastProcessedBatchLogFile)
 
+	// if the file does not exist, we don't return an err, as it will get created later
+	// that is why we check of the directory exist in the first place
 	if err != nil {
-		return err
+		return nil
 	}
 
 	err = json.Unmarshal(file, &o.lastProcessedBatch)
