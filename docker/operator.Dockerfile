@@ -3,10 +3,6 @@ FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS builder
 RUN apt update -y
 RUN apt install -y gcc
 
-ENV GOOS=linux
-ARG GOARCH
-ENV CGO_ENABLED=1
-
 COPY go.mod .
 COPY go.sum .
 
