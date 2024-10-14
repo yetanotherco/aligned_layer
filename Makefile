@@ -1,11 +1,12 @@
 .PHONY: help tests
 
+SHELL := /bin/bash
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.8.0
+OPERATOR_VERSION=v0.9.1
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -14,6 +15,11 @@ endif
 ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
+
+ifeq ($(OS),Linux)
+	export LD_LIBRARY_PATH := $(CURDIR)/operator/risc_zero/lib
+endif
+
 
 FFI_FOR_RELEASE ?= true
 
@@ -32,7 +38,7 @@ submodules:
 	git submodule update --init --recursive
 	@echo "Updated submodules"
 
-deps: submodules build_all_ffi ## Install deps
+deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
@@ -79,10 +85,6 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
-anvil_add_type_hash_to_batcher_payment_service:
-	@echo "Adding Type Hash to Batcher Payment Service..."
-	. contracts/scripts/anvil/upgrade_add_type_hash_to_batcher_payment_service.sh
-
 lint_contracts:
 	@cd contracts && npm run lint:sol
 
@@ -94,6 +96,8 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
+_AGGREGATOR_:
+
 aggregator_start:
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
@@ -103,16 +107,21 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+
+__OPERATOR__:
+
 operator_start:
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
+
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -126,7 +135,6 @@ operator_valid_marshall_fuzz_macos:
 
 operator_valid_marshall_fuzz_linux:
 	@cd operator/pkg && \
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test -fuzz=FuzzValidMarshall
 
 operator_marshall_unmarshall_fuzz_macos:
@@ -134,7 +142,6 @@ operator_marshall_unmarshall_fuzz_macos:
 
 operator_marshall_unmarshall_fuzz_linux:
 	@cd operator/pkg && \
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test -fuzz=FuzzMarshalUnmarshal
 
 bindings:
@@ -186,9 +193,8 @@ operator_whitelist:
 	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
 
 operator_deposit_into_mock_strategy:
-	@echo "Depositing into strategy"
+	@echo "Depositing into mock strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
-
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
@@ -207,7 +213,6 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
 __BATCHER__:
 
@@ -423,10 +428,6 @@ upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
-upgrade_batcher_payments_add_type_hash: ## Add Type Hash to Batcher Payment Service
-	@echo "Adding Type Hash to Batcher Payment Service..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_type_hash_to_batcher_payment_service.sh
-
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
 	@. examples/verify/.env && . examples/verify/scripts/deploy_verify_batch_inclusion_caller.sh
@@ -504,7 +505,6 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:
@@ -518,28 +518,14 @@ build_merkle_tree_macos:
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
-build_merkle_tree_macos_old:
-	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree_old/lib/libmerkle_tree.dylib
-	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
-
 build_merkle_tree_linux:
 	@cd operator/merkle_tree/lib && cargo build $(RELEASE_FLAG)
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
-build_merkle_tree_linux_old:
-	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree_old/lib/libmerkle_tree.so
-	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
-
 test_merkle_tree_rust_ffi:
 	@echo "Testing Merkle Tree Rust FFI source code..."
 	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
-
-test_merkle_tree_rust_ffi_old:
-	@echo "Testing Old Merkle Tree Rust FFI source code..."
-	@cd operator/merkle_tree_old/lib && RUST_MIN_STACK=83886080 cargo t --release
 
 test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 	@echo "Testing Merkle Tree Go bindings..."
@@ -553,9 +539,6 @@ test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
 	@echo "Testing Old Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree_old/... -v
 
-test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
-	@echo "Testing Merkle Tree Go bindings..."
-	go test ./operator/merkle_tree_old/... -v
 
 __BUILD_ALL_FFI__:
 
@@ -568,7 +551,6 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
-	@$(MAKE) build_merkle_tree_macos_old
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -576,9 +558,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
-	@$(MAKE) build_merkle_tree_linux_old
 	@echo "All Linux FFIs built successfully."
-
 
 __EXPLORER__:
 run_explorer: explorer_run_db explorer_ecto_setup_db

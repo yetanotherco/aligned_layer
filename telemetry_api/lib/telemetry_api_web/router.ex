@@ -11,6 +11,11 @@ defmodule TelemetryApiWeb.Router do
     get "/operators", OperatorController, :index
     get "/operators/:id", OperatorController, :show
     post "/operators", OperatorController, :create_or_update
+    post "/initTaskTrace", TraceController, :create_task_trace
+    post "/operatorResponse", TraceController, :register_operator_response
+    post "/quorumReached", TraceController, :quorum_reached
+    post "/taskError", TraceController, :task_error
+    post "/finishTaskTrace", TraceController, :finish_task_trace
   end
 
   scope "/versions", TelemetryApiWeb do

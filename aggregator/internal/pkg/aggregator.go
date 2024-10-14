@@ -80,8 +80,12 @@ type Aggregator struct {
 
 	logger logging.Logger
 
+	// Metrics
 	metricsReg *prometheus.Registry
 	metrics    *metrics.Metrics
+
+	// Telemetry
+	telemetry *Telemetry
 }
 
 func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error) {
@@ -148,6 +152,9 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	reg := prometheus.NewRegistry()
 	aggregatorMetrics := metrics.NewMetrics(aggregatorConfig.Aggregator.MetricsIpPortAddress, reg, logger)
 
+	// Telemetry
+	aggregatorTelemetry := NewTelemetry(aggregatorConfig.Aggregator.TelemetryIpPortAddress, logger)
+
 	nextBatchIndex := uint32(0)
 
 	aggregator := Aggregator{
@@ -169,6 +176,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		logger:                logger,
 		metricsReg:            reg,
 		metrics:               aggregatorMetrics,
+		telemetry:             aggregatorTelemetry,
 	}
 
 	go aggregator.clearTasksFromMaps(garbageCollectorPeriod, garbageCollectorTasksAge)
@@ -216,12 +224,20 @@ const garbageCollectorTasksAge = uint64(10)  //TODO change to 2592000, 1 month o
 const BLS_AGG_SERVICE_TIMEOUT = 100 * time.Second
 
 func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsAggregationServiceResponse) {
-	if blsAggServiceResp.Err != nil {
-		agg.taskMutex.Lock()
-		batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
-		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
-		agg.taskMutex.Unlock()
+	agg.taskMutex.Lock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching task data")
+	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
+	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
+	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
+	agg.taskMutex.Unlock()
+	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching task data")
 
+	// Finish task trace once the task is processed (either successfully or not)
+	defer agg.telemetry.FinishTrace(batchData.BatchMerkleRoot)
+
+	if blsAggServiceResp.Err != nil {
+		agg.telemetry.LogTaskError(batchData.BatchMerkleRoot, blsAggServiceResp.Err)
+		agg.logger.Error("BlsAggregationServiceResponse contains an error", "err", blsAggServiceResp.Err, "batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 		return
 	}
 	nonSignerPubkeys := []servicemanager.BN254G1Point{}
@@ -244,13 +260,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		NonSignerStakeIndices:        blsAggServiceResp.NonSignerStakeIndices,
 	}
 
-	agg.taskMutex.Lock()
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Fetching merkle root")
-	batchIdentifierHash := agg.batchesIdentifierHashByIdx[blsAggServiceResp.TaskIndex]
-	batchData := agg.batchDataByIdentifierHash[batchIdentifierHash]
-	taskCreatedBlock := agg.batchCreatedBlockByIdx[blsAggServiceResp.TaskIndex]
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Fetching merkle root")
-	agg.taskMutex.Unlock()
+	agg.telemetry.LogQuorumReached(batchData.BatchMerkleRoot)
 
 	agg.logger.Info("Threshold reached", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
@@ -287,7 +297,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"merkleRoot", "0x"+hex.EncodeToString(batchData.BatchMerkleRoot[:]),
 		"senderAddress", "0x"+hex.EncodeToString(batchData.SenderAddress[:]),
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-
+	agg.telemetry.LogTaskError(batchData.BatchMerkleRoot, err)
 }
 
 // / Sends response to contract and waits for transaction receipt
@@ -304,6 +314,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
+		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
 
@@ -313,6 +324,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 	receipt, err := utils.WaitForTransactionReceipt(
 		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
 	if err != nil {
+		agg.telemetry.LogTaskError(batchMerkleRoot, err)
 		return nil, err
 	}
 
@@ -322,6 +334,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 }
 
 func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]byte, taskCreatedBlock uint32) {
+	agg.telemetry.InitNewTrace(batchMerkleRoot)
 	batchIdentifier := append(batchMerkleRoot[:], senderAddress[:]...)
 	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 
@@ -373,6 +386,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
 	}
 
+	agg.metrics.IncAggregatorReceivedTasks()
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
