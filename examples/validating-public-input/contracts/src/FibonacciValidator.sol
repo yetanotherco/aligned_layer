@@ -10,7 +10,9 @@ contract FibonacciValidator {
         0xc2633817b79f9a9bf340981ecc6d693ce8b0b0494114277bd5a4b4083675fa32;
     
     bytes32 public fibonacciProgramIdCommitmentRisc0 =
-        0x0d5a7c5ae964f52be4c8d288b41fece9e6fec521ad813b323719bc86e859a5d2;
+        0x1894c0448514623e9de57947fdf3945eab49dc46ff2e72d0b5fb3fb41ed56db4;
+
+    error InvalidProgramID(string verifier, bytes32 submitted, bytes32 required);
 
     event FibonacciNumbers(uint32 n, uint32 fibN, uint32 fibNPlusOne);
 
@@ -18,6 +20,7 @@ contract FibonacciValidator {
         alignedServiceManager = _alignedServiceManager;
         paymentServiceAddr = _paymentServiceAddr;
     }
+
 
     function verifyBatchInclusion(
         bytes32 proofCommitment,
@@ -31,15 +34,13 @@ contract FibonacciValidator {
         string memory verifierId
     ) public returns (bool) {
         if (keccak256(abi.encodePacked(verifierId)) == keccak256(abi.encodePacked("SP1"))) {
-            require(
-                fibonacciProgramIdCommitmentSp1 == programIdCommitment,
-                "Program ID doesn't match"
-            );
+            if (fibonacciProgramIdCommitmentSp1 != programIdCommitment) {
+                revert InvalidProgramID("SP1", programIdCommitment, fibonacciProgramIdCommitmentSp1);
+            }
         } else if (keccak256(abi.encodePacked(verifierId)) == keccak256(abi.encodePacked("Risc0"))) {
-            require(
-                fibonacciProgramIdCommitmentRisc0 == programIdCommitment,
-                "Program ID doesn't match"
-            );
+            if (fibonacciProgramIdCommitmentRisc0 != programIdCommitment) {
+                revert InvalidProgramID("Risc0", programIdCommitment, fibonacciProgramIdCommitmentRisc0);
+            }
         } else {
             revert("Verifier ID not recognized, use Risc0 or SP1");
         }
