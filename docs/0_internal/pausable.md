@@ -1,6 +1,14 @@
 # Pausable
 This doc contains a guide on how to use the Pausable functionality of Aligned.
 
+To run the make targets specified in this guide, you must first have the relevant following env vars:
+```
+export RPC_URL=<rpc_url>
+export ALIGNED_SERVICE_MANAGER=<aligned_contract_address>
+export BATCHER_PAYMENT_SERVICE=<payment_service_contract_address>
+export PRIVATE_KEY=<pauser_private_key>
+```
+
 ## Aligned Service Manager
 
 Aligned Service Manager is granulary pausable, which means you can pause the whole contract, or only specific functions. For this, Aligned uses the Pauser Registry contract provided by Eigenlayer. This contract stores the role of different accounts, so you can have X pausers and Y unpausers.
