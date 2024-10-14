@@ -25,7 +25,7 @@
 
 * [Submitting proofs](3_guides/0_submitting_proofs.md)
 * [Build your first Aligned Application](3_guides/2_build_your_first_aligned_application.md)
-* [Modify ZkQuiz Questions](3_guides/2.2_modify_zkquiz_questions.md)
+  * [Modify ZkQuiz Questions](3_guides/2.2_modify_zkquiz_questions.md)
 * [Validating public input](3_guides/3_validating_public_input.md)
 * [SDK Intro](3_guides/1_SDK_how_to.md)
 * [SDK API Reference](3_guides/1.2_SDK_api_reference.md)
