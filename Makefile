@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.8.0
+OPERATOR_VERSION=v0.9.2
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -17,7 +17,15 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH := $(CURDIR)/operator/risc_zero/lib
+	export LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
+endif
+
+ifeq ($(OS),Linux)
+	BUILD_OPERATOR = $(MAKE) build_operator_linux 
+endif
+
+ifeq ($(OS),Darwin)
+	BUILD_OPERATOR = $(MAKE) build_operator_macos
 endif
 
 
@@ -120,6 +128,14 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
+	$(BUILD_OPERATOR)
+
+build_operator_macos:
+	@echo "Building Operator..."
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo "Operator built into /operator/build/aligned-operator"
+
+build_operator_linux:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"

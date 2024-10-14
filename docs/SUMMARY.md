@@ -4,9 +4,9 @@
 
 * [About Aligned](1_introduction/0_about_aligned.md)
 * [Try Aligned](1_introduction/1_try_aligned.md)
-* [Use cases](1_introduction/3_use_cases.md)
-* [FAQ](1_introduction/4_faq.md)
-* [Why ZK and Aligned?](1_introduction/5_why_zk.md)
+* [Use cases](1_introduction/2_use_cases.md)
+* [FAQ](1_introduction/3_faq.md)
+* [Why ZK and Aligned?](1_introduction/4_why_zk.md)
 
 ## Architecture
 
@@ -25,6 +25,7 @@
 
 * [Submitting proofs](3_guides/0_submitting_proofs.md)
 * [Build your first Aligned Application](3_guides/2_build_your_first_aligned_application.md)
+    * [Modify ZkQuiz Questions](3_guides/2.2_modify_zkquiz_questions.md)
 * [Validating public input](3_guides/3_validating_public_input.md)
 * [SDK Intro](3_guides/1_SDK_how_to.md)
 * [SDK API Reference](3_guides/1.2_SDK_api_reference.md)
@@ -38,6 +39,8 @@
 * [Running an operator](operator_guides/0_running_an_operator.md)
 * [Operator FAQ](operator_guides/1_operator_FAQ.md)
 * [Troubleshooting](operator_guides/2_troubleshooting.md)
+* Upgrading Guides
+    * [Upgrading to v0.9.2](operator_guides/upgrading_guides/v0_9_2.md)
 
 ## Useful links
 
