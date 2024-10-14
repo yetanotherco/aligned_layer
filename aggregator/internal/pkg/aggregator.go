@@ -66,7 +66,6 @@ type Aggregator struct {
 	// Stores the TaskResponse for each batch by batchIdentifierHash
 	batchDataByIdentifierHash map[[32]byte]BatchData
 
-
 	// This task index is to communicate with the local BLS
 	// Service.
 	// Note: In case of a reboot it can start from 0 again
@@ -218,8 +217,8 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 
 const MaxSentTxRetries = 5
 
-const garbageCollectorPeriod = time.Second * 30 //TODO change to time.Day * 1
-const garbageCollectorTasksAge = uint64(10)  //TODO change to 2592000, 1 month of blocks
+const garbageCollectorPeriod = time.Second * 150 //TODO change to time.Day * 1
+const garbageCollectorTasksAge = uint64(10)     //TODO change to 2592000, 1 month of blocks
 
 const BLS_AGG_SERVICE_TIMEOUT = 100 * time.Second
 
@@ -408,7 +407,8 @@ func (agg *Aggregator) clearTasksFromMaps(period time.Duration, blocksOld uint64
 		}
 
 		oldTaskIdx := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
-		for i := lastIdxDeleted; i <= oldTaskIdx; i++ {
+		agg.logger.Info("Old task found", "taskIndex", oldTaskIdx)
+		for i := lastIdxDeleted+1; i <= oldTaskIdx; i++ {
 			batchIdentifierHash, exists := agg.batchesIdentifierHashByIdx[i]
 			if exists {
 				agg.logger.Info("Cleaning up finalized task", "taskIndex", i)
@@ -416,8 +416,11 @@ func (agg *Aggregator) clearTasksFromMaps(period time.Duration, blocksOld uint64
 				delete(agg.batchCreatedBlockByIdx, i)
 				delete(agg.batchesIdentifierHashByIdx, i)
 				delete(agg.batchDataByIdentifierHash, batchIdentifierHash)
+			} else {
+				agg.logger.Warn("Task not found in maps", "taskIndex", i)
 			}
 		}
 		lastIdxDeleted = oldTaskIdx
+		agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
 	}
 }

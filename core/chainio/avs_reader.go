@@ -125,8 +125,7 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64) (*[32]byte, error) {
 
 	interval := uint64(10) // TODO set 1000, Arbitrary number, aproximately blocks in 3hs
 	toBlock = latestBlock - nBlocksOld
-	// fromBlock = toBlock - interval
-	fromBlock = 0
+	fromBlock = toBlock - interval
 
 	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: &toBlock, Context: context.Background()}, nil)
 	if err != nil {
