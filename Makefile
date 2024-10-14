@@ -661,7 +661,7 @@ docker_build_operator:
 	docker compose -f docker-compose.yaml --profile operator build
 
 docker_build_batcher:
-	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
+	docker compose -f docker-compose.yaml --profile batcher build
 
 docker_restart_aggregator:
 	docker compose -f docker-compose.yaml --profile aggregator down
@@ -682,7 +682,7 @@ docker_build:
 	docker compose -f docker-compose.yaml --profile foundry build
 	docker compose -f docker-compose.yaml --profile base build
 	docker compose -f docker-compose.yaml --profile operator build
-	docker compose -f docker-compose.yaml --profile batcher build --build-arg GOARCH=$(GOARCH)
+	docker compose -f docker-compose.yaml --profile batcher build
 	docker compose -f docker-compose.yaml --profile aggregator build
 
 docker_up:

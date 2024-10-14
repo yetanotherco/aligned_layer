@@ -9,10 +9,6 @@ COPY batcher ./batcher
 
 WORKDIR /aligned_layer/batcher/aligned-batcher
 
-ENV GOOS=linux
-ARG GOARCH
-ENV CGO_ENABLED=1
-
 RUN go build -buildmode=c-archive -o libverifier.a ./gnark/verifier.go
 
 WORKDIR /aligned_layer
