@@ -115,20 +115,19 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64) (*[32]byte, error) {
 		}
 	}
 
+	if latestBlock < nBlocksOld {
+		return nil, fmt.Errorf("latest block is less than nBlocksOld")
+	}
+
+	// Define block number limits to query the rpc
 	var fromBlock uint64
 	var toBlock uint64
 
-	if latestBlock < nBlocksOld {
-		// upToBlock = latestBlock
-		return nil, fmt.Errorf("latest block is less than nBlocksOld")
-	}
 	interval := uint64(10) // TODO set 1000, Arbitrary number, aproximately blocks in 3hs
 	toBlock = latestBlock - nBlocksOld
-	fromBlock = toBlock - interval
-	// Maybe there is a way to only get 1 task?
-	// this is the MVP
+	// fromBlock = toBlock - interval
+	fromBlock = 0
 
-	var lastLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: &toBlock, Context: context.Background()}, nil)
 	if err != nil {
 		return nil, err
@@ -136,16 +135,17 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64) (*[32]byte, error) {
 	if err := logs.Error(); err != nil {
 		return nil, err
 	}
-
-	// Any log from the list is good enough.
-	lastLog = logs.Event
-
-	if lastLog == nil {
-		return nil, fmt.Errorf("no batches found of at least %d blocks old", interval)
+	if !logs.Next() {
+		return nil, fmt.Errorf("no tasks found of at least %d blocks old", interval)
 	}
 
-	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
+	// Any log from the list is good enough.
+	task, err := r.AvsContractBindings.ServiceManager.ParseNewBatchV3(logs.Event.Raw)
+	if err != nil {
+		return nil, err
+	}
+
+	batchIdentifier := append(task.BatchMerkleRoot[:], task.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
 	return &batchIdentifierHash, nil
-
 }
