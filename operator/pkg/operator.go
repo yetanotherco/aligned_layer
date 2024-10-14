@@ -111,7 +111,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	lastProcessedBatchLogFile := configuration.Operator.LastProcessedBatchFilePath
 
 	if lastProcessedBatchLogFile == "" {
-		logger.Fatalf("Config file field: `lastProcessedBatchLogFile` not provided.")
+		logger.Fatalf("Config file field: `last_processed_batch_filepath` not provided.")
 	}
 
 	// Metrics
@@ -140,7 +140,10 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		// Socket
 	}
 
-	_ = operator.LoadLastProcessedBatch()
+	err = operator.LoadLastProcessedBatch()
+	if os.IsNotExist(err) {
+		logger.Fatalf("Config file err: `last_processed_batch_filepath` provided directory does not exist")
+	}
 
 	return operator, nil
 }
@@ -162,13 +165,13 @@ func (o *Operator) LoadLastProcessedBatch() error {
 	file, err := os.ReadFile(o.lastProcessedBatchLogFile)
 
 	if err != nil {
-		return fmt.Errorf("failed read from file: %v", err)
+		return err
 	}
 
 	err = json.Unmarshal(file, &o.lastProcessedBatch)
 
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal batch: %v", err)
+		return err
 	}
 
 	return nil
