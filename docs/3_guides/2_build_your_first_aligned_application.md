@@ -132,7 +132,7 @@ pub fn main() {
 }
 ```
 
-The program takes the user answers as inputs and checks that the hash of the inputs matches with the expected output. This is the program that will be compiled generati ng a binary file that will be ran by the zkVm and used later in the application side. In our case this file is already generated and is located on `/quiz/program/elf/riscv32im-succinct-zkvm-elf`.
+The program takes the user answers as inputs and checks that the hash of the inputs matches with the expected output. This is the program that will be compiled generating a binary file that will be ran by the zkVm and used later in the application side. In our case this file is already generated and is located on `/quiz/program/elf/riscv32im-succinct-zkvm-elf`.
 
 ### Verifier Contract
 
