@@ -2,7 +2,7 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   use GenServer
   alias TelemetryApi.Operators
 
-  @wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
+  @wait_time_str System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
     raise """
     environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
     """
