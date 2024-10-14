@@ -1,6 +1,6 @@
 # Submitting Proofs
 
-Make sure you have Aligned installed as specified [here](../1_introduction/1_getting_started.md#Quickstart).
+Make sure you have Aligned installed as specified [here](../1_introduction/1_try_aligned.md#quickstart).
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
@@ -88,18 +88,19 @@ After depositing funds, you can verify the Service has correctly received them b
 ```bash
 aligned get-user-balance  \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network holesky \
 --user_addr <user_addr>
 ```
 
 These commands allow the usage of the following flags:
 
-- `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
+- `--network` to specify the chain id to be used. Could be holesky or devnet.
 - `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Submit your proof to the batcher
 
-This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [Aligned SDK guide](../3_guides/2_integrating_aligned_into_your_application.md).
+This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [First Aligned Application tutorial](../3_guides/2_build_your_first_aligned_application.md#app) where we explain how to generate and submit a proof using the Aligned SDK.
 
 Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are:
 

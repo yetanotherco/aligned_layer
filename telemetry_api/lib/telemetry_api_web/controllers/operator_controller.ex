@@ -22,7 +22,7 @@ defmodule TelemetryApiWeb.OperatorController do
   end
 
   def show(conn, %{"id" => address}) do
-    with {%Operator{} = operator} <- Operators.get_operator(address) do
+    with {:ok, %Operator{} = operator} <- Operators.get_operator(%{address: address}) do
       render(conn, :show, operator: operator)
     end
   end

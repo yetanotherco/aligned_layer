@@ -31,15 +31,15 @@ type TaskErrorMessage struct {
 }
 
 type Telemetry struct {
-	client  *http.Client
-	baseURL *url.URL
+	client  http.Client
+	baseURL url.URL
 	logger  logging.Logger
 }
 
 func NewTelemetry(serverAddress string, logger logging.Logger) *Telemetry {
-	client := &http.Client{}
+	client := http.Client{}
 
-	baseURL := &url.URL{
+	baseURL := url.URL{
 		Scheme: "http",
 		Host:   serverAddress,
 	}

@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use ethers::core::k256::ecdsa::SigningKey;
 use ethers::signers::Signer;
 use ethers::signers::Wallet;
@@ -342,6 +344,22 @@ pub enum Network {
     Devnet,
     Holesky,
     HoleskyStage,
+}
+
+impl FromStr for Network {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "holesky" => Ok(Network::Holesky),
+            "holesky-stage" => Ok(Network::HoleskyStage),
+            "devnet" => Ok(Network::Devnet),
+            _ => Err(
+                "Invalid network, possible values are: \"holesky\", \"holesky-stage\", \"devnet\""
+                    .to_string(),
+            ),
+        }
+    }
 }
 
 #[cfg(test)]
