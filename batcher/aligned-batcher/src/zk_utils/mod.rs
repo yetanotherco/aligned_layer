@@ -66,7 +66,9 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
         }
         ProvingSystemId::Risc0 => {
             let Some(image_id_slice) = &verification_data.vm_program_code else {
-                warn!("Trying to verify Risc0 proof but image id was not provided. Returning false");
+                warn!(
+                    "Trying to verify Risc0 proof but image id was not provided. Returning false"
+                );
                 return false;
             };
 
