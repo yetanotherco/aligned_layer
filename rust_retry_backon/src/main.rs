@@ -1,10 +1,10 @@
 use anyhow::Result;
 use backon::ExponentialBuilder;
 use backon::Retryable;
+use rand::Rng;
+use std::time::SystemTime;
 use tokio;
 use tokio::time::Duration;
-use std::time::SystemTime;
-use rand::Rng;
 
 /// RetryError will be used to differentiate between recoverable and not recoverable
 /// errors.
@@ -26,7 +26,6 @@ impl std::error::Error for RetryError {}
 
 #[tokio::main]
 async fn main() -> Result<()> {
-
     // * ---------------------------------------------------------------------------------------- *
     // *                          DEFINE THE ACTION TO BE RETRIED                                 *
     // * ---------------------------------------------------------------------------------------- *
@@ -39,24 +38,26 @@ async fn main() -> Result<()> {
     // For the not recoverable case, it will return without retrying again.
     // This behavior is simulated here with some randomness.
     async fn action() -> anyhow::Result<u64> {
-            println!("Doing some operation...");
-            println!("Actual time: {:?}", SystemTime::now());
+        println!("Doing some operation...");
+        println!("Actual time: {:?}", SystemTime::now());
 
-            let mut rng = rand::thread_rng();
-            let random_num: f64 = rng.gen(); // generates a float between 0 and 1
-            if random_num > 0.5 {
-                return anyhow::bail!(RetryError::NonRecoverableError);
-            };
+        let mut rng = rand::thread_rng();
+        let random_num: f64 = rng.gen(); // generates a float between 0 and 1
+        if random_num > 0.5 {
+            return anyhow::bail!(RetryError::NonRecoverableError);
+        };
 
-            anyhow::bail!(RetryError::RecoverableError)
-        }
+        anyhow::bail!(RetryError::RecoverableError)
+    }
 
     // jitter: false
     // factor: 2
     // min_delay: 2s
     // max_delay: 60s
     // max_times: 3
-    let backoff = ExponentialBuilder::default().with_min_delay(Duration::from_millis(2000)).with_max_times(3);
+    let backoff = ExponentialBuilder::default()
+        .with_min_delay(Duration::from_millis(2000))
+        .with_max_times(3);
 
     let content = action
         // Retry with exponential backoff
