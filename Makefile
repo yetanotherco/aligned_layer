@@ -127,15 +127,15 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 operator_register_and_start: operator_full_registration operator_start
 
-build_operator:
+build_operator: deps
 	$(BUILD_OPERATOR)
 
-build_operator_macos: deps
+build_operator_macos:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
-build_operator_linux: deps
+build_operator_linux:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
