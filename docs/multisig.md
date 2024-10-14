@@ -18,6 +18,7 @@ In this guide we make an upgrade of Aligned Layer Service Manager contract using
 - Multisig Wallet
   - You can create a Multisig wallet using [Safe](https://safe.global/). For this guide, I have created a 2/3 Multisig.
 - [jq](https://jqlang.github.io/jq/download/)
+  - `jq` is needed to programatically read contents of `.json` config files 
 
 ## Initial setup
 

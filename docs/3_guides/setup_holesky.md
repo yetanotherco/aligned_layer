@@ -28,6 +28,8 @@ The necessary environment variables are:
 
 You can find an example `.env` file in [.env.example.holesky](../../contracts/scripts/.env.example.holesky)
 
+Note: all file paths must be inside the `script/` folder, as shown in `.env.example.holesky` because of `foundry`'s permissions to read and write files.
+
 You need to complete the `DEPLOY_CONFIG_PATH` file with the following information:
 
 ```json
