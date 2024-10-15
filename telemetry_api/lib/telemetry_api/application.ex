@@ -7,6 +7,8 @@ defmodule TelemetryApi.Application do
 
   @impl true
   def start(_type, _args) do
+    TelemetryApi.MetricsExporter.setup()
+
     children = [
       TraceStore,
       TelemetryApiWeb.Telemetry,
