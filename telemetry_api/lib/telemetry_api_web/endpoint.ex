@@ -15,7 +15,6 @@ defmodule TelemetryApiWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
-
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest
@@ -25,7 +24,6 @@ defmodule TelemetryApiWeb.Endpoint do
     from: :telemetry_api,
     gzip: false,
     only: TelemetryApiWeb.static_paths()
-
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
@@ -45,7 +43,6 @@ defmodule TelemetryApiWeb.Endpoint do
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Phoenix.json_library()
-
 
   plug TelemetryApi.MetricsExporter
   plug Plug.MethodOverride

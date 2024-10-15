@@ -35,11 +35,11 @@
                     "custom": {
                         "axisCenteredZero": false,
                         "axisColorMode": "text",
-                        "axisLabel": "ETH",
+                        "axisLabel": "gwei",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
                         "drawStyle": "line",
-                        "fillOpacity": 0,
+                        "fillOpacity": 3,
                         "gradientMode": "none",
                         "hideFrom": {
                             "legend": false,
@@ -51,7 +51,7 @@
                         "lineStyle": {
                             "fill": "solid"
                         },
-                        "lineWidth": 4,
+                        "lineWidth": 3,
                         "pointSize": 1,
                         "scaleDistribution": {
                             "type": "linear"
@@ -79,7 +79,8 @@
                                 "value": 80
                             }
                         ]
-                    }
+                    },
+                    "unit": "none"
                 },
                 "overrides": []
             },
@@ -109,9 +110,10 @@
                         "uid": "prometheus"
                     },
                     "disableTextWrap": false,
-                    "editorMode": "builder",
-                    "expr": "gas_price",
+                    "editorMode": "code",
+                    "expr": "gas_price * 10^(-9)",
                     "fullMetaSearch": false,
+                    "hide": false,
                     "includeNullMetadata": true,
                     "instant": false,
                     "legendFormat": "__auto",
@@ -132,13 +134,13 @@
         "list": []
     },
     "time": {
-        "from": "now-6h",
+        "from": "now-30m",
         "to": "now"
     },
     "timepicker": {},
     "timezone": "",
     "title": "Ethereum",
     "uid": "cc1ca6ab-6a36-41e0-afcf-2946c15afde5",
-    "version": 2,
+    "version": 6,
     "weekStart": ""
 }

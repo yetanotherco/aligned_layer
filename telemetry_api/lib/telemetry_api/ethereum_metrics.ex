@@ -3,7 +3,7 @@ defmodule TelemetryApi.EthereumMetrics do
 
   @gauge [name: :gas_price, help: "Ethereum Gas Price.", labels: []]
 
-  def gas_price(gas_price) do
+  def new_gas_price(gas_price) do
     Gauge.set(
       [name: :gas_price, labels: []],
       gas_price

@@ -1,6 +1,7 @@
 defmodule TelemetryApi.Periodic.OperatorFetcher do
   use GenServer
   alias TelemetryApi.Operators
+  alias TelemetryApi.EthereumMetrics
 
   wait_time_str = System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
     raise """
@@ -24,7 +25,9 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
   end
 
   def send_work() do
+    one_second = 1000
     :timer.send_interval(@wait_time_ms, :fetch_operators)
+    :timer.send_interval(one_second * 12, :gas_price) # every 12 seconds, once per block
   end
 
   def handle_info(:fetch_operators, _state) do
@@ -32,6 +35,17 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
           {:ok, _} -> :ok
           {:error, message} -> IO.inspect "Couldn't fetch operators: #{IO.inspect message}"
         end
+        {:noreply, %{}}
+  end
+
+  def handle_info(:gas_price, _state) do
+    case Ethers.current_gas_price() do
+      {:ok, gas_price} ->
+        EthereumMetrics.new_gas_price(gas_price)
+
+      {:error, error} ->
+        IO.inspect("Error fetching gas price: #{error}")
+    end
         {:noreply, %{}}
   end
 end
