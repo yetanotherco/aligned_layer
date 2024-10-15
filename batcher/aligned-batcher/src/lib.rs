@@ -936,6 +936,7 @@ impl Batcher {
             batch_state_lock.user_states.remove(&addr);
         };
 
+        self.metrics.dismissed_sockets_latest_batch.set(0);
         for batch_entry in finalized_batch {
             let addr = batch_entry.sender;
             if closed_clients.contains(&addr) {
@@ -951,8 +952,8 @@ impl Batcher {
             // we make sure its still alive by sending a ping message
             let ping_msg = Message::Ping(vec![]);
             if let Err(e) = ws_conn.clone().write().await.send(ping_msg).await {
-                // todo: add metric here
                 error!("Failed to send ping, WebSocket may be closed: {:?}", e);
+                self.metrics.dismissed_sockets_latest_batch.inc();
                 closed_clients.insert(addr);
                 remove_client(batch_entry.sender, self.batch_state.lock().await);
                 continue;
