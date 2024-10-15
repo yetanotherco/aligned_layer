@@ -3,6 +3,7 @@ use crate::{
         batch::await_batch_verification,
         messaging::{receive, send_messages, ResponseStream},
         protocol::check_protocol_version,
+        serialization::cbor_serialize,
     },
     core::{
         constants::{
@@ -34,12 +35,16 @@ use std::{str::FromStr, sync::Arc};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
-use log::debug;
+use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
     StreamExt, TryStreamExt,
 };
+
+use std::path::PathBuf;
+use std::fs::File;
+use std::io::Write;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
@@ -653,6 +658,76 @@ pub async fn get_balance_in_aligned(
         }
         Err(e) => Err(errors::BalanceError::EthereumCallError(e.to_string())),
     }
+}
+
+/// Saves AlignedVerificationData in a file.
+/// # Arguments
+/// * `batch_inclusion_data_directory_path` - The path of the directory where the data will be saved.
+/// * `aligned_verification_data` - The aligned verification data to be saved.
+/// # Returns
+/// * Ok if the data is saved successfully.
+/// # Errors
+/// * `SubmitError` if there is an error writing the data to the file. 
+// TODO choose a better error type, it is not a submit. maybe only IOError
+pub fn save_response(
+    batch_inclusion_data_directory_path: PathBuf,
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), errors::SubmitError> {
+    let _ = save_response_cbor(batch_inclusion_data_directory_path.clone(), &aligned_verification_data.clone())?;
+    let _ = save_response_json(batch_inclusion_data_directory_path, &aligned_verification_data)?;
+    Ok(())
+}
+fn save_response_cbor(
+    batch_inclusion_data_directory_path: PathBuf,
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), errors::SubmitError> {
+    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
+    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
+        + "_"
+        + &aligned_verification_data.index_in_batch.to_string()
+        + ".cbor";
+
+    let batch_inclusion_data_path =
+        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
+
+    let data = cbor_serialize(&aligned_verification_data)?;
+
+    let mut file = File::create(&batch_inclusion_data_path)
+        .map_err(|e| errors::SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+    file.write_all(data.as_slice())
+        .map_err(|e| errors::SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+    info!(
+        "Batch inclusion data written into {}",
+        batch_inclusion_data_path.display()
+    );
+
+    Ok(())
+}
+fn save_response_json(
+    batch_inclusion_data_directory_path: PathBuf,
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), errors::SubmitError> {
+    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
+    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
+        + "_"
+        + &aligned_verification_data.index_in_batch.to_string()
+        + ".json";
+
+    let batch_inclusion_data_path =
+        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
+
+    let data = serde_json::to_vec(&aligned_verification_data).unwrap();
+
+    let mut file = File::create(&batch_inclusion_data_path)
+        .map_err(|e| errors::SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+    file.write_all(data.as_slice())
+        .map_err(|e| errors::SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+    info!(
+        "Batch inclusion data written into {}",
+        batch_inclusion_data_path.display()
+    );
+
+    Ok(())
 }
 
 #[cfg(test)]

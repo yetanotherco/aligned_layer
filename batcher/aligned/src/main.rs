@@ -15,7 +15,7 @@ use aligned_sdk::core::{
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
-use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
+use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple, save_response};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -608,69 +608,6 @@ async fn get_nonce(
     write_file(nonce_file.as_str(), &nonce_bytes)?;
 
     Ok(nonce)
-}
-
-fn save_response(
-    batch_inclusion_data_directory_path: PathBuf,
-    aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), SubmitError> {
-    let _ = save_response_cbor(batch_inclusion_data_directory_path.clone(), &aligned_verification_data.clone())?;
-    let _ = save_response_json(batch_inclusion_data_directory_path, &aligned_verification_data)?;
-    Ok(())
-}
-
-fn save_response_cbor(
-    batch_inclusion_data_directory_path: PathBuf,
-    aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), SubmitError> {
-    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
-    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
-        + "_"
-        + &aligned_verification_data.index_in_batch.to_string()
-        + ".cbor";
-
-    let batch_inclusion_data_path =
-        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
-
-    let data = cbor_serialize(&aligned_verification_data)?;
-
-    let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    file.write_all(data.as_slice())
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
-
-    Ok(())
-}
-
-fn save_response_json(
-    batch_inclusion_data_directory_path: PathBuf,
-    aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), SubmitError> {
-    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
-    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
-        + "_"
-        + &aligned_verification_data.index_in_batch.to_string()
-        + ".json";
-
-    let batch_inclusion_data_path =
-        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
-
-    let data = serde_json::to_vec(&aligned_verification_data).unwrap();
-
-    let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    file.write_all(data.as_slice())
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
-
-    Ok(())
 }
 
 pub async fn get_user_balance(
