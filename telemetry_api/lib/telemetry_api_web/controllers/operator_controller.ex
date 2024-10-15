@@ -2,7 +2,6 @@ defmodule TelemetryApiWeb.OperatorController do
   use TelemetryApiWeb, :controller
 
   alias TelemetryApi.Operators
-  alias TelemetryApi.Utils
   alias TelemetryApi.Operators.Operator
 
   action_fallback(TelemetryApiWeb.FallbackController)
