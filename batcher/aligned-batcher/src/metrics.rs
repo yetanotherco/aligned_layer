@@ -40,6 +40,7 @@ impl BatcherMetrics {
         registry.register(Box::new(received_proofs.clone()))?;
         registry.register(Box::new(sent_batches.clone()))?;
         registry.register(Box::new(reverted_batches.clone()))?;
+        registry.register(Box::new(gas_price_used_on_latest_batch.clone()))?;
         registry.register(Box::new(batcher_started.clone()))?;
         registry.register(Box::new(broken_sockets_on_latest_batch.clone()))?;
         registry.register(Box::new(dismissed_sockets_latest_batch.clone()))?;
