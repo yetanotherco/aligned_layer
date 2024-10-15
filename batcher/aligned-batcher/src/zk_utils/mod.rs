@@ -111,6 +111,9 @@ pub(crate) async fn filter_disabled_verifiers(
             }
         })
         .collect();
+
+    // Send invalid proof messages to the clients whose proofs were removed.
+    // This is outside the loop because we needed to use await to send the message and we can't do that inside the filter_map.
     for entry in removed_entries {
         let ws_sink = entry.messaging_sink.as_ref();
         if let Some(ws_sink) = ws_sink {
