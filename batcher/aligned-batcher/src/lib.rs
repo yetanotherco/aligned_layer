@@ -7,7 +7,7 @@ use ethers::signers::Signer;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -837,6 +837,8 @@ impl Batcher {
         finalized_batch: Vec<BatchQueueEntry>,
         gas_price: U256,
     ) -> Result<(), BatcherError> {
+        let finalized_batch = self.validate_sockets_connection(finalized_batch).await;
+
         let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
@@ -911,6 +913,55 @@ impl Batcher {
         self.metrics.broken_sockets_latest_batch.set(0);
         self.send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree)
             .await
+    }
+
+    /// here we go to each entry and make sure the client connection is still alive
+    /// if not, we remove it from the finalized batch.
+    /// we also remove all the user proofs in the current batch queue as this will create discrepancies with the nonces
+    /// finally, we remove the user entry from the cache as to re-query its nonce from ethereum when he sends another proof
+    async fn validate_sockets_connection(
+        &self,
+        finalized_batch: Vec<BatchQueueEntry>,
+    ) -> Vec<BatchQueueEntry> {
+        let mut filtered_finalized_batch = vec![];
+        let mut closed_clients = HashSet::new();
+
+        let remove_client = |addr: Address, mut batch_state_lock: MutexGuard<'_, BatchState>| {
+            batch_state_lock.batch_queue = batch_state_lock
+                .batch_queue
+                .clone()
+                .into_iter()
+                .filter(|entry| (entry.0.sender == addr))
+                .collect();
+            batch_state_lock.user_states.remove(&addr);
+        };
+
+        for batch_entry in finalized_batch {
+            let addr = batch_entry.sender;
+            if closed_clients.contains(&addr) {
+                continue;
+            }
+
+            let Some(ws_conn) = batch_entry.messaging_sink.clone() else {
+                closed_clients.insert(addr);
+                remove_client(addr, self.batch_state.lock().await);
+                continue;
+            };
+
+            // we make sure its still alive by sending a ping message
+            let ping_msg = Message::Ping(vec![]);
+            if let Err(e) = ws_conn.clone().write().await.send(ping_msg).await {
+                // todo: add metric here
+                error!("Failed to send ping, WebSocket may be closed: {:?}", e);
+                closed_clients.insert(addr);
+                remove_client(batch_entry.sender, self.batch_state.lock().await);
+                continue;
+            };
+
+            filtered_finalized_batch.push(batch_entry);
+        }
+
+        filtered_finalized_batch
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
