@@ -28,13 +28,13 @@ defmodule TelemetryApi.Operators do
 
   ## Examples
 
-      iex> get_operator(%Operator{id: some_id})
+      iex> get_operator(%{id: some_id})
       {:ok, %Operator{}}
 
-      iex> get_operator(%Operator{address: some_address})
+      iex> get_operator(%{address: some_address})
       {:ok, %Operator{}}
 
-      iex> get_operator(%Operator{address: non_existent_address})
+      iex> get_operator(%{address: non_existent_address})
       {:error, :not_found, "Operator not found for address: non_existent_address"}
   """
   def get_operator(%{address: address}) do
@@ -187,5 +187,21 @@ defmodule TelemetryApi.Operators do
   """
   def change_operator(%Operator{} = operator, attrs \\ %{}) do
     Operator.changeset(operator, attrs)
+  end
+
+  @doc """
+  Checks if an operator is registered.
+
+  ## Examples
+
+      iex> is_registered?(%Operator{status: "REGISTERED"})
+      true
+
+      iex> is_registered?(%Operator{status: "DEREGISTERED"})
+      false
+
+  """
+  def is_registered?(operator) do
+    operator.status == "REGISTERED"
   end
 end
