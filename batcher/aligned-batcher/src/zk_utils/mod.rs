@@ -274,7 +274,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_remove_new_data_from_user_with_disabled_verifier() {
+    async fn test_remove_new_proofs_from_same_user_with_previous_invalid() {
         // Disabling SP1 verifier.
         let disabled_verifiers = Mutex::new(U256::from(8));
         let mut batch_queue = BatchQueue::new();
@@ -316,7 +316,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_keep_old_proofs_for_user_with_new_invalid() {
+    async fn test_keep_correct_proofs_previous_to_the_invalid() {
         // Disabling SP1 verifier.
         let disabled_verifiers = Mutex::new(U256::from(8));
         let mut batch_queue = BatchQueue::new();
