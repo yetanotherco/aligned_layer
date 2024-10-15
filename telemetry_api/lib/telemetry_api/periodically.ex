@@ -1,4 +1,4 @@
-defmodule TelemetryApi.Periodic.OperatorFetcher do
+defmodule TelemetryApi.Periodically do
   use GenServer
   alias TelemetryApi.Operators
   alias TelemetryApi.EthereumMetrics

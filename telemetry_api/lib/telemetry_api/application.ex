@@ -19,7 +19,7 @@ defmodule TelemetryApi.Application do
       # {TelemetryApi.Worker, arg},
       # Start to serve requests, typically the last entry
       TelemetryApiWeb.Endpoint,
-      TelemetryApi.Periodic.OperatorFetcher
+      TelemetryApi.Periodically
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
