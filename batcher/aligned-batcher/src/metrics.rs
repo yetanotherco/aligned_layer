@@ -34,14 +34,6 @@ pub static BROKEN_SOCKETS_LATEST_BATCH: Lazy<IntGauge> = Lazy::new(|| {
     .unwrap()
 });
 
-pub static AVG_BROKEN_SOCKETS_PER_BATCH: Lazy<IntGauge> = Lazy::new(|| {
-    register_int_gauge!(opts!(
-        "avg_broken_sockets_per_batch",
-        "Average broken socket per batch"
-    ))
-    .unwrap()
-});
-
 // so Prometheus can collect our metrics.
 pub async fn metrics_handler() -> Result<impl Reply, Rejection> {
     use prometheus::Encoder;
@@ -77,8 +69,6 @@ pub fn init_variables() {
     GAS_PRICE_USED_ON_LATEST_BATCH.set(0);
 
     BROKEN_SOCKETS_LATEST_BATCH.set(0);
-
-    AVG_BROKEN_SOCKETS_PER_BATCH.set(0);
 }
 
 pub fn batcher_started() {
