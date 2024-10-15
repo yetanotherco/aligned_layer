@@ -7,7 +7,7 @@ use aligned_sdk::core::types::{
     ProofInvalidReason, ProvingSystemId, ValidityResponseMessage, VerificationData,
 };
 use ethers::types::U256;
-use log::{debug, info, warn};
+use log::{debug, warn};
 use tokio::sync::MutexGuard;
 
 pub(crate) async fn verify(verification_data: &VerificationData) -> bool {
@@ -85,50 +85,44 @@ pub(crate) async fn filter_disabled_verifiers(
     disabled_verifiers: MutexGuard<'_, U256>,
 ) -> BatchQueue {
     let mut removed_entries = Vec::new();
-    let filtered_batch_queue = batch_queue
-        .iter()
-        .filter_map(|(entry, entry_priority)| {
-            info!(
-                "Verifying proof for proving system {}",
-                entry
-                    .nonced_verification_data
-                    .verification_data
-                    .proving_system
+    let mut filtered_batch_queue = BatchQueue::new();
+    for (entry, entry_priority) in batch_queue.iter() {
+        let verification_data = &entry.nonced_verification_data.verification_data;
+        if is_verifier_disabled(*disabled_verifiers, verification_data) {
+            warn!(
+                "Verifier for proving system {} is now disabled, removing proofs from batch",
+                verification_data.proving_system
             );
-            let verification_data = &entry.nonced_verification_data.verification_data;
-            if !is_verifier_disabled(*disabled_verifiers, verification_data)
-                && !removed_entries
-                    .iter()
-                    .any(|e: &BatchQueueEntry| e.sender == entry.sender)
-            {
-                Some((entry.clone(), entry_priority.clone()))
-            } else {
-                warn!(
-                    "Verifier for proving system {} is now disabled, removing proofs from batch",
-                    verification_data.proving_system
-                );
-                removed_entries.push(entry.clone());
-
-                None
+            let ws_sink = entry.messaging_sink.as_ref();
+            if let Some(ws_sink) = ws_sink {
+                send_message(
+                    ws_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                        entry
+                            .nonced_verification_data
+                            .verification_data
+                            .proving_system,
+                    )),
+                )
+                .await;
             }
-        })
-        .collect();
-
-    // Send invalid proof messages to the clients whose proofs were removed.
-    // This is outside the loop because we needed to use await to send the message and we can't do that inside the filter_map.
-    for entry in removed_entries {
-        let ws_sink = entry.messaging_sink.as_ref();
-        if let Some(ws_sink) = ws_sink {
-            send_message(
-                ws_sink.clone(),
-                ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
-                    entry
-                        .nonced_verification_data
-                        .verification_data
-                        .proving_system,
-                )),
-            )
-            .await;
+            removed_entries.push(entry.clone());
+            continue;
+        } else if removed_entries
+            .iter()
+            .any(|e: &BatchQueueEntry| e.sender == entry.sender)
+        {
+            let ws_sink = entry.messaging_sink.as_ref();
+            if let Some(ws_sink) = ws_sink {
+                send_message(
+                    ws_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::PriorProofInvalidity),
+                )
+                .await;
+                continue;
+            }
+        } else {
+            filtered_batch_queue.push(entry.clone(), entry_priority.clone());
         }
     }
     filtered_batch_queue

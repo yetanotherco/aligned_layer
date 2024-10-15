@@ -350,6 +350,7 @@ pub enum ProofInvalidReason {
     RejectedProof,
     VerifierNotSupported,
     DisabledVerifier(ProvingSystemId),
+    PriorProofInvalidity,
 }
 
 impl Display for ValidityResponseMessage {
@@ -390,6 +391,7 @@ impl Display for ProofInvalidReason {
             ProofInvalidReason::DisabledVerifier(id) => {
                 write!(f, "Disabled {} verifier ", id)
             }
+            ProofInvalidReason::PriorProofInvalidity => write!(f, "Prior proof was invalidated"),
             ProofInvalidReason::RejectedProof => write!(f, "Proof did not verify"),
         }
     }
