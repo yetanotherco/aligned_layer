@@ -7,6 +7,7 @@ env_vars=(
   "ENVIRONMENT"
   "ALIGNED_CONFIG_FILE"
   "OPERATOR_FETCHER_WAIT_TIME_MS"
+  "RPC_URL"
 )
 
 for var in "${env_vars[@]}"; do
