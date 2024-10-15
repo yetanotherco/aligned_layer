@@ -520,7 +520,7 @@ generate_sp1_fibonacci_proof:
 
 generate_risc_zero_empty_journal_proof:
 	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
-	@echo "Fibonacci proof and ELF generated with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
+	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
 
 
 __RISC_ZERO_FFI__: ##
