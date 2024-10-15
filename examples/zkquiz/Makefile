@@ -20,3 +20,6 @@ answer_quiz_local:
 		--batcher-url ws://localhost:8080 \
 		--network devnet \
   		--verifier-contract-address $(CONTRACT_ADDRESS)
+
+compile_elf:
+	cd quiz/program && cargo prove build
