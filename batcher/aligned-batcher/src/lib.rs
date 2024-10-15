@@ -12,13 +12,15 @@ use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use aligned_sdk::core::constants::{
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+};
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ResponseMessage, ValidityResponseMessage,
     VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
-};
-use aligned_sdk::core::constants::{
-    AGGREGATOR_GAS_COST, ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, CONSTANT_GAS_COST, DEFAULT_MAX_FEE_PER_PROOF, MIN_FEE_PER_PROOF,
-    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER
 };
 
 use aws_sdk_s3::client::Client as S3Client;
