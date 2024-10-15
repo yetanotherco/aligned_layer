@@ -614,6 +614,42 @@ fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), SubmitError> {
+    let _ = save_response_cbor(batch_inclusion_data_directory_path.clone(), &aligned_verification_data.clone())?;
+    let _ = save_response_json(batch_inclusion_data_directory_path, &aligned_verification_data)?;
+    Ok(())
+}
+
+fn save_response_cbor(
+    batch_inclusion_data_directory_path: PathBuf,
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), SubmitError> {
+    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
+    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
+        + "_"
+        + &aligned_verification_data.index_in_batch.to_string()
+        + ".cbor";
+
+    let batch_inclusion_data_path =
+        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
+
+    let data = cbor_serialize(&aligned_verification_data)?;
+
+    let mut file = File::create(&batch_inclusion_data_path)
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+    file.write_all(data.as_slice())
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+    info!(
+        "Batch inclusion data written into {}",
+        batch_inclusion_data_path.display()
+    );
+
+    Ok(())
+}
+
+fn save_response_json(
+    batch_inclusion_data_directory_path: PathBuf,
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), SubmitError> {
     let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
         + "_"
@@ -623,7 +659,7 @@ fn save_response(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    let data = cbor_serialize(&aligned_verification_data)?;
+    let data = serde_json::to_vec(&aligned_verification_data).unwrap();
 
     let mut file = File::create(&batch_inclusion_data_path)
         .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
