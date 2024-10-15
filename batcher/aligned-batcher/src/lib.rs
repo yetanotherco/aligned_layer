@@ -1013,13 +1013,27 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price = match self.get_gas_price().await {
-            Some(price) => price,
-            None => {
-                error!("Failed to get gas price");
-                return Err(BatcherError::GasPriceError);
-            }
-        };
+        let gas_price_future = self.get_gas_price();
+        let disabled_verifiers_future = self.disabled_verifiers();
+
+        let (gas_price, disable_verifiers) =
+            tokio::join!(gas_price_future, disabled_verifiers_future);
+        let gas_price = gas_price.ok_or(BatcherError::GasPriceError)?;
+        let new_disable_verifiers =
+            disable_verifiers.map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
+
+        let mut disabled_verifiers = self.disabled_verifiers.lock().await;
+        if new_disable_verifiers != *disabled_verifiers {
+            let mut batch_state = self.batch_state.lock().await;
+            *disabled_verifiers = new_disable_verifiers;
+            warn!("Disabled verifiers updated, filtering queue");
+            let filered_batch_queue = zk_utils::filter_disabled_verifiers(
+                batch_state.batch_queue.clone(),
+                disabled_verifiers,
+            )
+            .await;
+            batch_state.batch_queue = filered_batch_queue;
+        }
 
         if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
             let batch_finalization_result = self

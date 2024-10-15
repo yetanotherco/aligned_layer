@@ -1,9 +1,14 @@
-use crate::gnark::verify_gnark;
+use crate::connection::send_message;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
-use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
+use crate::types::batch_queue::BatchQueue;
+use crate::{gnark::verify_gnark, types::batch_queue::BatchQueueEntry};
+use aligned_sdk::core::types::{
+    ProofInvalidReason, ProvingSystemId, ValidityResponseMessage, VerificationData,
+};
 use ethers::types::U256;
-use log::{debug, warn};
+use log::{debug, info, warn};
+use tokio::sync::MutexGuard;
 
 pub(crate) async fn verify(verification_data: &VerificationData) -> bool {
     let verification_data = verification_data.clone();
@@ -68,6 +73,57 @@ pub(crate) fn is_verifier_disabled(
     verification_data: &VerificationData,
 ) -> bool {
     disabled_verifiers & (U256::one() << verification_data.proving_system as u64) != U256::zero()
+}
+
+pub(crate) async fn filter_disabled_verifiers(
+    batch_queue: BatchQueue,
+    disabled_verifiers: MutexGuard<'_, U256>,
+) -> BatchQueue {
+    let mut removed_entries = Vec::new();
+    let filtered_batch_queue = batch_queue
+        .iter()
+        .filter_map(|(entry, entry_priority)| {
+            info!(
+                "Verifying proof for proving system {}",
+                entry
+                    .nonced_verification_data
+                    .verification_data
+                    .proving_system
+            );
+            let verification_data = &entry.nonced_verification_data.verification_data;
+            if !is_verifier_disabled(*disabled_verifiers, verification_data)
+                && !removed_entries
+                    .iter()
+                    .any(|e: &BatchQueueEntry| e.sender == entry.sender)
+            {
+                Some((entry.clone(), entry_priority.clone()))
+            } else {
+                warn!(
+                    "Verifier for proving system {} is now disabled, removing proofs from batch",
+                    verification_data.proving_system
+                );
+                removed_entries.push(entry.clone());
+
+                None
+            }
+        })
+        .collect();
+    for entry in removed_entries {
+        let ws_sink = entry.messaging_sink.as_ref();
+        if let Some(ws_sink) = ws_sink {
+            send_message(
+                ws_sink.clone(),
+                ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                    entry
+                        .nonced_verification_data
+                        .verification_data
+                        .proving_system,
+                )),
+            )
+            .await;
+        }
+    }
+    filtered_batch_queue
 }
 
 #[cfg(test)]
