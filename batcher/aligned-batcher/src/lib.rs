@@ -908,7 +908,7 @@ impl Batcher {
             return Err(e);
         };
 
-        self.metrics.broken_sockets_latest_batch.set(0);
+        self.metrics.broken_sockets_on_latest_batch.set(0);
         self.send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree)
             .await
     }
