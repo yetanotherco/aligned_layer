@@ -13,6 +13,15 @@ enum RetryError {
     NonRecoverableError,
 }
 
+impl RetryError {
+    fn should_retry(&self) -> bool {
+        match self {
+            RetryError::NonRecoverableError => false,
+            RetryError::RecoverableError => true,
+        }
+    }
+}
+
 impl std::fmt::Display for RetryError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -63,11 +72,11 @@ async fn main() {
         // Sleep implementation, required if no feature has been enabled
         .sleep(tokio::time::sleep)
         // When to retry
-        .when(|e| e.to_string() == "Recoverable")
+        .when(|e: &RetryError| e.should_retry())
         // Notify when retrying
         .notify(|err: &RetryError, dur: Duration| {
             println!("retrying {:?} after {:?}", err, dur);
         })
         .await;
-    println!("action succeeded: {:?}", content);
+    println!("RESULT: {:?}", content);
 }
