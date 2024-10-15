@@ -13,8 +13,4 @@ docker-compose.yaml
 .github/**
 **.md
 LICENSE
-**.ini
-**.git**
-**grafana**
 docs/**
-prometheus/**
