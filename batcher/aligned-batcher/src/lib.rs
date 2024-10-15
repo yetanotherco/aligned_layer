@@ -47,6 +47,9 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
+#[cfg(test)]
+mod testonly;
+
 const AGGREGATOR_GAS_COST: u128 = 400_000;
 const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
 pub(crate) const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
@@ -426,7 +429,9 @@ impl Batcher {
                 );
                 send_message(
                     ws_conn_sink.clone(),
-                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                        verification_data.proving_system,
+                    )),
                 )
                 .await;
                 return Ok(());
