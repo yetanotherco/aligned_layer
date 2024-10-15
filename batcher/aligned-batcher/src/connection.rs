@@ -43,15 +43,15 @@ pub(crate) async fn send_batch_inclusion_data_responses(
             .await;
 
         match sending_result {
-            Err(Error::AlreadyClosed) => (),
-            Err(e) => {
+            Err(Error::ConnectionClosed) | Err(Error::AlreadyClosed) | Err(Error::Io(_)) => {
                 metrics::BROKEN_SOCKETS_LATEST_BATCH.inc();
+                error!("Error while sending the batch response, socket connection was closed!");
+            }
+            Err(e) => {
                 error!("Error while sending batch inclusion data response: {}", e);
             }
-            Ok(_) => (),
+            Ok(_) => info!("Response sent"),
         }
-
-        info!("Response sent");
     }
 
     Ok(())
