@@ -349,7 +349,7 @@ pub enum ValidityResponseMessage {
 pub enum ProofInvalidReason {
     RejectedProof,
     VerifierNotSupported,
-    DisabledVerifier,
+    DisabledVerifier(ProvingSystemId),
 }
 
 impl Display for ValidityResponseMessage {
@@ -387,7 +387,9 @@ impl Display for ProofInvalidReason {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ProofInvalidReason::VerifierNotSupported => write!(f, "Verifier not supported"),
-            ProofInvalidReason::DisabledVerifier => write!(f, "Disabled verifier"),
+            ProofInvalidReason::DisabledVerifier(id) => {
+                write!(f, "Disabled {} verifier ", id)
+            }
             ProofInvalidReason::RejectedProof => write!(f, "Proof did not verify"),
         }
     }
@@ -398,6 +400,7 @@ pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
     CreateNewTaskError(String),
+    InvalidProof(ProofInvalidReason),
     BatchReset,
     Error(String),
 }
