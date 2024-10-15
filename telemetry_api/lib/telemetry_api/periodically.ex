@@ -27,7 +27,7 @@ defmodule TelemetryApi.Periodically do
   def send_work() do
     one_second = 1000
     :timer.send_interval(@wait_time_ms, :fetch_operators)
-    :timer.send_interval(one_second * 12, :gas_price) # every 12 seconds, once per block
+    :timer.send_interval(one_second * 10, :gas_price) # every 10 seconds, once per block + some margin
   end
 
   def handle_info(:fetch_operators, _state) do
