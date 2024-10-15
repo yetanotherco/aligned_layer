@@ -8,6 +8,15 @@ defmodule TelemetryApi.MixProject do
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      releases: [
+        telemetry_api: [
+          applications: [
+            # https://opentelemetry.io/docs/languages/erlang/exporters/#setting-up-the-collector
+            opentelemetry_exporter: :permanent,
+            opentelemetry: :temporary
+          ]
+        ]
+      ],
       aliases: aliases(),
       deps: deps()
     ]
@@ -45,7 +54,10 @@ defmodule TelemetryApi.MixProject do
       {:bandit, "~> 1.5"},
       {:ex_keccak, "~> 0.7.5"},
       {:ex_secp256k1, "~> 0.7"},
-      {:ethers, "~> 0.4.4"}
+      {:ethers, "~> 0.4.4"},
+      {:opentelemetry, "~> 1.3"},
+      {:opentelemetry_api, "~> 1.2"},
+      {:opentelemetry_exporter, "~> 1.6"}
     ]
   end
 
