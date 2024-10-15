@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
@@ -38,6 +39,9 @@ func main() {
 	}
 }
 
+const garbageCollectorPeriod = time.Second * 150 //TODO change to time.Day * 1
+const garbageCollectorTasksAge = uint64(10)     //TODO change to 2592000, 1 month of blocks
+
 func aggregatorMain(ctx *cli.Context) error {
 
 	configFilePath := ctx.String(config.ConfigFileFlag.Name)
@@ -48,6 +52,13 @@ func aggregatorMain(ctx *cli.Context) error {
 		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
 		return err
 	}
+
+	// Supervisor revives garbage collector
+	go func() {
+		for {
+			aggregator.ClearTasksFromMaps(garbageCollectorPeriod, garbageCollectorTasksAge)
+		}
+	}()
 
 	// Listen for new task created in the ServiceManager contract in a separate goroutine, both V1 and V2 subscriptions:
 	go func() {

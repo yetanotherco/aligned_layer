@@ -178,7 +178,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		telemetry:             aggregatorTelemetry,
 	}
 
-	go aggregator.clearTasksFromMaps(garbageCollectorPeriod, garbageCollectorTasksAge)
 
 	return &aggregator, nil
 }
@@ -217,8 +216,6 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 
 const MaxSentTxRetries = 5
 
-const garbageCollectorPeriod = time.Second * 150 //TODO change to time.Day * 1
-const garbageCollectorTasksAge = uint64(10)     //TODO change to 2592000, 1 month of blocks
 
 const BLS_AGG_SERVICE_TIMEOUT = 100 * time.Second
 
@@ -392,8 +389,15 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 }
 
 // long-lived gorouting that periodically checks and removes old Tasks from stored Maps
-func (agg *Aggregator) clearTasksFromMaps(period time.Duration, blocksOld uint64) {
-	agg.AggregatorConfig.BaseConfig.Logger.Info("- Removing finalized Task Infos from Maps every %d seconds", period)
+func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64) {
+	defer func() {
+		err := recover() //stops panics
+		if err != nil {
+			agg.logger.Error(err.(string))
+		}
+	}()
+
+	agg.AggregatorConfig.BaseConfig.Logger.Info(fmt.Sprintf("- Removing finalized Task Infos from Maps every %v", period))
 	lastIdxDeleted := uint32(0)
 
 	for {
