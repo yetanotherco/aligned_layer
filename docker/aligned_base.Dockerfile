@@ -38,4 +38,6 @@ COPY Makefile .
 COPY operator ./operator
 COPY batcher/aligned-sdk ./batcher/aligned-sdk
 
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+
 RUN make build_all_ffi_linux
