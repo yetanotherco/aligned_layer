@@ -11,6 +11,7 @@ func TestBaseUrlOnlyHappyPath(t *testing.T) {
 		{"http://localhost:8545/asdfoij2a7831has89%342jddav98j2748", "localhost:8545"},
 		{"ws://test.com/23r2f98hkjva0udhvi1j%342jddav98j2748", "test.com"},
 		{"http://localhost:8545", "localhost:8545"},
+		{"https://myservice.com/holesky/ApiKey", "myservice.com/holesky"},
 	}
 
 	for _, pair := range urls {

@@ -1,17 +1,33 @@
 package operator
 
 import (
-	"errors"
+	"fmt"
 	"regexp"
+	"strings"
 )
 
-func BaseUrlOnly(url string) (string, error) {
-	// Removes the protocol and api key part from any url formated like so:
-	// "<protocol>://<base_url>/<api_key>"
-	regex := regexp.MustCompile(`^[a-z]+://([^/]+)`)
-	match := regex.FindStringSubmatch(url)
-	if len(match) > 1 {
-		return match[1], nil
+func BaseUrlOnly(input string) (string, error) {
+	// Define a regex pattern to match the URL format
+	// The pattern captures the scheme, host, and path
+	pattern := `^(?P<scheme>[^:]+)://(?P<host>[^/]+)(?P<path>/.*)?$`
+	re := regexp.MustCompile(pattern)
+
+	matches := re.FindStringSubmatch(input)
+
+	if matches == nil {
+		return "", fmt.Errorf("invalid URL: %s", input)
 	}
-	return "", errors.New("url did not match the expected format <protocol>://<base_url>/<api_key>")
+
+	host := matches[2]
+	path := matches[3]
+
+	// If the path is not empty, append the path without the last segment (api_key)
+	if path != "" {
+		pathSegments := strings.Split(path, "/")
+		if len(pathSegments) > 1 {
+			return host + strings.Join(pathSegments[:len(pathSegments)-1], "/"), nil
+		}
+	}
+
+	return host, nil
 }
