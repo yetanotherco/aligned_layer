@@ -900,11 +900,7 @@ impl Batcher {
         };
 
         metrics::BROKEN_SOCKETS_LATEST_BATCH.set(0);
-        let res =
-            connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree)
-                .await;
-
-        res
+        connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
