@@ -13,7 +13,7 @@ pub struct BatcherMetrics {
     pub reverted_batches: IntCounter,
     pub batcher_started: IntCounter,
     pub gas_price_used_on_latest_batch: IntGauge,
-    pub broken_sockets_latest_batch: IntGauge,
+    pub broken_sockets_on_latest_batch: IntGauge,
     pub dismissed_sockets_latest_batch: IntGauge,
 }
 
@@ -29,8 +29,8 @@ impl BatcherMetrics {
         let batcher_started = register_int_counter!(opts!("batcher_started", "Batcher Started"))?;
         let gas_price_used_on_latest_batch =
             register_int_gauge!(opts!("gas_price_used_on_latest_batch", "Gas Price"))?;
-        let broken_sockets_latest_batch =
-            register_int_gauge!(opts!("broken_sockets_latest_batch", "Broken sockets"))?;
+        let broken_sockets_on_latest_batch =
+            register_int_gauge!(opts!("broken_sockets_on_latest_batch", "Broken sockets"))?;
         let dismissed_sockets_latest_batch = register_int_gauge!(opts!(
             "dismissed_sockets_latest_batch",
             "Dismissed sockets latest batch"
@@ -41,7 +41,7 @@ impl BatcherMetrics {
         registry.register(Box::new(sent_batches.clone()))?;
         registry.register(Box::new(reverted_batches.clone()))?;
         registry.register(Box::new(batcher_started.clone()))?;
-        registry.register(Box::new(broken_sockets_latest_batch.clone()))?;
+        registry.register(Box::new(broken_sockets_on_latest_batch.clone()))?;
         registry.register(Box::new(dismissed_sockets_latest_batch.clone()))?;
 
         let metrics_route = warp::path!("metrics")
@@ -61,7 +61,7 @@ impl BatcherMetrics {
             reverted_batches,
             batcher_started,
             gas_price_used_on_latest_batch,
-            broken_sockets_latest_batch,
+            broken_sockets_on_latest_batch,
             dismissed_sockets_latest_batch,
         })
     }
