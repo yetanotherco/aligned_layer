@@ -408,4 +408,45 @@ mod tests {
 
         assert_eq!(recovered_address, wallet.address())
     }
+
+    #[tokio::test]
+    async fn risc0_signature_recovers_correct_address() {
+        const ANVIL_PRIVATE_KEY: &str =
+            "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
+        let wallet = LocalWallet::from_str(ANVIL_PRIVATE_KEY).expect("Failed to create wallet");
+
+        let proof = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
+        let pub_input = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub");
+        let image_id = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin");
+        let proving_system = ProvingSystemId::Risc0;
+
+        let verification_data = VerificationData {
+            proving_system,
+            proof: proof.to_vec(),
+            pub_input: Some(pub_input.to_vec()),
+            vm_program_code: Some(image_id.to_vec()),
+            verification_key: None,
+            proof_generator_addr: wallet.address(),
+        };
+
+        let nonced_verification_data = NoncedVerificationData::new(
+            verification_data,
+            1.into(),
+            2.into(),
+            3.into(),
+            wallet.address(),
+        );
+
+        let signed_data = wallet
+            .sign_typed_data(&nonced_verification_data)
+            .await
+            .unwrap();
+
+        let recovered_address = signed_data
+            .recover_typed_data(&nonced_verification_data)
+            .unwrap();
+
+        assert_eq!(recovered_address, wallet.address())
+    }
+
 }
