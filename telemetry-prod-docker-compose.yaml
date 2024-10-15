@@ -46,7 +46,8 @@ services:
       - CASSANDRA_USER=admin
       - CASSANDRA_PASSWORD=admin
     depends_on:
-      - cassandra-schema
+      cassandra-schema:
+        condition: service_completed_successfully
 
 volumes:
   cassandra-data:
