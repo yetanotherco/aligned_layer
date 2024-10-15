@@ -8,6 +8,7 @@ defmodule TelemetryApi.Operators.Operator do
     field :stake, :string
     field :name, :string
     field :version, :string
+    field :status, :string
     field :eth_rpc_url, :string
     field :eth_rpc_url_fallback, :string
     field :eth_ws_url, :string
@@ -25,6 +26,7 @@ defmodule TelemetryApi.Operators.Operator do
       :stake,
       :name,
       :version,
+      :status,
       :eth_rpc_url,
       :eth_rpc_url_fallback,
       :eth_ws_url,
