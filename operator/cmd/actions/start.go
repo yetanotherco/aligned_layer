@@ -12,6 +12,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
+	utils "github.com/yetanotherco/aligned_layer/operator/pkg"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -39,19 +40,19 @@ func updateTelemetryService(operator *operator.Operator, ctx *cli.Context, opera
 	if err != nil {
 		return err
 	}
-	ethRpcUrl, err := baseUrlOnly(operatorConfig.BaseConfig.EthRpcUrl)
+	ethRpcUrl, err := utils.BaseUrlOnly(operatorConfig.BaseConfig.EthRpcUrl)
 	if err != nil {
 		return err
 	}
-	ethRpcUrlFallback, err := baseUrlOnly(operatorConfig.BaseConfig.EthRpcUrlFallback)
+	ethRpcUrlFallback, err := utils.BaseUrlOnly(operatorConfig.BaseConfig.EthRpcUrlFallback)
 	if err != nil {
 		return err
 	}
-	ethWsUrl, err := baseUrlOnly(operatorConfig.BaseConfig.EthWsUrl)
+	ethWsUrl, err := utils.BaseUrlOnly(operatorConfig.BaseConfig.EthWsUrl)
 	if err != nil {
 		return err
 	}
-	ethWsUrlFallback, err := baseUrlOnly(operatorConfig.BaseConfig.EthWsUrlFallback)
+	ethWsUrlFallback, err := utils.BaseUrlOnly(operatorConfig.BaseConfig.EthWsUrlFallback)
 	if err != nil {
 		return err
 	}

@@ -1,11 +1,11 @@
-package actions
+package operator
 
 import (
 	"errors"
 	"regexp"
 )
 
-func baseUrlOnly(url string) (string, error) {
+func BaseUrlOnly(url string) (string, error) {
 	// Removes the protocol and api key part from any url formated like so:
 	// "<protocol>://<base_url>/<api_key>"
 	regex := regexp.MustCompile(`^[a-z]+://([^/]+)`)
@@ -13,5 +13,5 @@ func baseUrlOnly(url string) (string, error) {
 	if len(match) > 1 {
 		return match[1], nil
 	}
-	return "", errors.New("Url did not match the expected format <protocol>://<base_url>/<api_key>")
+	return "", errors.New("url did not match the expected format <protocol>://<base_url>/<api_key>")
 }

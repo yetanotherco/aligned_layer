@@ -1,4 +1,4 @@
-package actions
+package operator
 
 import (
 	"testing"
@@ -17,7 +17,7 @@ func TestBaseUrlOnlyHappyPath(t *testing.T) {
 		url := pair[0]
 		expectedBaseUrl := pair[1]
 
-		baseUrl, err := baseUrlOnly(url)
+		baseUrl, err := BaseUrlOnly(url)
 
 		if err != nil {
 			t.Errorf("Unexpected error for URL %s: %v", url, err)
@@ -37,7 +37,7 @@ func TestBaseUrlOnlyFailureCases(t *testing.T) {
 	}
 
 	for _, url := range urls {
-		baseUrl, err := baseUrlOnly(url)
+		baseUrl, err := BaseUrlOnly(url)
 
 		if err == nil {
 			t.Errorf("An error was expected, but received %s", baseUrl)
