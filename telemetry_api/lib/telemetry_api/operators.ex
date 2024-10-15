@@ -112,14 +112,14 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Updates an operator's version.
+  Updates an operator.
 
   ## Examples
 
-      iex> update_operator(%{field: value})
+      iex> update_operator(some_version, some_signature, %{field: value})
       {:ok, %Ecto.Changeset{}}
 
-      iex> update_operator_version(%{field: bad_value})
+      iex> update_operator(some_version, invalid_signature, %{field:  value})
       {:error, "Some status", "Some message"}
 
   """
@@ -132,9 +132,27 @@ defmodule TelemetryApi.Operators do
            "Provided address does not correspond to any registered operator"}
 
         operator ->
-          operator |> Operator.changeset(changes) |> Repo.insert_or_update()
+          update_operator(operator, changes)
       end
     end
+  end
+
+  @doc """
+  Updates an operator.
+
+  ## Examples
+
+      iex> update_operator(operator, %{field: new_value})
+      {:ok, %Operator{}}
+
+      iex> update_operator(operator, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_operator(%Operator{} = operator, attrs) do
+    operator
+    |> Operator.changeset(attrs)
+    |> Repo.update()
   end
 
   @doc """
