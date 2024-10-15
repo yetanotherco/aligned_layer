@@ -81,6 +81,7 @@ pub struct Batcher {
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
+    disabled_verifiers: Mutex<U256>,
 }
 
 impl Batcher {
@@ -212,6 +213,12 @@ impl Batcher {
             None
         };
 
+        let disabled_verifiers = match service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => service_manager_fallback.disabled_verifiers().call().await,
+        }
+        .expect("Failed to get disabled verifiers");
+
         Self {
             s3_client,
             s3_bucket_name,
@@ -232,6 +239,7 @@ impl Batcher {
             non_paying_config,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
+            disabled_verifiers: Mutex::new(disabled_verifiers),
         }
     }
 
