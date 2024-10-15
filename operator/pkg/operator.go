@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -111,6 +112,10 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	address := configuration.Operator.Address
 	lastProcessedBatchLogFile := configuration.Operator.LastProcessedBatchFilePath
 
+	if lastProcessedBatchLogFile == "" {
+		logger.Fatalf("Config file field: `last_processed_batch_filepath` not provided.")
+	}
+
 	// Metrics
 	reg := prometheus.NewRegistry()
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
@@ -137,7 +142,10 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		// Socket
 	}
 
-	_ = operator.LoadLastProcessedBatch()
+	err = operator.LoadLastProcessedBatch()
+	if err != nil {
+		logger.Fatalf("Error while loading last process batch: %v. This is probably related to the `last_processed_batch_filepath` field passed in the config file", err)
+	}
 
 	return operator, nil
 }
@@ -156,16 +164,26 @@ type OperatorLastProcessedBatch struct {
 }
 
 func (o *Operator) LoadLastProcessedBatch() error {
+	// check if the directory exist
+	folderPath := filepath.Dir(o.lastProcessedBatchLogFile)
+	_, err := os.Stat(folderPath)
+
+	if os.IsNotExist(err) {
+		return err
+	}
+
 	file, err := os.ReadFile(o.lastProcessedBatchLogFile)
 
+	// if the file does not exist, we don't return an err, as it will get created later
+	// that is why we check of the directory exist in the first place
 	if err != nil {
-		return fmt.Errorf("failed read from file: %v", err)
+		return nil
 	}
 
 	err = json.Unmarshal(file, &o.lastProcessedBatch)
 
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal batch: %v", err)
+		return err
 	}
 
 	return nil

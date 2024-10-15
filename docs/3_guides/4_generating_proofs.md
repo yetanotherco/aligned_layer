@@ -9,7 +9,7 @@ This guide assumes that:
 - sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
 - sp1 project to generate the proofs
   (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
-- aligned installed (instructions [here](../1_introduction/1_getting_started.md#quickstart))
+- aligned installed (instructions [here](../1_introduction/1_try_aligned.md#quickstart))
 
 ### How to generate a proof
 
@@ -106,7 +106,7 @@ This guide assumes that:
 
 - Risc0 toolchain installed (instructions [here](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain))
 - Risc0 project to generate the proofs (instructions [here](https://dev.risczero.com/api/zkvm/quickstart#2-create-a-new-project))
-- Aligned installed (instructions [here](../1_introduction/1_getting_started.md#quickstart))
+- Aligned installed (instructions [here](../1_introduction/1_try_aligned.md#quickstart))
 
 ### How to generate a proof
 
