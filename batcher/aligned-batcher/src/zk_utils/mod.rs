@@ -78,6 +78,8 @@ pub(crate) fn is_verifier_disabled(
     disabled_verifiers & (U256::one() << verification_data.proving_system as u64) != U256::zero()
 }
 
+/// Filters out proofs from the batch queue that are using disabled verifiers.
+/// This function will be used when there's a change in the disabled verifiers bitmap but the batcher already processed some proofs.
 pub(crate) async fn filter_disabled_verifiers(
     batch_queue: BatchQueue,
     disabled_verifiers: MutexGuard<'_, U256>,
