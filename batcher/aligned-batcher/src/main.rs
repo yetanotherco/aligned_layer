@@ -52,7 +52,7 @@ async fn main() -> Result<(), BatcherError> {
         }
     });
 
-    batcher.metrics.batcher_started.inc();
+    batcher.metrics.inc_batcher_restart();
 
     batcher.listen_connections(&addr).await?;
 

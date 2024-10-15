@@ -1,3 +1,5 @@
+use std::{thread, time::Duration};
+
 // Prometheus
 use prometheus::{opts, register_int_counter, register_int_gauge, IntCounter, IntGauge};
 
@@ -66,5 +68,12 @@ impl BatcherMetrics {
         buffer.clear();
 
         Ok(res)
+    }
+
+    pub fn inc_batcher_restart(&self) {
+        // Sleep for 2 seconds to allow prometheus to start and set the metrics with default intial values.
+        // If prometheus is not ready, the metrics will directly be set to 1 and prometheus will not be able to display the correct increment.
+        thread::sleep(Duration::from_secs(2));
+        self.batcher_started.inc();
     }
 }
