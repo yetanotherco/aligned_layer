@@ -1,4 +1,4 @@
-docker/*
+docker/**
 **/.DS_Store
 **/.idea
 out
@@ -11,3 +11,10 @@ volume
 nonce_*.bin
 docker-compose.yaml
 .github/**
+**.md
+LICENSE
+**.ini
+**.git**
+**grafana**
+docs/**
+prometheus/**
