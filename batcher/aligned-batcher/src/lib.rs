@@ -1265,7 +1265,7 @@ impl Batcher {
                 .await;
 
             match sending_result {
-                Err(Error::ConnectionClosed) | Err(Error::AlreadyClosed) | Err(Error::Io(_)) => {
+                Err(Error::ConnectionClosed) | Err(Error::Io(_)) => {
                     self.metrics.broken_sockets_on_latest_batch.inc();
                     error!("Error while sending the batch response, socket connection was closed!");
                 }
