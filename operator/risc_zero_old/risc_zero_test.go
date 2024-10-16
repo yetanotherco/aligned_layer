@@ -1,4 +1,4 @@
-package risc_zero_test
+package risc_zero_old_test
 
 import (
 	"os"
