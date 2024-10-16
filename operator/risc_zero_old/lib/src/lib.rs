@@ -2,7 +2,7 @@ use log::error;
 use risc0_zkvm::{InnerReceipt, Receipt};
 
 #[no_mangle]
-pub extern "C" fn verify_risc_zero_receipt_ffi(
+pub extern "C" fn verify_risc_zero_receipt_old_ffi(
     inner_receipt_bytes: *const u8,
     inner_receipt_len: u32,
     image_id: *const u8,
