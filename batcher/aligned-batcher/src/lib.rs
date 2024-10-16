@@ -4,6 +4,7 @@ use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
+use retry::{retry_function, RetryError};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -36,9 +37,9 @@ use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 mod config;
 mod connection;
 mod eth;
-mod retry;
 pub mod gnark;
 pub mod metrics;
+mod retry;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
@@ -951,7 +952,7 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price = match self.get_gas_price().await {
+        let gas_price = match self.get_gas_price_with_retry().await {
             Some(price) => price,
             None => {
                 error!("Failed to get gas price");
@@ -1220,23 +1221,32 @@ impl Batcher {
         false
     }
 
+    async fn get_gas_price_with_retry(&self) -> Option<U256> {
+        if let Ok(gas_price) = retry_function(|| self.get_gas_price(), 2000, 2.0, 3).await {
+            return Some(gas_price);
+        }
+        None
+    }
+
     /// Gets the current gas price from Ethereum.
     /// Returns `None` if the gas price couldn't be returned
     /// FIXME: This should return a `Result` instead.
-    async fn get_gas_price(&self) -> Option<U256> {
+    async fn get_gas_price(&self) -> Result<U256, RetryError<()>> {
         if let Ok(gas_price) = self
             .eth_ws_provider
             .get_gas_price()
             .await
             .inspect_err(|e| warn!("Failed to get gas price. Trying with fallback: {e:?}"))
         {
-            return Some(gas_price);
+            return Ok(gas_price);
         }
 
-        self.eth_ws_provider_fallback
-            .get_gas_price()
-            .await
-            .inspect_err(|e| warn!("Failed to get gas price: {e:?}"))
-            .ok()
+        match self.eth_ws_provider_fallback.get_gas_price().await {
+            Ok(gas_price) => Ok(gas_price),
+            Err(e) => {
+                warn!("Failed to get gas price: {e:?}");
+                Err(RetryError::Transient)
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
-use std::{future::Future, time::Duration};
 use backon::ExponentialBuilder;
 use backon::Retryable;
+use std::{future::Future, time::Duration};
 
 #[derive(Debug)]
 pub enum RetryError<E> {
@@ -15,7 +15,7 @@ impl<E> std::fmt::Display for RetryError<E> {
 }
 impl<E> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
 
-async fn retry<FutureFn, Fut, T, E>(
+pub async fn retry_function<FutureFn, Fut, T, E>(
     function: FutureFn,
     min_delay: u64,
     factor: f32,
@@ -54,7 +54,9 @@ mod test {
             Err(RetryError::Permanent(()))
         }
 
-        assert!(retry(|| dummy_action(10), 2000, 2.0, 3).await.is_err());
+        assert!(retry_function(|| dummy_action(10), 2000, 2.0, 3)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
@@ -73,6 +75,6 @@ mod test {
             }
         }
 
-        assert!(retry(get_gas_price, 2000, 2.0, 3).await.is_ok());
+        assert!(retry_function(get_gas_price, 2000, 2.0, 3).await.is_ok());
     }
 }
