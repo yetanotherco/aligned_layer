@@ -1,4 +1,4 @@
-name: test-risc-zero
+name: test-risc-zero-old
 
 on:
   merge_group:
@@ -8,7 +8,7 @@ on:
     branches: ["*"]
     paths:
       - "operator/risc_zero/**"
-      - ".github/workflows/test-risc-zero.yml"
+      - ".github/workflows/test-risc-zero-old.yml"
 
 jobs:
   test:

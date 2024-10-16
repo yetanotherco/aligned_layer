@@ -1,4 +1,4 @@
-name: test-sp1
+name: test-sp1-old
 
 on:
   merge_group:
@@ -8,7 +8,7 @@ on:
     branches: ["*"]
     paths:
       - 'operator/sp1/**'
-      - '.github/workflows/test-sp1.yml'
+      - '.github/workflows/test-sp1-old.yml'
 
 jobs:
     test:
