@@ -18,12 +18,14 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	risc_zero_old "github.com/yetanotherco/aligned_layer/operator/risc_zero_old"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	sp1_old "github.com/yetanotherco/aligned_layer/operator/sp1_old"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -520,7 +522,7 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
 		if !verificationResult {
 			o.Logger.Infof("SP1 proof verification failed. Trying old SP1 version...")
-			verificationResult = sp1_old.VerifySP1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
+			verificationResult = sp1_old.VerifySp1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
 			if !verificationResult {
 				o.Logger.Errorf("SP1 proof verification failed")
 				results <- verificationResult
@@ -535,7 +537,7 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 			verificationData.VmProgramCode, verificationData.PubInput)
 		if !verificationResult {
 			o.Logger.Infof("Risc0 proof verification failed. Trying old SP1 version...")
-			verificationResult = risc_zero_old.VerifyRiscZeroReceipt(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
+			verificationResult = risc_zero_old.VerifyRiscZeroReceiptOld(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
 			if !verificationResult {
 				o.Logger.Errorf("Risc0 proof verification failed")
 				results <- verificationResult
