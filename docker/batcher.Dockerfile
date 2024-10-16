@@ -1,44 +1,47 @@
-FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS builder
-
-RUN apt update -y
-RUN apt install -y gcc
+ROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS base
 
 COPY go.mod .
 COPY go.sum .
-COPY batcher ./batcher
+COPY batcher /aligned_layer/batcher/
+
+RUN apt update -y && apt install -y gcc
+RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
+
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+
+FROM chef AS planner
+
+COPY --from=base /aligned_layer/batcher/aligned-batcher /aligned_layer/batcher/aligned-batcher
+WORKDIR /aligned_layer/batcher/aligned-batcher/
+RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned-batcher/recipe.json
+
+COPY --from=base /aligned_layer/batcher/aligned/Cargo.toml /aligned_layer/batcher/aligned/Cargo.toml
+WORKDIR /aligned_base/batcher/aligned/
+RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned/recipe.json
+
+FROM chef AS chef_builder
 
 WORKDIR /aligned_layer/batcher/aligned-batcher
+COPY --from=planner /aligned_layer/batcher/aligned-batcher/recipe.json /aligned_layer/batcher/aligned-batcher/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned-batcher/recipe.json
 
-RUN go build -buildmode=c-archive -o libverifier.a ./gnark/verifier.go
+WORKDIR /aligned_layer/batcher/aligned/
+COPY --from=planner /aligned_layer/batcher/aligned/recipe.json /aligned_layer/batcher/aligned/recipe.json
+RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
-WORKDIR /aligned_layer
+FROM base AS builder
 
-COPY batcher/aligned-batcher/Cargo.toml batcher/aligned-batcher/Cargo.toml
-COPY batcher/aligned/Cargo.toml batcher/aligned/Cargo.toml
+COPY --from=chef_builder /aligned_layer/batcher/** /aligned_layer/batcher/
+RUN cargo build --manifest-path /aligned_layer/batcher/aligned-batcher/Cargo.toml --release
+RUN cargo build --manifest-path /aligned_layer/batcher/aligned/Cargo.toml --release
 
-RUN cargo build --manifest-path ./batcher/aligned-batcher/Cargo.toml --release
-RUN cargo build --manifest-path ./batcher/aligned/Cargo.toml --release
-
-COPY scripts/test_files/gnark_groth16_bn254_infinite_script scripts/test_files/gnark_groth16_bn254_infinite_script
-
-RUN go build -o ./gnark_groth16_bn254_infinite_script scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go
-
-RUN rm -rf operator/
-
-FROM debian:bookworm-slim
-
-WORKDIR /aligned_layer
+FROM debian:bookworm-slim AS final
 
 COPY --from=builder /aligned_layer /aligned_layer
 COPY --from=builder /aligned_layer/batcher/target/release/aligned-batcher /usr/local/bin/
 COPY --from=builder /aligned_layer/batcher/target/release/aligned /usr/local/bin/
 COPY --from=builder /aligned_layer/gnark_groth16_bn254_infinite_script /usr/local/bin
-COPY ./contracts/script ./contracts/script
-COPY ../scripts/test_files/ ./scripts/test_files
-COPY ./config-files/config-batcher-docker.yaml ./config-files/
-COPY ./config-files/anvil.batcher.ecdsa.key.json ./config-files/
 
-RUN apt update -y
-RUN apt install -y libssl-dev ca-certificates
+RUN apt update -y && apt install -y libssl-dev ca-certificates
 
 CMD ["aligned-batcher", "--config", "./config-files/config-batcher-docker.yaml"]
