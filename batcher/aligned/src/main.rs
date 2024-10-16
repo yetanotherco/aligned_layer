@@ -14,7 +14,7 @@ use aligned_sdk::core::{
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
-use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple, save_response};
+use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;

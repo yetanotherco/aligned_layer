@@ -42,9 +42,9 @@ use futures_util::{
     StreamExt, TryStreamExt,
 };
 
-use std::path::PathBuf;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
@@ -667,13 +667,19 @@ pub async fn get_balance_in_aligned(
 /// # Returns
 /// * Ok if the data is saved successfully.
 /// # Errors
-/// * `FileError` if there is an error writing the data to the file. 
+/// * `FileError` if there is an error writing the data to the file.
 pub fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), errors::FileError> {
-    let _ = save_response_cbor(batch_inclusion_data_directory_path.clone(), &aligned_verification_data.clone())?;
-    let _ = save_response_json(batch_inclusion_data_directory_path, &aligned_verification_data)?;
+    let _ = save_response_cbor(
+        batch_inclusion_data_directory_path.clone(),
+        &aligned_verification_data.clone(),
+    )?;
+    let _ = save_response_json(
+        batch_inclusion_data_directory_path,
+        &aligned_verification_data,
+    )?;
     Ok(())
 }
 fn save_response_cbor(
