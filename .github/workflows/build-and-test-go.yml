@@ -27,8 +27,12 @@ jobs:
           cache: false
       - name: Build SP1 bindings
         run: make build_sp1_linux
+      - name: Build Old SP1 bindings
+        run: make build_sp1_linux_old
       - name: Build Risc Zero go bindings
         run: make build_risc_zero_linux
+      - name: Build Old Risc Zero go bindings
+        run: make build_risc_zero_linux_old
       - name: Build Merkle Tree bindings
         run: make build_merkle_tree_linux
       - name: Build operator
