@@ -511,8 +511,8 @@ test_sp1_go_bindings_linux_old: build_sp1_linux_old
 # @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.elf scripts/test_files/sp1/
 generate_sp1_fibonacci_proof_old:
 	@cd scripts/test_files/sp1/fibonacci_proof_generator_old/script && RUST_LOG=info cargo run --release
-	@mv scripts/test_files/sp1/fibonacci_proof_generator_old/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci.elf
-	@mv scripts/test_files/sp1/fibonacci_proof_generator_old/script/sp1_fibonacci.proof scripts/test_files/sp1/
+	@mv scripts/test_files/sp1/fibonacci_proof_generator_old/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci_old.elf
+	@mv scripts/test_files/sp1/fibonacci_proof_generator_old/script/sp1_fibonacci_old.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
 __RISC_ZERO_FFI__: ##
