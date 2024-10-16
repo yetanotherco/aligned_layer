@@ -610,6 +610,7 @@ test_risc_zero_go_bindings_macos_old: build_risc_zero_macos_old
 	go test ./operator/risc_zero_old/... -v
 
 test_risc_zero_go_bindings_linux_old: build_risc_zero_linux_old
+	@export LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero_old/lib
 	@echo "Testing RISC Zero Go bindings..."
 	go test ./operator/risc_zero_old/... -v
 
