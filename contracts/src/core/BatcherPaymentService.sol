@@ -2,17 +2,21 @@ pragma solidity ^0.8.12;
 
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
+// import {PausableUpgradeable} from "@openzeppelin-upgrades/contracts/security/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
 import {BatcherPaymentServiceStorage} from "./BatcherPaymentServiceStorage.sol";
 
+import {IPauserRegistry} from "eigenlayer-core/contracts/interfaces/IPauserRegistry.sol";
+import {Pausable} from "eigenlayer-core/contracts/permissions/Pausable.sol";
+
+// Removed PausableUpgradeable , check if storage dies after upgrade becase BatcherPaymentServiceStorage is after the one I deleted
 contract BatcherPaymentService is
     Initializable,
     OwnableUpgradeable,
-    PausableUpgradeable,
     UUPSUpgradeable,
-    BatcherPaymentServiceStorage
+    BatcherPaymentServiceStorage,
+    Pausable
 {
     // CONSTANTS = 100 Blocks * 12 second block time.
     uint256 public constant UNLOCK_BLOCK_TIME = 3600 seconds;
@@ -56,7 +60,9 @@ contract BatcherPaymentService is
     function initialize(
         IAlignedLayerServiceManager _alignedLayerServiceManager,
         address _batcherPaymentServiceOwner,
-        address _batcherWallet
+        address _batcherWallet,
+        IPauserRegistry _pauserRegistry,
+        uint256 _initialPausedStatus
     ) public initializer {
         if (address(_alignedLayerServiceManager) == address(0)) {
             revert InvalidAddress("alignedServiceManager");
@@ -69,7 +75,8 @@ contract BatcherPaymentService is
         }
         __Ownable_init(); // default is msg.sender
         __UUPSUpgradeable_init();
-        __Pausable_init();
+        _initializePauser(_pauserRegistry, _initialPausedStatus);
+
         _transferOwnership(_batcherPaymentServiceOwner);
 
         alignedLayerServiceManager = _alignedLayerServiceManager;
@@ -77,7 +84,7 @@ contract BatcherPaymentService is
     }
 
     // PAYABLE FUNCTIONS
-    receive() external payable {
+    receive() external payable onlyWhenNotPaused(0) {
         userData[msg.sender].balance += msg.value;
         userData[msg.sender].unlockBlockTime = 0;
         emit PaymentReceived(msg.sender, msg.value);
@@ -91,7 +98,7 @@ contract BatcherPaymentService is
         uint256 feeForAggregator,
         uint256 feePerProof,
         uint256 respondToTaskFeeLimit
-    ) external onlyBatcher whenNotPaused {
+    ) external onlyBatcher onlyWhenNotPaused(1) {
         uint256 proofSubmittersQty = proofSubmitters.length;
 
         if (proofSubmittersQty == 0) {
@@ -139,7 +146,7 @@ contract BatcherPaymentService is
         );
     }
 
-    function unlock() external whenNotPaused {
+    function unlock() external onlyWhenNotPaused(2){
         if (userData[msg.sender].balance == 0) {
             revert UserHasNoFundsToUnlock(msg.sender);
         }
@@ -150,7 +157,7 @@ contract BatcherPaymentService is
         emit BalanceUnlocked(msg.sender, userData[msg.sender].unlockBlockTime);
     }
 
-    function lock() external whenNotPaused {
+    function lock() external onlyWhenNotPaused(3) {
         if (userData[msg.sender].balance == 0) {
             revert UserHasNoFundsToLock(msg.sender);
         }
@@ -158,7 +165,7 @@ contract BatcherPaymentService is
         emit BalanceLocked(msg.sender);
     }
 
-    function withdraw(uint256 amount) external whenNotPaused {
+    function withdraw(uint256 amount) external onlyWhenNotPaused(4) {
         UserInfo storage senderData = userData[msg.sender];
         if (senderData.balance < amount) {
             revert PayerInsufficientBalance(senderData.balance, amount);
@@ -178,13 +185,13 @@ contract BatcherPaymentService is
         emit FundsWithdrawn(msg.sender, amount);
     }
 
-    function pause() public onlyOwner {
-        _pause();
-    }
+    // function pause() public onlyOwner {
+    //     _pause();
+    // }
 
-    function unpause() public onlyOwner {
-        _unpause();
-    }
+    // function unpause() public onlyOwner {
+    //     _unpause();
+    // }
 
     function _authorizeUpgrade(
         address newImplementation
