@@ -99,7 +99,7 @@ defmodule TelemetryApi.Operators do
       operators = (new_operators ++ old_operators)
 
       # Insert in db
-      operators = Enum.map(operators, fn {op, op_data} ->
+      Enum.map(operators, fn {op, op_data} ->
         Operator.changeset(op, op_data) |> Repo.insert_or_update()
       end)
       end
