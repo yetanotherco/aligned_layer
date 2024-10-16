@@ -1,19 +1,13 @@
 package actions
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"log"
-	"net/http"
 
 	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	operator "github.com/yetanotherco/aligned_layer/operator/pkg"
-	utils "github.com/yetanotherco/aligned_layer/operator/pkg"
-	"golang.org/x/crypto/sha3"
 )
 
 var StartFlags = []cli.Flag{
@@ -25,68 +19,6 @@ var StartCommand = &cli.Command{
 	Description: "CLI command to boot operator",
 	Flags:       StartFlags,
 	Action:      operatorMain,
-}
-
-func updateTelemetryService(operator *operator.Operator, ctx *cli.Context, operatorConfig *config.OperatorConfig) error {
-	// hash version
-	hash := sha3.NewLegacyKeccak256()
-	hash.Write([]byte(ctx.App.Version))
-
-	// get hash
-	version := hash.Sum(nil)
-
-	// sign version
-	signature, err := crypto.Sign(version[:], operatorConfig.EcdsaConfig.PrivateKey)
-	if err != nil {
-		return err
-	}
-	ethRpcUrl, err := utils.BaseUrlOnly(operatorConfig.BaseConfig.EthRpcUrl)
-	if err != nil {
-		return err
-	}
-	ethRpcUrlFallback, err := utils.BaseUrlOnly(operatorConfig.BaseConfig.EthRpcUrlFallback)
-	if err != nil {
-		return err
-	}
-	ethWsUrl, err := utils.BaseUrlOnly(operatorConfig.BaseConfig.EthWsUrl)
-	if err != nil {
-		return err
-	}
-	ethWsUrlFallback, err := utils.BaseUrlOnly(operatorConfig.BaseConfig.EthWsUrlFallback)
-	if err != nil {
-		return err
-	}
-
-	body := map[string]interface{}{
-		"version":              ctx.App.Version,
-		"signature":            signature,
-		"eth_rpc_url":          ethRpcUrl,
-		"eth_rpc_url_fallback": ethRpcUrlFallback,
-		"eth_ws_url":           ethWsUrl,
-		"eth_ws_url_fallback":  ethWsUrlFallback,
-	}
-
-	bodyBuffer := new(bytes.Buffer)
-
-	bodyReader := json.NewEncoder(bodyBuffer)
-	err = bodyReader.Encode(body)
-	if err != nil {
-		return err
-	}
-
-	// send version to operator tracker server
-	endpoint := operatorConfig.Operator.OperatorTrackerIpPortAddress + "/versions"
-	operator.Logger.Info("Sending version to operator tracker server: ", "endpoint", endpoint)
-
-	res, err := http.Post(endpoint, "application/json", bodyBuffer)
-	if err != nil {
-		// Dont prevent operator from starting if operator tracker server is down
-		operator.Logger.Warn("Error sending version to metrics server: ", "err", err)
-	} else if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusNoContent {
-		operator.Logger.Warn("Error sending version to operator tracker server: ", "status_code", res.StatusCode)
-	}
-
-	return nil
 }
 
 func operatorMain(ctx *cli.Context) error {
@@ -102,7 +34,7 @@ func operatorMain(ctx *cli.Context) error {
 		return err
 	}
 
-	err = updateTelemetryService(operator, ctx, operatorConfig)
+	err = operator.SendTelemetryData(ctx)
 	if err != nil {
 		return err
 	}
