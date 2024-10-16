@@ -7,7 +7,7 @@ lazy_static! {
 }
 
 #[no_mangle]
-pub extern "C" fn verify_sp1_proof_ffi(
+pub extern "C" fn verify_sp1_proof_old_ffi(
     proof_bytes: *const u8,
     proof_len: u32,
     elf_bytes: *const u8,
