@@ -37,7 +37,6 @@ async fn main() -> Result<(), BatcherError> {
     };
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
 
@@ -52,6 +51,8 @@ async fn main() -> Result<(), BatcherError> {
                 .expect("Error listening for new blocks exiting")
         }
     });
+
+    batcher.metrics.inc_batcher_restart();
 
     batcher.listen_connections(&addr).await?;
 

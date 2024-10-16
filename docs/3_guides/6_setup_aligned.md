@@ -319,6 +319,11 @@ To start the [Batcher](../2_architecture/components/1_batcher.md):
 make batcher_start
 ```
 
+If you are testing locally, you can run this instead:
+```bash
+make batcher_start_local
+```
+
 <details>
 <summary>More information about Batcher configuration:</summary>
 
@@ -365,6 +370,15 @@ ecdsa:
 ```bash
 make batcher_start
 ```
+
+or
+
+```bash
+make batcher_start_local
+```
+
+The latter version sets up a [localstack](https://www.localstack.cloud/) to act as a replacement for S3,
+so you don't need to interact with (and give money to) AWS for your tests.
 
 </details>
 

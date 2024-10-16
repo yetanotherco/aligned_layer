@@ -14,6 +14,7 @@ config :telemetry_api,
 # Configures the endpoint
 config :telemetry_api, TelemetryApiWeb.Endpoint,
   url: [host: "localhost"],
+  server: true,
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [json: TelemetryApiWeb.ErrorJSON],
@@ -29,6 +30,16 @@ config :logger, :console,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+# https://opentelemetry.io/docs/languages/erlang/exporters/#setting-up-the-collector
+config :opentelemetry_exporter,
+  otlp_protocol: :grpc,
+  otlp_endpoint: "http://localhost:4317"
+
+config :opentelemetry,
+  resource: %{service: %{name: "telemetry_api"}},
+  span_processor: :batch,
+  traces_exporter: :otlp
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
