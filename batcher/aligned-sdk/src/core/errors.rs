@@ -91,6 +91,7 @@ pub enum SubmitError {
     InvalidPaymentServiceAddress(H160, H160),
     BatchSubmissionFailed(String),
     AddToBatchError,
+    ConnectionClose(String),
     GenericError(String),
 }
 
@@ -200,6 +201,7 @@ impl fmt::Display for SubmitError {
             }
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
             SubmitError::AddToBatchError => write!(f, "Error while adding entry to batch"),
+            SubmitError::ConnectionClose(reason) => write!(f, "Connection closed: {}", reason),
         }
     }
 }

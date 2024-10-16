@@ -75,6 +75,16 @@ pub async fn send_messages(
             }
         };
 
+        if msg.is_close() {
+            if let Message::Close(Some(frame)) = msg {
+                return Err(SubmitError::ConnectionClose(frame.reason.to_string()));
+            } else {
+                return Err(SubmitError::ConnectionClose(
+                    "Connection was closed".to_string(),
+                ));
+            }
+        };
+
         let response_msg: ValidityResponseMessage = cbor_deserialize(msg.into_data().as_slice())
             .map_err(SubmitError::SerializationError)?;
 

@@ -554,6 +554,7 @@ async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
         SubmitError::InsufficientBalance => {
             error!("Insufficient balance to pay for the transaction")
         }
+        SubmitError::ConnectionClose(reason) => error!("Connection closed: {}", reason),
         _ => {}
     }
 
