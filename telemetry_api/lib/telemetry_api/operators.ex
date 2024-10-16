@@ -72,19 +72,39 @@ defmodule TelemetryApi.Operators do
 
   """
   def fetch_all_operators() do
-    with {:ok, operators} <- OperatorStateRetriever.get_operators() do
-      Enum.map(operators, fn op_data ->
-        with {:ok, full_operator_data} <- add_operator_metadata(op_data) do
-          case Repo.get(Operator, op_data.address) do
-            nil -> %Operator{}
-            operator -> operator
-          end
-          |> Operator.changeset(full_operator_data)
-          |> Repo.insert_or_update()
-        end
-      end)
-      |> TelemetryApi.Utils.check_list_status("Error fetching operators metadata")
-    end
+    {:ok, operators} = OperatorStateRetriever.get_operators()
+
+    # Construct tuple {%Operator{}, op_data}
+    operators = Enum.map(operators, fn op_data ->
+      {Repo.get(Operator, op_data.address), op_data}
+    end)
+
+    # Filter operators already stored on db and those that are new
+    new_operators = Enum.filter(operators, fn {op, _} -> is_nil(op) end)
+      |> Enum.map(fn {_, data} -> {%Operator{}, data} end)
+    old_operators = Enum.filter(operators, fn {op, _} -> not is_nil(op) end)
+
+    # Fetch metadata for new operators
+    new_operators = Enum.map(new_operators, fn {op, op_data} ->
+      case add_operator_metadata(op_data) do
+        {:ok, data} -> {:ok, {op, data}}
+        {:error, msg} -> {:error, msg}
+      end
+    end)
+    # Filter status ok and map to {op, op_data}
+      |> Enum.filter(fn {status, _} -> status == :ok end)
+      |> Enum.map(fn {_, data} -> data end)
+
+    # Merge both lists
+    IO.inspect(new_operators)
+    operators = (new_operators ++ old_operators)
+
+    # # Insert in db
+    operators = Enum.map(operators, fn {op, op_data} ->
+      Operator.changeset(op, op_data) |> Repo.insert_or_update()
+    end)
+
+    {:ok, operators}
   end
 
   # Adds operator metadata to received operator.
