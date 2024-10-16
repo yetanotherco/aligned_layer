@@ -667,12 +667,11 @@ pub async fn get_balance_in_aligned(
 /// # Returns
 /// * Ok if the data is saved successfully.
 /// # Errors
-/// * `SubmitError` if there is an error writing the data to the file. 
-// TODO choose a better error type, it is not a submit. maybe only IOError
+/// * `FileError` if there is an error writing the data to the file. 
 pub fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), errors::SubmitError> {
+) -> Result<(), errors::FileError> {
     let _ = save_response_cbor(batch_inclusion_data_directory_path.clone(), &aligned_verification_data.clone())?;
     let _ = save_response_json(batch_inclusion_data_directory_path, &aligned_verification_data)?;
     Ok(())
@@ -680,7 +679,7 @@ pub fn save_response(
 fn save_response_cbor(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), errors::SubmitError> {
+) -> Result<(), errors::FileError> {
     let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
         + "_"
@@ -693,9 +692,9 @@ fn save_response_cbor(
     let data = cbor_serialize(&aligned_verification_data)?;
 
     let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| errors::SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+        .map_err(|e| errors::FileError::IoError(batch_inclusion_data_path.clone(), e))?;
     file.write_all(data.as_slice())
-        .map_err(|e| errors::SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+        .map_err(|e| errors::FileError::IoError(batch_inclusion_data_path.clone(), e))?;
     info!(
         "Batch inclusion data written into {}",
         batch_inclusion_data_path.display()
@@ -706,7 +705,7 @@ fn save_response_cbor(
 fn save_response_json(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), errors::SubmitError> {
+) -> Result<(), errors::FileError> {
     let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
         + "_"
@@ -719,9 +718,9 @@ fn save_response_json(
     let data = serde_json::to_vec(&aligned_verification_data).unwrap();
 
     let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| errors::SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+        .map_err(|e| errors::FileError::IoError(batch_inclusion_data_path.clone(), e))?;
     file.write_all(data.as_slice())
-        .map_err(|e| errors::SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+        .map_err(|e| errors::FileError::IoError(batch_inclusion_data_path.clone(), e))?;
     info!(
         "Batch inclusion data written into {}",
         batch_inclusion_data_path.display()

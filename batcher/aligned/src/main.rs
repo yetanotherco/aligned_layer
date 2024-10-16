@@ -7,7 +7,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::communication::serialization::cbor_deserialize;
-use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
