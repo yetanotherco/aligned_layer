@@ -13,8 +13,9 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{
-    ClientMessage, NoncedVerificationData, ResponseMessage, ValidityResponseMessage,
-    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+    BatchInclusionData, ClientMessage, NoncedVerificationData, ResponseMessage,
+    ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
+    VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
@@ -1239,5 +1240,42 @@ impl Batcher {
             .await
             .inspect_err(|e| warn!("Failed to get gas price: {e:?}"))
             .ok()
+    }
+
+    pub(crate) async fn send_batch_inclusion_data_responses(
+        &self,
+        finalized_batch: Vec<BatchQueueEntry>,
+        batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
+    ) -> Result<(), BatcherError> {
+        for (vd_batch_idx, entry) in finalized_batch.iter().enumerate() {
+            let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
+            let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
+
+            let serialized_response = cbor_serialize(&response)
+                .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
+
+            let Some(ws_sink) = entry.messaging_sink.as_ref() else {
+                return Err(BatcherError::WsSinkEmpty);
+            };
+
+            let sending_result = ws_sink
+                .write()
+                .await
+                .send(Message::binary(serialized_response))
+                .await;
+
+            match sending_result {
+                Err(Error::ConnectionClosed) | Err(Error::AlreadyClosed) | Err(Error::Io(_)) => {
+                    self.metrics.broken_sockets_on_latest_batch.inc();
+                    error!("Error while sending the batch response, socket connection was closed!");
+                }
+                Err(e) => {
+                    error!("Error while sending batch inclusion data response: {}", e);
+                }
+                Ok(_) => info!("Response sent"),
+            }
+        }
+
+        Ok(())
     }
 }
