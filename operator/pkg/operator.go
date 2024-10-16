@@ -476,15 +476,33 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 
 	case common.SP1:
 		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
-		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-		results <- verificationResult
+		if !verificationResult {
+			o.Logger.Infof("SP1 proof verification failed. Trying old SP1 version...")
+			verificationResult = sp1_old.VerifySP1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
+			if !verificationResult {
+				o.Logger.Errorf("SP1 proof verification failed")
+				results <- verificationResult
+			}
+		} else {
+			o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
+			results <- verificationResult
+		}
 
 	case common.Risc0:
 		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
+		if !verificationResult {
+			o.Logger.Infof("Risc0 proof verification failed. Trying old SP1 version...")
+			verificationResult = risc_zero_old.VerifyRiscZeroReceipt(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
+			if !verificationResult {
+				o.Logger.Errorf("Risc0 proof verification failed")
+				results <- verificationResult
+			}
+		} else {
+			o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
+			results <- verificationResult
+		}
 
-		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
-		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
