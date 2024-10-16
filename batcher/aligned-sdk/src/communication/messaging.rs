@@ -175,6 +175,9 @@ pub async fn receive(
                     .to_string(),
             ));
         }
+        if msg.is_ping() {
+            continue;
+        }
         process_batch_inclusion_data(
             msg,
             &mut aligned_verification_data,
