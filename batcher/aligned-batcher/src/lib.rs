@@ -917,17 +917,16 @@ impl Batcher {
 
     /// here we go to each entry and make sure the client connection is still alive
     /// if not, we remove it from the finalized batch.
-    /// we also remove all the user proofs in the current batch queue as this will create discrepancies with the nonces
-    /// finally, we remove the user entry from the cache as to re-query its nonce from ethereum when he sends another proof
+    /// we also remove all the user proofs in the current batch as this will create discrepancies with the nonces
     async fn validate_sockets_connection(
         &self,
         finalized_batch: Vec<BatchQueueEntry>,
     ) -> Vec<BatchQueueEntry> {
         let mut filtered_finalized_batch = vec![];
         let mut closed_clients = HashSet::new();
-        let mut connections_to_drop = vec![];
+        let mut conns_to_drop = vec![];
 
-        let mut remove_client =
+        let mut remove_client_proofs_from_batch =
             |addr: Address, mut batch_state_lock: MutexGuard<'_, BatchState>| {
                 batch_state_lock.batch_queue = batch_state_lock
                     .batch_queue
@@ -936,32 +935,40 @@ impl Batcher {
                     .filter(|(entry, _)| {
                         let should_remove = entry.sender == addr;
 
-                        // also disconnect any other socket connection from the same address
+                        // we can't use async predicates in iterators
+                        // so we push the connection to drop later as they require futures
                         if should_remove {
                             if let Some(ws_conn) = &entry.messaging_sink {
-                                connections_to_drop.push(ws_conn.clone());
+                                conns_to_drop.push(ws_conn.clone());
                             };
+                            // remove the entry so if the user sends a new proof we re-query the nonce from eth
+                            batch_state_lock.user_states.remove(&addr);
                         };
 
                         should_remove
                     })
                     .collect();
-
-                if !self.is_nonpaying(&addr) {
-                    batch_state_lock.user_states.remove(&addr);
-                }
             };
 
         self.metrics.dismissed_sockets_latest_batch.set(0);
         for batch_entry in finalized_batch {
             let addr = batch_entry.sender;
+
+            // if the wallet is a non_paying we don't to remove the proof
+            // as this is used only in test environments and removing it would require handling the nonce
+            // effectively, adding a lot of overhead
+            if self.is_nonpaying(&addr) {
+                filtered_finalized_batch.push(batch_entry);
+                continue;
+            }
+
             if closed_clients.contains(&addr) {
                 continue;
             }
 
             let Some(ws_conn) = batch_entry.messaging_sink.clone() else {
                 closed_clients.insert(addr);
-                remove_client(addr, self.batch_state.lock().await);
+                remove_client_proofs_from_batch(addr, self.batch_state.lock().await);
                 continue;
             };
 
@@ -971,14 +978,14 @@ impl Batcher {
                 error!("Failed to send ping, WebSocket may be closed: {:?}", e);
                 self.metrics.dismissed_sockets_latest_batch.inc();
                 closed_clients.insert(addr);
-                remove_client(batch_entry.sender, self.batch_state.lock().await);
+                remove_client_proofs_from_batch(batch_entry.sender, self.batch_state.lock().await);
                 continue;
             };
 
             filtered_finalized_batch.push(batch_entry);
         }
 
-        for ws_conn in connections_to_drop {
+        for ws_conn in conns_to_drop {
             drop_connection(
                 ws_conn,
                 "Another connection of yours has disconnected".into(),
