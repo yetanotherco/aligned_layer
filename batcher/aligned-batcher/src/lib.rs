@@ -4,6 +4,7 @@ use connection::{drop_connection, send_message, WsMessageSink};
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
+use sha3::digest::generic_array::iter;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -21,7 +22,7 @@ use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, Si
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
-use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
+use futures_util::{future, stream, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
@@ -925,33 +926,30 @@ impl Batcher {
     ) -> Vec<BatchQueueEntry> {
         let mut filtered_finalized_batch = vec![];
         let mut closed_clients = HashSet::new();
+        let mut connections_to_drop = vec![];
 
-        let remove_client = |addr: Address, mut batch_state_lock: MutexGuard<'_, BatchState>| {
-            batch_state_lock.batch_queue = batch_state_lock
-                .batch_queue
-                .clone()
-                .into_iter()
-                .filter(|(entry, _)| {
-                    let should_remove = entry.sender == addr;
+        let mut remove_client =
+            |addr: Address, mut batch_state_lock: MutexGuard<'_, BatchState>| {
+                batch_state_lock.batch_queue = batch_state_lock
+                    .batch_queue
+                    .clone()
+                    .into_iter()
+                    .filter(|(entry, _)| {
+                        let should_remove = entry.sender == addr;
 
-                    // also disconnect any other socket connection
-                    if should_remove {
-                        if let Some(ws_conn) = &entry.messaging_sink {
-                            drop_connection(
-                                ws_conn.clone(),
-                                Some(
-                                    "Another opened connection from your address was disconnected",
-                                ),
-                            )
+                        // also disconnect any other socket connection from the same address
+                        if should_remove {
+                            if let Some(ws_conn) = &entry.messaging_sink {
+                                connections_to_drop.push(ws_conn.clone());
+                            };
                         };
-                    };
 
-                    should_remove
-                })
-                .collect();
+                        should_remove
+                    })
+                    .collect();
 
-            batch_state_lock.user_states.remove(&addr);
-        };
+                batch_state_lock.user_states.remove(&addr);
+            };
 
         self.metrics.dismissed_sockets_latest_batch.set(0);
         for batch_entry in finalized_batch {
@@ -977,6 +975,14 @@ impl Batcher {
             };
 
             filtered_finalized_batch.push(batch_entry);
+        }
+
+        for ws_conn in connections_to_drop {
+            drop_connection(
+                ws_conn,
+                "Another connection of yours has disconnected".into(),
+            )
+            .await;
         }
 
         filtered_finalized_batch

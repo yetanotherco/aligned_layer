@@ -79,10 +79,10 @@ pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, mess
     }
 }
 
-pub(crate) async fn drop_connection(ws_conn_sink: WsMessageSink, reason: Option<&str>) {
+pub(crate) async fn drop_connection(ws_conn_sink: WsMessageSink, reason: String) {
     let close_frame = CloseFrame {
         code: CloseCode::Normal,
-        reason: "Closing connection".into(),
+        reason: reason.into(),
     };
 
     ws_conn_sink
