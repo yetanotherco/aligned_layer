@@ -541,11 +541,6 @@ generate_sp1_fibonacci_proof_old:
 	@mv scripts/test_files/sp1/fibonacci_proof_generator_old/script/sp1_fibonacci_old.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
-generate_risc_zero_empty_journal_proof:
-	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
-	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
-
-
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
@@ -593,7 +588,7 @@ test_risc_zero_go_bindings_linux_old: build_risc_zero_linux_old
 	go test ./operator/risc_zero_old/... -v
 
 generate_risc_zero_fibonacci_proof_old:
-	@cd scripts/test_files/risc_zero_old/fibonacci_proof_generator_old && \
+	@cd scripts/test_files/risc_zero/fibonacci_proof_generator_old && \
 		RUST_LOG=info cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero_old folder"
 
