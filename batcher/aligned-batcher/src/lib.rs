@@ -4,7 +4,6 @@ use connection::{drop_connection, send_message, WsMessageSink};
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use sha3::digest::generic_array::iter;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -22,7 +21,7 @@ use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, Si
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
-use futures_util::{future, stream, SinkExt, StreamExt, TryStreamExt};
+use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
