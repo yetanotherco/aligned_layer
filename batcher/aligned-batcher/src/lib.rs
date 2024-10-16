@@ -36,6 +36,7 @@ use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 mod config;
 mod connection;
 mod eth;
+mod retry;
 pub mod gnark;
 pub mod metrics;
 pub mod risc_zero;
