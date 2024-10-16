@@ -542,11 +542,11 @@ generate_risc_zero_empty_journal_proof:
 
 build_sp1_macos_old:
 	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi_old.dylib operator/sp1/lib/libsp1_verifier_old.dylib
+	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.dylib operator/sp1/lib/libsp1_verifier_old.dylib
 
 build_sp1_linux_old:
 	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi_old.so operator/sp1/lib/libsp1_verifier_old.so
+	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.so operator/sp1/lib/libsp1_verifier_old.so
 
 test_sp1_rust_ffi_old:
 	@echo "Testing SP1 Rust FFI source code..."
