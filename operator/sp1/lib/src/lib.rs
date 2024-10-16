@@ -6,8 +6,7 @@ lazy_static! {
     static ref PROVER_CLIENT: ProverClient = ProverClient::new();
 }
 
-#[no_mangle]
-extern "C" fn inner_verify_sp1_proof_ffi(
+fn inner_verify_sp1_proof_ffi(
     proof_bytes: *const u8,
     proof_len: u32,
     elf_bytes: *const u8,

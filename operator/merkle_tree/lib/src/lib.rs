@@ -4,8 +4,7 @@ use aligned_sdk::core::types::{
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::error;
 
-#[no_mangle]
-pub extern "C" fn inner_verify_merkle_tree_batch_ffi(
+fn inner_verify_merkle_tree_batch_ffi(
     batch_ptr: *const u8,
     batch_len: usize,
     merkle_root: &[u8; 32],
