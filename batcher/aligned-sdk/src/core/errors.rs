@@ -342,6 +342,12 @@ impl From<SerializationError> for FileError {
     }
 }
 
+impl From<io::Error> for FileError {
+    fn from(e: io::Error) -> Self {
+        FileError::IoError(PathBuf::new(), e)
+    }
+}
+
 impl fmt::Display for FileError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {

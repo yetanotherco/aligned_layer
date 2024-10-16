@@ -697,10 +697,8 @@ fn save_response_cbor(
 
     let data = cbor_serialize(&aligned_verification_data)?;
 
-    let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| errors::FileError::IoError(batch_inclusion_data_path.clone(), e))?;
-    file.write_all(data.as_slice())
-        .map_err(|e| errors::FileError::IoError(batch_inclusion_data_path.clone(), e))?;
+    let mut file = File::create(&batch_inclusion_data_path)?;
+    file.write_all(data.as_slice())?;
     info!(
         "Batch inclusion data written into {}",
         batch_inclusion_data_path.display()
@@ -723,10 +721,8 @@ fn save_response_json(
 
     let data = serde_json::to_vec(&aligned_verification_data).unwrap();
 
-    let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| errors::FileError::IoError(batch_inclusion_data_path.clone(), e))?;
-    file.write_all(data.as_slice())
-        .map_err(|e| errors::FileError::IoError(batch_inclusion_data_path.clone(), e))?;
+    let mut file = File::create(&batch_inclusion_data_path)?;
+    file.write_all(data.as_slice())?;
     info!(
         "Batch inclusion data written into {}",
         batch_inclusion_data_path.display()
