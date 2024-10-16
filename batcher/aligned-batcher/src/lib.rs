@@ -1222,10 +1222,9 @@ impl Batcher {
     }
 
     async fn get_gas_price_with_retry(&self) -> Option<U256> {
-        if let Ok(gas_price) = retry_function(|| self.get_gas_price(), 2000, 2.0, 3).await {
-            return Some(gas_price);
-        }
-        None
+        retry_function(|| self.get_gas_price(), 2000, 2.0, 3)
+            .await
+            .ok()
     }
 
     /// Gets the current gas price from Ethereum.
@@ -1241,12 +1240,12 @@ impl Batcher {
             return Ok(gas_price);
         }
 
-        match self.eth_ws_provider_fallback.get_gas_price().await {
-            Ok(gas_price) => Ok(gas_price),
-            Err(e) => {
-                warn!("Failed to get gas price: {e:?}");
-                Err(RetryError::Transient)
-            }
-        }
+        self.eth_ws_provider_fallback
+            .get_gas_price()
+            .await
+            .map_err(|e| {
+                warn!("Failed to get fallback gas price: {e:?}");
+                RetryError::Transient
+            })
     }
 }
