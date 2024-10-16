@@ -27,6 +27,7 @@ batcher:
   max_batch_size: 268435456 # 256 MiB
   eth_ws_reconnects: 99999999999999
   pre_verification_is_enabled: true
+  metrics_port: 9093
 
 ## Aggregator Configurations
 aggregator:

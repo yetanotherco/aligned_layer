@@ -21,11 +21,17 @@ services:
       - CASSANDRA_PASSWORD=admin
     volumes:
       - cassandra-data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   cassandra-schema:
     image: jaegertracing/jaeger-cassandra-schema
     depends_on:
-      - cassandra
+      cassandra:
+        condition: service_healthy
 
   jaeger:
     image: jaegertracing/all-in-one:1.60
@@ -40,7 +46,8 @@ services:
       - CASSANDRA_USER=admin
       - CASSANDRA_PASSWORD=admin
     depends_on:
-      - cassandra-schema
+      cassandra-schema:
+        condition: service_completed_successfully
 
 volumes:
   cassandra-data:
