@@ -12,10 +12,11 @@ import (
 )
 
 type Metrics struct {
-	ipPortAddress            string
-	logger                   logging.Logger
-	numAggregatedResponses   prometheus.Counter
-	numOperatorTaskResponses prometheus.Counter
+	ipPortAddress              string
+	logger                     logging.Logger
+	numAggregatedResponses     prometheus.Counter
+	numAggregatorReceivedTasks prometheus.Counter
+	numOperatorTaskResponses   prometheus.Counter
 }
 
 const alignedNamespace = "aligned"
@@ -33,6 +34,11 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 			Namespace: alignedNamespace,
 			Name:      "operator_responses",
 			Help:      "Number of proof verified by the operator and sent to the Aligned Service Manager",
+		}),
+		numAggregatorReceivedTasks: promauto.With(reg).NewCounter(prometheus.CounterOpts{
+			Namespace: alignedNamespace,
+			Name:      "aggregator_received_tasks",
+			Help:      "Number of tasks received by the Service Manager",
 		}),
 	}
 }
@@ -55,6 +61,10 @@ func (m *Metrics) Start(ctx context.Context, reg prometheus.Gatherer) <-chan err
 		}
 	}()
 	return errC
+}
+
+func (m *Metrics) IncAggregatorReceivedTasks() {
+	m.numAggregatorReceivedTasks.Inc()
 }
 
 func (m *Metrics) IncAggregatedResponses() {

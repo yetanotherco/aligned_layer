@@ -12,7 +12,7 @@ defmodule SignatureVerifier do
   defp recover_public_key(hash, signature, recovery_id) do
     case ExSecp256k1.recover_compact(hash, signature, recovery_id) do
       {:ok, public_key} -> {:ok, public_key}
-      _error -> {:error, "Failed to recover public key"}
+      _error -> {:error, :bad_request, "Failed to recover public key"}
     end
   end
 

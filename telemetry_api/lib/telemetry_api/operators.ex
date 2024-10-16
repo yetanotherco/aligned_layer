@@ -24,19 +24,37 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Gets a single operator.
+  Gets a single operator by id or address.
 
   ## Examples
 
-      iex> get_operator("some_address"})
-      %Operator{}
+      iex> get_operator(%{id: some_id})
+      {:ok, %Operator{}}
 
-      iex> get_operator("non_existent_address")
-      nil
+      iex> get_operator(%{address: some_address})
+      {:ok, %Operator{}}
 
+      iex> get_operator(%{address: non_existent_address})
+      {:error, :not_found, "Operator not found for address: non_existent_address"}
   """
-  def get_operator(address) do
-    Repo.get(Operator, address)
+  def get_operator(%{address: address}) do
+    case Repo.get(Operator, address) do
+      nil ->
+        IO.inspect("Operator not found for address: #{address}")
+        {:error, :not_found, "Operator not found for address: #{address}"}
+
+      operator ->
+        {:ok, operator}
+    end
+  end
+
+  def get_operator(%{id: id}) do
+    query = from(o in Operator, where: o.id == ^id)
+
+    case Repo.one(query) do
+      nil -> {:error, :not_found, "Operator not found for id: {id}"}
+      operator -> {:ok, operator}
+    end
   end
 
   @doc """
@@ -94,34 +112,33 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Updates an operator's version.
+  Updates an operator.
 
   ## Examples
 
-      iex> update_operator_version(%{field: value})
+      iex> update_operator(some_version, some_signature, %{field: value})
       {:ok, %Ecto.Changeset{}}
 
-      iex> update_operator_version(%{field: bad_value})
-      {:error, string}
+      iex> update_operator(some_version, invalid_signature, %{field:  value})
+      {:error, "Some status", "Some message"}
 
   """
-  def update_operator_version(%{"version" => version, "signature" => signature}) do
+  def update_operator(version, signature, changes) do
     with {:ok, address} <- SignatureVerifier.recover_address(version, signature) do
       address = "0x" <> address
-      # We only want to allow changes on version
-      changes = %{
-        version: version
-      }
-
       case Repo.get(Operator, address) do
-        nil -> {:error, "Provided address does not correspond to any registered operator"}
-        operator -> operator |> Operator.changeset(changes) |> Repo.insert_or_update()
+        nil ->
+          {:error, :bad_request,
+           "Provided address does not correspond to any registered operator"}
+
+        operator ->
+          update_operator(operator, changes)
       end
     end
   end
 
   @doc """
-  Updates a operator.
+  Updates an operator.
 
   ## Examples
 
@@ -165,5 +182,21 @@ defmodule TelemetryApi.Operators do
   """
   def change_operator(%Operator{} = operator, attrs \\ %{}) do
     Operator.changeset(operator, attrs)
+  end
+
+  @doc """
+  Checks if an operator is registered.
+
+  ## Examples
+
+      iex> is_registered?(%Operator{status: "REGISTERED"})
+      true
+
+      iex> is_registered?(%Operator{status: "DEREGISTERED"})
+      false
+
+  """
+  def is_registered?(operator) do
+    operator.status == "REGISTERED"
   end
 end
