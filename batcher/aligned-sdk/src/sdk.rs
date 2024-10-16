@@ -679,7 +679,7 @@ pub fn save_response(
     )?;
     save_response_json(
         batch_inclusion_data_directory_path,
-        &aligned_verification_data,
+        aligned_verification_data,
     )
 }
 fn save_response_cbor(
