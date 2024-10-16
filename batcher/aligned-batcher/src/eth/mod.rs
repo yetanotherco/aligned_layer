@@ -1,12 +1,12 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
+use aligned_sdk::core::constants::{GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER};
 use aligned_sdk::eth::batcher_payment_service::BatcherPaymentServiceContract;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use gas_escalator::{Frequency, GeometricGasPrice};
 use log::info;
-use aligned_sdk::core::constants::{GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER};
 
 use crate::{config::ECDSAConfig, types::errors::BatcherSendError};
 
