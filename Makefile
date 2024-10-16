@@ -595,11 +595,11 @@ generate_risc_zero_fibonacci_proof:
 
 build_risc_zero_macos_old:
 	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_old_ffi.dylib
+	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.dylib operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.dylib
 
 build_risc_zero_linux_old:
 	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.so operator/risc_zero/lib/librisc_zero_verifier_old_ffi.so
+	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.so operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
 
 test_risc_zero_rust_ffi_old:
 	@echo "Testing RISC Zero Rust FFI source code..."
