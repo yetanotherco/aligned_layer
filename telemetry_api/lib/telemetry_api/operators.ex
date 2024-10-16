@@ -112,38 +112,33 @@ defmodule TelemetryApi.Operators do
   end
 
   @doc """
-  Updates an operator's version.
+  Updates an operator.
 
   ## Examples
 
-      iex> update_operator_version(%{field: value})
+      iex> update_operator(some_version, some_signature, %{field: value})
       {:ok, %Ecto.Changeset{}}
 
-      iex> update_operator_version(%{field: bad_value})
+      iex> update_operator(some_version, invalid_signature, %{field:  value})
       {:error, "Some status", "Some message"}
 
   """
-  def update_operator_version(%{"version" => version, "signature" => signature}) do
+  def update_operator(version, signature, changes) do
     with {:ok, address} <- SignatureVerifier.recover_address(version, signature) do
       address = "0x" <> address
-      # We only want to allow changes on version
-      changes = %{
-        version: version
-      }
-
       case Repo.get(Operator, address) do
         nil ->
           {:error, :bad_request,
            "Provided address does not correspond to any registered operator"}
 
         operator ->
-          operator |> Operator.changeset(changes) |> Repo.insert_or_update()
+          update_operator(operator, changes)
       end
     end
   end
 
   @doc """
-  Updates a operator.
+  Updates an operator.
 
   ## Examples
 

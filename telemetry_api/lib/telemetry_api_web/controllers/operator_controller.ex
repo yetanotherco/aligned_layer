@@ -11,8 +11,8 @@ defmodule TelemetryApiWeb.OperatorController do
     render(conn, :index, operators: operators)
   end
 
-  def create_or_update(conn, operator_params) do
-    with {:ok, %Operator{} = operator} <- Operators.update_operator_version(operator_params) do
+  def create_or_update(conn, %{"version" => version, "signature" => signature} = attrs) do
+    with {:ok, %Operator{} = operator} <- Operators.update_operator(version, signature, attrs) do
       conn
       |> put_status(:created)
       |> put_resp_header("location", ~p"/api/operators/#{operator}")
