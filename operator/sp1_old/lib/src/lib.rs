@@ -49,7 +49,7 @@ mod tests {
         let elf_bytes = ELF.as_ptr();
 
         let result =
-            verify_sp1_proof_ffi(proof_bytes, PROOF.len() as u32, elf_bytes, ELF.len() as u32);
+            verify_sp1_proof_old_ffi(proof_bytes, PROOF.len() as u32, elf_bytes, ELF.len() as u32);
         assert!(result)
     }
 
@@ -58,7 +58,7 @@ mod tests {
         let proof_bytes = PROOF.as_ptr();
         let elf_bytes = ELF.as_ptr();
 
-        let result = verify_sp1_proof_ffi(
+        let result = verify_sp1_proof_old_ffi(
             proof_bytes,
             (PROOF.len() - 1) as u32,
             elf_bytes,
