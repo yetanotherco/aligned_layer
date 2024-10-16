@@ -1,8 +1,8 @@
 use crate::connection::send_message;
+use crate::gnark::verify_gnark;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
 use crate::types::batch_queue::BatchQueue;
-use crate::{gnark::verify_gnark, types::batch_queue::BatchQueueEntry};
 use aligned_sdk::core::types::{
     ProofInvalidReason, ProvingSystemId, ValidityResponseMessage, VerificationData,
 };
@@ -84,7 +84,7 @@ pub(crate) async fn filter_disabled_verifiers(
     batch_queue: BatchQueue,
     disabled_verifiers: MutexGuard<'_, U256>,
 ) -> BatchQueue {
-    let mut removed_entries = Vec::new();
+    let mut removed_senders = Vec::new();
     let mut filtered_batch_queue = BatchQueue::new();
     for (entry, entry_priority) in batch_queue.iter() {
         let verification_data = &entry.nonced_verification_data.verification_data;
@@ -106,12 +106,9 @@ pub(crate) async fn filter_disabled_verifiers(
                 )
                 .await;
             }
-            removed_entries.push(entry.clone());
+            removed_senders.push(entry.sender);
             continue;
-        } else if removed_entries
-            .iter()
-            .any(|e: &BatchQueueEntry| e.sender == entry.sender)
-        {
+        } else if removed_senders.contains(&entry.sender) {
             let ws_sink = entry.messaging_sink.as_ref();
             if let Some(ws_sink) = ws_sink {
                 send_message(
