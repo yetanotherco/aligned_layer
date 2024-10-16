@@ -6,6 +6,7 @@ use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use gas_escalator::{Frequency, GeometricGasPrice};
 use log::info;
+use aligned_sdk::core::constants::{GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER};
 
 use crate::{config::ECDSAConfig, types::errors::BatcherSendError};
 
@@ -104,7 +105,10 @@ pub async fn try_create_new_task(
             fee_params.fee_per_proof,
             fee_params.respond_to_task_fee_limit,
         )
-        .gas_price(fee_params.gas_price);
+        .gas_price(
+            (fee_params.gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))
+                / U256::from(PERCENTAGE_DIVIDER),
+        );
 
     info!("Creating task for: {}", hex::encode(batch_merkle_root));
 

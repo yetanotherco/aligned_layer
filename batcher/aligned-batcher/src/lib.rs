@@ -14,9 +14,8 @@ use std::sync::Arc;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
-    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
-    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF, MIN_FEE_PER_PROOF,
+    PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ResponseMessage, ValidityResponseMessage,
@@ -1000,12 +999,10 @@ impl Batcher {
         let respond_to_task_fee_limit = (fee_for_aggregator
             * U256::from(RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER))
             / U256::from(PERCENTAGE_DIVIDER);
-        let final_gas_price = gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER)
-            / U256::from(PERCENTAGE_DIVIDER);
         let fee_params = CreateNewTaskFeeParams::new(
             fee_for_aggregator,
             fee_per_proof,
-            final_gas_price,
+            gas_price,
             respond_to_task_fee_limit,
         );
 
