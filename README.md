@@ -15,7 +15,7 @@ Aligned wouldn't be possible without the valuable work of these people:
 - [Consensys](https://consensys.io) for implementing the GROTH16 and PLONK protocols in [GNARK](https://docs.gnark.consensys.io)
 - [RiscZero](https://risczero.com) for its namesake [proving system](https://github.com/risc0/risc0)
 - [SuccintLabs](https://succinct.xyz) for creating [SP1](https://github.com/succinctlabs/sp1)
-- [Paradigm](https://www.paradigm.xyz) for maintaining the [Ethers crate](https://crates.io/crates/ethers)
+- [Paradigm](https://www.paradigm.xyz) for maintaining the [Ethers crate](https://crates.io/crates/ethers) and [Foundry](https://github.com/foundry-rs/foundry)
 - [LambdaClass](https://lambdaclass.com) for writing [lambdaworks](https://github.com/lambdaclass/lambdaworks)
 
 
