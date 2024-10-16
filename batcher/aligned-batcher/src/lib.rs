@@ -1,6 +1,6 @@
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use config::NonPayingConfig;
-use connection::{send_message, WsMessageSink};
+use connection::{drop_connection, send_message, WsMessageSink};
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
@@ -931,8 +931,25 @@ impl Batcher {
                 .batch_queue
                 .clone()
                 .into_iter()
-                .filter(|entry| (entry.0.sender == addr))
+                .filter(|(entry, _)| {
+                    let should_remove = entry.sender == addr;
+
+                    // also disconnect any other socket connection
+                    if should_remove {
+                        if let Some(ws_conn) = &entry.messaging_sink {
+                            drop_connection(
+                                ws_conn.clone(),
+                                Some(
+                                    "Another opened connection from your address was disconnected",
+                                ),
+                            )
+                        };
+                    };
+
+                    should_remove
+                })
                 .collect();
+
             batch_state_lock.user_states.remove(&addr);
         };
 

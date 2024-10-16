@@ -12,7 +12,7 @@ use std::{
 use super::errors::BatcherError;
 use crate::connection::WsMessageSink;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct BatchQueueEntry {
     pub(crate) nonced_verification_data: NoncedVerificationData,
     pub(crate) verification_data_commitment: VerificationDataCommitment,

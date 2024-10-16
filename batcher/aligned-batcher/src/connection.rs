@@ -10,7 +10,10 @@ use log::{error, info};
 use serde::Serialize;
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_tungstenite::{
-    tungstenite::{Error, Message},
+    tungstenite::{
+        protocol::{frame::coding::CloseCode, CloseFrame},
+        Error, Message,
+    },
     WebSocketStream,
 };
 
@@ -74,4 +77,20 @@ pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, mess
         }
         Err(e) => error!("Error while serializing message: {}", e),
     }
+}
+
+pub(crate) async fn drop_connection(ws_conn_sink: WsMessageSink, reason: Option<&str>) {
+    let close_frame = CloseFrame {
+        code: CloseCode::Normal,
+        reason: "Closing connection".into(),
+    };
+
+    ws_conn_sink
+        .write()
+        .await
+        .send(tokio_tungstenite::tungstenite::Message::Close(Some(
+            close_frame,
+        )))
+        .await
+        .expect("Failed to send close frame");
 }
