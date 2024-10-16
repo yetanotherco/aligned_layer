@@ -1265,7 +1265,14 @@ impl Batcher {
                 .await;
 
             match sending_result {
-                Err(Error::ConnectionClosed) | Err(Error::Io(_)) => {
+                // A general error with the connection.
+                // This happens whenever you try to read or write from/to a socket that has been abnormally disconnected.
+                Err(Error::Io(_)) => {
+                    self.metrics.broken_sockets_on_latest_batch.inc();
+                    error!("IO Error while sending the batch response, this happened be!");
+                }
+                // Same as above only that here the connection was gracefully closed
+                Err(Error::ConnectionClosed) => {
                     self.metrics.broken_sockets_on_latest_batch.inc();
                     error!("Error while sending the batch response, socket connection was closed!");
                 }
