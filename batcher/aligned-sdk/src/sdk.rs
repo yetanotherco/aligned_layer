@@ -672,15 +672,14 @@ pub fn save_response(
     batch_inclusion_data_directory_path: PathBuf,
     aligned_verification_data: &AlignedVerificationData,
 ) -> Result<(), errors::FileError> {
-    let _ = save_response_cbor(
+    save_response_cbor(
         batch_inclusion_data_directory_path.clone(),
         &aligned_verification_data.clone(),
     )?;
-    let _ = save_response_json(
+    save_response_json(
         batch_inclusion_data_directory_path,
         &aligned_verification_data,
-    )?;
-    Ok(())
+    )
 }
 fn save_response_cbor(
     batch_inclusion_data_directory_path: PathBuf,
