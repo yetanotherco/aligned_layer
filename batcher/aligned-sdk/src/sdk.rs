@@ -719,8 +719,6 @@ fn save_response_json(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    // let data = hex::encode(serde_json::to_vec(&aligned_verification_data).unwrap());
-    // ->
     let merkle_proof = aligned_verification_data
         .batch_inclusion_proof
         .merkle_path
@@ -734,15 +732,11 @@ fn save_response_json(
             "program_id_commitment": hex::encode(aligned_verification_data.verification_data_commitment.proving_system_aux_data_commitment),
             "proof_generator_addr": hex::encode(aligned_verification_data.verification_data_commitment.proof_generator_addr),
             "batch_merkle_root": hex::encode(aligned_verification_data.batch_merkle_root),
-            // "pub_input": hex::encode(pub_input),
             "verification_data_batch_index": aligned_verification_data.index_in_batch,
             "merkle_proof": merkle_proof,
     });
-    // <-
     let mut file = File::create(&batch_inclusion_data_path)?;
     file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())?;
-        // .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    // file.write_all(data.as_bytes())?;
 
     info!(
         "Batch inclusion data written into {}",
