@@ -614,7 +614,7 @@ test_risc_zero_go_bindings_linux_old: build_risc_zero_linux_old
 	go test ./operator/risc_zero_old/... -v
 
 generate_risc_zero_fibonacci_proof_old:
-	@cd scripts/test_files/risc_zero_old/fibonacci_proof_generator_old && \
+	@cd scripts/test_files/risc_zero/fibonacci_proof_generator_old && \
 		RUST_LOG=info cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero_old folder"
 
