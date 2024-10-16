@@ -923,6 +923,7 @@ impl Batcher {
         &self,
         finalized_batch: Vec<BatchQueueEntry>,
     ) -> Vec<BatchQueueEntry> {
+        info!("Finalized batch: verifying that clients are still connected");
         let mut filtered_finalized_batch = vec![];
         let mut closed_clients = HashSet::new();
         let mut conns_to_drop = vec![];
@@ -974,6 +975,7 @@ impl Batcher {
             };
 
             // we make sure its still alive by sending a ping message
+            debug!("Sending pig message");
             let ping_msg = Message::Ping(vec![]);
             if let Err(e) = ws_conn.clone().write().await.send(ping_msg).await {
                 error!("Failed to send ping, WebSocket may be closed: {:?}", e);
@@ -987,6 +989,7 @@ impl Batcher {
         }
 
         for ws_conn in conns_to_drop {
+            debug!("Connection dropped");
             drop_connection(
                 ws_conn,
                 "Another connection of yours has disconnected".into(),
@@ -994,6 +997,7 @@ impl Batcher {
             .await;
         }
 
+        info!("Finalized batch: clients connection verification ended");
         filtered_finalized_batch
     }
 
