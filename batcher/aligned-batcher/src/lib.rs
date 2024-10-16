@@ -947,7 +947,9 @@ impl Batcher {
                     })
                     .collect();
 
-                batch_state_lock.user_states.remove(&addr);
+                if !self.is_nonpaying(&addr) {
+                    batch_state_lock.user_states.remove(&addr);
+                }
             };
 
         self.metrics.dismissed_sockets_latest_batch.set(0);
