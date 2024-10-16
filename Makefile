@@ -329,18 +329,6 @@ batcher_send_risc0_burst:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_risc0_big_burst:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
-        --repetitions 100 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
 batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
