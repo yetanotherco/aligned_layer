@@ -7,7 +7,7 @@ on:
   pull_request:
     branches: ["*"]
     paths:
-      - "operator/risc_zero/**"
+      - "operator/risc_zero_old/**"
       - ".github/workflows/test-risc-zero-old.yml"
 
 jobs:

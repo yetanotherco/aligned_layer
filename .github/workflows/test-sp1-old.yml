@@ -7,7 +7,7 @@ on:
   pull_request:
     branches: ["*"]
     paths:
-      - 'operator/sp1/**'
+      - 'operator/sp1_old/**'
       - '.github/workflows/test-sp1-old.yml'
 
 jobs:
