@@ -3,11 +3,17 @@ generate_risc0_fibonacci_proof:
 		cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in risc_zero folder"
 
-generate_sp1_fibonacci_proof:
+# Note: Calling `cargo prove build --docker` ensures the elf binary is rebuilt on every make call. the Sha
+generate_sp1_fibonacci_proof: generate_sp1_fibonacci_elf
 	@cd sp1/fibonacci/script && \
-		cargo run --release && \
-		echo "Fibonacci proof, pub input and image ID generated in sp1 folder"
+		rust_log=info cargo run --release && \
+		echo "fibonacci proof, pub input and image id generated in sp1 folder"
+	@shasum -a 512 sp1/fibonacci/elf/riscv32im-succinct-zkvm-elf
 
+generate_sp1_fibonacci_elf:
+	@cd sp1/fibonacci/program && \
+		cargo prove build --docker --tag v1.0.1 
+	@shasum -a 512 sp1/fibonacci/elf/riscv32im-succinct-zkvm-elf
 
 submit_fibonacci_sp1_proof_devnet:
 	@cd aligned-integration && \
