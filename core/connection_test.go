@@ -18,7 +18,7 @@ func DummyFunction(x uint64) (uint64, error) {
 }
 
 func TestRetry(t *testing.T) {
-	function := func() (interface{}, error) { return DummyFunction(42) }
+	function := func() (interface{}, error) { return DummyFunction(43) }
 	data, err := connection.Retry(function, 1000, 2, 3)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
