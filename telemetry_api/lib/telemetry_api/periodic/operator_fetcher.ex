@@ -41,7 +41,7 @@ defmodule TelemetryApi.Periodic.OperatorFetcher do
 
   defp fetch_operators_info() do
     case Operators.fetch_all_operators() do
-      {:ok, _} -> :ok
+      :ok -> :ok
       {:error, message} -> IO.inspect("Couldn't fetch operators: #{IO.inspect(message)}")
     end
   end

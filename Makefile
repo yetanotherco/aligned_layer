@@ -842,7 +842,7 @@ docker_verify_proof_submission_success:
 	@echo "Verifying proofs were successfully submitted..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
 	sh -c ' \
-			if [ ! -d "./aligned_verification_data" ]; then echo "ERROR: aligned_verification_data direcroty does not exist." && exit 1; fi; \
+			if [ -z "$$(ls -A ./aligned_verification_data)" ]; then echo "ERROR: There are no proofs on aligned_verification_data/ directory" && exit 1; fi; \
 			echo "Waiting 1 minute before starting proof verification. \n"; \
 			sleep 60; \
 			for proof in ./aligned_verification_data/*; do \
