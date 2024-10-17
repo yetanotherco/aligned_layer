@@ -456,7 +456,7 @@ impl Batcher {
         // *        Perform validations over user state         *
         // * ---------------------------------------------------*
 
-        let Some(user_balance) = self.get_user_balance(&addr).await else {
+        let Ok(user_balance) = self.get_user_balance_with_retry(&addr).await else {
             error!("Could not get balance for address {addr:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
             return Ok(());
@@ -1117,7 +1117,9 @@ impl Batcher {
         };
 
         let replacement_addr = non_paying_config.replacement.address();
-        let Some(replacement_user_balance) = self.get_user_balance(&replacement_addr).await else {
+        let Ok(replacement_user_balance) =
+            self.get_user_balance_with_retry(&replacement_addr).await
+        else {
             error!("Could not get balance for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
@@ -1183,20 +1185,24 @@ impl Batcher {
         Ok(())
     }
 
-    /// Gets the balance of user with address `addr` from Ethereum.
-    /// Returns `None` if the balance couldn't be returned
-    /// FIXME: This should return a `Result` instead.
-    async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
+    /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
+    async fn get_user_balance_with_retry(&self, addr: &Address) -> Result<U256, RetryError<()>> {
+        retry_function(|| self.get_user_balance(addr), 2000, 2.0, 3).await
+    }
+
+    async fn get_user_balance(&self, addr: &Address) -> Result<U256, RetryError<()>> {
         if let Ok(balance) = self.payment_service.user_balances(*addr).call().await {
-            return Some(balance);
+            return Ok(balance);
         };
 
         self.payment_service_fallback
             .user_balances(*addr)
             .call()
             .await
-            .inspect_err(|_| warn!("Failed to get balance for address {:?}", addr))
-            .ok()
+            .map_err(|_| {
+                warn!("Failed to get balance for address {:?}", addr);
+                RetryError::Transient
+            })
     }
 
     /// Checks if the user's balance is unlocked for a given address using exponential backoff.
@@ -1204,7 +1210,10 @@ impl Batcher {
     async fn user_balance_is_unlocked_with_retry(&self, addr: &Address) -> bool {
         match retry_function(|| self.user_balance_is_unlocked(addr), 2000, 2.0, 3).await {
             Ok(result) => result,
-            Err(_) => false,
+            Err(_) => {
+                warn!("Could not get user locking state");
+                false
+            }
         }
     }
 
@@ -1220,7 +1229,6 @@ impl Batcher {
         {
             return Ok(unlock_block != U256::zero());
         }
-        warn!("Could not get user locking state");
         Err(RetryError::Transient)
     }
 
