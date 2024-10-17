@@ -316,7 +316,7 @@ impl Batcher {
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
         // Deserialize verification data from message
-        let client_msg: ClientMessage = match cbor_deserialize(message.into_data().as_slice()) {
+        let mut client_msg: ClientMessage = match cbor_deserialize(message.into_data().as_slice()) {
             Ok(msg) => msg,
             Err(e) => {
                 warn!("Failed to deserialize message: {}", e);
@@ -326,6 +326,10 @@ impl Batcher {
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}",);
         self.metrics.received_proofs.inc();
+
+        // Alter proof data to test
+        let proof_len = client_msg.verification_data.verification_data.proof.len();
+        client_msg.verification_data.verification_data.proof = vec![3_u8; proof_len];
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
