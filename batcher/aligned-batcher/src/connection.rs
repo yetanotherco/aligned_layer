@@ -1,5 +1,9 @@
 use std::sync::Arc;
 
+use crate::{
+    retry::{retry_function, RetryError, DEFAULT_FACTOR, DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY},
+    types::{batch_queue::BatchQueueEntry, errors::BatcherError},
+};
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
     core::types::{BatchInclusionData, ResponseMessage, VerificationCommitmentBatch},
@@ -13,8 +17,6 @@ use tokio_tungstenite::{
     tungstenite::{Error, Message},
     WebSocketStream,
 };
-
-use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 
 pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
@@ -33,17 +35,7 @@ pub(crate) async fn send_batch_inclusion_data_responses(
             return Err(BatcherError::WsSinkEmpty);
         };
 
-        let sending_result = ws_sink
-            .write()
-            .await
-            .send(Message::binary(serialized_response))
-            .await;
-
-        match sending_result {
-            Err(Error::AlreadyClosed) => (),
-            Err(e) => error!("Error while sending batch inclusion data response: {}", e),
-            Ok(_) => (),
-        }
+        send_response_with_retry(ws_sink, serialized_response).await;
 
         info!("Response sent");
     }
@@ -64,5 +56,38 @@ pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, mess
             }
         }
         Err(e) => error!("Error while serializing message: {}", e),
+    }
+}
+
+async fn send_response_with_retry(
+    ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+    serialized_response: Vec<u8>,
+) {
+    if let Err(e) = retry_function(
+        || send_response(ws_sink, serialized_response.clone()),
+        DEFAULT_MIN_DELAY,
+        DEFAULT_FACTOR,
+        DEFAULT_MAX_TIMES,
+    )
+    .await
+    {
+        error!("Error while sending batch inclusion data response: {}", e);
+    }
+}
+
+async fn send_response(
+    ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+    serialized_response: Vec<u8>,
+) -> Result<(), RetryError<Error>> {
+    let sending_result = ws_sink
+        .write()
+        .await
+        .send(Message::binary(serialized_response))
+        .await;
+
+    match sending_result {
+        Err(Error::AlreadyClosed) => Err(RetryError::Permanent(Error::AlreadyClosed)),
+        Err(_) => Err(RetryError::Transient),
+        Ok(_) => Ok(()),
     }
 }
