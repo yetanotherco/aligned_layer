@@ -313,6 +313,28 @@ batcher_send_sp1_burst:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
+batcher_send_sp1_old_task:
+	@echo "Sending SP1 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system SP1 \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_old.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_old.elf \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_sp1_old_burst:
+	@echo "Sending SP1 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system SP1 \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_old.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_old.elf \
+		--repetitions $(BURST_SIZE) \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
 	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
@@ -324,6 +346,17 @@ batcher_send_risc0_task:
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_risc0_old_task:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/risc_zero_fibonacci_old.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/fibonacci_id_old.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/risc_zero_fibonacci_old.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -345,6 +378,18 @@ batcher_send_risc0_burst:
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+        --repetitions $(BURST_SIZE) \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_risc0_old_burst:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/risc_zero_fibonacci_old.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/fibonacci_id_old.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/risc_zero_fibonacci_old.pub \
         --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
