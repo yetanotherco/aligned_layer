@@ -1,13 +1,13 @@
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
 use config::NonPayingConfig;
-use connection::{send_message, WsMessageSink};
+use connection::{drop_connection, send_message, WsMessageSink};
 use dotenvy::dotenv;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -838,6 +838,8 @@ impl Batcher {
         finalized_batch: Vec<BatchQueueEntry>,
         gas_price: U256,
     ) -> Result<(), BatcherError> {
+        let finalized_batch = self.validate_sockets_connection(finalized_batch).await;
+
         let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
@@ -912,6 +914,91 @@ impl Batcher {
         self.metrics.broken_sockets_on_latest_batch.set(0);
         self.send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree)
             .await
+    }
+
+    /// here we go to each entry and make sure the client connection is still alive
+    /// if not, we remove it from the finalized batch.
+    /// we also remove all the user proofs in the current batch as this will create discrepancies with the nonces
+    async fn validate_sockets_connection(
+        &self,
+        finalized_batch: Vec<BatchQueueEntry>,
+    ) -> Vec<BatchQueueEntry> {
+        info!("Finalized batch: verifying that clients are still connected");
+        let mut filtered_finalized_batch = vec![];
+        let mut closed_clients = HashSet::new();
+        let mut conns_to_drop = vec![];
+
+        let mut remove_client_proofs_from_batch =
+            |addr: Address, mut batch_state_lock: MutexGuard<'_, BatchState>| {
+                batch_state_lock.batch_queue = batch_state_lock
+                    .batch_queue
+                    .clone()
+                    .into_iter()
+                    .filter(|(entry, _)| {
+                        let should_remove = entry.sender == addr;
+
+                        // we can't use async predicates in iterators
+                        // so we push the connection to drop later as they require futures
+                        if should_remove {
+                            if let Some(ws_conn) = &entry.messaging_sink {
+                                conns_to_drop.push(ws_conn.clone());
+                            };
+                            // remove the entry so if the user sends a new proof we re-query the nonce from eth
+                            batch_state_lock.user_states.remove(&addr);
+                        };
+
+                        should_remove
+                    })
+                    .collect();
+            };
+
+        self.metrics.dismissed_sockets_latest_batch.set(0);
+        for batch_entry in finalized_batch {
+            let addr = batch_entry.sender;
+
+            // if the wallet is a non_paying we don't to remove the proof
+            // as this is used only in test environments and removing it would require handling the nonce
+            // effectively, adding a lot of overhead
+            if self.is_nonpaying(&addr) {
+                filtered_finalized_batch.push(batch_entry);
+                continue;
+            }
+
+            if closed_clients.contains(&addr) {
+                continue;
+            }
+
+            let Some(ws_conn) = batch_entry.messaging_sink.clone() else {
+                closed_clients.insert(addr);
+                remove_client_proofs_from_batch(addr, self.batch_state.lock().await);
+                continue;
+            };
+
+            // we make sure its still alive by sending a ping message
+            debug!("Sending pig message");
+            let ping_msg = Message::Ping(vec![]);
+            if let Err(e) = ws_conn.clone().write().await.send(ping_msg).await {
+                error!("Failed to send ping, WebSocket may be closed: {:?}", e);
+                self.metrics.dismissed_sockets_latest_batch.inc();
+                closed_clients.insert(addr);
+                remove_client_proofs_from_batch(batch_entry.sender, self.batch_state.lock().await);
+                continue;
+            };
+
+            filtered_finalized_batch.push(batch_entry);
+        }
+
+        for ws_conn in conns_to_drop {
+            debug!("Connection dropped");
+            drop_connection(
+                ws_conn,
+                "Another connection of yours has disconnected".into(),
+            )
+            .await;
+        }
+
+        info!("Finalized batch: clients connection verification ended");
+        filtered_finalized_batch
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {

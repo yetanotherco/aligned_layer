@@ -715,7 +715,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Socket connections that were disconnected when sending a batch response.",
+      "description": "Socket connections that were disconnected when sending a batch response. These proofs were included in the bath but the socket connection failed when sending the batch response to the client",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -811,6 +811,106 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "The clients whose proofs have been removed from the batch because their socket was disconnected.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "id": 21,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "dismissed_sockets_latest_batch",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Dismissed sockets",
+      "type": "timeseries"
+    },
+    {
       "collapsed": true,
       "gridPos": {
         "h": 1,
@@ -858,7 +958,7 @@
             "h": 7,
             "w": 10,
             "x": 0,
-            "y": 42
+            "y": 50
           },
           "id": 9,
           "options": {
@@ -1010,7 +1110,7 @@
             "h": 7,
             "w": 10,
             "x": 10,
-            "y": 42
+            "y": 50
           },
           "id": 1,
           "options": {
@@ -1074,7 +1174,7 @@
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 49
+            "y": 57
           },
           "id": 8,
           "options": {
@@ -1144,7 +1244,7 @@
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 49
+            "y": 57
           },
           "id": 7,
           "options": {
@@ -1209,7 +1309,7 @@
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 56
+            "y": 64
           },
           "id": 2,
           "options": {
@@ -1279,7 +1379,7 @@
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 56
+            "y": 64
           },
           "id": 5,
           "options": {
@@ -1326,7 +1426,7 @@
       "type": "row"
     }
   ],
-  "refresh": "5s",
+  "refresh": false,
   "schemaVersion": 38,
   "style": "dark",
   "tags": [],
@@ -1334,8 +1434,8 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
-    "to": "now"
+    "from": "2024-10-15T20:24:27.682Z",
+    "to": "2024-10-15T20:25:15.664Z"
   },
   "timepicker": {},
   "timezone": "browser",
