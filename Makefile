@@ -691,9 +691,12 @@ tracker_dump_db:
 
 __TELEMETRY__:
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
-	## TODO(juarce) ADD DOCKER COMPOSE
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
+
+open_telemetry_prod_start: ## Run open telemetry services with Cassandra using telemetry-prod-docker-compose.yaml
+	@echo "Running telemetry for Prod..."
+	@docker compose -f telemetry-prod-docker-compose.yaml up -d
 
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \

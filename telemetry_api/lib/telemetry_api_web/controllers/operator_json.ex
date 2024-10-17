@@ -22,7 +22,11 @@ defmodule TelemetryApiWeb.OperatorJSON do
       stake: operator.stake,
       name: operator.name,
       version: operator.version,
-      status: operator.status
+      status: operator.status,
+      eth_rpc_url: operator.eth_rpc_url,
+      eth_rpc_url_fallback: operator.eth_rpc_url_fallback,
+      eth_ws_url: operator.eth_ws_url,
+      eth_ws_url_fallback: operator.eth_ws_url_fallback
     }
   end
 end
