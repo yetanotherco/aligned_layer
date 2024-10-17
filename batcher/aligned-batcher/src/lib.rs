@@ -913,8 +913,7 @@ impl Batcher {
         };
 
         self.metrics.broken_sockets_on_latest_batch.set(0);
-        self.send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree)
-            .await
+        connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
 
     async fn flush_queue_and_clear_nonce_cache(&self) {
@@ -1243,44 +1242,5 @@ impl Batcher {
             .await
             .inspect_err(|e| warn!("Failed to get gas price: {e:?}"))
             .ok()
-    }
-
-    pub(crate) async fn send_batch_inclusion_data_responses(
-        &self,
-        finalized_batch: Vec<BatchQueueEntry>,
-        batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
-    ) -> Result<(), BatcherError> {
-        for (vd_batch_idx, entry) in finalized_batch.iter().enumerate() {
-            let batch_inclusion_data = BatchInclusionData::new(vd_batch_idx, batch_merkle_tree);
-            let response = ResponseMessage::BatchInclusionData(batch_inclusion_data);
-
-            let serialized_response = cbor_serialize(&response)
-                .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
-
-            let Some(ws_sink) = entry.messaging_sink.as_ref() else {
-                return Err(BatcherError::WsSinkEmpty);
-            };
-
-            let sending_result = ws_sink
-                .write()
-                .await
-                .send(Message::binary(serialized_response))
-                .await;
-
-            match sending_result {
-                Err(Error::AlreadyClosed) => {}
-                Err(Error::Io(_)) => {
-                    error!(
-                        "IO Error while sending the batch response, connection was abnormally closed!"
-                    );
-                }
-                Err(e) => {
-                    error!("Error while sending batch inclusion data response: {}", e);
-                }
-                Ok(_) => info!("Response sent"),
-            }
-        }
-
-        Ok(())
     }
 }
