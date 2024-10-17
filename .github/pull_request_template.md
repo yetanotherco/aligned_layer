@@ -11,6 +11,7 @@ Please delete options that are not relevant.
 - [ ] New feature
 - [ ] Bug fix
 - [ ] Optimization
+- [ ] Refactor
 
 ## Checklist
 - [ ] Linked to Github Issue
