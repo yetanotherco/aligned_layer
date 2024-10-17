@@ -1292,7 +1292,7 @@ impl Batcher {
     async fn upload_batch_to_s3_with_retry(
         &self,
         batch_bytes: &[u8],
-        file_name: &String,
+        file_name: &str,
     ) -> Result<(), BatcherError> {
         retry_function(
             || self.upload_batch_to_s3(batch_bytes, file_name),
@@ -1307,7 +1307,7 @@ impl Batcher {
     async fn upload_batch_to_s3(
         &self,
         batch_bytes: &[u8],
-        file_name: &String,
+        file_name: &str,
     ) -> Result<(), RetryError<()>> {
         let s3_client = self.s3_client.clone();
 
@@ -1315,7 +1315,7 @@ impl Batcher {
             &s3_client,
             &self.s3_bucket_name,
             batch_bytes.to_vec(),
-            &file_name,
+            file_name,
         )
         .await
         .map_err(|_| RetryError::Transient)?;
