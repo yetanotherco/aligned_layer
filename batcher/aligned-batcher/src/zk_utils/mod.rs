@@ -1,9 +1,14 @@
+use crate::connection::send_message;
 use crate::gnark::verify_gnark;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
-use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
+use crate::types::batch_queue::BatchQueue;
+use aligned_sdk::core::types::{
+    ProofInvalidReason, ProvingSystemId, ValidityResponseMessage, VerificationData,
+};
 use ethers::types::U256;
 use log::{debug, warn};
+use tokio::sync::MutexGuard;
 
 pub(crate) async fn verify(verification_data: &VerificationData) -> bool {
     let verification_data = verification_data.clone();
@@ -73,11 +78,64 @@ pub(crate) fn is_verifier_disabled(
     disabled_verifiers & (U256::one() << verification_data.proving_system as u64) != U256::zero()
 }
 
+/// Filters out proofs from the batch queue that are using disabled verifiers.
+/// This function will be used when there's a change in the disabled verifiers bitmap but the batcher already processed some proofs.
+pub(crate) async fn filter_disabled_verifiers(
+    batch_queue: BatchQueue,
+    disabled_verifiers: MutexGuard<'_, U256>,
+) -> BatchQueue {
+    let mut removed_senders = Vec::new();
+    let mut filtered_batch_queue = BatchQueue::new();
+    for (entry, entry_priority) in batch_queue.iter() {
+        let verification_data = &entry.nonced_verification_data.verification_data;
+        if is_verifier_disabled(*disabled_verifiers, verification_data) {
+            warn!(
+                "Verifier for proving system {} is now disabled, removing proofs from batch",
+                verification_data.proving_system
+            );
+            let ws_sink = entry.messaging_sink.as_ref();
+            if let Some(ws_sink) = ws_sink {
+                send_message(
+                    ws_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                        entry
+                            .nonced_verification_data
+                            .verification_data
+                            .proving_system,
+                    )),
+                )
+                .await;
+            }
+            removed_senders.push(entry.sender);
+            continue;
+        } else if removed_senders.contains(&entry.sender) {
+            let ws_sink = entry.messaging_sink.as_ref();
+            if let Some(ws_sink) = ws_sink {
+                send_message(
+                    ws_sink.clone(),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::PriorProofInvalidity),
+                )
+                .await;
+                continue;
+            }
+        } else {
+            filtered_batch_queue.push(entry.clone(), entry_priority.clone());
+        }
+    }
+    filtered_batch_queue
+}
+
 #[cfg(test)]
 mod test {
+    use crate::{
+        types::batch_queue::{BatchQueue, BatchQueueEntry, BatchQueueEntryPriority},
+        zk_utils::filter_disabled_verifiers,
+    };
+
     use super::is_verifier_disabled;
     use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
-    use ethers::types::Address;
+    use ethers::types::{Address, U256};
+    use tokio::sync::Mutex;
 
     fn get_all_verifiers() -> Vec<ProvingSystemId> {
         let verifiers = vec![
@@ -170,5 +228,125 @@ mod test {
                 );
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_remove_disabled_verifiers_from_queue() {
+        // Disabling SP1 verifier.
+        let disabled_verifiers = Mutex::new(U256::from(8));
+
+        let mut batch_queue = BatchQueue::new();
+        let entry_with_sp1_sender_0 =
+            BatchQueueEntry::new_for_test(ProvingSystemId::SP1, Address::zero()).await;
+        let entry_with_risc0_sender_1 =
+            BatchQueueEntry::new_for_test(ProvingSystemId::Risc0, Address::from_slice(&[1; 20]))
+                .await;
+        batch_queue.push(
+            entry_with_sp1_sender_0,
+            BatchQueueEntryPriority::new(0.into(), 0.into()),
+        );
+        batch_queue.push(
+            entry_with_risc0_sender_1,
+            BatchQueueEntryPriority::new(0.into(), 0.into()),
+        );
+
+        assert_eq!(batch_queue.len(), 2);
+        let filtered_queue =
+            filter_disabled_verifiers(batch_queue, disabled_verifiers.lock().await).await;
+        assert_eq!(filtered_queue.len(), 1);
+        let entry = filtered_queue.peek().unwrap().0.clone();
+        assert_eq!(
+            entry
+                .nonced_verification_data
+                .verification_data
+                .proving_system,
+            aligned_sdk::core::types::ProvingSystemId::Risc0
+        );
+    }
+
+    #[tokio::test]
+    async fn test_remove_new_proofs_from_same_user_with_previous_invalid() {
+        // Disabling SP1 verifier.
+        let disabled_verifiers = Mutex::new(U256::from(8));
+        let mut batch_queue = BatchQueue::new();
+
+        let entry_with_sp1_sender_0 =
+            BatchQueueEntry::new_for_test(ProvingSystemId::SP1, Address::zero()).await;
+        let entry_with_risc0_sender_1 =
+            BatchQueueEntry::new_for_test(ProvingSystemId::Risc0, Address::from_slice(&[1; 20]))
+                .await;
+        let mut another_entry_sp1_sender_0 =
+            BatchQueueEntry::new_for_test(ProvingSystemId::SP1, Address::zero()).await;
+        another_entry_sp1_sender_0.nonced_verification_data.nonce = U256::from(1);
+
+        batch_queue.push(
+            entry_with_sp1_sender_0,
+            BatchQueueEntryPriority::new(0.into(), 0.into()),
+        );
+        batch_queue.push(
+            entry_with_risc0_sender_1,
+            BatchQueueEntryPriority::new(0.into(), 0.into()),
+        );
+        batch_queue.push(
+            another_entry_sp1_sender_0,
+            BatchQueueEntryPriority::new(0.into(), 1.into()),
+        );
+        assert_eq!(batch_queue.len(), 3);
+        let filtered_batch_queue =
+            filter_disabled_verifiers(batch_queue.clone(), disabled_verifiers.lock().await).await;
+        assert_eq!(filtered_batch_queue.len(), 1);
+
+        let entry = filtered_batch_queue.peek().unwrap().0.clone();
+        assert_eq!(
+            entry
+                .nonced_verification_data
+                .verification_data
+                .proving_system,
+            aligned_sdk::core::types::ProvingSystemId::Risc0
+        );
+    }
+
+    #[tokio::test]
+    async fn test_keep_correct_proofs_previous_to_the_invalid() {
+        // Disabling SP1 verifier.
+        let disabled_verifiers = Mutex::new(U256::from(8));
+        let mut batch_queue = BatchQueue::new();
+
+        let entry_risc0_sender_0 =
+            BatchQueueEntry::new_for_test(ProvingSystemId::Risc0, Address::zero()).await;
+        let mut entry_sp1_sender_0 =
+            BatchQueueEntry::new_for_test(ProvingSystemId::SP1, Address::zero()).await;
+        entry_sp1_sender_0.nonced_verification_data.nonce = U256::from(1);
+        let mut another_entry_risc0_sender_0 =
+            BatchQueueEntry::new_for_test(ProvingSystemId::Risc0, Address::zero()).await;
+        another_entry_risc0_sender_0.nonced_verification_data.nonce = U256::from(2);
+
+        batch_queue.push(
+            entry_risc0_sender_0,
+            BatchQueueEntryPriority::new(0.into(), 0.into()),
+        );
+        batch_queue.push(
+            entry_sp1_sender_0,
+            BatchQueueEntryPriority::new(0.into(), 1.into()),
+        );
+        batch_queue.push(
+            another_entry_risc0_sender_0,
+            BatchQueueEntryPriority::new(0.into(), 2.into()),
+        );
+        assert_eq!(batch_queue.len(), 3);
+
+        let filtered_batch_queue =
+            filter_disabled_verifiers(batch_queue.clone(), disabled_verifiers.lock().await).await;
+        assert_eq!(filtered_batch_queue.len(), 1);
+
+        let entry = filtered_batch_queue.peek().unwrap().0.clone();
+        assert_eq!(
+            entry
+                .nonced_verification_data
+                .verification_data
+                .proving_system,
+            aligned_sdk::core::types::ProvingSystemId::Risc0
+        );
+        assert_eq!(entry.nonced_verification_data.nonce, U256::zero());
     }
 }

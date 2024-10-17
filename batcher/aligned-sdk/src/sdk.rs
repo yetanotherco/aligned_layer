@@ -39,7 +39,7 @@ use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
-    StreamExt, TryStreamExt,
+    SinkExt, StreamExt, TryStreamExt,
 };
 
 use std::fs::File;
@@ -247,8 +247,8 @@ pub async fn submit_multiple(
 
     let ws_write = Arc::new(Mutex::new(ws_write));
 
-    _submit_multiple(
-        ws_write,
+    let submit_result = _submit_multiple(
+        ws_write.clone(),
         ws_read,
         network,
         verification_data,
@@ -256,7 +256,13 @@ pub async fn submit_multiple(
         wallet,
         nonce,
     )
-    .await
+    .await;
+
+    if submit_result.is_err() {
+        let mut ws_write = ws_write.lock().await;
+        ws_write.close().await?;
+    }
+    submit_result
 }
 
 pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {

@@ -48,6 +48,9 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
+#[cfg(test)]
+mod testonly;
+
 const AGGREGATOR_GAS_COST: u128 = 400_000;
 const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
 pub(crate) const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
@@ -81,6 +84,7 @@ pub struct Batcher {
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
+    disabled_verifiers: Mutex<U256>,
     pub metrics: metrics::BatcherMetrics,
 }
 
@@ -220,6 +224,12 @@ impl Batcher {
             None
         };
 
+        let disabled_verifiers = match service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => service_manager_fallback.disabled_verifiers().call().await,
+        }
+        .expect("Failed to get disabled verifiers");
+
         Self {
             s3_client,
             s3_bucket_name,
@@ -239,6 +249,7 @@ impl Batcher {
             non_paying_config,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
+            disabled_verifiers: Mutex::new(disabled_verifiers),
             metrics,
         }
     }
@@ -429,7 +440,9 @@ impl Batcher {
                 );
                 send_message(
                     ws_conn_sink.clone(),
-                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                        verification_data.proving_system,
+                    )),
                 )
                 .await;
                 return Ok(());
@@ -1017,13 +1030,27 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price = match self.get_gas_price().await {
-            Some(price) => price,
-            None => {
-                error!("Failed to get gas price");
-                return Err(BatcherError::GasPriceError);
-            }
-        };
+        let gas_price_future = self.get_gas_price();
+        let disabled_verifiers_future = self.disabled_verifiers();
+
+        let (gas_price, disable_verifiers) =
+            tokio::join!(gas_price_future, disabled_verifiers_future);
+        let gas_price = gas_price.ok_or(BatcherError::GasPriceError)?;
+        let new_disable_verifiers =
+            disable_verifiers.map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
+
+        let mut disabled_verifiers = self.disabled_verifiers.lock().await;
+        if new_disable_verifiers != *disabled_verifiers {
+            let mut batch_state = self.batch_state.lock().await;
+            *disabled_verifiers = new_disable_verifiers;
+            warn!("Disabled verifiers updated, filtering queue");
+            let filered_batch_queue = zk_utils::filter_disabled_verifiers(
+                batch_state.batch_queue.clone(),
+                disabled_verifiers,
+            )
+            .await;
+            batch_state.batch_queue = filered_batch_queue;
+        }
 
         if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
             let batch_finalization_result = self

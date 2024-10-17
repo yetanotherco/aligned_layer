@@ -9,6 +9,8 @@ use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
 use crate::communication::serialization::SerializationError;
 
+use super::types::ProofInvalidReason;
+
 #[derive(Debug)]
 pub enum AlignedError {
     SubmitError(SubmitError),
@@ -92,7 +94,7 @@ pub enum SubmitError {
     ProofQueueFlushed,
     InvalidSignature,
     InvalidChainId,
-    InvalidProof,
+    InvalidProof(ProofInvalidReason),
     ProofTooLarge,
     InvalidReplacementMessage,
     InsufficientBalance,
@@ -195,7 +197,7 @@ impl fmt::Display for SubmitError {
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
             SubmitError::InvalidSignature => write!(f, "Invalid Signature"),
             SubmitError::InvalidChainId => write!(f, "Invalid chain Id"),
-            SubmitError::InvalidProof => write!(f, "Invalid proof"),
+            SubmitError::InvalidProof(reason) => write!(f, "Invalid proof: {}", reason),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
