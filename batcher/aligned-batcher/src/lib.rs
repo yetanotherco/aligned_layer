@@ -1033,14 +1033,15 @@ impl Batcher {
         let (gas_price, disable_verifiers) =
             tokio::join!(gas_price_future, disabled_verifiers_future);
         let gas_price = gas_price.ok_or(BatcherError::GasPriceError)?;
-        let new_disable_verifiers =
-            disable_verifiers.map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
 
-        let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;
-
-        if new_disable_verifiers != *disabled_verifiers_lock {
-            *disabled_verifiers_lock = new_disable_verifiers;
-            self.flush_queue_and_clear_nonce_cache().await;
+        {
+            let new_disable_verifiers = disable_verifiers
+                .map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
+            let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;
+            if new_disable_verifiers != *disabled_verifiers_lock {
+                *disabled_verifiers_lock = new_disable_verifiers;
+                self.flush_queue_and_clear_nonce_cache().await;
+            }
         }
 
         if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
