@@ -1278,6 +1278,7 @@ impl Batcher {
                     self.metrics.broken_sockets_on_latest_batch.inc();
                     error!("Error while sending the batch response, socket connection was closed!");
                 }
+                Err(Error::AlreadyClosed) => {}
                 Err(e) => {
                     error!("Error while sending batch inclusion data response: {}", e);
                 }
