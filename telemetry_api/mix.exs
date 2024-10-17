@@ -57,7 +57,8 @@ defmodule TelemetryApi.MixProject do
       {:ethers, "~> 0.4.4"},
       {:opentelemetry, "~> 1.3"},
       {:opentelemetry_api, "~> 1.2"},
-      {:opentelemetry_exporter, "~> 1.6"}
+      {:opentelemetry_exporter, "~> 1.6"},
+      {:ex_keccak, "~> 0.7.5"}
     ]
   end
 
