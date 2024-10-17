@@ -38,6 +38,7 @@ func main() {
 	}
 }
 
+
 func aggregatorMain(ctx *cli.Context) error {
 
 	configFilePath := ctx.String(config.ConfigFileFlag.Name)
@@ -48,6 +49,15 @@ func aggregatorMain(ctx *cli.Context) error {
 		aggregatorConfig.BaseConfig.Logger.Error("Cannot create aggregator", "err", err)
 		return err
 	}
+
+	// Supervisor revives garbage collector
+	go func() {
+		for {
+			log.Println("Starting Garbage collector")
+			aggregator.ClearTasksFromMaps(aggregatorConfig.Aggregator.GarbageCollectorPeriod, aggregatorConfig.Aggregator.GarbageCollectorTasksAge)
+			log.Println("Garbage collector panicked, Supervisor restarting")
+		}
+	}()
 
 	// Listen for new task created in the ServiceManager contract in a separate goroutine, both V1 and V2 subscriptions:
 	go func() {
