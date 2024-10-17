@@ -31,7 +31,7 @@ services:
 
   fund-operator:
     image: ghcr.io/yetanotherco/aligned_layer/foundry:latest
-    command: ["cast", "send", "--from", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "--value", "1ether", "--private-key", "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", "--rpc-url", "http://anvil:8545", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+    command: ["sh", "-c", "cast send --from 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 --value 1ether --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --rpc-url http://anvil:8545 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --gas-price $(cast gas-price --rpc-url http://anvil:8545)"]
     build:
       context: .
       dockerfile: docker/foundry.Dockerfile
