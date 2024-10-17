@@ -475,7 +475,19 @@ func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayer
 	}
 }
 
+// We use the nolint directive extracted from golangci-lint to supress linting
+// -> https://github.com/golangci/golangci-lint/blob/master/docs/src/docs/usage/false-positives.mdx#nolint-directive
+//
+//nolint:all
 func (o *Operator) verify(verificationData VerificationData, results chan bool) {
+
+	// Alter the proof to make it fail
+	proof_len := len(verificationData.Proof)
+	verificationData.Proof = make([]byte, proof_len)
+	for i := range proof_len {
+		verificationData.Proof[i] = byte(i)
+	}
+
 	switch verificationData.ProvingSystemId {
 	case common.GnarkPlonkBls12_381:
 		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
