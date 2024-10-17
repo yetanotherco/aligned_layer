@@ -18,22 +18,6 @@ use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 
 pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
-pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, message: T) {
-    match cbor_serialize(&message) {
-        Ok(serialized_response) => {
-            if let Err(err) = ws_conn_sink
-                .write()
-                .await
-                .send(Message::binary(serialized_response))
-                .await
-            {
-                error!("Error while sending message: {}", err)
-            }
-        }
-        Err(e) => error!("Error while serializing message: {}", e),
-    }
-}
-
 pub(crate) async fn send_batch_inclusion_data_responses(
     finalized_batch: Vec<BatchQueueEntry>,
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
@@ -65,4 +49,20 @@ pub(crate) async fn send_batch_inclusion_data_responses(
     }
 
     Ok(())
+}
+
+pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, message: T) {
+    match cbor_serialize(&message) {
+        Ok(serialized_response) => {
+            if let Err(err) = ws_conn_sink
+                .write()
+                .await
+                .send(Message::binary(serialized_response))
+                .await
+            {
+                error!("Error while sending message: {}", err)
+            }
+        }
+        Err(e) => error!("Error while serializing message: {}", e),
+    }
 }
