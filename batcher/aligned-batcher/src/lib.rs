@@ -302,7 +302,10 @@ impl Batcher {
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
-            Err(e) => error!("Unexpected error: {}", e),
+            Err(e) => {
+                self.metrics.broken_sockets_on_latest_batch.inc();
+                error!("Unexpected error: {}", e)
+            }
             Ok(_) => info!("{} disconnected", &addr),
         }
 
@@ -1265,20 +1268,12 @@ impl Batcher {
                 .await;
 
             match sending_result {
-                // A general error with the connection.
-                // This happens whenever you try to read or write from/to a socket that has been abnormally disconnected.
+                Err(Error::AlreadyClosed) => {}
                 Err(Error::Io(_)) => {
-                    self.metrics.broken_sockets_on_latest_batch.inc();
                     error!(
                         "IO Error while sending the batch response, connection was abnormally closed!"
                     );
                 }
-                // Same as above only that here the connection was gracefully closed
-                Err(Error::ConnectionClosed) => {
-                    self.metrics.broken_sockets_on_latest_batch.inc();
-                    error!("Error while sending the batch response, socket connection was closed!");
-                }
-                Err(Error::AlreadyClosed) => {}
                 Err(e) => {
                     error!("Error while sending batch inclusion data response: {}", e);
                 }
