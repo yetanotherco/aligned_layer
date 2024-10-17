@@ -31,6 +31,7 @@ RUN go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 # Install rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup toolchain install stable
 RUN rustup toolchain install nightly-2024-04-17
 
 WORKDIR /aligned_layer
