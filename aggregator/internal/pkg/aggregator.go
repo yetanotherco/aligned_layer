@@ -181,6 +181,7 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 	return &aggregator, nil
 }
 
+//nolint:all
 func (agg *Aggregator) Start(ctx context.Context) error {
 	agg.logger.Infof("Starting aggregator...")
 
@@ -190,6 +191,8 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 			agg.logger.Fatal("Error listening for tasks", "err", err)
 		}
 	}()
+
+	panic("Aggregator failed to start")
 
 	var metricsErrChan <-chan error
 	if agg.AggregatorConfig.Aggregator.EnableMetrics {
