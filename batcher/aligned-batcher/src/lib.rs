@@ -434,7 +434,8 @@ impl Batcher {
         }
 
         if !is_user_in_state {
-            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum_with_retry(addr).await
+            {
                 Ok(ethereum_user_nonce) => ethereum_user_nonce,
                 Err(e) => {
                     error!(
@@ -657,14 +658,23 @@ impl Batcher {
         };
     }
 
-    async fn get_user_nonce_from_ethereum(
+    /// Gets the user nonce from Ethereum using exponential backoff.
+    async fn get_user_nonce_from_ethereum_with_retry(
         &self,
         addr: Address,
-    ) -> Result<U256, ContractError<SignerMiddlewareT>> {
-        match self.payment_service.user_nonces(addr).call().await {
-            Ok(nonce) => Ok(nonce),
-            Err(_) => self.payment_service_fallback.user_nonces(addr).call().await,
+    ) -> Result<U256, RetryError<()>> {
+        retry_function(|| self.get_user_nonce_from_ethereum(addr), 2000, 2.0, 3).await
+    }
+
+    async fn get_user_nonce_from_ethereum(&self, addr: Address) -> Result<U256, RetryError<()>> {
+        if let Ok(nonce) = self.payment_service.user_nonces(addr).call().await {
+            return Ok(nonce);
         }
+        self.payment_service_fallback
+            .user_nonces(addr)
+            .call()
+            .await
+            .map_err(|_| RetryError::Transient)
     }
 
     /// Adds verification data to the current batch queue.
@@ -934,7 +944,7 @@ impl Batcher {
         // so that it is already loaded
 
         let Ok(nonpaying_replacement_addr_nonce) = self
-            .get_user_nonce_from_ethereum(nonpaying_replacement_addr)
+            .get_user_nonce_from_ethereum_with_retry(nonpaying_replacement_addr)
             .await
         else {
             batch_state_lock.batch_queue.clear();
