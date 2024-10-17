@@ -715,7 +715,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Socket connections that were disconnected when sending a batch response.",
+      "description": "Measures sockets connections that were abnormally disconnected per finalized batches (metric gets reset after every finalized batch).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -807,7 +807,7 @@
           "useBackend": false
         }
       ],
-      "title": "Broken sockets",
+      "title": "Broken sockets per batch",
       "type": "timeseries"
     },
     {
