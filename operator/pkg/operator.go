@@ -493,7 +493,7 @@ func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayer
 func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBitmap *big.Int, results chan bool) {
 	IsVerifierDisabled := IsVerifierDisabled(disabledVerifiersBitmap, verificationData.ProvingSystemId)
 	if IsVerifierDisabled {
-		o.Logger.Infof("Verifier %s is disbled. Skipping verifie", verificationData.ProvingSystemId.String())
+		o.Logger.Infof("Verifier %s is disbled. Skipping verification", verificationData.ProvingSystemId.String())
 		results <- false
 		return
 	}
