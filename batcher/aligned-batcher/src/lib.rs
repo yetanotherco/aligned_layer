@@ -2,7 +2,6 @@ use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize
 use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
-use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::{retry_function, RetryError};
 use types::batch_state::BatchState;
@@ -18,7 +17,7 @@ use aligned_sdk::core::types::{
     VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 use aws_sdk_s3::client::Client as S3Client;
-use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
+use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams};
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
@@ -1265,7 +1264,7 @@ impl Batcher {
             })
     }
 
-    /// Gets the current gas price from Ethereum using exponential backoff.
+    /// Uploads the batch to s3 using exponential backoff.
     async fn upload_batch_to_s3_with_retry(
         &self,
         batch_bytes: &[u8],
