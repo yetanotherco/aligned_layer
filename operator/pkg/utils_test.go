@@ -30,7 +30,7 @@ func TestIsVerifierDisabled(t *testing.T) {
 			want := true
 
 			if got != want {
-				t.Errorf("Verifier %s is enabled but it should not", verifierId.String())
+				t.Errorf("Verifier %s is enabled but it shouldn't be", verifierId.String())
 			}
 		}
 	})
