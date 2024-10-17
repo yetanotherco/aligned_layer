@@ -404,7 +404,7 @@ impl Batcher {
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
         // It is safe to do just do this here.
-        if self.user_balance_is_unlocked(&addr).await {
+        if self.user_balance_is_unlocked_with_retry(&addr).await {
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InsufficientBalance(addr),
@@ -952,13 +952,7 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price = match self.get_gas_price_with_retry().await {
-            Some(price) => price,
-            None => {
-                error!("Failed to get gas price");
-                return Err(BatcherError::GasPriceError);
-            }
-        };
+        let gas_price = self.get_gas_price_with_retry().await?;
 
         if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
             let batch_finalization_result = self
@@ -1205,9 +1199,18 @@ impl Batcher {
             .ok()
     }
 
-    async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
+    /// Checks if the user's balance is unlocked for a given address using exponential backoff.
+    /// Returns `false` if an error occurs during the retries.
+    async fn user_balance_is_unlocked_with_retry(&self, addr: &Address) -> bool {
+        match retry_function(|| self.user_balance_is_unlocked(addr), 2000, 2.0, 3).await {
+            Ok(result) => result,
+            Err(_) => false,
+        }
+    }
+
+    async fn user_balance_is_unlocked(&self, addr: &Address) -> Result<bool, RetryError<()>> {
         if let Ok(unlock_block) = self.payment_service.user_unlock_block(*addr).call().await {
-            return unlock_block != U256::zero();
+            return Ok(unlock_block != U256::zero());
         }
         if let Ok(unlock_block) = self
             .payment_service_fallback
@@ -1215,21 +1218,23 @@ impl Batcher {
             .call()
             .await
         {
-            return unlock_block != U256::zero();
+            return Ok(unlock_block != U256::zero());
         }
         warn!("Could not get user locking state");
-        false
+        Err(RetryError::Transient)
     }
 
-    async fn get_gas_price_with_retry(&self) -> Option<U256> {
+    /// Gets the current gas price from Ethereum using exponential backoff.
+    /// Returns `None` if the gas price couldn't be returned
+    async fn get_gas_price_with_retry(&self) -> Result<U256, BatcherError> {
         retry_function(|| self.get_gas_price(), 2000, 2.0, 3)
             .await
-            .ok()
+            .map_err(|_| {
+                error!("Failed to get gas price");
+                BatcherError::GasPriceError
+            })
     }
 
-    /// Gets the current gas price from Ethereum.
-    /// Returns `None` if the gas price couldn't be returned
-    /// FIXME: This should return a `Result` instead.
     async fn get_gas_price(&self) -> Result<U256, RetryError<()>> {
         if let Ok(gas_price) = self
             .eth_ws_provider
