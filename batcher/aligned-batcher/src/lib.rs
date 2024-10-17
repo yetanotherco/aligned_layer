@@ -302,7 +302,7 @@ impl Batcher {
             .await
         {
             Err(e) => {
-                self.metrics.broken_sockets_on_latest_batch.inc();
+                self.metrics.broken_ws_connections.inc();
                 error!("Unexpected error: {}", e)
             }
             Ok(_) => info!("{} disconnected", &addr),
