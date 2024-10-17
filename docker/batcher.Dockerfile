@@ -1,4 +1,4 @@
-ROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS base
+FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS base
 
 COPY go.mod .
 COPY go.sum .
