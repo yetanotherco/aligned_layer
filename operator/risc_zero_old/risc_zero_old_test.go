@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	"github.com/yetanotherco/aligned_layer/operator/risc_zero_old"
 )
 
 func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
@@ -23,7 +23,7 @@ func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
 		t.Errorf("could not open public input file: %s", err)
 	}
 
-	if !risc_zero.VerifyRiscZeroReceipt(innerReceiptBytes, imageIdBytes, publicInputBytes) {
+	if !risc_zero_old.VerifyRiscZeroReceiptOld(innerReceiptBytes, imageIdBytes, publicInputBytes) {
 		t.Errorf("proof did not verify")
 	}
 }
