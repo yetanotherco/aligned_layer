@@ -44,7 +44,7 @@ func TestIsVerifierDisabled(t *testing.T) {
 			want := verifierId == common.GnarkPlonkBls12_381 || verifierId == common.Risc0
 
 			if got != want {
-				t.Errorf("Verifier %s is enabled but it should not", verifierId.String())
+				t.Errorf("Verifier %s is enabled but it shouldn't be", verifierId.String())
 			}
 		}
 	})
