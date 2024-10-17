@@ -401,16 +401,23 @@ func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64
 	lastIdxDeleted := uint32(0)
 
 	for {
+		time.Sleep(period)
+
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning finalized tasks from maps")
 		oldTaskIdHash, err := agg.avsReader.GetOldTaskHash(blocksOld)
 		if err != nil {
-			agg.logger.Warn("Error getting old task hash, skipping this garbage collect", "err", err)
+			agg.logger.Error("Error getting old task hash, skipping this garbage collect", "err", err)
+			continue // Retry in the next iteration
+		}
+		if oldTaskIdHash == nil {
+			agg.logger.Warn("No old tasks found")
 			continue // Retry in the next iteration
 		}
 
-		oldTaskIdx := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
-		agg.logger.Info("Old task found", "taskIndex", oldTaskIdx)
-		for i := lastIdxDeleted + 1; i <= oldTaskIdx; i++ {
+		taskIdxToDelete := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
+		agg.logger.Info("Old task found", "taskIndex", taskIdxToDelete)
+		// delete from lastIdxDeleted to taskIdxToDelete
+		for i := lastIdxDeleted+1; i <= taskIdxToDelete; i++ {
 			batchIdentifierHash, exists := agg.batchesIdentifierHashByIdx[i]
 			if exists {
 				agg.logger.Info("Cleaning up finalized task", "taskIndex", i)
@@ -422,9 +429,7 @@ func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64
 				agg.logger.Warn("Task not found in maps", "taskIndex", i)
 			}
 		}
-		lastIdxDeleted = oldTaskIdx
+		lastIdxDeleted = taskIdxToDelete
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
-
-		time.Sleep(period)
 	}
 }

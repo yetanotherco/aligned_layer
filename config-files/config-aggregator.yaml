@@ -35,8 +35,8 @@ aggregator:
   enable_metrics: true
   metrics_ip_port_address: localhost:9091
   telemetry_ip_port_address: localhost:4001
-  garbage_collector_period: 11s #The period of the GC process #TODO make it 1 day
-  garbage_collector_tasks_age: 10 #The age of tasks that will be removed by the GC #TODO make it 1 month
+  garbage_collector_period: 60s #The period of the GC process #TODO make it 1 day
+  garbage_collector_tasks_age: 3 #The age of tasks that will be removed by the GC #TODO make it 1 month
 
 ## Operator Configurations
 # operator:

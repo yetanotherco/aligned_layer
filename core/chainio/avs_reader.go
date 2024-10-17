@@ -134,7 +134,7 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64) (*[32]byte, error) {
 		return nil, err
 	}
 	if !logs.Next() {
-		return nil, fmt.Errorf("no tasks found of at least %d blocks old", interval)
+		return nil, nil //not an error, but no tasks found
 	}
 
 	// Any log from the list is good enough.
