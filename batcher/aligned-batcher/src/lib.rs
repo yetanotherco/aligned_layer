@@ -7,6 +7,7 @@ use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
+use zk_utils::is_verifier_disabled;
 
 use std::collections::HashMap;
 use std::env;
@@ -81,6 +82,7 @@ pub struct Batcher {
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
+    disabled_verifiers: Mutex<U256>,
     pub metrics: metrics::BatcherMetrics,
 }
 
@@ -220,6 +222,12 @@ impl Batcher {
             None
         };
 
+        let disabled_verifiers = match service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => service_manager_fallback.disabled_verifiers().call().await,
+        }
+        .expect("Failed to get disabled verifiers");
+
         Self {
             s3_client,
             s3_bucket_name,
@@ -239,6 +247,7 @@ impl Batcher {
             non_paying_config,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
+            disabled_verifiers: Mutex::new(disabled_verifiers),
             metrics,
         }
     }
@@ -429,7 +438,9 @@ impl Batcher {
                 );
                 send_message(
                     ws_conn_sink.clone(),
-                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier),
+                    ValidityResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                        verification_data.proving_system,
+                    )),
                 )
                 .await;
                 return Ok(());
@@ -1017,13 +1028,26 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price = match self.get_gas_price().await {
-            Some(price) => price,
-            None => {
-                error!("Failed to get gas price");
-                return Err(BatcherError::GasPriceError);
+        let gas_price_future = self.get_gas_price();
+        let disabled_verifiers_future = self.disabled_verifiers();
+
+        let (gas_price, disable_verifiers) =
+            tokio::join!(gas_price_future, disabled_verifiers_future);
+        let gas_price = gas_price.ok_or(BatcherError::GasPriceError)?;
+        let new_disable_verifiers =
+            disable_verifiers.map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
+
+        let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;
+
+        if new_disable_verifiers != *disabled_verifiers_lock {
+            *disabled_verifiers_lock = new_disable_verifiers;
+            let has_disabled_verifiers = self
+                .queue_has_disabled_verifiers(new_disable_verifiers)
+                .await;
+            if has_disabled_verifiers {
+                self.flush_queue_and_clear_nonce_cache().await;
             }
-        };
+        }
 
         if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
             let batch_finalization_result = self
@@ -1038,6 +1062,18 @@ impl Batcher {
         }
 
         Ok(())
+    }
+
+    /// Checks if the batch queue has any proofs with disabled verifiers.
+    async fn queue_has_disabled_verifiers(&self, disabled_verifiers: U256) -> bool {
+        let batch_state_lock = self.batch_state.lock().await;
+        let queue_has_disabled_verifiers = batch_state_lock.batch_queue.iter().any(|(entry, _)| {
+            is_verifier_disabled(
+                disabled_verifiers,
+                &entry.nonced_verification_data.verification_data,
+            )
+        });
+        queue_has_disabled_verifiers
     }
 
     /// Post batch to s3 and submit new task to Ethereum
