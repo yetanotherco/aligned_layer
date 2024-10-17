@@ -1,4 +1,7 @@
-FROM debian:bookworm-slim
+FROM rust:slim-bookworm
+
+# Install rust nightly-2024-04-17
+RUN rustup toolchain install nightly-2024-04-17
 
 ARG BUILDARCH
 ENV GO_VERSION=1.22.2
@@ -27,10 +30,6 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 RUN go install github.com/maoueh/zap-pretty@latest
 RUN go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 RUN go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
-
-# Install rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /aligned_layer
 
