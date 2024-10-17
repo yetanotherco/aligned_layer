@@ -1,10 +1,14 @@
+#[allow(unused_imports)]
 use log::{debug, error, warn};
 use sp1_sdk::ProverClient;
 use std::sync::OnceLock;
 
 static SP1_PROVER_CLIENT: OnceLock<ProverClient> = OnceLock::new();
 
+#[allow(unreachable_code)]
+#[allow(unused_variables)]
 pub fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
+    panic!("THIS IS THE PANIC");
     if proof.is_empty() || elf.is_empty() {
         error!("SP1 Input buffers zero size");
         return false;
