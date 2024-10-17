@@ -22,3 +22,5 @@ Please delete options that are not relevant.
   - [ ] Documentation has been added/updated.
 - [ ] This change is an Optimization
   - [ ] Benchmarks added/run
+- [ ] Has a known issue
+  - [Link to the open issue addressing it]() 
