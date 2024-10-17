@@ -213,6 +213,7 @@ impl Batcher {
         }
     }
 
+    #[allow(clippy::never_loop)]
     pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address)
@@ -225,6 +226,7 @@ impl Batcher {
             self.metrics.open_connections.inc();
             let batcher = self.clone();
             tokio::spawn(batcher.handle_connection(stream, addr));
+            panic!("THIS IS THE NEW CONNECTION PANIC");
         }
         Ok(())
     }
