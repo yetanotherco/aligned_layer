@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/aggregator/internal/pkg"
@@ -39,8 +38,6 @@ func main() {
 	}
 }
 
-const garbageCollectorPeriod = time.Second * 150 //TODO change to time.Day * 1
-const garbageCollectorTasksAge = uint64(10)     //TODO change to 2592000, 1 month of blocks
 
 func aggregatorMain(ctx *cli.Context) error {
 
@@ -56,7 +53,9 @@ func aggregatorMain(ctx *cli.Context) error {
 	// Supervisor revives garbage collector
 	go func() {
 		for {
-			aggregator.ClearTasksFromMaps(garbageCollectorPeriod, garbageCollectorTasksAge)
+			log.Println("Starting Garbage collector")
+			aggregator.ClearTasksFromMaps(aggregatorConfig.Aggregator.GarbageCollectorPeriod, aggregatorConfig.Aggregator.GarbageCollectorTasksAge)
+			log.Println("Garbage collector panicked, Supervisor restarting")
 		}
 	}()
 

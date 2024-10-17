@@ -178,7 +178,6 @@ func NewAggregator(aggregatorConfig config.AggregatorConfig) (*Aggregator, error
 		telemetry:             aggregatorTelemetry,
 	}
 
-
 	return &aggregator, nil
 }
 
@@ -215,7 +214,6 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 }
 
 const MaxSentTxRetries = 5
-
 
 const BLS_AGG_SERVICE_TIMEOUT = 100 * time.Second
 
@@ -406,13 +404,13 @@ func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning finalized tasks from maps")
 		oldTaskIdHash, err := agg.avsReader.GetOldTaskHash(blocksOld)
 		if err != nil {
-			agg.logger.Error("Error getting old task hash, skipping this garbage collect", "err", err)
+			agg.logger.Warn("Error getting old task hash, skipping this garbage collect", "err", err)
 			continue // Retry in the next iteration
 		}
 
 		oldTaskIdx := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
 		agg.logger.Info("Old task found", "taskIndex", oldTaskIdx)
-		for i := lastIdxDeleted+1; i <= oldTaskIdx; i++ {
+		for i := lastIdxDeleted + 1; i <= oldTaskIdx; i++ {
 			batchIdentifierHash, exists := agg.batchesIdentifierHashByIdx[i]
 			if exists {
 				agg.logger.Info("Cleaning up finalized task", "taskIndex", i)

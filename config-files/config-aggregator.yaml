@@ -35,6 +35,9 @@ aggregator:
   enable_metrics: true
   metrics_ip_port_address: localhost:9091
   telemetry_ip_port_address: localhost:4001
+  garbage_collector_period: 11s #TODO make it 1 day
+  garbage_collector_tasks_age: 10 #TODO make it 1 month
+
 ## Operator Configurations
 # operator:
 #   aggregator_rpc_server_ip_port_address: localhost:8090
