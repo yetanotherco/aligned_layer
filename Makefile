@@ -230,6 +230,23 @@ operator_register_with_aligned_layer:
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
 
+# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
+verifier_enable_devnet:
+	@echo "Enabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable_devnet:
+	@echo "Disabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
+verifier_enable:
+	@echo "Enabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable:
+	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
 __BATCHER__:
 
 BURST_SIZE=5
