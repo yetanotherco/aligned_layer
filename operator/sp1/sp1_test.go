@@ -8,7 +8,6 @@ import (
 )
 
 const ProofFilePath = "../../scripts/test_files/sp1/sp1_fibonacci.proof"
-
 const ElfFilePath = "../../scripts/test_files/sp1/sp1_fibonacci.elf"
 
 func TestFibonacciSp1ProofVerifies(t *testing.T) {
