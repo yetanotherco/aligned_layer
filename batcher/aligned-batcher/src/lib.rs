@@ -1269,7 +1269,9 @@ impl Batcher {
                 // This happens whenever you try to read or write from/to a socket that has been abnormally disconnected.
                 Err(Error::Io(_)) => {
                     self.metrics.broken_sockets_on_latest_batch.inc();
-                    error!("IO Error while sending the batch response, this happened be!");
+                    error!(
+                        "IO Error while sending the batch response, connection was abnormally closed!"
+                    );
                 }
                 // Same as above only that here the connection was gracefully closed
                 Err(Error::ConnectionClosed) => {
