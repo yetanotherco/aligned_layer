@@ -8,12 +8,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
@@ -110,6 +114,10 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	address := configuration.Operator.Address
 	lastProcessedBatchLogFile := configuration.Operator.LastProcessedBatchFilePath
 
+	if lastProcessedBatchLogFile == "" {
+		logger.Fatalf("Config file field: `last_processed_batch_filepath` not provided.")
+	}
+
 	// Metrics
 	reg := prometheus.NewRegistry()
 	operatorMetrics := metrics.NewMetrics(configuration.Operator.MetricsIpPortAddress, reg, logger)
@@ -136,7 +144,10 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		// Socket
 	}
 
-	_ = operator.LoadLastProcessedBatch()
+	err = operator.LoadLastProcessedBatch()
+	if err != nil {
+		logger.Fatalf("Error while loading last process batch: %v. This is probably related to the `last_processed_batch_filepath` field passed in the config file", err)
+	}
 
 	return operator, nil
 }
@@ -155,16 +166,26 @@ type OperatorLastProcessedBatch struct {
 }
 
 func (o *Operator) LoadLastProcessedBatch() error {
+	// check if the directory exist
+	folderPath := filepath.Dir(o.lastProcessedBatchLogFile)
+	_, err := os.Stat(folderPath)
+
+	if os.IsNotExist(err) {
+		return err
+	}
+
 	file, err := os.ReadFile(o.lastProcessedBatchLogFile)
 
+	// if the file does not exist, we don't return an err, as it will get created later
+	// that is why we check of the directory exist in the first place
 	if err != nil {
-		return fmt.Errorf("failed read from file: %v", err)
+		return nil
 	}
 
 	err = json.Unmarshal(file, &o.lastProcessedBatch)
 
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal batch: %v", err)
+		return err
 	}
 
 	return nil
@@ -571,4 +592,66 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 func (o *Operator) SignTaskResponse(batchIdentifierHash [32]byte) *bls.Signature {
 	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchIdentifierHash)
 	return &responseSignature
+}
+
+func (o *Operator) SendTelemetryData(ctx *cli.Context) error {
+	// hash version
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write([]byte(ctx.App.Version))
+
+	// get hash
+	version := hash.Sum(nil)
+
+	// sign version
+	signature, err := crypto.Sign(version[:], o.Config.EcdsaConfig.PrivateKey)
+	if err != nil {
+		return err
+	}
+	ethRpcUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrl)
+	if err != nil {
+		return err
+	}
+	ethRpcUrlFallback, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrlFallback)
+	if err != nil {
+		return err
+	}
+	ethWsUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthWsUrl)
+	if err != nil {
+		return err
+	}
+	ethWsUrlFallback, err := BaseUrlOnly(o.Config.BaseConfig.EthWsUrlFallback)
+	if err != nil {
+		return err
+	}
+
+	body := map[string]interface{}{
+		"version":              ctx.App.Version,
+		"signature":            signature,
+		"eth_rpc_url":          ethRpcUrl,
+		"eth_rpc_url_fallback": ethRpcUrlFallback,
+		"eth_ws_url":           ethWsUrl,
+		"eth_ws_url_fallback":  ethWsUrlFallback,
+	}
+
+	bodyBuffer := new(bytes.Buffer)
+
+	bodyReader := json.NewEncoder(bodyBuffer)
+	err = bodyReader.Encode(body)
+	if err != nil {
+		return err
+	}
+
+	// send version to operator tracker server
+	endpoint := o.Config.Operator.OperatorTrackerIpPortAddress + "/versions"
+	o.Logger.Info("Sending version to operator tracker server: ", "endpoint", endpoint)
+
+	res, err := http.Post(endpoint, "application/json", bodyBuffer)
+	if err != nil {
+		// Dont prevent operator from starting if operator tracker server is down
+		o.Logger.Warn("Error sending version to metrics server: ", "err", err)
+	} else if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusNoContent {
+		o.Logger.Warn("Error sending version to operator tracker server: ", "status_code", res.StatusCode)
+	}
+
+	return nil
 }

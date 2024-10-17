@@ -21,21 +21,23 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             false
         }
         ProvingSystemId::Risc0 => {
-            if let (Some(image_id_slice), Some(pub_input)) = (
-                &verification_data.vm_program_code,
-                &verification_data.pub_input,
-            ) {
-                let mut image_id = [0u8; 32];
-                image_id.copy_from_slice(image_id_slice.as_slice());
-                return verify_risc_zero_proof(
-                    verification_data.proof.as_slice(),
-                    &image_id,
-                    pub_input,
+            let Some(image_id_slice) = &verification_data.vm_program_code else {
+                warn!(
+                    "Trying to verify Risc0 proof but image id was not provided. Returning false"
                 );
-            }
+                return false;
+            };
 
-            warn!("Trying to verify Risc0 proof but image id or public input was not provided. Returning false");
-            false
+            // Risc0 can have 0 public input. In which case we supply an empty Vec<u8>.
+            let pub_input = verification_data.pub_input.clone().unwrap_or_default();
+
+            let mut image_id = [0u8; 32];
+            image_id.copy_from_slice(image_id_slice.as_slice());
+            return verify_risc_zero_proof(
+                verification_data.proof.as_slice(),
+                &image_id,
+                &pub_input,
+            );
         }
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254

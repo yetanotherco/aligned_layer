@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.9.1
+OPERATOR_VERSION=v0.9.2
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -17,7 +17,15 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH := $(CURDIR)/operator/risc_zero/lib
+	export LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
+endif
+
+ifeq ($(OS),Linux)
+	BUILD_OPERATOR = $(MAKE) build_operator_linux 
+endif
+
+ifeq ($(OS),Darwin)
+	BUILD_OPERATOR = $(MAKE) build_operator_macos
 endif
 
 
@@ -120,6 +128,14 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
+	$(BUILD_OPERATOR)
+
+build_operator_macos:
+	@echo "Building Operator..."
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo "Operator built into /operator/build/aligned-operator"
+
+build_operator_linux:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
@@ -291,6 +307,16 @@ batcher_send_risc0_task:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
+batcher_send_risc0_task_no_pub_input:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
+
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
@@ -390,6 +416,7 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
+# Prometheus and graphana
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
@@ -485,6 +512,11 @@ generate_sp1_fibonacci_proof:
 	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci.elf
 	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
+
+generate_risc_zero_empty_journal_proof:
+	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
+
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
@@ -642,11 +674,19 @@ tracker_dump_db:
 	@echo "Dumped database successfully to /operator_tracker"
 
 __TELEMETRY__:
+# Collector, Jaeger and Elixir API
+telemetry_full_start: open_telemetry_start telemetry_start
+
+# Collector and Jaeger
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
-	## TODO(juarce) ADD DOCKER COMPOSE
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
 
+open_telemetry_prod_start: ## Run open telemetry services with Cassandra using telemetry-prod-docker-compose.yaml
+	@echo "Running telemetry for Prod..."
+	@docker compose -f telemetry-prod-docker-compose.yaml up -d
+
+# Elixir API
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
 	 	./start.sh	
