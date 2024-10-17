@@ -26,10 +26,8 @@ struct Cli {
     port: Option<u16>,
 }
 
-#[allow(unreachable_code)]
 #[tokio::main]
 async fn main() -> Result<(), BatcherError> {
-    panic!("THIS IS THE PANIC IN MAIN");
     let cli = Cli::parse();
     let port = cli.port.unwrap_or(8080);
 
