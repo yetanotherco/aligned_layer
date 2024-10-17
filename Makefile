@@ -292,28 +292,6 @@ batcher_send_sp1_burst:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_sp1_old_task:
-	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci_old.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_old.elf \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_sp1_old_burst:
-	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci_old.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_old.elf \
-		--repetitions $(BURST_SIZE) \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
 	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
@@ -325,17 +303,6 @@ batcher_send_risc0_task:
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_risc0_old_task:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/risc_zero_fibonacci_old.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/fibonacci_id_old.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/risc_zero_fibonacci_old.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -357,18 +324,6 @@ batcher_send_risc0_burst:
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
-        --repetitions $(BURST_SIZE) \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_risc0_old_burst:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/risc_zero_fibonacci_old.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/fibonacci_id_old.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator_old/risc_zero_fibonacci_old.pub \
         --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
@@ -579,13 +534,6 @@ test_sp1_go_bindings_linux_old: build_sp1_linux_old
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1_old/... -v
 
-# @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.elf scripts/test_files/sp1/
-generate_sp1_fibonacci_proof_old:
-	@cd scripts/test_files/sp1/fibonacci_proof_generator_old/script && RUST_LOG=info cargo run --release
-	@mv scripts/test_files/sp1/fibonacci_proof_generator_old/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci_old.elf
-	@mv scripts/test_files/sp1/fibonacci_proof_generator_old/script/sp1_fibonacci_old.proof scripts/test_files/sp1/
-	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
-
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
@@ -631,11 +579,6 @@ test_risc_zero_go_bindings_macos_old: build_risc_zero_macos_old
 test_risc_zero_go_bindings_linux_old: build_risc_zero_linux_old
 	@echo "Testing RISC Zero Go bindings..."
 	go test ./operator/risc_zero_old/... -v
-
-generate_risc_zero_fibonacci_proof_old:
-	@cd scripts/test_files/risc_zero/fibonacci_proof_generator_old && \
-		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero_old folder"
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
