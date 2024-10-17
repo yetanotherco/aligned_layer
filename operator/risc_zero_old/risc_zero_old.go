@@ -1,8 +1,8 @@
 package risc_zero_old
 
 /*
-#cgo linux LDFLAGS: ${SRCDIR}/lib/librisc_zero_verifier_old_ffi.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
-#cgo darwin LDFLAGS: -L./lib -lrisc_zero_verifier_old_ffi
+#cgo linux LDFLAGS: ${SRCDIR}/lib/librisc_zero_verifier_old.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo darwin LDFLAGS: -L./lib -lrisc_zero_verifier_old
 
 #include "lib/risc_zero.h"
 */
