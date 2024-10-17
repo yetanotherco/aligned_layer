@@ -11,11 +11,13 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	"github.com/yetanotherco/aligned_layer/core/config"
+	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
 type AvsWriter struct {
@@ -70,10 +72,11 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+
 	if err != nil {
 		// Retry with fallback
 		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
@@ -87,21 +90,55 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return nil, err
 	}
 
-	// Send the transaction
+	// Set the nonce, as we might have to replace the transaction with a higher fee
+	txNonce := new(big.Int).SetUint64(tx.Nonce())
 	txOpts.NoSend = false
-	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
-	tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-	if err != nil {
-		// Retry with fallback
-		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	txOpts.Nonce = txNonce
+
+	// Send the transaction
+	var maxRetries uint64 = 5
+	var i uint64
+	for i = 1; i < maxRetries; i++ {
+		// factor =  (100 + i * 10) / 100, so 1,1 <= x <= 1,5
+		factor := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), new(big.Int).Mul(big.NewInt(int64(i)), big.NewInt(10))), big.NewInt(100))
+		txOpts.GasFeeCap = new(big.Int).Mul(new(big.Int).Sub(tx.GasFeeCap(), big.NewInt(int64(1000))), factor)
+		w.logger.Infof("Sending ResponseToTask transaction for %vth with a gas limit of %v", i, txOpts.GasLimit)
+		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			return nil, err
 		}
+
+		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		if err != nil {
+			// Retry with fallback
+			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+			if err != nil {
+				return nil, err
+			}
+		}
+		ctx, _ := context.WithTimeout(context.Background(), time.Second*20)
+		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
+
+		if receipt != nil {
+			if receipt.Status == 0 {
+				return receipt, fmt.Errorf("transaction failed")
+			} else {
+				// transaction was included in block
+				return receipt, nil
+			}
+		}
+
+		// transaction not included in block, try again
+		if err == ethereum.NotFound {
+			w.logger.Infof("Transaction not included in block will try again bumping the fee")
+			continue
+		} else {
+			return receipt, err
+		}
+
 	}
 
-	txHash := tx.Hash()
-
-	return &txHash, nil
+	return nil, fmt.Errorf("could not send transaction")
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
