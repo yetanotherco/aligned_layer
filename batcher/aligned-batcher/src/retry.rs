@@ -2,6 +2,10 @@ use backon::ExponentialBuilder;
 use backon::Retryable;
 use std::{future::Future, time::Duration};
 
+pub const DEFAULT_MIN_DELAY: u64 = 2000;
+pub const DEFAULT_MAX_TIMES: usize = 3;
+pub const DEFAULT_FACTOR: f32 = 2.0;
+
 #[derive(Debug)]
 pub enum RetryError<E> {
     Transient,
@@ -19,7 +23,7 @@ pub async fn retry_function<FutureFn, Fut, T, E>(
     function: FutureFn,
     min_delay: u64,
     factor: f32,
-    max_tries: usize,
+    max_times: usize,
 ) -> Result<T, RetryError<E>>
 where
     Fut: Future<Output = Result<T, RetryError<E>>>,
@@ -27,7 +31,7 @@ where
 {
     let backoff = ExponentialBuilder::default()
         .with_min_delay(Duration::from_millis(min_delay))
-        .with_max_times(max_tries)
+        .with_max_times(max_times)
         .with_factor(factor);
 
     function

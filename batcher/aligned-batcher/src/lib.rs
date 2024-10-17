@@ -3,7 +3,7 @@ use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use ethers::signers::Signer;
-use retry::{retry_function, RetryError};
+use retry::{retry_function, RetryError, DEFAULT_FACTOR, DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -662,7 +662,13 @@ impl Batcher {
         &self,
         addr: Address,
     ) -> Result<U256, RetryError<()>> {
-        retry_function(|| self.get_user_nonce_from_ethereum(addr), 2000, 2.0, 3).await
+        retry_function(
+            || self.get_user_nonce_from_ethereum(addr),
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
     }
 
     async fn get_user_nonce_from_ethereum(&self, addr: Address) -> Result<U256, RetryError<()>> {
@@ -1189,7 +1195,13 @@ impl Batcher {
 
     /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
     async fn get_user_balance_with_retry(&self, addr: &Address) -> Result<U256, RetryError<()>> {
-        retry_function(|| self.get_user_balance(addr), 2000, 2.0, 3).await
+        retry_function(
+            || self.get_user_balance(addr),
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
     }
 
     async fn get_user_balance(&self, addr: &Address) -> Result<U256, RetryError<()>> {
@@ -1210,7 +1222,14 @@ impl Batcher {
     /// Checks if the user's balance is unlocked for a given address using exponential backoff.
     /// Returns `false` if an error occurs during the retries.
     async fn user_balance_is_unlocked_with_retry(&self, addr: &Address) -> bool {
-        match retry_function(|| self.user_balance_is_unlocked(addr), 2000, 2.0, 3).await {
+        match retry_function(
+            || self.user_balance_is_unlocked(addr),
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        {
             Ok(result) => result,
             Err(_) => {
                 warn!("Could not get user locking state");
@@ -1237,12 +1256,17 @@ impl Batcher {
     /// Gets the current gas price from Ethereum using exponential backoff.
     /// Returns `None` if the gas price couldn't be returned
     async fn get_gas_price_with_retry(&self) -> Result<U256, BatcherError> {
-        retry_function(|| self.get_gas_price(), 2000, 2.0, 3)
-            .await
-            .map_err(|_| {
-                error!("Failed to get gas price");
-                BatcherError::GasPriceError
-            })
+        retry_function(
+            || self.get_gas_price(),
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .map_err(|_| {
+            error!("Failed to get gas price");
+            BatcherError::GasPriceError
+        })
     }
 
     async fn get_gas_price(&self) -> Result<U256, RetryError<()>> {
@@ -1272,9 +1296,9 @@ impl Batcher {
     ) -> Result<(), BatcherError> {
         retry_function(
             || self.upload_batch_to_s3(batch_bytes, file_name),
-            2000,
-            2.0,
-            3,
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
         )
         .await
         .map_err(|_| BatcherError::BatchUploadError("Error uploading batch to s3".to_string()))

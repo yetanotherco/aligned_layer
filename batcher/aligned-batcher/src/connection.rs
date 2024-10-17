@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    retry::{retry_function, RetryError},
+    retry::{retry_function, RetryError, DEFAULT_FACTOR, DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY},
     types::{batch_queue::BatchQueueEntry, errors::BatcherError},
 };
 use aligned_sdk::{
@@ -65,9 +65,9 @@ async fn send_response_with_retry(
 ) {
     if let Err(e) = retry_function(
         || send_response(ws_sink, serialized_response.clone()),
-        2000,
-        2.0,
-        3,
+        DEFAULT_MIN_DELAY,
+        DEFAULT_FACTOR,
+        DEFAULT_MAX_TIMES,
     )
     .await
     {
