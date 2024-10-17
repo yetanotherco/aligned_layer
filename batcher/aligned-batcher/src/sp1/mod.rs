@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 static SP1_PROVER_CLIENT: OnceLock<ProverClient> = OnceLock::new();
 
 pub fn verify_sp1_proof(proof: &[u8], elf: &[u8]) -> bool {
+    panic!("THIS IS THE PANIC");
     if proof.is_empty() || elf.is_empty() {
         error!("SP1 Input buffers zero size");
         return false;
