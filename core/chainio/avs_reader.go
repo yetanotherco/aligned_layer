@@ -106,7 +106,6 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 
 // This function is a helper to get a task hash of aproximately nBlocksOld blocks ago
 func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64) (*[32]byte, error) {
-	// r.ChainReader.ethClient.CallContext(context.Background(), &blockNumber, "eth_blockNumber")
 	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())

@@ -387,6 +387,8 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 }
 
 // long-lived gorouting that periodically checks and removes old Tasks from stored Maps
+// It runs every period and removes all tasks older than blocksOld
+// This was added because each task occupies memory in the maps, and we need to free it to avoid a memory leak
 func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64) {
 	defer func() {
 		err := recover() //stops panics
@@ -399,8 +401,6 @@ func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64
 	lastIdxDeleted := uint32(0)
 
 	for {
-		time.Sleep(period)
-
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning finalized tasks from maps")
 		oldTaskIdHash, err := agg.avsReader.GetOldTaskHash(blocksOld)
 		if err != nil {
@@ -424,5 +424,7 @@ func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64
 		}
 		lastIdxDeleted = oldTaskIdx
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Done cleaning finalized tasks from maps")
+
+		time.Sleep(period)
 	}
 }
