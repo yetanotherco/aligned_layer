@@ -988,20 +988,13 @@ impl Batcher {
         finalized_batch: &[BatchQueueEntry],
         gas_price: U256,
     ) -> Result<(), BatcherError> {
-        let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
-        s3::upload_object(
-            &s3_client,
-            &self.s3_bucket_name,
-            batch_bytes.to_vec(),
-            &file_name,
-        )
-        .await
-        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))?;
+        self.upload_batch_to_s3_with_retry(batch_bytes, &file_name)
+            .await?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -1270,5 +1263,39 @@ impl Batcher {
                 warn!("Failed to get fallback gas price: {e:?}");
                 RetryError::Transient
             })
+    }
+
+    /// Gets the current gas price from Ethereum using exponential backoff.
+    async fn upload_batch_to_s3_with_retry(
+        &self,
+        batch_bytes: &[u8],
+        file_name: &String,
+    ) -> Result<(), BatcherError> {
+        retry_function(
+            || self.upload_batch_to_s3(batch_bytes, file_name),
+            2000,
+            2.0,
+            3,
+        )
+        .await
+        .map_err(|_| BatcherError::BatchUploadError("Error uploading batch to s3".to_string()))
+    }
+
+    async fn upload_batch_to_s3(
+        &self,
+        batch_bytes: &[u8],
+        file_name: &String,
+    ) -> Result<(), RetryError<()>> {
+        let s3_client = self.s3_client.clone();
+
+        s3::upload_object(
+            &s3_client,
+            &self.s3_bucket_name,
+            batch_bytes.to_vec(),
+            &file_name,
+        )
+        .await
+        .map_err(|_| RetryError::Transient)?;
+        Ok(())
     }
 }
