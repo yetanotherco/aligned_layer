@@ -356,7 +356,6 @@ batcher:
   batch_size_interval: <batch_size_interval>
   max_proof_size: <max_proof_size_in_bytes>
   max_batch_size: <max_batch_size_in_bytes>
-  eth_ws_reconnects: <eth_ws_reconnects_amount>
   pre_verification_is_enabled: <true|false>
 
 ## ECDSA Configurations
