@@ -60,6 +60,7 @@ defmodule TelemetryApi.MixProject do
       {:opentelemetry, "~> 1.3"},
       {:opentelemetry_api, "~> 1.2"},
       {:opentelemetry_exporter, "~> 1.6"},
+      {:ex_keccak, "~> 0.7.5"},
       {:prometheus_ex, "~> 3.0"},
       {:prometheus_plugs, "~> 1.0"}
     ]
