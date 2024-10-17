@@ -7,7 +7,7 @@ use aligned_sdk::core::types::{
 use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
 use aligned_sdk::sdk::{get_next_nonce, submit_and_wait_verification};
 use clap::Parser;
-use dialoguer::Confirm;
+use inquire::Confirm;
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
 use ethers::signers::{LocalWallet, Signer};
@@ -61,9 +61,8 @@ async fn main() {
 
     let signer = SignerMiddleware::new(provider.clone(), wallet.clone());
 
-    if Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
-        .with_prompt("Do you want to deposit 0.004eth in Aligned ?\nIf you already deposited Ethereum to Aligned before, this is not needed")
-        .interact()
+    if Confirm::new("Do you want to deposit 0.004eth in Aligned ?\nIf you already deposited Ethereum to Aligned before, this is not needed")
+        .prompt()
         .expect("Failed to read user input") {   
 
         deposit_to_aligned(U256::from(4000000000000000u128), signer.clone(), args.network).await
@@ -124,11 +123,8 @@ async fn main() {
         .await
         .expect("failed to fetch gas price from the blockchain");
 
-    let max_fee_string = ethers::utils::format_units(max_fee, 18).unwrap();
-
-    if !Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
-        .with_prompt(format!("Aligned will use at most {max_fee_string} eth to verify your proof. Do you want to continue?"))
-        .interact()
+    if !Confirm::new(&format!("Aligned will use at most {} eth to verify your proof. Do you want to continue?", ethers::utils::format_units(max_fee, 18).unwrap()))
+        .prompt()
         .expect("Failed to read user input")
     {   return; }
 
