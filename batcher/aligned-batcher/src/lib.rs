@@ -98,10 +98,9 @@ impl Batcher {
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
-        let eth_ws_provider =
-            Provider::connect_with_reconnects(&config.eth_ws_url, config.batcher.eth_ws_reconnects)
-                .await
-                .expect("Failed to get ethereum websocket provider");
+        let eth_ws_provider = Provider::connect(&config.eth_ws_url)
+            .await
+            .expect("Failed to get ethereum websocket provider");
 
         log::info!(
             "Starting metrics server on port {}",
@@ -110,12 +109,9 @@ impl Batcher {
         let metrics = metrics::BatcherMetrics::start(config.batcher.metrics_port)
             .expect("Failed to start metrics server");
 
-        let eth_ws_provider_fallback = Provider::connect_with_reconnects(
-            &config.eth_ws_url_fallback,
-            config.batcher.eth_ws_reconnects,
-        )
-        .await
-        .expect("Failed to get fallback ethereum websocket provider");
+        let eth_ws_provider_fallback = Provider::connect(&config.eth_ws_url_fallback)
+            .await
+            .expect("Failed to get fallback ethereum websocket provider");
 
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
@@ -1318,7 +1314,10 @@ impl Batcher {
             file_name,
         )
         .await
-        .map_err(|_| RetryError::Transient)?;
+        .map_err(|e| {
+            warn!("Error uploading batch to s3 {e}");
+            RetryError::Transient
+        })?;
         Ok(())
     }
 }

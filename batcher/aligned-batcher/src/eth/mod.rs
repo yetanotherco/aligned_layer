@@ -15,7 +15,7 @@ pub struct BatchVerified {
 }
 
 pub type SignerMiddlewareT =
-    SignerMiddleware<GasEscalatorMiddleware<Provider<RetryClient<Http>>>, Wallet<SigningKey>>;
+    SignerMiddleware<GasEscalatorMiddleware<Provider<Http>>, Wallet<SigningKey>>;
 
 pub type BatcherPaymentService = BatcherPaymentServiceContract<SignerMiddlewareT>;
 
@@ -48,18 +48,11 @@ impl CreateNewTaskFeeParams {
     }
 }
 
-pub fn get_provider(eth_rpc_url: String) -> Result<Provider<RetryClient<Http>>, anyhow::Error> {
+pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error> {
     let provider = Http::from_str(eth_rpc_url.as_str())
         .map_err(|e| anyhow::Error::msg(format!("Failed to create provider: {}", e)))?;
 
-    let client = RetryClient::new(
-        provider,
-        Box::<ethers::providers::HttpRateLimitRetryPolicy>::default(),
-        MAX_RETRIES,
-        INITIAL_BACKOFF,
-    );
-
-    Ok(Provider::<RetryClient<Http>>::new(client))
+    Ok(Provider::new(provider))
 }
 
 pub async fn get_batcher_payment_service(
