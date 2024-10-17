@@ -192,8 +192,6 @@ func (agg *Aggregator) Start(ctx context.Context) error {
 		}
 	}()
 
-	panic("Aggregator failed to start")
-
 	var metricsErrChan <-chan error
 	if agg.AggregatorConfig.Aggregator.EnableMetrics {
 		metricsErrChan = agg.metrics.Start(ctx, agg.metricsReg)
@@ -273,7 +271,12 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err = agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+
+		fakeBatchIdentifierHashBytes := [32]byte{}
+		for j := 0; j < 32; j++ {
+			fakeBatchIdentifierHashBytes[j] = byte(j)
+		}
+		_, err = agg.sendAggregatedResponse(fakeBatchIdentifierHashBytes, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 		if err == nil {
 			agg.logger.Info("Aggregator successfully responded to task",
 				"taskIndex", blsAggServiceResp.TaskIndex,
