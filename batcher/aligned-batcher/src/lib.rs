@@ -7,7 +7,6 @@ use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use types::batch_state::BatchState;
 use types::user_state::UserState;
-use zk_utils::is_verifier_disabled;
 
 use std::collections::HashMap;
 use std::env;
@@ -1041,12 +1040,7 @@ impl Batcher {
 
         if new_disable_verifiers != *disabled_verifiers_lock {
             *disabled_verifiers_lock = new_disable_verifiers;
-            let has_disabled_verifiers = self
-                .queue_has_disabled_verifiers(new_disable_verifiers)
-                .await;
-            if has_disabled_verifiers {
-                self.flush_queue_and_clear_nonce_cache().await;
-            }
+            self.flush_queue_and_clear_nonce_cache().await;
         }
 
         if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
@@ -1062,18 +1056,6 @@ impl Batcher {
         }
 
         Ok(())
-    }
-
-    /// Checks if the batch queue has any proofs with disabled verifiers.
-    async fn queue_has_disabled_verifiers(&self, disabled_verifiers: U256) -> bool {
-        let batch_state_lock = self.batch_state.lock().await;
-        let queue_has_disabled_verifiers = batch_state_lock.batch_queue.iter().any(|(entry, _)| {
-            is_verifier_disabled(
-                disabled_verifiers,
-                &entry.nonced_verification_data.verification_data,
-            )
-        });
-        queue_has_disabled_verifiers
     }
 
     /// Post batch to s3 and submit new task to Ethereum
