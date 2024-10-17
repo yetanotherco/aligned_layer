@@ -496,19 +496,29 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- verificationResult
 
 	case common.SP1:
-		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
-		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-		results <- verificationResult
+		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		o.handleVerificationResult(results, verificationResult, err, "SP1 proof verification")
 
 	case common.Risc0:
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
+		verificationResult, err := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
+		o.handleVerificationResult(results, verificationResult, err, "RiscZero proof verification")
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
+	}
+}
+
+func (o *Operator) handleVerificationResult(results chan bool, isVerified bool, err error, name string) {
+	if err != nil {
+		o.Logger.Errorf("%v failed %v", name, err)
+		results <- false
+	} else {
+		o.Logger.Infof("%v result: %t", name, isVerified)
+		results <- isVerified
 	}
 }
 
