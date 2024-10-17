@@ -15,7 +15,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aligned_sdk::core::types::{
-    ClientMessage, NoncedVerificationData, ProofInvalidReason, ResponseMessage,
+    ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
     ValidityResponseMessage, VerificationCommitmentBatch, VerificationData,
     VerificationDataCommitment,
 };
@@ -422,16 +422,11 @@ impl Batcher {
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
-            let disabled_verifiers = match self.disabled_verifiers().await {
-                Ok(disabled_verifiers) => disabled_verifiers,
-                Err(e) => {
-                    error!("Failed to get disabled verifiers: {e:?}");
-                    send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
-                    return Ok(());
-                }
-            };
             let verification_data = &nonced_verification_data.verification_data;
-            if zk_utils::is_verifier_disabled(disabled_verifiers, verification_data) {
+            if self
+                .is_verifier_disabled(verification_data.proving_system)
+                .await
+            {
                 warn!(
                     "Verifier for proving system {} is disabled, skipping verification",
                     verification_data.proving_system
@@ -615,6 +610,11 @@ impl Batcher {
         info!("Verification data message handled");
         send_message(ws_conn_sink, ValidityResponseMessage::Valid).await;
         Ok(())
+    }
+
+    async fn is_verifier_disabled(&self, verifier: ProvingSystemId) -> bool {
+        let disabled_verifiers = self.disabled_verifiers.lock().await;
+        zk_utils::is_verifier_disabled(*disabled_verifiers, verifier)
     }
 
     // Checks user has sufficient balance for paying all its the proofs in the current batch.

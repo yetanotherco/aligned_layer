@@ -68,9 +68,9 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
 
 pub(crate) fn is_verifier_disabled(
     disabled_verifiers: U256,
-    verification_data: &VerificationData,
+    proving_system: ProvingSystemId,
 ) -> bool {
-    disabled_verifiers & (U256::one() << verification_data.proving_system as u64) != U256::zero()
+    disabled_verifiers & (U256::one() << proving_system as u64) != U256::zero()
 }
 
 #[cfg(test)]
@@ -113,7 +113,7 @@ mod test {
                 proof_generator_addr: Address::zero(),
             };
             assert!(
-                !is_verifier_disabled(disabled_verifiers, &verification_data),
+                !is_verifier_disabled(disabled_verifiers, verification_data.proving_system),
                 "Verifier {:?} should not be disabled",
                 verifier
             );
@@ -135,7 +135,7 @@ mod test {
                 proof_generator_addr: Address::zero(),
             };
             assert!(
-                is_verifier_disabled(disabled_verifiers, &verification_data),
+                is_verifier_disabled(disabled_verifiers, verification_data.proving_system),
                 "Verifier {:?} should be disabled",
                 verifier
             );
@@ -158,13 +158,13 @@ mod test {
             };
             if verifier == &verifiers[0] || verifier == &verifiers[verifiers.len() - 1] {
                 assert!(
-                    is_verifier_disabled(disabled_verifiers, &verification_data),
+                    is_verifier_disabled(disabled_verifiers, verification_data.proving_system),
                     "Verifier {:?} should be disabled",
                     verifier
                 );
             } else {
                 assert!(
-                    !is_verifier_disabled(disabled_verifiers, &verification_data),
+                    !is_verifier_disabled(disabled_verifiers, verification_data.proving_system),
                     "Verifier {:?} should not be disabled",
                     verifier
                 );
