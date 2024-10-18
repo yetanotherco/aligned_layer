@@ -19,8 +19,8 @@ use aligned_sdk::core::types::{
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams};
 use ethers::prelude::{Middleware, Provider};
-use ethers::providers::Ws;
-use ethers::types::{Address, Signature, TransactionReceipt, U256};
+use ethers::providers::{SubscriptionStream, Ws};
+use ethers::types::{Address, Block, Signature, TransactionReceipt, TxHash, H256, U256};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -227,13 +227,13 @@ impl Batcher {
     }
 
     pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), BatcherError> {
-        let mut stream = self
+        let stream = self
             .eth_ws_provider
             .subscribe_blocks()
             .await
             .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
 
-        let mut stream_fallback = self
+        let stream_fallback = self
             .eth_ws_provider_fallback
             .subscribe_blocks()
             .await
@@ -241,10 +241,13 @@ impl Batcher {
 
         let last_seen_block = Mutex::<u64>::new(0);
 
-        while let Some(block) = tokio::select! {
-            block = stream.next() => block,
-            block = stream_fallback.next() => block,
-        } {
+        let stream = Arc::new(Mutex::new(stream));
+        let stream_fallback = Arc::new(Mutex::new(stream_fallback));
+
+        while let Ok(block) = self
+            .get_next_block_with_retry(stream.clone(), stream_fallback.clone())
+            .await
+        {
             let batcher = self.clone();
             let block_number = block.number.unwrap_or_default();
             let block_number = u64::try_from(block_number).unwrap_or_default();
@@ -265,7 +268,48 @@ impl Batcher {
             });
         }
 
-        Ok(())
+        Err(BatcherError::EthereumSubscriptionError(
+            "No more blocks".to_string(),
+        ))
+    }
+
+    async fn get_next_block_with_retry(
+        &self,
+        stream: Arc<Mutex<SubscriptionStream<'_, Ws, Block<TxHash>>>>,
+        stream_fallback: Arc<Mutex<SubscriptionStream<'_, Ws, Block<TxHash>>>>,
+    ) -> Result<Block<H256>, BatcherError> {
+        retry_function(
+            || {
+                let stream = Arc::clone(&stream);
+                let stream_fallback = Arc::clone(&stream_fallback);
+                async move {
+                    let mut stream_lock = stream.lock().await;
+                    let mut stream_fallback_lock = stream_fallback.lock().await;
+                    self.get_next_block(&mut stream_lock, &mut stream_fallback_lock)
+                        .await
+                }
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .map_err(|_| BatcherError::EthereumSubscriptionError("No more blocks".to_string()))
+    }
+
+    async fn get_next_block(
+        &self,
+        stream: &mut SubscriptionStream<'_, Ws, Block<TxHash>>,
+        stream_fallback: &mut SubscriptionStream<'_, Ws, Block<TxHash>>,
+    ) -> Result<Block<H256>, RetryError<()>> {
+        tokio::select! {
+            Some(block) = stream.next() => Ok(block),
+            Some(block) = stream_fallback.next() => Ok(block),
+            else => {
+                warn!("Error fetching next block.");
+                Err(RetryError::Transient)
+            }
+        }
     }
 
     async fn handle_connection(
@@ -675,7 +719,10 @@ impl Batcher {
             .user_nonces(addr)
             .call()
             .await
-            .map_err(|_| RetryError::Transient)
+            .map_err(|_| {
+                warn!("Error getting user nonce.");
+                RetryError::Transient
+            })
     }
 
     /// Adds verification data to the current batch queue.
@@ -1246,6 +1293,7 @@ impl Batcher {
         {
             return Ok(unlock_block != U256::zero());
         }
+        warn!("Failed to get user locking state {:?}", addr);
         Err(RetryError::Transient)
     }
 
