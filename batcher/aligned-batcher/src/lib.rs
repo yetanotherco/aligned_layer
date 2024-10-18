@@ -245,7 +245,7 @@ impl Batcher {
         let stream_fallback = Arc::new(Mutex::new(stream_fallback));
 
         while let Ok(block) = self
-            .get_next_block_with_retry(stream.clone(), stream_fallback.clone())
+            .get_next_block(stream.clone(), stream_fallback.clone())
             .await
         {
             let batcher = self.clone();
@@ -273,7 +273,7 @@ impl Batcher {
         ))
     }
 
-    async fn get_next_block_with_retry(
+    async fn get_next_block(
         &self,
         stream: Arc<Mutex<SubscriptionStream<'_, Ws, Block<TxHash>>>>,
         stream_fallback: Arc<Mutex<SubscriptionStream<'_, Ws, Block<TxHash>>>>,
@@ -285,7 +285,7 @@ impl Batcher {
                 async move {
                     let mut stream_lock = stream.lock().await;
                     let mut stream_fallback_lock = stream_fallback.lock().await;
-                    self.get_next_block(&mut stream_lock, &mut stream_fallback_lock)
+                    Self::get_next_block_retryable(&mut stream_lock, &mut stream_fallback_lock)
                         .await
                 }
             },
@@ -297,8 +297,7 @@ impl Batcher {
         .map_err(|_| BatcherError::EthereumSubscriptionError("No more blocks".to_string()))
     }
 
-    async fn get_next_block(
-        &self,
+    async fn get_next_block_retryable(
         stream: &mut SubscriptionStream<'_, Ws, Block<TxHash>>,
         stream_fallback: &mut SubscriptionStream<'_, Ws, Block<TxHash>>,
     ) -> Result<Block<H256>, RetryError<()>> {
@@ -443,7 +442,7 @@ impl Batcher {
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
         // It is safe to do just do this here.
-        if self.user_balance_is_unlocked_with_retry(&addr).await {
+        if self.user_balance_is_unlocked(&addr).await {
             send_message(
                 ws_conn_sink.clone(),
                 ValidityResponseMessage::InsufficientBalance(addr),
@@ -473,8 +472,7 @@ impl Batcher {
         }
 
         if !is_user_in_state {
-            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum_with_retry(addr).await
-            {
+            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
                 Ok(ethereum_user_nonce) => ethereum_user_nonce,
                 Err(e) => {
                     error!(
@@ -496,7 +494,7 @@ impl Batcher {
         // *        Perform validations over user state         *
         // * ---------------------------------------------------*
 
-        let Ok(user_balance) = self.get_user_balance_with_retry(&addr).await else {
+        let Ok(user_balance) = self.get_user_balance(&addr).await else {
             error!("Could not get balance for address {addr:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
             return Ok(());
@@ -698,12 +696,15 @@ impl Batcher {
     }
 
     /// Gets the user nonce from Ethereum using exponential backoff.
-    async fn get_user_nonce_from_ethereum_with_retry(
-        &self,
-        addr: Address,
-    ) -> Result<U256, RetryError<()>> {
+    async fn get_user_nonce_from_ethereum(&self, addr: Address) -> Result<U256, RetryError<()>> {
         retry_function(
-            || self.get_user_nonce_from_ethereum(addr),
+            || {
+                Self::get_user_nonce_from_ethereum_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
             DEFAULT_MIN_DELAY,
             DEFAULT_FACTOR,
             DEFAULT_MAX_TIMES,
@@ -711,11 +712,15 @@ impl Batcher {
         .await
     }
 
-    async fn get_user_nonce_from_ethereum(&self, addr: Address) -> Result<U256, RetryError<()>> {
-        if let Ok(nonce) = self.payment_service.user_nonces(addr).call().await {
+    async fn get_user_nonce_from_ethereum_retryable(
+        payment_service: &BatcherPaymentService,
+        payment_service_fallback: &BatcherPaymentService,
+        addr: Address,
+    ) -> Result<U256, RetryError<()>> {
+        if let Ok(nonce) = payment_service.user_nonces(addr).call().await {
             return Ok(nonce);
         }
-        self.payment_service_fallback
+        payment_service_fallback
             .user_nonces(addr)
             .call()
             .await
@@ -992,7 +997,7 @@ impl Batcher {
         // so that it is already loaded
 
         let Ok(nonpaying_replacement_addr_nonce) = self
-            .get_user_nonce_from_ethereum_with_retry(nonpaying_replacement_addr)
+            .get_user_nonce_from_ethereum(nonpaying_replacement_addr)
             .await
         else {
             batch_state_lock.batch_queue.clear();
@@ -1010,7 +1015,7 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price = self.get_gas_price_with_retry().await?;
+        let gas_price = self.get_gas_price().await?;
 
         if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
             let batch_finalization_result = self
@@ -1041,8 +1046,7 @@ impl Batcher {
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
-        self.upload_batch_to_s3_with_retry(batch_bytes, &file_name)
-            .await?;
+        self.upload_batch_to_s3(batch_bytes, &file_name).await?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -1168,9 +1172,7 @@ impl Batcher {
         };
 
         let replacement_addr = non_paying_config.replacement.address();
-        let Ok(replacement_user_balance) =
-            self.get_user_balance_with_retry(&replacement_addr).await
-        else {
+        let Ok(replacement_user_balance) = self.get_user_balance(&replacement_addr).await else {
             error!("Could not get balance for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
@@ -1237,9 +1239,15 @@ impl Batcher {
     }
 
     /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
-    async fn get_user_balance_with_retry(&self, addr: &Address) -> Result<U256, RetryError<()>> {
+    async fn get_user_balance(&self, addr: &Address) -> Result<U256, RetryError<()>> {
         retry_function(
-            || self.get_user_balance(addr),
+            || {
+                Self::get_user_balance_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
             DEFAULT_MIN_DELAY,
             DEFAULT_FACTOR,
             DEFAULT_MAX_TIMES,
@@ -1247,12 +1255,16 @@ impl Batcher {
         .await
     }
 
-    async fn get_user_balance(&self, addr: &Address) -> Result<U256, RetryError<()>> {
-        if let Ok(balance) = self.payment_service.user_balances(*addr).call().await {
+    async fn get_user_balance_retryable(
+        payment_service: &BatcherPaymentService,
+        payment_service_fallback: &BatcherPaymentService,
+        addr: &Address,
+    ) -> Result<U256, RetryError<()>> {
+        if let Ok(balance) = payment_service.user_balances(*addr).call().await {
             return Ok(balance);
         };
 
-        self.payment_service_fallback
+        payment_service_fallback
             .user_balances(*addr)
             .call()
             .await
@@ -1264,9 +1276,15 @@ impl Batcher {
 
     /// Checks if the user's balance is unlocked for a given address using exponential backoff.
     /// Returns `false` if an error occurs during the retries.
-    async fn user_balance_is_unlocked_with_retry(&self, addr: &Address) -> bool {
+    async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
         match retry_function(
-            || self.user_balance_is_unlocked(addr),
+            || {
+                Self::user_balance_is_unlocked_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
             DEFAULT_MIN_DELAY,
             DEFAULT_FACTOR,
             DEFAULT_MAX_TIMES,
@@ -1281,12 +1299,15 @@ impl Batcher {
         }
     }
 
-    async fn user_balance_is_unlocked(&self, addr: &Address) -> Result<bool, RetryError<()>> {
-        if let Ok(unlock_block) = self.payment_service.user_unlock_block(*addr).call().await {
+    async fn user_balance_is_unlocked_retryable(
+        payment_service: &BatcherPaymentService,
+        payment_service_fallback: &BatcherPaymentService,
+        addr: &Address,
+    ) -> Result<bool, RetryError<()>> {
+        if let Ok(unlock_block) = payment_service.user_unlock_block(*addr).call().await {
             return Ok(unlock_block != U256::zero());
         }
-        if let Ok(unlock_block) = self
-            .payment_service_fallback
+        if let Ok(unlock_block) = payment_service_fallback
             .user_unlock_block(*addr)
             .call()
             .await
@@ -1299,9 +1320,9 @@ impl Batcher {
 
     /// Gets the current gas price from Ethereum using exponential backoff.
     /// Returns `None` if the gas price couldn't be returned
-    async fn get_gas_price_with_retry(&self) -> Result<U256, BatcherError> {
+    async fn get_gas_price(&self) -> Result<U256, BatcherError> {
         retry_function(
-            || self.get_gas_price(),
+            || Self::get_gas_price_retryable(&self.eth_ws_provider, &self.eth_ws_provider_fallback),
             DEFAULT_MIN_DELAY,
             DEFAULT_FACTOR,
             DEFAULT_MAX_TIMES,
@@ -1313,9 +1334,11 @@ impl Batcher {
         })
     }
 
-    async fn get_gas_price(&self) -> Result<U256, RetryError<()>> {
-        if let Ok(gas_price) = self
-            .eth_ws_provider
+    async fn get_gas_price_retryable(
+        eth_ws_provider: &Provider<Ws>,
+        eth_ws_provider_fallback: &Provider<Ws>,
+    ) -> Result<U256, RetryError<()>> {
+        if let Ok(gas_price) = eth_ws_provider
             .get_gas_price()
             .await
             .inspect_err(|e| warn!("Failed to get gas price. Trying with fallback: {e:?}"))
@@ -1323,23 +1346,27 @@ impl Batcher {
             return Ok(gas_price);
         }
 
-        self.eth_ws_provider_fallback
-            .get_gas_price()
-            .await
-            .map_err(|e| {
-                warn!("Failed to get fallback gas price: {e:?}");
-                RetryError::Transient
-            })
+        eth_ws_provider_fallback.get_gas_price().await.map_err(|e| {
+            warn!("Failed to get fallback gas price: {e:?}");
+            RetryError::Transient
+        })
     }
 
     /// Uploads the batch to s3 using exponential backoff.
-    async fn upload_batch_to_s3_with_retry(
+    async fn upload_batch_to_s3(
         &self,
         batch_bytes: &[u8],
         file_name: &str,
     ) -> Result<(), BatcherError> {
         retry_function(
-            || self.upload_batch_to_s3(batch_bytes, file_name),
+            || {
+                Self::upload_batch_to_s3_retryable(
+                    batch_bytes,
+                    file_name,
+                    self.s3_client.clone(),
+                    &self.s3_bucket_name,
+                )
+            },
             DEFAULT_MIN_DELAY,
             DEFAULT_FACTOR,
             DEFAULT_MAX_TIMES,
@@ -1348,24 +1375,18 @@ impl Batcher {
         .map_err(|_| BatcherError::BatchUploadError("Error uploading batch to s3".to_string()))
     }
 
-    async fn upload_batch_to_s3(
-        &self,
+    async fn upload_batch_to_s3_retryable(
         batch_bytes: &[u8],
         file_name: &str,
+        s3_client: S3Client,
+        s3_bucket_name: &String,
     ) -> Result<(), RetryError<()>> {
-        let s3_client = self.s3_client.clone();
-
-        s3::upload_object(
-            &s3_client,
-            &self.s3_bucket_name,
-            batch_bytes.to_vec(),
-            file_name,
-        )
-        .await
-        .map_err(|e| {
-            warn!("Error uploading batch to s3 {e}");
-            RetryError::Transient
-        })?;
+        s3::upload_object(&s3_client, s3_bucket_name, batch_bytes.to_vec(), file_name)
+            .await
+            .map_err(|e| {
+                warn!("Error uploading batch to s3 {e}");
+                RetryError::Transient
+            })?;
         Ok(())
     }
 }

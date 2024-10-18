@@ -35,7 +35,7 @@ pub(crate) async fn send_batch_inclusion_data_responses(
             return Err(BatcherError::WsSinkEmpty);
         };
 
-        send_response_with_retry(ws_sink, serialized_response).await;
+        send_response(ws_sink, serialized_response).await;
 
         info!("Response sent");
     }
@@ -59,12 +59,12 @@ pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, mess
     }
 }
 
-async fn send_response_with_retry(
+async fn send_response(
     ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     serialized_response: Vec<u8>,
 ) {
     if let Err(e) = retry_function(
-        || send_response(ws_sink, serialized_response.clone()),
+        || send_response_retryable(ws_sink, serialized_response.clone()),
         DEFAULT_MIN_DELAY,
         DEFAULT_FACTOR,
         DEFAULT_MAX_TIMES,
@@ -75,7 +75,7 @@ async fn send_response_with_retry(
     }
 }
 
-async fn send_response(
+async fn send_response_retryable(
     ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     serialized_response: Vec<u8>,
 ) -> Result<(), RetryError<Error>> {
