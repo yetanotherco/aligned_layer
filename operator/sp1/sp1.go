@@ -9,12 +9,7 @@ package sp1
 import "C"
 import "unsafe"
 
-// We use the nolint directive extracted from golangci-lint to supress linting
-// -> https://github.com/golangci/golangci-lint/blob/master/docs/src/docs/usage/false-positives.mdx#nolint-directive
-//
-//nolint:all
 func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) bool {
-	panic("THIS IS THE PANIC IN SP1")
 	if len(proofBuffer) == 0 || len(elfBuffer) == 0 {
 		return false
 	}
