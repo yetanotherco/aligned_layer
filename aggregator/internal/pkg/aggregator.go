@@ -387,9 +387,9 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 }
 
 // Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
-// It runs every period and removes all tasks older than blocksOld
+// It runs every GarbageCollectorPeriod and removes all tasks older than GarbageCollectorTasksAge
 // This was added because each task occupies memory in the maps, and we need to free it to avoid a memory leak
-func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64) {
+func (agg *Aggregator) ClearTasksFromMaps() {
 	defer func() {
 		err := recover() //stops panics
 		if err != nil {
@@ -397,14 +397,14 @@ func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64
 		}
 	}()
 
-	agg.AggregatorConfig.BaseConfig.Logger.Info(fmt.Sprintf("- Removing finalized Task Infos from Maps every %v", period))
+	agg.AggregatorConfig.BaseConfig.Logger.Info(fmt.Sprintf("- Removing finalized Task Infos from Maps every %v", agg.AggregatorConfig.Aggregator.GarbageCollectorPeriod))
 	lastIdxDeleted := uint32(0)
 
 	for {
-		time.Sleep(period)
+		time.Sleep(agg.AggregatorConfig.Aggregator.GarbageCollectorPeriod)
 
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Cleaning finalized tasks from maps")
-		oldTaskIdHash, err := agg.avsReader.GetOldTaskHash(blocksOld)
+		oldTaskIdHash, err := agg.avsReader.GetOldTaskHash(agg.AggregatorConfig.Aggregator.GarbageCollectorTasksAge, agg.AggregatorConfig.Aggregator.GarbageCollectorTasksInterval)
 		if err != nil {
 			agg.logger.Error("Error getting old task hash, skipping this garbage collect", "err", err)
 			continue // Retry in the next iteration
@@ -417,7 +417,7 @@ func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64
 		taskIdxToDelete := agg.batchesIdxByIdentifierHash[*oldTaskIdHash]
 		agg.logger.Info("Old task found", "taskIndex", taskIdxToDelete)
 		// delete from lastIdxDeleted to taskIdxToDelete
-		for i := lastIdxDeleted+1; i <= taskIdxToDelete; i++ {
+		for i := lastIdxDeleted + 1; i <= taskIdxToDelete; i++ {
 			batchIdentifierHash, exists := agg.batchesIdentifierHashByIdx[i]
 			if exists {
 				agg.logger.Info("Cleaning up finalized task", "taskIndex", i)

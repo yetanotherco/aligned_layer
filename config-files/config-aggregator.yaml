@@ -37,6 +37,7 @@ aggregator:
   telemetry_ip_port_address: localhost:4001
   garbage_collector_period: 2m #The period of the GC process. Suggested value for Prod: '168h' (7 days)
   garbage_collector_tasks_age: 20 #The age of tasks that will be removed by the GC, in blocks. Suggested value for prod: '216000' (30 days)
+  garbage_collector_tasks_interval: 10 #The interval of queried blocks to get an old batch. Suggested value for prod: '900' (3 hours)
 
 ## Operator Configurations
 # operator:

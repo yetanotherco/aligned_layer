@@ -23,6 +23,7 @@ type AggregatorConfig struct {
 		TelemetryIpPortAddress        string
 		GarbageCollectorPeriod        time.Duration
 		GarbageCollectorTasksAge      uint64
+		GarbageCollectorTasksInterval uint64
 	}
 }
 
@@ -36,6 +37,7 @@ type AggregatorConfigFromYaml struct {
 		TelemetryIpPortAddress        string         `yaml:"telemetry_ip_port_address"`
 		GarbageCollectorPeriod        time.Duration  `yaml:"garbage_collector_period"`
 		GarbageCollectorTasksAge      uint64         `yaml:"garbage_collector_tasks_age"`
+		GarbageCollectorTasksInterval uint64         `yaml:"garbage_collector_tasks_interval"`
 	} `yaml:"aggregator"`
 }
 
@@ -79,6 +81,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			TelemetryIpPortAddress        string
 			GarbageCollectorPeriod        time.Duration
 			GarbageCollectorTasksAge      uint64
+			GarbageCollectorTasksInterval uint64
 		}(aggregatorConfigFromYaml.Aggregator),
 	}
 }

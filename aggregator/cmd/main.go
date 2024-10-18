@@ -53,7 +53,7 @@ func aggregatorMain(ctx *cli.Context) error {
 	go func() {
 		for {
 			log.Println("Starting Garbage collector")
-			aggregator.ClearTasksFromMaps(aggregatorConfig.Aggregator.GarbageCollectorPeriod, aggregatorConfig.Aggregator.GarbageCollectorTasksAge)
+			aggregator.ClearTasksFromMaps()
 			log.Println("Garbage collector panicked, Supervisor restarting")
 		}
 	}()

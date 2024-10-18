@@ -105,7 +105,7 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 }
 
 // This function is a helper to get a task hash of aproximately nBlocksOld blocks ago
-func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64) (*[32]byte, error) {
+func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64, interval uint64) (*[32]byte, error) {
 	latestBlock, err := r.AvsContractBindings.ethClient.BlockNumber(context.Background())
 	if err != nil {
 		latestBlock, err = r.AvsContractBindings.ethClientFallback.BlockNumber(context.Background())
@@ -120,10 +120,8 @@ func (r *AvsReader) GetOldTaskHash(nBlocksOld uint64) (*[32]byte, error) {
 
 	// Define block number limits to query the rpc
 	var fromBlock uint64
-	var toBlock uint64
 
-	interval := uint64(10) // TODO set 1000, Arbitrary number, aproximately blocks in 3hs
-	toBlock = latestBlock - nBlocksOld
+	toBlock := latestBlock - nBlocksOld
 	fromBlock = toBlock - interval
 
 	logs, err := r.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: &toBlock, Context: context.Background()}, nil)
