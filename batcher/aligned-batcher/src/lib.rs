@@ -12,10 +12,17 @@ use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use aligned_sdk::core::constants::{
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+};
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ResponseMessage, ValidityResponseMessage,
     VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
+
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
@@ -43,20 +50,6 @@ pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
-
-const AGGREGATOR_GAS_COST: u128 = 400_000;
-const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
-pub(crate) const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
-pub(crate) const CONSTANT_GAS_COST: u128 =
-    ((AGGREGATOR_GAS_COST * DEFAULT_AGGREGATOR_FEE_MULTIPLIER) / DEFAULT_AGGREGATOR_FEE_DIVIDER)
-        + BATCHER_SUBMISSION_BASE_GAS_COST;
-
-const DEFAULT_MAX_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
-const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // gas_price = 0.1 Gwei = 0.0000000001 ether (low gas price)
-const RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER: u128 = 5; // to set the respondToTaskFeeLimit variable higher than fee_for_aggregator
-const RESPOND_TO_TASK_FEE_LIMIT_DIVIDER: u128 = 2;
-const DEFAULT_AGGREGATOR_FEE_MULTIPLIER: u128 = 3; // to set the feeForAggregator variable higher than what was calculated
-const DEFAULT_AGGREGATOR_FEE_DIVIDER: u128 = 2;
 
 pub struct Batcher {
     s3_client: S3Client,
@@ -950,17 +943,17 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price = match self.get_gas_price().await {
-            Some(price) => price,
-            None => {
-                error!("Failed to get gas price");
-                return Err(BatcherError::GasPriceError);
-            }
+        let Some(gas_price) = self.get_gas_price().await else {
+            error!("Failed to get gas price");
+            return Err(BatcherError::GasPriceError);
         };
 
-        if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
+        let modified_gas_price = gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER)
+            / U256::from(PERCENTAGE_DIVIDER);
+
+        if let Some(finalized_batch) = self.is_batch_ready(block_number, modified_gas_price).await {
             let batch_finalization_result = self
-                .finalize_batch(block_number, finalized_batch, gas_price)
+                .finalize_batch(block_number, finalized_batch, modified_gas_price)
                 .await;
 
             // Resetting this here to avoid doing it on every return path of `finalize_batch` function
@@ -1011,11 +1004,11 @@ impl Batcher {
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
         let fee_for_aggregator = (U256::from(AGGREGATOR_GAS_COST)
             * gas_price
-            * U256::from(DEFAULT_AGGREGATOR_FEE_MULTIPLIER))
-            / U256::from(DEFAULT_AGGREGATOR_FEE_DIVIDER);
+            * U256::from(DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER))
+            / U256::from(PERCENTAGE_DIVIDER);
         let respond_to_task_fee_limit = (fee_for_aggregator
-            * U256::from(RESPOND_TO_TASK_FEE_LIMIT_MULTIPLIER))
-            / U256::from(RESPOND_TO_TASK_FEE_LIMIT_DIVIDER);
+            * U256::from(RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER))
+            / U256::from(PERCENTAGE_DIVIDER);
         let fee_params = CreateNewTaskFeeParams::new(
             fee_for_aggregator,
             fee_per_proof,
