@@ -1231,7 +1231,6 @@ dependencies = [
  "rand_core",
  "sec1",
  "subtle",
- "tap",
  "zeroize",
 ]
 
@@ -1628,13 +1627,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
-name = "fibonacci-lib"
-version = "0.1.0"
-dependencies = [
- "alloy-sol-types",
-]
-
-[[package]]
 name = "fibonacci-program"
 version = "0.1.0"
 dependencies = [
@@ -1648,7 +1640,6 @@ dependencies = [
  "alloy-sol-types",
  "bincode",
  "clap",
- "fibonacci-lib",
  "hex",
  "serde",
  "serde_json",
@@ -4606,20 +4597,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp1-precompiles"
-version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.8-testnet#14eb569d41d24721ffbd407d6060e202482d659c"
+name = "sp1-lib"
+version = "1.0.1"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.1#dd032eb23949828d244d1ad1f1569aa78155837c"
 dependencies = [
  "anyhow",
  "bincode",
  "cfg-if",
- "getrandom",
- "hex",
- "k256",
- "num",
- "rand",
  "serde",
- "snowbridge-amcl",
 ]
 
 [[package]]
@@ -4863,20 +4848,19 @@ dependencies = [
 
 [[package]]
 name = "sp1-zkvm"
-version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.8-testnet#14eb569d41d24721ffbd407d6060e202482d659c"
+version = "1.0.1"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=v1.0.1#dd032eb23949828d244d1ad1f1569aa78155837c"
 dependencies = [
  "bincode",
  "cfg-if",
  "getrandom",
- "k256",
  "lazy_static",
  "libm",
  "once_cell",
  "rand",
  "serde",
  "sha2",
- "sp1-precompiles",
+ "sp1-lib",
 ]
 
 [[package]]
