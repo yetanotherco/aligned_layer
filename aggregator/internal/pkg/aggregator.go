@@ -386,7 +386,7 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 }
 
-// long-lived gorouting that periodically checks and removes old Tasks from stored Maps
+// Long-lived goroutine that periodically checks and removes old Tasks from stored Maps
 // It runs every period and removes all tasks older than blocksOld
 // This was added because each task occupies memory in the maps, and we need to free it to avoid a memory leak
 func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64) {
