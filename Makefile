@@ -845,8 +845,8 @@ docker_verify_proof_submission_success:
 	sh -c ' \
 			if [ -z "$$(ls -A ./aligned_verification_data)" ]; then echo "ERROR: There are no proofs on aligned_verification_data/ directory" && exit 1; fi; \
 			echo "Waiting 1 minute before starting proof verification. \n"; \
-			sleep 60; \
-			for proof in ./aligned_verification_data/*; do \
+			sleep 45; \
+			for proof in ./aligned_verification_data/*.cbor; do \
 				echo "Verifying proof $${proof} \n"; \
 				verification=$$(aligned verify-proof-onchain \
 									--aligned-verification-data $${proof} \
@@ -859,6 +859,10 @@ docker_verify_proof_submission_success:
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 10 ]; then \
+				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
+				exit 1; \
+			fi; \
 			echo "All proofs verified successfully!"; \
 		'
 
