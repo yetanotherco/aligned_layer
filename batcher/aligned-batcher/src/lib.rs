@@ -494,7 +494,7 @@ impl Batcher {
         // *        Perform validations over user state         *
         // * ---------------------------------------------------*
 
-        let Ok(user_balance) = self.get_user_balance(&addr).await else {
+        let Some(user_balance) = self.get_user_balance(&addr).await else {
             error!("Could not get balance for address {addr:?}");
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::EthRpcError).await;
             return Ok(());
@@ -1172,7 +1172,7 @@ impl Batcher {
         };
 
         let replacement_addr = non_paying_config.replacement.address();
-        let Ok(replacement_user_balance) = self.get_user_balance(&replacement_addr).await else {
+        let Some(replacement_user_balance) = self.get_user_balance(&replacement_addr).await else {
             error!("Could not get balance for non-paying address {replacement_addr:?}");
             send_message(
                 ws_sink.clone(),
@@ -1239,7 +1239,9 @@ impl Batcher {
     }
 
     /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
-    async fn get_user_balance(&self, addr: &Address) -> Result<U256, RetryError<()>> {
+    /// Returns `None` if the balance couldn't be returned
+    /// FIXME: This should return a `Result` instead.
+    async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
         retry_function(
             || {
                 Self::get_user_balance_retryable(
@@ -1253,6 +1255,7 @@ impl Batcher {
             DEFAULT_MAX_TIMES,
         )
         .await
+        .ok()
     }
 
     async fn get_user_balance_retryable(
