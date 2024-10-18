@@ -332,7 +332,10 @@ impl Batcher {
             .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
             .await
         {
-            Err(e) => error!("Unexpected error: {}", e),
+            Err(e) => {
+                self.metrics.broken_ws_connections.inc();
+                error!("Unexpected error: {}", e)
+            }
             Ok(_) => info!("{} disconnected", &addr),
         }
 
