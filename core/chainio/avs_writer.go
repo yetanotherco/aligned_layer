@@ -11,7 +11,6 @@ import (
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients/eth"
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/Layr-Labs/eigensdk-go/signer"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -120,7 +119,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				return nil, err
 			}
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*36)
 		defer cancel()
 		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
 
@@ -133,14 +132,10 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			}
 		}
 
-		// transaction not included in block, try again
-		if err == ethereum.NotFound {
-			w.logger.Infof("Transaction not included in block will try again bumping the fee")
+		// this means we have reached the timeout (after three blocks it hasn't been included)
+		// so we try again by bumping the fee to make sure its included
+		if err != nil {
 			continue
-		} else if err == context.DeadlineExceeded {
-			continue
-		} else {
-			return receipt, err
 		}
 
 	}
