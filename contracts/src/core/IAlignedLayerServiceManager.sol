@@ -20,6 +20,8 @@ interface IAlignedLayerServiceManager {
     );
     event BatchVerified(bytes32 indexed batchMerkleRoot, address senderAddress);
     event BatcherBalanceUpdated(address indexed batcher, uint256 newBalance);
+    event VerifierDisabled(uint8 indexed verifierIdx);
+    event VerifierEnabled(uint8 indexed verifierIdx);
 
     // ERRORS
     error BatchAlreadySubmitted(bytes32 batchIdentifierHash); // 3102f10c
@@ -63,4 +65,14 @@ interface IAlignedLayerServiceManager {
     function balanceOf(address account) external view returns (uint256);
 
     function setAggregator(address _aggregator) external;
+
+    function isVerifierDisabled(
+        uint8 verifierIdx
+    ) external view returns (bool);
+
+    function disableVerifier(uint8 verifierIdx) external;
+
+    function enableVerifier(uint8 verifierIdx) external;
+    
+    function setDisabledVerifiers(uint256 bitmap) external;
 }

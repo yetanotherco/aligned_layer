@@ -63,6 +63,7 @@ defmodule TelemetryApi.Traces do
   """
   def register_operator_response(merkle_root, operator_id) do
     with {:ok, operator} <- Operators.get_operator(%{id: operator_id}),
+          :ok <- validate_operator_registration(operator),
          {:ok, trace} <- set_current_trace(merkle_root) do
       operator_stake = Decimal.new(operator.stake)
       new_stake = Decimal.add(trace.current_stake, operator_stake)
@@ -111,7 +112,7 @@ defmodule TelemetryApi.Traces do
   def quorum_reached(merkle_root) do
     with {:ok, _trace} <- set_current_trace(merkle_root) do
       Tracer.add_event("Quorum Reached", [])
-      IO.inspect("Reached quorum registered. merkle_root: #{IO.inspect(merkle_root)}")
+      IO.inspect("Reached quorum registered. merkle_root: #{merkle_root}")
       :ok
     end
   end
@@ -155,7 +156,7 @@ defmodule TelemetryApi.Traces do
   def finish_task_trace(merkle_root) do
     with {:ok, trace} <- set_current_trace(merkle_root) do
       missing_operators =
-        Operators.list_operators() |> Enum.filter(fn o -> o.id not in trace.responses end)
+        Operators.list_operators() |> Enum.filter(fn o -> o.id not in trace.responses and Operators.is_registered?(o) end)
 
       add_missing_operators(missing_operators)
 
@@ -165,7 +166,7 @@ defmodule TelemetryApi.Traces do
 
       # Clean up the context from the Agent
       TraceStore.delete_trace(merkle_root)
-      IO.inspect("Finished task trace with merkle_root: #{IO.inspect(merkle_root)}.")
+      IO.inspect("Finished task trace with merkle_root: #{merkle_root}.")
       :ok
     end
   end
@@ -184,6 +185,14 @@ defmodule TelemetryApi.Traces do
       Ctx.attach(trace.context)
       Tracer.set_current_span(trace.parent_span)
       {:ok, trace}
+    end
+  end
+
+  defp validate_operator_registration(operator) do
+    if Operators.is_registered?(operator) do
+      :ok
+    else
+      {:error, :bad_request, "Operator not registered"}
     end
   end
 end

@@ -16,6 +16,7 @@ pub enum BatcherError {
     MaxRetriesReachedError,
     SerializationError(String),
     GasPriceError,
+    DisabledVerifiersError(String),
     BatchCostTooHigh,
     WsSinkEmpty,
     AddressNotFoundInUserStates(Address),
@@ -88,6 +89,13 @@ impl fmt::Debug for BatcherError {
                 write!(
                     f,
                     "User with address {addr:?} was not found in Batcher user states cache"
+                )
+            }
+            BatcherError::DisabledVerifiersError(reason) => {
+                write!(
+                    f,
+                    "Error while trying to get disabled verifiers: {}",
+                    reason
                 )
             }
         }

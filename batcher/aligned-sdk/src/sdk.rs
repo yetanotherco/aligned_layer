@@ -3,6 +3,7 @@ use crate::{
         batch::await_batch_verification,
         messaging::{receive, send_messages, ResponseStream},
         protocol::check_protocol_version,
+        serialization::cbor_serialize,
     },
     core::{
         constants::{
@@ -34,13 +35,18 @@ use std::{str::FromStr, sync::Arc};
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
-use log::debug;
+use log::{debug, info};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
     StreamExt, TryStreamExt,
 };
 
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
+
+use serde_json::json;
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
 /// # Arguments
 /// * `batcher_url` - The url of the batcher to which the proof will be submitted.
@@ -522,7 +528,7 @@ pub fn get_vk_commitment(
     verification_key_bytes: &[u8],
     proving_system: ProvingSystemId,
 ) -> [u8; 32] {
-    let proving_system_id_byte = proving_system.clone() as u8;
+    let proving_system_id_byte = proving_system as u8;
     let mut hasher = Keccak256::new();
     hasher.update(verification_key_bytes);
     hasher.update([proving_system_id_byte]);
@@ -653,6 +659,91 @@ pub async fn get_balance_in_aligned(
         }
         Err(e) => Err(errors::BalanceError::EthereumCallError(e.to_string())),
     }
+}
+
+/// Saves AlignedVerificationData in a file.
+/// # Arguments
+/// * `batch_inclusion_data_directory_path` - The path of the directory where the data will be saved.
+/// * `aligned_verification_data` - The aligned verification data to be saved.
+/// # Returns
+/// * Ok if the data is saved successfully.
+/// # Errors
+/// * `FileError` if there is an error writing the data to the file.
+pub fn save_response(
+    batch_inclusion_data_directory_path: PathBuf,
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), errors::FileError> {
+    save_response_cbor(
+        batch_inclusion_data_directory_path.clone(),
+        &aligned_verification_data.clone(),
+    )?;
+    save_response_json(
+        batch_inclusion_data_directory_path,
+        aligned_verification_data,
+    )
+}
+fn save_response_cbor(
+    batch_inclusion_data_directory_path: PathBuf,
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), errors::FileError> {
+    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
+    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
+        + "_"
+        + &aligned_verification_data.index_in_batch.to_string()
+        + ".cbor";
+
+    let batch_inclusion_data_path =
+        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
+
+    let data = cbor_serialize(&aligned_verification_data)?;
+
+    let mut file = File::create(&batch_inclusion_data_path)?;
+    file.write_all(data.as_slice())?;
+    info!(
+        "Batch inclusion data written into {}",
+        batch_inclusion_data_path.display()
+    );
+
+    Ok(())
+}
+fn save_response_json(
+    batch_inclusion_data_directory_path: PathBuf,
+    aligned_verification_data: &AlignedVerificationData,
+) -> Result<(), errors::FileError> {
+    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
+    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
+        + "_"
+        + &aligned_verification_data.index_in_batch.to_string()
+        + ".json";
+
+    let batch_inclusion_data_path =
+        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
+
+    let merkle_proof = aligned_verification_data
+        .batch_inclusion_proof
+        .merkle_path
+        .iter()
+        .map(hex::encode)
+        .collect::<Vec<String>>()
+        .join("");
+    let data = json!({
+            "proof_commitment": hex::encode(aligned_verification_data.verification_data_commitment.proof_commitment),
+            "pub_input_commitment": hex::encode(aligned_verification_data.verification_data_commitment.pub_input_commitment),
+            "program_id_commitment": hex::encode(aligned_verification_data.verification_data_commitment.proving_system_aux_data_commitment),
+            "proof_generator_addr": hex::encode(aligned_verification_data.verification_data_commitment.proof_generator_addr),
+            "batch_merkle_root": hex::encode(aligned_verification_data.batch_merkle_root),
+            "verification_data_batch_index": aligned_verification_data.index_in_batch,
+            "merkle_proof": merkle_proof,
+    });
+    let mut file = File::create(&batch_inclusion_data_path)?;
+    file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())?;
+
+    info!(
+        "Batch inclusion data written into {}",
+        batch_inclusion_data_path.display()
+    );
+
+    Ok(())
 }
 
 #[cfg(test)]

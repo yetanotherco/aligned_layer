@@ -14,6 +14,7 @@ config :telemetry_api,
 # Configures the endpoint
 config :telemetry_api, TelemetryApiWeb.Endpoint,
   url: [host: "localhost"],
+  server: true,
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [json: TelemetryApiWeb.ErrorJSON],

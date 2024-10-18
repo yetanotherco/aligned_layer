@@ -177,6 +177,7 @@ risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.0.1", default-f
     "prove",
 ] }
 ```
+- Note: In Risc0 verification `--pub_input` contains the bytes of the `receipt.journal.bytes` which contains both the public input (`env::read()`) and public output (`env::commit()`) values of a program executed in the Risc0 VM. If your Risc0 program contains public outputs, but no public inputs you still need to submit the serialized `receipt.journal.bytes` with your proof using the Aligned CLI for your proof to be verified.
 
 **Example**
 

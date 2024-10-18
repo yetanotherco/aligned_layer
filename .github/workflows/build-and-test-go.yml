@@ -35,3 +35,4 @@ jobs:
         run: go build operator/cmd/main.go
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
+      

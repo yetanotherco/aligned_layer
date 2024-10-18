@@ -186,7 +186,7 @@ defmodule Utils do
   def calculate_proof_hashes(deserialized_batch) do
     deserialized_batch
     |> Enum.map(fn s3_object ->
-      :crypto.hash(:sha3_256, s3_object["proof"])
+      ExKeccak.hash_256(:erlang.list_to_binary(s3_object["proof"]))
     end)
   end
 
