@@ -31,8 +31,11 @@ echo "$forge_output"
 
 pkill anvil
 
-ALIGNED_LAYER_AGGREGATOR_ADDRESS=$(jq -r '.permissions.aggregator' ./script/deploy/config/devnet/aligned.devnet.config.json)
-jq --arg alignedLayerAggregator "$ALIGNED_LAYER_AGGREGATOR_ADDRESS" '.permissions += {"alignedLayerAggregator": $alignedLayerAggregator}' "script/output/devnet/alignedlayer_deployment_output.json" > "script/output/devnet/alignedlayer_deployment_output.temp.json"
+# Extract the alignedLayerServiceManagerImplementation value from the output
+new_aligned_layer_service_manager_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
+
+# Use the extracted value to replace the alignedLayerServiceManagerImplementation value in alignedlayer_deployment_output.json and save it to a temporary file
+jq --arg new_aligned_layer_service_manager_implementation "$new_aligned_layer_service_manager_implementation" '.addresses.alignedLayerServiceManagerImplementation = $new_aligned_layer_service_manager_implementation' "script/output/devnet/alignedlayer_deployment_output.json" > "script/output/devnet/alignedlayer_deployment_output.temp.json"
 
 mv "script/output/devnet/alignedlayer_deployment_output.temp.json" "script/output/devnet/alignedlayer_deployment_output.json"
 rm -f "script/output/devnet/alignedlayer_deployment_output.temp.json"
