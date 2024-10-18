@@ -99,10 +99,14 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	var maxRetries uint64 = 5
 	var i uint64
 	for i = 1; i < maxRetries; i++ {
+		// bump the fee here
 		// factor =  (100 + i * 10) / 100, so 1,1 <= x <= 1,5
-		factor := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), new(big.Int).Mul(big.NewInt(int64(i)), big.NewInt(10))), big.NewInt(100))
-		txOpts.GasFeeCap = new(big.Int).Mul(new(big.Int).Sub(tx.GasFeeCap(), big.NewInt(int64(1000))), factor)
-		w.logger.Infof("Sending ResponseToTask transaction for %vth with a gas limit of %v", i, txOpts.GasLimit)
+		factor := (new(big.Int).Add(big.NewInt(100), new(big.Int).Mul(big.NewInt(int64(i)), big.NewInt(10))))
+		gasPrice := new(big.Int).Mul(tx.GasPrice(), factor)
+		gasPrice = gasPrice.Div(gasPrice, big.NewInt(100))
+		txOpts.GasPrice = gasPrice
+
+		w.logger.Infof("Sending ResponseToTask transaction for %vth with a gas price of %v", i, txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			return nil, err
@@ -116,7 +120,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				return nil, err
 			}
 		}
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*20)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
+		defer cancel()
 		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
 
 		if receipt != nil {
@@ -131,6 +136,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		// transaction not included in block, try again
 		if err == ethereum.NotFound {
 			w.logger.Infof("Transaction not included in block will try again bumping the fee")
+			continue
+		} else if err == context.DeadlineExceeded {
 			continue
 		} else {
 			return receipt, err
