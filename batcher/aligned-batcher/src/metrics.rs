@@ -13,7 +13,7 @@ pub struct BatcherMetrics {
     pub reverted_batches: IntCounter,
     pub batcher_started: IntCounter,
     pub gas_price_used_on_latest_batch: IntGauge,
-    pub broken_ws_connections: IntGauge,
+    pub broken_ws_connections: IntCounter,
 }
 
 impl BatcherMetrics {
@@ -28,7 +28,7 @@ impl BatcherMetrics {
         let batcher_started = register_int_counter!(opts!("batcher_started", "Batcher Started"))?;
         let gas_price_used_on_latest_batch =
             register_int_gauge!(opts!("gas_price_used_on_latest_batch", "Gas Price"))?;
-        let broken_ws_connections = register_int_gauge!(opts!(
+        let broken_ws_connections = register_int_counter!(opts!(
             "broken_ws_connections",
             "Broken websocket connections"
         ))?;
