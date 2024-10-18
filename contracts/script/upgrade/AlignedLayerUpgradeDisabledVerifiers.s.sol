@@ -62,11 +62,6 @@ contract AlignedLayerSetAggregator is Script {
             )
         );
 
-        address alignedLayerAggregator = stdJson.readAddress(
-            aligned_config_file,
-            ".permissions.aggregator"
-        );
-
         vm.startBroadcast();
 
         AlignedLayerServiceManager alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
