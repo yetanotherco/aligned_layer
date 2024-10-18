@@ -7,7 +7,7 @@ contract FibonacciValidator {
     bytes32 public fibonacciProgramId;
 
     bytes32 public fibonacciProgramIdCommitmentSp1 =
-        0xc2633817b79f9a9bf340981ecc6d693ce8b0b0494114277bd5a4b4083675fa32;
+        0xb9fd43bd969f26da100354ebceefd56dd4c068f81cba2f152742c7ddbd9bb97e;
     
     bytes32 public fibonacciProgramIdCommitmentRisc0 =
         0x1894c0448514623e9de57947fdf3945eab49dc46ff2e72d0b5fb3fb41ed56db4;
