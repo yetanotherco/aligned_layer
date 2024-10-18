@@ -476,7 +476,7 @@ upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
 upgrade_initialize_disabled_verifiers:
-	@echo "Initializing disabled verifiers..."
+	@echo "Adding disabled verifiers to Aligned Service Manager..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_disabled_verifiers_in_service_manager.sh
 
 deploy_verify_batch_inclusion_caller:
