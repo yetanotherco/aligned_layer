@@ -3,6 +3,7 @@ package chainio
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -68,6 +69,10 @@ func (r *AvsReader) GetErc20Mock(tokenAddr ethcommon.Address) (*contractERC20Moc
 
 func (r *AvsReader) IsOperatorRegistered(address ethcommon.Address) (bool, error) {
 	return r.ChainReader.IsOperatorRegistered(&bind.CallOpts{}, address)
+}
+
+func (r *AvsReader) DisabledVerifiers() (*big.Int, error) {
+	return r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.DisabledVerifiers(&bind.CallOpts{})
 }
 
 // Returns all the "NewBatchV3" logs that have not been responded starting from the given block number
