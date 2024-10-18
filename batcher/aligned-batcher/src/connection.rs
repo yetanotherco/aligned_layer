@@ -59,7 +59,7 @@ pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, mess
     }
 }
 
-async fn send_response(
+pub(crate) async fn send_response(
     ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     serialized_response: Vec<u8>,
 ) {
@@ -75,7 +75,7 @@ async fn send_response(
     }
 }
 
-async fn send_response_retryable(
+pub async fn send_response_retryable(
     ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     serialized_response: Vec<u8>,
 ) -> Result<(), RetryError<Error>> {

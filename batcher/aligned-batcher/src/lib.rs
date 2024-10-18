@@ -1382,7 +1382,7 @@ impl Batcher {
         batch_bytes: &[u8],
         file_name: &str,
         s3_client: S3Client,
-        s3_bucket_name: &String,
+        s3_bucket_name: &str,
     ) -> Result<(), RetryError<()>> {
         s3::upload_object(&s3_client, s3_bucket_name, batch_bytes.to_vec(), file_name)
             .await

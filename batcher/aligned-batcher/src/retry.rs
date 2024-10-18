@@ -44,79 +44,283 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::eth;
-    use aligned_sdk::eth::batcher_payment_service::BatcherPaymentService;
+    use crate::{
+        config::ECDSAConfig,
+        connection,
+        eth::{self, BatcherPaymentService},
+        Batcher,
+    };
     use ethers::{
         contract::abigen,
-        providers::{Http, Middleware, Provider},
         types::{Address, U256},
-        utils::Anvil,
+        utils::{Anvil, AnvilInstance},
     };
-    use std::str::FromStr;
-    use std::{sync::Arc, time::SystemTime};
+    use futures_util::StreamExt;
+    use std::{str::FromStr, sync::Arc};
+    use tokio::{
+        net::{TcpListener, TcpStream},
+        sync::RwLock,
+    };
 
     abigen!(
         BatcherPaymentServiceContract,
         "../aligned-sdk/abi/BatcherPaymentService.json"
     );
 
-    #[tokio::test]
-    async fn retry_test() {
-        async fn dummy_action(x: u64) -> Result<u64, RetryError<()>> {
-            println!("Doing some operation...");
-            println!("Actual time: {:?}", SystemTime::now());
-            println!("X: {x}");
-
-            Err(RetryError::Permanent(()))
-        }
-
-        assert!(retry_function(|| dummy_action(10), 2000, 2.0, 3)
-            .await
-            .is_err());
-    }
-
-    #[tokio::test]
-    async fn retry_test_eth() {
-        async fn get_gas_price() -> Result<U256, RetryError<()>> {
-            let eth_rpc_provider =
-                eth::get_provider(String::from("https://ethereum-holesky-rpc.publicnode.com"))
-                    .expect("Failed to get provider");
-
-            match eth_rpc_provider.get_gas_price().await {
-                Ok(val) => {
-                    println!("GAS PRICE IS: {:?}", val);
-                    Ok(val)
-                }
-                Err(_) => Err(RetryError::Transient),
-            }
-        }
-
-        assert!(retry_function(get_gas_price, 2000, 2.0, 3).await.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_anvil() {
-        let _anvil = Anvil::new()
-            .port(8545u16)
+    async fn setup_anvil(port: u16) -> (AnvilInstance, BatcherPaymentService) {
+        let anvil = Anvil::new()
+            .port(port)
             .arg("--load-state")
             .arg("../../contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json")
             .spawn();
 
-        let eth_rpc_provider: Provider<Http> =
-            eth::get_provider(String::from("http://localhost:8545"))
-                .expect("Failed to get provider");
+        let eth_rpc_provider = eth::get_provider(format!("http://localhost:{}", port))
+            .expect("Failed to get provider");
 
-        let payment_service_addr =
-            Address::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+        let payment_service_addr = String::from("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0");
 
-        let payment_service =
-            BatcherPaymentService::new(payment_service_addr, Arc::new(eth_rpc_provider));
+        let payment_service = eth::get_batcher_payment_service(
+            eth_rpc_provider,
+            ECDSAConfig {
+                private_key_store_path: "../../config-files/anvil.batcher.ecdsa.key.json"
+                    .to_string(),
+                private_key_store_password: "".to_string(),
+            },
+            payment_service_addr,
+        )
+        .await
+        .expect("Failed to get Batcher Payment Service contract");
+        (anvil, payment_service)
+    }
 
+    #[tokio::test]
+    async fn test_get_user_balance_retryable() {
+        let (_anvil, payment_service) = setup_anvil(8545u16).await;
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
 
-        if let Ok(balance) = payment_service.user_balances(dummy_user_addr).call().await {
-            println!("ALIGNED USER BALANCE: {:?}", balance)
-        };
+        let balance = retry_function(
+            || {
+                Batcher::get_user_balance_retryable(
+                    &payment_service,
+                    &payment_service,
+                    &dummy_user_addr,
+                )
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .unwrap();
+
+        assert!(balance == U256::zero());
+    }
+
+    #[tokio::test]
+    async fn test_get_user_balance_retryable_kill_anvil() {
+        let payment_service;
+        {
+            // Kill anvil
+            let _anvil;
+            (_anvil, payment_service) = setup_anvil(8546u16).await;
+        }
+        let dummy_user_addr =
+            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+
+        let result = retry_function(
+            || {
+                Batcher::get_user_balance_retryable(
+                    &payment_service,
+                    &payment_service,
+                    &dummy_user_addr,
+                )
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await;
+        assert!(matches!(result, Err(RetryError::Transient)));
+    }
+
+    #[tokio::test]
+    async fn test_user_balance_is_unlocked_retryable() {
+        let (_anvil, payment_service) = setup_anvil(8547u16).await;
+        let dummy_user_addr =
+            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+
+        let unlocked = retry_function(
+            || {
+                Batcher::user_balance_is_unlocked_retryable(
+                    &payment_service,
+                    &payment_service,
+                    &dummy_user_addr,
+                )
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .unwrap();
+
+        assert!(unlocked == false);
+    }
+
+    #[tokio::test]
+    async fn test_user_balance_is_unlocked_retryable_kill_anvil() {
+        let payment_service;
+        {
+            // Kill anvil
+            let _anvil;
+            (_anvil, payment_service) = setup_anvil(8548u16).await;
+        }
+        let dummy_user_addr =
+            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+
+        let result = retry_function(
+            || {
+                Batcher::user_balance_is_unlocked_retryable(
+                    &payment_service,
+                    &payment_service,
+                    &dummy_user_addr,
+                )
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await;
+        assert!(matches!(result, Err(RetryError::Transient)));
+    }
+
+    #[tokio::test]
+    async fn test_get_user_nonce_retryable() {
+        let (_anvil, payment_service) = setup_anvil(8549u16).await;
+        let dummy_user_addr =
+            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+
+        let nonce = retry_function(
+            || {
+                Batcher::get_user_nonce_from_ethereum_retryable(
+                    &payment_service,
+                    &payment_service,
+                    dummy_user_addr,
+                )
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .unwrap();
+
+        assert!(nonce == U256::zero());
+    }
+
+    #[tokio::test]
+    async fn test_get_user_nonce_retryable_kill_anvil() {
+        let payment_service;
+        {
+            // Kill anvil
+            let _anvil;
+            (_anvil, payment_service) = setup_anvil(8550u16).await;
+        }
+        let dummy_user_addr =
+            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+
+        let result = retry_function(
+            || {
+                Batcher::get_user_nonce_from_ethereum_retryable(
+                    &payment_service,
+                    &payment_service,
+                    dummy_user_addr,
+                )
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await;
+        assert!(matches!(result, Err(RetryError::Transient)));
+    }
+
+    #[tokio::test]
+    async fn test_get_gas_price_retryable() {
+        let (_anvil, _payment_service) = setup_anvil(8551u16).await;
+        let eth_rpc_provider = ethers::prelude::Provider::connect("ws://localhost:8551")
+            .await
+            .expect("Failed to get ethereum websocket provider");
+        let result = retry_function(
+            || Batcher::get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider),
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .is_ok();
+
+        assert_eq!(result, true);
+    }
+
+    #[tokio::test]
+    async fn test_get_gas_price_retryable_kill_anvil() {
+        let eth_rpc_provider;
+        {
+            // Kill anvil
+            let (_anvil, _payment_service) = setup_anvil(8552u16).await;
+            eth_rpc_provider = ethers::prelude::Provider::connect("ws://localhost:8552")
+                .await
+                .expect("Failed to get ethereum websocket provider");
+        }
+        let result = retry_function(
+            || Batcher::get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider),
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await;
+        assert!(matches!(result, Err(RetryError::Transient)));
+    }
+
+    #[tokio::test]
+    async fn test_send_response_retryable() {
+        let listener = TcpListener::bind("localhost:8553").await.unwrap();
+
+        let client_handle = tokio::spawn(async move {
+            let stream = TcpStream::connect("localhost:8553")
+                .await
+                .expect("Failed to connect");
+
+            let (mut ws_stream, _) = tokio_tungstenite::client_async("ws://localhost:8553", stream)
+                .await
+                .expect("WebSocket handshake failed");
+
+            // Read the response from the server
+            if let None = ws_stream.next().await {
+                panic!("Failed to receive valid WebSocket response");
+            }
+        });
+
+        let (raw_stream, _) = listener
+            .accept()
+            .await
+            .expect("Failed to accept connection");
+        let ws_stream = tokio_tungstenite::accept_async(raw_stream).await.unwrap();
+        let (outgoing, _incoming) = ws_stream.split();
+        let outgoing = Arc::new(RwLock::new(outgoing));
+        let message = "Some message".to_string();
+
+        let result = retry_function(
+            || connection::send_response_retryable(&outgoing, message.clone().into_bytes()),
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .is_ok();
+        assert!(result);
+        client_handle.await.unwrap()
     }
 }
