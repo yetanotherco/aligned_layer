@@ -9,6 +9,8 @@ import {Merkle} from "eigenlayer-core/contracts/libraries/Merkle.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {AlignedLayerServiceManagerStorage} from "./AlignedLayerServiceManagerStorage.sol";
 import {IAlignedLayerServiceManager} from "./IAlignedLayerServiceManager.sol";
+import {IPauserRegistry} from "eigenlayer-core/contracts/interfaces/IPauserRegistry.sol";
+import {Pausable} from "eigenlayer-core/contracts/permissions/Pausable.sol";
 
 /**
  * @title Primary entrypoint for procuring services from Aligned.
@@ -17,7 +19,8 @@ contract AlignedLayerServiceManager is
     IAlignedLayerServiceManager,
     ServiceManagerBase,
     BLSSignatureChecker,
-    AlignedLayerServiceManagerStorage
+    AlignedLayerServiceManagerStorage,
+    Pausable
 {
     uint256 internal constant THRESHOLD_DENOMINATOR = 100;
     uint8 internal constant QUORUM_THRESHOLD_PERCENTAGE = 67;
@@ -51,11 +54,20 @@ contract AlignedLayerServiceManager is
         _disableInitializers();
     }
 
-    // @param _rewardsInitiator The address which is allowed to create AVS rewards submissions.
+    /**
+    * @notice Initializes the contract with the initial owner.
+    * @param _initialOwner The initial owner of the contract.
+    * @param _rewardsInitiator The address which is allowed to create AVS rewards submissions.
+    * @param _alignedAggregator The address of the aggregator.
+    * @param _pauserRegistry a registry of addresses that can pause the contract
+    * @param _initialPausedStatus pause status after calling initialize
+    */
     function initialize(
         address _initialOwner,
         address _rewardsInitiator,
-        address _alignedAggregator
+        address _alignedAggregator,
+        IPauserRegistry _pauserRegistry,
+        uint256 _initialPausedStatus
     ) public initializer {
         if (_initialOwner == address(0)) {
             revert InvalidAddress("initialOwner");
@@ -68,6 +80,8 @@ contract AlignedLayerServiceManager is
         }
         __ServiceManagerBase_init(_initialOwner, _rewardsInitiator);
         alignedAggregator = _alignedAggregator; //can't do setAggregator(aggregator) since caller is not the owner
+        _transferOwnership(_initialOwner); // TODO check is this needed? is it not called in __ServiceManagerBase_init ?
+        _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
     // This function is to be run only on upgrade
@@ -79,11 +93,20 @@ contract AlignedLayerServiceManager is
         setAggregator(_alignedAggregator);
     }
 
+    // Just to be used to upgrade contracts without the pausable functionality
+    // Once the contract is pausable this method is not needed anymore
+    function initializePauser(
+        IPauserRegistry _pauserRegistry,
+        uint256 _initialPausedStatus
+    ) public reinitializer(3) {
+        _initializePauser(_pauserRegistry, _initialPausedStatus);
+    }
+
     function createNewTask(
         bytes32 batchMerkleRoot,
         string calldata batchDataPointer,
         uint256 respondToTaskFeeLimit
-    ) external payable {
+    ) external payable onlyWhenNotPaused(0) {
         bytes32 batchIdentifier = keccak256(
             abi.encodePacked(batchMerkleRoot, msg.sender)
         );
@@ -131,7 +154,7 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         address senderAddress,
         NonSignerStakesAndSignature memory nonSignerStakesAndSignature
-    ) external onlyAggregator {
+    ) external onlyAggregator onlyWhenNotPaused(1) {
         uint256 initialGasLeft = gasleft();
 
         bytes32 batchIdentifierHash = keccak256(
@@ -215,7 +238,7 @@ contract AlignedLayerServiceManager is
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex,
         address senderAddress
-    ) external view returns (bool) {
+    ) external view onlyWhenNotPaused(2) returns (bool) {
         bytes32 batchIdentifier;
         if (senderAddress == address(0)) {
             batchIdentifier = batchMerkleRoot;
@@ -260,25 +283,24 @@ contract AlignedLayerServiceManager is
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
         uint256 verificationDataBatchIndex
-    ) external view returns (bool) {
-        return
-            this.verifyBatchInclusion(
-                proofCommitment,
-                pubInputCommitment,
-                provingSystemAuxDataCommitment,
-                proofGeneratorAddr,
-                batchMerkleRoot,
-                merkleProof,
-                verificationDataBatchIndex,
-                address(0)
-            );
+    ) external view onlyWhenNotPaused(2) returns (bool) {
+        return this.verifyBatchInclusion(
+            proofCommitment,
+            pubInputCommitment,
+            provingSystemAuxDataCommitment,
+            proofGeneratorAddr,
+            batchMerkleRoot,
+            merkleProof,
+            verificationDataBatchIndex,
+            address(0)
+        );
     }
 
     function setAggregator(address _alignedAggregator) public onlyOwner {
         alignedAggregator = _alignedAggregator;
     }
 
-    function withdraw(uint256 amount) external {
+    function withdraw(uint256 amount) external onlyWhenNotPaused(3) {
         if (batchersBalances[msg.sender] < amount) {
             revert InsufficientFunds(
                 msg.sender,
@@ -297,7 +319,7 @@ contract AlignedLayerServiceManager is
         return batchersBalances[account];
     }
 
-    function depositToBatcher(address account) external payable {
+    function depositToBatcher(address account) external payable onlyWhenNotPaused(4) {
         _depositToBatcher(account, msg.value);
     }
 
@@ -309,7 +331,7 @@ contract AlignedLayerServiceManager is
         emit BatcherBalanceUpdated(account, batchersBalances[account]);
     }
 
-    receive() external payable {
+    receive() external payable onlyWhenNotPaused(5) {
         _depositToBatcher(msg.sender, msg.value);
     }
 

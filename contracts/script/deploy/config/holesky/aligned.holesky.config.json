@@ -9,6 +9,7 @@
       "churner": "<churner_address>",
       "ejector": "<ejector_address>",
       "deployer": "<deployer_address>",
+      "pauser": "<pauser_address>",
       "initalPausedStatus": 0
     },
     "minimumStakes": [
