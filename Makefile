@@ -416,6 +416,7 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
+# Prometheus and graphana
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
@@ -844,8 +845,8 @@ docker_verify_proof_submission_success:
 	sh -c ' \
 			if [ -z "$$(ls -A ./aligned_verification_data)" ]; then echo "ERROR: There are no proofs on aligned_verification_data/ directory" && exit 1; fi; \
 			echo "Waiting 1 minute before starting proof verification. \n"; \
-			sleep 60; \
-			for proof in ./aligned_verification_data/*; do \
+			sleep 45; \
+			for proof in ./aligned_verification_data/*.cbor; do \
 				echo "Verifying proof $${proof} \n"; \
 				verification=$$(aligned verify-proof-onchain \
 									--aligned-verification-data $${proof} \
@@ -858,6 +859,10 @@ docker_verify_proof_submission_success:
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 10 ]; then \
+				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
+				exit 1; \
+			fi; \
 			echo "All proofs verified successfully!"; \
 		'
 
@@ -889,6 +894,10 @@ docker_logs_batcher:
 	docker compose -f docker-compose.yaml logs batcher -f
 
 __TELEMETRY__:
+# Collector, Jaeger and Elixir API
+telemetry_full_start: open_telemetry_start telemetry_start
+
+# Collector and Jaeger
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
@@ -897,6 +906,7 @@ open_telemetry_prod_start: ## Run open telemetry services with Cassandra using t
 	@echo "Running telemetry for Prod..."
 	@docker compose -f telemetry-prod-docker-compose.yaml up -d
 
+# Elixir API
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
 	 	./start.sh	
