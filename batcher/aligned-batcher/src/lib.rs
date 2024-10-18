@@ -14,8 +14,9 @@ use std::sync::Arc;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF, MIN_FEE_PER_PROOF,
-    PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ResponseMessage, ValidityResponseMessage,
@@ -933,17 +934,17 @@ impl Batcher {
     /// Receives new block numbers, checks if conditions are met for submission and
     /// finalizes the batch.
     async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
-        let gas_price = match self.get_gas_price().await {
-            Some(price) => price,
-            None => {
-                error!("Failed to get gas price");
-                return Err(BatcherError::GasPriceError);
-            }
+        let Some(gas_price) = self.get_gas_price().await else {
+            error!("Failed to get gas price");
+            return Err(BatcherError::GasPriceError);
         };
 
-        if let Some(finalized_batch) = self.is_batch_ready(block_number, gas_price).await {
+        let modified_gas_price = gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER)
+            / U256::from(PERCENTAGE_DIVIDER);
+
+        if let Some(finalized_batch) = self.is_batch_ready(block_number, modified_gas_price).await {
             let batch_finalization_result = self
-                .finalize_batch(block_number, finalized_batch, gas_price)
+                .finalize_batch(block_number, finalized_batch, modified_gas_price)
                 .await;
 
             // Resetting this here to avoid doing it on every return path of `finalize_batch` function
