@@ -38,7 +38,6 @@ func main() {
 	}
 }
 
-
 func aggregatorMain(ctx *cli.Context) error {
 
 	configFilePath := ctx.String(config.ConfigFileFlag.Name)
