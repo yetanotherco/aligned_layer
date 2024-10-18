@@ -17,7 +17,7 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
+	LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
 endif
 
 ifeq ($(OS),Linux)
