@@ -393,7 +393,7 @@ func (agg *Aggregator) ClearTasksFromMaps(period time.Duration, blocksOld uint64
 	defer func() {
 		err := recover() //stops panics
 		if err != nil {
-			agg.logger.Error(err.Error())
+			agg.logger.Error("Recovered from panic", "err", err)
 		}
 	}()
 
