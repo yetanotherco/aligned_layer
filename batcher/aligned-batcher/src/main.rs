@@ -5,7 +5,11 @@ use std::sync::Arc;
 use clap::Parser;
 use env_logger::Env;
 
-use aligned_batcher::{types::errors::BatcherError, Batcher};
+use aligned_batcher::{
+    retry::{retry_function, DEFAULT_FACTOR, DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY},
+    types::errors::BatcherError,
+    Batcher,
+};
 
 /// Batcher main flow:
 /// There are two main tasks spawned: `listen_connections` and `listen_new_blocks`
@@ -42,14 +46,21 @@ async fn main() -> Result<(), BatcherError> {
 
     let addr = format!("localhost:{}", port);
 
+    let batcher_clone = batcher.clone();
+
     // spawn task to listening for incoming blocks
-    tokio::spawn({
-        let app = batcher.clone();
-        async move {
-            app.listen_new_blocks()
-                .await
-                .expect("Error listening for new blocks exiting")
-        }
+    tokio::spawn(async move {
+        retry_function(
+            || {
+                let app = batcher_clone.clone();
+                async move { app.listen_new_blocks().await }
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .unwrap();
     });
 
     batcher.metrics.inc_batcher_restart();

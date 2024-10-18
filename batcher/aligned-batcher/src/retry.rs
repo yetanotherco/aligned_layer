@@ -8,16 +8,20 @@ pub const DEFAULT_FACTOR: f32 = 2.0;
 
 #[derive(Debug)]
 pub enum RetryError<E> {
-    Transient,
+    Transient(E),
     Permanent(E),
 }
 
-impl<E> std::fmt::Display for RetryError<E> {
+impl<E: std::fmt::Display> std::fmt::Display for RetryError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Retry error!")
+        match self {
+            RetryError::Transient(e) => write!(f, "{}", e),
+            RetryError::Permanent(e) => write!(f, "{}", e),
+        }
     }
 }
-impl<E> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
+
+impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
 
 pub async fn retry_function<FutureFn, Fut, T, E>(
     function: FutureFn,
@@ -37,7 +41,7 @@ where
     function
         .retry(backoff)
         .sleep(tokio::time::sleep)
-        .when(|e| matches!(e, RetryError::Transient))
+        .when(|e| matches!(e, RetryError::Transient(_)))
         .await
 }
 
@@ -141,7 +145,7 @@ mod test {
             DEFAULT_MAX_TIMES,
         )
         .await;
-        assert!(matches!(result, Err(RetryError::Transient)));
+        assert!(matches!(result, Err(RetryError::Transient(_))));
     }
 
     #[tokio::test]
@@ -192,7 +196,7 @@ mod test {
             DEFAULT_MAX_TIMES,
         )
         .await;
-        assert!(matches!(result, Err(RetryError::Transient)));
+        assert!(matches!(result, Err(RetryError::Transient(_))));
     }
 
     #[tokio::test]
@@ -243,7 +247,7 @@ mod test {
             DEFAULT_MAX_TIMES,
         )
         .await;
-        assert!(matches!(result, Err(RetryError::Transient)));
+        assert!(matches!(result, Err(RetryError::Transient(_))));
     }
 
     #[tokio::test]
@@ -281,7 +285,7 @@ mod test {
             DEFAULT_MAX_TIMES,
         )
         .await;
-        assert!(matches!(result, Err(RetryError::Transient)));
+        assert!(matches!(result, Err(RetryError::Transient(_))));
     }
 
     #[tokio::test]

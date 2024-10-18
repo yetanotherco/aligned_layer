@@ -19,8 +19,8 @@ use aligned_sdk::core::types::{
 use aws_sdk_s3::client::Client as S3Client;
 use eth::{try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams};
 use ethers::prelude::{Middleware, Provider};
-use ethers::providers::{SubscriptionStream, Ws};
-use ethers::types::{Address, Block, Signature, TransactionReceipt, TxHash, H256, U256};
+use ethers::providers::Ws;
+use ethers::types::{Address, Signature, TransactionReceipt, U256};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -38,7 +38,7 @@ mod connection;
 mod eth;
 pub mod gnark;
 pub mod metrics;
-mod retry;
+pub mod retry;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
@@ -226,28 +226,27 @@ impl Batcher {
         Ok(())
     }
 
-    pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), BatcherError> {
-        let stream = self
-            .eth_ws_provider
-            .subscribe_blocks()
-            .await
-            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+    pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), RetryError<BatcherError>> {
+        let mut stream = self.eth_ws_provider.subscribe_blocks().await.map_err(|e| {
+            warn!("Error subscribing to blocks.");
+            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+        })?;
 
-        let stream_fallback = self
+        let mut stream_fallback = self
             .eth_ws_provider_fallback
             .subscribe_blocks()
             .await
-            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+            .map_err(|e| {
+                warn!("Error subscribing to blocks.");
+                RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+            })?;
 
         let last_seen_block = Mutex::<u64>::new(0);
 
-        let stream = Arc::new(Mutex::new(stream));
-        let stream_fallback = Arc::new(Mutex::new(stream_fallback));
-
-        while let Ok(block) = self
-            .get_next_block(stream.clone(), stream_fallback.clone())
-            .await
-        {
+        while let Some(block) = tokio::select! {
+            block = stream.next() => block,
+            block = stream_fallback.next() => block,
+        } {
             let batcher = self.clone();
             let block_number = block.number.unwrap_or_default();
             let block_number = u64::try_from(block_number).unwrap_or_default();
@@ -267,48 +266,11 @@ impl Batcher {
                 };
             });
         }
+        warn!("No more blocks");
 
-        Err(BatcherError::EthereumSubscriptionError(
-            "No more blocks".to_string(),
+        Err(RetryError::Transient(
+            BatcherError::EthereumSubscriptionError("No more blocks".to_string()),
         ))
-    }
-
-    async fn get_next_block(
-        &self,
-        stream: Arc<Mutex<SubscriptionStream<'_, Ws, Block<TxHash>>>>,
-        stream_fallback: Arc<Mutex<SubscriptionStream<'_, Ws, Block<TxHash>>>>,
-    ) -> Result<Block<H256>, BatcherError> {
-        retry_function(
-            || {
-                let stream = Arc::clone(&stream);
-                let stream_fallback = Arc::clone(&stream_fallback);
-                async move {
-                    let mut stream_lock = stream.lock().await;
-                    let mut stream_fallback_lock = stream_fallback.lock().await;
-                    Self::get_next_block_retryable(&mut stream_lock, &mut stream_fallback_lock)
-                        .await
-                }
-            },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
-        )
-        .await
-        .map_err(|_| BatcherError::EthereumSubscriptionError("No more blocks".to_string()))
-    }
-
-    async fn get_next_block_retryable(
-        stream: &mut SubscriptionStream<'_, Ws, Block<TxHash>>,
-        stream_fallback: &mut SubscriptionStream<'_, Ws, Block<TxHash>>,
-    ) -> Result<Block<H256>, RetryError<()>> {
-        tokio::select! {
-            Some(block) = stream.next() => Ok(block),
-            Some(block) = stream_fallback.next() => Ok(block),
-            else => {
-                warn!("Error fetching next block.");
-                Err(RetryError::Transient)
-            }
-        }
     }
 
     async fn handle_connection(
@@ -696,7 +658,10 @@ impl Batcher {
     }
 
     /// Gets the user nonce from Ethereum using exponential backoff.
-    async fn get_user_nonce_from_ethereum(&self, addr: Address) -> Result<U256, RetryError<()>> {
+    async fn get_user_nonce_from_ethereum(
+        &self,
+        addr: Address,
+    ) -> Result<U256, RetryError<String>> {
         retry_function(
             || {
                 Self::get_user_nonce_from_ethereum_retryable(
@@ -716,7 +681,7 @@ impl Batcher {
         payment_service: &BatcherPaymentService,
         payment_service_fallback: &BatcherPaymentService,
         addr: Address,
-    ) -> Result<U256, RetryError<()>> {
+    ) -> Result<U256, RetryError<String>> {
         if let Ok(nonce) = payment_service.user_nonces(addr).call().await {
             return Ok(nonce);
         }
@@ -724,9 +689,9 @@ impl Batcher {
             .user_nonces(addr)
             .call()
             .await
-            .map_err(|_| {
+            .map_err(|e| {
                 warn!("Error getting user nonce.");
-                RetryError::Transient
+                RetryError::Transient(e.to_string())
             })
     }
 
@@ -1262,7 +1227,7 @@ impl Batcher {
         payment_service: &BatcherPaymentService,
         payment_service_fallback: &BatcherPaymentService,
         addr: &Address,
-    ) -> Result<U256, RetryError<()>> {
+    ) -> Result<U256, RetryError<String>> {
         if let Ok(balance) = payment_service.user_balances(*addr).call().await {
             return Ok(balance);
         };
@@ -1271,9 +1236,9 @@ impl Batcher {
             .user_balances(*addr)
             .call()
             .await
-            .map_err(|_| {
+            .map_err(|e| {
                 warn!("Failed to get balance for address {:?}", addr);
-                RetryError::Transient
+                RetryError::Transient(e.to_string())
             })
     }
 
@@ -1296,7 +1261,7 @@ impl Batcher {
         {
             Ok(result) => result,
             Err(_) => {
-                warn!("Could not get user locking state");
+                warn!("Could not get user locking state.");
                 false
             }
         }
@@ -1318,7 +1283,7 @@ impl Batcher {
             return Ok(unlock_block != U256::zero());
         }
         warn!("Failed to get user locking state {:?}", addr);
-        Err(RetryError::Transient)
+        Err(RetryError::Transient(()))
     }
 
     /// Gets the current gas price from Ethereum using exponential backoff.
@@ -1340,7 +1305,7 @@ impl Batcher {
     async fn get_gas_price_retryable(
         eth_ws_provider: &Provider<Ws>,
         eth_ws_provider_fallback: &Provider<Ws>,
-    ) -> Result<U256, RetryError<()>> {
+    ) -> Result<U256, RetryError<String>> {
         if let Ok(gas_price) = eth_ws_provider
             .get_gas_price()
             .await
@@ -1351,7 +1316,7 @@ impl Batcher {
 
         eth_ws_provider_fallback.get_gas_price().await.map_err(|e| {
             warn!("Failed to get fallback gas price: {e:?}");
-            RetryError::Transient
+            RetryError::Transient(e.to_string())
         })
     }
 
@@ -1383,12 +1348,12 @@ impl Batcher {
         file_name: &str,
         s3_client: S3Client,
         s3_bucket_name: &str,
-    ) -> Result<(), RetryError<()>> {
+    ) -> Result<(), RetryError<String>> {
         s3::upload_object(&s3_client, s3_bucket_name, batch_bytes.to_vec(), file_name)
             .await
             .map_err(|e| {
                 warn!("Error uploading batch to s3 {e}");
-                RetryError::Transient
+                RetryError::Transient(e.to_string())
             })?;
         Ok(())
     }

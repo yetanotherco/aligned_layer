@@ -87,7 +87,7 @@ pub async fn send_response_retryable(
 
     match sending_result {
         Err(Error::AlreadyClosed) => Err(RetryError::Permanent(Error::AlreadyClosed)),
-        Err(_) => Err(RetryError::Transient),
+        Err(e) => Err(RetryError::Transient(e)),
         Ok(_) => Ok(()),
     }
 }
