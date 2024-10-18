@@ -300,7 +300,6 @@ async fn main() -> Result<(), AlignedError> {
 
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
-
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
                 None => {
@@ -342,7 +341,6 @@ async fn main() -> Result<(), AlignedError> {
             };
 
             let mut unique_batch_merkle_roots = HashSet::new();
-
             for aligned_verification_data in aligned_verification_data_vec {
                 save_response(
                     batch_inclusion_data_directory_path.clone(),

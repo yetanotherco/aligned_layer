@@ -45,8 +45,20 @@ where
 mod test {
     use super::*;
     use crate::eth;
-    use ethers::{providers::Middleware, types::U256};
-    use std::time::SystemTime;
+    use aligned_sdk::eth::batcher_payment_service::BatcherPaymentService;
+    use ethers::{
+        contract::abigen,
+        providers::{Http, Middleware, Provider},
+        types::{Address, U256},
+        utils::Anvil,
+    };
+    use std::str::FromStr;
+    use std::{sync::Arc, time::SystemTime};
+
+    abigen!(
+        BatcherPaymentServiceContract,
+        "../aligned-sdk/abi/BatcherPaymentService.json"
+    );
 
     #[tokio::test]
     async fn retry_test() {
@@ -80,5 +92,31 @@ mod test {
         }
 
         assert!(retry_function(get_gas_price, 2000, 2.0, 3).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_anvil() {
+        let _anvil = Anvil::new()
+            .port(8545u16)
+            .arg("--load-state")
+            .arg("../../contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json")
+            .spawn();
+
+        let eth_rpc_provider: Provider<Http> =
+            eth::get_provider(String::from("http://localhost:8545"))
+                .expect("Failed to get provider");
+
+        let payment_service_addr =
+            Address::from_str("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+
+        let payment_service =
+            BatcherPaymentService::new(payment_service_addr, Arc::new(eth_rpc_provider));
+
+        let dummy_user_addr =
+            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+
+        if let Ok(balance) = payment_service.user_balances(dummy_user_addr).call().await {
+            println!("ALIGNED USER BALANCE: {:?}", balance)
+        };
     }
 }
