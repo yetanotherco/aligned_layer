@@ -19,4 +19,5 @@ cast send --from $USER_ADDRESS \
     --value $amount_in_eth \
     --private-key $USER_PRIVATE_KEY \
     --rpc-url "http://localhost:8545" \
-    "$batcher_payment_service_address"
+    "$batcher_payment_service_address" \
+    --gas-price $(cast gas-price --rpc-url "http://localhost:8545")
