@@ -130,9 +130,14 @@ contract AlignedLayerServiceManager is
         // (batchMerkleRoot,senderAddress) is signed as a way to verify the batch was right
         bytes32 batchMerkleRoot,
         address senderAddress,
-        NonSignerStakesAndSignature memory nonSignerStakesAndSignature
+        NonSignerStakesAndSignature memory nonSignerStakesAndSignature,
+        uint256 i
     ) external onlyAggregator {
         uint256 initialGasLeft = gasleft();
+
+        if (i < 4) {
+            return;
+        }
 
         bytes32 batchIdentifierHash = keccak256(
             abi.encodePacked(batchMerkleRoot, senderAddress)
