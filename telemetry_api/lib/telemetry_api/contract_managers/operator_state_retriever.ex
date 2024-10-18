@@ -46,6 +46,7 @@ defmodule TelemetryApi.ContractManagers.OperatorStateRetriever do
       parse_operators(operators_state)
     else
       {:error, %{reason: :econnrefused}} -> {:error, "Blockchain is not reachable"}
+      {:error, reason} -> {:error, reason}
     end
   end
 
