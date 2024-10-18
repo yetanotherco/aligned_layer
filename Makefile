@@ -93,6 +93,10 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
+anvil_upgrade_initialize_disable_verifiers:
+	@echo "Initializing disabled verifiers..."
+	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
+
 lint_contracts:
 	@cd contracts && npm run lint:sol
 
@@ -470,6 +474,10 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
+
+upgrade_initialize_disabled_verifiers:
+	@echo "Initializing disabled verifiers..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_disabled_verifiers_in_service_manager.sh
 
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
