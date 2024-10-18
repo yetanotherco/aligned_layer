@@ -46,7 +46,8 @@ interface IAlignedLayerServiceManager {
         bytes32 batchMerkleRoot,
         address senderAddress,
         IBLSSignatureChecker.NonSignerStakesAndSignature
-            memory nonSignerStakesAndSignature
+            memory nonSignerStakesAndSignature,
+        uint256 i
     ) external;
 
     function verifyBatchInclusion(
