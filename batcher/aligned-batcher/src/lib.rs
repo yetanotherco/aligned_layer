@@ -690,7 +690,7 @@ impl Batcher {
             .call()
             .await
             .map_err(|e| {
-                warn!("Error getting user nonce.");
+                warn!("Error getting user nonce: {e}");
                 RetryError::Transient(e.to_string())
             })
     }
@@ -1237,7 +1237,7 @@ impl Batcher {
             .call()
             .await
             .map_err(|e| {
-                warn!("Failed to get balance for address {:?}", addr);
+                warn!("Failed to get balance for address {:?}. Error: {e}", addr);
                 RetryError::Transient(e.to_string())
             })
     }
@@ -1296,8 +1296,8 @@ impl Batcher {
             DEFAULT_MAX_TIMES,
         )
         .await
-        .map_err(|_| {
-            error!("Failed to get gas price");
+        .map_err(|e| {
+            error!("Could't get gas price: {e}");
             BatcherError::GasPriceError
         })
     }
