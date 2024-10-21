@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/yetanotherco/aligned_layer/core"
+	connection "github.com/yetanotherco/aligned_layer/core"
 )
 
 func DummyFunction(x uint64) (uint64, error) {
@@ -17,12 +17,26 @@ func DummyFunction(x uint64) (uint64, error) {
 	return x, nil
 }
 
-func TestRetry(t *testing.T) {
-	function := func() (interface{}, error) { return DummyFunction(43) }
-	data, err := connection.Retry(function, 1000, 2, 3)
+func TestRetryWithData(t *testing.T) {
+	function := func() (*uint64, error) {
+		x, err := DummyFunction(43)
+		return &x, err
+	}
+	data, err := connection.RetryWithData(function, 1000, 2, 3)
 	if err != nil {
 		t.Errorf("Retry error!: %s", err)
 	} else {
 		fmt.Printf("DATA: %d\n", data)
+	}
+}
+
+func TestRetry(t *testing.T) {
+	function := func() error {
+		_, err := DummyFunction(43)
+		return err
+	}
+	err := connection.Retry(function, 1000, 2, 3)
+	if err != nil {
+		t.Errorf("Retry error!: %s", err)
 	}
 }
