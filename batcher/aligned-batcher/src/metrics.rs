@@ -13,6 +13,7 @@ pub struct BatcherMetrics {
     pub reverted_batches: IntCounter,
     pub batcher_started: IntCounter,
     pub gas_price_used_on_latest_batch: IntGauge,
+    pub broken_ws_connections: IntCounter,
 }
 
 impl BatcherMetrics {
@@ -27,12 +28,18 @@ impl BatcherMetrics {
         let batcher_started = register_int_counter!(opts!("batcher_started", "Batcher Started"))?;
         let gas_price_used_on_latest_batch =
             register_int_gauge!(opts!("gas_price_used_on_latest_batch", "Gas Price"))?;
+        let broken_ws_connections = register_int_counter!(opts!(
+            "broken_ws_connections",
+            "Broken websocket connections"
+        ))?;
 
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
         registry.register(Box::new(sent_batches.clone()))?;
         registry.register(Box::new(reverted_batches.clone()))?;
+        registry.register(Box::new(gas_price_used_on_latest_batch.clone()))?;
         registry.register(Box::new(batcher_started.clone()))?;
+        registry.register(Box::new(broken_ws_connections.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -51,6 +58,7 @@ impl BatcherMetrics {
             reverted_batches,
             batcher_started,
             gas_price_used_on_latest_batch,
+            broken_ws_connections,
         })
     }
 

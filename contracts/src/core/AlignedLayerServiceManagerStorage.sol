@@ -16,7 +16,12 @@ abstract contract AlignedLayerServiceManagerStorage {
 
     address public alignedAggregator;
 
+    // Bitmap representing disabled verifiers
+    // Each verifier is disabled if its corresponding bit is set to 1
+    // The verifier index follows its corresponding value in the `ProvingSystemId` enum being 0 the first verifier.
+    uint256 public disabledVerifiers;
+
     // storage gap for upgradeability
     // solhint-disable-next-line var-name-mixedcase
-    uint256[47] private __GAP;
+    uint256[46] private __GAP;
 }

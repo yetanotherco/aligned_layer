@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.9.2
+OPERATOR_VERSION=v0.10.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -17,7 +17,7 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
+	LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -92,6 +92,10 @@ anvil_upgrade_index_registry:
 anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
+
+anvil_upgrade_initialize_disable_verifiers:
+	@echo "Initializing disabled verifiers..."
+	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
 
 lint_contracts:
 	@cd contracts && npm run lint:sol
@@ -229,6 +233,23 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
+
+# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
+verifier_enable_devnet:
+	@echo "Enabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable_devnet:
+	@echo "Disabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
+verifier_enable:
+	@echo "Enabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable:
+	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
 
 __BATCHER__:
 
@@ -454,6 +475,10 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
+
+upgrade_initialize_disabled_verifiers:
+	@echo "Adding disabled verifiers to Aligned Service Manager..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_disabled_verifiers_in_service_manager.sh
 
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."

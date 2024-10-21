@@ -22,7 +22,7 @@ bls:
 ## Operator Configurations
 operator:
   aggregator_rpc_server_ip_port_address: aggregator.alignedlayer.com:8090
-  operator_tracker_ip_port_address: https://holesky.tracker.alignedlayer.com
+  operator_tracker_ip_port_address: https://holesky.telemetry.alignedlayer.com
   address: '<operator_address>'
   earnings_receiver_address: '<earnings_receiver_address>' #Can be the same as the operator.
   delegation_approver_address: '0x0000000000000000000000000000000000000000'
