@@ -1,11 +1,12 @@
 .PHONY: help tests
 
+SHELL := /bin/bash
 OS := $(shell uname -s)
 
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.8.0
+OPERATOR_VERSION=v0.10.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -14,6 +15,19 @@ endif
 ifeq ($(OS),Darwin)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_macos
 endif
+
+ifeq ($(OS),Linux)
+	LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
+endif
+
+ifeq ($(OS),Linux)
+	BUILD_OPERATOR = $(MAKE) build_operator_linux 
+endif
+
+ifeq ($(OS),Darwin)
+	BUILD_OPERATOR = $(MAKE) build_operator_macos
+endif
+
 
 FFI_FOR_RELEASE ?= true
 
@@ -32,7 +46,7 @@ submodules:
 	git submodule update --init --recursive
 	@echo "Updated submodules"
 
-deps: submodules build_all_ffi ## Install deps
+deps: submodules go_deps build_all_ffi ## Install deps
 
 go_deps:
 	@echo "Installing Go dependencies..."
@@ -79,9 +93,9 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
-anvil_add_type_hash_to_batcher_payment_service:
-	@echo "Adding Type Hash to Batcher Payment Service..."
-	. contracts/scripts/anvil/upgrade_add_type_hash_to_batcher_payment_service.sh
+anvil_upgrade_initialize_disable_verifiers:
+	@echo "Initializing disabled verifiers..."
+	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
 
 lint_contracts:
 	@cd contracts && npm run lint:sol
@@ -94,6 +108,8 @@ anvil_start_with_block_time:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
+_AGGREGATOR_:
+
 aggregator_start:
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
@@ -103,16 +119,29 @@ aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
 	@cd aggregator && go run dummy/submit_task_responses.go
 
+
+__OPERATOR__:
+
 operator_start:
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
+
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
+	$(BUILD_OPERATOR)
+
+build_operator_macos:
 	@echo "Building Operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo "Operator built into /operator/build/aligned-operator"
+
+build_operator_linux:
+	@echo "Building Operator..."
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
@@ -126,7 +155,6 @@ operator_valid_marshall_fuzz_macos:
 
 operator_valid_marshall_fuzz_linux:
 	@cd operator/pkg && \
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test -fuzz=FuzzValidMarshall
 
 operator_marshall_unmarshall_fuzz_macos:
@@ -134,7 +162,6 @@ operator_marshall_unmarshall_fuzz_macos:
 
 operator_marshall_unmarshall_fuzz_linux:
 	@cd operator/pkg && \
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test -fuzz=FuzzMarshalUnmarshal
 
 bindings:
@@ -186,9 +213,8 @@ operator_whitelist:
 	@. contracts/scripts/.env && . contracts/scripts/whitelist_operator.sh $(OPERATOR_ADDRESS)
 
 operator_deposit_into_mock_strategy:
-	@echo "Depositing into strategy"
+	@echo "Depositing into mock strategy"
 	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
-
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
@@ -207,7 +233,23 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
+
+# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
+verifier_enable_devnet:
+	@echo "Enabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable_devnet:
+	@echo "Disabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
+verifier_enable:
+	@echo "Enabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable:
+	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
 
 __BATCHER__:
 
@@ -289,6 +331,16 @@ batcher_send_risc0_task:
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
+
+batcher_send_risc0_task_no_pub_input:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -495,6 +547,7 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
+# Prometheus and graphana
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
@@ -533,9 +586,9 @@ upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
 
-upgrade_batcher_payments_add_type_hash: ## Add Type Hash to Batcher Payment Service
-	@echo "Adding Type Hash to Batcher Payment Service..."
-	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_type_hash_to_batcher_payment_service.sh
+upgrade_initialize_disabled_verifiers:
+	@echo "Adding disabled verifiers to Aligned Service Manager..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_disabled_verifiers_in_service_manager.sh
 
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
@@ -595,6 +648,11 @@ generate_sp1_fibonacci_proof:
 	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
+generate_risc_zero_empty_journal_proof:
+	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
+
+
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
@@ -614,7 +672,6 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)/operator/risc_zero/lib \
 	go test ./operator/risc_zero/... -v
 
 generate_risc_zero_fibonacci_proof:
@@ -628,28 +685,14 @@ build_merkle_tree_macos:
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree/lib/libmerkle_tree.dylib
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
-build_merkle_tree_macos_old:
-	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.dylib operator/merkle_tree_old/lib/libmerkle_tree.dylib
-	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
-
 build_merkle_tree_linux:
 	@cd operator/merkle_tree/lib && cargo build $(RELEASE_FLAG)
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree/lib/libmerkle_tree.so
 	@cp operator/merkle_tree/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree/lib/libmerkle_tree.a
 
-build_merkle_tree_linux_old:
-	@cd operator/merkle_tree_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.so operator/merkle_tree_old/lib/libmerkle_tree.so
-	@cp operator/merkle_tree_old/lib/target/$(TARGET_REL_PATH)/libmerkle_tree.a operator/merkle_tree_old/lib/libmerkle_tree.a
-
 test_merkle_tree_rust_ffi:
 	@echo "Testing Merkle Tree Rust FFI source code..."
 	@cd operator/merkle_tree/lib && RUST_MIN_STACK=83886080 cargo t --release
-
-test_merkle_tree_rust_ffi_old:
-	@echo "Testing Old Merkle Tree Rust FFI source code..."
-	@cd operator/merkle_tree_old/lib && RUST_MIN_STACK=83886080 cargo t --release
 
 test_merkle_tree_go_bindings_macos: build_merkle_tree_macos
 	@echo "Testing Merkle Tree Go bindings..."
@@ -663,9 +706,6 @@ test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
 	@echo "Testing Old Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree_old/... -v
 
-test_merkle_tree_go_bindings_linux_old: build_merkle_tree_linux_old
-	@echo "Testing Merkle Tree Go bindings..."
-	go test ./operator/merkle_tree_old/... -v
 
 __BUILD_ALL_FFI__:
 
@@ -678,7 +718,6 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
-	@$(MAKE) build_merkle_tree_macos_old
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -686,9 +725,7 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
-	@$(MAKE) build_merkle_tree_linux_old
 	@echo "All Linux FFIs built successfully."
-
 
 __EXPLORER__:
 run_explorer: explorer_run_db explorer_ecto_setup_db
@@ -772,11 +809,19 @@ tracker_dump_db:
 	@echo "Dumped database successfully to /operator_tracker"
 
 __TELEMETRY__:
+# Collector, Jaeger and Elixir API
+telemetry_full_start: open_telemetry_start telemetry_start
+
+# Collector and Jaeger
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
-	## TODO(juarce) ADD DOCKER COMPOSE
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
 
+open_telemetry_prod_start: ## Run open telemetry services with Cassandra using telemetry-prod-docker-compose.yaml
+	@echo "Running telemetry for Prod..."
+	@docker compose -f telemetry-prod-docker-compose.yaml up -d
+
+# Elixir API
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
 	 	./start.sh	

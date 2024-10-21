@@ -2,10 +2,12 @@ package config
 
 import (
 	"errors"
-	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
-	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"os"
+	"time"
+
+	sdkutils "github.com/Layr-Labs/eigensdk-go/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type AggregatorConfig struct {
@@ -18,6 +20,10 @@ type AggregatorConfig struct {
 		AvsServiceManagerAddress      common.Address
 		EnableMetrics                 bool
 		MetricsIpPortAddress          string
+		TelemetryIpPortAddress        string
+		GarbageCollectorPeriod        time.Duration
+		GarbageCollectorTasksAge      uint64
+		GarbageCollectorTasksInterval uint64
 	}
 }
 
@@ -28,6 +34,10 @@ type AggregatorConfigFromYaml struct {
 		AvsServiceManagerAddress      common.Address `yaml:"avs_service_manager_address"`
 		EnableMetrics                 bool           `yaml:"enable_metrics"`
 		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
+		TelemetryIpPortAddress        string         `yaml:"telemetry_ip_port_address"`
+		GarbageCollectorPeriod        time.Duration  `yaml:"garbage_collector_period"`
+		GarbageCollectorTasksAge      uint64         `yaml:"garbage_collector_tasks_age"`
+		GarbageCollectorTasksInterval uint64         `yaml:"garbage_collector_tasks_interval"`
 	} `yaml:"aggregator"`
 }
 
@@ -68,6 +78,10 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			AvsServiceManagerAddress      common.Address
 			EnableMetrics                 bool
 			MetricsIpPortAddress          string
+			TelemetryIpPortAddress        string
+			GarbageCollectorPeriod        time.Duration
+			GarbageCollectorTasksAge      uint64
+			GarbageCollectorTasksInterval uint64
 		}(aggregatorConfigFromYaml.Aggregator),
 	}
 }

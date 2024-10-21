@@ -94,9 +94,9 @@ pub async fn send_messages(
                 error!("Proof too large!");
                 return Err(SubmitError::ProofTooLarge);
             }
-            ValidityResponseMessage::InvalidProof => {
-                error!("Invalid Proof!");
-                return Err(SubmitError::InvalidProof);
+            ValidityResponseMessage::InvalidProof(reason) => {
+                error!("Invalid Proof!: {}", reason);
+                return Err(SubmitError::InvalidProof(reason));
             }
             ValidityResponseMessage::InvalidMaxFee => {
                 error!("Invalid Max Fee!");
@@ -219,6 +219,9 @@ async fn process_batch_inclusion_data(
             return Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned() + &merkle_root,
             ));
+        }
+        Ok(ResponseMessage::InvalidProof(reason)) => {
+            return Err(SubmitError::InvalidProof(reason));
         }
         Err(e) => {
             return Err(SubmitError::SerializationError(e));

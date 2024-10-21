@@ -3,9 +3,9 @@
 The Payment Service handles users payments to fund the verification of their proofs.
 
 To be able to use the batcher, a user must fund its transactions.
-For this, there is a simple Batcher Payment System.
+For this, there is a simple Payment Service.
 
-The Batcher has an associated Batcher Payments smart contract,
+The Batcher has an associated `Batcher Payments` smart contract,
 which is in charge of receiving user's payments,
 and it guarantees that it can only spend these funds to send users' proofs to Aligned.
 
@@ -17,7 +17,7 @@ Once a batch is complete, the Batcher calls its smart contract with the collecte
 
 The smart contract deducts funds from senders' balances and creates a new Batch in
 the [Aligned Service Manager](./3_service_manager_contract.md),
-including tokens for batch verification payment to the [Aggregator](./5_aggregator.md).
+including funds for batch verification payment to the [Aggregator](./5_aggregator.md).
 
 Users can then withdraw extra funds deposited to the Batcher Payments smart contract,
 or leave them to fund future proofs.
@@ -27,19 +27,7 @@ This enables the Batcher to be sure the User will have funds to pay for his proo
 
 This way, the Batcher can only use the User's funds to pay for the verification of the User's proofs. The Batcher Payment Service guarantees that the Batcher will not be able to spend the user funds for anything other than submitting the user's proofs to Aligned.
 
-The flow is:
-
-- When the batcher calls the smart contract to create a new batch,
-  it gets the batch merkle tree leaves, with each leaf, signed by the user.
-- The contract then rebuilds the merkle tree to check the
-  batch merkle root and verifies the user signatures.
-- Each signature also contains a nonce that can only be used once per user,
-  to avoid the batcher being able to reuse the same signature.
-- Only if the merkle root and the signatures are valid, the contract will
-  discount the corresponding funds from the user's balance and
-  create a new batch in the [Aligned Service Manager](./3_service_manager_contract.md).
-
-## Payment service architecture and flow 
+## Payment service architecture and flow
 
 ![Payment Service Flow Diagram](../../images/payment_service_diagram.png)
 
@@ -60,21 +48,23 @@ to keep track of each User's funds separately.
 #### Create New Task
 
 ```solidity
-    function createNewTask(
-        bytes32 batchMerkleRoot,
-        string calldata batchDataPointer,
-        bytes32[] calldata leaves, // padded to the next power of 2
-        SignatureData[] calldata signatures, // actual length (proof sumbitters == proofs submitted)
-        uint256 gasForAggregator,
-        uint256 gasPerProof
-    ) external onlyBatcher
+function createNewTask(
+    bytes32 batchMerkleRoot,
+    string calldata batchDataPointer,
+    address[] calldata proofSubmitters,
+    uint256 feeForAggregator,
+    uint256 feePerProof,
+    uint256 respondToTaskFeeLimit
+) external onlyBatcher whenNotPaused
 ```
 
-This function will be executed only by the Batcher when it has a batch to post to Aligned.
+This function is called only by the Batcher when it has a batch ready to be submitted to Aligned.
 It contains all the information needed to post the batch
-in [Aligned Service Manager](./3_service_manager_contract.md) (`batchMerkleRoot`
-and `batchDataPointer`), plus an array containing which are the `proofSubmitters`, to discount `gasPerProof` from
-these, and also the `gasForAggregator`, declaring how much will need to go pay for the response of the batch.
+in the [Aligned Service Manager](./3_service_manager_contract.md) (`batchMerkleRoot`
+and `batchDataPointer`), plus an array containing which are the `proofSubmitters`, to discount `feePerProof` from
+these, and also the `feeForAggregator`, declaring how much will need to go pay for the response of the batch, as well
+as the `respondToTaskFeeLimit`, a safeguard that sets the max quantity of Ethereum that the aggregator should spend in
+case of a gas price spike.
 
 #### Unlock
 

@@ -1,6 +1,6 @@
 # Submitting Proofs
 
-Make sure you have Aligned installed as specified [here](../1_introduction/1_getting_started.md#Quickstart).
+Make sure you have Aligned installed as specified [here](../1_introduction/1_try_aligned.md#quickstart).
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
@@ -60,46 +60,46 @@ This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
 - If you have the EigenLayer CLI installed, the keystore can be generated following [these](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#import-keys) instructions. The key will be stored into `~/.eigenlayer/operator_keys`.
 
-## 2. Fund the batcher
+## 2. Send funds to Aligned
 
-To be able to send proofs to Aligned using the Batcher, the user must fund its transactions. For this, there is a simple Batcher Payment System.
+To send proofs to Aligned using the Batcher, the user must first deposit some funds in Aligned to pay for the verification of his proofs.
 
 To use it, you can use the `aligned` CLI, as shown with the following example:
 
 ```bash
-aligned deposit-to-batcher  \
+aligned deposit-to-batcher \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
 --network holesky \
 --keystore_path <keystore_path> \
 --amount 0.1ether
 ```
 
-These commands allow the usage of the following flags:
+This command allows the usage of the following flags:
 
-- `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the chain id to be used. Could be holesky or devnet.
+- `--network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
 - `--keystore_path` the path to the keystore.
 - `--amount` the number of ethers to transfer to the Batcher.
-- Note: `--amount` flag parameter must be with the shown format. The amount followed by the `ether` keyword to specify how many ethers you wish to deposit to the Batcher.
+- Note: `--amount` flag parameter must be with the shown format, `XX.XXether`.
 
 After depositing funds, you can verify the Service has correctly received them by executing the following command:
 
 ```bash
-aligned get-user-balance  \
+aligned get-user-balance \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network holesky \
 --user_addr <user_addr>
 ```
 
 These commands allow the usage of the following flags:
 
-- `--payment_service_addr` to specify the address of the Batcher Payment Service smart contract.
 - `--rpc_url` to specify the rpc url to be used.
+- `--network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
 - `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Submit your proof to the batcher
 
-This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [Aligned SDK guide](../3_guides/2_integrating_aligned_into_your_application.md).
+This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [First Aligned Application tutorial](../3_guides/2_build_your_first_aligned_application.md#app) where we explain how to generate and submit a proof using the Aligned SDK.
 
 Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are:
 
@@ -108,9 +108,8 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
 * `pub_input`: The path to the file with the public input associated with the proof.
 * `batcher_url`: The batcher websocket URL.
-* `chain` to specify the chain id to be used. Could be holesky or devnet.
+* `network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
 * `rpc_url`: The RPC Ethereum node URL.
-* `payment_service_addr`: The Ethereum address of the Batcher Payments System contract.
 * `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
 * `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
 
@@ -131,7 +130,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 **Example**
@@ -145,7 +144,7 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ### Risc0 proof
@@ -166,7 +165,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 **NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.0.1`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.0.1` or your proof will not be verified. 
@@ -178,6 +177,7 @@ risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.0.1", default-f
     "prove",
 ] }
 ```
+- Note: In Risc0 verification `--pub_input` contains the bytes of the `receipt.journal.bytes` which contains both the public input (`env::read()`) and public output (`env::commit()`) values of a program executed in the Risc0 VM. If your Risc0 program contains public outputs, but no public inputs you still need to submit the serialized `receipt.journal.bytes` with your proof using the Aligned CLI for your proof to be verified.
 
 **Example**
 
@@ -192,7 +192,7 @@ aligned submit \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ### GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254
@@ -211,7 +211,7 @@ aligned submit \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 **Examples**:
@@ -226,7 +226,7 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ```bash
@@ -239,7 +239,7 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 ```bash
