@@ -63,16 +63,11 @@ func CalculateGasPriceBumpBasedOnRetry(currentGasPrice *big.Int, iteration int) 
 // it will try again bumping the gas price based on `CalculateGasPriceBumpBasedOnRetry`
 // and pass it to beforeTransaction and executeTransaction (make sure you update the txOpts with the new price)
 // This process happens indefinitely until we get the receipt or the receipt status is an err.
-func SendTransactionWithInfiniteRetryAndBumpingGasPrice(beforeTransaction func(*big.Int) error, executeTransaction func(*big.Int) (*types.Transaction, error), client eth.InstrumentedClient, baseGasPrice *big.Int) (*types.Receipt, error) {
+func SendTransactionWithInfiniteRetryAndBumpingGasPrice(executeTransaction func(*big.Int) (*types.Transaction, error), client eth.InstrumentedClient, baseGasPrice *big.Int) (*types.Receipt, error) {
 	i := 0
 	sendTransaction := func() (*types.Receipt, error) {
 		i++
 		gasPrice := CalculateGasPriceBumpBasedOnRetry(baseGasPrice, i)
-
-		err := beforeTransaction(gasPrice)
-		if err != nil {
-			return nil, err
-		}
 
 		tx, err := executeTransaction(gasPrice)
 		if err != nil {

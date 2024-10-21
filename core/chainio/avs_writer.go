@@ -94,14 +94,15 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	txOpts.Nonce = txNonce
 
-	beforeTransaction := func(gasPrice *big.Int) error {
-		txOpts.GasPrice = gasPrice
+	executeTransaction := func(bumpedGasPrices *big.Int) (*types.Transaction, error) {
+		txOpts.GasPrice = bumpedGasPrices
 		w.logger.Infof("Sending ResponseToTask transaction with a gas price of %v", txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
-		return err
-	}
 
-	executeTransaction := func(gasPrice *big.Int) (*types.Transaction, error) {
+		if err != nil {
+			return nil, err
+		}
+
 		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			// Retry with fallback
@@ -111,7 +112,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		return tx, err
 	}
 
-	return utils.SendTransactionWithInfiniteRetryAndBumpingGasPrice(beforeTransaction, executeTransaction, w.Client, tx.GasPrice())
+	return utils.SendTransactionWithInfiniteRetryAndBumpingGasPrice(executeTransaction, w.Client, tx.GasPrice())
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
