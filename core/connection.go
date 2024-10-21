@@ -69,7 +69,13 @@ func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTri
 	initialRetryOption := backoff.WithInitialInterval(time.Millisecond * time.Duration(minDelay))
 	multiplierOption := backoff.WithMultiplier(factor)
 	expBackoff := backoff.NewExponentialBackOff(randomOption, multiplierOption, initialRetryOption)
-	maxRetriesBackoff := backoff.WithMaxRetries(expBackoff, maxTries)
+	var maxRetriesBackoff backoff.BackOff
+
+	if maxTries > 0 {
+		maxRetriesBackoff = backoff.WithMaxRetries(expBackoff, maxTries)
+	} else {
+		maxRetriesBackoff = expBackoff
+	}
 
 	return backoff.Retry(f, maxRetriesBackoff)
 }
