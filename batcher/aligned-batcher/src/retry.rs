@@ -21,6 +21,15 @@ impl<E: std::fmt::Display> std::fmt::Display for RetryError<E> {
     }
 }
 
+impl<E> RetryError<E> {
+    pub fn inner(self) -> E {
+        match self {
+            RetryError::Transient(e) => e,
+            RetryError::Permanent(e) => e,
+        }
+    }
+}
+
 impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
 
 pub async fn retry_function<FutureFn, Fut, T, E>(
@@ -51,8 +60,14 @@ mod test {
     use crate::{
         config::ECDSAConfig,
         connection,
-        eth::{self, payment_service::BatcherPaymentService},
-        Batcher,
+        eth::{
+            self,
+            payment_service::{
+                get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
+                user_balance_is_unlocked_retryable, BatcherPaymentService,
+            },
+            utils::get_gas_price_retryable,
+        },
     };
     use ethers::{
         contract::abigen,
@@ -103,20 +118,10 @@ mod test {
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
 
-        let balance = retry_function(
-            || {
-                Batcher::get_user_balance_retryable(
-                    &payment_service,
-                    &payment_service,
-                    &dummy_user_addr,
-                )
-            },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
-        )
-        .await
-        .unwrap();
+        let balance =
+            get_user_balance_retryable(&payment_service, &payment_service, &dummy_user_addr)
+                .await
+                .unwrap();
 
         assert!(balance == U256::zero());
     }
@@ -132,19 +137,8 @@ mod test {
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
 
-        let result = retry_function(
-            || {
-                Batcher::get_user_balance_retryable(
-                    &payment_service,
-                    &payment_service,
-                    &dummy_user_addr,
-                )
-            },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
-        )
-        .await;
+        let result =
+            get_user_balance_retryable(&payment_service, &payment_service, &dummy_user_addr).await;
         assert!(matches!(result, Err(RetryError::Transient(_))));
     }
 
@@ -154,17 +148,10 @@ mod test {
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
 
-        let unlocked = retry_function(
-            || {
-                Batcher::user_balance_is_unlocked_retryable(
-                    &payment_service,
-                    &payment_service,
-                    &dummy_user_addr,
-                )
-            },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+        let unlocked = user_balance_is_unlocked_retryable(
+            &payment_service,
+            &payment_service,
+            &dummy_user_addr,
         )
         .await
         .unwrap();
@@ -183,17 +170,10 @@ mod test {
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
 
-        let result = retry_function(
-            || {
-                Batcher::user_balance_is_unlocked_retryable(
-                    &payment_service,
-                    &payment_service,
-                    &dummy_user_addr,
-                )
-            },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+        let result = user_balance_is_unlocked_retryable(
+            &payment_service,
+            &payment_service,
+            &dummy_user_addr,
         )
         .await;
         assert!(matches!(result, Err(RetryError::Transient(_))));
@@ -205,17 +185,10 @@ mod test {
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
 
-        let nonce = retry_function(
-            || {
-                Batcher::get_user_nonce_from_ethereum_retryable(
-                    &payment_service,
-                    &payment_service,
-                    dummy_user_addr,
-                )
-            },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+        let nonce = get_user_nonce_from_ethereum_retryable(
+            &payment_service,
+            &payment_service,
+            dummy_user_addr,
         )
         .await
         .unwrap();
@@ -234,17 +207,10 @@ mod test {
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
 
-        let result = retry_function(
-            || {
-                Batcher::get_user_nonce_from_ethereum_retryable(
-                    &payment_service,
-                    &payment_service,
-                    dummy_user_addr,
-                )
-            },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+        let result = get_user_nonce_from_ethereum_retryable(
+            &payment_service,
+            &payment_service,
+            dummy_user_addr,
         )
         .await;
         assert!(matches!(result, Err(RetryError::Transient(_))));
@@ -256,14 +222,9 @@ mod test {
         let eth_rpc_provider = ethers::prelude::Provider::connect("ws://localhost:8551")
             .await
             .expect("Failed to get ethereum websocket provider");
-        let result = retry_function(
-            || Batcher::get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider),
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
-        )
-        .await
-        .is_ok();
+        let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider)
+            .await
+            .is_ok();
 
         assert_eq!(result, true);
     }
@@ -278,13 +239,7 @@ mod test {
                 .await
                 .expect("Failed to get ethereum websocket provider");
         }
-        let result = retry_function(
-            || Batcher::get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider),
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
-        )
-        .await;
+        let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
         assert!(matches!(result, Err(RetryError::Transient(_))));
     }
 
@@ -316,14 +271,9 @@ mod test {
         let outgoing = Arc::new(RwLock::new(outgoing));
         let message = "Some message".to_string();
 
-        let result = retry_function(
-            || connection::send_response_retryable(&outgoing, message.clone().into_bytes()),
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
-        )
-        .await
-        .is_ok();
+        let result = connection::send_response_retryable(&outgoing, message.clone().into_bytes())
+            .await
+            .is_ok();
         assert!(result);
         client_handle.await.unwrap()
     }

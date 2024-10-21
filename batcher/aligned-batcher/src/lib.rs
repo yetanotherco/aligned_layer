@@ -3,6 +3,7 @@ use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
+use eth::utils::get_gas_price_retryable;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::{retry_function, RetryError, DEFAULT_FACTOR, DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY};
@@ -28,7 +29,9 @@ use aligned_sdk::core::types::{
 
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{
-    try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT,
+    get_user_balance_retryable, get_user_nonce_from_ethereum_retryable, try_create_new_task,
+    user_balance_is_unlocked_retryable, BatcherPaymentService, CreateNewTaskFeeParams,
+    SignerMiddlewareT,
 };
 use ethers::prelude::{Middleware, Provider};
 use ethers::providers::Ws;
@@ -258,7 +261,23 @@ impl Batcher {
         Ok(())
     }
 
-    pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), RetryError<BatcherError>> {
+    pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), BatcherError> {
+        retry_function(
+            || {
+                let app = self.clone();
+                async move { app.listen_new_blocks_retryable().await }
+            },
+            DEFAULT_MIN_DELAY,
+            DEFAULT_FACTOR,
+            DEFAULT_MAX_TIMES,
+        )
+        .await
+        .map_err(|e| e.inner())
+    }
+
+    pub async fn listen_new_blocks_retryable(
+        self: Arc<Self>,
+    ) -> Result<(), RetryError<BatcherError>> {
         let mut stream = self.eth_ws_provider.subscribe_blocks().await.map_err(|e| {
             warn!("Error subscribing to blocks.");
             RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
@@ -738,7 +757,7 @@ impl Batcher {
     ) -> Result<U256, RetryError<String>> {
         retry_function(
             || {
-                Self::get_user_nonce_from_ethereum_retryable(
+                get_user_nonce_from_ethereum_retryable(
                     &self.payment_service,
                     &self.payment_service_fallback,
                     addr,
@@ -749,24 +768,6 @@ impl Batcher {
             DEFAULT_MAX_TIMES,
         )
         .await
-    }
-
-    async fn get_user_nonce_from_ethereum_retryable(
-        payment_service: &BatcherPaymentService,
-        payment_service_fallback: &BatcherPaymentService,
-        addr: Address,
-    ) -> Result<U256, RetryError<String>> {
-        if let Ok(nonce) = payment_service.user_nonces(addr).call().await {
-            return Ok(nonce);
-        }
-        payment_service_fallback
-            .user_nonces(addr)
-            .call()
-            .await
-            .map_err(|e| {
-                warn!("Error getting user nonce: {e}");
-                RetryError::Transient(e.to_string())
-            })
     }
 
     /// Adds verification data to the current batch queue.
@@ -1301,7 +1302,7 @@ impl Batcher {
     async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
         retry_function(
             || {
-                Self::get_user_balance_retryable(
+                get_user_balance_retryable(
                     &self.payment_service,
                     &self.payment_service_fallback,
                     addr,
@@ -1315,31 +1316,12 @@ impl Batcher {
         .ok()
     }
 
-    async fn get_user_balance_retryable(
-        payment_service: &BatcherPaymentService,
-        payment_service_fallback: &BatcherPaymentService,
-        addr: &Address,
-    ) -> Result<U256, RetryError<String>> {
-        if let Ok(balance) = payment_service.user_balances(*addr).call().await {
-            return Ok(balance);
-        };
-
-        payment_service_fallback
-            .user_balances(*addr)
-            .call()
-            .await
-            .map_err(|e| {
-                warn!("Failed to get balance for address {:?}. Error: {e}", addr);
-                RetryError::Transient(e.to_string())
-            })
-    }
-
     /// Checks if the user's balance is unlocked for a given address using exponential backoff.
     /// Returns `false` if an error occurs during the retries.
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
         match retry_function(
             || {
-                Self::user_balance_is_unlocked_retryable(
+                user_balance_is_unlocked_retryable(
                     &self.payment_service,
                     &self.payment_service_fallback,
                     addr,
@@ -1359,30 +1341,11 @@ impl Batcher {
         }
     }
 
-    async fn user_balance_is_unlocked_retryable(
-        payment_service: &BatcherPaymentService,
-        payment_service_fallback: &BatcherPaymentService,
-        addr: &Address,
-    ) -> Result<bool, RetryError<()>> {
-        if let Ok(unlock_block) = payment_service.user_unlock_block(*addr).call().await {
-            return Ok(unlock_block != U256::zero());
-        }
-        if let Ok(unlock_block) = payment_service_fallback
-            .user_unlock_block(*addr)
-            .call()
-            .await
-        {
-            return Ok(unlock_block != U256::zero());
-        }
-        warn!("Failed to get user locking state {:?}", addr);
-        Err(RetryError::Transient(()))
-    }
-
     /// Gets the current gas price from Ethereum using exponential backoff.
     /// Returns `None` if the gas price couldn't be returned
     async fn get_gas_price(&self) -> Result<U256, BatcherError> {
         retry_function(
-            || Self::get_gas_price_retryable(&self.eth_ws_provider, &self.eth_ws_provider_fallback),
+            || get_gas_price_retryable(&self.eth_ws_provider, &self.eth_ws_provider_fallback),
             DEFAULT_MIN_DELAY,
             DEFAULT_FACTOR,
             DEFAULT_MAX_TIMES,
@@ -1391,24 +1354,6 @@ impl Batcher {
         .map_err(|e| {
             error!("Could't get gas price: {e}");
             BatcherError::GasPriceError
-        })
-    }
-
-    async fn get_gas_price_retryable(
-        eth_ws_provider: &Provider<Ws>,
-        eth_ws_provider_fallback: &Provider<Ws>,
-    ) -> Result<U256, RetryError<String>> {
-        if let Ok(gas_price) = eth_ws_provider
-            .get_gas_price()
-            .await
-            .inspect_err(|e| warn!("Failed to get gas price. Trying with fallback: {e:?}"))
-        {
-            return Ok(gas_price);
-        }
-
-        eth_ws_provider_fallback.get_gas_price().await.map_err(|e| {
-            warn!("Failed to get fallback gas price: {e:?}");
-            RetryError::Transient(e.to_string())
         })
     }
 

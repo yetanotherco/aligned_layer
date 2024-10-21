@@ -5,9 +5,9 @@ use aligned_sdk::eth::batcher_payment_service::BatcherPaymentServiceContract;
 use ethers::prelude::k256::ecdsa::SigningKey;
 use ethers::prelude::*;
 use gas_escalator::{Frequency, GeometricGasPrice};
-use log::info;
+use log::{info, warn};
 
-use crate::{config::ECDSAConfig, types::errors::BatcherSendError};
+use crate::{config::ECDSAConfig, retry::RetryError, types::errors::BatcherSendError};
 
 use super::utils::{GAS_ESCALATOR_INTERVAL, GAS_MULTIPLIER};
 
@@ -71,6 +71,25 @@ pub async fn get_batcher_payment_service(
     Ok(payment_service)
 }
 
+pub async fn user_balance_is_unlocked_retryable(
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+    addr: &Address,
+) -> Result<bool, RetryError<()>> {
+    if let Ok(unlock_block) = payment_service.user_unlock_block(*addr).call().await {
+        return Ok(unlock_block != U256::zero());
+    }
+    if let Ok(unlock_block) = payment_service_fallback
+        .user_unlock_block(*addr)
+        .call()
+        .await
+    {
+        return Ok(unlock_block != U256::zero());
+    }
+    warn!("Failed to get user locking state {:?}", addr);
+    Err(RetryError::Transient(()))
+}
+
 pub async fn try_create_new_task(
     batch_merkle_root: [u8; 32],
     batch_data_pointer: String,
@@ -100,4 +119,41 @@ pub async fn try_create_new_task(
         .await
         .map_err(|err| BatcherSendError::UnknownError(err.to_string()))?
         .ok_or(BatcherSendError::ReceiptNotFound)
+}
+
+pub async fn get_user_balance_retryable(
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+    addr: &Address,
+) -> Result<U256, RetryError<String>> {
+    if let Ok(balance) = payment_service.user_balances(*addr).call().await {
+        return Ok(balance);
+    };
+
+    payment_service_fallback
+        .user_balances(*addr)
+        .call()
+        .await
+        .map_err(|e| {
+            warn!("Failed to get balance for address {:?}. Error: {e}", addr);
+            RetryError::Transient(e.to_string())
+        })
+}
+
+pub async fn get_user_nonce_from_ethereum_retryable(
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+    addr: Address,
+) -> Result<U256, RetryError<String>> {
+    if let Ok(nonce) = payment_service.user_nonces(addr).call().await {
+        return Ok(nonce);
+    }
+    payment_service_fallback
+        .user_nonces(addr)
+        .call()
+        .await
+        .map_err(|e| {
+            warn!("Error getting user nonce: {e}");
+            RetryError::Transient(e.to_string())
+        })
 }
