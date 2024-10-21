@@ -317,10 +317,10 @@ impl Batcher {
                 };
             });
         }
-        warn!("No more blocks");
+        error!("Failed to fetch blocks");
 
         Err(RetryError::Transient(
-            BatcherError::EthereumSubscriptionError("No more blocks".to_string()),
+            BatcherError::EthereumSubscriptionError("Could not get new blocks".to_string()),
         ))
     }
 
