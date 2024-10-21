@@ -376,7 +376,7 @@ BURST_TIME_SECS ?= 3
 task_sender_generate_groth16_proofs:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- generate-proofs \
-	--number-of-proofs $(NUMBER_PROOFS) --proof-type groth16 \
+	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type groth16 \
 	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
 
 # ===== DEVNET =====
@@ -417,22 +417,22 @@ task_sender_generate_and_fund_wallets_holesky_stage:
 	--number-wallets $(NUM_WALLETS) \
 	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
 	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
-	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
+	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.holesky-stage
 
 task_sender_infinite_proofs_holesky_stage:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
-	--eth-rpc-url  https://ethereum-holesky-rpc.publicnode.com \
-	--batcher-url wss://batcher.alignedlayer.com  \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
+	--batcher-url wss://stage.batcher.alignedlayer.com  \
 	--network holesky-stage \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
+	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.holesky-stage
 
 task_sender_test_connections_holesky_stage:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- test-connections \
-	--batcher-url  wss://batcher.alignedlayer.com \
+	--batcher-url wss://stage.batcher.alignedlayer.com \
 	--num-senders $(NUM_SENDERS)
 
 # ===== HOLESKY =====
@@ -451,16 +451,16 @@ task_sender_infinite_proofs_holesky:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
-	--eth-rpc-url  https://ethereum-holesky-rpc.publicnode.com \
+	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
 	--batcher-url wss://batcher.alignedlayer.com  \
 	--network holesky \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
+	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.holesky
 
 task_sender_test_connections_holesky:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- test-connections \
-	--batcher-url  wss://batcher.alignedlayer.com \
+	--batcher-url wss://batcher.alignedlayer.com \
 	--num-senders $(NUM_SENDERS)
 
 __UTILS__:
