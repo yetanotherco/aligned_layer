@@ -11,12 +11,11 @@ use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Write};
 use std::process::Command;
 use std::str::FromStr;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tokio::join;
 use tokio_tungstenite::connect_async;
+use std::io::ErrorKind;
 
 use crate::structs::{
     GenerateAndFundWalletsArgs, GenerateProofsArgs, ProofType, SendInfiniteProofsArgs,
@@ -28,27 +27,28 @@ const GROTH_16_PROOF_GENERATOR_FILE_PATH: &str =
 pub async fn generate_proofs(args: GenerateProofsArgs) {
     std::fs::create_dir_all(args.dir_to_save_proofs.clone()).expect("Could not create directory");
 
-    let count = Arc::new(AtomicU64::new(0));
     let mut handles = vec![];
-    for i in 0..args.number_of_proofs {
-        let count = count.clone();
+    for i in 1..args.number_of_proofs + 1 {
         let dir_to_save_proofs = args.dir_to_save_proofs.clone();
 
         let handle = thread::spawn(move || {
-            let count = count.fetch_add(1, Ordering::Relaxed);
             match args.proof_type {
                 ProofType::Groth16 => {
                     let dir_to_save_proofs =
                         format!("{}/groth16_{}/", dir_to_save_proofs.clone(), i);
 
                     // we need to create the directory as the go script does not handle it
-                    std::fs::create_dir(dir_to_save_proofs.clone())
-                        .expect("Could not create directory");
+                    if let Err(e) = fs::create_dir(dir_to_save_proofs.clone()) {
+                        if e.kind() != ErrorKind::AlreadyExists {
+                            eprintln!("Error creating directory: {}", e);
+                            // Handle or log the error, but don't panic.
+                        }
+                    }
 
                     Command::new("go")
                         .arg("run")
                         .arg(GROTH_16_PROOF_GENERATOR_FILE_PATH)
-                        .arg(format!("{:?}", count))
+                        .arg(format!("{:?}", i))
                         .arg(dir_to_save_proofs)
                         .status()
                         .unwrap();
@@ -182,7 +182,7 @@ struct Sender {
     wallet: Wallet<SigningKey>,
 }
 
-pub async fn infinite_proofs(args: SendInfiniteProofsArgs) {
+pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     info!("Loading wallets");
     let mut senders = vec![];
     let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
@@ -275,7 +275,7 @@ pub async fn infinite_proofs(args: SendInfiniteProofsArgs) {
                 );
                 let batcher_url = batcher_url.clone();
 
-                if let Err(e) = submit_multiple(
+                match submit_multiple(
                     &batcher_url.clone(),
                     args.network.into(),
                     &verification_data.clone(),
@@ -285,16 +285,22 @@ pub async fn infinite_proofs(args: SendInfiniteProofsArgs) {
                 )
                 .await
                 {
-                    error!(
-                        "Error submitting proofs to aligned: {:?} from sender {}",
-                        e, i
-                    );
+                    Ok(aligned_verification_data) => {
+                        info!(
+                            "{:?} Proofs to the Aligned Batcher on{:?} sent from sender {}",
+                            args.burst_size, args.network, i
+                        );
+                    }
+
+                    Err(e) => {
+                        error!(
+                            "Error submitting proofs to aligned: {:?} from sender {}",
+                            e, i
+                        );
+                    }
                 };
-                info!(
-                    "{:?} Proofs to the Aligned Batcher on{:?} sent from sender {}",
-                    args.burst_size, args.network, i
-                );
-                nonce += U256::from(args.burst_size);
+
+                nonce += U256::from(args.burst_size); // TODO move inside OK case of submit?
                 tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
             }
         });
