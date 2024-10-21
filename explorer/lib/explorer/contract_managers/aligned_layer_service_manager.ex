@@ -136,7 +136,8 @@ defmodule AlignedLayerServiceManager do
       proof_hashes: nil,
       fee_per_proof: BatcherPaymentServiceManager.get_fee_per_proof(%{merkle_root: created_batch.batchMerkleRoot}),
       sender_address: Utils.string_to_bytes32(created_batch.senderAddress),
-      max_aggregator_fee: created_batch.maxAggregatorFee
+      max_aggregator_fee: created_batch.maxAggregatorFee,
+      is_valid: true # set to false later if a process determines it is invalid
     }
   end
 
@@ -166,7 +167,8 @@ defmodule AlignedLayerServiceManager do
           fee_per_proof: unverified_batch.fee_per_proof,
           proof_hashes: nil,
           sender_address: unverified_batch.sender_address,
-          max_aggregator_fee: unverified_batch.max_aggregator_fee
+          max_aggregator_fee: unverified_batch.max_aggregator_fee,
+          is_valid: true # set to false later if a process determines it is invalid
         }
     end
   end

@@ -17,3 +17,17 @@ scrape_configs:
       - targets: [ "host.docker.internal:9092" ]
         labels:
           bot: "operator"
+  
+  - job_name: "aligned-batcher"
+    scrape_interval: 1s
+    static_configs:
+      - targets: [ "host.docker.internal:9093" ]
+        labels:
+          bot: "batcher"
+  
+  - job_name: "aligned-tracker"
+    scrape_interval: 1s
+    static_configs:
+      - targets: [ "host.docker.internal:4001" ]
+        labels:
+          bot: "tracker"

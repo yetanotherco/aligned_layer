@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -12,10 +13,11 @@ import (
 )
 
 type Metrics struct {
-	ipPortAddress            string
-	logger                   logging.Logger
-	numAggregatedResponses   prometheus.Counter
-	numOperatorTaskResponses prometheus.Counter
+	ipPortAddress              string
+	logger                     logging.Logger
+	numAggregatedResponses     prometheus.Counter
+	numAggregatorReceivedTasks prometheus.Counter
+	numOperatorTaskResponses   prometheus.Counter
 }
 
 const alignedNamespace = "aligned"
@@ -34,6 +36,11 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 			Name:      "operator_responses",
 			Help:      "Number of proof verified by the operator and sent to the Aligned Service Manager",
 		}),
+		numAggregatorReceivedTasks: promauto.With(reg).NewCounter(prometheus.CounterOpts{
+			Namespace: alignedNamespace,
+			Name:      "aggregator_received_tasks",
+			Help:      "Number of tasks received by the Service Manager",
+		}),
 	}
 }
 
@@ -42,12 +49,23 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 func (m *Metrics) Start(ctx context.Context, reg prometheus.Gatherer) <-chan error {
 	m.logger.Infof("Starting metrics server at port %v", m.ipPortAddress)
 	errC := make(chan error, 1)
+
+	server := http.Server{
+		Addr:           m.ipPortAddress,
+		Handler:        http.NewServeMux(),
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		IdleTimeout:    120 * time.Second,
+		MaxHeaderBytes: 1 << 20, // This is 1MB
+	}
+
+	server.Handler.(*http.ServeMux).Handle("/metrics", promhttp.HandlerFor(
+		reg,
+		promhttp.HandlerOpts{},
+	))
+
 	go func() {
-		http.Handle("/metrics", promhttp.HandlerFor(
-			reg,
-			promhttp.HandlerOpts{},
-		))
-		err := http.ListenAndServe(m.ipPortAddress, nil)
+		err := server.ListenAndServe()
 		if err != nil {
 			errC <- errors.New("prometheus server failed")
 		} else {
@@ -55,6 +73,10 @@ func (m *Metrics) Start(ctx context.Context, reg prometheus.Gatherer) <-chan err
 		}
 	}()
 	return errC
+}
+
+func (m *Metrics) IncAggregatorReceivedTasks() {
+	m.numAggregatorReceivedTasks.Inc()
 }
 
 func (m *Metrics) IncAggregatedResponses() {

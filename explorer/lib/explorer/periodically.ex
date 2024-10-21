@@ -45,6 +45,7 @@ defmodule Explorer.Periodically do
 
     run_every_n_iterations = 8
     new_count = rem(count + 1, run_every_n_iterations)
+
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
     end
@@ -79,25 +80,19 @@ defmodule Explorer.Periodically do
       {:ok, lock} ->
         "Processing batch: #{batch.merkle_root}" |> Logger.debug()
 
-        {batch_changeset, proofs} =
-          batch
-          |> Utils.extract_info_from_data_pointer()
-          |> Batches.generate_changesets()
-
-        Batches.insert_or_update(batch_changeset, proofs)
-        |> case do
-          {:ok, _} ->
-            PubSub.broadcast(Explorer.PubSub, "update_views", %{
-              eth_usd:
-                case EthConverter.get_eth_price_usd() do
-                  {:ok, eth_usd_price} -> eth_usd_price
-                  {:error, _error} -> :empty
-                end
-            })
-
-          {:error, error} ->
-            Logger.error("Some error in DB operation, not broadcasting update_views: #{inspect(error)}")
-
+        with {:ok, updated_batch} <- Utils.process_batch(batch),
+             {batch_changeset, proofs} <- Batches.generate_changesets(updated_batch),
+             {:ok, _} <- Batches.insert_or_update(batch_changeset, proofs) do
+          PubSub.broadcast(Explorer.PubSub, "update_views", %{
+            eth_usd:
+              case EthConverter.get_eth_price_usd() do
+                {:ok, eth_usd_price} -> eth_usd_price
+                {:error, _error} -> :empty
+              end
+          })
+        else
+          {:error, reason} ->
+            Logger.error("Error processing batch #{batch.merkle_root}. Error: #{inspect(reason)}")
           # no changes in DB
           nil ->
             nil

@@ -127,11 +127,27 @@ defmodule ExplorerWeb.Helpers do
   def binary_to_hex_string(binary) do
     Utils.binary_to_hex_string(binary)
   end
+
+  def get_batch_status(batch) do
+    cond do
+      not batch.is_valid -> :invalid
+      batch.is_verified -> :verified
+      true -> :pending
+    end
+  end
 end
 
 # Backend utils
 defmodule Utils do
   require Logger
+
+  @max_batch_size (case System.fetch_env("MAX_BATCH_SIZE") do
+                     # empty env var
+                     {:ok, ""} -> 268_435_456
+                     {:ok, value} -> String.to_integer(value)
+                     # error
+                     _ -> 268_435_456
+                   end)
 
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix
@@ -167,21 +183,43 @@ defmodule Utils do
     |> Enum.reverse()
   end
 
-  def calculate_proof_hashes({:ok, deserialized_batch}) do
+  def calculate_proof_hashes(deserialized_batch) do
     deserialized_batch
     |> Enum.map(fn s3_object ->
-      :crypto.hash(:sha3_256, s3_object["proof"])
+      ExKeccak.hash_256(:erlang.list_to_binary(s3_object["proof"]))
     end)
   end
 
-  def calculate_proof_hashes({:error, reason}) do
-    Logger.error("Error calculating proof hashes: #{inspect(reason)}")
-    []
+  defp stream_handler({:headers, headers}, acc) do
+    {_, batch_size} = List.keyfind(headers, "content-length", 0, {nil, "0"})
+    check_batch_size(String.to_integer(batch_size), acc)
+  end
+
+  defp stream_handler({:status, 200}, acc), do: {:cont, acc}
+
+  defp stream_handler({:status, status_code}, _acc),
+    do: {:halt, {:error, {:http_error, status_code}}}
+
+  defp stream_handler({:data, chunk}, {acc_body, acc_size}) do
+    new_size = acc_size + byte_size(chunk)
+    check_batch_size(new_size, {acc_body <> chunk, new_size})
+  end
+
+  defp check_batch_size(size, acc) do
+    if size > @max_batch_size do
+      {:halt, {:error, {:invalid, :body_too_large}}}
+    else
+      {:cont, acc}
+    end
   end
 
   def fetch_batch_data_pointer(batch_data_pointer) do
-    case Finch.build(:get, batch_data_pointer) |> Finch.request(Explorer.Finch) do
-      {:ok, %Finch.Response{status: 200, body: body}} ->
+    case Finch.build(:get, batch_data_pointer)
+         |> Finch.stream_while(Explorer.Finch, {"", 0}, &stream_handler(&1, &2)) do
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      {:ok, {body, _size}} ->
         cond do
           is_json?(body) ->
             case Jason.decode(body) do
@@ -203,11 +241,8 @@ defmodule Utils do
 
           true ->
             Logger.error("Unknown S3 object format")
-            {:error, :unknown_format}
+            {:error, {:invalid, :unknown_format}}
         end
-
-      {:ok, %Finch.Response{status: status_code}} ->
-        {:error, {:http_error, status_code}}
 
       {:error, reason} ->
         {:error, {:http_error, reason}}
@@ -237,27 +272,58 @@ defmodule Utils do
     end
   end
 
-  def extract_info_from_data_pointer(%BatchDB{} = batch) do
-    Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
-    # only get from s3 if not already in DB
-    proof_hashes =
-      case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
-        nil ->
-          Logger.debug("Fetching from S3")
+  def process_batch(%BatchDB{} = batch) do
+    case get_proof_hashes(batch) do
+      {:ok, proof_hashes} ->
+        {:ok, add_proof_hashes_to_batch(batch, proof_hashes)}
 
-          batch.data_pointer
-          |> Utils.fetch_batch_data_pointer()
-          |> Utils.calculate_proof_hashes()
+      {:error, {:invalid, reason}} ->
+        Logger.error("Invalid batch content for #{batch.merkle_root}: #{inspect(reason)}")
+        # Returning something ensures we avoid attempting to fetch the invalid data again.
+        updated_batch =
+          batch
+          |> Map.put(:is_valid, false)
+          |> add_proof_hashes_to_batch([<<0>>])
 
-        proof_hashes ->
-          # already processed and stored the S3 data
-          Logger.debug("Fetching from DB")
-          proof_hashes
-      end
+        {:ok, updated_batch}
 
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp add_proof_hashes_to_batch(batch, proof_hashes) do
     batch
     |> Map.put(:proof_hashes, proof_hashes)
-    |> Map.put(:amount_of_proofs, proof_hashes |> Enum.count())
+    |> Map.put(:amount_of_proofs, Enum.count(proof_hashes))
+  end
+
+  defp get_proof_hashes(%BatchDB{} = batch) do
+    Logger.debug("Extracting batch's proofs info: #{batch.merkle_root}")
+    # only get from s3 if not already in DB
+    case Proofs.get_proofs_from_batch(%{merkle_root: batch.merkle_root}) do
+      nil ->
+        Logger.debug("Fetching from S3")
+
+        batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
+
+        case batch_content do
+          {:ok, batch_content} ->
+            proof_hashes =
+              batch_content
+              |> Utils.calculate_proof_hashes()
+
+            {:ok, proof_hashes}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      proof_hashes ->
+        # already processed and stored the S3 data
+        Logger.debug("Fetching from DB")
+        {:ok, proof_hashes}
+    end
   end
 
   def fetch_eigen_operator_metadata(url) do
