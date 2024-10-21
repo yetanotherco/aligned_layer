@@ -860,13 +860,15 @@ docker_verify_proofs_onchain:
 	    done \
 	  '
 
+DOCKER_PROOFS_WAIT_TIME=30
+
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
 	sh -c ' \
 			if [ -z "$$(ls -A ./aligned_verification_data)" ]; then echo "ERROR: There are no proofs on aligned_verification_data/ directory" && exit 1; fi; \
-			echo "Waiting 1 minute before starting proof verification. \n"; \
-			sleep 30; \
+			echo "Waiting $(DOCKER_PROOFS_WAIT_TIME) seconds before starting proof verification. \n"; \
+			sleep $(DOCKER_PROOFS_WAIT_TIME); \
 			for proof in ./aligned_verification_data/*.cbor; do \
 				echo "Verifying proof $${proof} \n"; \
 				verification=$$(aligned verify-proof-onchain \
