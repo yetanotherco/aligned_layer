@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
@@ -93,19 +94,13 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txNonce := new(big.Int).SetUint64(tx.Nonce())
 	txOpts.NoSend = false
 	txOpts.Nonce = txNonce
-
-	// Send the transaction
-	var maxRetries uint64 = 5
-	var i uint64
-	for i = 1; i < maxRetries; i++ {
+	i := 0
+	sendTransaction := func() (*types.Receipt, error) {
 		// bump the fee here
-		// factor =  (100 + i * 10) / 100, so 1,1 <= x <= 1,5
-		factor := (new(big.Int).Add(big.NewInt(100), new(big.Int).Mul(big.NewInt(int64(i)), big.NewInt(10))))
-		gasPrice := new(big.Int).Mul(tx.GasPrice(), factor)
-		gasPrice = gasPrice.Div(gasPrice, big.NewInt(100))
+		gasPrice := utils.CalculateGasPriceBumpBasedOnRetry(tx.GasPrice(), i)
 		txOpts.GasPrice = gasPrice
-
 		w.logger.Infof("Sending ResponseToTask transaction for %vth with a gas price of %v", i, txOpts.GasPrice)
+		i++
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 		if err != nil {
 			return nil, err
@@ -124,23 +119,24 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
 
 		if receipt != nil {
-			if receipt.Status == 0 {
-				return receipt, fmt.Errorf("transaction failed")
-			} else {
-				// transaction was included in block
-				return receipt, nil
-			}
+			return receipt, nil
 		}
 
-		// this means we have reached the timeout (after three blocks it hasn't been included)
+		// if we are here, this means we have reached the timeout (after three blocks it hasn't been included)
 		// so we try again by bumping the fee to make sure its included
 		if err != nil {
-			continue
+			return nil, err
 		}
-
+		return nil, fmt.Errorf("transaction failed")
 	}
+	receipt, err := connection.RetryWithData(sendTransaction, 1000, 2, 3)
 
-	return nil, fmt.Errorf("could not send transaction")
+	if receipt.Status == 0 {
+		return receipt, fmt.Errorf("transaction failed")
+	} else {
+		// transaction was included in block
+		return receipt, nil
+	}
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
