@@ -763,7 +763,6 @@ docker_batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-              --batcher_url 'ws://[::1]:8080' \
               --proving_system SP1 \
               --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
               --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
@@ -775,7 +774,6 @@ docker_batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-              --batcher_url 'ws://[::1]:8080' \
               --proving_system Risc0 \
               --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
               --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
@@ -788,7 +786,6 @@ docker_batcher_send_plonk_bn254_burst:
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-              --batcher_url 'ws://[::1]:8080' \
               --proving_system GnarkPlonkBn254 \
               --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
               --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
@@ -801,7 +798,6 @@ docker_batcher_send_plonk_bls12_381_burst:
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-              --batcher_url 'ws://[::1]:8080' \
               --proving_system GnarkPlonkBls12_381 \
               --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
               --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
