@@ -1,5 +1,5 @@
 use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{deposit_to_aligned, get_next_nonce, submit_multiple};
+use aligned_sdk::sdk::{deposit_to_aligned, get_next_nonce, submit_multiple, submit_multiple_and_wait_verification};
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use futures_util::StreamExt;
@@ -262,7 +262,9 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
             info!("Sender {} started", i);
             let mut nonce = get_next_nonce(&eth_rpc_url, wallet.address(), args.network.into())
                 .await
-                .unwrap_or(U256::zero());
+                .inspect_err(|e| error!("Could not get nonce: {:?}", e))
+                .unwrap();
+
             loop {
                 let max_fees = vec![max_fee; args.burst_size];
                 let verification_data: Vec<_> = verification_data
@@ -270,13 +272,14 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                     .cloned()
                     .collect();
                 info!(
-                    "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}",
-                    args.burst_size, args.network, i
+                    "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}, nonce: {}, address: {:?}",
+                    args.burst_size, args.network, i, nonce, wallet.address(),
                 );
                 let batcher_url = batcher_url.clone();
 
-                match submit_multiple(
+                match submit_multiple_and_wait_verification(
                     &batcher_url.clone(),
+                    &eth_rpc_url.clone(),
                     args.network.into(),
                     &verification_data.clone(),
                     &max_fees,
@@ -285,11 +288,12 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 )
                 .await
                 {
-                    Ok(aligned_verification_data) => {
+                    Ok(_aligned_verification_data) => {
                         info!(
                             "{:?} Proofs to the Aligned Batcher on{:?} sent from sender {}",
                             args.burst_size, args.network, i
                         );
+                        nonce += U256::from(args.burst_size);
                     }
 
                     Err(e) => {
@@ -300,7 +304,6 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                     }
                 };
 
-                nonce += U256::from(args.burst_size); // TODO move inside OK case of submit?
                 tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
             }
         });
@@ -320,42 +323,57 @@ fn get_verification_data_from_generated(
 ) -> Vec<VerificationData> {
     let mut verifications_data = vec![];
 
+    info!("Reading proofs from {:?}", dir_path);
+
     let dir = std::fs::read_dir(dir_path).expect("Directory does not exists");
 
-    for entry in dir {
-        let dir = entry.unwrap().path();
-        if dir.is_dir() {
-            let dirname = dir.to_str().unwrap();
+    for proof_folder in dir { // each proof_folder is a dir called groth16_n
+        let proof_folder_dir = proof_folder.unwrap().path();
+        if proof_folder_dir.is_dir() {
             // todo(marcos): this should be improved if we want to support more proofs
             // currently we stored the proofs on subdirs with a prefix for the proof type
             // and here we check the subdir name and based on build the verification data accordingly
-            if dirname.contains("groth16") {
-                for entry in fs::read_dir(dir).expect("Can't read directory") {
-                    let entry = entry.expect("Invalid file");
-                    let proof_path = entry.path().with_extension("proof");
-                    let public_input_path = entry.path().with_extension("pub");
-                    let vk_path = entry.path().with_extension("vk");
+            if proof_folder_dir.to_str().unwrap().contains("groth16") {
+                // Get the first file from the folder
+                let first_file = fs::read_dir(proof_folder_dir.clone())
+                    .expect("Can't read directory")
+                    .filter_map(|entry| entry.ok().map(|e| e.path()))
+                    .find(|path| path.is_file())  // Find any valid file
+                    .expect("No valid files found");
 
-                    let Ok(proof) = std::fs::read(&proof_path) else {
-                        continue;
-                    };
-                    let Ok(public_input) = std::fs::read(&public_input_path) else {
-                        continue;
-                    };
-                    let Ok(vk) = std::fs::read(&vk_path) else {
-                        continue;
-                    };
+                // Extract the base name (file stem) without extension
+                let base_name = first_file.file_stem()
+                    .and_then(|s| s.to_str())
+                    .expect("Failed to extract base name");
 
-                    let verification_data = VerificationData {
-                        proving_system: ProvingSystemId::Groth16Bn254,
-                        proof,
-                        pub_input: Some(public_input),
-                        verification_key: Some(vk),
-                        vm_program_code: None,
-                        proof_generator_addr: default_addr,
-                    };
-                    verifications_data.push(verification_data);
-                }
+                // Generate the paths for the other files
+                let proof_path = proof_folder_dir.join(format!("{}.proof", base_name));
+                let public_input_path = proof_folder_dir.join(format!("{}.pub", base_name));
+                let vk_path = proof_folder_dir.join(format!("{}.vk", base_name));
+
+                // println!("Proof path: {:?}", proof_path);
+                // println!("Public input path: {:?}", public_input_path);
+                // println!("Verification key path: {:?}", vk_path);
+
+                let Ok(proof) = std::fs::read(&proof_path) else {
+                    continue;
+                };
+                let Ok(public_input) = std::fs::read(&public_input_path) else {
+                    continue;
+                };
+                let Ok(vk) = std::fs::read(&vk_path) else {
+                    continue;
+                };
+
+                let verification_data = VerificationData {
+                    proving_system: ProvingSystemId::Groth16Bn254,
+                    proof,
+                    pub_input: Some(public_input),
+                    verification_key: Some(vk),
+                    vm_program_code: None,
+                    proof_generator_addr: default_addr,
+                };
+                verifications_data.push(verification_data);
             }
         }
     }
