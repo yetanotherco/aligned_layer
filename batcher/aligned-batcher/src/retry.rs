@@ -61,7 +61,7 @@ mod test {
         config::ECDSAConfig,
         connection,
         eth::{
-            self,
+            self, get_provider,
             payment_service::{
                 get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
                 user_balance_is_unlocked_retryable, BatcherPaymentService,
@@ -114,10 +114,28 @@ mod test {
 
     #[tokio::test]
     async fn test_get_user_balance_retryable() {
-        let (_anvil, payment_service) = setup_anvil(8545u16).await;
+        let payment_service;
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+        {
+            let _anvil;
+            (_anvil, payment_service) = setup_anvil(8545u16).await;
 
+            let balance =
+                get_user_balance_retryable(&payment_service, &payment_service, &dummy_user_addr)
+                    .await
+                    .unwrap();
+
+            assert!(balance == U256::zero());
+            // Kill anvil
+        }
+
+        let result =
+            get_user_balance_retryable(&payment_service, &payment_service, &dummy_user_addr).await;
+        assert!(matches!(result, Err(RetryError::Transient(_))));
+
+        // restart anvil
+        let (_anvil, _) = setup_anvil(8545u16).await;
         let balance =
             get_user_balance_retryable(&payment_service, &payment_service, &dummy_user_addr)
                 .await
@@ -127,27 +145,36 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_get_user_balance_retryable_kill_anvil() {
+    async fn test_user_balance_is_unlocked_retryable_kill_anvil() {
         let payment_service;
+        let dummy_user_addr =
+            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+
         {
-            // Kill anvil
             let _anvil;
             (_anvil, payment_service) = setup_anvil(8546u16).await;
+            let unlocked = user_balance_is_unlocked_retryable(
+                &payment_service,
+                &payment_service,
+                &dummy_user_addr,
+            )
+            .await
+            .unwrap();
+
+            assert!(unlocked == false);
+            // Kill Anvil
         }
-        let dummy_user_addr =
-            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
 
-        let result =
-            get_user_balance_retryable(&payment_service, &payment_service, &dummy_user_addr).await;
+        let result = user_balance_is_unlocked_retryable(
+            &payment_service,
+            &payment_service,
+            &dummy_user_addr,
+        )
+        .await;
         assert!(matches!(result, Err(RetryError::Transient(_))));
-    }
 
-    #[tokio::test]
-    async fn test_user_balance_is_unlocked_retryable() {
-        let (_anvil, payment_service) = setup_anvil(8547u16).await;
-        let dummy_user_addr =
-            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
-
+        // restart Anvil
+        let (_anvil, payment_service) = setup_anvil(8546u16).await;
         let unlocked = user_balance_is_unlocked_retryable(
             &payment_service,
             &payment_service,
@@ -160,30 +187,35 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_user_balance_is_unlocked_retryable_kill_anvil() {
+    async fn test_get_user_nonce_retryable_kill_anvil() {
         let payment_service;
-        {
-            // Kill anvil
-            let _anvil;
-            (_anvil, payment_service) = setup_anvil(8548u16).await;
-        }
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+        {
+            let _anvil;
+            (_anvil, payment_service) = setup_anvil(8547u16).await;
+            let nonce = get_user_nonce_from_ethereum_retryable(
+                &payment_service,
+                &payment_service,
+                dummy_user_addr,
+            )
+            .await
+            .unwrap();
 
-        let result = user_balance_is_unlocked_retryable(
+            assert!(nonce == U256::zero());
+            // Kill Anvil
+        }
+
+        let result = get_user_nonce_from_ethereum_retryable(
             &payment_service,
             &payment_service,
-            &dummy_user_addr,
+            dummy_user_addr,
         )
         .await;
         assert!(matches!(result, Err(RetryError::Transient(_))));
-    }
 
-    #[tokio::test]
-    async fn test_get_user_nonce_retryable() {
-        let (_anvil, payment_service) = setup_anvil(8549u16).await;
-        let dummy_user_addr =
-            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
+        // restart Anvil
+        let (_anvil, payment_service) = setup_anvil(8547u16).await;
 
         let nonce = get_user_nonce_from_ethereum_retryable(
             &payment_service,
@@ -197,50 +229,29 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_get_user_nonce_retryable_kill_anvil() {
-        let payment_service;
+    async fn test_get_gas_price_retryable_kill_anvil() {
+        let eth_rpc_provider;
         {
-            // Kill anvil
-            let _anvil;
-            (_anvil, payment_service) = setup_anvil(8550u16).await;
+            let (_anvil, _payment_service) = setup_anvil(8548u16).await;
+            eth_rpc_provider = get_provider("http://localhost:8548".to_string())
+                .expect("Failed to get ethereum websocket provider");
+            let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider)
+                .await
+                .is_ok();
+
+            assert_eq!(result, true);
+            // kill Anvil
         }
-        let dummy_user_addr =
-            Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
-
-        let result = get_user_nonce_from_ethereum_retryable(
-            &payment_service,
-            &payment_service,
-            dummy_user_addr,
-        )
-        .await;
+        let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
         assert!(matches!(result, Err(RetryError::Transient(_))));
-    }
 
-    #[tokio::test]
-    async fn test_get_gas_price_retryable() {
-        let (_anvil, _payment_service) = setup_anvil(8551u16).await;
-        let eth_rpc_provider = ethers::prelude::Provider::connect("ws://localhost:8551")
-            .await
-            .expect("Failed to get ethereum websocket provider");
+        // restart Anvil
+        let (_anvil, _payment_service) = setup_anvil(8548u16).await;
         let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider)
             .await
             .is_ok();
 
         assert_eq!(result, true);
-    }
-
-    #[tokio::test]
-    async fn test_get_gas_price_retryable_kill_anvil() {
-        let eth_rpc_provider;
-        {
-            // Kill anvil
-            let (_anvil, _payment_service) = setup_anvil(8552u16).await;
-            eth_rpc_provider = ethers::prelude::Provider::connect("ws://localhost:8552")
-                .await
-                .expect("Failed to get ethereum websocket provider");
-        }
-        let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
-        assert!(matches!(result, Err(RetryError::Transient(_))));
     }
 
     #[tokio::test]

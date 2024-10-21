@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use ethers::{
-    providers::{Http, Provider, Ws},
+    providers::{Http, Provider},
     types::U256,
 };
 use log::warn;
@@ -19,8 +19,8 @@ pub fn get_provider(eth_rpc_url: String) -> Result<Provider<Http>, anyhow::Error
 }
 
 pub async fn get_gas_price_retryable(
-    eth_ws_provider: &Provider<Ws>,
-    eth_ws_provider_fallback: &Provider<Ws>,
+    eth_ws_provider: &Provider<Http>,
+    eth_ws_provider_fallback: &Provider<Http>,
 ) -> Result<U256, RetryError<String>> {
     if let Ok(gas_price) = eth_ws_provider
         .get_gas_price()

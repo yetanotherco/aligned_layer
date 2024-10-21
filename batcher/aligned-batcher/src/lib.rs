@@ -33,8 +33,7 @@ use eth::payment_service::{
     user_balance_is_unlocked_retryable, BatcherPaymentService, CreateNewTaskFeeParams,
     SignerMiddlewareT,
 };
-use ethers::prelude::{Middleware, Provider};
-use ethers::providers::Ws;
+use ethers::prelude::{Http, Middleware, Provider};
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -64,8 +63,10 @@ pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
     download_endpoint: String,
-    eth_ws_provider: Provider<Ws>,
-    eth_ws_provider_fallback: Provider<Ws>,
+    eth_ws_url: String,
+    eth_ws_url_fallback: String,
+    eth_http_provider: Provider<Http>,
+    eth_http_provider_fallback: Provider<Http>,
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
@@ -102,20 +103,12 @@ impl Batcher {
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
-        let eth_ws_provider = Provider::connect(&config.eth_ws_url)
-            .await
-            .expect("Failed to get ethereum websocket provider");
-
         log::info!(
             "Starting metrics server on port {}",
             config.batcher.metrics_port
         );
         let metrics = metrics::BatcherMetrics::start(config.batcher.metrics_port)
             .expect("Failed to start metrics server");
-
-        let eth_ws_provider_fallback = Provider::connect(&config.eth_ws_url_fallback)
-            .await
-            .expect("Failed to get fallback ethereum websocket provider");
 
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
@@ -221,12 +214,20 @@ impl Batcher {
         }
         .expect("Failed to get disabled verifiers");
 
+        let eth_http_provider =
+            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get http provider");
+
+        let eth_http_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
+            .expect("Failed to get fallback http provider");
+
         Self {
             s3_client,
             s3_bucket_name,
             download_endpoint,
-            eth_ws_provider,
-            eth_ws_provider_fallback,
+            eth_ws_url: config.eth_ws_url,
+            eth_ws_url_fallback: config.eth_ws_url_fallback,
+            eth_http_provider,
+            eth_http_provider_fallback,
             chain_id,
             payment_service,
             payment_service_fallback,
@@ -278,19 +279,32 @@ impl Batcher {
     pub async fn listen_new_blocks_retryable(
         self: Arc<Self>,
     ) -> Result<(), RetryError<BatcherError>> {
-        let mut stream = self.eth_ws_provider.subscribe_blocks().await.map_err(|e| {
+        let eth_ws_provider = Provider::connect(&self.eth_ws_url).await.map_err(|e| {
+            warn!("Failed to get ethereum websocket provider");
+            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+        })?;
+
+        let eth_ws_provider_fallback =
+            Provider::connect(&self.eth_ws_url_fallback)
+                .await
+                .map_err(|e| {
+                    warn!("Failed to get fallback ethereum websocket provider");
+                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+                })?;
+
+        let mut stream = eth_ws_provider.subscribe_blocks().await.map_err(|e| {
             warn!("Error subscribing to blocks.");
             RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
         })?;
 
-        let mut stream_fallback = self
-            .eth_ws_provider_fallback
-            .subscribe_blocks()
-            .await
-            .map_err(|e| {
-                warn!("Error subscribing to blocks.");
-                RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-            })?;
+        let mut stream_fallback =
+            eth_ws_provider_fallback
+                .subscribe_blocks()
+                .await
+                .map_err(|e| {
+                    warn!("Error subscribing to blocks.");
+                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+                })?;
 
         let last_seen_block = Mutex::<u64>::new(0);
 
@@ -1345,7 +1359,7 @@ impl Batcher {
     /// Returns `None` if the gas price couldn't be returned
     async fn get_gas_price(&self) -> Result<U256, BatcherError> {
         retry_function(
-            || get_gas_price_retryable(&self.eth_ws_provider, &self.eth_ws_provider_fallback),
+            || get_gas_price_retryable(&self.eth_http_provider, &self.eth_http_provider_fallback),
             DEFAULT_MIN_DELAY,
             DEFAULT_FACTOR,
             DEFAULT_MAX_TIMES,
