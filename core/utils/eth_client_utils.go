@@ -80,7 +80,7 @@ func SendTransactionWithInfiniteRetryAndBumpingGasPrice(beforeTransaction func(*
 			return nil, err
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*36)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*2000)
 		defer cancel()
 		receipt, err := WaitForTransactionReceipt(client, ctx, tx.Hash())
 
