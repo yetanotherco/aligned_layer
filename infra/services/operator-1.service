@@ -1,0 +1,15 @@
+[Unit]
+Description=Operator 1
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/repos/aligned_layer
+ExecStart=/home/ubuntu/repos/aligned_layer/operator/build/aligned-operator start --config /home/ubuntu/repos/aligned_layer/config-files/config-operator-1.yaml
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,47 @@
+- import_playbook: setup.yaml
+- import_playbook: go.yaml
+- import_playbook: rust.yaml
+- import_playbook: eigenlayer-cli.yaml
+
+- hosts: aligned-holesky-operator-1
+  become: true
+  vars:
+    user: "{{ user }}"
+
+  tasks:
+    # Install required packages
+    - name: Update apt and install required system packages
+      apt:
+        pkg:
+          - pkg-config
+          - libssl-dev
+          - gcc
+        state: latest
+        update_cache: true
+
+    # Create directories for each service
+    - name: Create directories for each service if do not exist
+      ansible.builtin.file:
+        path: /home/{{ user }}/repos/{{ item }}
+        state: directory
+        mode: '0755'
+      become_user: "{{ user }}"
+      loop:
+        - operator
+
+    # Clone Aligned repository for each service
+    - name: Clone Aligned repository
+      ansible.builtin.git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ user }}/repos/{{ item }}/aligned_layer
+        version: v0.9.2
+      become_user: "{{ user }}"
+      loop:
+        - operator
+
+    - name: Allow access to tcp port 9092 from the VPN
+      ufw:
+        rule: allow
+        port: 9092
+        proto: tcp
+        src: 100.0.0.0/24

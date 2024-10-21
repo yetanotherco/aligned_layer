@@ -1,0 +1,29 @@
+- name: Eigenlayer CLI Setup
+  hosts: all
+  become: true
+  vars:
+    user: "{{ user }}"
+
+  tasks:
+    - name: check if eigenlayer is installed
+      shell: . ~/.profile && eigenlayer -v
+      register: eigenlayer_exists
+      ignore_errors: true
+
+    - name: Download Eigenlayer CLI
+      when: eigenlayer_exists is failed
+      shell:
+        cmd: curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh  | sh -s
+      become_user: "{{ user }}"
+
+    - name: Add eigenlayer path to ~/.profile
+      when: eigenlayer_exists is failed
+      lineinfile:
+        path: ~/.profile
+        line: 'export PATH=$PATH:~/bin'
+        create: true
+        state: present
+
+#    - name: Source updated profile and test eigenlayer version
+#      when: eigenlayer_exists is failed
+#      shell: source ~/.profile && eigenlayer -v

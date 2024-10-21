@@ -1,0 +1,16 @@
+[Unit]
+Description=Explorer
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Environment=PATH="$PATH:/home/ubuntu/.asdf/shims:/home/ubuntu/.asdf/bin:/usr/bin"
+WorkingDirectory=/home/ubuntu/repos/explorer/aligned_layer
+ExecStart=make run_explorer
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target

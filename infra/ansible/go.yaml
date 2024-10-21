@@ -1,0 +1,40 @@
+- name: Go Setup
+  hosts: all
+  vars:
+    version: 1.22.2
+
+  tasks:
+    - name: check if go is installed
+      shell: . ~/.profile && go version
+      register: go_exists
+      ignore_errors: true
+
+    - name: Download go tar file
+      when: go_exists is failed
+      command: wget https://go.dev/dl/go{{version}}.linux-amd64.tar.gz
+
+    - name: Delete previous installation
+      when: go_exists is failed
+      command: rm -rf /usr/local/go
+      become: true
+
+    - name: Extract and move new go folder to /usr/local
+      when: go_exists is failed
+      command: tar -C /usr/local -xzf go{{version}}.linux-amd64.tar.gz
+      become: true
+
+    - name: Delete downloaded tar file
+      when: go_exists is failed
+      shell: rm -rf go{{version}}.linux-amd64.tar.gz*
+
+    - name: Add go binary path to ~/.profile
+      when: go_exists is failed
+      lineinfile:
+        path: ~/.profile
+        line: 'export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/$HOME/go/bin'
+        create: true
+        state: present
+
+    - name: Source updated profile and test go version
+      when: go_exists is failed
+      shell: . ~/.profile && go version
