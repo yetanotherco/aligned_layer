@@ -7,7 +7,13 @@ members = [
 resolver = "2"
 
 [patch.crates-io]
-ark-ff = { git = "https://github.com/openmina/algebra", branch = "openmina" }
-ark-ec = { git = "https://github.com/openmina/algebra", branch = "openmina" }
-ark-poly = { git = "https://github.com/openmina/algebra", branch = "openmina" }
-ark-serialize = { git = "https://github.com/openmina/algebra", branch = "openmina" }
+ark-ff = { git = "https://github.com/lambdaclass/openmina_algebra", branch = "mina_bridge" }
+ark-ec = { git = "https://github.com/lambdaclass/openmina_algebra", branch = "mina_bridge" }
+ark-poly = { git = "https://github.com/lambdaclass/openmina_algebra", branch = "mina_bridge" }
+ark-serialize = { git = "https://github.com/lambdaclass/openmina_algebra", branch = "mina_bridge" }
+
+[patch.'https://github.com/openmina/algebra']
+ark-ff = { git = "https://github.com/lambdaclass/openmina_algebra", branch = "mina_bridge" }
+ark-ec = { git = "https://github.com/lambdaclass/openmina_algebra", branch = "mina_bridge" }
+ark-poly = { git = "https://github.com/lambdaclass/openmina_algebra", branch = "mina_bridge" }
+ark-serialize = { git = "https://github.com/lambdaclass/openmina_algebra", branch = "mina_bridge" }
