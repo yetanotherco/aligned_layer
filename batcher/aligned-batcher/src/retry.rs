@@ -60,7 +60,7 @@ mod test {
         utils::{Anvil, AnvilInstance},
     };
     use futures_util::StreamExt;
-    use std::{str::FromStr, sync::Arc};
+    use std::{path::PathBuf, str::FromStr, sync::Arc};
     use tokio::{
         net::{TcpListener, TcpStream},
         sync::RwLock,
@@ -97,6 +97,10 @@ mod test {
         (anvil, payment_service)
     }
 
+    #[tokio::test]
+    async fn test() {
+        assert_eq!(std::env::current_dir().unwrap(), PathBuf::new());
+    }
     #[tokio::test]
     async fn test_get_user_balance_retryable() {
         let (_anvil, payment_service) = setup_anvil(8545u16).await;
