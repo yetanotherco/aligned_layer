@@ -93,54 +93,28 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txNonce := new(big.Int).SetUint64(tx.Nonce())
 	txOpts.NoSend = false
 	txOpts.Nonce = txNonce
+	var i uint64 = 1
 
-	// Send the transaction
-	var maxRetries uint64 = 5
-	var i uint64
-	for i = 1; i < maxRetries; i++ {
-		// bump the fee here
-		// factor =  (100 + i * 10) / 100, so 1,1 <= x <= 1,5
-		factor := (new(big.Int).Add(big.NewInt(100), new(big.Int).Mul(big.NewInt(int64(i)), big.NewInt(10))))
-		gasPrice := new(big.Int).Mul(tx.GasPrice(), factor)
-		gasPrice = gasPrice.Div(gasPrice, big.NewInt(100))
+	beforeTransaction := func(gasPrice *big.Int) error {
 		txOpts.GasPrice = gasPrice
-
-		w.logger.Infof("Sending ResponseToTask transaction for %vth with a gas price of %v", i, txOpts.GasPrice)
+		w.logger.Infof("Sending ResponseToTask transaction with a gas price of %v", txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
-		if err != nil {
-			return nil, err
-		}
+		return err
+	}
 
+	executeTransaction := func(gasPrice *big.Int) (*types.Transaction, error) {
 		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, new(big.Int).SetUint64(i))
 		if err != nil {
 			// Retry with fallback
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, new(big.Int).SetUint64(i))
-			if err != nil {
-				return nil, err
-			}
+			i++
+			return tx, err
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*2000)
-		defer cancel()
-		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
-
-		if receipt != nil {
-			if receipt.Status == 0 {
-				return receipt, fmt.Errorf("transaction failed")
-			} else {
-				// transaction was included in block
-				return receipt, nil
-			}
-		}
-
-		// this means we have reached the timeout (after three blocks it hasn't been included)
-		// so we try again by bumping the fee to make sure its included
-		if err != nil {
-			continue
-		}
-
+		i++
+		return tx, err
 	}
 
-	return nil, fmt.Errorf("could not send transaction")
+	return utils.SendTransactionWithInfiniteRetryAndBumpingGasPrice(beforeTransaction, executeTransaction, w.Client, tx.GasPrice())
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
