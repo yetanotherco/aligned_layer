@@ -51,7 +51,7 @@ mod test {
     use crate::{
         config::ECDSAConfig,
         connection,
-        eth::{self, BatcherPaymentService},
+        eth::{self, payment_service::BatcherPaymentService},
         Batcher,
     };
     use ethers::{
@@ -83,7 +83,7 @@ mod test {
 
         let payment_service_addr = String::from("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0");
 
-        let payment_service = eth::get_batcher_payment_service(
+        let payment_service = eth::payment_service::get_batcher_payment_service(
             eth_rpc_provider,
             ECDSAConfig {
                 private_key_store_path: "../../config-files/anvil.batcher.ecdsa.key.json"

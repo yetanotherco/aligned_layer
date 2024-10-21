@@ -13,7 +13,9 @@ defmodule TelemetryApi.MixProject do
           applications: [
             # https://opentelemetry.io/docs/languages/erlang/exporters/#setting-up-the-collector
             opentelemetry_exporter: :permanent,
-            opentelemetry: :temporary
+            opentelemetry: :temporary,
+            prometheus_ex: :permanent,
+            prometheus_plugs: :permanent
           ]
         ]
       ],
@@ -57,7 +59,9 @@ defmodule TelemetryApi.MixProject do
       {:ethers, "~> 0.4.4"},
       {:opentelemetry, "~> 1.3"},
       {:opentelemetry_api, "~> 1.2"},
-      {:opentelemetry_exporter, "~> 1.6"}
+      {:opentelemetry_exporter, "~> 1.6"},
+      {:prometheus_ex, "~> 3.0"},
+      {:prometheus_plugs, "~> 1.0"}
     ]
   end
 
