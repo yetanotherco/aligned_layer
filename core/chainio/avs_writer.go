@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
@@ -100,16 +101,19 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 
 		if err != nil {
-			return nil, err
+			return nil, connection.PermanentError{Inner: err}
 		}
 
 		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 		if err != nil {
 			// Retry with fallback
 			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
-			return tx, err
+			if err != nil {
+				return nil, connection.PermanentError{Inner: err}
+			}
+			return tx, nil
 		}
-		return tx, err
+		return tx, nil
 	}
 
 	return utils.SendTransactionWithInfiniteRetryAndBumpingGasPrice(executeTransaction, w.Client, tx.GasPrice())
