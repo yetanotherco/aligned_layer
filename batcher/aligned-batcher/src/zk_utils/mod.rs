@@ -143,6 +143,8 @@ mod test {
                 ProvingSystemId::GnarkPlonkBls12_381 => (),
                 ProvingSystemId::GnarkPlonkBn254 => (),
                 ProvingSystemId::Groth16Bn254 => (),
+                ProvingSystemId::Mina => (),
+                ProvingSystemId::MinaAccount => (),
             }
         }
         verifiers
