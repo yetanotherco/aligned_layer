@@ -34,7 +34,7 @@ jobs:
       run: make docker_build
 
     - name: Start containers and initialize network
-      run: make docker_up && sleep 15
+      run: make docker_up
 
     - name: Send proofs batches
       run: make docker_batcher_send_all_proofs_burst
