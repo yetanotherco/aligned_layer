@@ -83,6 +83,12 @@ make docker_batcher_send_all_proofs_burst
 To verify all sent proofs:
 
 ```shell
+make docker_verify_proofs_onchain
+```
+
+or
+
+```shell
 make docker_verify_proof_submission_success
 ```
 
