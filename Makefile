@@ -17,7 +17,7 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH:=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -541,7 +541,6 @@ build_risc_zero_macos:
 
 build_risc_zero_linux:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
-	echo $(LD_LIBRARY_PATH)
 	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.so operator/risc_zero/lib/librisc_zero_verifier_ffi.so
 
 test_risc_zero_rust_ffi:
@@ -567,7 +566,6 @@ build_risc_zero_macos_old:
 
 build_risc_zero_linux_old:
 	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
-	echo $(LD_LIBRARY_PATH)
 	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.so operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
 
 test_risc_zero_rust_ffi_old:
