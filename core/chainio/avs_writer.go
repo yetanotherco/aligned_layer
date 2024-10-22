@@ -76,7 +76,10 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Receipt, error) {
+// Sends AggregatedResponse and waits for the receipt for three blocks, if not received
+// it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
+// This process happens indefinitely until the transaction is included.
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, onRetry func()) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
@@ -99,9 +102,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	txOpts.Nonce = txNonce
 
-	// Sends a transaction and waits for the receipt for three blocks, if not received
-	// it will try again bumping the gas price based on `CalculateGasPriceBumpBasedOnRetry`
-	// This process happens indefinitely until we sendTransaction does not return err.
 	lastTxGasPrice := tx.GasPrice()
 	sendTransaction := func() (*types.Receipt, error) {
 		bumpedGasPrice := utils.CalculateGasPriceBump(lastTxGasPrice, gasBumpPercentage)
