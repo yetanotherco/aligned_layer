@@ -86,12 +86,6 @@ To verify all sent proofs:
 make docker_verify_proofs_onchain
 ```
 
-or
-
-```shell
-make docker_verify_proof_submission_success
-```
-
 And you can run this to attach to the anvil/foundry container and run `cast` with custom flags:
 
 ```shell
