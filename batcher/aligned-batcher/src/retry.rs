@@ -126,7 +126,7 @@ mod test {
                     .await
                     .unwrap();
 
-            assert!(balance == U256::zero());
+            assert_eq!(balance, U256::zero());
             // Kill anvil
         }
 
@@ -141,7 +141,7 @@ mod test {
                 .await
                 .unwrap();
 
-        assert!(balance == U256::zero());
+        assert_eq!(balance, U256::zero());
     }
 
     #[tokio::test]
@@ -161,7 +161,7 @@ mod test {
             .await
             .unwrap();
 
-            assert!(unlocked == false);
+            assert_eq!(unlocked, false);
             // Kill Anvil
         }
 
@@ -183,7 +183,7 @@ mod test {
         .await
         .unwrap();
 
-        assert!(unlocked == false);
+        assert_eq!(unlocked, false);
     }
 
     #[tokio::test]
@@ -202,7 +202,7 @@ mod test {
             .await
             .unwrap();
 
-            assert!(nonce == U256::zero());
+            assert_eq!(nonce, U256::zero());
             // Kill Anvil
         }
 
@@ -225,7 +225,7 @@ mod test {
         .await
         .unwrap();
 
-        assert!(nonce == U256::zero());
+        assert_eq!(nonce, U256::zero());
     }
 
     #[tokio::test]
@@ -235,11 +235,9 @@ mod test {
             let (_anvil, _payment_service) = setup_anvil(8548u16).await;
             eth_rpc_provider = get_provider("http://localhost:8548".to_string())
                 .expect("Failed to get ethereum websocket provider");
-            let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider)
-                .await
-                .is_ok();
+            let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
 
-            assert_eq!(result, true);
+            assert!(result.is_ok());
             // kill Anvil
         }
         let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
@@ -247,11 +245,9 @@ mod test {
 
         // restart Anvil
         let (_anvil, _payment_service) = setup_anvil(8548u16).await;
-        let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider)
-            .await
-            .is_ok();
+        let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
 
-        assert_eq!(result, true);
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
@@ -282,10 +278,9 @@ mod test {
         let outgoing = Arc::new(RwLock::new(outgoing));
         let message = "Some message".to_string();
 
-        let result = connection::send_response_retryable(&outgoing, message.clone().into_bytes())
-            .await
-            .is_ok();
-        assert!(result);
+        let result =
+            connection::send_response_retryable(&outgoing, message.clone().into_bytes()).await;
+        assert!(result.is_ok());
         client_handle.await.unwrap()
     }
 }
