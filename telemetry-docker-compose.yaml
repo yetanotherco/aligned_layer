@@ -3,13 +3,44 @@ version: "3"
 services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.107.0
+    container_name: otel-collector
     command: ["--config=/etc/otel-collector.yaml"]
     volumes:
       - ./otel-collector.yaml:/etc/otel-collector.yaml
     ports:
       - "4317:4317"
 
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra
+    hostname: cassandra.local
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_USER=admin
+      - CASSANDRA_PASSWORD=admin
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+
+  cassandra-schema:
+    image: jaegertracing/jaeger-cassandra-schema
+    depends_on:
+      - cassandra
+
   jaeger:
     image: jaegertracing/all-in-one:1.60
+    container_name: jaeger
+    hostname: jaeger.local
     ports:
       - "16686:16686"
+    command: ["--cassandra.keyspace=jaeger_v1_dc1"]
+    environment:
+      - SPAN_STORAGE_TYPE=cassandra
+      - CASSANDRA_SERVERS=cassandra.local:9042
+      - CASSANDRA_USER=admin
+      - CASSANDRA_PASSWORD=admin
+    depends_on:
+      - cassandra-schema
+
+volumes:
+  cassandra-data:

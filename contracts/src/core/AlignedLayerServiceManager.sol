@@ -153,7 +153,9 @@ contract AlignedLayerServiceManager is
         currentBatch.responded = true;
 
         // Check that batcher has enough funds to fund response
-        if (batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit) {
+        if (
+            batchersBalances[senderAddress] < currentBatch.respondToTaskFeeLimit
+        ) {
             revert InsufficientFunds(
                 senderAddress,
                 currentBatch.respondToTaskFeeLimit,
@@ -202,8 +204,32 @@ contract AlignedLayerServiceManager is
             senderAddress,
             batchersBalances[senderAddress]
         );
-
         payable(alignedAggregator).transfer(txCost);
+    }
+
+    function isVerifierDisabled(
+        uint8 verifierIdx
+    ) external view returns (bool) {
+        uint256 bit = disabledVerifiers & (1 << verifierIdx);
+        return bit > 0;
+    }
+
+    function disableVerifier(
+        uint8 verifierIdx
+    ) external onlyOwner {
+        disabledVerifiers |= (1 << verifierIdx);
+        emit VerifierDisabled(verifierIdx);
+    }
+
+    function enableVerifier(
+        uint8 verifierIdx
+    ) external onlyOwner {
+        disabledVerifiers &= ~(1 << verifierIdx);
+        emit VerifierEnabled(verifierIdx);
+    }
+
+    function setDisabledVerifiers(uint256 bitmap) external onlyOwner {
+        disabledVerifiers = bitmap;
     }
 
     function verifyBatchInclusion(
