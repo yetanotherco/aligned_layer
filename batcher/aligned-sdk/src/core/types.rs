@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use ethers::core::k256::ecdsa::SigningKey;
 use ethers::signers::Signer;
 use ethers::signers::Wallet;
@@ -12,7 +14,6 @@ use lambdaworks_crypto::merkle_tree::{
 };
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-use std::str::FromStr;
 
 use super::errors::VerifySignatureError;
 
