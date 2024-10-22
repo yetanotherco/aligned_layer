@@ -103,7 +103,13 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.Nonce = txNonce
 
 	lastTxGasPrice := tx.GasPrice()
+	i := 0
 	sendTransaction := func() (*types.Receipt, error) {
+		if i > 0 {
+			onRetry()
+		}
+		i++
+
 		bumpedGasPrice := utils.CalculateGasPriceBump(lastTxGasPrice, gasBumpPercentage)
 		lastTxGasPrice = bumpedGasPrice
 		txOpts.GasPrice = bumpedGasPrice
