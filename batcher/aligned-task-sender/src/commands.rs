@@ -220,7 +220,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
         let wallet = wallet.with_chain_id(chain_id.as_u64());
         let sender = Sender { wallet };
 
-        info!("Wallet {} loaded", i);
+        // info!("Wallet {} loaded", i);
         senders.push(sender);
     }
 
@@ -259,27 +259,32 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
         let wallet = sender.wallet.clone();
 
         let handle = tokio::spawn(async move {
-            info!("Sender {} started", i);
+            // info!("Sender {} started", i);
             let mut nonce = get_next_nonce(&eth_rpc_url, wallet.address(), args.network.into())
                 .await
-                .inspect_err(|e| error!("Could not get nonce: {:?}", e))
+                .inspect_err(|e| error!("Could not get nonce: {:?}, for sender {:?}", e, wallet.address()))
                 .unwrap();
 
             loop {
                 let max_fees = vec![max_fee; args.burst_size];
-                let verification_data: Vec<_> = verification_data
-                    .choose_multiple(&mut thread_rng(), args.burst_size)
-                    .cloned()
-                    .collect();
+
+                let mut result = Vec::with_capacity(args.burst_size);
+                while result.len() < args.burst_size {
+                    let samples = verification_data.choose_multiple(&mut thread_rng(), (args.burst_size - result.len()).min(verification_data.len()));
+                    result.extend(samples.cloned());
+                }
+                let verification_data = result;
+
                 info!(
                     "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}, nonce: {}, address: {:?}",
                     args.burst_size, args.network, i, nonce, wallet.address(),
                 );
                 let batcher_url = batcher_url.clone();
 
-                match submit_multiple_and_wait_verification(
+                // match submit_multiple_and_wait_verification(
+                match submit_multiple(
                     &batcher_url.clone(),
-                    &eth_rpc_url.clone(),
+                    // &eth_rpc_url.clone(),
                     args.network.into(),
                     &verification_data.clone(),
                     &max_fees,
@@ -350,10 +355,6 @@ fn get_verification_data_from_generated(
                 let proof_path = proof_folder_dir.join(format!("{}.proof", base_name));
                 let public_input_path = proof_folder_dir.join(format!("{}.pub", base_name));
                 let vk_path = proof_folder_dir.join(format!("{}.vk", base_name));
-
-                // println!("Proof path: {:?}", proof_path);
-                // println!("Public input path: {:?}", public_input_path);
-                // println!("Verification key path: {:?}", vk_path);
 
                 let Ok(proof) = std::fs::read(&proof_path) else {
                     continue;
