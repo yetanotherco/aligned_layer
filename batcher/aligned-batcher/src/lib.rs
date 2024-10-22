@@ -60,6 +60,8 @@ pub mod sp1;
 pub mod types;
 mod zk_utils;
 
+pub const LISTEN_NEW_BLOCKS_MAX_TIMES: usize = usize::MAX;
+
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
@@ -271,7 +273,7 @@ impl Batcher {
             },
             DEFAULT_MIN_DELAY,
             DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+            LISTEN_NEW_BLOCKS_MAX_TIMES,
         )
         .await
         .map_err(|e| e.inner())
