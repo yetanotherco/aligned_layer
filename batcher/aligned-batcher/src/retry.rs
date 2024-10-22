@@ -239,7 +239,7 @@ mod test {
         assert!(matches!(result, Err(RetryError::Transient(_))));
 
         // restart Anvil
-        let (_anvil, payment_service) = setup_anvil(8546u16).await;
+        let (_anvil, _) = setup_anvil(8546u16).await;
         let unlocked = user_balance_is_unlocked_retryable(
             &payment_service,
             &payment_service,
@@ -280,7 +280,7 @@ mod test {
         assert!(matches!(result, Err(RetryError::Transient(_))));
 
         // restart Anvil
-        let (_anvil, payment_service) = setup_anvil(8547u16).await;
+        let (_anvil, _) = setup_anvil(8547u16).await;
 
         let nonce = get_user_nonce_from_ethereum_retryable(
             &payment_service,
@@ -309,7 +309,7 @@ mod test {
         assert!(matches!(result, Err(RetryError::Transient(_))));
 
         // restart Anvil
-        let (_anvil, _payment_service) = setup_anvil(8548u16).await;
+        let (_anvil, _) = setup_anvil(8548u16).await;
         let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
 
         assert!(result.is_ok());
