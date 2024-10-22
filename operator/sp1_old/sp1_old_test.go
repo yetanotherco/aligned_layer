@@ -22,8 +22,7 @@ func TestFibonacciSp1ProofVerifies(t *testing.T) {
 		t.Errorf("could not open elf file: %s", err)
 	}
 
-	verified, err := sp1.VerifySp1ProofOld(proofBytes, elfBytes)
-	if err != nil || !verified {
+	if !sp1.VerifySp1ProofOld(proofBytes, elfBytes) {
 		t.Errorf("proof did not verify")
 	}
 }

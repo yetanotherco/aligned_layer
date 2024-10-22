@@ -527,12 +527,7 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		}
 		if !verificationResult {
 			o.Logger.Infof("SP1 proof verification failed. Trying old SP1 version...")
-			verificationResult, err = sp1_old.VerifySp1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
-			if err != nil {
-				o.Logger.Errorf("Old SP1 Proof Verification failed %v", err)
-				results <- false
-				return
-			}
+			verificationResult = sp1_old.VerifySp1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
 			if !verificationResult {
 				o.Logger.Errorf("Old SP1 proof verification failed")
 			}
@@ -551,12 +546,7 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 
 		if !verificationResult {
 			o.Logger.Infof("Risc0 proof verification failed. Trying old Risc0 version...")
-			verificationResult, err = risc_zero_old.VerifyRiscZeroReceiptOld(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
-			if err != nil {
-				o.Logger.Errorf("Old Risc0 Proof Verification failed %v", err)
-				results <- false
-				return
-			}
+			verificationResult = risc_zero_old.VerifyRiscZeroReceiptOld(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
 			if !verificationResult {
 				o.Logger.Errorf("Old Risc0 proof verification failed")
 			}

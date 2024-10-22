@@ -1,7 +1,8 @@
 use log::error;
 use risc0_zkvm::{InnerReceipt, Receipt};
 
-fn inner_verify_risc_zero_receipt_old_ffi(
+#[no_mangle]
+pub extern "C" fn verify_risc_zero_receipt_old_ffi(
     inner_receipt_bytes: *const u8,
     inner_receipt_len: u32,
     image_id: *const u8,
@@ -42,33 +43,6 @@ fn inner_verify_risc_zero_receipt_old_ffi(
     false
 }
 
-#[no_mangle]
-pub extern "C" fn verify_risc_zero_receipt_old_ffi(
-    inner_receipt_bytes: *const u8,
-    inner_receipt_len: u32,
-    image_id: *const u8,
-    image_id_len: u32,
-    public_input: *const u8,
-    public_input_len: u32,
-) -> i32 {
-    let result = std::panic::catch_unwind(|| {
-        inner_verify_risc_zero_receipt_old_ffi(
-            inner_receipt_bytes,
-            inner_receipt_len,
-            image_id,
-            image_id_len,
-            public_input,
-            public_input_len,
-        )
-    });
-
-    match result {
-        Ok(v) => v as i32,
-        Err(_) => -1,
-    }
-}
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,7 +69,7 @@ mod tests {
             public_input,
             PUBLIC_INPUT.len() as u32,
         );
-        assert_eq!(result, 1)
+        assert!(result)
     }
 
     #[test]
@@ -112,7 +86,7 @@ mod tests {
             public_input,
             PUBLIC_INPUT.len() as u32,
         );
-        assert_eq!(!result, 0)
+        assert!(!result)
     }
 
     #[test]
@@ -129,6 +103,6 @@ mod tests {
             public_input,
             0,
         );
-        assert_eq!(!result, 0)
+        assert!(!result)
     }
 }
