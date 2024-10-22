@@ -288,7 +288,7 @@ impl Batcher {
             Provider::connect(&self.eth_ws_url_fallback)
                 .await
                 .map_err(|e| {
-                    warn!("Failed to get fallback ethereum websocket provider");
+                    warn!("Failed to instantiate fallback Ethereum websocket provider");
                     RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
                 })?;
 
