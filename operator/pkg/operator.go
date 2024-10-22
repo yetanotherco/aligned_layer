@@ -153,11 +153,11 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 }
 
 func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
-	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
+	return o.avsSubscriber.SubscribeToNewTasksV2Retrayable(o.NewTaskCreatedChanV2)
 }
 
 func (o *Operator) SubscribeToNewTasksV3() (chan error, error) {
-	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3)
+	return o.avsSubscriber.SubscribeToNewTasksV3Retryable(o.NewTaskCreatedChanV3)
 }
 
 type OperatorLastProcessedBatch struct {
