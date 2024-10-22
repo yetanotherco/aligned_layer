@@ -20,6 +20,10 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
+const (
+	gasBumpPercentage int = 10
+)
+
 type AvsWriter struct {
 	*avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
@@ -98,11 +102,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	// Sends a transaction and waits for the receipt for three blocks, if not received
 	// it will try again bumping the gas price based on `CalculateGasPriceBumpBasedOnRetry`
 	// This process happens indefinitely until we sendTransaction does not return err.
-	i := 0
+	lastTxGasPrice := tx.GasPrice()
 	sendTransaction := func() (*types.Receipt, error) {
-		i++
-		gasPrice := utils.CalculateGasPriceBumpBasedOnRetry(tx.GasPrice(), i)
-		txOpts.GasPrice = gasPrice
+		bumpedGasPrice := utils.CalculateGasPriceBump(lastTxGasPrice, gasBumpPercentage)
+		lastTxGasPrice = bumpedGasPrice
+		txOpts.GasPrice = bumpedGasPrice
 
 		w.logger.Infof("Sending ResponseToTask transaction with a gas price of %v", txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
