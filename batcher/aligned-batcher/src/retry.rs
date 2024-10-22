@@ -145,7 +145,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_user_balance_is_unlocked_retryable_kill_anvil() {
+    async fn test_user_balance_is_unlocked_retryable() {
         let payment_service;
         let dummy_user_addr =
             Address::from_str("0x8969c5eD335650692Bc04293B07F5BF2e7A673C0").unwrap();
