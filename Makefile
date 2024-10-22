@@ -852,7 +852,7 @@ docker_verify_proofs_onchain:
 	@echo "Verifying proofs..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
 	sh -c ' \
-	    for proof in ./aligned_verification_data/*; do \
+	    for proof in ./aligned_verification_data/*.cbor; do \
 			  echo "Verifying $${proof}"; \
 	      aligned verify-proof-onchain \
 	                --aligned-verification-data $${proof} \
