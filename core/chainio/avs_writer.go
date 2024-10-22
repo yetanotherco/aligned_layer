@@ -103,8 +103,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.Nonce = txNonce
 
 	lastTxGasPrice := tx.GasPrice()
-	var i uint64
-	i = 0
+	var i uint64 = 0
 	sendTransaction := func() (*types.Receipt, error) {
 		if i > 0 {
 			onRetry()
