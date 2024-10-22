@@ -133,12 +133,8 @@ func TestAnvilSetupKill(t *testing.T) {
 
 // Waits for receipt from anvil node -> Will fail to get receipt
 func TestWaitForTransactionReceiptRetryable(t *testing.T) {
-	// Start anvil
-	cmd, client, err := SetupAnvil(8545)
-	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
-	}
 
+	// Retry call Params
 	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
 	tx := types.NewTx(&types.AccessListTx{
 		Nonce:    1,
@@ -151,148 +147,45 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	ctx := context.WithoutCancel(context.Background())
 
 	hash := tx.Hash()
-
-	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
+	// Start anvil
+	cmd, client, err := SetupAnvil(8545)
 	if err != nil {
-		t.Errorf("Retry error!: %s", err)
-	} else {
-		fmt.Printf("Tx Hash: %s\n", receipt.TxHash)
+		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
 
+	// Assert Call succeeds why Anvil running
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
+	assert.NotNil(t, err, "Call to Anvil failed")
+
+	// Kill Anvil
 	if err := cmd.Process.Kill(); err != nil {
 		fmt.Printf("Error killing process: %v\n", err)
 		return
 	}
+
+	// Check that permanent error thrown
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
+	if err != nil {
+		t.Errorf("Retry error!: %s", err)
+	}
+
+	// Start anvil
+	_, client, err = SetupAnvil(8545)
+	if err != nil {
+		fmt.Printf("Error setting up Anvil: %s\n", err)
+	}
+	_, err = utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
+	assert.NotNil(t, err, "Call to Anvil failed")
 }
 
 func TestRespondToTaskV2(t *testing.T) {
-	// Start anvil
-	cmd, client, err := SetupAnvil(8545)
-	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
-	}
-
-	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
-	tx := types.NewTx(&types.AccessListTx{
-		Nonce:    1,
-		GasPrice: big.NewInt(500),
-		Gas:      1000000,
-		To:       &to,
-		Value:    big.NewInt(1),
-	})
-
-	ctx := context.WithoutCancel(context.Background())
-
-	hash := tx.Hash()
-
-	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
-	if err != nil {
-		t.Errorf("Retry error!: %s", err)
-	} else {
-		fmt.Printf("Tx Hash: %s\n", receipt.TxHash)
-	}
-
-	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
-		return
-	}
 }
 
 func TestRespondToTaskV3(t *testing.T) {
-	// Start anvil
-	cmd, client, err := SetupAnvil(8545)
-	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
-	}
-
-	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
-	tx := types.NewTx(&types.AccessListTx{
-		Nonce:    1,
-		GasPrice: big.NewInt(500),
-		Gas:      1000000,
-		To:       &to,
-		Value:    big.NewInt(1),
-	})
-
-	ctx := context.WithoutCancel(context.Background())
-
-	hash := tx.Hash()
-
-	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
-	if err != nil {
-		t.Errorf("Retry error!: %s", err)
-	} else {
-		fmt.Printf("Tx Hash: %s\n", receipt.TxHash)
-	}
-
-	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
-		return
-	}
 }
 
 func SubscribeToNewTasksV2(t *testing.T) {
-	// Start anvil
-	cmd, client, err := SetupAnvil(8545)
-	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
-	}
-
-	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
-	tx := types.NewTx(&types.AccessListTx{
-		Nonce:    1,
-		GasPrice: big.NewInt(500),
-		Gas:      1000000,
-		To:       &to,
-		Value:    big.NewInt(1),
-	})
-
-	ctx := context.WithoutCancel(context.Background())
-
-	hash := tx.Hash()
-
-	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
-	if err != nil {
-		t.Errorf("Retry error!: %s", err)
-	} else {
-		fmt.Printf("Tx Hash: %s\n", receipt.TxHash)
-	}
-
-	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
-		return
-	}
 }
 
 func SubscribeToNewTasksV3(t *testing.T) {
-	// Start anvil
-	cmd, client, err := SetupAnvil(8545)
-	if err != nil {
-		fmt.Printf("Error setting up Anvil: %s\n", err)
-	}
-
-	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
-	tx := types.NewTx(&types.AccessListTx{
-		Nonce:    1,
-		GasPrice: big.NewInt(500),
-		Gas:      1000000,
-		To:       &to,
-		Value:    big.NewInt(1),
-	})
-
-	ctx := context.WithoutCancel(context.Background())
-
-	hash := tx.Hash()
-
-	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
-	if err != nil {
-		t.Errorf("Retry error!: %s", err)
-	} else {
-		fmt.Printf("Tx Hash: %s\n", receipt.TxHash)
-	}
-
-	if err := cmd.Process.Kill(); err != nil {
-		fmt.Printf("Error killing process: %v\n", err)
-		return
-	}
 }
