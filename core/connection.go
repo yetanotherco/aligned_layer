@@ -21,10 +21,8 @@ func (e PermanentError) Is(err error) bool {
 
 // Same as Retry only that the functionToRetry can return a value upon correct execution
 func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, factor float64, maxTries uint64) (*T, error) {
-	i := 0
 	f := func() (*T, error) {
 		val, err := functionToRetry()
-		i++
 		if perm, ok := err.(PermanentError); err != nil && ok {
 			return nil, backoff.Permanent(perm.Inner)
 		}
@@ -54,10 +52,8 @@ func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, f
 // The function to be retried should return `PermanentError` when the condition for stop retrying
 // is met.
 func Retry(functionToRetry func() error, minDelay uint64, factor float64, maxTries uint64) error {
-	i := 0
 	f := func() error {
 		err := functionToRetry()
-		i++
 		if perm, ok := err.(PermanentError); err != nil && ok {
 			return backoff.Permanent(perm.Inner)
 		}
