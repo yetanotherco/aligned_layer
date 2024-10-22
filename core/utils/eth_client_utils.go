@@ -51,8 +51,9 @@ func BytesToQuorumThresholdPercentages(quorumThresholdPercentagesBytes []byte) e
 // Very basic algorithm to calculate the gasPrice bump based on the currentGasPrice and percentage.
 // It adds a the percentage to the current gas price.
 func CalculateGasPriceBump(currentGasPrice *big.Int, percentage int) *big.Int {
-	percentageBump := new(big.Int).Div(big.NewInt(int64(percentage)), big.NewInt(100))
+	percentageBump := big.NewInt(int64(percentage))
 	bumpAmount := new(big.Int).Mul(currentGasPrice, percentageBump)
+	bumpAmount = new(big.Int).Div(bumpAmount, big.NewInt(100))
 	bumpedGasPrice := new(big.Int).Add(currentGasPrice, bumpAmount)
 
 	return bumpedGasPrice
