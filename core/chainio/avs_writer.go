@@ -95,8 +95,15 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	txOpts.Nonce = txNonce
 
-	executeTransaction := func(bumpedGasPrices *big.Int) (*types.Transaction, error) {
-		txOpts.GasPrice = bumpedGasPrices
+	// Sends a transaction and waits for the receipt for three blocks, if not received
+	// it will try again bumping the gas price based on `CalculateGasPriceBumpBasedOnRetry`
+	// This process happens indefinitely until we sendTransaction does not return err.
+	i := 0
+	sendTransaction := func() (*types.Receipt, error) {
+		i++
+		gasPrice := utils.CalculateGasPriceBumpBasedOnRetry(tx.GasPrice(), i)
+		txOpts.GasPrice = gasPrice
+
 		w.logger.Infof("Sending ResponseToTask transaction with a gas price of %v", txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 
@@ -111,12 +118,24 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			if err != nil {
 				return nil, connection.PermanentError{Inner: err}
 			}
-			return tx, nil
 		}
-		return tx, nil
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*36)
+		defer cancel()
+		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
+
+		if receipt != nil {
+			return receipt, nil
+		}
+		// if we are here, this means we have reached the timeout (after three blocks it hasn't been included)
+		// so we try again by bumping the fee to make sure its included
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("transaction failed")
 	}
 
-	return utils.SendTransactionWithInfiniteRetryAndBumpingGasPrice(executeTransaction, w.Client, tx.GasPrice())
+	return connection.RetryWithData(sendTransaction, 1000, 2, 0)
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
