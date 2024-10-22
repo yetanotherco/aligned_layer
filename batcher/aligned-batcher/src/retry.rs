@@ -229,7 +229,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_get_gas_price_retryable_kill_anvil() {
+    async fn test_get_gas_price_retryable() {
         let eth_rpc_provider;
         {
             let (_anvil, _payment_service) = setup_anvil(8548u16).await;
