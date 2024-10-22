@@ -17,13 +17,13 @@ The Fibonacci program to be proven is essentially a Rust program with a few addi
 
 ### Risc0
 
-For `risc0`, the Fibonacci program can be found in `risc_zero/fibonacci_proof_generator/methods/guest/src/main.rs`, and it's known as the guest code. This code compiles into a binary file that is later used to correctly generate the proof. The host code, located in `risc_zero/fibonacci_proof_generator/host/src/main.rs`, is responsible for executing the program with the given input and generating a receipt that contains both the proof and all output data from the process.
+For `risc0`, the Fibonacci program can be found in `examples/validating-public-input/risc_zero/fibonacci_proof_generator/methods/guest/src/main.rs`, and it's known as the guest code. This code compiles into a binary file that is later used to correctly generate the proof. The host code, located in `examples/validating-public-input/risc_zero/fibonacci_proof_generator/host/src/main.rs`, is responsible for executing the program with the given input and generating a receipt that contains both the proof and all output data from the process.
 
 For more details about `risc0` and the interaction between guest and host code, as well as how the various parts work, you can refer to the official documentation [here](https://dev.risczero.com/api/zkvm/).
 
 ### SP1
 
-For `SP1`, the Fibonacci program is located in `sp1/fibonacci/program/src/main.rs`, and it functions similarly to the one written for `risc0`. It follows a similar structure and process to generate a proof. The code responsible for executing and proving the program can be found in `sp1/fibonacci/script/src/main.rs`. Both components work in tandem, much like in the `risc0` framework.
+For `SP1`, the Fibonacci program is located in `examples/validating-public-input/sp1/fibonacci/program/src/main.rs`, and it functions similarly to the one written for `risc0`. It follows a similar structure and process to generate a proof. The code responsible for executing and proving the program can be found in `examples/validating-public-input/sp1/fibonacci/script/src/main.rs`. Both components work in tandem, much like in the `risc0` framework.
 
 ## Generate your ZK Proof
 
@@ -74,7 +74,7 @@ Alternatively, you can submit the one generated with **SP1** by running:
 make submit_fibonacci_sp1_proof KEYSTORE_PATH=<KEYSTORE_PATH>
 ```
 
-This command will execute the Rust code that handles the proof submission with the appropriate verifier. You can find this code in the file `aligned-integration/src/main.rs`. It acts as the integration layer between the proof-generating program and the proof submission process to **Aligned**.
+This command will execute the Rust code that handles the proof submission with the appropriate verifier. You can find this code in the file `examples/validating-public-input/aligned-integration/src/main.rs`. It acts as the integration layer between the proof-generating program and the proof submission process to **Aligned**.
 
 The data necessary to send to aligned follows this structure:
 
