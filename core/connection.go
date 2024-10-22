@@ -19,6 +19,13 @@ func (e PermanentError) Is(err error) bool {
 	return ok
 }
 
+const MinDelay = 1000
+const RetryFactor = 2
+const NumRetries = 3
+
+//NOTE: I reverted the change Marcos made to make the return type a *T as some return types of the function calls.
+// were not pointers or uint64.
+
 // Same as Retry only that the functionToRetry can return a value upon correct execution
 func RetryWithData[T any](functionToRetry func() (*T, error), minDelay uint64, factor float64, maxTries uint64) (*T, error) {
 	i := 0
