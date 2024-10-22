@@ -1,6 +1,16 @@
 use backon::ExponentialBuilder;
 use backon::Retryable;
+use ethers::prelude::*;
+use futures_util::{stream::SplitSink, SinkExt};
+use log::warn;
+use std::sync::Arc;
 use std::{future::Future, time::Duration};
+use tokio::net::TcpStream;
+use tokio::sync::RwLock;
+use tokio_tungstenite::tungstenite;
+use tokio_tungstenite::WebSocketStream;
+
+use crate::eth::payment_service::BatcherPaymentService;
 
 pub const DEFAULT_MIN_DELAY: u64 = 2000;
 pub const DEFAULT_MAX_TIMES: usize = 3;
@@ -54,20 +64,105 @@ where
         .await
 }
 
+pub async fn get_user_balance_retryable(
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+    addr: &Address,
+) -> Result<U256, RetryError<String>> {
+    if let Ok(balance) = payment_service.user_balances(*addr).call().await {
+        return Ok(balance);
+    };
+
+    payment_service_fallback
+        .user_balances(*addr)
+        .call()
+        .await
+        .map_err(|e| {
+            warn!("Failed to get balance for address {:?}. Error: {e}", addr);
+            RetryError::Transient(e.to_string())
+        })
+}
+
+pub async fn get_user_nonce_from_ethereum_retryable(
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+    addr: Address,
+) -> Result<U256, RetryError<String>> {
+    if let Ok(nonce) = payment_service.user_nonces(addr).call().await {
+        return Ok(nonce);
+    }
+    payment_service_fallback
+        .user_nonces(addr)
+        .call()
+        .await
+        .map_err(|e| {
+            warn!("Error getting user nonce: {e}");
+            RetryError::Transient(e.to_string())
+        })
+}
+
+pub async fn user_balance_is_unlocked_retryable(
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+    addr: &Address,
+) -> Result<bool, RetryError<()>> {
+    if let Ok(unlock_block) = payment_service.user_unlock_block(*addr).call().await {
+        return Ok(unlock_block != U256::zero());
+    }
+    if let Ok(unlock_block) = payment_service_fallback
+        .user_unlock_block(*addr)
+        .call()
+        .await
+    {
+        return Ok(unlock_block != U256::zero());
+    }
+    warn!("Failed to get user locking state {:?}", addr);
+    Err(RetryError::Transient(()))
+}
+
+pub async fn get_gas_price_retryable(
+    eth_ws_provider: &Provider<Http>,
+    eth_ws_provider_fallback: &Provider<Http>,
+) -> Result<U256, RetryError<String>> {
+    if let Ok(gas_price) = eth_ws_provider
+        .get_gas_price()
+        .await
+        .inspect_err(|e| warn!("Failed to get gas price. Trying with fallback: {e:?}"))
+    {
+        return Ok(gas_price);
+    }
+
+    eth_ws_provider_fallback.get_gas_price().await.map_err(|e| {
+        warn!("Failed to get fallback gas price: {e:?}");
+        RetryError::Transient(e.to_string())
+    })
+}
+
+pub async fn send_response_retryable(
+    ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, tungstenite::Message>>>,
+    serialized_response: Vec<u8>,
+) -> Result<(), RetryError<tungstenite::Error>> {
+    let sending_result = ws_sink
+        .write()
+        .await
+        .send(tungstenite::Message::binary(serialized_response))
+        .await;
+
+    match sending_result {
+        Err(tungstenite::Error::AlreadyClosed) => {
+            Err(RetryError::Permanent(tungstenite::Error::AlreadyClosed))
+        }
+        Err(e) => Err(RetryError::Transient(e)),
+        Ok(_) => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::{
         config::ECDSAConfig,
-        connection,
-        eth::{
-            self, get_provider,
-            payment_service::{
-                get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
-                user_balance_is_unlocked_retryable, BatcherPaymentService,
-            },
-            utils::get_gas_price_retryable,
-        },
+        eth::{self, get_provider, payment_service::BatcherPaymentService},
     };
     use ethers::{
         contract::abigen,
@@ -278,8 +373,7 @@ mod test {
         let outgoing = Arc::new(RwLock::new(outgoing));
         let message = "Some message".to_string();
 
-        let result =
-            connection::send_response_retryable(&outgoing, message.clone().into_bytes()).await;
+        let result = send_response_retryable(&outgoing, message.clone().into_bytes()).await;
         assert!(result.is_ok());
         client_handle.await.unwrap()
     }

@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use crate::{
-    retry::{retry_function, RetryError, DEFAULT_FACTOR, DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY},
+    retry::{
+        retry_function, send_response_retryable, DEFAULT_FACTOR, DEFAULT_MAX_TIMES,
+        DEFAULT_MIN_DELAY,
+    },
     types::{batch_queue::BatchQueueEntry, errors::BatcherError},
 };
 use aligned_sdk::{
@@ -13,10 +16,7 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::{error, info};
 use serde::Serialize;
 use tokio::{net::TcpStream, sync::RwLock};
-use tokio_tungstenite::{
-    tungstenite::{Error, Message},
-    WebSocketStream,
-};
+use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
 pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
@@ -72,22 +72,5 @@ pub(crate) async fn send_response(
     .await
     {
         error!("Error while sending batch inclusion data response: {}", e);
-    }
-}
-
-pub async fn send_response_retryable(
-    ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-    serialized_response: Vec<u8>,
-) -> Result<(), RetryError<Error>> {
-    let sending_result = ws_sink
-        .write()
-        .await
-        .send(Message::binary(serialized_response))
-        .await;
-
-    match sending_result {
-        Err(Error::AlreadyClosed) => Err(RetryError::Permanent(Error::AlreadyClosed)),
-        Err(e) => Err(RetryError::Transient(e)),
-        Ok(_) => Ok(()),
     }
 }

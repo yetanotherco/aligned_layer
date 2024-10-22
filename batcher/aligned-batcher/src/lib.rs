@@ -3,10 +3,13 @@ use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
-use eth::utils::get_gas_price_retryable;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use retry::{retry_function, RetryError, DEFAULT_FACTOR, DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY};
+use retry::{
+    get_gas_price_retryable, get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
+    retry_function, user_balance_is_unlocked_retryable, RetryError, DEFAULT_FACTOR,
+    DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY,
+};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -29,9 +32,7 @@ use aligned_sdk::core::types::{
 
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{
-    get_user_balance_retryable, get_user_nonce_from_ethereum_retryable, try_create_new_task,
-    user_balance_is_unlocked_retryable, BatcherPaymentService, CreateNewTaskFeeParams,
-    SignerMiddlewareT,
+    try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT,
 };
 use ethers::prelude::{Http, Middleware, Provider};
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
@@ -1333,7 +1334,7 @@ impl Batcher {
     /// Checks if the user's balance is unlocked for a given address using exponential backoff.
     /// Returns `false` if an error occurs during the retries.
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
-        match retry_function(
+        let Ok(unlocked) = retry_function(
             || {
                 user_balance_is_unlocked_retryable(
                     &self.payment_service,
@@ -1346,13 +1347,11 @@ impl Batcher {
             DEFAULT_MAX_TIMES,
         )
         .await
-        {
-            Ok(result) => result,
-            Err(_) => {
-                warn!("Could not get user locking state.");
-                false
-            }
-        }
+        else {
+            warn!("Could not get user locking state.");
+            return false;
+        };
+        unlocked
     }
 
     /// Gets the current gas price from Ethereum using exponential backoff.
