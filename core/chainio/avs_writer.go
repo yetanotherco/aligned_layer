@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
+	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
 )
 
@@ -73,16 +74,19 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*common.Hash, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
-	tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	respondToTaskV2_func := func() (*types.Transaction, error) {
+		return w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	}
+	tx, err := connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 	if err != nil {
 		// Retry with fallback
-		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		tx, err = connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 		if err != nil {
 			return nil, fmt.Errorf("transaction simulation failed: %v", err)
 		}
 	}
 
-	err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
+	err = w.checkRespondToTaskFeeLimitRetryable(tx, txOpts, batchIdentifierHash, senderAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -90,10 +94,13 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	// Send the transaction
 	txOpts.NoSend = false
 	txOpts.GasLimit = tx.Gas() * 110 / 100 // Add 10% to the gas limit
-	tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	respondToTaskV2_func = func() (*types.Transaction, error) {
+		return w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	}
+	tx, err = connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 	if err != nil {
 		// Retry with fallback
-		tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+		tx, err = connection.RetryWithData(respondToTaskV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 		if err != nil {
 			return nil, err
 		}
@@ -104,22 +111,31 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	return &txHash, nil
 }
 
-func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
+func (w *AvsWriter) checkRespondToTaskFeeLimitRetryable(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
 	aggregatorAddress := txOpts.From
 	simulatedCost := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
 	w.logger.Info("Simulated cost", "cost", simulatedCost)
 
 	// Get RespondToTaskFeeLimit
-	batchState, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
+	//TODO: make this a public type
+	batchesState_func := func() (*struct {
+		TaskCreatedBlock      uint32
+		Responded             bool
+		RespondToTaskFeeLimit *big.Int
+	}, error) {
+		state, err := w.AvsContractBindings.ServiceManager.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
+		return &state, err
+	}
+	batchState, err := connection.RetryWithData(batchesState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 	if err != nil {
 		// Retry with fallback
-		batchState, err = w.AvsContractBindings.ServiceManagerFallback.BatchesState(&bind.CallOpts{}, batchIdentifierHash)
+		batchState, err = connection.RetryWithData(batchesState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 		if err != nil {
 			// Fallback also failed
 			// Proceed to check values against simulated costs
 			w.logger.Error("Failed to get batch state", "error", err)
 			w.logger.Info("Proceeding with simulated cost checks")
-			return w.compareBalances(simulatedCost, aggregatorAddress, senderAddress)
+			return w.compareBalancesRetryable(simulatedCost, aggregatorAddress, senderAddress)
 		}
 	}
 	// At this point, batchState was successfully retrieved
@@ -131,26 +147,29 @@ func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bin
 		return fmt.Errorf("cost of transaction is higher than Batch.RespondToTaskFeeLimit")
 	}
 
-	return w.compareBalances(respondToTaskFeeLimit, aggregatorAddress, senderAddress)
+	return w.compareBalancesRetryable(respondToTaskFeeLimit, aggregatorAddress, senderAddress)
 }
 
-func (w *AvsWriter) compareBalances(amount *big.Int, aggregatorAddress common.Address, senderAddress [20]byte) error {
-	if err := w.compareAggregatorBalance(amount, aggregatorAddress); err != nil {
+func (w *AvsWriter) compareBalancesRetryable(amount *big.Int, aggregatorAddress common.Address, senderAddress [20]byte) error {
+	if err := w.compareAggregatorBalanceRetryable(amount, aggregatorAddress); err != nil {
 		return err
 	}
-	if err := w.compareBatcherBalance(amount, senderAddress); err != nil {
+	if err := w.compareBatcherBalanceRetryable(amount, senderAddress); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress common.Address) error {
+func (w *AvsWriter) compareAggregatorBalanceRetryable(amount *big.Int, aggregatorAddress common.Address) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	// Get Agg wallet balance
-	aggregatorBalance, err := w.Client.BalanceAt(ctx, aggregatorAddress, nil)
+	balanceAt_func := func() (*big.Int, error) {
+		return w.Client.BalanceAt(ctx, aggregatorAddress, nil)
+	}
+	aggregatorBalance, err := connection.RetryWithData(balanceAt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 	if err != nil {
-		aggregatorBalance, err = w.ClientFallback.BalanceAt(ctx, aggregatorAddress, nil)
+		aggregatorBalance, err = connection.RetryWithData(balanceAt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 		if err != nil {
 			// Ignore and continue.
 			w.logger.Error("failed to get aggregator balance: %v", err)
@@ -164,11 +183,14 @@ func (w *AvsWriter) compareAggregatorBalance(amount *big.Int, aggregatorAddress 
 	return nil
 }
 
-func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byte) error {
+func (w *AvsWriter) compareBatcherBalanceRetryable(amount *big.Int, senderAddress [20]byte) error {
 	// Get batcher balance
-	batcherBalance, err := w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
+	batcherBalances_func := func() (*big.Int, error) {
+		return w.AvsContractBindings.ServiceManager.BatchersBalances(&bind.CallOpts{}, senderAddress)
+	}
+	batcherBalance, err := connection.RetryWithData(batcherBalances_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 	if err != nil {
-		batcherBalance, err = w.AvsContractBindings.ServiceManagerFallback.BatchersBalances(&bind.CallOpts{}, senderAddress)
+		batcherBalance, err = connection.RetryWithData(batcherBalances_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 		if err != nil {
 			// Ignore and continue.
 			w.logger.Error("Failed to get batcherBalance", "error", err)
