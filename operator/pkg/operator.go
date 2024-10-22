@@ -519,10 +519,20 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		results <- verificationResult
 
 	case common.SP1:
-		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		if err != nil {
+			o.Logger.Errorf("SP1 Proof Verification failed %v", err)
+			results <- false
+			return
+		}
 		if !verificationResult {
 			o.Logger.Infof("SP1 proof verification failed. Trying old SP1 version...")
-			verificationResult = sp1_old.VerifySp1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
+			verificationResult, err = sp1_old.VerifySp1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
+			if err != nil {
+				o.Logger.Errorf("Old SP1 Proof Verification failed %v", err)
+				results <- false
+				return
+			}
 			if !verificationResult {
 				o.Logger.Errorf("Old SP1 proof verification failed")
 			}
@@ -533,9 +543,20 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 	case common.Risc0:
 		verificationResult, err := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
+		if err != nil {
+			o.Logger.Errorf("Risc0 Proof Verification failed %v", err)
+			results <- false
+			return
+		}
+
 		if !verificationResult {
 			o.Logger.Infof("Risc0 proof verification failed. Trying old Risc0 version...")
-			verificationResult = risc_zero_old.VerifyRiscZeroReceiptOld(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
+			verificationResult, err = risc_zero_old.VerifyRiscZeroReceiptOld(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
+			if err != nil {
+				o.Logger.Errorf("Old Risc0 Proof Verification failed %v", err)
+				results <- false
+				return
+			}
 			if !verificationResult {
 				o.Logger.Errorf("Old Risc0 proof verification failed")
 			}
