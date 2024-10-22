@@ -1357,7 +1357,6 @@ impl Batcher {
     }
 
     /// Gets the current gas price from Ethereum using exponential backoff.
-    /// Returns `None` if the gas price couldn't be returned
     async fn get_gas_price(&self) -> Result<U256, BatcherError> {
         retry_function(
             || get_gas_price_retryable(&self.eth_http_provider, &self.eth_http_provider_fallback),
