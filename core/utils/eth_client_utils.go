@@ -10,6 +10,7 @@ import (
 	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	connection "github.com/yetanotherco/aligned_layer/core"
 )
 
 const maxRetries = 25
@@ -25,6 +26,18 @@ func WaitForTransactionReceipt(client eth.InstrumentedClient, ctx context.Contex
 		}
 	}
 	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
+}
+
+func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
+	receipt_func := func() (*types.Receipt, error) { return client.TransactionReceipt(ctx, txHash) }
+	//TODO: make these constants some value.
+	receipt, err := connection.RetryWithData(receipt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	if err != nil {
+		// If the retries stop early we propogate the Permanent error to the caller.
+		// TODO: ask if this is the behavior we want.
+		return nil, err
+	}
+	return receipt, nil
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {
