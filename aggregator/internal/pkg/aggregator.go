@@ -10,6 +10,7 @@ import (
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/prometheus/client_golang/prometheus"
+	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	sdkclients "github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -262,24 +263,20 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]),
 		"taskCreatedBlock", taskCreatedBlock)
 
-	err := agg.avsSubscriber.WaitForOneBlock(taskCreatedBlock)
+	err := agg.avsSubscriber.WaitForOneBlockRetryable(taskCreatedBlock)
 	if err != nil {
 		agg.logger.Error("Error waiting for one block, sending anyway", "err", err)
 	}
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-	for i := 0; i < MaxSentTxRetries; i++ {
-		_, err = agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
-		if err == nil {
-			agg.logger.Info("Aggregator successfully responded to task",
-				"taskIndex", blsAggServiceResp.TaskIndex,
-				"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-			return
-		}
-
-		// Sleep for a bit before retrying
-		time.Sleep(2 * time.Second)
+	//TODO: Retry()
+	_, err = agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
+	if err == nil {
+		agg.logger.Info("Aggregator successfully responded to task",
+			"taskIndex", blsAggServiceResp.TaskIndex,
+			"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+		return
 	}
 
 	agg.logger.Error("Aggregator failed to respond to task, this batch will be lost",
@@ -290,6 +287,8 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
 	agg.telemetry.LogTaskError(batchData.BatchMerkleRoot, err)
 }
+
+// TODO: should we assume this is idempotent
 
 // / Sends response to contract and waits for transaction receipt
 // / Returns error if it fails to send tx or receipt is not found
@@ -312,7 +311,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 	agg.walletMutex.Unlock()
 	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchIdentifierHash[:]))
 
-	receipt, err := utils.WaitForTransactionReceipt(
+	receipt, err := utils.WaitForTransactionReceiptRetryable(
 		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
 	if err != nil {
 		agg.telemetry.LogTaskError(batchMerkleRoot, err)
@@ -366,7 +365,10 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	err := agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	initilizeNewTask_func := func() error {
+		return agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	}
+	err := connection.Retry(initilizeNewTask_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
