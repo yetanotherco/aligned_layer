@@ -109,7 +109,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			onRetry()
 		}
 		i++
-
 		bumpedGasPrice := utils.CalculateGasPriceBump(lastTxGasPrice, gasBumpPercentage)
 		lastTxGasPrice = bumpedGasPrice
 		txOpts.GasPrice = bumpedGasPrice
@@ -130,7 +129,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*36)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 		defer cancel()
 		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
 
