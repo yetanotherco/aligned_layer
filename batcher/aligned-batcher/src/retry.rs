@@ -1,14 +1,8 @@
 use backon::ExponentialBuilder;
 use backon::Retryable;
 use ethers::prelude::*;
-use futures_util::{stream::SplitSink, SinkExt};
 use log::warn;
-use std::sync::Arc;
 use std::{future::Future, time::Duration};
-use tokio::net::TcpStream;
-use tokio::sync::RwLock;
-use tokio_tungstenite::tungstenite;
-use tokio_tungstenite::WebSocketStream;
 
 use crate::eth::payment_service::BatcherPaymentService;
 
@@ -138,25 +132,6 @@ pub async fn get_gas_price_retryable(
     })
 }
 
-pub async fn send_response_retryable(
-    ws_sink: &Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, tungstenite::Message>>>,
-    serialized_response: Vec<u8>,
-) -> Result<(), RetryError<tungstenite::Error>> {
-    let sending_result = ws_sink
-        .write()
-        .await
-        .send(tungstenite::Message::binary(serialized_response))
-        .await;
-
-    match sending_result {
-        Err(tungstenite::Error::AlreadyClosed) => {
-            Err(RetryError::Permanent(tungstenite::Error::AlreadyClosed))
-        }
-        Err(e) => Err(RetryError::Transient(e)),
-        Ok(_) => Ok(()),
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -169,12 +144,7 @@ mod test {
         types::{Address, U256},
         utils::{Anvil, AnvilInstance},
     };
-    use futures_util::StreamExt;
-    use std::{str::FromStr, sync::Arc};
-    use tokio::{
-        net::{TcpListener, TcpStream},
-        sync::RwLock,
-    };
+    use std::str::FromStr;
 
     abigen!(
         BatcherPaymentServiceContract,
@@ -343,38 +313,5 @@ mod test {
         let result = get_gas_price_retryable(&eth_rpc_provider, &eth_rpc_provider).await;
 
         assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_send_response_retryable() {
-        let listener = TcpListener::bind("localhost:8553").await.unwrap();
-
-        let client_handle = tokio::spawn(async move {
-            let stream = TcpStream::connect("localhost:8553")
-                .await
-                .expect("Failed to connect");
-
-            let (mut ws_stream, _) = tokio_tungstenite::client_async("ws://localhost:8553", stream)
-                .await
-                .expect("WebSocket handshake failed");
-
-            // Read the response from the server
-            if let None = ws_stream.next().await {
-                panic!("Failed to receive valid WebSocket response");
-            }
-        });
-
-        let (raw_stream, _) = listener
-            .accept()
-            .await
-            .expect("Failed to accept connection");
-        let ws_stream = tokio_tungstenite::accept_async(raw_stream).await.unwrap();
-        let (outgoing, _incoming) = ws_stream.split();
-        let outgoing = Arc::new(RwLock::new(outgoing));
-        let message = "Some message".to_string();
-
-        let result = send_response_retryable(&outgoing, message.clone().into_bytes()).await;
-        assert!(result.is_ok());
-        client_handle.await.unwrap()
     }
 }
