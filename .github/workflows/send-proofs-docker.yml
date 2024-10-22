@@ -2,7 +2,11 @@ name: "[CI] Send proofs to network"
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types:
+      - opened
+      - synchronize
+    paths-ignore:
+      - '**.md'
 
 concurrency:
   group: pull_request-${{ github.event.pull_request.number }}
