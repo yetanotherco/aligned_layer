@@ -6,8 +6,7 @@ lazy_static! {
     static ref PROVER_CLIENT: ProverClient = ProverClient::new();
 }
 
-#[no_mangle]
-pub extern "C" fn verify_sp1_proof_old_ffi(
+fn inner_verify_sp1_proof_old_ffi(
     proof_bytes: *const u8,
     proof_len: u32,
     elf_bytes: *const u8,
@@ -35,6 +34,24 @@ pub extern "C" fn verify_sp1_proof_old_ffi(
     false
 }
 
+#[no_mangle]
+pub extern "C" fn verify_sp1_proof_old_ffi(
+    proof_bytes: *const u8,
+    proof_len: u32,
+    elf_bytes: *const u8,
+    elf_len: u32,
+) -> i32 {
+    let result = std::panic::catch_unwind(|| {
+        inner_verify_sp1_proof_old_ffi(proof_bytes, proof_len, elf_bytes, elf_len)
+    });
+
+    match result {
+        Ok(v) => v as i32,
+        Err(_) => -1,
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -50,7 +67,7 @@ mod tests {
 
         let result =
             verify_sp1_proof_old_ffi(proof_bytes, PROOF.len() as u32, elf_bytes, ELF.len() as u32);
-        assert!(result)
+        assert_eq!(result, 1)
     }
 
     #[test]
@@ -64,6 +81,6 @@ mod tests {
             elf_bytes,
             ELF.len() as u32,
         );
-        assert!(!result)
+        assert_eq!(!result, 0)
     }
 }
