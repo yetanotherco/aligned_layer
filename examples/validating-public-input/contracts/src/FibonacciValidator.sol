@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 contract FibonacciValidator {
     address public alignedServiceManager;
     address public paymentServiceAddr;
-    bytes32 public fibonacciProgramId;
 
     bytes32 public fibonacciProgramIdCommitmentSp1 =
         0xb9fd43bd969f26da100354ebceefd56dd4c068f81cba2f152742c7ddbd9bb97e;
