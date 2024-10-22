@@ -1,0 +1,143 @@
+services:
+
+  localstack:
+    extends:
+      file: storage-docker-compose.yaml
+      service: localstack
+    profiles:
+      - base
+
+  anvil:
+    image: ghcr.io/yetanotherco/aligned_layer/anvil:latest
+    build:
+      context: .
+      dockerfile: docker/anvil.Dockerfile
+    healthcheck:
+      test: cast block-number
+      interval: 1s
+      timeout: 45s
+      retries: 20
+      start_period: 1s
+    profiles:
+      - base
+
+  aggregator:
+    image: ghcr.io/yetanotherco/aligned_layer/aggregator:latest
+    build:
+      context: .
+      dockerfile: docker/aggregator.Dockerfile
+    profiles:
+      - aggregator
+
+  fund-operator:
+    image: ghcr.io/yetanotherco/aligned_layer/foundry:latest
+    command: ["sh", "-c", "cast send --from 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 --value 1ether --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --rpc-url http://anvil:8545 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --gas-price $(cast gas-price --rpc-url http://anvil:8545)"]
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    profiles:
+      - excluded
+
+  register-operator-eigenlayer:
+    image: ghcr.io/yetanotherco/aligned_layer/eigenlayer-cli:latest
+    command: ["sh", "-c", "echo '' | eigenlayer operator register config-files/config-docker.yaml"]
+    build:
+      context: .
+      dockerfile: docker/eigenlayer-cli.Dockerfile
+    profiles:
+      - excluded
+
+  mint-mock-tokens:
+    image: ghcr.io/yetanotherco/aligned_layer/foundry:latest
+    command: ["sh", "-c", "cast send 09635f643e140090a9a8dcd712ed6285858cebef 'mint(address, uint256)' 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 100000000000000000 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545 --gas-price $(cast gas-price --rpc-url http://anvil:8545)"]
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    profiles:
+      - excluded
+
+  operator-deposit-into-mock-strategy:
+    image: ghcr.io/yetanotherco/aligned_layer/operator:latest
+    command: ["aligned-layer-operator", "deposit-into-strategy", "--config", "./config-files/config-docker.yaml", "--strategy-address", "0xc5a5C42992dECbae36851359345FE25997F5C42d", "--amount", "100000000000000000"]
+    build:
+      context: .
+      dockerfile: docker/operator.Dockerfile
+    profiles:
+      - excluded
+
+  operator-whitelist-devnet:
+    image: ghcr.io/yetanotherco/aligned_layer/foundry:latest
+    command: ["sh", "-c", "cast send --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 0x851356ae760d987E095750cCeb3bC6014560891C 'add(address)' 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://anvil:8545 --gas-price $(cast gas-price --rpc-url http://anvil:8545)"]
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    profiles:
+      - excluded
+
+  operator-register-with-aligned-layer:
+    image: ghcr.io/yetanotherco/aligned_layer/operator:latest
+    command: ["aligned-layer-operator", "register", "--config", "./config-files/config-docker.yaml"]
+    build:
+      context: .
+      dockerfile: docker/operator.Dockerfile
+    profiles:
+      - excluded
+
+  operator:
+    image: ghcr.io/yetanotherco/aligned_layer/operator:latest
+    command: ["aligned-layer-operator", "start", "--config", "./config-files/config-docker.yaml"]
+    build:
+      context: .
+      dockerfile: docker/operator.Dockerfile
+    profiles:
+      - operator
+
+  user-fund-payment-service-devnet:
+    image: ghcr.io/yetanotherco/aligned_layer/foundry:latest
+    command: ["sh", "-c", "cast send --from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --value 100ether --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545 0x7969c5eD335650692Bc04293B07F5BF2e7A673C0 --gas-price $(cast gas-price --rpc-url http://anvil:8545)"]
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    profiles:
+      - excluded
+
+  batcher:
+    image: ghcr.io/yetanotherco/aligned_layer/batcher:latest
+    environment:
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_BUCKET_NAME: aligned.storage
+      UPLOAD_ENDPOINT: http://localstack:4566
+      DOWNLOAD_ENDPOINT: http://localstack:4566/aligned.storage
+      RUST_LOG: info
+      RUST_BACKTRACE: 1
+    build:
+      context: .
+      dockerfile: docker/batcher.Dockerfile
+    profiles:
+      - batcher
+
+  aligned_base:
+    image: ghcr.io/yetanotherco/aligned_layer/aligned_base:latest
+    build:
+      context: .
+      dockerfile: docker/aligned_base.Dockerfile
+    profiles:
+      - aligned_base
+
+  foundry:
+    image: ghcr.io/yetanotherco/aligned_layer/foundry:latest
+    build:
+      context: .
+      dockerfile: docker/foundry.Dockerfile
+    profiles:
+      - foundry
+
+  eigenlayer-cli:
+    image: ghcr.io/yetanotherco/aligned_layer/eigenlayer-cli:latest
+    build:
+      context: .
+      dockerfile: docker/eigenlayer-cli.Dockerfile
+    profiles:
+      - eigenlayer-cli

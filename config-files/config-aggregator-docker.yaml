@@ -1,0 +1,32 @@
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: "production"
+aligned_layer_deployment_config_file_path: "./contracts/script/output/devnet/alignedlayer_deployment_output.json"
+eigen_layer_deployment_config_file_path: "./contracts/script/output/devnet/eigenlayer_deployment_output.json"
+eth_rpc_url: "http://anvil:8545"
+eth_rpc_url_fallback: "http://anvil:8545"
+eth_ws_url: "ws://anvil:8545"
+eth_ws_url_fallback: "ws://anvil:8545"
+eigen_metrics_ip_port_address: "localhost:9090"
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: "config-files/anvil.aggregator.ecdsa.key.json"
+  private_key_store_password: ""
+
+## BLS Configurations
+bls:
+  private_key_store_path: "config-files/anvil.aggregator.bls.key.json"
+  private_key_store_password: ""
+
+## Aggregator Configurations
+aggregator:
+  server_ip_port_address: 0.0.0.0:8090
+  bls_public_key_compendium_address: 0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44
+  avs_service_manager_address: 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690
+  enable_metrics: true
+  metrics_ip_port_address: 0.0.0.0:9091
+  telemetry_ip_port_address: localhost:4001
+  garbage_collector_period: 2m #The period of the GC process. Suggested value for Prod: '168h' (7 days)
+  garbage_collector_tasks_age: 20 #The age of tasks that will be removed by the GC, in blocks. Suggested value for prod: '216000' (30 days)
+  garbage_collector_tasks_interval: 10 #The interval of queried blocks to get an old batch. Suggested value for prod: '900' (3 hours)
