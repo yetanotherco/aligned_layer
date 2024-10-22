@@ -570,16 +570,6 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 	}
 }
 
-func (o *Operator) handleVerificationResult(results chan bool, isVerified bool, err error, name string) {
-	if err != nil {
-		o.Logger.Errorf("%v failed %v", name, err)
-		results <- false
-	} else {
-		o.Logger.Infof("%v result: %t", name, isVerified)
-		results <- isVerified
-	}
-}
-
 // VerifyPlonkProofBLS12_381 verifies a PLONK proof using BLS12-381 curve.
 func (o *Operator) verifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BLS12_381)
