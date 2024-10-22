@@ -20,6 +20,10 @@ import (
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
+const (
+	gasBumpPercentage int = 10
+)
+
 type AvsWriter struct {
 	*avsregistry.ChainWriter
 	AvsContractBindings *AvsServiceBindings
@@ -72,7 +76,10 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 	}, nil
 }
 
-func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Receipt, error) {
+// Sends AggregatedResponse and waits for the receipt for three blocks, if not received
+// it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
+// This process happens indefinitely until the transaction is included.
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, onRetry func()) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, new(big.Int).SetUint64(5))
@@ -94,10 +101,20 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txNonce := new(big.Int).SetUint64(tx.Nonce())
 	txOpts.NoSend = false
 	txOpts.Nonce = txNonce
-	var i uint64 = 1
 
-	executeTransaction := func(bumpedGasPrices *big.Int) (*types.Transaction, error) {
-		txOpts.GasPrice = bumpedGasPrices
+	lastTxGasPrice := tx.GasPrice()
+	var i uint64
+	i = 0
+	sendTransaction := func() (*types.Receipt, error) {
+		if i > 0 {
+			onRetry()
+		}
+		i++
+
+		bumpedGasPrice := utils.CalculateGasPriceBump(lastTxGasPrice, gasBumpPercentage)
+		lastTxGasPrice = bumpedGasPrice
+		txOpts.GasPrice = bumpedGasPrice
+
 		w.logger.Infof("Sending ResponseToTask transaction with a gas price of %v", txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
 
@@ -112,12 +129,24 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			if err != nil {
 				return nil, connection.PermanentError{Inner: err}
 			}
-			return tx, nil
 		}
-		return tx, nil
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*36)
+		defer cancel()
+		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
+
+		if receipt != nil {
+			return receipt, nil
+		}
+		// if we are here, this means we have reached the timeout (after three blocks it hasn't been included)
+		// so we try again by bumping the fee to make sure its included
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("transaction failed")
 	}
 
-	return utils.SendTransactionWithInfiniteRetryAndBumpingGasPrice(executeTransaction, w.Client, tx.GasPrice())
+	return connection.RetryWithData(sendTransaction, 1000, 2, 0)
 }
 
 func (w *AvsWriter) checkRespondToTaskFeeLimit(tx *types.Transaction, txOpts bind.TransactOpts, batchIdentifierHash [32]byte, senderAddress [20]byte) error {
