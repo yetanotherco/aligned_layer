@@ -280,7 +280,7 @@ impl Batcher {
         self: Arc<Self>,
     ) -> Result<(), RetryError<BatcherError>> {
         let eth_ws_provider = Provider::connect(&self.eth_ws_url).await.map_err(|e| {
-            warn!("Failed to get ethereum websocket provider");
+            warn!("Failed to instantiate Ethereum websocket provider");
             RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
         })?;
 
