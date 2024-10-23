@@ -319,13 +319,11 @@ async fn main() -> Result<(), AlignedError> {
 
             info!("Submitting proofs to the Aligned batcher...");
 
-            let max_fees = vec![max_fee; repetitions];
-
             let aligned_verification_data_vec = match submit_multiple(
                 &connect_addr,
                 submit_args.network.into(),
                 &verification_data_arr,
-                &max_fees,
+                max_fee,
                 wallet.clone(),
                 nonce,
             )
