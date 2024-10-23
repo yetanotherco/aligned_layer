@@ -18,16 +18,15 @@ const sleepTime = 1000 * time.Millisecond
 
 func WaitForTransactionReceipt(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
 	for i := 0; i < maxRetries; i++ {
-		receipt, err := client.TransactionReceipt(ctx, txHash)
+		receipt, _ := client.TransactionReceipt(ctx, txHash)
+		if receipt != nil {
+			return receipt, nil
+		}
 		// if context has timed out, return
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
-		}
-		if err != nil {
-			time.Sleep(sleepTime)
-			continue
 		} else {
-			return receipt, nil
+			time.Sleep(sleepTime)
 		}
 	}
 	return nil, fmt.Errorf("transaction receipt not found for txHash: %s", txHash.String())
