@@ -81,7 +81,7 @@ pub async fn get_gas_price_retryable(
 mod test {
     use super::*;
     use crate::{
-        config::ECDSAConfig,
+        config::{ContractDeploymentOutput, ECDSAConfig},
         eth::{self, get_provider, payment_service::BatcherPaymentService},
     };
     use ethers::{
@@ -106,7 +106,11 @@ mod test {
         let eth_rpc_provider = eth::get_provider(format!("http://localhost:{}", port))
             .expect("Failed to get provider");
 
-        let payment_service_addr = String::from("0x7969c5eD335650692Bc04293B07F5BF2e7A673C0");
+        let deployment_output = ContractDeploymentOutput::new(
+            "../../contracts/script/output/devnet/alignedlayer_deployment_output.json".to_string(),
+        );
+
+        let payment_service_addr = deployment_output.addresses.batcher_payment_service.clone();
 
         let payment_service = eth::payment_service::get_batcher_payment_service(
             eth_rpc_provider,

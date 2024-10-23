@@ -8,10 +8,6 @@ pub const CONSTANT_GAS_COST: u128 =
 pub const DEFAULT_MAX_FEE_PER_PROOF: u128 =
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
 pub const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000; // gas_price = 0.1 Gwei = 0.0000000001 ether (low gas price)
-/// retry
-pub const DEFAULT_MIN_DELAY: u64 = 2000;
-pub const DEFAULT_MAX_TIMES: usize = 3;
-pub const DEFAULT_FACTOR: f32 = 2.0;
 
 // % modifiers: (100% is x1, 10% is x0.1, 1000% is x10)
 pub const RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER: u128 = 250; // fee_for_aggregator -> respondToTaskFeeLimit modifier
@@ -27,3 +23,8 @@ pub const MAX_FEE_BATCH_PROOF_NUMBER: usize = 32;
 /// Estimated number of proofs for batch submission.
 /// This corresponds to the number of proofs to compute for a default max_fee.
 pub const MAX_FEE_DEFAULT_PROOF_NUMBER: usize = 10;
+
+/// retry
+pub const DEFAULT_MIN_RETRY_DELAY: u64 = 2000;
+pub const DEFAULT_MAX_RETRIES: usize = 3;
+pub const DEFAULT_BACKOFF_FACTOR: f32 = 2.0;

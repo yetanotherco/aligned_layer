@@ -20,9 +20,10 @@ use std::sync::Arc;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_FACTOR, DEFAULT_MAX_FEE_PER_PROOF,
-    DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF,
-    PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
@@ -271,8 +272,8 @@ impl Batcher {
                 let app = self.clone();
                 async move { app.listen_new_blocks_retryable().await }
             },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
             LISTEN_NEW_BLOCKS_MAX_TIMES,
         )
         .await
@@ -780,9 +781,9 @@ impl Batcher {
                     addr,
                 )
             },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
         )
         .await
     }
@@ -1325,9 +1326,9 @@ impl Batcher {
                     addr,
                 )
             },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
         )
         .await
         .ok()
@@ -1344,9 +1345,9 @@ impl Batcher {
                     addr,
                 )
             },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
         )
         .await
         else {
@@ -1360,9 +1361,9 @@ impl Batcher {
     async fn get_gas_price(&self) -> Result<U256, BatcherError> {
         retry_function(
             || get_gas_price_retryable(&self.eth_http_provider, &self.eth_http_provider_fallback),
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
         )
         .await
         .map_err(|e| {
@@ -1386,9 +1387,9 @@ impl Batcher {
                     &self.s3_bucket_name,
                 )
             },
-            DEFAULT_MIN_DELAY,
-            DEFAULT_FACTOR,
-            DEFAULT_MAX_TIMES,
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
         )
         .await
         .map_err(|e| BatcherError::BatchUploadError(e.to_string()))
