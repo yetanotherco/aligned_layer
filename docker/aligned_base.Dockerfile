@@ -35,8 +35,8 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /aligned_layer
 
 COPY Makefile .
-COPY operator ./operator
-COPY batcher/aligned-sdk ./batcher/aligned-sdk
+#COPY operator ./operator
+#COPY batcher/aligned-sdk ./batcher/aligned-sdk
 
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
@@ -46,35 +46,37 @@ FROM chef AS planner
 
 # build_sp1_linux
 COPY operator/sp1/lib/Cargo.toml /aligned_layer/operator/sp1/lib/Cargo.toml
-COPY operator/sp1/lib/src/lib.rs /aligned_layer/operator/sp1/lib/src/lib.rs
+COPY operator/sp1/lib/src/ /aligned_layer/operator/sp1/lib/src/
 WORKDIR /aligned_layer/operator/sp1/lib
 RUN cargo chef prepare --recipe-path /aligned_layer/operator/sp1/lib/recipe.json
 
 # build_risc_zero_linux
 COPY operator/risc_zero/lib/Cargo.toml /aligned_layer/operator/risc_zero/lib/Cargo.toml
-COPY operator/risc_zero/lib/src/lib.rs /aligned_layer/operator/risc_zero/lib/src/lib.rs
+COPY operator/risc_zero/lib/src/ /aligned_layer/operator/risc_zero/lib/src/
 WORKDIR /aligned_layer/operator/risc_zero/lib
 RUN cargo chef prepare --recipe-path /aligned_layer/operator/risc_zero/lib/recipe.json
 
 # build_merkle_tree_linux
 COPY operator/merkle_tree/lib/Cargo.toml /aligned_layer/operator/merkle_tree/lib/Cargo.toml
-COPY operator/merkle_tree/lib/src/lib.rs /aligned_layer/operator/merkle_tree/lib/src/lib.rs
+COPY operator/merkle_tree/lib/src/ /aligned_layer/operator/merkle_tree/lib/src/
 WORKDIR operator/merkle_tree/lib
 RUN cargo chef prepare --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe.json
 
 FROM chef AS chef_builder
 
-COPY operator/ /aligned_layer/operator
-COPY --from=base /aligned_layer/batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
+COPY batcher/aligned-sdk /aligned_layer/batcher/aligned-sdk/
 
+COPY operator/sp1/ operator/sp1/
 COPY --from=planner /aligned_layer/operator/sp1/lib/recipe.json /aligned_layer/operator/sp1/lib/recipe.json
 WORKDIR /aligned_layer/operator/sp1/lib/
 RUN cargo chef cook --release --recipe-path /aligned_layer/operator/sp1/lib/recipe.json
 
+COPY operator/risc_zero/ /aligned_layer/operator/risc_zero/
 COPY --from=planner /aligned_layer/operator/risc_zero/lib/recipe.json /aligned_layer/operator/risc_zero/lib/recipe.json
 WORKDIR /aligned_layer/operator/risc_zero/lib/
 RUN cargo chef cook --release --recipe-path /aligned_layer/operator/risc_zero/lib/recipe.json
 
+COPY operator/merkle_tree/ /aligned_layer/operator/merkle_tree/
 COPY --from=planner /aligned_layer/operator/merkle_tree/lib/recipe.json /aligned_layer/operator/merkle_tree/lib/recipe.json
 WORKDIR /aligned_layer/operator/merkle_tree/lib/
 RUN cargo chef cook --release --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe.json
@@ -85,6 +87,7 @@ ENV RELEASE_FLAG=--release
 ENV TARGET_REL_PATH=release
 
 COPY operator/ /aligned_layer/operator/
+COPY batcher/ /aligned_layer/batcher/
 
 # build_sp1_linux
 COPY --from=chef_builder /aligned_layer/operator/sp1/lib/target/ /aligned_layer/operator/sp1/lib/target/
@@ -100,7 +103,7 @@ RUN cp /aligned_layer/operator/risc_zero/lib/target/${TARGET_REL_PATH}/librisc_z
 
 # build_merkle_tree_linux
 COPY --from=chef_builder /aligned_layer/operator/merkle_tree/lib/target/ /aligned_layer/operator/merkle_tree/lib/target/
-WORKDIR /aligned_layer/operator/merkle_tree/lib 
+WORKDIR /aligned_layer/operator/merkle_tree/lib
 RUN cargo build ${RELEASE_FLAG}
 RUN cp /aligned_layer/operator/merkle_tree/lib/target/${TARGET_REL_PATH}/libmerkle_tree.so /aligned_layer/operator/merkle_tree/lib/libmerkle_tree.so
 RUN cp /aligned_layer/operator/merkle_tree/lib/target/${TARGET_REL_PATH}/libmerkle_tree.a /aligned_layer/operator/merkle_tree/lib/libmerkle_tree.a
