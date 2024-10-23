@@ -33,7 +33,7 @@ pub async fn send_messages(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     payment_service_addr: Address,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     mut nonce: U256,
 ) -> Result<Vec<NoncedVerificationData>, SubmitError> {
@@ -45,11 +45,11 @@ pub async fn send_messages(
 
     let chain_id = U256::from(wallet.chain_id());
 
-    for (idx, verification_data) in verification_data.iter().enumerate() {
+    for verification_data_i in verification_data {
         let verification_data = NoncedVerificationData::new(
-            verification_data.clone(),
+            verification_data_i.clone(),
             nonce,
-            max_fees[idx],
+            max_fee,
             chain_id,
             payment_service_addr,
         );

@@ -83,7 +83,7 @@ pub async fn submit_multiple_and_wait_verification(
     eth_rpc_url: &str,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
@@ -91,7 +91,7 @@ pub async fn submit_multiple_and_wait_verification(
         batcher_url,
         network,
         verification_data,
-        max_fees,
+        max_fee,
         wallet,
         nonce,
     )
@@ -234,7 +234,7 @@ pub async fn submit_multiple(
     batcher_url: &str,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
@@ -252,7 +252,7 @@ pub async fn submit_multiple(
         ws_read,
         network,
         verification_data,
-        max_fees,
+        max_fee,
         wallet,
         nonce,
     )
@@ -284,7 +284,7 @@ async fn _submit_multiple(
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     network: Network,
     verification_data: &[VerificationData],
-    max_fees: &[U256],
+    max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Result<Vec<AlignedVerificationData>, errors::SubmitError> {
@@ -313,7 +313,7 @@ async fn _submit_multiple(
             ws_write,
             payment_service_addr,
             verification_data,
-            max_fees,
+            max_fee,
             wallet,
             nonce,
         )
@@ -385,14 +385,12 @@ pub async fn submit_and_wait_verification(
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
 
-    let max_fees = vec![max_fee];
-
     let aligned_verification_data = submit_multiple_and_wait_verification(
         batcher_url,
         eth_rpc_url,
         network,
         &verification_data,
-        &max_fees,
+        max_fee,
         wallet,
         nonce,
     )
@@ -435,13 +433,12 @@ pub async fn submit(
     nonce: U256,
 ) -> Result<AlignedVerificationData, errors::SubmitError> {
     let verification_data = vec![verification_data.clone()];
-    let max_fees = vec![max_fee];
 
     let aligned_verification_data = submit_multiple(
         batcher_url,
         network,
         &verification_data,
-        &max_fees,
+        max_fee,
         wallet,
         nonce,
     )
