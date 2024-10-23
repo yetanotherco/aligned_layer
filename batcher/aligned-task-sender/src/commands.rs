@@ -1,5 +1,5 @@
 use aligned_sdk::core::types::{Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{deposit_to_aligned, get_next_nonce, submit_multiple, submit_multiple_and_wait_verification};
+use aligned_sdk::sdk::{deposit_to_aligned, get_next_nonce, submit_multiple};
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use futures_util::StreamExt;
@@ -8,6 +8,7 @@ use log::{error, info};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::fs::{self, File};
+use std::io::ErrorKind;
 use std::io::{BufRead, BufReader, Write};
 use std::process::Command;
 use std::str::FromStr;
@@ -15,7 +16,6 @@ use std::thread;
 use std::time::Duration;
 use tokio::join;
 use tokio_tungstenite::connect_async;
-use std::io::ErrorKind;
 
 use crate::structs::{
     GenerateAndFundWalletsArgs, GenerateProofsArgs, ProofType, SendInfiniteProofsArgs,
@@ -73,7 +73,8 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
             error!("Could not get chain id");
             return;
         };
-        let amount_to_deposit_to_aligned = parse_ether(&args.amount_to_deposit_to_aligned).expect("Ether format should be: XX.XX");
+        let amount_to_deposit_to_aligned =
+            parse_ether(&args.amount_to_deposit_to_aligned).expect("Ether format should be: XX.XX");
 
         let file = match File::open(&args.private_keys_filepath) {
             Ok(f) => f,
@@ -92,14 +93,21 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
             }
             // Load the wallet
             let private_key_str = line.unwrap();
-            let wallet = Wallet::from_str(private_key_str.trim()).expect("Invalid private key").with_chain_id(chain_id.as_u64());
+            let wallet = Wallet::from_str(private_key_str.trim())
+                .expect("Invalid private key")
+                .with_chain_id(chain_id.as_u64());
 
             // Send funds to aligned from the wallet
-            let funded_wallet_signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
+            let funded_wallet_signer =
+                SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
             tokio::time::sleep(Duration::from_millis(50)).await; // To avoid overloading the RPC
             tokio::spawn(async move {
-                if let Err(err) =
-                        deposit_to_aligned(amount_to_deposit_to_aligned, funded_wallet_signer.clone(), args.network.into()).await
+                if let Err(err) = deposit_to_aligned(
+                    amount_to_deposit_to_aligned,
+                    funded_wallet_signer.clone(),
+                    args.network.into(),
+                )
+                .await
                 {
                     error!("Could not deposit to aligned, err: {:?}", err);
                     return;
@@ -146,7 +154,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         // Generate new wallet
         let wallet = Wallet::new(&mut thread_rng()).with_chain_id(chain_id.as_u64());
         info!("Generated wallet {} with address {:?}", i, wallet.address());
-        
+
         // Fund the wallet
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), funding_wallet.clone());
         let amount_to_deposit =
@@ -257,7 +265,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     let reader = BufReader::new(file);
 
     // now here we need to load the senders from the provided files
-    for (i, line) in reader.lines().enumerate() {
+    for line in reader.lines() {
         let private_key_str = match line {
             Ok(line) => line,
             Err(err) => {
@@ -296,7 +304,6 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     let mut handles = vec![];
     info!("Starting senders!");
     for (i, sender) in senders.iter().enumerate() {
-
         // this is necessary because of the move
         let eth_rpc_url = args.eth_rpc_url.clone();
         let batcher_url = args.batcher_url.clone();
@@ -305,10 +312,15 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
         // a thread to send tasks from each loaded wallet:
         let handle = tokio::spawn(async move {
-            // info!("Sender {} started", i);
             let mut nonce = get_next_nonce(&eth_rpc_url, wallet.address(), args.network.into())
                 .await
-                .inspect_err(|e| error!("Could not get nonce: {:?}, for sender {:?}", e, wallet.address()))
+                .inspect_err(|e| {
+                    error!(
+                        "Could not get nonce: {:?}, for sender {:?}",
+                        e,
+                        wallet.address()
+                    )
+                })
                 .unwrap();
 
             loop {
@@ -316,7 +328,8 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
                 let mut result = Vec::with_capacity(args.burst_size);
                 while result.len() < args.burst_size {
-                    let samples = verification_data.choose_multiple(&mut thread_rng(), args.burst_size - result.len());
+                    let samples = verification_data
+                        .choose_multiple(&mut thread_rng(), args.burst_size - result.len());
                     result.extend(samples.cloned());
                 }
                 let verification_data_to_send = result;
@@ -327,7 +340,6 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 );
                 let batcher_url = batcher_url.clone();
 
-                // match submit_multiple_and_wait_verification(
                 match submit_multiple(
                     &batcher_url.clone(),
                     // &eth_rpc_url.clone(),
@@ -346,7 +358,6 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                         );
                         nonce += U256::from(args.burst_size);
                     }
-
                     Err(e) => {
                         error!(
                             "Error submitting proofs to aligned: {:?} from sender {}",
@@ -378,7 +389,8 @@ fn get_verification_data_from_proofs_folder(
 
     let dir = std::fs::read_dir(dir_path).expect("Directory does not exists");
 
-    for proof_folder in dir { // each proof_folder is a dir called groth16_n
+    for proof_folder in dir {
+        // each proof_folder is a dir called groth16_n
         let proof_folder_dir = proof_folder.unwrap().path();
         if proof_folder_dir.is_dir() {
             // todo(marcos): this should be improved if we want to support more proofs
@@ -389,11 +401,12 @@ fn get_verification_data_from_proofs_folder(
                 let first_file = fs::read_dir(proof_folder_dir.clone())
                     .expect("Can't read directory")
                     .filter_map(|entry| entry.ok().map(|e| e.path()))
-                    .find(|path| path.is_file())  // Find any valid file
+                    .find(|path| path.is_file()) // Find any valid file
                     .expect("No valid files found");
 
                 // Extract the base name (file stem) without extension
-                let base_name = first_file.file_stem()
+                let base_name = first_file
+                    .file_stem()
                     .and_then(|s| s.to_str())
                     .expect("Failed to extract base name");
 
