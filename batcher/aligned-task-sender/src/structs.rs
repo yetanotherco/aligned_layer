@@ -56,10 +56,14 @@ pub struct GenerateAndFundWalletsArgs {
     pub eth_rpc_url: String,
     #[arg(
         name = "The funding wallet private key",
-        long = "funding-wallet-private-key"
+        long = "funding-wallet-private-key",
+        default_value = ""
     )]
     pub funding_wallet_private_key: String,
-    #[arg(name = "The number of wallets to generate", long = "number-wallets")]
+    #[arg(
+        name = "The number of wallets to generate",
+        long = "number-wallets"
+    )]
     pub number_of_wallets: usize,
     #[arg(
         name = "The amount to deposit to the wallets in ether",

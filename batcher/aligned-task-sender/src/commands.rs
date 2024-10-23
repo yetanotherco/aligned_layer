@@ -284,7 +284,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
     info!("Loading proofs verification data");
     let verification_data =
-        get_verification_data_from_generated(args.proofs_dir, senders[0].wallet.address());
+        get_verification_data_from_proofs_folder(args.proofs_dir, senders[0].wallet.address());
     if verification_data.is_empty() {
         error!("Verification data empty, not continuing");
         return;
@@ -296,20 +296,14 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     let mut handles = vec![];
     info!("Starting senders!");
     for (i, sender) in senders.iter().enumerate() {
-        // set the sender wallet address as the proof generator
-        let verification_data: Vec<VerificationData> = verification_data
-            .iter()
-            .map(|d| VerificationData {
-                proof_generator_addr: sender.wallet.address(),
-                ..d.clone()
-            })
-            .collect();
 
         // this is necessary because of the move
         let eth_rpc_url = args.eth_rpc_url.clone();
         let batcher_url = args.batcher_url.clone();
         let wallet = sender.wallet.clone();
+        let verification_data = verification_data.clone();
 
+        // a thread to send tasks from each loaded wallet:
         let handle = tokio::spawn(async move {
             // info!("Sender {} started", i);
             let mut nonce = get_next_nonce(&eth_rpc_url, wallet.address(), args.network.into())
@@ -322,10 +316,10 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
                 let mut result = Vec::with_capacity(args.burst_size);
                 while result.len() < args.burst_size {
-                    let samples = verification_data.choose_multiple(&mut thread_rng(), (args.burst_size - result.len()).min(verification_data.len()));
+                    let samples = verification_data.choose_multiple(&mut thread_rng(), args.burst_size - result.len());
                     result.extend(samples.cloned());
                 }
-                let verification_data = result;
+                let verification_data_to_send = result;
 
                 info!(
                     "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}, nonce: {}, address: {:?}",
@@ -338,7 +332,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                     &batcher_url.clone(),
                     // &eth_rpc_url.clone(),
                     args.network.into(),
-                    &verification_data.clone(),
+                    &verification_data_to_send.clone(),
                     &max_fees,
                     wallet.clone(),
                     nonce,
@@ -374,7 +368,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 }
 
 /// Returns the corresponding verification data for the generated proofs directory
-fn get_verification_data_from_generated(
+fn get_verification_data_from_proofs_folder(
     dir_path: String,
     default_addr: Address,
 ) -> Vec<VerificationData> {
