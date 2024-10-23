@@ -1,0 +1,16 @@
+[Unit]
+Description=Avs-Sync
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+EnvironmentFile=/home/ubuntu/config/.env.avssync
+WorkingDirectory=/home/ubuntu/repos/avs-sync
+ExecStart=/home/ubuntu/go/bin/avs-sync
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Aggregator
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/repos/aligned_layer
+ExecStart=/home/ubuntu/repos/aligned_layer/aggregator/build/aligned-aggregator --config /home/ubuntu/repos/aligned_layer/config-files/config.yaml
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,33 @@
+- name: Rust Setup
+  hosts: all
+  become: true
+  vars:
+    user: "{{ user }}"
+
+  pre_tasks:
+    - name: update repositories
+      apt: update_cache=yes
+      become_user: root
+      changed_when: False
+  tasks:
+    - name: check if cargo is installed
+      shell: . ~/.profile && cargo -v
+      register: cargo_exists
+      ignore_errors: true
+
+    - name: Download Installer
+      when: cargo_exists is failed
+      get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/sh.rustup.rs
+        mode: '0755'
+        force: 'yes'
+      tags:
+        - rust
+
+    - name: install rust/cargo
+      when: cargo_exists is failed
+      shell: /tmp/sh.rustup.rs -y
+      become_user: "{{ user }}"
+      tags:
+        - rust

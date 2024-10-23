@@ -1,0 +1,15 @@
+[Unit]
+Description=Operator Tracker
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/repos/tracker/aligned_layer/operator_tracker
+ExecStart=/home/ubuntu/.cargo/bin/operator_tracker --env-file /home/ubuntu/config/.env.tracker
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target

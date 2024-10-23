@@ -1,0 +1,16 @@
+- import_playbook: setup.yaml
+- import_playbook: go.yaml
+
+- hosts: aligned-holesky-others
+  become: true
+  vars:
+    user: "{{ user }}"
+
+  tasks:
+    # Clone avs-sync repository
+    - name: Clone Aligned repository
+      ansible.builtin.git:
+        repo: https://github.com/Layr-Labs/avs-sync.git
+        dest: /home/{{ user }}/repos/avs-sync
+      become_user: "{{ user }}"
+

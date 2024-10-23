@@ -1,0 +1,17 @@
+[Unit]
+Description=Telemetry
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+EnvironmentFile=/home/ubuntu/config/.env.telemetry
+Environment=PATH="$PATH:/home/ubuntu/.asdf/shims:/home/ubuntu/.asdf/bin:/usr/bin"
+WorkingDirectory=/home/ubuntu/repos/telemetry/aligned_layer
+ExecStart=/home/ubuntu/repos/telemetry/aligned_layer/telemetry_api/_build/prod/rel/telemetry_api/bin/telemetry_api start
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target

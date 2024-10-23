@@ -1,0 +1,49 @@
+- hosts: all
+
+  become: true
+  vars:
+    user: "{{ user }}"
+
+  tasks:
+    # Install required packages
+    - name: Update apt and install required system packages
+      apt:
+        pkg:
+          - curl
+          - vim
+          - git
+          - ufw
+          - make
+        state: latest
+        update_cache: true
+
+    # Allow SSH connections and deny by default
+    - name: UFW - Allow SSH connections
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: UFW - Enable and deny by default
+      community.general.ufw:
+        state: enabled
+        default: deny
+
+    # Create basic directories
+    - name: Create basic directories if do not exist
+      ansible.builtin.file:
+        path: /home/{{ user }}/{{ item }}
+        state: directory
+        mode: '0755'
+      become_user: "{{ user }}"
+      loop:
+        - repos
+        - config
+        - services
+
+    # Clone Aligned repository
+#    - name: Clone Aligned repository
+#      ansible.builtin.git:
+#        repo: https://github.com/yetanotherco/aligned_layer.git
+#        dest: /home/{{ user }}/repos/aligned_layer
+#        version: main
+#      become_user: "{{ user }}"

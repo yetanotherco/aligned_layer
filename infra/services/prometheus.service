@@ -1,0 +1,13 @@
+[Unit]
+Description=Prometheus
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/prometheus-2.52.0.linux-amd64
+ExecStart=/home/ubuntu/prometheus-2.52.0.linux-amd64/prometheus --config.file=/home/ubuntu/repos/aligned_layer/prometheus/prometheus.yaml
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
