@@ -5,10 +5,11 @@ use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use retry::{
+use retry::batcher_retry::{
     get_gas_price_retryable, get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
-    retry_function, user_balance_is_unlocked_retryable, RetryError,
+    user_balance_is_unlocked_retryable,
 };
+use retry::{retry_function, RetryError};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
