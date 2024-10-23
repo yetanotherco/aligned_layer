@@ -128,10 +128,10 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			return nil, connection.PermanentError{Inner: err}
 		}
 
-		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, new(big.Int).SetUint64(i))
+		tx, err = w.AvsContractBindings.ServiceManager.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, new(big.Int).SetInt64(int64(i)))
 		if err != nil {
 			// Retry with fallback
-			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, new(big.Int).SetUint64(i))
+			tx, err = w.AvsContractBindings.ServiceManagerFallback.RespondToTaskV2(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, new(big.Int).SetInt64(int64(i)))
 			if err != nil {
 				return nil, connection.PermanentError{Inner: err}
 			}
