@@ -137,7 +137,11 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		// don't wait if the i is low so the transaction gets replace on time
+		if i < 4 {
+			return nil, fmt.Errorf("err")
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 		defer cancel()
 		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
 
