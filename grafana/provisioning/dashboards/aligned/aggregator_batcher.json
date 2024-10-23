@@ -1256,7 +1256,7 @@
               },
               "disableTextWrap": false,
               "editorMode": "builder",
-              "expr": "aligned_respond_to_task_gas_price_bumped",
+              "expr": "aligned_respond_to_task_gas_price_bumped{bot=\"aggregator\"}",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
               "instant": false,
