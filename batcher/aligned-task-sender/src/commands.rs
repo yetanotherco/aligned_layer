@@ -1,4 +1,4 @@
-use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
+use aligned_sdk::core::types::{Network, ProvingSystemId, VerificationData};
 use aligned_sdk::sdk::{deposit_to_aligned, get_next_nonce, submit_multiple, submit_multiple_and_wait_verification};
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
@@ -64,6 +64,53 @@ pub async fn generate_proofs(args: GenerateProofsArgs) {
 }
 
 pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
+    if matches!(args.network.into(), Network::Devnet) {
+        let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
+            error!("Could not connect to eth rpc");
+            return;
+        };
+        let Ok(chain_id) = eth_rpc_provider.get_chainid().await else {
+            error!("Could not get chain id");
+            return;
+        };
+        let amount_to_deposit_to_aligned = parse_ether(&args.amount_to_deposit_to_aligned).expect("Ether format should be: XX.XX");
+
+        let file = match File::open(&args.private_keys_filepath) {
+            Ok(f) => f,
+            Err(err) => {
+                error!("Could not open private keys file: {}", err.to_string());
+                return;
+            }
+        };
+        let file_reader = BufReader::new(file);
+
+        let mut i = 0;
+        for line in file_reader.lines() {
+            i += 1;
+            if i > args.number_of_wallets {
+                break;
+            }
+            // Load the wallet
+            let private_key_str = line.unwrap();
+            let wallet = Wallet::from_str(private_key_str.trim()).expect("Invalid private key").with_chain_id(chain_id.as_u64());
+
+            // Send funds to aligned from the wallet
+            let funded_wallet_signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
+            tokio::time::sleep(Duration::from_millis(50)).await; // To avoid overloading the RPC
+            tokio::spawn(async move {
+                if let Err(err) =
+                        deposit_to_aligned(amount_to_deposit_to_aligned, funded_wallet_signer.clone(), args.network.into()).await
+                {
+                    error!("Could not deposit to aligned, err: {:?}", err);
+                    return;
+                }
+                info!("Successfully deposited to aligned for wallet {}", i);
+            });
+        }
+
+        return;
+    }
+
     info!("Creating and funding wallets");
     let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
         error!("Could not connect to eth rpc");
@@ -96,8 +143,11 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         let amount_to_deposit = args.amount_to_deposit.clone();
         let amount_to_deposit_aligned = args.amount_to_deposit_to_aligned.clone();
 
+        // Generate new wallet
         let wallet = Wallet::new(&mut thread_rng()).with_chain_id(chain_id.as_u64());
         info!("Generated wallet {} with address {:?}", i, wallet.address());
+        
+        // Fund the wallet
         let signer = SignerMiddleware::new(eth_rpc_provider.clone(), funding_wallet.clone());
         let amount_to_deposit =
             parse_ether(&amount_to_deposit).expect("Ether format should be: XX.XX");
@@ -119,6 +169,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         }
         info!("Wallet {} funded", i);
 
+        // Deposit to aligned
         let amount_to_deposit_to_aligned =
             parse_ether(&amount_to_deposit_aligned).expect("Ether format should be: XX.XX");
         info!(
@@ -134,6 +185,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         }
         info!("Successfully deposited to aligned for wallet {}", i);
 
+        // Store private key
         info!("Storing private key");
         let signer_bytes = wallet.signer().to_bytes();
         let secret_key_hex = ethers::utils::hex::encode(signer_bytes);

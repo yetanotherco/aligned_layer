@@ -106,7 +106,7 @@ anvil_start:
 
 anvil_start_with_block_time:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 1000
 
 _AGGREGATOR_:
 
@@ -437,11 +437,10 @@ task_sender_generate_and_fund_wallets_devnet:
 	cargo run --release -- generate-and-fund-wallets \
 	--eth-rpc-url http://localhost:8545 \
 	--network devnet \
-	--funding-wallet-private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80  \
 	--number-wallets $(NUM_WALLETS) \
-	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
-	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
-	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
+	--amount-to-deposit 1 \
+	--amount-to-deposit-to-aligned 0.9999 \
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
 
 task_sender_infinite_proofs_devnet:
 	@cd batcher/aligned-task-sender && \
@@ -451,7 +450,7 @@ task_sender_infinite_proofs_devnet:
 	--batcher-url ws://localhost:8080 \
 	--network devnet \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.devnet
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
 
 task_sender_test_connections_devnet:
 	@cd batcher/aligned-task-sender && \
@@ -469,7 +468,7 @@ task_sender_generate_and_fund_wallets_holesky_stage:
 	--number-wallets $(NUM_WALLETS) \
 	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
 	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
-	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.holesky-stage
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
 
 task_sender_infinite_proofs_holesky_stage:
 	@cd batcher/aligned-task-sender && \
@@ -479,7 +478,7 @@ task_sender_infinite_proofs_holesky_stage:
 	--batcher-url wss://stage.batcher.alignedlayer.com  \
 	--network holesky-stage \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.holesky-stage
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
 
 task_sender_test_connections_holesky_stage:
 	@cd batcher/aligned-task-sender && \
@@ -497,7 +496,7 @@ task_sender_generate_and_fund_wallets_holesky:
 	--number-wallets $(NUM_WALLETS) \
 	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
 	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
-	--private-keys-filepath $(CURDIR)/scripts/test-file/task_sender/wallets/funded_wallets.holesky
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky
 
 task_sender_infinite_proofs_holesky:
 	@cd batcher/aligned-task-sender && \
@@ -507,7 +506,7 @@ task_sender_infinite_proofs_holesky:
 	--batcher-url wss://batcher.alignedlayer.com  \
 	--network holesky \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/scripts/test_files/task_sender/wallets/funded_wallets.holesky
+	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky
 
 task_sender_test_connections_holesky:
 	@cd batcher/aligned-task-sender && \

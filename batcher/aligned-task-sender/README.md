@@ -18,8 +18,6 @@ We also have a make target:
 ```
 NUMBER_OF_PROOFS=15 make task_sender_generate_groth16_proofs
 ```
-
-
 ## GenerateAndFundWallets
 
 This command is to generate N wallets, and fund them in the BatcherPaymentService.
@@ -36,6 +34,12 @@ To run it, you can:
         --private-keys-filepath <PATH_TO_PRIVATE_KEYS_FILE>
 ```
 
+In Devnet:
+Run anvil with more prefunded accounts, using the `-a 1000` flag.
+Then run the following make target, `NUM_WALLETS` being the amount of wallets you want to deposit funds to aligned payment service, up to 1000.
+```bash
+NUM_WALLETS=123 make task_sender_generate_and_fund_wallets_devnet
+```
 
 ## SendInfiniteProofs
 
