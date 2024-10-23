@@ -413,7 +413,7 @@ impl Batcher {
             return Ok(());
         }
 
-        let nonced_verification_data = client_msg.verification_data.clone();
+        let mut nonced_verification_data = client_msg.verification_data.clone();
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
@@ -569,18 +569,15 @@ impl Batcher {
             return Ok(());
         }
 
-        let msg_max_fee = nonced_verification_data.max_fee;
         let Some(user_min_fee) = batch_state_lock.get_user_min_fee(&addr).await else {
             std::mem::drop(batch_state_lock);
             send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidNonce).await;
             return Ok(());
         };
 
-        if msg_max_fee > user_min_fee {
-            std::mem::drop(batch_state_lock);
-            warn!("Invalid max fee for address {addr}, had fee {user_min_fee:?} < {msg_max_fee:?}");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
-            return Ok(());
+        // Force current max fee to be less or equal than previous max fee
+        if nonced_verification_data.max_fee > user_min_fee {
+            nonced_verification_data.max_fee = user_min_fee;
         }
 
         // * ---------------------------------------------------------------------*
