@@ -93,7 +93,7 @@ COPY batcher/ /aligned_layer/batcher/
 COPY --from=chef_builder /aligned_layer/operator/sp1/lib/target/ /aligned_layer/operator/sp1/lib/target/
 WORKDIR /aligned_layer/operator/sp1/lib
 RUN cargo build ${RELEASE_FLAG}
-RUN cp /aligned_layer/operator/sp1/lib/target/${TARGET_REL_PATH}/libsp1_verifier_ffi.so /aligned_layer/operator/sp1/lib/libsp1_verifier.so
+RUN cp /aligned_layer/operator/sp1/lib/target/${TARGET_REL_PATH}/libsp1_verifier_ffi.so /aligned_layer/operator/sp1/lib/libsp1_verifier_ffi.so
 
 # build_risc_zero_linux
 COPY --from=chef_builder /aligned_layer/operator/risc_zero/lib/target/ /aligned_layer/operator/risc_zero/lib/target/
