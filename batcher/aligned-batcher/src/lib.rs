@@ -7,8 +7,7 @@ use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::{
     get_gas_price_retryable, get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
-    retry_function, user_balance_is_unlocked_retryable, RetryError, DEFAULT_FACTOR,
-    DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY,
+    retry_function, user_balance_is_unlocked_retryable, RetryError,
 };
 use types::batch_state::BatchState;
 use types::user_state::UserState;
@@ -20,9 +19,9 @@ use std::sync::Arc;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
-    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
-    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_FACTOR, DEFAULT_MAX_FEE_PER_PROOF,
+    DEFAULT_MAX_TIMES, DEFAULT_MIN_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF,
+    PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
@@ -1391,7 +1390,7 @@ impl Batcher {
             DEFAULT_MAX_TIMES,
         )
         .await
-        .map_err(|_| BatcherError::BatchUploadError("Error uploading batch to s3".to_string()))
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))
     }
 
     async fn upload_batch_to_s3_retryable(

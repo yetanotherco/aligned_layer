@@ -6,10 +6,6 @@ use std::{future::Future, time::Duration};
 
 use crate::eth::payment_service::BatcherPaymentService;
 
-pub const DEFAULT_MIN_DELAY: u64 = 2000;
-pub const DEFAULT_MAX_TIMES: usize = 3;
-pub const DEFAULT_FACTOR: f32 = 2.0;
-
 #[derive(Debug)]
 pub enum RetryError<E> {
     Transient(E),
