@@ -14,7 +14,7 @@ import (
 )
 
 const maxRetries = 25
-const sleepTime = 5 * time.Second
+const sleepTime = 1000 * time.Millisecond
 
 func WaitForTransactionReceipt(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
 	for i := 0; i < maxRetries; i++ {
