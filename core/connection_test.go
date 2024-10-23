@@ -17,7 +17,7 @@ func DummyFunction(x uint64) (uint64, error) {
 	return x, nil
 }
 
-// here we run the dummy function and with the retry and check:
+// here we run the dummy function with the retry and check:
 // - The number of retries checks based on the `n`
 // - The returned valued matches based on the `n`
 // - The returned err matches based on the `n`
