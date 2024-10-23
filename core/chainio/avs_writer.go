@@ -21,7 +21,9 @@ import (
 )
 
 const (
-	gasBumpPercentage int = 20
+	GasBumpPercentage int = 20
+	// wait as much as 3 blocks time for the receipt
+	SendAggregateResponseReceiptTimeout time.Duration = time.Second * 36
 )
 
 type AvsWriter struct {
@@ -119,7 +121,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				return nil, fmt.Errorf("transaction simulation failed: %v", err)
 			}
 		}
-		txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, gasBumpPercentage, i)
+		txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, GasBumpPercentage, i)
 
 		w.logger.Infof("Sending ResponseToTask transaction with a gas price of %v", txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
@@ -137,7 +139,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*36)
+		ctx, cancel := context.WithTimeout(context.Background(), SendAggregateResponseReceiptTimeout)
 		defer cancel()
 		receipt, err := utils.WaitForTransactionReceipt(w.Client, ctx, tx.Hash())
 
