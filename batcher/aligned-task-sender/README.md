@@ -43,7 +43,9 @@ NUM_WALLETS=123 make task_sender_generate_and_fund_wallets_devnet
 
 ## SendInfiniteProofs
 
-This command infi
+This command sends `BURST_SIZE` proofs from each private key in `PATH_TO_PRIVATE_KEYS_FILE`.
+
+To vary the amount of senders, it is recommended to have a backup with all private keys, and add/remove keys from the file being used.
 
 To run it, you can:
 ```
