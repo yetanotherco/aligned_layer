@@ -263,7 +263,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]),
 		"taskCreatedBlock", taskCreatedBlock)
 
-	err := agg.avsSubscriber.WaitForOneBlockRetryable(taskCreatedBlock)
+	err := agg.avsSubscriber.WaitForOneBlock(taskCreatedBlock)
 	if err != nil {
 		agg.logger.Error("Error waiting for one block, sending anyway", "err", err)
 	}

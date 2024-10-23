@@ -1,7 +1,6 @@
 package connection_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -19,9 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
-	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	connection "github.com/yetanotherco/aligned_layer/core"
-	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
@@ -75,10 +72,7 @@ func SetupAnvil(port uint16) (*exec.Cmd, *eth.InstrumentedClient, error) {
 
 	// Create a command
 	cmd := exec.Command("anvil", "--port", port_str, "--load-state", "../contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json", "--block-time", "7")
-
-	// Prepare to capture the output
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	// Run the command
 	err = cmd.Start()
@@ -174,12 +168,10 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		return
 	}
 
-	// TODO: wait for transaction returns nil for receipt and err if nno connection.
-	// Check that permanent error thrown
+	// Fails
 	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
 	assert.Nil(t, receipt, "Receipt not empty")
-	assert.NotNil(t, err, "Retry ")
-	fmt.Printf("emitted error: %s\n", err)
+	assert.NotEqual(t, err.Error(), "not found")
 
 	// Start anvil
 	_, client, err = SetupAnvil(8545)
@@ -194,6 +186,8 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 	}
 }
 
+/*
+
 func TestSendAggregatedResponseRetryable(t *testing.T) {
 }
 
@@ -201,22 +195,24 @@ func TestInitializeNewTaskRetryable(t *testing.T) {
 	//TODO: Instantiate Aggregator
 }
 
+// |--Server Retry Tests--|
+func TestProcessNewSignatureRetryable(t *testing.T) {
+		agg := NewAggregator()
+		agg.ProcessNewSignatureRetryable()
+}
+
 // |--Subscriber Retry Tests--|
 
 func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
-	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
+		newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
-	baseConfig := core.NewBaseConfig("")
-	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(baseConfig)
-	if err != nil {
-		return nil, err
-	}
+		baseConfig := core.NewBaseConfig("")
+		avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(baseConfig)
+		if err != nil {
+			return nil, err
+		}
 
-	agg.taskSubscriber, err = avsSubscriber.SubscribeToNewTasksV3Retryable(newBatchChan)
-}
-
-// |--Server Retry Tests--|
-func TestProcessNewSignatureRetryable(t *testing.T) {
+		agg.taskSubscriber, err = avsSubscriber.SubscribeToNewTasksV3Retryable(newBatchChan)
 }
 
 // |--AVS-Writer Retry Tests--|
@@ -224,7 +220,7 @@ func TestProcessNewSignatureRetryable(t *testing.T) {
 func TestRespondToTaskV2(t *testing.T) {
 }
 
-func TestBatchesState(t *testing.T) {
+func TestBatchesStateWriter(t *testing.T) {
 }
 
 func TestBalanceAt(t *testing.T) {
@@ -238,11 +234,21 @@ func TestBatchersBalances(t *testing.T) {
 func TestSubscribeToNewTasksV2(t *testing.T) {
 }
 
-func TestWatchNewBatchV2(t *testing.T) {
-}
-
 func TestSubscribeToNewTasksV3(t *testing.T) {
 }
 
-func TestWatchNewBatchV3(t *testing.T) {
+func TestBlockNumber(t *testing.T) {
 }
+
+func TestFilterBatchV2(t *testing.T) {
+}
+
+func TestFilterBatchV3(t *testing.T) {
+}
+
+func TestBatchesStateSubscriber(t *testing.T) {
+}
+
+func TestSubscribeNewHead(t *testing.T) {
+}
+*/

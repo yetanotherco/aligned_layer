@@ -101,7 +101,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2Retrayable(newTaskCreatedChan chan 
 				s.processNewBatchV2(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			case <-pollLatestBatchTicker.C:
 				//TODO: Retry()
-				latestBatch, err := s.getLatestNotRespondedTaskFromEthereumV2Retryable()
+				latestBatch, err := s.getLatestNotRespondedTaskFromEthereumV2()
 				if err != nil {
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
@@ -303,7 +303,7 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 	}
 }
 
-func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context) (*uint64, error) {
+func (s *AvsSubscriber) blockNumberRetryable(ctx context.Context) (*uint64, error) {
 	latestBlock_func := func() (*uint64, error) {
 		latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(ctx)
 		if err != nil {
@@ -354,7 +354,6 @@ func (s *AvsSubscriber) subscribeNewHeadRetryable(ctx context.Context, c chan<- 
 	subscribeNewHead_func := func() (*ethereum.Subscription, error) {
 		sub, err := s.AvsContractBindings.ethClient.SubscribeNewHead(ctx, c)
 		if err != nil {
-			//TODO: Retry()
 			sub, err = s.AvsContractBindings.ethClientFallback.SubscribeNewHead(ctx, c)
 			if err != nil {
 				return nil, err
@@ -366,10 +365,10 @@ func (s *AvsSubscriber) subscribeNewHeadRetryable(ctx context.Context, c chan<- 
 }
 
 // getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
-func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2Retryable() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
+func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, error) {
 
 	// Retry()
-	latestBlock, err := s.BlockNumberRetryable(context.Background())
+	latestBlock, err := s.blockNumberRetryable(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +381,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2Retryable() (*ser
 		fromBlock = *latestBlock - BlockInterval
 	}
 
-	//TODO: Retry()
+	// Retry()
 	logs, err := s.filterBatchV2Retryable(fromBlock, context.Background())
 	if err != nil {
 		return nil, err
@@ -405,19 +404,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2Retryable() (*ser
 
 	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-	//TODO: Retry()
-	/*
-		batchState_func := func() (*struct {
-			TaskCreatedBlock      uint32
-			Responded             bool
-			RespondToTaskFeeLimit *big.Int
-		}, error) {
-			state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
-			return &state, err
-		}
-
-		state, err := connection.RetryWithData(batchState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-	*/
+	// Retry()
 	state, err := s.batchesStateRetryable(nil, batchIdentifierHash)
 	if err != nil {
 		return nil, err
@@ -433,7 +420,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2Retryable() (*ser
 // getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
 func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3Retryable() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
 	// Retry()
-	latestBlock, err := s.BlockNumberRetryable(context.Background())
+	latestBlock, err := s.blockNumberRetryable(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +433,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3Retryable() (*ser
 		fromBlock = *latestBlock - BlockInterval
 	}
 
-	//TODO: Retry()
+	// Retry()
 	logs, err := s.filterBatchV3Retryable(fromBlock, context.Background())
 	if err != nil {
 		return nil, err
@@ -469,7 +456,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3Retryable() (*ser
 
 	batchIdentifier := append(lastLog.BatchMerkleRoot[:], lastLog.SenderAddress[:]...)
 	batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-	//TODO: Retry()
+	// Retry()
 	state, err := s.batchesStateRetryable(nil, batchIdentifierHash)
 	if err != nil {
 		return nil, err
@@ -482,9 +469,9 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3Retryable() (*ser
 	return lastLog, nil
 }
 
-func (s *AvsSubscriber) WaitForOneBlockRetryable(startBlock uint64) error {
-	//TODO: Retry()
-	currentBlock, err := s.BlockNumberRetryable(context.Background())
+func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
+	// Retry()
+	currentBlock, err := s.blockNumberRetryable(context.Background())
 	if err != nil {
 		return err
 	}
@@ -492,7 +479,7 @@ func (s *AvsSubscriber) WaitForOneBlockRetryable(startBlock uint64) error {
 	if *currentBlock <= startBlock { // should really be == but just in case
 		// Subscribe to new head
 		c := make(chan *types.Header)
-		//TODO: Retry()
+		// Retry()
 		sub, err := s.subscribeNewHeadRetryable(context.Background(), c)
 		if err != nil {
 			return err
