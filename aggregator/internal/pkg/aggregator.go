@@ -270,7 +270,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 
 	agg.logger.Info("Sending aggregated response onchain", "taskIndex", blsAggServiceResp.TaskIndex,
 		"batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
-	//TODO: Retry()
+
 	_, err = agg.sendAggregatedResponse(batchIdentifierHash, batchData.BatchMerkleRoot, batchData.SenderAddress, nonSignerStakesAndSignature)
 	if err == nil {
 		agg.logger.Info("Aggregator successfully responded to task",
@@ -288,7 +288,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 	agg.telemetry.LogTaskError(batchData.BatchMerkleRoot, err)
 }
 
-// TODO: should we assume this is idempotent
+// TODO(pat): should we be retrying the entire Send -> Receive Receipt step? For bumping the gas fee this is needed.
 
 // / Sends response to contract and waits for transaction receipt
 // / Returns error if it fails to send tx or receipt is not found
@@ -300,6 +300,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
+	// Retry
 	txHash, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
 	if err != nil {
 		agg.walletMutex.Unlock()
@@ -311,6 +312,7 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 	agg.walletMutex.Unlock()
 	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchIdentifierHash[:]))
 
+	// Retry
 	receipt, err := utils.WaitForTransactionReceiptRetryable(
 		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
 	if err != nil {
@@ -365,10 +367,8 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	quorumNums := eigentypes.QuorumNums{eigentypes.QuorumNum(QUORUM_NUMBER)}
 	quorumThresholdPercentages := eigentypes.QuorumThresholdPercentages{eigentypes.QuorumThresholdPercentage(QUORUM_THRESHOLD)}
 
-	initilizeNewTask_func := func() error {
-		return agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
-	}
-	err := connection.Retry(initilizeNewTask_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	// Retry
+	err := agg.InitializeNewTaskRetryable(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
 	// FIXME(marian): When this errors, should we retry initializing new task? Logging fatal for now.
 	if err != nil {
 		agg.logger.Fatalf("BLS aggregation service error when initializing new task: %s", err)
@@ -378,4 +378,12 @@ func (agg *Aggregator) AddNewTask(batchMerkleRoot [32]byte, senderAddress [20]by
 	agg.taskMutex.Unlock()
 	agg.AggregatorConfig.BaseConfig.Logger.Info("- Unlocked Resources: Adding new task")
 	agg.logger.Info("New task added", "batchIndex", batchIndex, "batchIdentifierHash", "0x"+hex.EncodeToString(batchIdentifierHash[:]))
+}
+
+func (agg *Aggregator) InitializeNewTaskRetryable(batchIndex uint32, taskCreatedBlock uint32, quorumNums eigentypes.QuorumNums, quorumThresholdPercentages eigentypes.QuorumThresholdPercentages, timeToExpiry time.Duration) error {
+	initilizeNewTask_func := func() error {
+		// Returns an error if the
+		return agg.blsAggregationService.InitializeNewTask(batchIndex, taskCreatedBlock, quorumNums, quorumThresholdPercentages, 100*time.Second)
+	}
+	return connection.Retry(initilizeNewTask_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 }

@@ -19,7 +19,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	connection "github.com/yetanotherco/aligned_layer/core"
+	"github.com/yetanotherco/aligned_layer/core/chainio"
 	"github.com/yetanotherco/aligned_layer/core/utils"
 )
 
@@ -131,22 +133,27 @@ func TestAnvilSetupKill(t *testing.T) {
 	assert.Nil(t, err, "Anvil Process Killed")
 }
 
+// |--Aggreagator Retry Tests--|
+
 // Waits for receipt from anvil node -> Will fail to get receipt
 func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 
 	// Retry call Params
-	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
+	to := common.BytesToAddress([]byte{0x11})
 	tx := types.NewTx(&types.AccessListTx{
+		ChainID:  big.NewInt(1337),
 		Nonce:    1,
-		GasPrice: big.NewInt(500),
-		Gas:      1000000,
+		GasPrice: big.NewInt(11111),
+		Gas:      1111,
 		To:       &to,
-		Value:    big.NewInt(1),
+		Value:    big.NewInt(111),
+		Data:     []byte{0x11, 0x11, 0x11},
 	})
 
 	ctx := context.WithoutCancel(context.Background())
 
 	hash := tx.Hash()
+
 	// Start anvil
 	cmd, client, err := SetupAnvil(8545)
 	if err != nil {
@@ -155,7 +162,11 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 
 	// Assert Call succeeds why Anvil running
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
-	assert.NotNil(t, err, "Call to Anvil failed")
+	assert.NotNil(t, err, "Error Waiting for Transaction with Anvil Running: %s\n", err)
+	if err.Error() != "not found" {
+		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
+		return
+	}
 
 	// Kill Anvil
 	if err := cmd.Process.Kill(); err != nil {
@@ -163,29 +174,75 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		return
 	}
 
+	// TODO: wait for transaction returns nil for receipt and err if nno connection.
 	// Check that permanent error thrown
-	_, err = utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
-	if err != nil {
-		t.Errorf("Retry error!: %s", err)
-	}
+	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
+	assert.Nil(t, receipt, "Receipt not empty")
+	assert.NotNil(t, err, "Retry ")
+	fmt.Printf("emitted error: %s\n", err)
 
 	// Start anvil
 	_, client, err = SetupAnvil(8545)
 	if err != nil {
 		fmt.Printf("Error setting up Anvil: %s\n", err)
 	}
+
 	_, err = utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
 	assert.NotNil(t, err, "Call to Anvil failed")
+	if err.Error() != "not found" {
+		fmt.Printf("WaitForTransactionReceipt Emitted incorrect error: %s\n", err)
+	}
 }
+
+func TestSendAggregatedResponseRetryable(t *testing.T) {
+}
+
+func TestInitializeNewTaskRetryable(t *testing.T) {
+	//TODO: Instantiate Aggregator
+}
+
+// |--Subscriber Retry Tests--|
+
+func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
+	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
+
+	baseConfig := core.NewBaseConfig("")
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(baseConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	agg.taskSubscriber, err = avsSubscriber.SubscribeToNewTasksV3Retryable(newBatchChan)
+}
+
+// |--Server Retry Tests--|
+func TestProcessNewSignatureRetryable(t *testing.T) {
+}
+
+// |--AVS-Writer Retry Tests--|
 
 func TestRespondToTaskV2(t *testing.T) {
 }
 
-func TestRespondToTaskV3(t *testing.T) {
+func TestBatchesState(t *testing.T) {
 }
 
-func SubscribeToNewTasksV2(t *testing.T) {
+func TestBalanceAt(t *testing.T) {
 }
 
-func SubscribeToNewTasksV3(t *testing.T) {
+func TestBatchersBalances(t *testing.T) {
+}
+
+// |--AVS-Subscriber Retry Tests--|
+
+func TestSubscribeToNewTasksV2(t *testing.T) {
+}
+
+func TestWatchNewBatchV2(t *testing.T) {
+}
+
+func TestSubscribeToNewTasksV3(t *testing.T) {
+}
+
+func TestWatchNewBatchV3(t *testing.T) {
 }

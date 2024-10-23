@@ -71,6 +71,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2Retrayable(newTaskCreatedChan chan 
 
 	// Subscribe to new tasks
 	//TODO: Retry()
+	//TODO: Consolidate
 	sub, err := subscribeToNewTasksV2Retrayable(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
@@ -146,6 +147,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3Retryable(newTaskCreatedChan chan *
 
 	// Subscribe to new tasks
 	//TODO: Retry()
+	//TODO(pat): refactor fallbacks behind retry
 	sub, err := subscribeToNewTasksV3Retryable(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
@@ -153,6 +155,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3Retryable(newTaskCreatedChan chan *
 	}
 
 	//TODO: Retry()
+	//TODO(pat): refactor fallbacks behind retry
 	subFallback, err := subscribeToNewTasksV3Retryable(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
@@ -215,12 +218,17 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3Retryable(newTaskCreatedChan chan *
 	return errorChannel, nil
 }
 
+func watchNewBatchV2(opts *bind.WatchOpts, sink chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchMerkleRoot [][32]byte) (*event.Subscription, error) {
+
+}
+
 func subscribeToNewTasksV2Retrayable(
 	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
 	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2,
 	logger sdklogging.Logger,
 ) (event.Subscription, error) {
 	//TODO: Retry()
+	//TODO(pat): refactor fallbacks behind retry
 	subscribe_func := func() (*event.Subscription, error) {
 		sub, err := serviceManager.WatchNewBatchV2(&bind.WatchOpts{}, newTaskCreatedChan, nil)
 		return &sub, err

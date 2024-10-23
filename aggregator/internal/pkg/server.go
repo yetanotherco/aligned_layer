@@ -7,6 +7,9 @@ import (
 	"net/rpc"
 	"time"
 
+	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
+	eigentypes "github.com/Layr-Labs/eigensdk-go/types"
+	connection "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/types"
 )
 
@@ -52,6 +55,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	taskIndex := uint32(0)
 	ok := false
 
+	//TODO(pat): This is retried but waits are internal map aka is not a fallable connection
 	for i := 0; i < waitForEventRetries; i++ {
 		agg.taskMutex.Lock()
 		agg.AggregatorConfig.BaseConfig.Logger.Info("- Locked Resources: Starting processing of Response")
@@ -82,7 +86,8 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
-		err := agg.blsAggregationService.ProcessNewSignature(
+		// Retry
+		err := agg.ProcessNewSignatureRetryable(
 			context.Background(), taskIndex, signedTaskResponse.BatchIdentifierHash,
 			&signedTaskResponse.BlsSignature, signedTaskResponse.OperatorId,
 		)
@@ -120,4 +125,16 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	*reply = 1
 	return nil
+}
+
+func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
+	processNewSignature_func := func() error {
+		return agg.blsAggregationService.ProcessNewSignature(
+			context.Background(), taskIndex, taskResponse,
+			blsSignature, operatorId,
+		)
+	}
+
+	return connection.Retry(processNewSignature_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+
 }

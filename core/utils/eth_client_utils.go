@@ -10,13 +10,11 @@ import (
 	connection "github.com/yetanotherco/aligned_layer/core"
 )
 
+// Does not
 func WaitForTransactionReceiptRetryable(client eth.InstrumentedClient, ctx context.Context, txHash gethcommon.Hash) (*types.Receipt, error) {
+	// For if no receipt and no error TransactionReceipt return "not found" as an error catch all ref: https://github.com/ethereum/go-ethereum/blob/master/ethclient/ethclient.go#L313
 	receipt_func := func() (*types.Receipt, error) { return client.TransactionReceipt(ctx, txHash) }
-	receipt, err := connection.RetryWithData(receipt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-	if err != nil {
-		return nil, err
-	}
-	return receipt, nil
+	return connection.RetryWithData(receipt_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 }
 
 func BytesToQuorumNumbers(quorumNumbersBytes []byte) eigentypes.QuorumNums {
