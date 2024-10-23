@@ -35,6 +35,8 @@ pub enum ProvingSystemId {
     #[default]
     SP1,
     Risc0,
+    Mina,
+    MinaAccount,
 }
 
 impl Display for ProvingSystemId {
@@ -45,6 +47,8 @@ impl Display for ProvingSystemId {
             ProvingSystemId::Groth16Bn254 => write!(f, "Groth16Bn254"),
             ProvingSystemId::SP1 => write!(f, "SP1"),
             ProvingSystemId::Risc0 => write!(f, "Risc0"),
+            ProvingSystemId::Mina => write!(f, "Mina"),
+            ProvingSystemId::MinaAccount => write!(f, "MinaAccount"),
         }
     }
 }

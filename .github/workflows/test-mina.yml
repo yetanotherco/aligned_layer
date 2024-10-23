@@ -1,0 +1,33 @@
+name: test-mina
+
+on:
+  merge_group:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["*"]
+    paths:
+      - 'operator/mina/**'
+      - 'operator/mina_account/**'
+      - '.github/workflows/test-mina.yml'
+
+jobs:
+    test:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-go@v5
+          with:
+            go-version: '1.22'
+            cache: false
+        - uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+        - name: Test Mina Rust
+          run: make test_mina_rust_ffi
+        - name: Test Mina go bindings
+          run: make test_mina_go_bindings_linux
+        - name: Test Mina Account Rust
+          run: make test_mina_account_rust_ffi
+        - name: Test Mina Account go bindings
+          run: make test_mina_account_go_bindings_linux

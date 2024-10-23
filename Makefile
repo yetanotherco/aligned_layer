@@ -17,7 +17,7 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
+	LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -417,6 +417,48 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
+batcher_send_mina_task:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_task_bad_hash:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state_bad_hash.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state.pub \
+		--repetitions 15 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_account_task:
+	@echo "Sending Mina account task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system MinaAccount \
+		--proof ../../scripts/test_files/mina_account/mina_account.proof \
+		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+batcher_send_mina_account_burst:
+	@echo "Sending Mina account task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system MinaAccount \
+		--proof ../../scripts/test_files/mina_account/mina_account.proof \
+		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
+		--repetitions 15 \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
@@ -597,6 +639,48 @@ test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
 	go test ./operator/merkle_tree_old/... -v
 
 
+__MINA_FFI__: ##
+build_mina_macos:
+	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.dylib operator/mina/lib/libmina_state_verifier_ffi.dylib
+
+build_mina_linux:
+	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.so operator/mina/lib/libmina_state_verifier_ffi.so
+
+test_mina_rust_ffi:
+	@echo "Testing Mina Rust FFI source code..."
+	@cd operator/mina/lib && cargo t --release
+
+test_mina_go_bindings_macos: build_mina_macos
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
+
+test_mina_go_bindings_linux: build_mina_linux
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
+
+__MINA_ACCOUNT_FFI__: ##
+build_mina_account_macos:
+	@cd operator/mina_account/lib && cargo build --release
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.dylib operator/mina_account/lib/libmina_account_verifier_ffi.dylib
+
+build_mina_account_linux:
+	@cd operator/mina_account/lib && cargo build --release
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.so operator/mina_account/lib/libmina_account_verifier_ffi.so
+
+test_mina_account_rust_ffi:
+	@echo "Testing Mina Account Rust FFI source code..."
+	@cd operator/mina_account/lib && cargo t --release
+
+test_mina_account_go_bindings_macos: build_mina_account_macos
+	@echo "Testing Mina Account Go bindings..."
+	go test ./operator/mina_account/... -v
+
+test_mina_account_go_bindings_linux: build_mina_account_linux
+	@echo "Testing Mina Account Go bindings..."
+	go test ./operator/mina_account/... -v
+
 __BUILD_ALL_FFI__:
 
 build_all_ffi: ## Build all FFIs
@@ -608,6 +692,8 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_mina_macos
+	@$(MAKE) build_mina_account_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -615,6 +701,8 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_mina_linux
+	@$(MAKE) build_mina_account_linux
 	@echo "All Linux FFIs built successfully."
 
 __EXPLORER__:

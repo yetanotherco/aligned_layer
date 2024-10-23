@@ -483,6 +483,35 @@ make batcher_send_burst_groth16
 </details>
 
 <details>
+<summary>Mina</summary>
+
+Send an individual Mina State proof:
+
+```bash
+make batcher_send_mina_task
+```
+
+Send a burst of 15 Mina State proofs:
+
+```bash
+make batcher_send_mina_burst
+```
+
+Send an individual Mina Account inclusion proof:
+
+```bash
+make batcher_send_mina_account_task
+```
+
+Send a burst of 15 Mina Account inclusion proofs:
+
+```bash
+make batcher_send_mina_account_burst
+```
+
+</details>
+
+<details>
 <summary>Send a specific proof:</summary>
 
 To install the Aligned client to send a specific proof, run:

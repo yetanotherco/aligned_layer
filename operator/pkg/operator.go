@@ -17,6 +17,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/operator/mina"
+	"github.com/yetanotherco/aligned_layer/operator/mina_account"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 	"golang.org/x/crypto/sha3"
 
@@ -526,6 +528,28 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		o.handleVerificationResult(results, verificationResult, err, "RiscZero proof verification")
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
+		results <- verificationResult
+	case common.Mina:
+		proofLen := (uint)(len(verificationData.Proof))
+		pubInputLen := (uint)(len(verificationData.PubInput))
+		proofBuffer := make([]byte, mina.MAX_PROOF_SIZE)
+		copy(proofBuffer, verificationData.Proof)
+		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
+		copy(pubInputBuffer, verificationData.PubInput)
+
+		verificationResult := mina.VerifyMinaState(([mina.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
+		results <- verificationResult
+	case common.MinaAccount:
+		proofLen := (uint)(len(verificationData.Proof))
+		pubInputLen := (uint)(len(verificationData.PubInput))
+		proofBuffer := make([]byte, mina.MAX_PROOF_SIZE)
+		copy(proofBuffer, verificationData.Proof)
+		pubInputBuffer := make([]byte, mina.MAX_PUB_INPUT_SIZE)
+		copy(pubInputBuffer, verificationData.PubInput)
+
+		verificationResult := mina_account.VerifyAccountInclusion(([mina_account.MAX_PROOF_SIZE]byte)(proofBuffer), proofLen, ([mina_account.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), (uint)(pubInputLen))
+		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")

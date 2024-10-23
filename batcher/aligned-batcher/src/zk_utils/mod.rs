@@ -4,6 +4,8 @@ use crate::sp1::verify_sp1_proof;
 use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
 use ethers::types::U256;
 use log::{debug, warn};
+use mina_account_verifier_ffi::verify_account_inclusion_ffi;
+use mina_state_verifier_ffi::verify_mina_state_ffi;
 
 pub(crate) async fn verify(verification_data: &VerificationData) -> bool {
     let verification_data = verification_data.clone();
@@ -63,6 +65,52 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             debug!("Gnark proof is valid: {}", is_valid);
             is_valid
         }
+        ProvingSystemId::Mina => {
+            let pub_input = verification_data
+                .pub_input
+                .as_ref()
+                .expect("Public input is required");
+
+            const MAX_PROOF_SIZE: usize = 48 * 1024;
+            const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
+
+            let mut proof_buffer = [0; MAX_PROOF_SIZE];
+            for (buffer_item, proof_item) in proof_buffer.iter_mut().zip(&verification_data.proof) {
+                *buffer_item = *proof_item;
+            }
+            let proof_len = verification_data.proof.len();
+
+            let mut pub_input_buffer = [0; MAX_PUB_INPUT_SIZE];
+            for (buffer_item, pub_input_item) in pub_input_buffer.iter_mut().zip(pub_input) {
+                *buffer_item = *pub_input_item;
+            }
+            let pub_input_len = pub_input.len();
+
+            verify_mina_state_ffi(&proof_buffer, proof_len, &pub_input_buffer, pub_input_len)
+        }
+        ProvingSystemId::MinaAccount => {
+            let pub_input = verification_data
+                .pub_input
+                .as_ref()
+                .expect("Public input is required");
+
+            const MAX_PROOF_SIZE: usize = 16 * 1024;
+            const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
+
+            let mut proof_buffer = [0; MAX_PROOF_SIZE];
+            for (buffer_item, proof_item) in proof_buffer.iter_mut().zip(&verification_data.proof) {
+                *buffer_item = *proof_item;
+            }
+            let proof_len = verification_data.proof.len();
+
+            let mut pub_input_buffer = [0; MAX_PUB_INPUT_SIZE];
+            for (buffer_item, pub_input_item) in pub_input_buffer.iter_mut().zip(pub_input) {
+                *buffer_item = *pub_input_item;
+            }
+            let pub_input_len = pub_input.len();
+
+            verify_account_inclusion_ffi(&proof_buffer, proof_len, &pub_input_buffer, pub_input_len)
+        }
     }
 }
 
@@ -95,6 +143,8 @@ mod test {
                 ProvingSystemId::GnarkPlonkBls12_381 => (),
                 ProvingSystemId::GnarkPlonkBn254 => (),
                 ProvingSystemId::Groth16Bn254 => (),
+                ProvingSystemId::Mina => (),
+                ProvingSystemId::MinaAccount => (),
             }
         }
         verifiers

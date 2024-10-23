@@ -16,10 +16,12 @@ const (
 	Groth16Bn254
 	SP1
 	Risc0
+	Mina
+	MinaAccount
 )
 
 func (t *ProvingSystemId) String() string {
-	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1"}[*t]
+	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1", "Mina", "MinaAccount"}[*t]
 }
 
 func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
@@ -34,6 +36,10 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return SP1, nil
 	case "Risc0":
 		return Risc0, nil
+	case "Mina":
+		return Mina, nil
+	case "MinaAccount":
+		return MinaAccount, nil
 	}
 
 	return 0, fmt.Errorf("unknown proving system: %s", provingSystem)
@@ -51,6 +57,10 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "SP1", nil
 	case Risc0:
 		return "Risc0", nil
+	case Mina:
+		return "Mina", nil
+	case MinaAccount:
+		return "MinaAccount", nil
 	}
 
 	return "", fmt.Errorf("unknown proving system: %d", provingSystem)
@@ -105,6 +115,10 @@ func (s *ProvingSystemId) UnmarshalCBOR(data []byte) error {
 		*s = SP1
 	case "Risc0":
 		*s = Risc0
+	case "Mina":
+		*s = Mina
+	case "MinaAccount":
+		*s = MinaAccount
 	}
 
 	return nil

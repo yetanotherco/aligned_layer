@@ -49,6 +49,7 @@ mod connection;
 mod eth;
 pub mod gnark;
 pub mod metrics;
+pub mod mina;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
@@ -1123,7 +1124,10 @@ impl Batcher {
             )
             .await
         {
-            Ok(_) => {
+            Ok(receipt) => {
+                if let Some(gas_used) = receipt.gas_used {
+                    info!("Gas used to create new task: {}", gas_used);
+                }
                 info!("Batch verification task created on Aligned contract");
                 self.metrics.sent_batches.inc();
                 Ok(())
