@@ -52,7 +52,7 @@ make docker_restart_batcher
 
 Alternatively, you can run `make docker_down`, then rebuild, and then `make docker_up` to start over with a fresh environment.
 
-Additionally, you can run any of these to send proofs:
+Additionally, you can run any of these to send proofs (burst of 2 each):
 
 ```shell
 make docker_batcher_send_sp1_burst
@@ -74,12 +74,16 @@ make docker_batcher_send_plonk_bls12_381_burst
 make docker_batcher_send_infinite_groth16
 ```
 
-```shell
-make docker_batcher_send_halo2_ipa_task_burst_5
-```
+Or you can send all of them together with:
 
 ```shell
-make docker_batcher_send_halo2_kzg_task_burst_5
+make docker_batcher_send_all_proofs_burst
+```
+
+To verify all sent proofs:
+
+```shell
+make docker_verify_proofs_onchain
 ```
 
 And you can run this to attach to the anvil/foundry container and run `cast` with custom flags:

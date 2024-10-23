@@ -2,7 +2,11 @@ name: "[CI] Send proofs to network"
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types:
+      - opened
+      - synchronize
+    paths-ignore:
+      - '**.md'
 
 concurrency:
   group: pull_request-${{ github.event.pull_request.number }}
@@ -42,18 +46,11 @@ jobs:
     - name: Verify all sent proofs
       run: make docker_verify_proof_submission_success
 
-  post-cleanup:
-    name: "Cleanup"
-    runs-on: aligned-runner-ci
-    if: ${{ always() }}
-    needs: network-test-docker-compose
-
-    steps:
     - name: Stop containers
       continue-on-error: true
       if: always()
       run: make docker_down
 
-    - name: Delete _work
+    - name: Ensure admin permissions in _work
       if: always()
-      run: sudo rm -rf /home/admin/actions-runner/_work/aligned_layer/
+      run: sudo chown admin:admin -R /home/admin/actions-runner/_work/

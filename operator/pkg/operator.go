@@ -8,13 +8,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
@@ -365,10 +369,18 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
+
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
+	if err != nil {
+		o.Logger.Errorf("Could not check verifiers status: %s", err)
+		results <- false
+		return err
+	}
+
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
 			defer wg.Done()
-			o.verify(data, results)
+			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
 	}
@@ -438,10 +450,16 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	results := make(chan bool, verificationDataBatchLen)
 	var wg sync.WaitGroup
 	wg.Add(verificationDataBatchLen)
+	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
+	if err != nil {
+		o.Logger.Errorf("Could not check verifiers status: %s", err)
+		results <- false
+		return err
+	}
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
 			defer wg.Done()
-			o.verify(data, results)
+			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
 	}
@@ -472,7 +490,13 @@ func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayer
 	}
 }
 
-func (o *Operator) verify(verificationData VerificationData, results chan bool) {
+func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBitmap *big.Int, results chan bool) {
+	IsVerifierDisabled := IsVerifierDisabled(disabledVerifiersBitmap, verificationData.ProvingSystemId)
+	if IsVerifierDisabled {
+		o.Logger.Infof("Verifier %s is disabled. Returning false", verificationData.ProvingSystemId.String())
+		results <- false
+		return
+	}
 	switch verificationData.ProvingSystemId {
 	case common.GnarkPlonkBls12_381:
 		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
@@ -493,19 +517,29 @@ func (o *Operator) verify(verificationData VerificationData, results chan bool) 
 		results <- verificationResult
 
 	case common.SP1:
-		verificationResult := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
-		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
-		results <- verificationResult
+		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		o.handleVerificationResult(results, verificationResult, err, "SP1 proof verification")
 
 	case common.Risc0:
-		verificationResult := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
+		verificationResult, err := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
+		o.handleVerificationResult(results, verificationResult, err, "RiscZero proof verification")
 
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
+	}
+}
+
+func (o *Operator) handleVerificationResult(results chan bool, isVerified bool, err error, name string) {
+	if err != nil {
+		o.Logger.Errorf("%v failed %v", name, err)
+		results <- false
+	} else {
+		o.Logger.Infof("%v result: %t", name, isVerified)
+		results <- isVerified
 	}
 }
 
@@ -589,4 +623,66 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 func (o *Operator) SignTaskResponse(batchIdentifierHash [32]byte) *bls.Signature {
 	responseSignature := *o.Config.BlsConfig.KeyPair.SignMessage(batchIdentifierHash)
 	return &responseSignature
+}
+
+func (o *Operator) SendTelemetryData(ctx *cli.Context) error {
+	// hash version
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write([]byte(ctx.App.Version))
+
+	// get hash
+	version := hash.Sum(nil)
+
+	// sign version
+	signature, err := crypto.Sign(version[:], o.Config.EcdsaConfig.PrivateKey)
+	if err != nil {
+		return err
+	}
+	ethRpcUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrl)
+	if err != nil {
+		return err
+	}
+	ethRpcUrlFallback, err := BaseUrlOnly(o.Config.BaseConfig.EthRpcUrlFallback)
+	if err != nil {
+		return err
+	}
+	ethWsUrl, err := BaseUrlOnly(o.Config.BaseConfig.EthWsUrl)
+	if err != nil {
+		return err
+	}
+	ethWsUrlFallback, err := BaseUrlOnly(o.Config.BaseConfig.EthWsUrlFallback)
+	if err != nil {
+		return err
+	}
+
+	body := map[string]interface{}{
+		"version":              ctx.App.Version,
+		"signature":            signature,
+		"eth_rpc_url":          ethRpcUrl,
+		"eth_rpc_url_fallback": ethRpcUrlFallback,
+		"eth_ws_url":           ethWsUrl,
+		"eth_ws_url_fallback":  ethWsUrlFallback,
+	}
+
+	bodyBuffer := new(bytes.Buffer)
+
+	bodyReader := json.NewEncoder(bodyBuffer)
+	err = bodyReader.Encode(body)
+	if err != nil {
+		return err
+	}
+
+	// send version to operator tracker server
+	endpoint := o.Config.Operator.OperatorTrackerIpPortAddress + "/versions"
+	o.Logger.Info("Sending version to operator tracker server: ", "endpoint", endpoint)
+
+	res, err := http.Post(endpoint, "application/json", bodyBuffer)
+	if err != nil {
+		// Dont prevent operator from starting if operator tracker server is down
+		o.Logger.Warn("Error sending version to metrics server: ", "err", err)
+	} else if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusNoContent {
+		o.Logger.Warn("Error sending version to operator tracker server: ", "status_code", res.StatusCode)
+	}
+
+	return nil
 }

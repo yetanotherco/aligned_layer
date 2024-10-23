@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use std::str::FromStr;
 
 use ethers::core::k256::ecdsa::SigningKey;
@@ -23,7 +26,7 @@ use super::errors::VerifySignatureError;
 const NONCED_VERIFICATION_DATA_TYPE: &[u8] =
     b"NoncedVerificationData(bytes32 verification_data_hash,uint256 nonce,uint256 max_fee)";
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq, Eq, Copy)]
 #[repr(u8)]
 pub enum ProvingSystemId {
     GnarkPlonkBls12_381,
@@ -32,6 +35,18 @@ pub enum ProvingSystemId {
     #[default]
     SP1,
     Risc0,
+}
+
+impl Display for ProvingSystemId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ProvingSystemId::GnarkPlonkBls12_381 => write!(f, "GnarkPlonkBls12_381"),
+            ProvingSystemId::GnarkPlonkBn254 => write!(f, "GnarkPlonkBn254"),
+            ProvingSystemId::Groth16Bn254 => write!(f, "Groth16Bn254"),
+            ProvingSystemId::SP1 => write!(f, "SP1"),
+            ProvingSystemId::Risc0 => write!(f, "Risc0"),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -288,7 +303,7 @@ impl ClientMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AlignedVerificationData {
     pub verification_data_commitment: VerificationDataCommitment,
     pub batch_merkle_root: [u8; 32],
@@ -320,7 +335,7 @@ pub enum ValidityResponseMessage {
     InvalidNonce,
     InvalidSignature,
     InvalidChainId,
-    InvalidProof,
+    InvalidProof(ProofInvalidReason),
     InvalidMaxFee,
     InvalidReplacementMessage,
     AddToBatchError,
@@ -331,10 +346,61 @@ pub enum ValidityResponseMessage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProofInvalidReason {
+    RejectedProof,
+    VerifierNotSupported,
+    DisabledVerifier(ProvingSystemId),
+}
+
+impl Display for ValidityResponseMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ValidityResponseMessage::Valid => write!(f, "Valid"),
+            ValidityResponseMessage::InvalidNonce => write!(f, "Invalid nonce"),
+            ValidityResponseMessage::InvalidSignature => write!(f, "Invalid signature"),
+            ValidityResponseMessage::InvalidChainId => write!(f, "Invalid chain id"),
+            ValidityResponseMessage::InvalidProof(reason) => {
+                write!(f, "Invalid proof: {}", reason)
+            }
+            ValidityResponseMessage::InvalidMaxFee => write!(f, "Invalid max fee"),
+            ValidityResponseMessage::InvalidReplacementMessage => {
+                write!(f, "Invalid replacement message")
+            }
+            ValidityResponseMessage::AddToBatchError => write!(f, "Add to batch error"),
+            ValidityResponseMessage::ProofTooLarge => write!(f, "Proof too large"),
+            ValidityResponseMessage::InsufficientBalance(addr) => {
+                write!(f, "Insufficient balance for address {}", addr)
+            }
+            ValidityResponseMessage::EthRpcError => write!(f, "Eth RPC error"),
+            ValidityResponseMessage::InvalidPaymentServiceAddress(addr, expected) => {
+                write!(
+                    f,
+                    "Invalid payment service address: {}, expected: {}",
+                    addr, expected
+                )
+            }
+        }
+    }
+}
+
+impl Display for ProofInvalidReason {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ProofInvalidReason::VerifierNotSupported => write!(f, "Verifier not supported"),
+            ProofInvalidReason::DisabledVerifier(proving_system_id) => {
+                write!(f, "Disabled verifier: {}", proving_system_id)
+            }
+            ProofInvalidReason::RejectedProof => write!(f, "Proof did not verify"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
     CreateNewTaskError(String),
+    InvalidProof(ProofInvalidReason),
     BatchReset,
     Error(String),
 }

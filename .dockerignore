@@ -11,3 +11,4 @@ volume
 nonce_*.bin
 docker-compose.yaml
 .github/**
+**.md

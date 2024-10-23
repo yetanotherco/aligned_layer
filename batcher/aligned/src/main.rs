@@ -7,7 +7,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::communication::serialization::cbor_deserialize;
-use aligned_sdk::communication::serialization::cbor_serialize;
 use aligned_sdk::core::{
     errors::{AlignedError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
@@ -15,7 +14,7 @@ use aligned_sdk::core::{
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_next_nonce;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
-use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, submit_multiple};
+use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -550,7 +549,7 @@ async fn handle_submit_err(err: SubmitError, nonce_file: &str) {
         SubmitError::ProofQueueFlushed => {
             error!("Batch was reset. try resubmitting the proof");
         }
-        SubmitError::InvalidProof => error!("Submitted proof is invalid"),
+        SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
         SubmitError::InsufficientBalance => {
             error!("Insufficient balance to pay for the transaction")
         }
@@ -608,33 +607,6 @@ async fn get_nonce(
     write_file(nonce_file.as_str(), &nonce_bytes)?;
 
     Ok(nonce)
-}
-
-fn save_response(
-    batch_inclusion_data_directory_path: PathBuf,
-    aligned_verification_data: &AlignedVerificationData,
-) -> Result<(), SubmitError> {
-    let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
-    let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
-        + "_"
-        + &aligned_verification_data.index_in_batch.to_string()
-        + ".json";
-
-    let batch_inclusion_data_path =
-        batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
-
-    let data = cbor_serialize(&aligned_verification_data)?;
-
-    let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    file.write_all(data.as_slice())
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
-    info!(
-        "Batch inclusion data written into {}",
-        batch_inclusion_data_path.display()
-    );
-
-    Ok(())
 }
 
 pub async fn get_user_balance(
