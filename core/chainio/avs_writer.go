@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	gasBumpPercentage int = 10
+	gasBumpPercentage int = 20
 )
 
 type AvsWriter struct {
@@ -79,6 +79,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 // Sends AggregatedResponse and waits for the receipt for three blocks, if not received
 // it will try again bumping the last tx gas price based on `CalculateGasPriceBump`
 // This process happens indefinitely until the transaction is included.
+// Note: If the rpc endpoints fail, the retry will stop, as it will infinitely try
 func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, onRetry func()) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
@@ -102,7 +103,6 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	txOpts.NoSend = false
 	txOpts.Nonce = txNonce
 
-	lastTxGasPrice := tx.GasPrice()
 	i := 0
 	sendTransaction := func() (*types.Receipt, error) {
 		if i > 0 {
@@ -110,9 +110,16 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		}
 		i++
 
-		bumpedGasPrice := utils.CalculateGasPriceBump(lastTxGasPrice, gasBumpPercentage)
-		lastTxGasPrice = bumpedGasPrice
-		txOpts.GasPrice = bumpedGasPrice
+		// get gas price
+		gasPrice, err := w.Client.SuggestGasPrice(context.Background())
+		if err != nil {
+			// Retry with fallback
+			gasPrice, err = w.ClientFallback.SuggestGasPrice(context.Background())
+			if err != nil {
+				return nil, fmt.Errorf("transaction simulation failed: %v", err)
+			}
+		}
+		txOpts.GasPrice = utils.CalculateGasPriceBumpBasedOnRetry(gasPrice, gasBumpPercentage, i)
 
 		w.logger.Infof("Sending ResponseToTask transaction with a gas price of %v", txOpts.GasPrice)
 		err = w.checkRespondToTaskFeeLimit(tx, txOpts, batchIdentifierHash, senderAddress)
