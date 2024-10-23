@@ -1,0 +1,56 @@
+name: "[CI] Send proofs to network"
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    paths-ignore:
+      - '**.md'
+
+concurrency:
+  group: pull_request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  network-test-docker-compose:
+    name: "Test network with Docker Compose"
+    runs-on: aligned-runner-ci
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+
+    steps:
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Build containers
+      run: make docker_build
+
+    - name: Start containers and initialize network
+      run: make docker_up && sleep 15
+
+    - name: Send proofs batches
+      run: make docker_batcher_send_all_proofs_burst
+
+    - name: Verify all sent proofs
+      run: make docker_verify_proof_submission_success
+
+    - name: Stop containers
+      continue-on-error: true
+      if: always()
+      run: make docker_down
+
+    - name: Ensure admin permissions in _work
+      if: always()
+      run: sudo chown admin:admin -R /home/admin/actions-runner/_work/
