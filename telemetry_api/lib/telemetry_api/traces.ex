@@ -23,30 +23,37 @@ defmodule TelemetryApi.Traces do
       :ok
   """
   def create_task_trace(merkle_root) do
-    # Get total stake
-    with {:ok, total_stake} <- StakeRegistry.get_current_total_stake() do
-      span_ctx =
-        Tracer.start_span(
-          "Task: #{merkle_root}",
-          %{
-            attributes: [
-              {:merkle_root, merkle_root},
-              {:total_stake, total_stake}
-            ]
-          }
-        )
+    # # Get total stake
+    # with {:ok, total_stake} <- StakeRegistry.get_current_total_stake() do
+    #   span_ctx =
+    #     Tracer.start_span(
+    #       "Task: #{merkle_root}",
+    #       %{
+    #         attributes: [
+    #           {:merkle_root, merkle_root},
+    #           {:total_stake, total_stake}
+    #         ]
+    #       }
+    #     )
 
-      ctx = Ctx.get_current()
+    #   ctx = Ctx.get_current()
 
-      TraceStore.store_trace(merkle_root, %Trace{
-        parent_span: span_ctx,
-        context: ctx,
-        total_stake: total_stake,
-        current_stake: 0,
-        responses: []
-      })
+    #   TraceStore.store_trace(merkle_root, %Trace{
+    #     parent_span: span_ctx,
+    #     context: ctx,
+    #     total_stake: total_stake,
+    #     current_stake: 0,
+    #     responses: []
+    #   })
 
-      IO.inspect("New task trace with merkle_root: #{IO.inspect(merkle_root)}")
+    #   IO.inspect("New task trace with merkle_root: #{IO.inspect(merkle_root)}")
+    #   :ok
+    # end
+    IO.inspect("Searching merkle_root: #{merkle_root}")
+    with {:ok, trace} <- set_current_trace(merkle_root) do
+            Tracer.with_span :AggregatorSpan do
+              Tracer.add_event("Agreggator took the task", [])
+            end
       :ok
     end
   end
@@ -65,24 +72,27 @@ defmodule TelemetryApi.Traces do
     with {:ok, operator} <- Operators.get_operator(%{id: operator_id}),
           :ok <- validate_operator_registration(operator),
          {:ok, trace} <- set_current_trace(merkle_root) do
+      IO.inspect(trace)
       operator_stake = Decimal.new(operator.stake)
       new_stake = Decimal.add(trace.current_stake, operator_stake)
       new_stake_fraction = Decimal.div(new_stake, trace.total_stake)
       operator_stake_fraction = Decimal.div(operator_stake, trace.total_stake)
 
-      Tracer.add_event(
-        "Operator Response: " <> operator.name,
-        [
-          {:merkle_root, merkle_root},
-          {:operator_id, operator_id},
-          {:name, operator.name},
-          {:address, operator.address},
-          {:operator_stake, Decimal.to_string(operator_stake)},
-          {:current_stake, Decimal.to_string(new_stake)},
-          {:current_stake_fraction, Decimal.to_string(new_stake_fraction)},
-          {:operator_stake_fraction, Decimal.to_string(operator_stake_fraction)}
-        ]
-      )
+      Tracer.with_span :OperatorSpan do
+        Tracer.add_event(
+          "Operator Response: " <> operator.name,
+          [
+            {:merkle_root, merkle_root},
+            {:operator_id, operator_id},
+            {:name, operator.name},
+            {:address, operator.address},
+            {:operator_stake, Decimal.to_string(operator_stake)},
+            {:current_stake, Decimal.to_string(new_stake)},
+            {:current_stake_fraction, Decimal.to_string(new_stake_fraction)},
+            {:operator_stake_fraction, Decimal.to_string(operator_stake_fraction)}
+          ]
+        )
+      end
 
       responses = trace.responses ++ [operator_id]
 
@@ -96,9 +106,75 @@ defmodule TelemetryApi.Traces do
         "Operator response included. merkle_root: #{IO.inspect(merkle_root)} operator_id: #{IO.inspect(operator_id)}"
       )
 
+    :ok
+    end
+  end
+
+  def batcher_new_batch(merkle_root) do
+    root_span_ctx = Tracer.start_span(
+        "Task: #{merkle_root}",
+        %{
+          attributes: [
+            {:merkle_root, merkle_root},
+          ]
+        }
+      )
+
+    {:ok, total_stake} = StakeRegistry.get_current_total_stake()
+    ctx = Tracer.current_span_ctx()
+    TraceStore.store_trace(merkle_root, %Trace{
+      parent_span: root_span_ctx,
+      context: ctx,
+      total_stake: total_stake,
+      current_stake: 0,
+      responses: [],
+      subspans: %{}
+    })
+
+    with {:ok, trace} <- set_current_trace(merkle_root) do
+      Tracer.with_span "Task: #{merkle_root}" do
+        Tracer.set_attributes(%{merkle_root: merkle_root})
+        Tracer.add_event("New Task created", [])
+      end
       :ok
     end
   end
+
+  def batcher_task_sent(merkle_root) do
+    with {:ok, trace} <- set_current_trace_with_subspan(merkle_root, :batcher) do
+      Tracer.add_event("Batcher Task Sent", [])
+
+      Tracer.end_span()
+
+      TraceStore.store_trace(merkle_root, %{
+        trace
+        | subspans: Map.delete(trace.subspans, :batcher)
+      })
+      :ok
+    end
+  end
+
+  def batcher_task_started(merkle_root) do
+    with {:ok, trace} <- set_current_trace(merkle_root) do
+      batcher_subspan_ctx = Tracer.start_span(
+        "Batcher",
+        %{
+          attributes: [
+            {:merkle_root, merkle_root},
+          ]
+        }
+      )
+
+      Tracer.add_event("Batcher Task Started", [])
+
+      TraceStore.store_trace(merkle_root, %{
+        trace
+        | subspans: Map.put(trace.subspans, :batcher, batcher_subspan_ctx)
+      })
+      :ok
+    end
+  end
+
 
   @doc """
   Registers a reached quorum in the task trace.
@@ -184,6 +260,14 @@ defmodule TelemetryApi.Traces do
     with {:ok, trace} <- TraceStore.get_trace(merkle_root) do
       Ctx.attach(trace.context)
       Tracer.set_current_span(trace.parent_span)
+      {:ok, trace}
+    end
+  end
+
+  defp set_current_trace_with_subspan(merkle_root, span_name) do
+    with {:ok, trace} <- TraceStore.get_trace(merkle_root) do
+      Ctx.attach(trace.context)
+      Tracer.set_current_span(trace.subspans[span_name])
       {:ok, trace}
     end
   end
