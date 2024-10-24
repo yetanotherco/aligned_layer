@@ -1,0 +1,33 @@
+{
+    "chainInfo": {
+      "chainId": 11155111
+    },
+    "permissions" : {
+      "owner": "<owner_address>",
+      "aggregator": "<aggregator_address>",
+      "upgrader": "<upgrader_address>",
+      "churner": "<churner_address>",
+      "ejector": "<ejector_address>",
+      "deployer": "<deployer_address>",
+      "initalPausedStatus": 0
+    },
+    "minimumStakes": [
+      1
+    ],
+    "strategyWeights": [
+      [
+        {
+          "0_strategy": "0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9",
+          "1_multiplier": 1e+18
+        }
+      ]
+    ],
+    "operatorSetParams": [
+      {
+        "0_maxOperatorCount": 200,
+        "1_kickBIPsOfOperatorStake": 11000,
+        "2_kickBIPsOfTotalStake": 50
+      }
+    ],
+    "uri": ""
+  }

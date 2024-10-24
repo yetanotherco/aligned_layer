@@ -1,0 +1,31 @@
+{
+  "addresses": {
+    "alignedLayerProxyAdmin": "0x9c50f5054784d6c5523C79c3aFA82E3184430CaC",
+    "alignedLayerServiceManager": "0xD0fAb108d175765f70Dd2e929b74ec107db6E0e8",
+    "alignedLayerServiceManagerImplementation": "0xbC86427A646540cF78c92F6C7432716460b97a06",
+    "blsApkRegistry": "0x9A5B215027F85319957a3a92205BFc18529d9309",
+    "blsApkRegistryImplementation": "0xEAE702d667bD851C9cAa59e71b23765Bea04A5aF",
+    "indexRegistry": "0xD316A01F902d0fDF169a53AB22daB38c06c6E60E",
+    "indexRegistryImplementation": "0x8009D6A252a41bc8fb648F71F3aa78d08231221d",
+    "operatorStateRetriever": "0xc24023c7e43Dc6A407b1B961A6602ee6d5408A75",
+    "registryCoordinator": "0x9C04afc13D57608a867E61BD91a10d8689B24ff8",
+    "registryCoordinatorImplementation": "0xFc326289eF3d5ba5E525e27530329727831E834B",
+    "serviceManagerRouter": "0x074c28d7ff24c06ab747e08772ed582c3b7C887e",
+    "stakeRegistry": "0x1888568D57Cf6834d74ef62A78e7EF1ADbd55582",
+    "stakeRegistryImplementation": "0x05671b5B23d16B2e198729b9Ce94696780d384b9",
+    "batcherPaymentService": "0x4a40a9F0D29B62a2852ed893B18fAD9CfEcB14FA",
+    "batcherPaymentServiceImplementation": "0xc40562950D62e3DbFf881149cf07833Cd0A425A9"
+  },
+  "chainInfo": {
+    "chainId": 11155111,
+    "deploymentBlock": 6833988
+  },
+  "permissions": {
+    "alignedLayerAggregator": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
+    "alignedLayerChurner": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
+    "alignedLayerEjector": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
+    "alignedLayerOwner": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
+    "alignedLayerUpgrader": "0x1380D03142156d8D9950b001A566dc5cc439dE81",
+    "pauserRegistry": "0xC2316E03d0871f667e75C62181089988Eb4DB7Db"
+  }
+}

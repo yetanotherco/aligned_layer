@@ -57,12 +57,8 @@ contract BLSApkRegistryUpgrader is Script {
         );
         vm.stopBroadcast();
 
-        vm.startBroadcast();
-        alignedLayerProxyAdmin.upgrade(
-            blsApkRegistry,
-            address(blsApkRegistryImplementation)
-        ); 
-        vm.stopBroadcast();
+        // Not link the new implementation to the proxy
+        // Because this must be executed in the multisig
         
         return (
             address(blsApkRegistry),
