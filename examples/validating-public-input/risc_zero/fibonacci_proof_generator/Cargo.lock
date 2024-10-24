@@ -1471,7 +1471,7 @@ dependencies = [
 name = "methods"
 version = "0.1.0"
 dependencies = [
- "risc0-build",
+ "risc0-build 1.0.1",
 ]
 
 [[package]]
@@ -2096,16 +2096,46 @@ dependencies = [
 
 [[package]]
 name = "risc0-binfmt"
+version = "1.0.1"
+source = "git+https://github.com/risc0/risc0?tag=v1.0.1#79de616506543634cb5d75b9db7f3aee3640d68c"
+dependencies = [
+ "anyhow",
+ "elf",
+ "risc0-zkp 1.0.1",
+ "risc0-zkvm-platform 1.0.1",
+ "serde",
+ "tracing",
+]
+
+[[package]]
+name = "risc0-binfmt"
 version = "1.1.2"
 source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "anyhow",
  "borsh",
  "elf",
- "risc0-zkp",
- "risc0-zkvm-platform",
+ "risc0-zkp 1.1.2",
+ "risc0-zkvm-platform 1.1.2",
  "serde",
  "tracing",
+]
+
+[[package]]
+name = "risc0-build"
+version = "1.0.1"
+source = "git+https://github.com/risc0/risc0?tag=v1.0.1#79de616506543634cb5d75b9db7f3aee3640d68c"
+dependencies = [
+ "anyhow",
+ "cargo_metadata",
+ "dirs",
+ "docker-generate",
+ "risc0-binfmt 1.0.1",
+ "risc0-zkp 1.0.1",
+ "risc0-zkvm-platform 1.0.1",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -2118,9 +2148,9 @@ dependencies = [
  "dirs",
  "docker-generate",
  "hex",
- "risc0-binfmt",
- "risc0-zkp",
- "risc0-zkvm-platform",
+ "risc0-binfmt 1.1.2",
+ "risc0-zkp 1.1.2",
+ "risc0-zkvm-platform 1.1.2",
  "serde",
  "serde_json",
  "tempfile",
@@ -2156,9 +2186,9 @@ dependencies = [
  "rand",
  "rayon",
  "risc0-circuit-recursion-sys",
- "risc0-core",
+ "risc0-core 1.1.2",
  "risc0-sys",
- "risc0-zkp",
+ "risc0-zkp 1.1.2",
  "serde",
  "sha2",
  "tracing",
@@ -2172,7 +2202,7 @@ source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec
 dependencies = [
  "glob",
  "risc0-build-kernel",
- "risc0-core",
+ "risc0-core 1.1.2",
  "risc0-sys",
 ]
 
@@ -2191,12 +2221,12 @@ dependencies = [
  "metal",
  "rand",
  "rayon",
- "risc0-binfmt",
+ "risc0-binfmt 1.1.2",
  "risc0-circuit-rv32im-sys",
- "risc0-core",
+ "risc0-core 1.1.2",
  "risc0-sys",
- "risc0-zkp",
- "risc0-zkvm-platform",
+ "risc0-zkp 1.1.2",
+ "risc0-zkvm-platform 1.1.2",
  "serde",
  "sha2",
  "tracing",
@@ -2209,8 +2239,17 @@ source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec
 dependencies = [
  "glob",
  "risc0-build-kernel",
- "risc0-core",
+ "risc0-core 1.1.2",
  "risc0-sys",
+]
+
+[[package]]
+name = "risc0-core"
+version = "1.0.1"
+source = "git+https://github.com/risc0/risc0?tag=v1.0.1#79de616506543634cb5d75b9db7f3aee3640d68c"
+dependencies = [
+ "bytemuck",
+ "rand_core",
 ]
 
 [[package]]
@@ -2238,9 +2277,9 @@ dependencies = [
  "hex",
  "num-bigint 0.4.6",
  "num-traits",
- "risc0-binfmt",
- "risc0-core",
- "risc0-zkp",
+ "risc0-binfmt 1.1.2",
+ "risc0-core 1.1.2",
+ "risc0-zkp 1.1.2",
  "serde",
  "serde_json",
  "tempfile",
@@ -2254,6 +2293,27 @@ source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec
 dependencies = [
  "cc",
  "risc0-build-kernel",
+]
+
+[[package]]
+name = "risc0-zkp"
+version = "1.0.1"
+source = "git+https://github.com/risc0/risc0?tag=v1.0.1#79de616506543634cb5d75b9db7f3aee3640d68c"
+dependencies = [
+ "anyhow",
+ "blake2",
+ "bytemuck",
+ "cfg-if",
+ "digest",
+ "hex",
+ "hex-literal",
+ "paste",
+ "rand_core",
+ "risc0-core 1.0.1",
+ "risc0-zkvm-platform 1.0.1",
+ "serde",
+ "sha2",
+ "tracing",
 ]
 
 [[package]]
@@ -2277,9 +2337,9 @@ dependencies = [
  "rand",
  "rand_core",
  "rayon",
- "risc0-core",
+ "risc0-core 1.1.2",
  "risc0-sys",
- "risc0-zkvm-platform",
+ "risc0-zkvm-platform 1.1.2",
  "serde",
  "sha2",
  "tracing",
@@ -2304,14 +2364,14 @@ dependencies = [
  "prost",
  "rand",
  "rayon",
- "risc0-binfmt",
- "risc0-build",
+ "risc0-binfmt 1.1.2",
+ "risc0-build 1.1.2",
  "risc0-circuit-recursion",
  "risc0-circuit-rv32im",
- "risc0-core",
+ "risc0-core 1.1.2",
  "risc0-groth16",
- "risc0-zkp",
- "risc0-zkvm-platform",
+ "risc0-zkp 1.1.2",
+ "risc0-zkvm-platform 1.1.2",
  "rrs-lib",
  "rustc-demangle",
  "semver",
@@ -2322,6 +2382,11 @@ dependencies = [
  "tracing",
  "typetag",
 ]
+
+[[package]]
+name = "risc0-zkvm-platform"
+version = "1.0.1"
+source = "git+https://github.com/risc0/risc0?tag=v1.0.1#79de616506543634cb5d75b9db7f3aee3640d68c"
 
 [[package]]
 name = "risc0-zkvm-platform"
