@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use aligned_sdk::core::constants::BATCH_INCLUSION_DELAY;
 use ethers::prelude::*;
 use log::{info, warn};
 use tokio::time::timeout;
@@ -134,7 +135,7 @@ pub async fn create_new_task_retryable(
         }
     };
 
-    timeout(Duration::from_millis(1), pending_tx)
+    timeout(Duration::from_millis(BATCH_INCLUSION_DELAY), pending_tx)
         .await
         .map_err(|_| RetryError::Permanent(BatcherError::ReceiptNotFoundError))?
         .map_err(|_| RetryError::Transient(BatcherError::TransactionSendError))?
