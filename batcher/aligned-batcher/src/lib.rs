@@ -5,7 +5,7 @@ use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use retry::batcher_retry::{
+use retry::batcher_retryables::{
     get_gas_price_retryable, get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
     user_balance_is_unlocked_retryable,
 };

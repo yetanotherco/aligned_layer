@@ -1,4 +1,4 @@
-pub mod batcher_retry;
+pub mod batcher_retryables;
 
 use backon::ExponentialBuilder;
 use backon::Retryable;
