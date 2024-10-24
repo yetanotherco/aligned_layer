@@ -124,6 +124,8 @@ async fn main() {
         .await
         .expect("failed to fetch gas price from the blockchain");
 
+    let max_fee_string = ethers::utils::format_units(max_fee, 18).unwrap();
+
     if !Confirm::with_theme(&dialoguer::theme::ColorfulTheme::default())
         .with_prompt(format!("Aligned will use at most {max_fee_string} eth to verify your proof. Do you want to continue?"))
         .interact()
