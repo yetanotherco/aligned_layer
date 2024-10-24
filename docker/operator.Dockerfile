@@ -1,5 +1,7 @@
 FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS builder
 
+WORKDIR /aligned_layer
+
 RUN apt update -y
 RUN apt install -y gcc
 
