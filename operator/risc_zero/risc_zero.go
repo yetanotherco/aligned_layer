@@ -2,13 +2,15 @@ package risc_zero
 
 /*
 #cgo linux LDFLAGS: ${SRCDIR}/lib/librisc_zero_verifier_ffi.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
-#cgo darwin LDFLAGS: -L./lib -lrisc_zero_verifier_ffi
+#cgo darwin LDFLAGS: -L./lib -lrisc_zero_verifier
 
 #include "lib/risc_zero.h"
 */
 import "C"
-import "unsafe"
-import "fmt"
+import (
+	"fmt"
+	"unsafe"
+)
 
 func VerifyRiscZeroReceipt(innerReceiptBuffer []byte, imageIdBuffer []byte, publicInputBuffer []byte) (isVerified bool, err error) {
 	// Here we define the return value on failure
