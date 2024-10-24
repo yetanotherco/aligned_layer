@@ -1,2 +1,2 @@
-lib/librisc_zero_verifier_ffi.a
+lib/librisc_zero_verifier_ffi.so
 lib/librisc_zero_verifier_ffi.dylib

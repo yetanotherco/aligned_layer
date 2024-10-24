@@ -6,7 +6,7 @@ lazy_static! {
     static ref PROVER_CLIENT: ProverClient = ProverClient::new();
 }
 
-fn inner_verify_sp1_proof_ffi(
+fn inner_verify_sp1_proof_old_ffi(
     proof_bytes: *const u8,
     proof_len: u32,
     elf_bytes: *const u8,
@@ -35,14 +35,14 @@ fn inner_verify_sp1_proof_ffi(
 }
 
 #[no_mangle]
-pub extern "C" fn verify_sp1_proof_ffi(
+pub extern "C" fn verify_sp1_proof_old_ffi(
     proof_bytes: *const u8,
     proof_len: u32,
     elf_bytes: *const u8,
     elf_len: u32,
 ) -> i32 {
     let result = std::panic::catch_unwind(|| {
-        inner_verify_sp1_proof_ffi(proof_bytes, proof_len, elf_bytes, elf_len)
+        inner_verify_sp1_proof_old_ffi(proof_bytes, proof_len, elf_bytes, elf_len)
     });
 
     match result {
@@ -55,8 +55,8 @@ pub extern "C" fn verify_sp1_proof_ffi(
 mod tests {
     use super::*;
 
-    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/sp1/sp1_fibonacci_new.proof");
-    const ELF: &[u8] = include_bytes!("../../../../scripts/test_files/sp1/sp1_fibonacci_new.elf");
+    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/sp1/sp1_fibonacci.proof");
+    const ELF: &[u8] = include_bytes!("../../../../scripts/test_files/sp1/sp1_fibonacci.elf");
 
     #[test]
     fn verify_sp1_proof_with_elf_works() {
@@ -64,7 +64,7 @@ mod tests {
         let elf_bytes = ELF.as_ptr();
 
         let result =
-            verify_sp1_proof_ffi(proof_bytes, PROOF.len() as u32, elf_bytes, ELF.len() as u32);
+            verify_sp1_proof_old_ffi(proof_bytes, PROOF.len() as u32, elf_bytes, ELF.len() as u32);
         assert_eq!(result, 1)
     }
 
@@ -73,7 +73,7 @@ mod tests {
         let proof_bytes = PROOF.as_ptr();
         let elf_bytes = ELF.as_ptr();
 
-        let result = verify_sp1_proof_ffi(
+        let result = verify_sp1_proof_old_ffi(
             proof_bytes,
             (PROOF.len() - 1) as u32,
             elf_bytes,

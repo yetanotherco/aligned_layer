@@ -1,8 +1,8 @@
-package sp1
+package sp1_old
 
 /*
-#cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_verifier_ffi.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
-#cgo darwin LDFLAGS: -L./lib -lsp1_verifier_ffi
+#cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_verifier_old_ffi.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo darwin LDFLAGS: -L./lib -lsp1_verifier_old_ffi
 
 #include "lib/sp1.h"
 */
@@ -12,7 +12,7 @@ import (
 	"unsafe"
 )
 
-func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err error) {
+func VerifySp1ProofOld(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err error) {
 	// Here we define the return value on failure
 	isVerified = false
 	err = nil
@@ -31,7 +31,7 @@ func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err 
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
 
-	r := (C.int32_t)(C.verify_sp1_proof_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), elfPtr, (C.uint32_t)(len(elfBuffer))))
+	r := (C.int32_t)(C.verify_sp1_proof_old_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), elfPtr, (C.uint32_t)(len(elfBuffer))))
 
 	if r == -1 {
 		err = fmt.Errorf("Panic happened on FFI while verifying sp1 proof")

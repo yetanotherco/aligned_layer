@@ -1,2 +1,2 @@
-lib/libsp1_verifier.a
-lib/libsp1_verifier.dylib
+lib/libsp1_verifier_ffi.a
+lib/libsp1_verifier_ffi.dylib

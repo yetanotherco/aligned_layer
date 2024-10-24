@@ -43,7 +43,7 @@ fn inner_verify_risc_zero_receipt_ffi(
 }
 
 #[no_mangle]
-pub extern "C" fn verify_risc_zero_receipt_ffi(
+pub extern "C" fn verify_risc_zero_receipt_old_ffi(
     inner_receipt_bytes: *const u8,
     inner_receipt_len: u32,
     image_id: *const u8,
@@ -72,12 +72,12 @@ pub extern "C" fn verify_risc_zero_receipt_ffi(
 mod tests {
     use super::*;
 
-    const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_new.proof");
+    const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
     const IMAGE_ID: &[u8] = include_bytes!(
-        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_new.bin"
+        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin"
     );
     const PUBLIC_INPUT: &[u8] = include_bytes!(
-        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_new.pub"
+        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub"
     );
 
     #[test]
@@ -86,7 +86,7 @@ mod tests {
         let image_id = IMAGE_ID.as_ptr();
         let public_input = PUBLIC_INPUT.as_ptr();
 
-        let result = verify_risc_zero_receipt_ffi(
+        let result = verify_risc_zero_receipt_old_ffi(
             receipt_bytes,
             RECEIPT.len() as u32,
             image_id,
@@ -103,7 +103,7 @@ mod tests {
         let image_id = IMAGE_ID.as_ptr();
         let public_input = PUBLIC_INPUT.as_ptr();
 
-        let result = verify_risc_zero_receipt_ffi(
+        let result = verify_risc_zero_receipt_old_ffi(
             receipt_bytes,
             (RECEIPT.len() - 1) as u32,
             image_id,
@@ -120,7 +120,7 @@ mod tests {
         let image_id = IMAGE_ID.as_ptr();
         let public_input = [].as_ptr();
 
-        let result = verify_risc_zero_receipt_ffi(
+        let result = verify_risc_zero_receipt_old_ffi(
             receipt_bytes,
             (RECEIPT.len() - 1) as u32,
             image_id,
