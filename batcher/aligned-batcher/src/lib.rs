@@ -467,16 +467,6 @@ impl Batcher {
             return Ok(());
         }
 
-        // Nonce and max fee verification
-        let max_fee = nonced_verification_data.max_fee;
-        if max_fee < U256::from(MIN_FEE_PER_PROOF) {
-            error!("The max fee signed in the message is less than the accepted minimum fee to be included in the batch.");
-            send_message(ws_conn_sink.clone(), ValidityResponseMessage::InvalidMaxFee).await;
-            return Ok(());
-        }
-
-        // Check that we had a user state entry for this user and insert it if not.
-
         // We aquire the lock first only to query if the user is already present and the lock is dropped.
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
