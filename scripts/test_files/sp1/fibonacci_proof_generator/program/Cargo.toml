@@ -5,4 +5,4 @@ name = "fibonacci_proof_generator-program"
 edition = "2021"
 
 [dependencies]
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.8-testnet"  }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "v3.0.0"  }
