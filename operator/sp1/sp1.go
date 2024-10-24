@@ -1,14 +1,16 @@
 package sp1
 
 /*
-#cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_verifier.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
-#cgo darwin LDFLAGS: -L./lib -lsp1_verifier
+#cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_verifier_ffi.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo darwin LDFLAGS: -L./lib -lsp1_verifier_ffi
 
 #include "lib/sp1.h"
 */
 import "C"
-import "unsafe"
-import "fmt"
+import (
+	"fmt"
+	"unsafe"
+)
 
 func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err error) {
 	// Here we define the return value on failure

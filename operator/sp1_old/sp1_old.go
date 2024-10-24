@@ -1,8 +1,8 @@
 package sp1_old
 
 /*
-#cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_verifier_old.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
-#cgo darwin LDFLAGS: -L./lib -lsp1_verifier_old
+#cgo linux LDFLAGS: ${SRCDIR}/lib/libsp1_verifier_old_ffi.so -ldl -lrt -lm -lssl -lcrypto -Wl,--allow-multiple-definition
+#cgo darwin LDFLAGS: -L./lib -lsp1_verifier_old_ffi
 
 #include "lib/sp1.h"
 */

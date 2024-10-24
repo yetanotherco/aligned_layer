@@ -513,11 +513,11 @@ build_binaries:
 __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier.dylib
+	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.dylib operator/sp1/lib/libsp1_verifier_ffi.dylib
 
 build_sp1_linux:
 	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier.so
+	@cp operator/sp1/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_ffi.so operator/sp1/lib/libsp1_verifier_ffi.so
 
 test_sp1_rust_ffi:
 	@echo "Testing SP1 Rust FFI source code..."
@@ -544,11 +544,11 @@ generate_risc_zero_empty_journal_proof:
 
 build_sp1_macos_old:
 	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.dylib operator/sp1_old/lib/libsp1_verifier_old.dylib
+	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.dylib operator/sp1_old/lib/libsp1_verifier_old_ffi.dylib
 
 build_sp1_linux_old:
 	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.so operator/sp1_old/lib/libsp1_verifier_old.so
+	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.so operator/sp1_old/lib/libsp1_verifier_old_ffi.so
 
 test_sp1_rust_ffi_old:
 	@echo "Testing SP1 Rust FFI source code..."
@@ -565,7 +565,7 @@ test_sp1_go_bindings_linux_old: build_sp1_linux_old
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier.dylib
+	@cp operator/risc_zero/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_ffi.dylib operator/risc_zero/lib/librisc_zero_verifier_ffi.dylib
 
 build_risc_zero_linux:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
@@ -590,7 +590,7 @@ generate_risc_zero_fibonacci_proof:
 
 build_risc_zero_macos_old:
 	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.dylib operator/risc_zero_old/lib/librisc_zero_verifier_old.dylib
+	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.dylib operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.dylib
 
 build_risc_zero_linux_old:
 	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
