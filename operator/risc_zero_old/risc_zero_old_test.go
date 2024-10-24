@@ -8,17 +8,17 @@ import (
 )
 
 func TestFibonacciRiscZeroProofVerifies(t *testing.T) {
-	innerReceiptBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_old.proof")
+	innerReceiptBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof")
 	if err != nil {
 		t.Errorf("could not open proof file: %s", err)
 	}
 
-	imageIdBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_old.bin")
+	imageIdBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin")
 	if err != nil {
 		t.Errorf("could not open image id file: %s", err)
 	}
 
-	publicInputBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_old.pub")
+	publicInputBytes, err := os.ReadFile("../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub")
 	if err != nil {
 		t.Errorf("could not open public input file: %s", err)
 	}

@@ -72,12 +72,12 @@ pub extern "C" fn verify_risc_zero_receipt_old_ffi(
 mod tests {
     use super::*;
 
-    const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_old.proof");
+    const RECEIPT: &[u8] = include_bytes!("../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof");
     const IMAGE_ID: &[u8] = include_bytes!(
-        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_old.bin"
+        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin"
     );
     const PUBLIC_INPUT: &[u8] = include_bytes!(
-        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_old.pub"
+        "../../../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub"
     );
 
     #[test]
