@@ -6,7 +6,7 @@ OS := $(shell uname -s)
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.9.1
+OPERATOR_VERSION=v0.10.0
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -17,7 +17,15 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH := $(CURDIR)/operator/risc_zero/lib
+	LD_LIBRARY_PATH += $(CURDIR)/operator/risc_zero/lib
+endif
+
+ifeq ($(OS),Linux)
+	BUILD_OPERATOR = $(MAKE) build_operator_linux 
+endif
+
+ifeq ($(OS),Darwin)
+	BUILD_OPERATOR = $(MAKE) build_operator_macos
 endif
 
 
@@ -85,6 +93,10 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
+anvil_upgrade_initialize_disable_verifiers:
+	@echo "Initializing disabled verifiers..."
+	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
+
 lint_contracts:
 	@cd contracts && npm run lint:sol
 
@@ -120,6 +132,14 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
+	$(BUILD_OPERATOR)
+
+build_operator_macos:
+	@echo "Building Operator..."
+	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
+	@echo "Operator built into /operator/build/aligned-operator"
+
+build_operator_linux:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(LD_LIBRARY_PATH)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
@@ -214,6 +234,23 @@ operator_register_with_aligned_layer:
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
 
+# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
+verifier_enable_devnet:
+	@echo "Enabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable_devnet:
+	@echo "Disabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
+verifier_enable:
+	@echo "Enabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable:
+	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
 __BATCHER__:
 
 BURST_SIZE=5
@@ -290,6 +327,16 @@ batcher_send_risc0_task:
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
+
+batcher_send_risc0_task_no_pub_input:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--payment_service_addr $(BATCHER_PAYMENTS_CONTRACT_ADDRESS)
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
@@ -390,6 +437,7 @@ generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
 __METRICS__:
+# Prometheus and graphana
 run_metrics: ## Run metrics using metrics-docker-compose.yaml
 	@echo "Running metrics..."
 	@docker compose -f metrics-docker-compose.yaml up
@@ -427,6 +475,10 @@ upgrade_stake_registry: ## Upgrade Stake Registry
 upgrade_add_aggregator: ## Add Aggregator to Aligned Contracts
 	@echo "Adding Aggregator to Aligned Contracts..."
 	@. contracts/scripts/.env && . contracts/scripts/upgrade_add_aggregator_to_service_manager.sh
+
+upgrade_initialize_disabled_verifiers:
+	@echo "Adding disabled verifiers to Aligned Service Manager..."
+	@. contracts/scripts/.env && . contracts/scripts/upgrade_disabled_verifiers_in_service_manager.sh
 
 deploy_verify_batch_inclusion_caller:
 	@echo "Deploying VerifyBatchInclusionCaller contract..."
@@ -485,6 +537,11 @@ generate_sp1_fibonacci_proof:
 	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci.elf
 	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
+
+generate_risc_zero_empty_journal_proof:
+	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
+
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
@@ -641,12 +698,238 @@ tracker_dump_db:
 		docker exec -t tracker-postgres-container pg_dumpall -c -U tracker_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /operator_tracker"
 
+DOCKER_RPC_URL=http://anvil:8545
+PROOF_GENERATOR_ADDRESS=0x66f9664f97F2b50F62D13eA064982f936dE76657
+
+docker_build_base_image:
+	docker compose -f docker-compose.yaml --profile aligned_base build
+
+docker_build_aggregator:
+	docker compose -f docker-compose.yaml --profile aggregator build
+
+docker_build_operator:
+	docker compose -f docker-compose.yaml --profile operator build
+
+docker_build_batcher:
+	docker compose -f docker-compose.yaml --profile batcher build
+
+docker_restart_aggregator:
+	docker compose -f docker-compose.yaml --profile aggregator down
+	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
+
+docker_restart_operator:
+	docker compose -f docker-compose.yaml --profile operator down
+	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
+
+docker_restart_batcher:
+	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
+
+docker_build:
+	docker compose -f docker-compose.yaml --profile aligned_base build
+	docker compose -f docker-compose.yaml --profile eigenlayer-cli build
+	docker compose -f docker-compose.yaml --profile foundry build
+	docker compose -f docker-compose.yaml --profile base build
+	docker compose -f docker-compose.yaml --profile operator build
+	docker compose -f docker-compose.yaml --profile batcher build
+	docker compose -f docker-compose.yaml --profile aggregator build
+
+docker_up:
+	docker compose -f docker-compose.yaml --profile base up -d --remove-orphans --force-recreate
+	@until [ "$$(docker inspect $$(docker ps | grep anvil | awk '{print $$1}') | jq -r '.[0].State.Health.Status')" = "healthy" ]; do sleep .5; done; sleep 2
+	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
+	docker compose -f docker-compose.yaml run --rm fund-operator
+	docker compose -f docker-compose.yaml run --rm register-operator-eigenlayer
+	docker compose -f docker-compose.yaml run --rm mint-mock-tokens
+	docker compose -f docker-compose.yaml run --rm operator-deposit-into-mock-strategy
+	docker compose -f docker-compose.yaml run --rm operator-whitelist-devnet
+	docker compose -f docker-compose.yaml run --rm operator-register-with-aligned-layer
+	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
+	docker compose -f docker-compose.yaml run --rm user-fund-payment-service-devnet
+	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
+	@echo "Up and running"
+
+docker_down:
+	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile operator down
+	docker compose -f docker-compose.yaml --profile base down
+	@echo "Everything down"
+	docker ps
+
+DOCKER_BURST_SIZE=2
+DOCKER_PROOFS_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+docker_batcher_send_sp1_burst:
+	@echo "Sending SP1 fibonacci task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system SP1 \
+              --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
+              --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL)
+
+docker_batcher_send_risc0_burst:
+	@echo "Sending Risc0 fibonacci task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system Risc0 \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL)
+
+docker_batcher_send_plonk_bn254_burst:
+	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system GnarkPlonkBn254 \
+              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
+              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+              --repetitions $(DOCKER_BURST_SIZE)
+
+docker_batcher_send_plonk_bls12_381_burst:
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system GnarkPlonkBls12_381 \
+              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
+              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --rpc_url $(DOCKER_RPC_URL)
+
+docker_batcher_send_groth16_burst:
+	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+							--proving_system Groth16Bn254 \
+							--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
+							--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
+							--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+							--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+  						--repetitions $(DOCKER_BURST_SIZE) \
+							--rpc_url $(DOCKER_RPC_URL)
+
+# Update target as new proofs are supported.
+docker_batcher_send_all_proofs_burst:
+	@$(MAKE) docker_batcher_send_sp1_burst
+	@$(MAKE) docker_batcher_send_risc0_burst
+	@$(MAKE) docker_batcher_send_plonk_bn254_burst
+	@$(MAKE) docker_batcher_send_plonk_bls12_381_burst
+	@$(MAKE) docker_batcher_send_groth16_burst
+
+docker_batcher_send_infinite_groth16:
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+		mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs; \
+	  counter=1; \
+	  timer=3; \
+	  while true; do \
+	    echo "Generating proof $${counter} != 0"; \
+	    gnark_groth16_bn254_infinite_script $${counter}; \
+	    aligned submit \
+	              --rpc_url $(DOCKER_RPC_URL) \
+	              --repetitions $(DOCKER_BURST_SIZE) \
+	              --proving_system Groth16Bn254 \
+	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.proof \
+	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
+	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
+	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
+	    sleep $${timer}; \
+	    counter=$$((counter + 1)); \
+	  done \
+	'
+
+docker_verify_proofs_onchain:
+	@echo "Verifying proofs..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+	    for proof in ./aligned_verification_data/*.cbor; do \
+			  echo "Verifying $${proof}"; \
+	      aligned verify-proof-onchain \
+	                --aligned-verification-data $${proof} \
+	                --rpc_url $(DOCKER_RPC_URL); \
+	    done \
+	  '
+
+DOCKER_PROOFS_WAIT_TIME=30
+
+docker_verify_proof_submission_success: 
+	@echo "Verifying proofs were successfully submitted..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
+	sh -c ' \
+			if [ -z "$$(ls -A ./aligned_verification_data)" ]; then echo "ERROR: There are no proofs on aligned_verification_data/ directory" && exit 1; fi; \
+			echo "Waiting $(DOCKER_PROOFS_WAIT_TIME) seconds before starting proof verification. \n"; \
+			sleep $(DOCKER_PROOFS_WAIT_TIME); \
+			for proof in ./aligned_verification_data/*.cbor; do \
+				echo "Verifying proof $${proof} \n"; \
+				verification=$$(aligned verify-proof-onchain \
+									--aligned-verification-data $${proof} \
+									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
+				if echo "$$verification" | grep -q not; then \
+					echo "ERROR: Proof verification failed for $${proof}"; \
+					exit 1; \
+				elif echo "$$verification" | grep -q verified; then \
+					echo "Proof verification succeeded for $${proof}"; \
+				fi; \
+				echo "---------------------------------------------------------------------------------------------------"; \
+			done; \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 10 ]; then \
+				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
+				exit 1; \
+			fi; \
+			echo "All proofs verified successfully!"; \
+		'
+
+docker_attach_foundry:
+	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
+
+docker_attach_anvil:
+	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
+
+docker_attach_aggregator:
+	docker exec -ti $(shell docker ps | grep aggregator | awk '{print $$1}') /bin/bash
+
+docker_attach_operator:
+	docker exec -ti $(shell docker ps | grep operator | awk '{print $$1}') /bin/bash
+
+docker_attach_batcher:
+	docker exec -ti $(shell docker ps | grep batcher | awk '{print $$1}') /bin/bash
+
+docker_logs_anvil:
+	docker compose -f docker-compose.yaml logs anvil -f
+
+docker_logs_aggregator:
+	docker compose -f docker-compose.yaml logs aggregator -f
+
+docker_logs_operator:
+	docker compose -f docker-compose.yaml logs operator -f
+
+docker_logs_batcher:
+	docker compose -f docker-compose.yaml logs batcher -f
+
 __TELEMETRY__:
+# Collector, Jaeger and Elixir API
+telemetry_full_start: open_telemetry_start telemetry_start
+
+# Collector and Jaeger
 open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
-	## TODO(juarce) ADD DOCKER COMPOSE
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
 
+open_telemetry_prod_start: ## Run open telemetry services with Cassandra using telemetry-prod-docker-compose.yaml
+	@echo "Running telemetry for Prod..."
+	@docker compose -f telemetry-prod-docker-compose.yaml up -d
+
+# Elixir API
 telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
 	 	./start.sh	

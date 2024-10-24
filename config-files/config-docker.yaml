@@ -1,0 +1,57 @@
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: "production"
+aligned_layer_deployment_config_file_path: "./contracts/script/output/devnet/alignedlayer_deployment_output.json"
+eigen_layer_deployment_config_file_path: "./contracts/script/output/devnet/eigenlayer_deployment_output.json"
+eth_rpc_url: "http://anvil:8545"
+eth_rpc_url_fallback: "http://anvil:8545"
+eth_ws_url: "ws://anvil:8545"
+eth_ws_url_fallback: "ws://anvil:8545"
+eigen_metrics_ip_port_address: "localhost:9090"
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: "config-files/anvil.ecdsa.key.json"
+  private_key_store_password: ""
+
+## BLS Configurations
+bls:
+  private_key_store_path: "config-files/anvil.bls.key.json"
+  private_key_store_password: ""
+
+## Batcher configurations
+batcher:
+  block_interval: 3
+  batch_size_interval: 10
+  max_proof_size: 67108864 # 64 MiB
+  max_batch_size: 268435456 # 256 MiB
+  eth_ws_reconnects: 99999999999999
+  pre_verification_is_enabled: true
+
+## Aggregator Configurations
+aggregator:
+  server_ip_port_address: localhost:8090
+  bls_public_key_compendium_address: 0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44
+  avs_service_manager_address: 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690
+  enable_metrics: true
+  metrics_ip_port_address: localhost:9091
+
+## Operator Configurations
+operator:
+  aggregator_rpc_server_ip_port_address: aggregator:8090
+  operator_tracker_ip_port_address: http://localhost:3030
+  address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  earnings_receiver_address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  delegation_approver_address: "0x0000000000000000000000000000000000000000"
+  staker_opt_out_window_blocks: 0
+  metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
+  enable_metrics: true
+  metrics_ip_port_address: localhost:9092
+  max_batch_size: 268435456 # 256 MiB
+  last_processed_batch_filepath: config-files/operator.last_processed_batch.json
+# Operators variables needed for register it in EigenLayer
+el_delegation_manager_address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+private_key_store_path: config-files/anvil.ecdsa.key.json
+bls_private_key_store_path: config-files/anvil.bls.key.json
+signer_type: local_keystore
+chain_id: 31337
