@@ -4,7 +4,8 @@ use aligned_sdk::core::types::{
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use log::error;
 
-fn inner_verify_merkle_tree_batch_ffi(
+#[no_mangle]
+pub extern "C" fn verify_merkle_tree_batch_ffi(
     batch_ptr: *const u8,
     batch_len: usize,
     merkle_root: &[u8; 32],
@@ -52,22 +53,6 @@ fn inner_verify_merkle_tree_batch_ffi(
     computed_batch_merkle_tree.root == *merkle_root
 }
 
-#[no_mangle]
-pub extern "C" fn verify_merkle_tree_batch_ffi(
-    batch_ptr: *const u8,
-    batch_len: usize,
-    merkle_root: &[u8; 32],
-) -> i32 {
-    let result = std::panic::catch_unwind(|| {
-        inner_verify_merkle_tree_batch_ffi(batch_ptr, batch_len, merkle_root)
-    });
-
-    match result {
-        Ok(v) => v as i32,
-        Err(_) => -1,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,7 +75,7 @@ mod tests {
         let result =
             verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
 
-        assert_eq!(result, 1);
+        assert_eq!(result, true);
     }
 
     #[test]
@@ -107,7 +92,7 @@ mod tests {
         let result =
             verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, false);
     }
 
     #[test]
@@ -124,6 +109,6 @@ mod tests {
         let result =
             verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, false);
     }
 }

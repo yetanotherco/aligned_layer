@@ -14,7 +14,6 @@ env_vars=(
   "ALIGNED_CONFIG_FILE"
   "DEBUG_ERRORS"
   "TRACKER_API_URL"
-  "MAX_BATCH_SIZE"
 )
 
 for var in "${env_vars[@]}"; do

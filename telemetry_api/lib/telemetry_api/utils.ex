@@ -15,9 +15,10 @@ defmodule TelemetryApi.Utils do
       {:error, message}
   """
   def fetch_json_data(url) do
-    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
-      Jason.decode(body)
-    else
+    case HTTPoison.get(url) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        {:ok, Jason.decode!(body)}
+
       {:ok, %HTTPoison.Response{status_code: status_code}} ->
         {:error, "Request failed with status #{status_code}"}
 

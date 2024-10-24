@@ -417,15 +417,15 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
-    Renders a dynamic badge component.
+    Renders a dynamic badge compoent.
   """
   attr :class, :string, default: nil
   attr :status, :boolean, default: true
-  attr :falsy_text, :string
-  attr :truthy_text, :string
+  attr :falsy_text, :string, default: "Pending"
+  attr :truthy_text, :string, default: "Verified"
   slot :inner_block, default: nil
 
-  def dynamic_badge_boolean(assigns) do
+  def dynamic_badge(assigns) do
     ~H"""
     <.badge
       variant={
@@ -443,39 +443,6 @@ defmodule ExplorerWeb.CoreComponents do
       <%= case @status do
         true -> @truthy_text
         false -> @falsy_text
-      end %>
-      <%= render_slot(@inner_block) %>
-    </.badge>
-    """
-  end
-
-  @doc """
-    Renders a dynamic badge component for the batcher.
-  """
-  attr :class, :string, default: nil
-  attr :status, :atom
-  slot :inner_block, default: nil
-
-  def dynamic_badge_for_batcher(assigns) do
-    ~H"""
-    <.badge
-      variant={
-        case @status do
-          :invalid -> "destructive"
-          :verified -> "accent"
-          :pending -> "foreground"
-        end
-      }
-      class={
-        classes([
-          @class
-        ])
-      }
-    >
-      <%= case @status do
-        :invalid -> "Invalid"
-        :verified -> "Verified"
-        :pending -> "Pending"
       end %>
       <%= render_slot(@inner_block) %>
     </.badge>

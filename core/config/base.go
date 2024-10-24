@@ -33,8 +33,6 @@ type BaseConfig struct {
 	EthRpcClientFallback         eth.InstrumentedClient
 	EthWsClient                  eth.InstrumentedClient
 	EthWsClientFallback          eth.InstrumentedClient
-	EthRpcUrlFallback            string
-	EthWsUrlFallback             string
 	EigenMetricsIpPortAddress    string
 	ChainId                      *big.Int
 }
@@ -151,8 +149,6 @@ func NewBaseConfig(configFilePath string) *BaseConfig {
 		EthRpcClientFallback:         *ethRpcClientFallback,
 		EthWsClient:                  *ethWsClient,
 		EthWsClientFallback:          *ethWsClientFallback,
-		EthRpcUrlFallback:            baseConfigFromYaml.EthRpcUrlFallback,
-		EthWsUrlFallback:             baseConfigFromYaml.EthWsUrlFallback,
 		EigenMetricsIpPortAddress:    baseConfigFromYaml.EigenMetricsIpPortAddress,
 		ChainId:                      chainId,
 	}
