@@ -1,5 +1,8 @@
+use std::time::Duration;
+
 use ethers::prelude::*;
 use log::{info, warn};
+use tokio::time::timeout;
 
 use crate::{
     eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams},
@@ -131,9 +134,9 @@ pub async fn create_new_task_retryable(
         }
     };
 
-    pending_tx
-        .retries(5)
+    timeout(Duration::from_millis(1), pending_tx)
         .await
+        .map_err(|_| RetryError::Permanent(BatcherError::ReceiptNotFoundError))?
         .map_err(|_| RetryError::Transient(BatcherError::TransactionSendError))?
         .ok_or(RetryError::Permanent(BatcherError::ReceiptNotFoundError))
 }

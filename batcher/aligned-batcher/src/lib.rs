@@ -1234,12 +1234,12 @@ impl Batcher {
             .unwrap();
 
         let tx = TransactionRequest::new()
-            .to("0xRECIPIENT_ADDRESS")
+            .to(from_address)
             .value(U256::zero())
             .nonce(current_nonce)
             .gas_price(gas_price * 125 / 100);
 
-        // Override transaction
+        info!("Canceling task");
         if self
             .batcher_signer
             .send_transaction(tx.clone(), None)
@@ -1251,7 +1251,7 @@ impl Batcher {
                 .send_transaction(tx, None)
                 .await
             {
-                warn!("Couldn cancel created task: {e}");
+                warn!("Could not cancel created task: {e}");
             }
         };
     }
