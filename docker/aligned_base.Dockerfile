@@ -85,6 +85,7 @@ FROM base AS builder
 
 ENV RELEASE_FLAG=--release
 ENV TARGET_REL_PATH=release
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 COPY operator/ /aligned_layer/operator/
 COPY batcher/ /aligned_layer/batcher/
@@ -93,7 +94,7 @@ COPY batcher/ /aligned_layer/batcher/
 COPY --from=chef_builder /aligned_layer/operator/sp1/lib/target/ /aligned_layer/operator/sp1/lib/target/
 WORKDIR /aligned_layer/operator/sp1/lib
 RUN cargo build ${RELEASE_FLAG}
-RUN cp /aligned_layer/operator/sp1/lib/target/${TARGET_REL_PATH}/libsp1_verifier_ffi.so /aligned_layer/operator/sp1/lib/libsp1_verifier_ffi.so
+RUN cp /aligned_layer/operator/sp1/lib/target/${TARGET_REL_PATH}/libsp1_verifier_ffi.so /aligned_layer/operator/sp1/lib/libsp1_verifier.so
 
 # build_risc_zero_linux
 COPY --from=chef_builder /aligned_layer/operator/risc_zero/lib/target/ /aligned_layer/operator/risc_zero/lib/target/

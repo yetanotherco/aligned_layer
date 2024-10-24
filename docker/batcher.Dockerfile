@@ -33,7 +33,7 @@ WORKDIR /aligned_layer/batcher/aligned/
 RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned/recipe.json
 
 FROM base AS builder
-COPY batcher/ /aligned_layer/batcher
+COPY . /aligned_layer/
 
 COPY --from=chef_builder /aligned_layer/batcher/aligned-batcher/target/ /aligned_layer/batcher/aligned-batcher/target/
 WORKDIR /aligned_layer/batcher/aligned-batcher/
