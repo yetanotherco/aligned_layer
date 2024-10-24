@@ -12,7 +12,7 @@ import (
 	"unsafe"
 )
 
-func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err error) {
+func VerifySp1ProofOld(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err error) {
 	// Here we define the return value on failure
 	isVerified = false
 	err = nil

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	"github.com/yetanotherco/aligned_layer/operator/sp1_old"
 )
 
 const ProofFilePath = "../../scripts/test_files/sp1/sp1_fibonacci_old.proof"
@@ -22,7 +22,7 @@ func TestFibonacciSp1ProofVerifies(t *testing.T) {
 		t.Errorf("could not open elf file: %s", err)
 	}
 
-	verified, err := sp1.VerifySp1Proof(proofBytes, elfBytes)
+	verified, err := sp1_old.VerifySp1ProofOld(proofBytes, elfBytes)
 	if err != nil || !verified {
 		t.Errorf("proof did not verify")
 	}

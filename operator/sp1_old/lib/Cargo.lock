@@ -4768,7 +4768,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp1-verifier-ffi"
+name = "sp1-verifier-old"
 version = "0.1.0"
 dependencies = [
  "bincode",
