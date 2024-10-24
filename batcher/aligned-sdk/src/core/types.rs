@@ -343,6 +343,9 @@ pub enum ValidityResponseMessage {
     InsufficientBalance(Address),
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
+    BatchInclusionData(BatchInclusionData),
+    CreateNewTaskError(String, String), //merkle-root, error
+
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -379,6 +382,8 @@ impl Display for ValidityResponseMessage {
                     addr, expected
                 )
             }
+            ValidityResponseMessage::BatchInclusionData(data) => write!(f, "Received Batch inclusion data, this means the task was processed: {:?}", data),
+            ValidityResponseMessage::CreateNewTaskError(merkle_root, error) => write!(f, "Create new task error: merkle root: {}, error: {}", merkle_root, error)
         }
     }
 }
@@ -399,7 +404,7 @@ impl Display for ProofInvalidReason {
 pub enum ResponseMessage {
     BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
-    CreateNewTaskError(String),
+    CreateNewTaskError(String, String), //merkle-root, error
     InvalidProof(ProofInvalidReason),
     BatchReset,
     Error(String),

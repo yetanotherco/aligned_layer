@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -25,9 +24,7 @@ func (circuit *InequalityCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func GenerateIneqProof(x int) {
-	outputDir := "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/"
-
+func GenerateIneqProof(x int, outputDir string) {
 	var circuit InequalityCircuit
 	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &circuit)
 	if err != nil {
@@ -86,8 +83,4 @@ func GenerateIneqProof(x int) {
 	if err != nil {
 		panic("could not serialize proof into file")
 	}
-
-	fmt.Printf("Proof written into ineq_%d_groth16.proof\n", x)
-	fmt.Printf("Verification key written into ineq_%d_groth16.vk\n", x)
-	fmt.Printf("Public witness written into ineq_%d_groth16.pub\n", x)
 }
