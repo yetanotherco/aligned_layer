@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: foundry-toolchain
-        uses: foundry-rs/foundry-toolchain@v1.2.0
+        uses: foundry-rs/foundry-toolchain@v1
 
       - name: Cache Rust dependencies
         uses: actions/cache@v3
