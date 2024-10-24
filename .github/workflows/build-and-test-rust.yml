@@ -52,7 +52,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:
@@ -63,7 +62,6 @@ jobs:
           key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
-
       - name: Run tests
         run: |
           cd batcher
