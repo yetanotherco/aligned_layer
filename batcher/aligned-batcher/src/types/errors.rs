@@ -101,20 +101,3 @@ impl fmt::Debug for BatcherError {
         }
     }
 }
-
-#[derive(Debug)]
-pub enum BatcherSendError {
-    TransactionReverted(String),
-    ReceiptNotFound,
-    UnknownError(String),
-}
-
-impl From<BatcherSendError> for BatcherError {
-    fn from(value: BatcherSendError) -> Self {
-        match value {
-            BatcherSendError::TransactionReverted(_) => BatcherError::TransactionSendError,
-            BatcherSendError::ReceiptNotFound => BatcherError::ReceiptNotFoundError,
-            BatcherSendError::UnknownError(err) => BatcherError::TaskCreationError(err),
-        }
-    }
-}

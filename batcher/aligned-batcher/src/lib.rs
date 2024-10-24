@@ -3,11 +3,12 @@ use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
+use eth::utils::get_batcher_signer;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::batcher_retry::{
-    get_gas_price_retryable, get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
-    user_balance_is_unlocked_retryable,
+    create_new_task_retryable, get_gas_price_retryable, get_user_balance_retryable,
+    get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
 use types::batch_state::BatchState;
@@ -32,11 +33,9 @@ use aligned_sdk::core::types::{
 };
 
 use aws_sdk_s3::client::Client as S3Client;
-use eth::payment_service::{
-    try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT,
-};
+use eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
 use ethers::prelude::{Http, Middleware, Provider};
-use ethers::types::{Address, Signature, TransactionReceipt, U256};
+use ethers::types::{Address, Signature, TransactionReceipt, TransactionRequest, U256};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -45,7 +44,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
-use types::errors::{BatcherError, BatcherSendError};
+use types::errors::BatcherError;
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 
@@ -74,6 +73,8 @@ pub struct Batcher {
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
+    batcher_signer: Arc<SignerMiddlewareT>,
+    batcher_signer_fallback: Arc<SignerMiddlewareT>,
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
@@ -155,17 +156,24 @@ impl Batcher {
             }
         };
 
+        let batcher_signer = get_batcher_signer(eth_rpc_provider, config.ecdsa.clone())
+            .await
+            .expect("Failed to get Batcher signer");
+
+        let batcher_signer_fallback =
+            get_batcher_signer(eth_rpc_provider_fallback, config.ecdsa.clone())
+                .await
+                .expect("Failed to get Batcher signer fallback");
+
         let payment_service = eth::payment_service::get_batcher_payment_service(
-            eth_rpc_provider,
-            config.ecdsa.clone(),
+            batcher_signer.clone(),
             deployment_output.addresses.batcher_payment_service.clone(),
         )
         .await
         .expect("Failed to get Batcher Payment Service contract");
 
         let payment_service_fallback = eth::payment_service::get_batcher_payment_service(
-            eth_rpc_provider_fallback,
-            config.ecdsa.clone(),
+            batcher_signer_fallback.clone(),
             deployment_output.addresses.batcher_payment_service,
         )
         .await
@@ -235,6 +243,8 @@ impl Batcher {
             chain_id,
             payment_service,
             payment_service_fallback,
+            batcher_signer,
+            batcher_signer_fallback,
             service_manager,
             service_manager_fallback,
             max_block_interval: config.batcher.block_interval,
@@ -1189,37 +1199,61 @@ impl Batcher {
         proof_submitters: Vec<Address>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
-        info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
-
-        match try_create_new_task(
-            batch_merkle_root,
-            batch_data_pointer.clone(),
-            proof_submitters.clone(),
-            fee_params.clone(),
-            &self.payment_service,
-        )
-        .await
-        {
-            Ok(receipt) => Ok(receipt),
-            Err(BatcherSendError::TransactionReverted(err)) => {
-                // Since transaction was reverted, we don't want to retry with fallback.
-                warn!("Transaction reverted {:?}", err);
-
-                Err(BatcherError::TransactionSendError)
-            }
-            Err(_) => {
-                let receipt = try_create_new_task(
+        let result = retry_function(
+            || {
+                create_new_task_retryable(
                     batch_merkle_root,
-                    batch_data_pointer,
-                    proof_submitters,
-                    fee_params,
+                    batch_data_pointer.clone(),
+                    proof_submitters.clone(),
+                    fee_params.clone(),
+                    &self.payment_service,
                     &self.payment_service_fallback,
                 )
-                .await?;
-
-                Ok(receipt)
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await;
+        match result {
+            Ok(receipt) => Ok(receipt),
+            Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
+                self.cancel_created_task(fee_params.gas_price).await;
+                Err(BatcherError::ReceiptNotFoundError)
             }
+            Err(_) => Err(BatcherError::TransactionSendError),
         }
+    }
+
+    pub async fn cancel_created_task(&self, gas_price: U256) {
+        let from_address = self.batcher_signer.address();
+        let current_nonce = self
+            .batcher_signer
+            .get_transaction_count(from_address, None)
+            .await
+            .unwrap();
+
+        let tx = TransactionRequest::new()
+            .to("0xRECIPIENT_ADDRESS")
+            .value(U256::zero())
+            .nonce(current_nonce)
+            .gas_price(gas_price * 125 / 100);
+
+        // Override transaction
+        if self
+            .batcher_signer
+            .send_transaction(tx.clone(), None)
+            .await
+            .is_err()
+        {
+            if let Err(e) = self
+                .batcher_signer_fallback
+                .send_transaction(tx, None)
+                .await
+            {
+                warn!("Couldn cancel created task: {e}");
+            }
+        };
     }
 
     /// Only relevant for testing and for users to easily use Aligned
