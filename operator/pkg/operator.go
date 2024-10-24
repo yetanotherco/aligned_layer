@@ -18,12 +18,14 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
+	risc_zero_old "github.com/yetanotherco/aligned_layer/operator/risc_zero_old"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yetanotherco/aligned_layer/metrics"
 
 	"github.com/yetanotherco/aligned_layer/operator/sp1"
+	sp1_old "github.com/yetanotherco/aligned_layer/operator/sp1_old"
 
 	"github.com/Layr-Labs/eigensdk-go/crypto/bls"
 	"github.com/Layr-Labs/eigensdk-go/logging"
@@ -518,28 +520,43 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 
 	case common.SP1:
 		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
-		o.handleVerificationResult(results, verificationResult, err, "SP1 proof verification")
+		if err != nil {
+			o.Logger.Errorf("SP1 Proof Verification failed %v", err)
+			results <- false
+			return
+		}
+		if !verificationResult {
+			o.Logger.Infof("SP1 proof verification failed. Trying old SP1 version...")
+			verificationResult = sp1_old.VerifySp1ProofOld(verificationData.Proof, verificationData.VmProgramCode)
+			if !verificationResult {
+				o.Logger.Errorf("Old SP1 proof verification failed")
+			}
+		}
+		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
+		results <- verificationResult
 
 	case common.Risc0:
 		verificationResult, err := risc_zero.VerifyRiscZeroReceipt(verificationData.Proof,
 			verificationData.VmProgramCode, verificationData.PubInput)
-		o.handleVerificationResult(results, verificationResult, err, "RiscZero proof verification")
+		if err != nil {
+			o.Logger.Errorf("Risc0 Proof Verification failed %v", err)
+			results <- false
+			return
+		}
 
+		if !verificationResult {
+			o.Logger.Infof("Risc0 proof verification failed. Trying old Risc0 version...")
+			verificationResult = risc_zero_old.VerifyRiscZeroReceiptOld(verificationData.Proof, verificationData.VmProgramCode, verificationData.PubInput)
+			if !verificationResult {
+				o.Logger.Errorf("Old Risc0 proof verification failed")
+			}
+		}
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		results <- verificationResult
+
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
-	}
-}
-
-func (o *Operator) handleVerificationResult(results chan bool, isVerified bool, err error, name string) {
-	if err != nil {
-		o.Logger.Errorf("%v failed %v", name, err)
-		results <- false
-	} else {
-		o.Logger.Infof("%v result: %t", name, isVerified)
-		results <- isVerified
 	}
 }
 
