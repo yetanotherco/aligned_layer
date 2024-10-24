@@ -7,9 +7,9 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/sp1_old"
 )
 
-const ProofFilePath = "../../scripts/test_files/sp1/sp1_fibonacci_old.proof"
+const ProofFilePath = "../../scripts/test_files/sp1/sp1_fibonacci.proof"
 
-const ElfFilePath = "../../scripts/test_files/sp1/sp1_fibonacci_old.elf"
+const ElfFilePath = "../../scripts/test_files/sp1/sp1_fibonacci.elf"
 
 func TestFibonacciSp1ProofVerifies(t *testing.T) {
 	proofBytes, err := os.ReadFile(ProofFilePath)
