@@ -6,7 +6,7 @@ use eth::service_manager::ServiceManager;
 use eth::utils::get_batcher_signer;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
-use retry::batcher_retry::{
+use retry::batcher_retryables::{
     create_new_task_retryable, get_gas_price_retryable, get_user_balance_retryable,
     get_user_nonce_from_ethereum_retryable, user_balance_is_unlocked_retryable,
 };
@@ -1237,7 +1237,7 @@ impl Batcher {
             .to(from_address)
             .value(U256::zero())
             .nonce(current_nonce)
-            .gas_price(gas_price * 125 / 100);
+            .gas_price(gas_price * 150 / 100);
 
         info!("Canceling task");
         if self
