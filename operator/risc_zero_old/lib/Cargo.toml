@@ -1,5 +1,5 @@
 [package]
-name = "risc_zero_verifier_ffi"
+name = "risc_zero_verifier_old_ffi"
 version = "0.1.0"
 edition = "2021"
 

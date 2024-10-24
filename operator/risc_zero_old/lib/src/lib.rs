@@ -86,7 +86,7 @@ mod tests {
         let image_id = IMAGE_ID.as_ptr();
         let public_input = PUBLIC_INPUT.as_ptr();
 
-        let result = verify_risc_zero_receipt_ffi(
+        let result = verify_risc_zero_receipt_old_ffi(
             receipt_bytes,
             RECEIPT.len() as u32,
             image_id,
@@ -103,7 +103,7 @@ mod tests {
         let image_id = IMAGE_ID.as_ptr();
         let public_input = PUBLIC_INPUT.as_ptr();
 
-        let result = verify_risc_zero_receipt_ffi(
+        let result = verify_risc_zero_receipt_old_ffi(
             receipt_bytes,
             (RECEIPT.len() - 1) as u32,
             image_id,
@@ -120,7 +120,7 @@ mod tests {
         let image_id = IMAGE_ID.as_ptr();
         let public_input = [].as_ptr();
 
-        let result = verify_risc_zero_receipt_ffi(
+        let result = verify_risc_zero_receipt_old_ffi(
             receipt_bytes,
             (RECEIPT.len() - 1) as u32,
             image_id,
