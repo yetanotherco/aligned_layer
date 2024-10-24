@@ -1,6 +1,10 @@
 # Batcher Watchdog
 
-The Batcher Watchdog checks a prometheus metric and restart the batcher as needed
+The Batcher Watchdog checks a prometheus metric and restart the Batcher as needed.
+
+The metric is the quantity of batches sent in the last N minutes, defined in the PROMETHEUS_INTERVAL variable. Lets call this metric `sent_batches`.
+
+Since we are sending proofs constantly, the ideal behaviour is the creation of a task every 3 Ethereum blocks (~36 secs). So, if the `sent_batches` metrics is 0 it means there is a problem in the Batcher, for example a transaction is stuck in Ethereum and the Batcher is locked waiting for the transaction. If this happens, the Watchdog restarts the Batcher.
 
 ## Configuration
 
@@ -22,8 +26,10 @@ There is a `.env.example` file in this directory.
 Open the Crontab configuration with `crontab -e` and add the following line:
 
 ```
-*/20 * * * * /path/to/watchdog/batcher_watchdog.sh /path/to/config/.env >> /path/to/logs/folder/batcher_watchdog.log 2>&1
+*/10 * * * * /path/to/watchdog/batcher_watchdog.sh /path/to/config/.env >> /path/to/logs/folder/batcher_watchdog.log 2>&1
 ```
+
+The cron interval has to be the half of PROMETHEUS_INTERVAL (PROMETHEUS_INTERVAL/2).
 
 You can check logs in the specified file, for example:
 

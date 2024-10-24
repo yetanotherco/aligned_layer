@@ -28,7 +28,7 @@ if [ "$rate" = \"0\" ]; then
   # Restart systemd service
   echo "$(date): restarting $SYSTEMD_SERVICE"
   sudo systemctl restart $SYSTEMD_SERVICE
-  message="$(date): $SYSTEMD_SERVICE restarted"
+  message="$(date): $SYSTEMD_SERVICE restarted by watchdog"
   echo $message
   send_slack_message "$message"
 fi
