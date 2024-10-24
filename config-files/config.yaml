@@ -25,7 +25,6 @@ batcher:
   batch_size_interval: 10
   max_proof_size: 67108864 # 64 MiB
   max_batch_size: 268435456 # 256 MiB
-  eth_ws_reconnects: 99999999999999
   pre_verification_is_enabled: true
   metrics_port: 9093
 

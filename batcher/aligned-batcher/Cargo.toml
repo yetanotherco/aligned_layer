@@ -19,10 +19,7 @@ bytes = "1.7.1"
 hex = "0.4.3"
 dotenvy = "0.15.0"
 anyhow = "1.0.83"
-ethers = { tag = "v2.0.15-fix-reconnections", features = [
-    "ws",
-    "rustls",
-], git = "https://github.com/yetanotherco/ethers-rs.git" }
+ethers = { version = "2.0", features = ["ws", "rustls"] }
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "efd46f0b0aea3aa95d94bba7de86cb96611b40d3", features = ["serde"] }
 serde_yaml = "0.9.34"
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v1.0.1" }
@@ -35,3 +32,4 @@ priority-queue = "2.1.0"
 once_cell = "1.20.2"
 warp = "0.3.7"
 prometheus = { version = "0.13.4", features = ["process"] }
+backon = "1.2.0"

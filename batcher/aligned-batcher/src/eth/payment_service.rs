@@ -17,7 +17,7 @@ pub struct BatchVerified {
 }
 
 pub type SignerMiddlewareT =
-    SignerMiddleware<GasEscalatorMiddleware<Provider<RetryClient<Http>>>, Wallet<SigningKey>>;
+    SignerMiddleware<GasEscalatorMiddleware<Provider<Http>>, Wallet<SigningKey>>;
 
 pub type BatcherPaymentService = BatcherPaymentServiceContract<SignerMiddlewareT>;
 
@@ -46,7 +46,7 @@ impl CreateNewTaskFeeParams {
 }
 
 pub async fn get_batcher_payment_service(
-    provider: Provider<RetryClient<Http>>,
+    provider: Provider<Http>,
     ecdsa_config: ECDSAConfig,
     contract_address: String,
 ) -> Result<BatcherPaymentService, anyhow::Error> {

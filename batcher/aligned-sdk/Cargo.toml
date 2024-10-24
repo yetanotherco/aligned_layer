@@ -4,11 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ethers = { tag = "v2.0.15-fix-reconnections", features = [
-    "ws",
-    "rustls",
-    "eip712",
-], git = "https://github.com/yetanotherco/ethers-rs.git" }
+ethers = { version = "2.0", features = ["ws", "rustls", "eip712"] }
 log = { version = "0.4.21" }
 serde_json = "1.0.117"
 tokio-tungstenite = { version = "0.23.1", features = ["native-tls"] }

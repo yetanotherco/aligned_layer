@@ -23,3 +23,8 @@ pub const MAX_FEE_BATCH_PROOF_NUMBER: usize = 32;
 /// Estimated number of proofs for batch submission.
 /// This corresponds to the number of proofs to compute for a default max_fee.
 pub const MAX_FEE_DEFAULT_PROOF_NUMBER: usize = 10;
+
+/// retry
+pub const DEFAULT_MIN_RETRY_DELAY: u64 = 500; // milliseconds
+pub const DEFAULT_MAX_RETRIES: usize = 5;
+pub const DEFAULT_BACKOFF_FACTOR: f32 = 2.0;

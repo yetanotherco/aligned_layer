@@ -5,6 +5,11 @@ use dotenvy::dotenv;
 use eth::service_manager::ServiceManager;
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
+use retry::batcher_retryables::{
+    get_gas_price_retryable, get_user_balance_retryable, get_user_nonce_from_ethereum_retryable,
+    user_balance_is_unlocked_retryable,
+};
+use retry::{retry_function, RetryError};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
@@ -15,7 +20,8 @@ use std::sync::Arc;
 
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
-    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
     GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
@@ -29,8 +35,7 @@ use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{
     try_create_new_task, BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT,
 };
-use ethers::prelude::{Middleware, Provider};
-use ethers::providers::Ws;
+use ethers::prelude::{Http, Middleware, Provider};
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
 use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -49,18 +54,23 @@ mod connection;
 mod eth;
 pub mod gnark;
 pub mod metrics;
+pub mod retry;
 pub mod risc_zero;
 pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
 
+pub const LISTEN_NEW_BLOCKS_MAX_TIMES: usize = usize::MAX;
+
 pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
     download_endpoint: String,
-    eth_ws_provider: Provider<Ws>,
-    eth_ws_provider_fallback: Provider<Ws>,
+    eth_ws_url: String,
+    eth_ws_url_fallback: String,
+    eth_http_provider: Provider<Http>,
+    eth_http_provider_fallback: Provider<Http>,
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
@@ -97,24 +107,12 @@ impl Batcher {
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
-        let eth_ws_provider =
-            Provider::connect_with_reconnects(&config.eth_ws_url, config.batcher.eth_ws_reconnects)
-                .await
-                .expect("Failed to get ethereum websocket provider");
-
         log::info!(
             "Starting metrics server on port {}",
             config.batcher.metrics_port
         );
         let metrics = metrics::BatcherMetrics::start(config.batcher.metrics_port)
             .expect("Failed to start metrics server");
-
-        let eth_ws_provider_fallback = Provider::connect_with_reconnects(
-            &config.eth_ws_url_fallback,
-            config.batcher.eth_ws_reconnects,
-        )
-        .await
-        .expect("Failed to get fallback ethereum websocket provider");
 
         let eth_rpc_provider =
             eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
@@ -220,12 +218,20 @@ impl Batcher {
         }
         .expect("Failed to get disabled verifiers");
 
+        let eth_http_provider =
+            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get http provider");
+
+        let eth_http_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
+            .expect("Failed to get fallback http provider");
+
         Self {
             s3_client,
             s3_bucket_name,
             download_endpoint,
-            eth_ws_provider,
-            eth_ws_provider_fallback,
+            eth_ws_url: config.eth_ws_url,
+            eth_ws_url_fallback: config.eth_ws_url_fallback,
+            eth_http_provider,
+            eth_http_provider_fallback,
             chain_id,
             payment_service,
             payment_service_fallback,
@@ -261,17 +267,48 @@ impl Batcher {
     }
 
     pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), BatcherError> {
-        let mut stream = self
-            .eth_ws_provider
-            .subscribe_blocks()
-            .await
-            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+        retry_function(
+            || {
+                let app = self.clone();
+                async move { app.listen_new_blocks_retryable().await }
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            LISTEN_NEW_BLOCKS_MAX_TIMES,
+        )
+        .await
+        .map_err(|e| e.inner())
+    }
 
-        let mut stream_fallback = self
-            .eth_ws_provider_fallback
-            .subscribe_blocks()
-            .await
-            .map_err(|e| BatcherError::EthereumSubscriptionError(e.to_string()))?;
+    pub async fn listen_new_blocks_retryable(
+        self: Arc<Self>,
+    ) -> Result<(), RetryError<BatcherError>> {
+        let eth_ws_provider = Provider::connect(&self.eth_ws_url).await.map_err(|e| {
+            warn!("Failed to instantiate Ethereum websocket provider");
+            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+        })?;
+
+        let eth_ws_provider_fallback =
+            Provider::connect(&self.eth_ws_url_fallback)
+                .await
+                .map_err(|e| {
+                    warn!("Failed to instantiate fallback Ethereum websocket provider");
+                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+                })?;
+
+        let mut stream = eth_ws_provider.subscribe_blocks().await.map_err(|e| {
+            warn!("Error subscribing to blocks.");
+            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+        })?;
+
+        let mut stream_fallback =
+            eth_ws_provider_fallback
+                .subscribe_blocks()
+                .await
+                .map_err(|e| {
+                    warn!("Error subscribing to blocks.");
+                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
+                })?;
 
         let last_seen_block = Mutex::<u64>::new(0);
 
@@ -298,8 +335,11 @@ impl Batcher {
                 };
             });
         }
+        error!("Failed to fetch blocks");
 
-        Ok(())
+        Err(RetryError::Transient(
+            BatcherError::EthereumSubscriptionError("Could not get new blocks".to_string()),
+        ))
     }
 
     async fn handle_connection(
@@ -718,14 +758,24 @@ impl Batcher {
         }
     }
 
+    /// Gets the user nonce from Ethereum using exponential backoff.
     async fn get_user_nonce_from_ethereum(
         &self,
         addr: Address,
-    ) -> Result<U256, ContractError<SignerMiddlewareT>> {
-        match self.payment_service.user_nonces(addr).call().await {
-            Ok(nonce) => Ok(nonce),
-            Err(_) => self.payment_service_fallback.user_nonces(addr).call().await,
-        }
+    ) -> Result<U256, RetryError<String>> {
+        retry_function(
+            || {
+                get_user_nonce_from_ethereum_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
     }
 
     /// Adds verification data to the current batch queue.
@@ -1018,7 +1068,7 @@ impl Batcher {
 
         let (gas_price, disable_verifiers) =
             tokio::join!(gas_price_future, disabled_verifiers_future);
-        let gas_price = gas_price.ok_or(BatcherError::GasPriceError)?;
+        let gas_price = gas_price?;
 
         {
             let new_disable_verifiers = disable_verifiers
@@ -1057,20 +1107,12 @@ impl Batcher {
         finalized_batch: &[BatchQueueEntry],
         gas_price: U256,
     ) -> Result<(), BatcherError> {
-        let s3_client = self.s3_client.clone();
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
         info!("Uploading batch to S3...");
-        s3::upload_object(
-            &s3_client,
-            &self.s3_bucket_name,
-            batch_bytes.to_vec(),
-            &file_name,
-        )
-        .await
-        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))?;
+        self.upload_batch_to_s3(batch_bytes, &file_name).await?;
 
         info!("Batch sent to S3 with name: {}", file_name);
 
@@ -1262,55 +1304,99 @@ impl Batcher {
         Ok(())
     }
 
-    /// Gets the balance of user with address `addr` from Ethereum.
+    /// Gets the balance of user with address `addr` from Ethereum using exponential backoff.
     /// Returns `None` if the balance couldn't be returned
     /// FIXME: This should return a `Result` instead.
     async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
-        if let Ok(balance) = self.payment_service.user_balances(*addr).call().await {
-            return Some(balance);
-        };
-
-        self.payment_service_fallback
-            .user_balances(*addr)
-            .call()
-            .await
-            .inspect_err(|_| warn!("Failed to get balance for address {:?}", addr))
-            .ok()
+        retry_function(
+            || {
+                get_user_balance_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
+        .ok()
     }
 
+    /// Checks if the user's balance is unlocked for a given address using exponential backoff.
+    /// Returns `false` if an error occurs during the retries.
     async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
-        if let Ok(unlock_block) = self.payment_service.user_unlock_block(*addr).call().await {
-            return unlock_block != U256::zero();
-        }
-        if let Ok(unlock_block) = self
-            .payment_service_fallback
-            .user_unlock_block(*addr)
-            .call()
-            .await
-        {
-            return unlock_block != U256::zero();
-        }
-        warn!("Could not get user locking state");
-        false
+        let Ok(unlocked) = retry_function(
+            || {
+                user_balance_is_unlocked_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
+        else {
+            warn!("Could not get user locking state.");
+            return false;
+        };
+        unlocked
     }
 
-    /// Gets the current gas price from Ethereum.
-    /// Returns `None` if the gas price couldn't be returned
-    /// FIXME: This should return a `Result` instead.
-    async fn get_gas_price(&self) -> Option<U256> {
-        if let Ok(gas_price) = self
-            .eth_ws_provider
-            .get_gas_price()
-            .await
-            .inspect_err(|e| warn!("Failed to get gas price. Trying with fallback: {e:?}"))
-        {
-            return Some(gas_price);
-        }
+    /// Gets the current gas price from Ethereum using exponential backoff.
+    async fn get_gas_price(&self) -> Result<U256, BatcherError> {
+        retry_function(
+            || get_gas_price_retryable(&self.eth_http_provider, &self.eth_http_provider_fallback),
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
+        .map_err(|e| {
+            error!("Could't get gas price: {e}");
+            BatcherError::GasPriceError
+        })
+    }
 
-        self.eth_ws_provider_fallback
-            .get_gas_price()
+    /// Uploads the batch to s3 using exponential backoff.
+    async fn upload_batch_to_s3(
+        &self,
+        batch_bytes: &[u8],
+        file_name: &str,
+    ) -> Result<(), BatcherError> {
+        retry_function(
+            || {
+                Self::upload_batch_to_s3_retryable(
+                    batch_bytes,
+                    file_name,
+                    self.s3_client.clone(),
+                    &self.s3_bucket_name,
+                )
+            },
+            DEFAULT_MIN_RETRY_DELAY,
+            DEFAULT_BACKOFF_FACTOR,
+            DEFAULT_MAX_RETRIES,
+        )
+        .await
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))
+    }
+
+    async fn upload_batch_to_s3_retryable(
+        batch_bytes: &[u8],
+        file_name: &str,
+        s3_client: S3Client,
+        s3_bucket_name: &str,
+    ) -> Result<(), RetryError<String>> {
+        s3::upload_object(&s3_client, s3_bucket_name, batch_bytes.to_vec(), file_name)
             .await
-            .inspect_err(|e| warn!("Failed to get gas price: {e:?}"))
-            .ok()
+            .map_err(|e| {
+                warn!("Error uploading batch to s3 {e}");
+                RetryError::Transient(e.to_string())
+            })?;
+        Ok(())
     }
 }

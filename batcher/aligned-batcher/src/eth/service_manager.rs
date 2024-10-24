@@ -7,7 +7,7 @@ use ethers::{
         gas_escalator::{Frequency, GeometricGasPrice},
         GasEscalatorMiddleware, SignerMiddleware,
     },
-    providers::{Http, Middleware, Provider, RetryClient},
+    providers::{Http, Middleware, Provider},
     signers::{Signer, Wallet},
     types::H160,
 };
@@ -17,12 +17,12 @@ use crate::config::ECDSAConfig;
 use super::utils::{GAS_ESCALATOR_INTERVAL, GAS_MULTIPLIER};
 
 pub type SignerMiddlewareT =
-    SignerMiddleware<GasEscalatorMiddleware<Provider<RetryClient<Http>>>, Wallet<SigningKey>>;
+    SignerMiddleware<GasEscalatorMiddleware<Provider<Http>>, Wallet<SigningKey>>;
 
 pub type ServiceManager = AlignedLayerServiceManagerContract<SignerMiddlewareT>;
 
 pub async fn get_service_manager(
-    provider: Provider<RetryClient<Http>>,
+    provider: Provider<Http>,
     ecdsa_config: ECDSAConfig,
     contract_address: String,
 ) -> Result<ServiceManager, anyhow::Error> {

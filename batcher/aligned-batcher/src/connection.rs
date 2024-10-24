@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
     core::types::{BatchInclusionData, ResponseMessage, VerificationCommitmentBatch},
@@ -13,8 +14,6 @@ use tokio_tungstenite::{
     tungstenite::{Error, Message},
     WebSocketStream,
 };
-
-use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 
 pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
