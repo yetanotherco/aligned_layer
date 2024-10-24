@@ -850,7 +850,7 @@
             "h": 7,
             "w": 10,
             "x": 0,
-            "y": 42
+            "y": 28
           },
           "id": 9,
           "options": {
@@ -1000,7 +1000,7 @@
             "h": 7,
             "w": 10,
             "x": 10,
-            "y": 42
+            "y": 28
           },
           "id": 1,
           "options": {
@@ -1064,7 +1064,7 @@
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 49
+            "y": 35
           },
           "id": 8,
           "options": {
@@ -1132,7 +1132,7 @@
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 49
+            "y": 35
           },
           "id": 7,
           "options": {
@@ -1174,6 +1174,106 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
+          "description": "Number of times gas price was bumped while sending an aggregated response.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 10,
+            "x": 10,
+            "y": 35
+          },
+          "id": 21,
+          "interval": "36",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "aligned_respond_to_task_gas_price_bumped{bot=\"aggregator\"}",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Bumped gas price for aggregated responses",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -1195,7 +1295,7 @@
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 56
+            "y": 42
           },
           "id": 2,
           "options": {
@@ -1263,7 +1363,7 @@
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 56
+            "y": 42
           },
           "id": 5,
           "options": {
@@ -1323,6 +1423,6 @@
   "timezone": "browser",
   "title": "Aggregator Data",
   "uid": "aggregator",
-  "version": 6,
+  "version": 15,
   "weekStart": ""
 }

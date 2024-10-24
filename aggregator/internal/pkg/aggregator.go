@@ -304,7 +304,8 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 		"senderAddress", hex.EncodeToString(senderAddress[:]),
 		"batchIdentifierHash", hex.EncodeToString(batchIdentifierHash[:]))
 
-	txHash, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
+	onRetry := func() { agg.metrics.IncBumpedGasPriceForAggregatedResponse() }
+	receipt, err := agg.avsWriter.SendAggregatedResponse(batchIdentifierHash, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, onRetry)
 	if err != nil {
 		agg.walletMutex.Unlock()
 		agg.logger.Infof("- Unlocked Wallet Resources: Error sending aggregated response for batch %s. Error: %s", hex.EncodeToString(batchIdentifierHash[:]), err)
@@ -314,13 +315,6 @@ func (agg *Aggregator) sendAggregatedResponse(batchIdentifierHash [32]byte, batc
 
 	agg.walletMutex.Unlock()
 	agg.logger.Infof("- Unlocked Wallet Resources: Sending aggregated response for batch %s", hex.EncodeToString(batchIdentifierHash[:]))
-
-	receipt, err := utils.WaitForTransactionReceipt(
-		agg.AggregatorConfig.BaseConfig.EthRpcClient, context.Background(), *txHash)
-	if err != nil {
-		agg.telemetry.LogTaskError(batchMerkleRoot, err)
-		return nil, err
-	}
 
 	agg.metrics.IncAggregatedResponses()
 
