@@ -197,8 +197,8 @@ dependencies = [
 
 [[package]]
 name = "sp1-lib"
-version = "3.0.0-rc3"
-source = "git+https://github.com/succinctlabs/sp1.git?tag=v3.0.0-rc3#59c4234ff4ed73622851e72a7ec29880e12e2792"
+version = "3.0.0"
+source = "git+https://github.com/succinctlabs/sp1.git?tag=v3.0.0#ff8f482c3e135f1a1f325d639fb6fc8c383407f2"
 dependencies = [
  "bincode",
  "serde",
@@ -206,8 +206,8 @@ dependencies = [
 
 [[package]]
 name = "sp1-zkvm"
-version = "3.0.0-rc3"
-source = "git+https://github.com/succinctlabs/sp1.git?tag=v3.0.0-rc3#59c4234ff4ed73622851e72a7ec29880e12e2792"
+version = "3.0.0"
+source = "git+https://github.com/succinctlabs/sp1.git?tag=v3.0.0#ff8f482c3e135f1a1f325d639fb6fc8c383407f2"
 dependencies = [
  "cfg-if",
  "getrandom",
