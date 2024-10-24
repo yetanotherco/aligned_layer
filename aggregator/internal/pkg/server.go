@@ -127,6 +127,8 @@ func (agg *Aggregator) ServerRunning(_ *struct{}, reply *int64) error {
 	return nil
 }
 
+// |---RETRYABLE---|
+
 func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskIndex uint32, taskResponse interface{}, blsSignature *bls.Signature, operatorId eigentypes.Bytes32) error {
 	processNewSignature_func := func() error {
 		return agg.blsAggregationService.ProcessNewSignature(
@@ -136,5 +138,4 @@ func (agg *Aggregator) ProcessNewSignatureRetryable(ctx context.Context, taskInd
 	}
 
 	return connection.Retry(processNewSignature_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-
 }

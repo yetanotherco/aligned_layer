@@ -70,15 +70,14 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2Retrayable(newTaskCreatedChan chan 
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	// Subscribe to new tasks
-	//TODO: Retry()
-	//TODO: Consolidate
+	// Retry()
 	sub, err := subscribeToNewTasksV2Retrayable(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
 		return nil, err
 	}
 
-	//TODO: Retry()
+	// Retry()
 	subFallback, err := subscribeToNewTasksV2Retrayable(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new AlignedLayer tasks", "err", err)
@@ -121,7 +120,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2Retrayable(newTaskCreatedChan chan 
 			case err := <-sub.Err():
 				s.logger.Warn("Error in new task subscription", "err", err)
 				sub.Unsubscribe()
-				//TODO: Retry()
+				// Retry()
 				sub, err = subscribeToNewTasksV2Retrayable(s.AvsContractBindings.ServiceManager, internalChannel, s.logger)
 				if err != nil {
 					errorChannel <- err
@@ -129,7 +128,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2Retrayable(newTaskCreatedChan chan 
 			case err := <-subFallback.Err():
 				s.logger.Warn("Error in fallback new task subscription", "err", err)
 				subFallback.Unsubscribe()
-				//TODO: Retry()
+				// Retry()
 				subFallback, err = subscribeToNewTasksV2Retrayable(s.AvsContractBindings.ServiceManagerFallback, internalChannel, s.logger)
 				if err != nil {
 					errorChannel <- err
@@ -176,7 +175,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3Retryable(newTaskCreatedChan chan *
 				s.processNewBatchV3(newBatch, batchesSet, newBatchMutex, newTaskCreatedChan)
 			case <-pollLatestBatchTicker.C:
 				//TODO: Retry()
-				latestBatch, err := s.getLatestNotRespondedTaskFromEthereumV3Retryable()
+				latestBatch, err := s.getLatestNotRespondedTaskFromEthereumV3()
 				if err != nil {
 					s.logger.Debug("Failed to get latest task from blockchain", "err", err)
 					continue
@@ -214,41 +213,6 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3Retryable(newTaskCreatedChan chan *
 	}()
 
 	return errorChannel, nil
-}
-
-func subscribeToNewTasksV2Retrayable(
-	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
-	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2,
-	logger sdklogging.Logger,
-) (event.Subscription, error) {
-	subscribe_func := func() (*event.Subscription, error) {
-		sub, err := serviceManager.WatchNewBatchV2(&bind.WatchOpts{}, newTaskCreatedChan, nil)
-		return &sub, err
-	}
-	sub, err := connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-	if err != nil {
-		return nil, fmt.Errorf("failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
-	}
-	logger.Info("Subscribed to new AlignedLayer tasks")
-	return *sub, nil
-}
-
-func subscribeToNewTasksV3Retryable(
-	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
-	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3,
-	logger sdklogging.Logger,
-) (event.Subscription, error) {
-	subscribe_func := func() (*event.Subscription, error) {
-		sub, err := serviceManager.WatchNewBatchV3(&bind.WatchOpts{}, newTaskCreatedChan, nil)
-		return &sub, err
-	}
-	sub, err := connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-	if err != nil {
-		// If the retries stop early we propogate the Permanent error to the caller.
-		return nil, fmt.Errorf("failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
-	}
-	logger.Info("Subscribed to new AlignedLayer tasks")
-	return *sub, nil
 }
 
 func (s *AvsSubscriber) processNewBatchV2(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
@@ -301,67 +265,6 @@ func (s *AvsSubscriber) processNewBatchV3(batch *servicemanager.ContractAlignedL
 			newBatchMutex.Unlock()
 		}()
 	}
-}
-
-func (s *AvsSubscriber) blockNumberRetryable(ctx context.Context) (*uint64, error) {
-	latestBlock_func := func() (*uint64, error) {
-		latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(ctx)
-		if err != nil {
-			latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(ctx)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return &latestBlock, err
-	}
-	return connection.RetryWithData(latestBlock_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-}
-
-func (s *AvsSubscriber) filterBatchV2Retryable(fromBlock uint64, ctx context.Context) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
-
-	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
-		return s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
-	}
-	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-}
-
-func (s *AvsSubscriber) filterBatchV3Retryable(fromBlock uint64, ctx context.Context) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
-
-	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
-		return s.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
-	}
-	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-}
-
-func (s *AvsSubscriber) batchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (*struct {
-	TaskCreatedBlock      uint32
-	Responded             bool
-	RespondToTaskFeeLimit *big.Int
-}, error) {
-	batchState_func := func() (*struct {
-		TaskCreatedBlock      uint32
-		Responded             bool
-		RespondToTaskFeeLimit *big.Int
-	}, error) {
-		state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
-		return &state, err
-	}
-
-	return connection.RetryWithData(batchState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
-}
-
-func (s *AvsSubscriber) subscribeNewHeadRetryable(ctx context.Context, c chan<- *types.Header) (*ethereum.Subscription, error) {
-	subscribeNewHead_func := func() (*ethereum.Subscription, error) {
-		sub, err := s.AvsContractBindings.ethClient.SubscribeNewHead(ctx, c)
-		if err != nil {
-			sub, err = s.AvsContractBindings.ethClientFallback.SubscribeNewHead(ctx, c)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return &sub, err
-	}
-	return connection.RetryWithData(subscribeNewHead_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 }
 
 // getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
@@ -418,7 +321,7 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV2() (*servicemanag
 }
 
 // getLatestNotRespondedTaskFromEthereum queries the blockchain for the latest not responded task using the FilterNewBatch method.
-func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3Retryable() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
+func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, error) {
 	// Retry()
 	latestBlock, err := s.blockNumberRetryable(context.Background())
 	if err != nil {
@@ -507,3 +410,101 @@ func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
 // func (s *AvsSubscriber) ParseTaskResponded(rawLog types.Log) (*cstaskmanager.ContractAlignedLayerTaskManagerTaskResponded, error) {
 // 	return s.AvsContractBindings.TaskManager.ContractAlignedLayerTaskManagerFilterer.ParseTaskResponded(rawLog)
 // }
+
+// |---RETRYABLE---|
+
+func (s *AvsSubscriber) blockNumberRetryable(ctx context.Context) (*uint64, error) {
+	latestBlock_func := func() (*uint64, error) {
+		latestBlock, err := s.AvsContractBindings.ethClient.BlockNumber(ctx)
+		if err != nil {
+			latestBlock, err = s.AvsContractBindings.ethClientFallback.BlockNumber(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &latestBlock, err
+	}
+	return connection.RetryWithData(latestBlock_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+}
+
+func (s *AvsSubscriber) filterBatchV2Retryable(fromBlock uint64, ctx context.Context) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
+
+	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
+		return s.AvsContractBindings.ServiceManager.FilterNewBatchV2(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
+	}
+	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+}
+
+func (s *AvsSubscriber) filterBatchV3Retryable(fromBlock uint64, ctx context.Context) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+
+	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+		return s.AvsContractBindings.ServiceManager.FilterNewBatchV3(&bind.FilterOpts{Start: fromBlock, End: nil, Context: ctx}, nil)
+	}
+	return connection.RetryWithData(filterNewBatchV2_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+}
+
+func (s *AvsSubscriber) batchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte) (*struct {
+	TaskCreatedBlock      uint32
+	Responded             bool
+	RespondToTaskFeeLimit *big.Int
+}, error) {
+	batchState_func := func() (*struct {
+		TaskCreatedBlock      uint32
+		Responded             bool
+		RespondToTaskFeeLimit *big.Int
+	}, error) {
+		state, err := s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
+		return &state, err
+	}
+
+	return connection.RetryWithData(batchState_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+}
+
+func (s *AvsSubscriber) subscribeNewHeadRetryable(ctx context.Context, c chan<- *types.Header) (*ethereum.Subscription, error) {
+	subscribeNewHead_func := func() (*ethereum.Subscription, error) {
+		sub, err := s.AvsContractBindings.ethClient.SubscribeNewHead(ctx, c)
+		if err != nil {
+			sub, err = s.AvsContractBindings.ethClientFallback.SubscribeNewHead(ctx, c)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &sub, err
+	}
+	return connection.RetryWithData(subscribeNewHead_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+}
+
+func subscribeToNewTasksV2Retrayable(
+	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
+	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2,
+	logger sdklogging.Logger,
+) (event.Subscription, error) {
+	subscribe_func := func() (*event.Subscription, error) {
+		sub, err := serviceManager.WatchNewBatchV2(&bind.WatchOpts{}, newTaskCreatedChan, nil)
+		return &sub, err
+	}
+	sub, err := connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	if err != nil {
+		return nil, fmt.Errorf("failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
+	}
+	logger.Info("Subscribed to new AlignedLayer tasks")
+	return *sub, nil
+}
+
+func subscribeToNewTasksV3Retryable(
+	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
+	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3,
+	logger sdklogging.Logger,
+) (event.Subscription, error) {
+	subscribe_func := func() (*event.Subscription, error) {
+		sub, err := serviceManager.WatchNewBatchV3(&bind.WatchOpts{}, newTaskCreatedChan, nil)
+		return &sub, err
+	}
+	sub, err := connection.RetryWithData(subscribe_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
+	if err != nil {
+		// If the retries stop early we propogate the Permanent error to the caller.
+		return nil, fmt.Errorf("failed to subscribe to new AlignedLayer tasks after %d retries", MaxRetries)
+	}
+	logger.Info("Subscribed to new AlignedLayer tasks")
+	return *sub, nil
+}

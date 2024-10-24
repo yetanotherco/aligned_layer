@@ -175,6 +175,8 @@ func (w *AvsWriter) compareBatcherBalance(amount *big.Int, senderAddress [20]byt
 	return nil
 }
 
+// |---RETRYABLE---|
+
 func (w *AvsWriter) respondToTaskV2Retryable(opts *bind.TransactOpts, batchMerkleRoot [32]byte, senderAddress common.Address, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature) (*types.Transaction, error) {
 	respondToTaskV2_func := func() (*types.Transaction, error) {
 		tx, err := w.AvsContractBindings.ServiceManager.RespondToTaskV2(opts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature)
@@ -229,7 +231,6 @@ func (w *AvsWriter) batcherBalancesRetryable(senderAddress common.Address) (*big
 	return connection.RetryWithData(batcherBalances_func, connection.MinDelay, connection.RetryFactor, connection.NumRetries)
 }
 
-// TODO: separate retry concerns and inline them in real functions
 func (w *AvsWriter) balanceAtRetryable(ctx context.Context, aggregatorAddress common.Address, blockNumber *big.Int) (*big.Int, error) {
 
 	balanceAt_func := func() (*big.Int, error) {

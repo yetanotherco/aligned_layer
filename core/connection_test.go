@@ -168,7 +168,7 @@ func TestWaitForTransactionReceiptRetryable(t *testing.T) {
 		return
 	}
 
-	// Fails
+	// Fails with "not found"
 	receipt, err := utils.WaitForTransactionReceiptRetryable(*client, ctx, hash)
 	assert.Nil(t, receipt, "Receipt not empty")
 	assert.NotEqual(t, err.Error(), "not found")
@@ -197,22 +197,22 @@ func TestInitializeNewTaskRetryable(t *testing.T) {
 
 // |--Server Retry Tests--|
 func TestProcessNewSignatureRetryable(t *testing.T) {
-		agg := NewAggregator()
-		agg.ProcessNewSignatureRetryable()
+	agg := NewAggregator()
+	agg.ProcessNewSignatureRetryable()
 }
 
 // |--Subscriber Retry Tests--|
 
 func TestSubscribeToNewTasksV3Retryable(t *testing.T) {
-		newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
+	newBatchChan := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
-		baseConfig := core.NewBaseConfig("")
-		avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(baseConfig)
-		if err != nil {
-			return nil, err
-		}
+	baseConfig := core.NewBaseConfig("")
+	avsSubscriber, err := chainio.NewAvsSubscriberFromConfig(baseConfig)
+	if err != nil {
+		return nil, err
+	}
 
-		agg.taskSubscriber, err = avsSubscriber.SubscribeToNewTasksV3Retryable(newBatchChan)
+	agg.taskSubscriber, err = avsSubscriber.SubscribeToNewTasksV3Retryable(newBatchChan)
 }
 
 // |--AVS-Writer Retry Tests--|
