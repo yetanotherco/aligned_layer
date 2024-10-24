@@ -112,6 +112,7 @@ dependencies = [
  "once_cell",
  "priority-queue",
  "prometheus",
+ "reqwest 0.12.8",
  "risc0-zkvm",
  "serde",
  "serde_json",

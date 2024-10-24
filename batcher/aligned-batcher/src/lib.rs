@@ -43,6 +43,7 @@ use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, BatcherSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
+use crate::telemetry::sender::TelemetrySender;
 
 mod config;
 mod connection;
@@ -54,6 +55,7 @@ pub mod s3;
 pub mod sp1;
 pub mod types;
 mod zk_utils;
+pub mod telemetry;
 
 pub struct Batcher {
     s3_client: S3Client,
@@ -76,6 +78,7 @@ pub struct Batcher {
     posting_batch: Mutex<bool>,
     disabled_verifiers: Mutex<U256>,
     pub metrics: metrics::BatcherMetrics,
+    pub telemetry: TelemetrySender,
 }
 
 impl Batcher {
@@ -220,6 +223,10 @@ impl Batcher {
         }
         .expect("Failed to get disabled verifiers");
 
+        let telemetry = TelemetrySender::new(
+            "http://localhost:4001".to_string(),
+        );
+
         Self {
             s3_client,
             s3_bucket_name,
@@ -241,6 +248,7 @@ impl Batcher {
             batch_state: Mutex::new(batch_state),
             disabled_verifiers: Mutex::new(disabled_verifiers),
             metrics,
+            telemetry,
         }
     }
 
@@ -1047,7 +1055,7 @@ impl Batcher {
             let batch_finalization_result = self
                 .finalize_batch(block_number, finalized_batch, modified_gas_price)
                 .await;
-
+            
             // Resetting this here to avoid doing it on every return path of `finalize_batch` function
             let mut batch_posting = self.posting_batch.lock().await;
             *batch_posting = false;
@@ -1072,6 +1080,7 @@ impl Batcher {
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
 
+        self.telemetry.send_new_batch(batch_merkle_root_hex).await.unwrap();
         info!("Uploading batch to S3...");
         s3::upload_object(
             &s3_client,
@@ -1149,6 +1158,10 @@ impl Batcher {
     ) -> Result<TransactionReceipt, BatcherError> {
         info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
 
+        self.telemetry.start_task_creation(hex::encode(batch_merkle_root))
+            .await
+            .unwrap();
+        
         match try_create_new_task(
             batch_merkle_root,
             batch_data_pointer.clone(),
@@ -1158,7 +1171,10 @@ impl Batcher {
         )
         .await
         {
-            Ok(receipt) => Ok(receipt),
+            Ok(receipt) => {
+                self.telemetry.send_creating_task(hex::encode(batch_merkle_root)).await.unwrap();
+                Ok(receipt)
+            }
             Err(BatcherSendError::TransactionReverted(err)) => {
                 // Since transaction was reverted, we don't want to retry with fallback.
                 warn!("Transaction reverted {:?}", err);
