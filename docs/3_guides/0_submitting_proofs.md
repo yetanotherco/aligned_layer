@@ -77,7 +77,7 @@ aligned deposit-to-batcher \
 This command allows the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky-stage` or `holesky`.
 - `--keystore_path` the path to the keystore.
 - `--amount` the number of ethers to transfer to the Batcher.
 - Note: `--amount` flag parameter must be with the shown format, `XX.XXether`.
@@ -94,7 +94,7 @@ aligned get-user-balance \
 These commands allow the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky-stage` or `holesky`.
 - `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Submit your proof to the batcher
@@ -108,7 +108,7 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
 * `pub_input`: The path to the file with the public input associated with the proof.
 * `batcher_url`: The batcher websocket URL.
-* `network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
+* `network` to specify the network to be used. Can be `devnet`, `holesky-stage` or `holesky`.
 * `rpc_url`: The RPC Ethereum node URL.
 * `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
 * `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
