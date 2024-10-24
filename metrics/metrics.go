@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -49,23 +48,12 @@ func NewMetrics(ipPortAddress string, reg prometheus.Registerer, logger logging.
 func (m *Metrics) Start(ctx context.Context, reg prometheus.Gatherer) <-chan error {
 	m.logger.Infof("Starting metrics server at port %v", m.ipPortAddress)
 	errC := make(chan error, 1)
-
-	server := http.Server{
-		Addr:           m.ipPortAddress,
-		Handler:        http.NewServeMux(),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		IdleTimeout:    120 * time.Second,
-		MaxHeaderBytes: 1 << 20, // This is 1MB
-	}
-
-	server.Handler.(*http.ServeMux).Handle("/metrics", promhttp.HandlerFor(
-		reg,
-		promhttp.HandlerOpts{},
-	))
-
 	go func() {
-		err := server.ListenAndServe()
+		http.Handle("/metrics", promhttp.HandlerFor(
+			reg,
+			promhttp.HandlerOpts{},
+		))
+		err := http.ListenAndServe(m.ipPortAddress, nil)
 		if err != nil {
 			errC <- errors.New("prometheus server failed")
 		} else {

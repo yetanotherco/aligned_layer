@@ -7,8 +7,6 @@ defmodule TelemetryApi.Application do
 
   @impl true
   def start(_type, _args) do
-    TelemetryApi.MetricsExporter.setup()
-
     children = [
       TraceStore,
       TelemetryApiWeb.Telemetry,
@@ -19,7 +17,7 @@ defmodule TelemetryApi.Application do
       # {TelemetryApi.Worker, arg},
       # Start to serve requests, typically the last entry
       TelemetryApiWeb.Endpoint,
-      TelemetryApi.Periodically
+      TelemetryApi.Periodic.OperatorFetcher
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

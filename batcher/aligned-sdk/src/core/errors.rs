@@ -9,8 +9,6 @@ use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
 use crate::communication::serialization::SerializationError;
 
-use super::types::ProofInvalidReason;
-
 #[derive(Debug)]
 pub enum AlignedError {
     SubmitError(SubmitError),
@@ -18,7 +16,6 @@ pub enum AlignedError {
     NonceError(NonceError),
     ChainIdError(ChainIdError),
     MaxFeeEstimateError(MaxFeeEstimateError),
-    FileError(FileError),
 }
 
 impl From<SubmitError> for AlignedError {
@@ -51,12 +48,6 @@ impl From<MaxFeeEstimateError> for AlignedError {
     }
 }
 
-impl From<FileError> for AlignedError {
-    fn from(e: FileError) -> Self {
-        AlignedError::FileError(e)
-    }
-}
-
 impl fmt::Display for AlignedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -65,7 +56,6 @@ impl fmt::Display for AlignedError {
             AlignedError::NonceError(e) => write!(f, "Nonce error: {}", e),
             AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
             AlignedError::MaxFeeEstimateError(e) => write!(f, "Max fee estimate error: {}", e),
-            AlignedError::FileError(e) => write!(f, "File error: {}", e),
         }
     }
 }
@@ -94,7 +84,7 @@ pub enum SubmitError {
     ProofQueueFlushed,
     InvalidSignature,
     InvalidChainId,
-    InvalidProof(ProofInvalidReason),
+    InvalidProof,
     ProofTooLarge,
     InvalidReplacementMessage,
     InsufficientBalance,
@@ -197,7 +187,7 @@ impl fmt::Display for SubmitError {
             SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
             SubmitError::InvalidSignature => write!(f, "Invalid Signature"),
             SubmitError::InvalidChainId => write!(f, "Invalid chain Id"),
-            SubmitError::InvalidProof(reason) => write!(f, "Invalid proof {}", reason),
+            SubmitError::InvalidProof => write!(f, "Invalid proof"),
             SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
             SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
             SubmitError::InsufficientBalance => write!(f, "Insufficient balance"),
@@ -330,31 +320,4 @@ pub enum PaymentError {
 pub enum BalanceError {
     EthereumProviderError(String),
     EthereumCallError(String),
-}
-
-#[derive(Debug)]
-pub enum FileError {
-    IoError(PathBuf, io::Error),
-    SerializationError(SerializationError),
-}
-
-impl From<SerializationError> for FileError {
-    fn from(e: SerializationError) -> Self {
-        FileError::SerializationError(e)
-    }
-}
-
-impl From<io::Error> for FileError {
-    fn from(e: io::Error) -> Self {
-        FileError::IoError(PathBuf::new(), e)
-    }
-}
-
-impl fmt::Display for FileError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            FileError::IoError(path, e) => write!(f, "IO error: {}: {}", path.display(), e),
-            FileError::SerializationError(e) => write!(f, "Serialization error: {}", e),
-        }
-    }
 }

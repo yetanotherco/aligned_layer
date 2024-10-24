@@ -23,5 +23,4 @@ cast send --from $sender_address \
     --value $amount_in_eth \
     --private-key $sender_private_key \
     --rpc-url "http://localhost:8545" \
-    "$recipient_address" \
-    --gas-price $(cast gas-price --rpc-url "http://localhost:8545")
+    "$recipient_address"
