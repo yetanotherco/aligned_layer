@@ -53,9 +53,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: foundry-toolchain
-        uses: foundry-rs/foundry-toolchain@v1
-
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:
