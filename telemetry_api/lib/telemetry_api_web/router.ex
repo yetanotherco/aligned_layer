@@ -16,6 +16,10 @@ defmodule TelemetryApiWeb.Router do
     post "/quorumReached", TraceController, :quorum_reached
     post "/taskError", TraceController, :task_error
     post "/finishTaskTrace", TraceController, :finish_task_trace
+
+    post "/batcherNewBatch", TraceController, :batcher_new_batch
+    post "/batcherTaskSent", TraceController, :batcher_task_sent
+    post "/batcherTaskStarted", TraceController, :batcher_task_started
   end
 
   scope "/versions", TelemetryApiWeb do

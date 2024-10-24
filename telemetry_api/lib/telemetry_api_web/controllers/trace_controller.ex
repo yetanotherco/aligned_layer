@@ -12,7 +12,31 @@ defmodule TelemetryApiWeb.TraceController do
   def create_task_trace(conn, %{"merkle_root" => merkle_root}) do
     with :ok <- Traces.create_task_trace(merkle_root) do
       conn
+      |> put_status(:ok)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  def batcher_task_sent(conn, %{"merkle_root" => merkle_root}) do
+    with :ok <- Traces.batcher_task_sent(merkle_root) do
+      conn
+      |> put_status(:ok)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  def batcher_new_batch(conn, %{"merkle_root" => merkle_root}) do
+    with :ok <- Traces.batcher_new_batch(merkle_root) do
+      conn
       |> put_status(:created)
+      |> render(:show_merkle, merkle_root: merkle_root)
+    end
+  end
+
+  def batcher_task_started(conn, %{"merkle_root" => merkle_root}) do
+    with :ok <- Traces.batcher_task_started(merkle_root) do
+      conn
+      |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)
     end
   end
