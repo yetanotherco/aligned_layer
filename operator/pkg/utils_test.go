@@ -57,7 +57,13 @@ func TestBaseUrlOnlyHappyPath(t *testing.T) {
 		{"http://localhost:8545/asdfoij2a7831has89%342jddav98j2748", "localhost:8545"},
 		{"ws://test.com/23r2f98hkjva0udhvi1j%342jddav98j2748", "test.com"},
 		{"http://localhost:8545", "localhost:8545"},
-		{"https://myservice.com/holesky/ApiKey", "myservice.com/holesky"},
+		{"https://myservice.com/holesky/ApiKey", "myservice.com"},
+		{"https://holesky.myservice.com/holesky", "holesky.myservice.com"},
+		{"https://eth-mainnet.blastapi.io/12345678-abcd-1234-abcd-123456789012", "eth-mainnet.blastapi.io"},
+		{"https://eth-holesky.g.alchemy.com/v2/1234567890_abcdefghijklmnopqrstuv/", "eth-holesky.g.alchemy.com"},
+		{"https://a.b.c.d/1234", "a.b.c.d"},
+		{"https://a.b.c.d/1234/5678", "a.b.c.d"},
+		{"https://a.b.c.d.e/1234/", "a.b.c.d.e"},
 	}
 
 	for _, pair := range urls {
