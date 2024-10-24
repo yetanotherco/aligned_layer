@@ -133,6 +133,16 @@ pub async fn send_messages(
                     expected_addr,
                 ));
             }
+            ValidityResponseMessage::BatchInclusionData(data) => {
+                debug!("Message was valid and included with the following BatchInclusionData: {:?}", data);
+
+            }
+            ValidityResponseMessage::CreateNewTaskError(merkle_root, error) => {
+                return Err(SubmitError::BatchSubmissionFailed(
+                    "Could not create task with merkle root ".to_owned() + &merkle_root + ", failed with error: " + &error, 
+                ));
+            }
+
         };
 
         sent_verification_data.push(verification_data.clone());
@@ -215,9 +225,9 @@ async fn process_batch_inclusion_data(
         Ok(ResponseMessage::Error(e)) => {
             error!("Batcher responded with error: {}", e);
         }
-        Ok(ResponseMessage::CreateNewTaskError(merkle_root)) => {
+        Ok(ResponseMessage::CreateNewTaskError(merkle_root, error)) => {
             return Err(SubmitError::BatchSubmissionFailed(
-                "Could not create task with merkle root ".to_owned() + &merkle_root,
+                "Could not create task with merkle root ".to_owned() + &merkle_root + ", failed with error: " + &error, 
             ));
         }
         Ok(ResponseMessage::InvalidProof(reason)) => {

@@ -968,7 +968,7 @@ impl Batcher {
                     let merkle_root = hex::encode(batch_merkle_tree.root);
                     send_message(
                         ws_sink.clone(),
-                        ResponseMessage::CreateNewTaskError(merkle_root),
+                        ResponseMessage::CreateNewTaskError(merkle_root, format!("{:?}", e)),
                     )
                     .await
                 } else {
