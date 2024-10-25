@@ -1257,6 +1257,7 @@ impl Batcher {
                 warn!("Could not cancel created task: {e}");
             }
         };
+        info!("Task successfully canceled");
     }
 
     /// Only relevant for testing and for users to easily use Aligned
