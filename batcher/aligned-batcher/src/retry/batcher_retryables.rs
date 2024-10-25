@@ -135,10 +135,17 @@ pub async fn create_new_task_retryable(
         }
     };
 
+    // timeout to prevent a deadlock while waiting for the transaction to be included in a block.
     timeout(Duration::from_millis(BATCH_INCLUSION_DELAY), pending_tx)
         .await
-        .map_err(|_| RetryError::Permanent(BatcherError::ReceiptNotFoundError))?
-        .map_err(|_| RetryError::Transient(BatcherError::TransactionSendError))?
+        .map_err(|e| {
+            warn!("Error while waiting for batch inclusion: {e}");
+            RetryError::Permanent(BatcherError::ReceiptNotFoundError)
+        })?
+        .map_err(|e| {
+            warn!("Error while waiting for batch inclusion: {e}");
+            RetryError::Transient(BatcherError::TransactionSendError)
+        })?
         .ok_or(RetryError::Permanent(BatcherError::ReceiptNotFoundError))
 }
 

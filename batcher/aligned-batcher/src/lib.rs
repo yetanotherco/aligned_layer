@@ -23,8 +23,8 @@ use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, CONSTANT_GAS_COST,
     DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_FEE_PER_PROOF, DEFAULT_MAX_RETRIES, DEFAULT_MIN_RETRY_DELAY,
-    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, PERCENTAGE_DIVIDER,
-    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+    GAS_PRICE_PERCENTAGE_MULTIPLIER, MIN_FEE_PER_PROOF, OVERRIDE_GAS_PRICE_MULTIPLIER,
+    PERCENTAGE_DIVIDER, RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
     ClientMessage, NoncedVerificationData, ProofInvalidReason, ProvingSystemId, ResponseMessage,
@@ -1218,14 +1218,14 @@ impl Batcher {
         match result {
             Ok(receipt) => Ok(receipt),
             Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
-                self.cancel_created_task(fee_params.gas_price).await;
+                self.override_created_task(fee_params.gas_price).await;
                 Err(BatcherError::ReceiptNotFoundError)
             }
             Err(_) => Err(BatcherError::TransactionSendError),
         }
     }
 
-    pub async fn cancel_created_task(&self, gas_price: U256) {
+    pub async fn override_created_task(&self, task_gas_price: U256) {
         let from_address = self.batcher_signer.address();
         let current_nonce = self
             .batcher_signer
@@ -1233,13 +1233,16 @@ impl Batcher {
             .await
             .unwrap();
 
+        let modified_gas_price = task_gas_price * U256::from(OVERRIDE_GAS_PRICE_MULTIPLIER)
+            / U256::from(PERCENTAGE_DIVIDER);
+
         let tx = TransactionRequest::new()
             .to(from_address)
             .value(U256::zero())
             .nonce(current_nonce)
-            .gas_price(gas_price * 150 / 100);
+            .gas_price(modified_gas_price);
 
-        info!("Canceling task");
+        info!("Canceling created task");
         if self
             .batcher_signer
             .send_transaction(tx.clone(), None)
