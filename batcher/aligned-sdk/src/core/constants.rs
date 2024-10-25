@@ -1,4 +1,5 @@
 /// Batcher ///
+pub const BATCH_INCLUSION_DELAY: u64 = 36000; // 3 blocks
 pub const AGGREGATOR_GAS_COST: u128 = 400_000;
 pub const BATCHER_SUBMISSION_BASE_GAS_COST: u128 = 125_000;
 pub const ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF: u128 = 13_000;
@@ -13,6 +14,7 @@ pub const MIN_FEE_PER_PROOF: u128 = ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 1
 pub const RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER: u128 = 250; // fee_for_aggregator -> respondToTaskFeeLimit modifier
 pub const DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER: u128 = 150; // feeForAggregator modifier
 pub const GAS_PRICE_PERCENTAGE_MULTIPLIER: u128 = 110; // gasPrice modifier
+pub const OVERRIDE_GAS_PRICE_MULTIPLIER: u128 = 150; // gasPrice modifier to override previous transactions
 pub const PERCENTAGE_DIVIDER: u128 = 100;
 
 /// SDK ///

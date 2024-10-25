@@ -1,7 +1,15 @@
-use ethers::prelude::*;
-use log::warn;
+use std::time::Duration;
 
-use crate::{eth::payment_service::BatcherPaymentService, retry::RetryError};
+use aligned_sdk::core::constants::BATCH_INCLUSION_DELAY;
+use ethers::prelude::*;
+use log::{info, warn};
+use tokio::time::timeout;
+
+use crate::{
+    eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams},
+    retry::RetryError,
+    types::errors::BatcherError,
+};
 
 pub async fn get_user_balance_retryable(
     payment_service: &BatcherPaymentService,
@@ -77,12 +85,78 @@ pub async fn get_gas_price_retryable(
     })
 }
 
+pub async fn create_new_task_retryable(
+    batch_merkle_root: [u8; 32],
+    batch_data_pointer: String,
+    proofs_submitters: Vec<Address>,
+    fee_params: CreateNewTaskFeeParams,
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+) -> Result<TransactionReceipt, RetryError<BatcherError>> {
+    info!("Creating task for: 0x{}", hex::encode(batch_merkle_root));
+    let call_fallback;
+    let call = payment_service
+        .create_new_task(
+            batch_merkle_root,
+            batch_data_pointer.clone(),
+            proofs_submitters.clone(),
+            fee_params.fee_for_aggregator,
+            fee_params.fee_per_proof,
+            fee_params.respond_to_task_fee_limit,
+        )
+        .gas_price(fee_params.gas_price);
+
+    let pending_tx = match call.send().await {
+        Ok(pending_tx) => pending_tx,
+        Err(ContractError::Revert(err)) => {
+            // Since transaction was reverted, we don't want to retry with fallback.
+            warn!("Transaction reverted {:?}", err);
+            return Err(RetryError::Permanent(BatcherError::TransactionSendError));
+        }
+        _ => {
+            call_fallback = payment_service_fallback
+                .create_new_task(
+                    batch_merkle_root,
+                    batch_data_pointer,
+                    proofs_submitters,
+                    fee_params.fee_for_aggregator,
+                    fee_params.fee_per_proof,
+                    fee_params.respond_to_task_fee_limit,
+                )
+                .gas_price(fee_params.gas_price);
+            match call_fallback.send().await {
+                Ok(pending_tx) => pending_tx,
+                Err(ContractError::Revert(err)) => {
+                    warn!("Transaction reverted {:?}", err);
+                    return Err(RetryError::Permanent(BatcherError::TransactionSendError));
+                }
+                _ => return Err(RetryError::Transient(BatcherError::TransactionSendError)),
+            }
+        }
+    };
+
+    // timeout to prevent a deadlock while waiting for the transaction to be included in a block.
+    timeout(Duration::from_millis(BATCH_INCLUSION_DELAY), pending_tx)
+        .await
+        .map_err(|e| {
+            warn!("Error while waiting for batch inclusion: {e}");
+            RetryError::Permanent(BatcherError::ReceiptNotFoundError)
+        })?
+        .map_err(|e| {
+            warn!("Error while waiting for batch inclusion: {e}");
+            RetryError::Transient(BatcherError::TransactionSendError)
+        })?
+        .ok_or(RetryError::Permanent(BatcherError::ReceiptNotFoundError))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::{
         config::{ContractDeploymentOutput, ECDSAConfig},
-        eth::{self, get_provider, payment_service::BatcherPaymentService},
+        eth::{
+            self, get_provider, payment_service::BatcherPaymentService, utils::get_batcher_signer,
+        },
     };
     use ethers::{
         contract::abigen,
@@ -112,17 +186,21 @@ mod test {
 
         let payment_service_addr = deployment_output.addresses.batcher_payment_service.clone();
 
-        let payment_service = eth::payment_service::get_batcher_payment_service(
+        let batcher_signer = get_batcher_signer(
             eth_rpc_provider,
             ECDSAConfig {
                 private_key_store_path: "../../config-files/anvil.batcher.ecdsa.key.json"
                     .to_string(),
                 private_key_store_password: "".to_string(),
             },
-            payment_service_addr,
         )
         .await
-        .expect("Failed to get Batcher Payment Service contract");
+        .unwrap();
+
+        let payment_service =
+            eth::payment_service::get_batcher_payment_service(batcher_signer, payment_service_addr)
+                .await
+                .expect("Failed to get Batcher Payment Service contract");
         (anvil, payment_service)
     }
 
