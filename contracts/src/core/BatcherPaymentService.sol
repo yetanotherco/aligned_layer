@@ -132,7 +132,6 @@ contract BatcherPaymentService is
             respondToTaskFeeLimit
         );
 
-        // emit TaskCreated(batchMerkleRoot, feePerProof);
         emit TaskCreated(batchMerkleRoot, feePerProof, proofSubmittersQty);
 
         payable(batcherWallet).transfer(
