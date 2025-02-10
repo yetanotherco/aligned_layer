@@ -181,7 +181,7 @@ contract BatcherPaymentService is
     }
 
 
-    function withdraw_from_service_manager(
+    function withdrawFromServiceManager(
         uint256 amount,
         address withdrawAddress
     ) public payable onlyOwner {
