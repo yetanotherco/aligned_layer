@@ -79,5 +79,5 @@ interface IAlignedLayerServiceManager {
 
     function depositToBatcher(address account) external payable;
 
-    function checkPublicInput(bytes calldata publicInput, bytes32 hash) external pure returns (bool);
+    function checkPublicInput(bytes calldata publicInput, bytes32 hash) public pure returns (bool);
 }
