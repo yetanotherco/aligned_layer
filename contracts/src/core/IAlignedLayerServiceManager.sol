@@ -78,6 +78,4 @@ interface IAlignedLayerServiceManager {
     function withdraw(uint256 amount) external;
 
     function depositToBatcher(address account) external payable;
-
-    function checkPublicInput(bytes calldata publicInput, bytes32 hash) public pure returns (bool);
 }
