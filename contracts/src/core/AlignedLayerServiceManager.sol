@@ -362,7 +362,7 @@ contract AlignedLayerServiceManager is
     function checkPublicInput(
         bytes calldata publicInput,
         bytes32 hash
-    ) external pure returns (bool) {
+    ) public pure returns (bool) {
         return keccak256(publicInput) == hash;
     }
 
