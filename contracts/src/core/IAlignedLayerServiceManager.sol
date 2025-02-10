@@ -74,4 +74,6 @@ interface IAlignedLayerServiceManager {
     function enableVerifier(uint8 verifierIdx) external;
     
     function setDisabledVerifiers(uint256 bitmap) external;
+
+    function checkPublicInput(bytes calldata publicInput, bytes32 hash) external pure returns (bool);
 }
