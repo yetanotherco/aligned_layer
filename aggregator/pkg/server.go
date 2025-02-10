@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/rpc"
@@ -48,6 +49,17 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
+
+	if signedTaskResponse.BlsSignature.G1Point == nil {
+		agg.logger.Warn("invalid operator response with nil signature",
+			"BatchMerkleRoot", "0x"+hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+			"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+			"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+			"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
+		*reply = 1
+		return errors.New("invalid response: nil signature")
+	}
+
 	taskIndex := uint32(0)
 
 	// The Aggregator may receive the Task Identifier after the operators.

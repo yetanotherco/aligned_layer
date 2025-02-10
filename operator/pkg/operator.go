@@ -239,7 +239,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			}
 		case err := <-subV3:
 			o.Logger.Infof("Error in websocket subscription", "err", err)
-			subV2, err = o.SubscribeToNewTasksV3()
+			subV3, err = o.SubscribeToNewTasksV3()
 			if err != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
