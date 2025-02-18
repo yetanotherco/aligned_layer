@@ -146,7 +146,6 @@ defmodule TelemetryApi.Operators do
     else
       {:error, reason} ->
         Logger.error("Failed to fetch metadata for operator: #{op_data.address}. Reason: #{inspect(reason)}")
-        {:error, "Failed to fetch metadata for operator: #{op_data.address}"}
         operator = %{
           id: op_data.id,
           address: op_data.address,
