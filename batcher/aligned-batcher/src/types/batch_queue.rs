@@ -106,7 +106,7 @@ impl Ord for BatchQueueEntryPriority {
         // Implementation of lowest-first:
         let ord: std::cmp::Ordering = other.max_fee.cmp(&self.max_fee);
         // This means, less max_fee will go first
-        // We want this because we will .pop() to remove unwanted elements, low fee submitions.
+        // We want this because we will .pop() to remove unwanted elements, low fee submissions.
 
         if ord == std::cmp::Ordering::Equal {
             // Case of same max_fee:
