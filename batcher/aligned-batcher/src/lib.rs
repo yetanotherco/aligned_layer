@@ -1259,13 +1259,13 @@ impl Batcher {
         finalized_batch: Vec<BatchQueueEntry>,
         gas_price: U256,
     ) -> Result<(), BatcherError> {
-        let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
+        let nonced_batch_verification_data: Vec<NoncedVerificationData> = finalized_batch
             .clone()
             .into_iter()
             .map(|entry| entry.nonced_verification_data)
             .collect();
 
-        let batch_verification_data: Vec<VerificationData> = nonced_batch_verifcation_data
+        let batch_verification_data: Vec<VerificationData> = nonced_batch_verification_data
             .iter()
             .map(|vd| vd.verification_data.clone())
             .collect();
