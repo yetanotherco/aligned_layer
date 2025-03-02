@@ -26,12 +26,12 @@ $$C_{USD} = C_{gas} V_{gas} V_{ETH}$$
 For example, if the gas cost is 8 gwei/gas and ETH is worth 3000 USD/ETH, a transaction costs:
 $$C_{USD} = 21,000 \times 8 \times 10^{-9} \times 3000 = 0.504\ \mathrm{USD}$$
 
-Aligned reduces cost by splitting the cost of task creation and verification among several proofs. The gas cost per proof for a batch containing N proofs is:
+Aligned reduces costs by splitting the cost of task creation and verification among several proofs. The gas cost per proof for a batch containing N proofs is:
 $$C_{gas} = \frac{C_{task} + C_{verification}}{N} + C_{read}$$
 
 $C_{read}$ in this case is the cost the user has to pay to use the proof in a contract.
 
-The cost of verification depends on the mode chosen when using Aligned. For fast mode only, the cost of verification is the cost of a BLS signature check. This cost is based on the calculation of elliptic curve pairings, which costs 113,000 gas. It is important to note that while batching can reduce the costs of task creation and verification, the reading cost is fixed.
+The cost of verification depends on the mode chosen when using Aligned. For fast mode only, the cost of verification is thet cost of a BLS signature check. This cost is based on the calculation of elliptic curve pairings, which costs 113,000 gas. It is important to note that while batching can reduce the costs of task creation and verification, the reading cost is fixed.
 
 ## High throughput 
 
