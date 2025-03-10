@@ -62,10 +62,10 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             is_valid
         }
         ProvingSystemId::Mina => {
-            let pub_input = verification_data
-                .pub_input
-                .as_ref()
-                .expect("Public input is required");
+            let Some(pub_input) = verification_data.pub_input.as_ref() else {
+                warn!("Mina public input is missing");
+                return false;
+            };
 
             const MAX_PROOF_SIZE: usize = 48 * 1024;
             const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
@@ -85,10 +85,10 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             verify_mina_state_ffi(&proof_buffer, proof_len, &pub_input_buffer, pub_input_len)
         }
         ProvingSystemId::MinaAccount => {
-            let pub_input = verification_data
-                .pub_input
-                .as_ref()
-                .expect("Public input is required");
+            let Some(pub_input) = verification_data.pub_input.as_ref() else {
+                warn!("Mina Account public input is missing");
+                return false;
+            };
 
             const MAX_PROOF_SIZE: usize = 16 * 1024;
             const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
