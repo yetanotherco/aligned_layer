@@ -4,6 +4,7 @@
 mod consensus_state;
 mod verifier_index;
 
+use log::error;
 use mina_bridge_core::proof::state_proof::{MinaStateProof, MinaStatePubInputs};
 
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
@@ -39,26 +40,26 @@ pub extern "C" fn verify_mina_state_ffi(
     pub_input_len: usize,
 ) -> bool {
     let Some(proof_buffer_slice) = proof_buffer.get(..proof_len) else {
-        eprintln!("Proof length argument is greater than max proof size");
+        error!("Proof length argument is greater than max proof size");
         return false;
     };
 
     let Some(pub_input_buffer_slice) = pub_input_buffer.get(..pub_input_len) else {
-        eprintln!("Public input length argument is greater than max public input size");
+        error!("Public input length argument is greater than max public input size");
         return false;
     };
 
     let proof: MinaStateProof = match bincode::deserialize(proof_buffer_slice) {
         Ok(proof) => proof,
         Err(err) => {
-            eprintln!("Failed to deserialize state proof: {}", err);
+            error!("Failed to deserialize state proof: {}", err);
             return false;
         }
     };
     let pub_inputs: MinaStatePubInputs = match bincode::deserialize(pub_input_buffer_slice) {
         Ok(pub_inputs) => pub_inputs,
         Err(err) => {
-            eprintln!("Failed to deserialize state pub inputs: {}", err);
+            error!("Failed to deserialize state pub inputs: {}", err);
             return false;
         }
     };
@@ -68,7 +69,7 @@ pub extern "C" fn verify_mina_state_ffi(
         match check_pub_inputs(&proof, &pub_inputs) {
             Ok(validated_data) => validated_data,
             Err(err) => {
-                eprintln!("Failed to check pub inputs: {err}");
+                error!("Failed to check pub inputs: {err}");
                 return false;
             }
         };
@@ -77,12 +78,12 @@ pub extern "C" fn verify_mina_state_ffi(
     let secure_chain = match select_secure_chain(&candidate_tip_state, &bridge_tip_state) {
         Ok(res) => res,
         Err(err) => {
-            eprintln!("Failed consensus checks for candidate tip: {err}");
+            error!("Failed consensus checks for candidate tip: {err}");
             return false;
         }
     };
     if secure_chain == ChainResult::Bridge {
-        eprintln!("Failed consensus checks for candidate tip: bridge's tip is more secure");
+        error!("Failed consensus checks for candidate tip: bridge's tip is more secure");
         return false;
     }
 
