@@ -5433,6 +5433,7 @@ dependencies = [
  "hex",
  "kimchi",
  "lazy_static",
+ "log",
  "mina-curves",
  "mina-p2p-messages",
  "mina-tree",
