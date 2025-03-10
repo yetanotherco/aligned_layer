@@ -1,3 +1,4 @@
+use log::error;
 use mina_bridge_core::proof::account_proof::MerkleNode;
 use mina_curves::pasta::Fp;
 use mina_p2p_messages::v2::hash_with_kimchi;
@@ -8,21 +9,28 @@ use std::fmt::Write;
 pub fn verify_merkle_proof(merkle_leaf: Fp, merkle_path: Vec<MerkleNode>, merkle_root: Fp) -> bool {
     let mut param = String::with_capacity(16);
 
-    let calculated_root =
+    let Ok(calculated_root): Result<Fp, ()> =
         merkle_path
             .iter()
             .enumerate()
-            .fold(merkle_leaf, |accum, (depth, path)| {
+            .try_fold(merkle_leaf, |accum, (depth, path)| {
                 let hashes = match path {
                     MerkleNode::Left(right) => [accum, *right],
                     MerkleNode::Right(left) => [*left, accum],
                 };
 
                 param.clear();
-                write!(&mut param, "MinaMklTree{:03}", depth).unwrap();
+                write!(&mut param, "MinaMklTree{:03}", depth).map_err(|_| {
+                    error!("Failed to write depth parameter for hashing");
+                })?;
 
-                hash_with_kimchi(param.as_str(), &hashes)
-            });
+                let root = hash_with_kimchi(param.as_str(), &hashes);
+
+                Ok(root)
+            })
+    else {
+        return false;
+    };
     calculated_root == merkle_root
 }
 
