@@ -4,6 +4,7 @@
 mod consensus_state;
 mod verifier_index;
 
+use log::error;
 use mina_bridge_core::proof::state_proof::{MinaStateProof, MinaStatePubInputs};
 
 use ark_ec::short_weierstrass_jacobian::GroupAffine;
@@ -21,9 +22,15 @@ use verifier_index::{deserialize_blockchain_vk, MinaChain};
 
 lazy_static! {
     static ref DEVNET_VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
-        deserialize_blockchain_vk(MinaChain::Devnet).unwrap();
+        deserialize_blockchain_vk(MinaChain::Devnet).unwrap_or_else(|err| {
+            error!("Failed to load Devnet verification key: {}", err);
+            std::process::exit(1);
+        });
     static ref MAINNET_VERIFIER_INDEX: VerifierIndex<GroupAffine<PallasParameters>> =
-        deserialize_blockchain_vk(MinaChain::Mainnet).unwrap();
+        deserialize_blockchain_vk(MinaChain::Mainnet).unwrap_or_else(|err| {
+            error!("Failed to load Mainnet verification key: {}", err);
+            std::process::exit(1);
+        });
     static ref MINA_SRS: SRS<Vesta> = SRS::<Vesta>::create(Fq::SRS_DEPTH);
 }
 
