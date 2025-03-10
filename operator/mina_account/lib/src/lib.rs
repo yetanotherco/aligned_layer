@@ -1,4 +1,5 @@
 use alloy::sol_types::SolValue;
+use log::error;
 use merkle_verifier::verify_merkle_proof;
 use mina_bridge_core::{
     proof::account_proof::{MinaAccountProof, MinaAccountPubInputs},
@@ -20,12 +21,12 @@ pub extern "C" fn verify_account_inclusion_ffi(
     pub_input_len: usize,
 ) -> bool {
     let Some(proof_buffer_slice) = proof_buffer.get(..proof_len) else {
-        eprintln!("Proof length argument is greater than max proof size");
+        error!("Proof length argument is greater than max proof size");
         return false;
     };
 
     let Some(pub_input_buffer_slice) = pub_input_buffer.get(..pub_input_len) else {
-        eprintln!("Public input length argument is greater than max public input size");
+        error!("Public input length argument is greater than max public input size");
         return false;
     };
 
@@ -35,7 +36,7 @@ pub extern "C" fn verify_account_inclusion_ffi(
     } = match bincode::deserialize(proof_buffer_slice) {
         Ok(proof) => proof,
         Err(err) => {
-            eprintln!("Failed to deserialize account proof: {}", err);
+            error!("Failed to deserialize account proof: {}", err);
             return false;
         }
     };
@@ -45,7 +46,7 @@ pub extern "C" fn verify_account_inclusion_ffi(
     } = match bincode::deserialize(pub_input_buffer_slice) {
         Ok(pub_inputs) => pub_inputs,
         Err(err) => {
-            eprintln!("Failed to deserialize account pub inputs: {}", err);
+            error!("Failed to deserialize account pub inputs: {}", err);
             return false;
         }
     };
@@ -53,13 +54,13 @@ pub extern "C" fn verify_account_inclusion_ffi(
     let expected_encoded_account = match MinaAccountValidation::Account::try_from(&account) {
         Ok(account) => account,
         Err(err) => {
-            eprintln!("Failed to convert Mina account to Solidity struct: {}", err);
+            error!("Failed to convert Mina account to Solidity struct: {}", err);
             return false;
         }
     }
     .abi_encode();
     if expected_encoded_account != encoded_account {
-        eprintln!("ABI encoded account in public inputs doesn't match the account on the proof");
+        error!("ABI encoded account in public inputs doesn't match the account on the proof");
         return false;
     }
 
