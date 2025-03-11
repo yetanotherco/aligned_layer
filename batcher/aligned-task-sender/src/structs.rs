@@ -6,19 +6,19 @@ use clap::ValueEnum;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct TaskSenderArgs {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub command: TaskSenderCommands,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum TaskSenderCommands {
-    #[clap(about = "Genere proofs")]
+    #[command(about = "Genere proofs")]
     GenerateProofs(GenerateProofsArgs),
-    #[clap(about = "Open socket connections with batcher")]
+    #[command(about = "Open socket connections with batcher")]
     TestConnections(TestConnectionsArgs),
-    #[clap(about = "Send infinite proofs from a private-keys file")]
+    #[command(about = "Send infinite proofs from a private-keys file")]
     SendInfiniteProofs(SendInfiniteProofsArgs),
-    #[clap(about = "Generates wallets and funds it in aligned from one wallet")]
+    #[command(about = "Generates wallets and funds it in aligned from one wallet")]
     GenerateAndFundWallets(GenerateAndFundWalletsArgs),
 }
 
