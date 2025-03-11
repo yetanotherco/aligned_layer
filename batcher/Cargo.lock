@@ -88,9 +88,9 @@ dependencies = [
  "aligned-sdk 0.1.0",
  "clap",
  "env_logger",
- "ethers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers",
  "futures-util",
- "lambdaworks-crypto 0.10.0",
+ "lambdaworks-crypto",
  "log",
  "rpassword",
  "serde",
@@ -118,10 +118,10 @@ dependencies = [
  "clap",
  "dotenvy",
  "env_logger",
- "ethers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers",
  "futures-util",
  "hex",
- "lambdaworks-crypto 0.10.0",
+ "lambdaworks-crypto",
  "lazy_static",
  "log",
  "mina-account-verifier-ffi",
@@ -148,10 +148,10 @@ version = "0.1.0"
 dependencies = [
  "ciborium",
  "dialoguer",
- "ethers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers",
  "futures-util",
  "hex",
- "lambdaworks-crypto 0.10.0",
+ "lambdaworks-crypto",
  "log",
  "serde",
  "serde_json",
@@ -165,13 +165,14 @@ dependencies = [
 [[package]]
 name = "aligned-sdk"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/aligned_layer.git?branch=use_two_vks#56ac3a2e0a2d8accbc5466d6491ca082b45723cc"
+source = "git+https://github.com/lambdaclass/aligned_layer.git?rev=cebeee7b86de0fcd3fd6f97bcd8a1096d7708bc5#cebeee7b86de0fcd3fd6f97bcd8a1096d7708bc5"
 dependencies = [
  "ciborium",
- "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "dialoguer",
+ "ethers",
  "futures-util",
  "hex",
- "lambdaworks-crypto 0.7.0",
+ "lambdaworks-crypto",
  "log",
  "serde",
  "serde_json",
@@ -956,7 +957,7 @@ dependencies = [
 [[package]]
 name = "ark-ec"
 version = "0.3.0"
-source = "git+https://github.com/lambdaclass/openmina_algebra?branch=mina_bridge#017531e7aaa15a2c856532b0843876e371b01122"
+source = "git+https://github.com/lambdaclass/openmina_algebra?rev=017531e7aaa15a2c856532b0843876e371b01122#017531e7aaa15a2c856532b0843876e371b01122"
 dependencies = [
  "ark-ff 0.3.0",
  "ark-serialize 0.3.0",
@@ -987,7 +988,7 @@ dependencies = [
 [[package]]
 name = "ark-ff"
 version = "0.3.0"
-source = "git+https://github.com/lambdaclass/openmina_algebra?branch=mina_bridge#017531e7aaa15a2c856532b0843876e371b01122"
+source = "git+https://github.com/lambdaclass/openmina_algebra?rev=017531e7aaa15a2c856532b0843876e371b01122#017531e7aaa15a2c856532b0843876e371b01122"
 dependencies = [
  "ark-ff-asm 0.3.0",
  "ark-ff-macros 0.3.0",
@@ -1025,7 +1026,7 @@ dependencies = [
 [[package]]
 name = "ark-ff-asm"
 version = "0.3.0"
-source = "git+https://github.com/lambdaclass/openmina_algebra?branch=mina_bridge#017531e7aaa15a2c856532b0843876e371b01122"
+source = "git+https://github.com/lambdaclass/openmina_algebra?rev=017531e7aaa15a2c856532b0843876e371b01122#017531e7aaa15a2c856532b0843876e371b01122"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -1044,7 +1045,7 @@ dependencies = [
 [[package]]
 name = "ark-ff-macros"
 version = "0.3.0"
-source = "git+https://github.com/lambdaclass/openmina_algebra?branch=mina_bridge#017531e7aaa15a2c856532b0843876e371b01122"
+source = "git+https://github.com/lambdaclass/openmina_algebra?rev=017531e7aaa15a2c856532b0843876e371b01122#017531e7aaa15a2c856532b0843876e371b01122"
 dependencies = [
  "num-bigint 0.4.6",
  "num-traits",
@@ -1083,7 +1084,7 @@ dependencies = [
 [[package]]
 name = "ark-poly"
 version = "0.3.0"
-source = "git+https://github.com/lambdaclass/openmina_algebra?branch=mina_bridge#017531e7aaa15a2c856532b0843876e371b01122"
+source = "git+https://github.com/lambdaclass/openmina_algebra?rev=017531e7aaa15a2c856532b0843876e371b01122#017531e7aaa15a2c856532b0843876e371b01122"
 dependencies = [
  "ark-ff 0.3.0",
  "ark-serialize 0.3.0",
@@ -1121,7 +1122,7 @@ dependencies = [
 [[package]]
 name = "ark-serialize"
 version = "0.3.0"
-source = "git+https://github.com/lambdaclass/openmina_algebra?branch=mina_bridge#017531e7aaa15a2c856532b0843876e371b01122"
+source = "git+https://github.com/lambdaclass/openmina_algebra?rev=017531e7aaa15a2c856532b0843876e371b01122#017531e7aaa15a2c856532b0843876e371b01122"
 dependencies = [
  "ark-serialize-derive 0.3.0",
  "ark-std 0.3.0",
@@ -1143,7 +1144,7 @@ dependencies = [
 [[package]]
 name = "ark-serialize-derive"
 version = "0.3.0"
-source = "git+https://github.com/lambdaclass/openmina_algebra?branch=mina_bridge#017531e7aaa15a2c856532b0843876e371b01122"
+source = "git+https://github.com/lambdaclass/openmina_algebra?rev=017531e7aaa15a2c856532b0843876e371b01122#017531e7aaa15a2c856532b0843876e371b01122"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3282,29 +3283,14 @@ version = "2.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "816841ea989f0c69e459af1cf23a6b0033b19a55424a1ea3a30099becdb8dec0"
 dependencies = [
- "ethers-addressbook 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-contract 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-etherscan 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-middleware 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-providers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-signers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-solc 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "ethers"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "ethers-addressbook 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-contract 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-etherscan 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-middleware 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-providers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-signers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-solc 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-addressbook",
+ "ethers-contract",
+ "ethers-core",
+ "ethers-etherscan",
+ "ethers-middleware",
+ "ethers-providers",
+ "ethers-signers",
+ "ethers-solc",
 ]
 
 [[package]]
@@ -3313,18 +3299,7 @@ version = "2.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5495afd16b4faa556c3bba1f21b98b4983e53c1755022377051a975c3b021759"
 dependencies = [
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "once_cell",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "ethers-addressbook"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-core",
  "once_cell",
  "serde",
  "serde_json",
@@ -3337,28 +3312,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fceafa3578c836eeb874af87abacfb041f92b4da0a78a5edd042564b8ecdaaa"
 dependencies = [
  "const-hex",
- "ethers-contract-abigen 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-contract-derive 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-providers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util",
- "once_cell",
- "pin-project",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "ethers-contract"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "const-hex",
- "ethers-contract-abigen 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-contract-derive 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-providers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-contract-abigen",
+ "ethers-contract-derive",
+ "ethers-core",
+ "ethers-providers",
  "futures-util",
  "once_cell",
  "pin-project",
@@ -3376,31 +3333,8 @@ dependencies = [
  "Inflector",
  "const-hex",
  "dunce",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-etherscan 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "eyre",
- "prettyplease",
- "proc-macro2",
- "quote",
- "regex",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "syn 2.0.82",
- "toml 0.8.19",
- "walkdir",
-]
-
-[[package]]
-name = "ethers-contract-abigen"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "Inflector",
- "const-hex",
- "dunce",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-etherscan 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-core",
+ "ethers-etherscan",
  "eyre",
  "prettyplease",
  "proc-macro2",
@@ -3422,23 +3356,8 @@ checksum = "87689dcabc0051cde10caaade298f9e9093d65f6125c14575db3fd8c669a168f"
 dependencies = [
  "Inflector",
  "const-hex",
- "ethers-contract-abigen 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "proc-macro2",
- "quote",
- "serde_json",
- "syn 2.0.82",
-]
-
-[[package]]
-name = "ethers-contract-derive"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "Inflector",
- "const-hex",
- "ethers-contract-abigen 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-contract-abigen",
+ "ethers-core",
  "proc-macro2",
  "quote",
  "serde_json",
@@ -3476,58 +3395,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "ethers-core"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "arrayvec",
- "bytes",
- "cargo_metadata",
- "chrono",
- "const-hex",
- "elliptic-curve 0.13.8",
- "ethabi",
- "generic-array 0.14.7",
- "k256",
- "num_enum 0.7.3",
- "once_cell",
- "open-fastrlp",
- "rand",
- "rlp",
- "serde",
- "serde_json",
- "strum 0.26.3",
- "syn 2.0.82",
- "tempfile",
- "thiserror",
- "tiny-keccak",
- "unicode-xid",
-]
-
-[[package]]
 name = "ethers-etherscan"
 version = "2.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e79e5973c26d4baf0ce55520bd732314328cabe53193286671b47144145b9649"
 dependencies = [
  "chrono",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "reqwest 0.11.27",
- "semver 1.0.23",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-name = "ethers-etherscan"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "chrono",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-solc 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-core",
  "reqwest 0.11.27",
  "semver 1.0.23",
  "serde",
@@ -3544,37 +3418,11 @@ checksum = "48f9fdf09aec667c099909d91908d5eaf9be1bd0e2500ba4172c1d28bfaa43de"
 dependencies = [
  "async-trait",
  "auto_impl",
- "ethers-contract 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-etherscan 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-providers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethers-signers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-channel",
- "futures-locks",
- "futures-util",
- "instant",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-futures",
- "url",
-]
-
-[[package]]
-name = "ethers-middleware"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "async-trait",
- "auto_impl",
- "ethers-contract 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-etherscan 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-providers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-signers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-contract",
+ "ethers-core",
+ "ethers-etherscan",
+ "ethers-providers",
+ "ethers-signers",
  "futures-channel",
  "futures-locks",
  "futures-util",
@@ -3601,44 +3449,7 @@ dependencies = [
  "bytes",
  "const-hex",
  "enr",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-channel",
- "futures-core",
- "futures-timer",
- "futures-util",
- "hashers",
- "http 0.2.12",
- "instant",
- "jsonwebtoken",
- "once_cell",
- "pin-project",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tokio-tungstenite 0.20.1",
- "tracing",
- "tracing-futures",
- "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "ws_stream_wasm",
-]
-
-[[package]]
-name = "ethers-providers"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "async-trait",
- "auto_impl",
- "base64 0.22.1",
- "bytes",
- "const-hex",
- "enr",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-core",
  "futures-channel",
  "futures-core",
  "futures-timer",
@@ -3676,25 +3487,7 @@ dependencies = [
  "const-hex",
  "elliptic-curve 0.13.8",
  "eth-keystore",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand",
- "sha2 0.10.8",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-name = "ethers-signers"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "async-trait",
- "coins-bip32",
- "coins-bip39",
- "const-hex",
- "elliptic-curve 0.13.8",
- "eth-keystore",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-core",
  "rand",
  "sha2 0.10.8",
  "thiserror",
@@ -3711,38 +3504,7 @@ dependencies = [
  "const-hex",
  "dirs",
  "dunce",
- "ethers-core 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "glob",
- "home",
- "md-5",
- "num_cpus",
- "once_cell",
- "path-slash",
- "rayon",
- "regex",
- "semver 1.0.23",
- "serde",
- "serde_json",
- "solang-parser",
- "svm-rs",
- "thiserror",
- "tiny-keccak",
- "tokio",
- "tracing",
- "walkdir",
- "yansi",
-]
-
-[[package]]
-name = "ethers-solc"
-version = "2.0.14"
-source = "git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections#69bba841ff352cf27b014d4fbb7985a180d88e25"
-dependencies = [
- "cfg-if",
- "const-hex",
- "dirs",
- "dunce",
- "ethers-core 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers-core",
  "glob",
  "home",
  "md-5",
@@ -4248,7 +4010,7 @@ dependencies = [
 [[package]]
 name = "groupmap"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ec 0.3.0",
  "ark-ff 0.3.0",
@@ -4968,7 +4730,7 @@ dependencies = [
 [[package]]
 name = "kimchi"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ec 0.3.0",
  "ark-ff 0.3.0",
@@ -4985,7 +4747,7 @@ dependencies = [
  "num-derive",
  "num-integer",
  "num-traits",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c)",
  "once_cell",
  "poly-commitment",
  "rand",
@@ -5032,35 +4794,13 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-crypto"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fb5d4f22241504f7c7b8d2c3a7d7835d7c07117f10bff2a7d96a9ef6ef217c3"
-dependencies = [
- "lambdaworks-math 0.7.0",
- "serde",
- "sha2 0.10.8",
- "sha3",
-]
-
-[[package]]
-name = "lambdaworks-crypto"
 version = "0.10.0"
 source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=efd46f0b0aea3aa95d94bba7de86cb96611b40d3#efd46f0b0aea3aa95d94bba7de86cb96611b40d3"
 dependencies = [
- "lambdaworks-math 0.10.0",
+ "lambdaworks-math",
  "serde",
  "sha2 0.10.8",
  "sha3",
-]
-
-[[package]]
-name = "lambdaworks-math"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "358e172628e713b80a530a59654154bfc45783a6ed70ea284839800cebdf8f97"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -5326,7 +5066,7 @@ dependencies = [
  "mina-p2p-messages",
  "mina-tree",
  "mina_bridge_core",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?rev=5bdeab3c2a43a671645952f63b9354b7a20b2326)",
  "once_cell",
  "poly-commitment",
  "rmp-serde",
@@ -5338,7 +5078,7 @@ dependencies = [
 [[package]]
 name = "mina-curves"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ec 0.3.0",
  "ark-ff 0.3.0",
@@ -5347,20 +5087,20 @@ dependencies = [
 [[package]]
 name = "mina-hasher"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ff 0.3.0",
  "bitvec",
  "mina-curves",
  "mina-poseidon",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c)",
  "serde",
 ]
 
 [[package]]
 name = "mina-p2p-messages"
 version = "0.6.4"
-source = "git+https://github.com/lambdaclass/openmina/?branch=mina_bridge#166e53d623404714aef45beae4a08bcbe1e367f4"
+source = "git+https://github.com/lambdaclass/openmina/?rev=711c99f92ca3241dfbe8ae6d257b333e63abe643#711c99f92ca3241dfbe8ae6d257b333e63abe643"
 dependencies = [
  "ark-ff 0.3.0",
  "base64 0.13.1",
@@ -5374,7 +5114,7 @@ dependencies = [
  "mina-hasher",
  "mina-poseidon",
  "mina-signer",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c)",
  "rsexp",
  "serde",
  "serde_json",
@@ -5386,13 +5126,13 @@ dependencies = [
 [[package]]
 name = "mina-poseidon"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ec 0.3.0",
  "ark-ff 0.3.0",
  "ark-poly 0.3.0",
  "mina-curves",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c)",
  "once_cell",
  "rand",
  "rayon",
@@ -5403,7 +5143,7 @@ dependencies = [
 [[package]]
 name = "mina-signer"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ec 0.3.0",
  "ark-ff 0.3.0",
@@ -5413,7 +5153,7 @@ dependencies = [
  "hex",
  "mina-curves",
  "mina-hasher",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c)",
  "rand",
  "sha2 0.10.8",
  "thiserror",
@@ -5439,7 +5179,7 @@ dependencies = [
  "mina-p2p-messages",
  "mina-tree",
  "mina_bridge_core",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?rev=5bdeab3c2a43a671645952f63b9354b7a20b2326)",
  "once_cell",
  "poly-commitment",
  "rmp-serde",
@@ -5450,7 +5190,7 @@ dependencies = [
 [[package]]
 name = "mina-tree"
 version = "0.6.0"
-source = "git+https://github.com/lambdaclass/openmina/?branch=mina_bridge#166e53d623404714aef45beae4a08bcbe1e367f4"
+source = "git+https://github.com/lambdaclass/openmina/?rev=711c99f92ca3241dfbe8ae6d257b333e63abe643#711c99f92ca3241dfbe8ae6d257b333e63abe643"
 dependencies = [
  "anyhow",
  "ark-ec 0.3.0",
@@ -5477,7 +5217,7 @@ dependencies = [
  "mina-poseidon",
  "mina-signer",
  "num-bigint 0.4.6",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c)",
  "once_cell",
  "openmina-core",
  "poly-commitment",
@@ -5501,9 +5241,9 @@ dependencies = [
 [[package]]
 name = "mina_bridge_core"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/mina_bridge.git?rev=884f28b834b62133384661fdf73c9db283f68c62#884f28b834b62133384661fdf73c9db283f68c62"
+source = "git+https://github.com/lambdaclass/mina_bridge.git?rev=a4498abb345d68dbb699ff38ef698800879231f8#a4498abb345d68dbb699ff38ef698800879231f8"
 dependencies = [
- "aligned-sdk 0.1.0 (git+https://github.com/lambdaclass/aligned_layer.git?branch=use_two_vks)",
+ "aligned-sdk 0.1.0 (git+https://github.com/lambdaclass/aligned_layer.git?rev=cebeee7b86de0fcd3fd6f97bcd8a1096d7708bc5)",
  "alloy",
  "alloy-contract",
  "alloy-sol-types 0.8.9",
@@ -5516,8 +5256,7 @@ dependencies = [
  "clap",
  "dotenv",
  "env_logger",
- "ethers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
- "ethers-signers 2.0.14 (git+https://github.com/yetanotherco/ethers-rs.git?tag=v2.0.15-fix-reconnections)",
+ "ethers",
  "futures",
  "graphql_client",
  "hex",
@@ -5529,7 +5268,7 @@ dependencies = [
  "mina-tree",
  "num-bigint 0.4.6",
  "num-traits",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/proof-systems?rev=5bdeab3c2a43a671645952f63b9354b7a20b2326)",
  "poly-commitment",
  "reqwest 0.11.27",
  "rmp-serde",
@@ -5539,6 +5278,7 @@ dependencies = [
  "serde_with 3.11.0",
  "sha3",
  "tokio",
+ "zeroize",
 ]
 
 [[package]]
@@ -5864,30 +5604,7 @@ checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
 [[package]]
 name = "o1-utils"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/proof-systems?branch=add-verifier-serializations#5bdeab3c2a43a671645952f63b9354b7a20b2326"
-dependencies = [
- "ark-ec 0.3.0",
- "ark-ff 0.3.0",
- "ark-poly 0.3.0",
- "ark-serialize 0.3.0",
- "bcs",
- "hex",
- "num-bigint 0.4.6",
- "num-integer",
- "num-traits",
- "rand",
- "rand_core",
- "rayon",
- "serde",
- "serde_with 3.11.0",
- "sha2 0.10.8",
- "thiserror",
-]
-
-[[package]]
-name = "o1-utils"
-version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ec 0.3.0",
  "ark-ff 0.3.0",
@@ -5903,6 +5620,29 @@ dependencies = [
  "rayon",
  "serde",
  "serde_with 1.14.0",
+ "sha2 0.10.8",
+ "thiserror",
+]
+
+[[package]]
+name = "o1-utils"
+version = "0.1.0"
+source = "git+https://github.com/lambdaclass/proof-systems?rev=5bdeab3c2a43a671645952f63b9354b7a20b2326#5bdeab3c2a43a671645952f63b9354b7a20b2326"
+dependencies = [
+ "ark-ec 0.3.0",
+ "ark-ff 0.3.0",
+ "ark-poly 0.3.0",
+ "ark-serialize 0.3.0",
+ "bcs",
+ "hex",
+ "num-bigint 0.4.6",
+ "num-integer",
+ "num-traits",
+ "rand",
+ "rand_core",
+ "rayon",
+ "serde",
+ "serde_with 3.11.0",
  "sha2 0.10.8",
  "thiserror",
 ]
@@ -5965,7 +5705,7 @@ dependencies = [
 [[package]]
 name = "openmina-core"
 version = "0.6.0"
-source = "git+https://github.com/lambdaclass/openmina/?branch=mina_bridge#166e53d623404714aef45beae4a08bcbe1e367f4"
+source = "git+https://github.com/lambdaclass/openmina/?rev=711c99f92ca3241dfbe8ae6d257b333e63abe643#711c99f92ca3241dfbe8ae6d257b333e63abe643"
 dependencies = [
  "ark-ff 0.3.0",
  "binprot",
@@ -5989,7 +5729,7 @@ dependencies = [
 [[package]]
 name = "openmina-macros"
 version = "0.6.0"
-source = "git+https://github.com/lambdaclass/openmina/?branch=mina_bridge#166e53d623404714aef45beae4a08bcbe1e367f4"
+source = "git+https://github.com/lambdaclass/openmina/?rev=711c99f92ca3241dfbe8ae6d257b333e63abe643#711c99f92ca3241dfbe8ae6d257b333e63abe643"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6644,7 +6384,7 @@ checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 [[package]]
 name = "poly-commitment"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ec 0.3.0",
  "ark-ff 0.3.0",
@@ -6655,7 +6395,7 @@ dependencies = [
  "itertools 0.10.5",
  "mina-curves",
  "mina-poseidon",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c)",
  "once_cell",
  "rand",
  "rand_core",
@@ -8600,7 +8340,7 @@ dependencies = [
  "bincode",
  "cfg-if",
  "dirs",
- "ethers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers",
  "futures",
  "hashbrown 0.14.5",
  "hex",
@@ -8965,7 +8705,7 @@ dependencies = [
  "aligned-sdk 0.1.0",
  "clap",
  "env_logger",
- "ethers 2.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers",
  "futures-util",
  "log",
  "rpassword",
@@ -9520,11 +9260,11 @@ checksum = "23d5919d7121237af683b7fa982450597b1eaa2643e597aec3b519e4e5ab3d62"
 [[package]]
 name = "turshi"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge#44e0d3b98b8747de54e595f53d97c035ff43167c"
+source = "git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c#44e0d3b98b8747de54e595f53d97c035ff43167c"
 dependencies = [
  "ark-ff 0.3.0",
  "hex",
- "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?branch=mina_bridge)",
+ "o1-utils 0.1.0 (git+https://github.com/lambdaclass/openmina-proof-systems?rev=44e0d3b98b8747de54e595f53d97c035ff43167c)",
 ]
 
 [[package]]
