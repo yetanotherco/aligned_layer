@@ -36,27 +36,27 @@ use crate::AlignedCommands::VerifyProofOnchain;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct AlignedArgs {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub command: AlignedCommands,
 }
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Debug)]
 pub enum AlignedCommands {
-    #[clap(about = "Submit proof to the batcher")]
+    #[command(about = "Submit proof to the batcher")]
     Submit(SubmitArgs),
-    #[clap(about = "Verify the proof was included in a verified batch on Ethereum")]
+    #[command(about = "Verify the proof was included in a verified batch on Ethereum")]
     VerifyProofOnchain(VerifyProofOnchainArgs),
-    #[clap(about = "Get commitment for file", name = "get-vk-commitment")]
+    #[command(about = "Get commitment for file", name = "get-vk-commitment")]
     GetVkCommitment(GetVkCommitmentArgs),
-    #[clap(
+    #[command(
         about = "Deposits Ethereum in the batcher to pay for proofs",
         name = "deposit-to-batcher"
     )]
     DepositToBatcher(DepositToBatcherArgs),
-    #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
+    #[command(about = "Get user balance from the batcher", name = "get-user-balance")]
     GetUserBalance(GetUserBalanceArgs),
-    #[clap(about = "Get user nonce from the batcher", name = "get-user-nonce")]
+    #[command(about = "Get user nonce from the batcher", name = "get-user-nonce")]
     GetUserNonce(GetUserNonceArgs),
 }
 
@@ -219,6 +219,7 @@ pub struct GetUserNonceArgs {
 }
 
 #[derive(Debug, Clone, ValueEnum, Copy)]
+#[value_enum(rename_all = "PascalCase")]
 enum NetworkArg {
     Devnet,
     Holesky,
@@ -238,16 +239,12 @@ impl From<NetworkArg> for Network {
 }
 
 #[derive(Debug, Clone, ValueEnum)]
+#[value_enum(rename_all = "PascalCase")]
 pub enum ProvingSystemArg {
-    #[clap(name = "GnarkPlonkBls12_381")]
     GnarkPlonkBls12_381,
-    #[clap(name = "GnarkPlonkBn254")]
     GnarkPlonkBn254,
-    #[clap(name = "Groth16Bn254")]
     Groth16Bn254,
-    #[clap(name = "SP1")]
     SP1,
-    #[clap(name = "Risc0")]
     Risc0,
 }
 
