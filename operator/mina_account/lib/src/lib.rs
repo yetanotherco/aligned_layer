@@ -3,7 +3,7 @@ use log::error;
 use merkle_verifier::verify_merkle_proof;
 use mina_bridge_core::{
     proof::account_proof::{MinaAccountProof, MinaAccountPubInputs},
-    sol::account::MinaAccountValidation,
+    sol::account::MinaAccountValidationExample,
 };
 use mina_tree::Account;
 
@@ -51,14 +51,15 @@ pub extern "C" fn verify_account_inclusion_ffi(
         }
     };
 
-    let expected_encoded_account = match MinaAccountValidation::Account::try_from(&account) {
-        Ok(account) => account,
-        Err(err) => {
-            error!("Failed to convert Mina account to Solidity struct: {}", err);
-            return false;
+    let expected_encoded_account =
+        match MinaAccountValidationExample::Account::try_from(&account) {
+            Ok(account) => account,
+            Err(err) => {
+                error!("Failed to convert Mina account to Solidity struct: {}", err);
+                return false;
+            }
         }
-    }
-    .abi_encode();
+        .abi_encode();
     if expected_encoded_account != encoded_account {
         error!("ABI encoded account in public inputs doesn't match the account on the proof");
         return false;
