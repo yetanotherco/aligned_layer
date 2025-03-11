@@ -34,9 +34,9 @@ const ANVIL_PRIVATE_KEY: &str =
 
 #[derive(Debug, Clone, ValueEnum, PartialEq)]
 pub enum ProvingSystemArg {
-    #[clap(name = "SP1")]
+    #[value_enum(rename = "SP1")]
     SP1,
-    #[clap(name = "Risc0")]
+     #[value_enum(rename = "Risc0")]
     Risc0,
 }
 
