@@ -13,10 +13,6 @@ import (
 	"unsafe"
 )
 
-// TODO(xqft): check proof size
-const MAX_PROOF_SIZE = 16 * 1024
-const MAX_PUB_INPUT_SIZE = 6 * 1024
-
 func timer() func() {
 	start := time.Now()
 	return func() {
@@ -24,7 +20,7 @@ func timer() func() {
 	}
 }
 
-func VerifyAccountInclusion(proofBuffer [MAX_PROOF_SIZE]byte, proofLen uint, pubInputBuffer [MAX_PUB_INPUT_SIZE]byte, pubInputLen uint) bool {
+func VerifyAccountInclusion(proofBuffer []byte, proofLen uint, pubInputBuffer []byte, pubInputLen uint) bool {
 	defer timer()()
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	pubInputPtr := (*C.uchar)(unsafe.Pointer(&pubInputBuffer[0]))

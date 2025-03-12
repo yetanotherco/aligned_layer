@@ -34,35 +34,40 @@ lazy_static! {
     static ref MINA_SRS: SRS<Vesta> = SRS::<Vesta>::create(Fq::SRS_DEPTH);
 }
 
-// TODO(xqft): check proof size
-const MAX_PROOF_SIZE: usize = 48 * 1024;
-const MAX_PUB_INPUT_SIZE: usize = 6 * 1024;
-
 #[no_mangle]
 pub extern "C" fn verify_mina_state_ffi(
-    proof_buffer: &[u8; MAX_PROOF_SIZE],
+    proof_bytes: *const u8,
     proof_len: usize,
-    pub_input_buffer: &[u8; MAX_PUB_INPUT_SIZE],
+    pub_input_bytes: *const u8,
     pub_input_len: usize,
 ) -> bool {
-    let Some(proof_buffer_slice) = proof_buffer.get(..proof_len) else {
-        error!("Proof length argument is greater than max proof size");
+    if proof_bytes.is_null() || pub_input_bytes.is_null() {
+        error!("Input buffer null");
         return false;
-    };
+    }
 
-    let Some(pub_input_buffer_slice) = pub_input_buffer.get(..pub_input_len) else {
-        error!("Public input length argument is greater than max public input size");
+    if proof_len == 0 || pub_input_len == 0 {
+        error!("Input buffer length zero size");
         return false;
-    };
+    }
 
-    let proof: MinaStateProof = match bincode::deserialize(proof_buffer_slice) {
+    let proof_bytes = unsafe { std::slice::from_raw_parts(proof_bytes, proof_len as usize) };
+
+    let pub_input_bytes =
+        unsafe { std::slice::from_raw_parts(pub_input_bytes, proof_len as usize) };
+
+    verify_mina_state(proof_bytes, pub_input_bytes)
+}
+
+pub fn verify_mina_state(proof_bytes: &[u8], pub_input_bytes: &[u8]) -> bool {
+    let proof: MinaStateProof = match bincode::deserialize(proof_bytes) {
         Ok(proof) => proof,
         Err(err) => {
             error!("Failed to deserialize state proof: {}", err);
             return false;
         }
     };
-    let pub_inputs: MinaStatePubInputs = match bincode::deserialize(pub_input_buffer_slice) {
+    let pub_inputs: MinaStatePubInputs = match bincode::deserialize(pub_input_bytes) {
         Ok(pub_inputs) => pub_inputs,
         Err(err) => {
             error!("Failed to deserialize state pub inputs: {}", err);
@@ -228,7 +233,7 @@ mod test {
 
     #[test]
     fn valid_mina_state_proof_verifies() {
-        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
         let proof_size = PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
         proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
@@ -245,7 +250,7 @@ mod test {
 
     #[test]
     fn mina_state_proof_with_bad_bridge_tip_hash_does_not_verify() {
-        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
         let proof_size = PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
         proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
@@ -262,7 +267,7 @@ mod test {
 
     #[test]
     fn empty_mina_state_proof_does_not_verify() {
-        let proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let proof_buffer = [0u8; PROOF_BYTES.len()];
         let proof_size = PROOF_BYTES.len();
 
         let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
@@ -277,7 +282,7 @@ mod test {
 
     #[test]
     fn valid_mina_state_proof_with_empty_pub_input_does_not_verify() {
-        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
         let proof_size = PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
         proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
@@ -292,8 +297,8 @@ mod test {
 
     #[test]
     fn valid_mina_state_proof_with_greater_proof_size_does_not_verify() {
-        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
-        let wrong_proof_size = super::MAX_PROOF_SIZE + 1;
+        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
+        let wrong_proof_size = PROOF_BYTES.len() + 1;
         proof_buffer[..PROOF_BYTES.len()].clone_from_slice(PROOF_BYTES);
 
         let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
@@ -312,7 +317,7 @@ mod test {
 
     #[test]
     fn valid_mina_state_proof_with_greater_pub_input_size_does_not_verify() {
-        let mut proof_buffer = [0u8; super::MAX_PROOF_SIZE];
+        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
         let proof_size = PROOF_BYTES.len();
         assert!(proof_size <= proof_buffer.len());
         proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);

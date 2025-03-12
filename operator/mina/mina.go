@@ -13,10 +13,6 @@ import (
 	"unsafe"
 )
 
-// TODO(xqft): check proof size
-const MAX_PROOF_SIZE = 48 * 1024
-const MAX_PUB_INPUT_SIZE = 6 * 1024
-
 func timer() func() {
 	start := time.Now()
 	return func() {
@@ -24,8 +20,13 @@ func timer() func() {
 	}
 }
 
-func VerifyMinaState(proofBuffer [MAX_PROOF_SIZE]byte, proofLen uint, pubInputBuffer [MAX_PUB_INPUT_SIZE]byte, pubInputLen uint) bool {
+func VerifyMinaState(proofBuffer []byte, proofLen uint, pubInputBuffer []byte, pubInputLen uint) bool {
 	defer timer()()
+
+	if len(proofBuffer) == 0 || len(pubInputBuffer) == 0 {
+		return false
+	}
+
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	pubInputPtr := (*C.uchar)(unsafe.Pointer(&pubInputBuffer[0]))
 	return (bool)(C.verify_mina_state_ffi(proofPtr, (C.uint)(proofLen), pubInputPtr, (C.uint)(pubInputLen)))
