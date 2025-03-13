@@ -70,7 +70,7 @@ fn inner_verify_mina_state_ffi(
     let proof_bytes = unsafe { std::slice::from_raw_parts(proof_bytes, proof_len as usize) };
 
     let pub_input_bytes =
-        unsafe { std::slice::from_raw_parts(pub_input_bytes, proof_len as usize) };
+        unsafe { std::slice::from_raw_parts(pub_input_bytes, pub_input_len as usize) };
 
     verify_mina_state(proof_bytes, pub_input_bytes)
 }

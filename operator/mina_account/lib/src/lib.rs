@@ -12,9 +12,25 @@ mod merkle_verifier;
 #[no_mangle]
 pub extern "C" fn verify_account_inclusion_ffi(
     proof_bytes: *const u8,
-    proof_len: usize,
+    proof_len: u32,
     pub_input_bytes: *const u8,
-    pub_input_len: usize,
+    pub_input_len: u32,
+) -> i32 {
+    let result = std::panic::catch_unwind(|| {
+        inner_verify_account_inclusion_ffi(proof_bytes, proof_len, pub_input_bytes, pub_input_len)
+    });
+
+    match result {
+        Ok(v) => v as i32,
+        Err(_) => -1,
+    }
+}
+
+fn inner_verify_account_inclusion_ffi(
+    proof_bytes: *const u8,
+    proof_len: u32,
+    pub_input_bytes: *const u8,
+    pub_input_len: u32,
 ) -> bool {
     if proof_bytes.is_null() || pub_input_bytes.is_null() {
         error!("Input buffer null");
@@ -29,7 +45,7 @@ pub extern "C" fn verify_account_inclusion_ffi(
     let proof_bytes = unsafe { std::slice::from_raw_parts(proof_bytes, proof_len as usize) };
 
     let pub_input_bytes =
-        unsafe { std::slice::from_raw_parts(pub_input_bytes, proof_len as usize) };
+        unsafe { std::slice::from_raw_parts(pub_input_bytes, pub_input_len as usize) };
 
     verify_account_inclusion(proof_bytes, pub_input_bytes)
 }
@@ -45,6 +61,7 @@ pub fn verify_account_inclusion(proof_bytes: &[u8], pub_input_bytes: &[u8]) -> b
             return false;
         }
     };
+    error!("pub input len: {}", pub_input_bytes.len());
     let MinaAccountPubInputs {
         ledger_hash,
         encoded_account,
@@ -94,80 +111,50 @@ mod test {
 
     #[test]
     fn valid_account_state_proof_verifies() {
-        let result = verify_account_inclusion(PROOF_BYTES, PUB_INPUT_BYTES);
-        assert!(result);
+        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
+        let proof_size = PROOF_BYTES.len();
+        assert!(proof_size <= proof_buffer.len());
+        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
+
+        let mut pub_input_buffer = [0u8; PUB_INPUT_BYTES.len()];
+        let pub_input_size = PUB_INPUT_BYTES.len();
+        assert!(pub_input_size <= pub_input_buffer.len());
+        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
+
+        let result = verify_account_inclusion_ffi(
+            proof_buffer.as_ptr(),
+            proof_size as u32,
+            pub_input_buffer.as_ptr(),
+            pub_input_size as u32,
+        );
+        assert_eq!(result, 1);
     }
 
     #[test]
     fn empty_account_state_proof_does_not_verify() {
-        let proof_buffer = [0u8; PROOF_BYTES.len()];
-        let proof_size = PROOF_BYTES.len();
+        const PROOF_SIZE: usize = PROOF_BYTES.len();
+        let proof_buffer = [0u8; PROOF_SIZE];
 
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PUB_INPUT_BYTES.len();
-        assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
-
-        let result = verify_account_inclusion(&proof_buffer, &pub_input_buffer, pub_input_size);
-        assert!(!result);
+        let result = verify_account_inclusion_ffi(
+            proof_buffer.as_ptr(),
+            PROOF_SIZE as u32,
+            PUB_INPUT_BYTES.as_ptr(),
+            PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
     }
 
     #[test]
     fn valid_account_state_proof_with_empty_pub_input_does_not_verify() {
-        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
-        let proof_size = PROOF_BYTES.len();
-        assert!(proof_size <= proof_buffer.len());
-        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
-
-        let pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PUB_INPUT_BYTES.len();
+        const PUB_INPUT_SIZE: usize = PUB_INPUT_BYTES.len();
+        let pub_input_buffer = [0u8; PUB_INPUT_SIZE];
 
         let result = verify_account_inclusion_ffi(
-            &proof_buffer,
-            proof_size,
-            &pub_input_buffer,
-            pub_input_size,
+            PROOF_BYTES.as_ptr(),
+            PROOF_BYTES.len() as u32,
+            pub_input_buffer.as_ptr(),
+            PUB_INPUT_SIZE as u32,
         );
-        assert!(!result);
-    }
-
-    #[test]
-    fn valid_account_state_proof_with_greater_proof_size_does_not_verify() {
-        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
-        let wrong_proof_size = MAX_PROOF_SIZE + 1;
-        proof_buffer[..PROOF_BYTES.len()].clone_from_slice(PROOF_BYTES);
-
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PUB_INPUT_BYTES.len();
-        assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
-
-        let result = verify_account_inclusion_ffi(
-            &proof_buffer,
-            wrong_proof_size,
-            &pub_input_buffer,
-            pub_input_size,
-        );
-        assert!(!result);
-    }
-
-    #[test]
-    fn valid_account_state_proof_with_greater_pub_input_size_does_not_verify() {
-        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
-        let proof_size = PROOF_BYTES.len();
-        assert!(proof_size <= proof_buffer.len());
-        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
-
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let wrong_pub_input_size = MAX_PUB_INPUT_SIZE + 1;
-        pub_input_buffer[..PUB_INPUT_BYTES.len()].clone_from_slice(PUB_INPUT_BYTES);
-
-        let result = verify_account_inclusion_ffi(
-            &proof_buffer,
-            proof_size,
-            &pub_input_buffer,
-            wrong_pub_input_size,
-        );
-        assert!(!result);
+        assert_eq!(result, 0);
     }
 }

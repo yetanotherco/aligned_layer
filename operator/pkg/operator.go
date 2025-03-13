@@ -531,21 +531,13 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		o.handleVerificationResult(results, verificationResult, err, "Risc0 proof verification")
 		results <- verificationResult
 	case common.Mina:
-		proofLen := (uint)(len(verificationData.Proof))
-		pubInputLen := (uint)(len(verificationData.PubInput))
-
-		verificationResult := mina.VerifyMinaState(verificationData.Proof, proofLen, verificationData.PubInput, (uint)(pubInputLen))
+		verificationResult, err := mina.VerifyMinaState(verificationData.Proof, verificationData.PubInput)
 		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
-		// TODO: Remove the nil value passed as err argument
-		o.handleVerificationResult(results, verificationResult, nil, "Mina state proof verification")
+		o.handleVerificationResult(results, verificationResult, err, "Mina state proof verification")
 	case common.MinaAccount:
-		proofLen := (uint)(len(verificationData.Proof))
-		pubInputLen := (uint)(len(verificationData.PubInput))
-
-		verificationResult := mina_account.VerifyAccountInclusion(verificationData.Proof, proofLen, verificationData.PubInput, (uint)(pubInputLen))
+		verificationResult, err := mina_account.VerifyAccountInclusion(verificationData.Proof, verificationData.PubInput)
 		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
-		// TODO: Remove the nil value passed as err argument
-		o.handleVerificationResult(results, verificationResult, nil, "Mina account state proof verification")
+		o.handleVerificationResult(results, verificationResult, err, "Mina account state proof verification")
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
