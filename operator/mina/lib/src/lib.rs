@@ -37,9 +37,25 @@ lazy_static! {
 #[no_mangle]
 pub extern "C" fn verify_mina_state_ffi(
     proof_bytes: *const u8,
-    proof_len: usize,
+    proof_len: u32,
     pub_input_bytes: *const u8,
-    pub_input_len: usize,
+    pub_input_len: u32,
+) -> i32 {
+    let result = std::panic::catch_unwind(|| {
+        inner_verify_mina_state_ffi(proof_bytes, proof_len, pub_input_bytes, pub_input_len)
+    });
+
+    match result {
+        Ok(v) => v as i32,
+        Err(_) => -1,
+    }
+}
+
+fn inner_verify_mina_state_ffi(
+    proof_bytes: *const u8,
+    proof_len: u32,
+    pub_input_bytes: *const u8,
+    pub_input_len: u32,
 ) -> bool {
     if proof_bytes.is_null() || pub_input_bytes.is_null() {
         error!("Input buffer null");
@@ -233,105 +249,51 @@ mod test {
 
     #[test]
     fn valid_mina_state_proof_verifies() {
-        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
-        let proof_size = PROOF_BYTES.len();
-        assert!(proof_size <= proof_buffer.len());
-        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
-
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PUB_INPUT_BYTES.len();
-        assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
-
-        let result =
-            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
-        assert!(result);
+        let result = verify_mina_state_ffi(
+            PROOF_BYTES.as_ptr(),
+            PROOF_BYTES.len() as u32,
+            PUB_INPUT_BYTES.as_ptr(),
+            PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 1);
     }
 
     #[test]
     fn mina_state_proof_with_bad_bridge_tip_hash_does_not_verify() {
-        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
-        let proof_size = PROOF_BYTES.len();
-        assert!(proof_size <= proof_buffer.len());
-        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
-
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = BAD_HASH_PUB_INPUT_BYTES.len();
-        assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(BAD_HASH_PUB_INPUT_BYTES);
-
-        let result =
-            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
-        assert!(!result);
+        let result = verify_mina_state_ffi(
+            PROOF_BYTES.as_ptr(),
+            PROOF_BYTES.len() as u32,
+            BAD_HASH_PUB_INPUT_BYTES.as_ptr(),
+            BAD_HASH_PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
     }
 
     #[test]
     fn empty_mina_state_proof_does_not_verify() {
-        let proof_buffer = [0u8; PROOF_BYTES.len()];
-        let proof_size = PROOF_BYTES.len();
+        const PROOF_SIZE: usize = PROOF_BYTES.len();
+        let empty_proof_buffer = [0u8; PROOF_SIZE];
 
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PUB_INPUT_BYTES.len();
-        assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
-
-        let result =
-            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
-        assert!(!result);
+        let result = verify_mina_state_ffi(
+            empty_proof_buffer.as_ptr(),
+            PROOF_SIZE as u32,
+            PUB_INPUT_BYTES.as_ptr(),
+            PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
     }
 
     #[test]
     fn valid_mina_state_proof_with_empty_pub_input_does_not_verify() {
-        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
-        let proof_size = PROOF_BYTES.len();
-        assert!(proof_size <= proof_buffer.len());
-        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
-
-        let pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PUB_INPUT_BYTES.len();
-
-        let result =
-            verify_mina_state_ffi(&proof_buffer, proof_size, &pub_input_buffer, pub_input_size);
-        assert!(!result);
-    }
-
-    #[test]
-    fn valid_mina_state_proof_with_greater_proof_size_does_not_verify() {
-        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
-        let wrong_proof_size = PROOF_BYTES.len() + 1;
-        proof_buffer[..PROOF_BYTES.len()].clone_from_slice(PROOF_BYTES);
-
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let pub_input_size = PUB_INPUT_BYTES.len();
-        assert!(pub_input_size <= pub_input_buffer.len());
-        pub_input_buffer[..pub_input_size].clone_from_slice(PUB_INPUT_BYTES);
+        const PUB_INPUT_SIZE: usize = PUB_INPUT_BYTES.len();
+        let empty_pub_input_buffer = [0u8; PUB_INPUT_SIZE];
 
         let result = verify_mina_state_ffi(
-            &proof_buffer,
-            wrong_proof_size,
-            &pub_input_buffer,
-            pub_input_size,
+            PROOF_BYTES.as_ptr(),
+            PROOF_BYTES.len() as u32,
+            empty_pub_input_buffer.as_ptr(),
+            PUB_INPUT_SIZE as u32,
         );
-        assert!(!result);
-    }
-
-    #[test]
-    fn valid_mina_state_proof_with_greater_pub_input_size_does_not_verify() {
-        let mut proof_buffer = [0u8; PROOF_BYTES.len()];
-        let proof_size = PROOF_BYTES.len();
-        assert!(proof_size <= proof_buffer.len());
-        proof_buffer[..proof_size].clone_from_slice(PROOF_BYTES);
-
-        let mut pub_input_buffer = [0u8; super::MAX_PUB_INPUT_SIZE];
-        let wrong_pub_input_size = MAX_PUB_INPUT_SIZE + 1;
-        pub_input_buffer[..PUB_INPUT_BYTES.len()].clone_from_slice(PUB_INPUT_BYTES);
-
-        let result = verify_mina_state_ffi(
-            &proof_buffer,
-            proof_size,
-            &pub_input_buffer,
-            wrong_pub_input_size,
-        );
-        assert!(!result);
+        assert_eq!(result, 0);
     }
 }
