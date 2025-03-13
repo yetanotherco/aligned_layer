@@ -67,7 +67,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
                 return false;
             };
 
-            verify_mina_state(&verification_data.proof, &pub_input)
+            verify_mina_state(&verification_data.proof, pub_input)
         }
         ProvingSystemId::MinaAccount => {
             let Some(pub_input) = verification_data.pub_input.as_ref() else {
@@ -75,7 +75,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
                 return false;
             };
 
-            verify_account_inclusion(&verification_data.proof, &pub_input)
+            verify_account_inclusion(&verification_data.proof, pub_input)
         }
     }
 }
