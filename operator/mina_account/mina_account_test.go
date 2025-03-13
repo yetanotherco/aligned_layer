@@ -1,76 +1,71 @@
 package mina_account_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
 	"github.com/yetanotherco/aligned_layer/operator/mina_account"
 )
 
+const ProofFilePath = "../../scripts/test_files/mina_account/mina_account.proof"
+
+const PubInputFilePath = "../../scripts/test_files/mina_account/mina_account.pub"
+
 func TestMinaStateProofVerifies(t *testing.T) {
-	fmt.Println(os.Getwd())
-	proofFile, err := os.Open("../../scripts/test_files/mina_account/mina_account.proof")
+	proofBytes, err := os.ReadFile(ProofFilePath)
 	if err != nil {
 		t.Errorf("could not open mina account proof file")
 	}
 
-	proofBuffer := make([]byte, mina_account.MAX_PROOF_SIZE)
-	proofLen, err := proofFile.Read(proofBuffer)
+	pubInputBytes, err := os.ReadFile(PubInputFilePath)
 	if err != nil {
-		t.Errorf("could not read bytes from mina account proof file")
+		t.Errorf("could not open mina account pub input file")
 	}
 
-	pubInputFile, err := os.Open("../../scripts/test_files/mina_account/mina_account.pub")
-	if err != nil {
-		t.Errorf("could not open mina account pub inputs file")
-	}
-	pubInputBuffer := make([]byte, mina_account.MAX_PUB_INPUT_SIZE)
-	pubInputLen, err := pubInputFile.Read(pubInputBuffer)
-	if err != nil {
-		t.Errorf("could not read bytes from mina account pub inputs hash")
-	}
-
-	if !mina_account.VerifyAccountInclusion(([mina_account.MAX_PROOF_SIZE]byte)(proofBuffer), uint(proofLen), ([mina_account.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), uint(pubInputLen)) {
+	verified, err := mina_account.VerifyAccountInclusion(proofBytes, pubInputBytes)
+	if err != nil || !verified {
 		t.Errorf("proof did not verify")
 	}
 }
 
 func TestEmptyMinaStateProofDoesNotVerify(t *testing.T) {
-	fmt.Println(os.Getwd())
-	proofBuffer := make([]byte, mina_account.MAX_PROOF_SIZE)
-
-	pubInputFile, err := os.Open("../../scripts/test_files/mina_account/mina_account.pub")
+	proofBytes, err := os.ReadFile(ProofFilePath)
 	if err != nil {
-		t.Errorf("could not open mina account pub inputs file")
+		t.Errorf("could not open mina state proof file")
 	}
-	pubInputBuffer := make([]byte, mina_account.MAX_PUB_INPUT_SIZE)
-	pubInputLen, err := pubInputFile.Read(pubInputBuffer)
+	emptyProofBuffer := make([]byte, len(proofBytes))
+
+	pubInputBytes, err := os.ReadFile(PubInputFilePath)
 	if err != nil {
-		t.Errorf("could not read bytes from mina account pub inputs hash")
+		t.Errorf("could not open mina state pub input file")
 	}
 
-	if mina_account.VerifyAccountInclusion(([mina_account.MAX_PROOF_SIZE]byte)(proofBuffer), mina_account.MAX_PROOF_SIZE, ([mina_account.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), uint(pubInputLen)) {
-		t.Errorf("Empty proof should not verify but it did")
+	verified, err := mina_account.VerifyAccountInclusion(emptyProofBuffer, pubInputBytes)
+	if err != nil {
+		t.Errorf("verification failed with error")
+	}
+	if verified {
+		t.Errorf("proof should not verify")
 	}
 }
 
 func TestMinaStateProofWithEmptyPubInputDoesNotVerify(t *testing.T) {
-	fmt.Println(os.Getwd())
-	proofFile, err := os.Open("../../scripts/test_files/mina_account/mina_account.proof")
+	proofBytes, err := os.ReadFile(ProofFilePath)
 	if err != nil {
-		t.Errorf("could not open mina account proof file")
+		t.Errorf("could not open mina state proof file")
 	}
 
-	proofBuffer := make([]byte, mina_account.MAX_PROOF_SIZE)
-	proofLen, err := proofFile.Read(proofBuffer)
+	pubInputBytes, err := os.ReadFile(PubInputFilePath)
 	if err != nil {
-		t.Errorf("could not read bytes from mina account proof file")
+		t.Errorf("could not open mina state pub input file")
 	}
+	emptyPubInputBuffer := make([]byte, len(pubInputBytes))
 
-	pubInputBuffer := make([]byte, mina_account.MAX_PUB_INPUT_SIZE)
-
-	if mina_account.VerifyAccountInclusion(([mina_account.MAX_PROOF_SIZE]byte)(proofBuffer), uint(proofLen), ([mina_account.MAX_PUB_INPUT_SIZE]byte)(pubInputBuffer), mina_account.MAX_PUB_INPUT_SIZE) {
-		t.Errorf("proof with empty public input should not verify but id did")
+	verified, err := mina_account.VerifyAccountInclusion(proofBytes, emptyPubInputBuffer)
+	if err != nil {
+		t.Errorf("verification failed with error")
+	}
+	if verified {
+		t.Errorf("proof should not verify")
 	}
 }

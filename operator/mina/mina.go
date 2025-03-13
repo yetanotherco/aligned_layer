@@ -9,24 +9,36 @@ package mina
 import "C"
 import (
 	"fmt"
-	"time"
 	"unsafe"
 )
 
-// TODO(xqft): check proof size
-const MAX_PROOF_SIZE = 48 * 1024
-const MAX_PUB_INPUT_SIZE = 6 * 1024
-
-func timer() func() {
-	start := time.Now()
-	return func() {
-		fmt.Printf("Mina block verification took %v\n", time.Since(start))
+func VerifyMinaState(proofBuffer []byte, pubInputBuffer []byte) (isVerified bool, err error) {
+	// Here we define the return value on failure
+	isVerified = false
+	err = nil
+	if len(proofBuffer) == 0 || len(pubInputBuffer) == 0 {
+		return isVerified, err
 	}
-}
 
-func VerifyMinaState(proofBuffer [MAX_PROOF_SIZE]byte, proofLen uint, pubInputBuffer [MAX_PUB_INPUT_SIZE]byte, pubInputLen uint) bool {
-	defer timer()()
+	// This will catch any go panic
+	defer func() {
+		rec := recover()
+		if rec != nil {
+			err = fmt.Errorf("Panic was caught while verifying sp1 proof: %s", rec)
+		}
+	}()
+
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	pubInputPtr := (*C.uchar)(unsafe.Pointer(&pubInputBuffer[0]))
-	return (bool)(C.verify_mina_state_ffi(proofPtr, (C.uint)(proofLen), pubInputPtr, (C.uint)(pubInputLen)))
+
+	r := (C.int32_t)(C.verify_mina_state_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), pubInputPtr, (C.uint32_t)(len(pubInputBuffer))))
+
+	if r == -1 {
+		err = fmt.Errorf("Panic happened on FFI while verifying Mina proof")
+		return isVerified, err
+	}
+
+	isVerified = (r == 1)
+
+	return isVerified, err
 }
