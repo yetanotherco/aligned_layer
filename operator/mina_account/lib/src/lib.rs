@@ -61,7 +61,6 @@ pub fn verify_account_inclusion(proof_bytes: &[u8], pub_input_bytes: &[u8]) -> b
             return false;
         }
     };
-    error!("pub input len: {}", pub_input_bytes.len());
     let MinaAccountPubInputs {
         ledger_hash,
         encoded_account,
