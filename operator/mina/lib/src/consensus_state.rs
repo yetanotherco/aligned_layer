@@ -165,7 +165,7 @@ mod test {
     use super::*;
 
     const PROOF_BYTES: &[u8] =
-        include_bytes!("../../../../scripts/test_files/mina/mina_state.proof");
+        include_bytes!("../../../../scripts/test_files/mina/devnet_mina_state.proof");
 
     #[test]
     fn new_mina_state_passes_consensus_checks() {
