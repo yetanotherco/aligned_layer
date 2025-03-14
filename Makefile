@@ -1133,8 +1133,8 @@ docker_batcher_send_mina_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system Mina \
-              --proof ./scripts/test_files/mina/mina_state.proof \
-              --public_input ./scripts/test_files/mina/mina_state.pub \
+              --proof ./scripts/test_files/mina/devnet_mina_state.proof \
+              --public_input ./scripts/test_files/mina/devnet_mina_state.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
