@@ -238,6 +238,8 @@ fn check_pub_inputs(
 
 #[cfg(test)]
 mod test {
+    use std::ptr;
+
     use super::*;
 
     const PROOF_BYTES: &[u8] =
@@ -293,6 +295,28 @@ mod test {
             PROOF_BYTES.len() as u32,
             empty_pub_input_buffer.as_ptr(),
             PUB_INPUT_SIZE as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn null_mina_state_proof_does_not_verify() {
+        let result = verify_mina_state_ffi(
+            ptr::null(),
+            PROOF_BYTES.len() as u32,
+            PUB_INPUT_BYTES.as_ptr(),
+            PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn valid_mina_state_proof_with_null_pub_input_does_not_verify() {
+        let result = verify_mina_state_ffi(
+            PROOF_BYTES.as_ptr(),
+            PROOF_BYTES.len() as u32,
+            ptr::null(),
+            PUB_INPUT_BYTES.len() as u32,
         );
         assert_eq!(result, 0);
     }
