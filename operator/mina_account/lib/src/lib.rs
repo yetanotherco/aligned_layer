@@ -102,6 +102,7 @@ pub fn verify_account_inclusion(proof_bytes: &[u8], pub_input_bytes: &[u8]) -> b
 mod test {
 
     use super::*;
+    use core::ptr;
 
     const PROOF_BYTES: &[u8] =
         include_bytes!("../../../../scripts/test_files/mina_account/mina_account.proof");
@@ -130,7 +131,7 @@ mod test {
     }
 
     #[test]
-    fn empty_account_state_proof_does_not_verify() {
+    fn zeroized_account_state_proof_does_not_verify() {
         const PROOF_SIZE: usize = PROOF_BYTES.len();
         let proof_buffer = [0u8; PROOF_SIZE];
 
@@ -144,7 +145,7 @@ mod test {
     }
 
     #[test]
-    fn valid_account_state_proof_with_empty_pub_input_does_not_verify() {
+    fn valid_account_state_proof_with_zeroized_pub_input_does_not_verify() {
         const PUB_INPUT_SIZE: usize = PUB_INPUT_BYTES.len();
         let pub_input_buffer = [0u8; PUB_INPUT_SIZE];
 
@@ -153,6 +154,50 @@ mod test {
             PROOF_BYTES.len() as u32,
             pub_input_buffer.as_ptr(),
             PUB_INPUT_SIZE as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn null_account_state_proof_does_not_verify() {
+        let result = verify_account_inclusion_ffi(
+            ptr::null(),
+            PROOF_BYTES.len() as u32,
+            PUB_INPUT_BYTES.as_ptr(),
+            PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn valid_account_state_proof_with_null_pub_input_does_not_verify() {
+        let result = verify_account_inclusion_ffi(
+            PROOF_BYTES.as_ptr(),
+            PROOF_BYTES.len() as u32,
+            ptr::null(),
+            PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn empty_account_state_proof_does_not_verify() {
+        let result = verify_account_inclusion_ffi(
+            PROOF_BYTES.as_ptr(),
+            0,
+            PUB_INPUT_BYTES.as_ptr(),
+            PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn valid_account_state_proof_with_empty_pub_input_does_not_verify() {
+        let result = verify_account_inclusion_ffi(
+            PROOF_BYTES.as_ptr(),
+            PROOF_BYTES.len() as u32,
+            PUB_INPUT_BYTES.as_ptr(),
+            0,
         );
         assert_eq!(result, 0);
     }

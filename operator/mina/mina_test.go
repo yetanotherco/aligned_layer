@@ -7,9 +7,9 @@ import (
 	"github.com/yetanotherco/aligned_layer/operator/mina"
 )
 
-const ProofFilePath = "../../scripts/test_files/mina/mina_state.proof"
+const ProofFilePath = "../../scripts/test_files/mina/devnet_mina_state.proof"
 
-const PubInputFilePath = "../../scripts/test_files/mina/mina_state.pub"
+const PubInputFilePath = "../../scripts/test_files/mina/devnet_mina_state.pub"
 
 func TestMinaStateProofVerifies(t *testing.T) {
 	proofBytes, err := os.ReadFile(ProofFilePath)

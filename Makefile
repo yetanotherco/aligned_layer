@@ -518,15 +518,15 @@ batcher_send_mina_task:
 	@echo "Sending Mina state task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Mina \
-		--proof ../../scripts/test_files/mina/mina_state.proof \
-		--public_input ../../scripts/test_files/mina/mina_state.pub \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 batcher_send_mina_task_bad_hash:
 	@echo "Sending Mina state task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Mina \
-		--proof ../../scripts/test_files/mina/mina_state.proof \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
 		--public_input ../../scripts/test_files/mina/mina_state_bad_hash.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -534,8 +534,8 @@ batcher_send_mina_burst:
 	@echo "Sending Mina state task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Mina \
-		--proof ../../scripts/test_files/mina/mina_state.proof \
-		--public_input ../../scripts/test_files/mina/mina_state.pub \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 
@@ -1133,8 +1133,8 @@ docker_batcher_send_mina_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system Mina \
-              --proof ./scripts/test_files/mina/mina_state.proof \
-              --public_input ./scripts/test_files/mina/mina_state.pub \
+              --proof ./scripts/test_files/mina/devnet_mina_state.proof \
+              --public_input ./scripts/test_files/mina/devnet_mina_state.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \

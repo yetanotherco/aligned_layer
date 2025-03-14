@@ -238,22 +238,39 @@ fn check_pub_inputs(
 
 #[cfg(test)]
 mod test {
+    use std::ptr;
+
     use super::*;
 
-    const PROOF_BYTES: &[u8] =
-        include_bytes!("../../../../scripts/test_files/mina/mina_state.proof");
-    const PUB_INPUT_BYTES: &[u8] =
-        include_bytes!("../../../../scripts/test_files/mina/mina_state.pub");
+    const DEVNET_PROOF_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina/devnet_mina_state.proof");
+    const DEVNET_PUB_INPUT_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina/devnet_mina_state.pub");
+    const MAINNET_PROOF_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina/mainnet_mina_state.proof");
+    const MAINNET_PUB_INPUT_BYTES: &[u8] =
+        include_bytes!("../../../../scripts/test_files/mina/mainnet_mina_state.pub");
     const BAD_HASH_PUB_INPUT_BYTES: &[u8] =
         include_bytes!("../../../../scripts/test_files/mina/mina_state_bad_hash.pub");
 
     #[test]
-    fn valid_mina_state_proof_verifies() {
+    fn valid_devnet_mina_state_proof_verifies() {
         let result = verify_mina_state_ffi(
-            PROOF_BYTES.as_ptr(),
-            PROOF_BYTES.len() as u32,
-            PUB_INPUT_BYTES.as_ptr(),
-            PUB_INPUT_BYTES.len() as u32,
+            DEVNET_PROOF_BYTES.as_ptr(),
+            DEVNET_PROOF_BYTES.len() as u32,
+            DEVNET_PUB_INPUT_BYTES.as_ptr(),
+            DEVNET_PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 1);
+    }
+
+    #[test]
+    fn valid_mainnet_mina_state_proof_verifies() {
+        let result = verify_mina_state_ffi(
+            MAINNET_PROOF_BYTES.as_ptr(),
+            MAINNET_PROOF_BYTES.len() as u32,
+            MAINNET_PUB_INPUT_BYTES.as_ptr(),
+            MAINNET_PUB_INPUT_BYTES.len() as u32,
         );
         assert_eq!(result, 1);
     }
@@ -261,8 +278,8 @@ mod test {
     #[test]
     fn mina_state_proof_with_bad_bridge_tip_hash_does_not_verify() {
         let result = verify_mina_state_ffi(
-            PROOF_BYTES.as_ptr(),
-            PROOF_BYTES.len() as u32,
+            DEVNET_PROOF_BYTES.as_ptr(),
+            DEVNET_PROOF_BYTES.len() as u32,
             BAD_HASH_PUB_INPUT_BYTES.as_ptr(),
             BAD_HASH_PUB_INPUT_BYTES.len() as u32,
         );
@@ -270,29 +287,73 @@ mod test {
     }
 
     #[test]
-    fn empty_mina_state_proof_does_not_verify() {
-        const PROOF_SIZE: usize = PROOF_BYTES.len();
+    fn zeroized_mina_state_proof_does_not_verify() {
+        const PROOF_SIZE: usize = DEVNET_PROOF_BYTES.len();
         let empty_proof_buffer = [0u8; PROOF_SIZE];
 
         let result = verify_mina_state_ffi(
             empty_proof_buffer.as_ptr(),
             PROOF_SIZE as u32,
-            PUB_INPUT_BYTES.as_ptr(),
-            PUB_INPUT_BYTES.len() as u32,
+            DEVNET_PUB_INPUT_BYTES.as_ptr(),
+            DEVNET_PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn valid_mina_state_proof_with_zeroized_pub_input_does_not_verify() {
+        const PUB_INPUT_SIZE: usize = DEVNET_PUB_INPUT_BYTES.len();
+        let empty_pub_input_buffer = [0u8; PUB_INPUT_SIZE];
+
+        let result = verify_mina_state_ffi(
+            DEVNET_PROOF_BYTES.as_ptr(),
+            DEVNET_PROOF_BYTES.len() as u32,
+            empty_pub_input_buffer.as_ptr(),
+            PUB_INPUT_SIZE as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn null_mina_state_proof_does_not_verify() {
+        let result = verify_mina_state_ffi(
+            ptr::null(),
+            DEVNET_PROOF_BYTES.len() as u32,
+            DEVNET_PUB_INPUT_BYTES.as_ptr(),
+            DEVNET_PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn valid_mina_state_proof_with_null_pub_input_does_not_verify() {
+        let result = verify_mina_state_ffi(
+            DEVNET_PROOF_BYTES.as_ptr(),
+            DEVNET_PROOF_BYTES.len() as u32,
+            ptr::null(),
+            DEVNET_PUB_INPUT_BYTES.len() as u32,
+        );
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn empty_mina_state_proof_does_not_verify() {
+        let result = verify_mina_state_ffi(
+            DEVNET_PROOF_BYTES.as_ptr(),
+            0,
+            DEVNET_PUB_INPUT_BYTES.as_ptr(),
+            DEVNET_PUB_INPUT_BYTES.len() as u32,
         );
         assert_eq!(result, 0);
     }
 
     #[test]
     fn valid_mina_state_proof_with_empty_pub_input_does_not_verify() {
-        const PUB_INPUT_SIZE: usize = PUB_INPUT_BYTES.len();
-        let empty_pub_input_buffer = [0u8; PUB_INPUT_SIZE];
-
         let result = verify_mina_state_ffi(
-            PROOF_BYTES.as_ptr(),
-            PROOF_BYTES.len() as u32,
-            empty_pub_input_buffer.as_ptr(),
-            PUB_INPUT_SIZE as u32,
+            DEVNET_PROOF_BYTES.as_ptr(),
+            DEVNET_PROOF_BYTES.len() as u32,
+            DEVNET_PUB_INPUT_BYTES.as_ptr(),
+            0,
         );
         assert_eq!(result, 0);
     }
