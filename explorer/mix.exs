@@ -62,7 +62,8 @@ defmodule Explorer.MixProject do
       {:postgrex, ">= 0.0.0"},
       {:cachex, "~> 3.6"},
       {:mutex, "~> 2.0"},
-      {:tails, "~> 0.1.5"}
+      {:tails, "~> 0.1.5"},
+      {:cors_plug, "~> 3.0"},
     ]
   end
 
