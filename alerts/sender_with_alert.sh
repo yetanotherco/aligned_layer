@@ -92,8 +92,15 @@ do
 
   ## Generate Proof
   nonce=$(aligned get-user-nonce --network $NETWORK --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
+  echo $nonce
+  if ! [[ "$nonce" =~ ^[0-9]+$ ]]; then
+    echo "Failed getting user nonce, retrying in 10 seconds"
+    sleep 10
+    continue
+  fi
+
   x=$((nonce + 1)) # So we don't have any issues with nonce = 0
-  echo "Generating proof $x != 0"
+  echo "Generating proof $x != 0, nonce: $nonce"
   go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 
   ## Send Proof
@@ -112,7 +119,26 @@ do
     2>&1)
 
   echo "$submit"
-  
+
+  submit_errors=$(echo "$submit" | grep -oE 'ERROR[^]]*]([^[]*)' | sed 's/^[^]]*]//;s/[[:space:]]*$//')
+
+  # Loop through each error found and print with the custom message
+  is_error=0
+  while IFS= read -r error; do
+      if [[ -n "$error" ]]; then
+          slack_error_message="Error submitting proof to $NETWORK: $error"
+          send_slack_message "$slack_error_message"
+          is_error=1
+      fi
+  done <<< "$submit_errors"
+
+  if [ $is_error -eq 1 ]; then
+    echo "Error submitting proofs to $NETWORK, retrying in 60 seconds"
+    send_slack_message "Error submitting proofs to $NETWORK, retrying in 60 seconds"
+    sleep 60
+    continue
+  fi
+
   echo "Waiting $VERIFICATION_WAIT_TIME seconds for verification"
   sleep $VERIFICATION_WAIT_TIME
 

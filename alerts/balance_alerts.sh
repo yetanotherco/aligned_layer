@@ -38,7 +38,7 @@ do
     fi
     balance_alert=true
   else
-    message="🟩 INFO: Wallet $WALLET_ADDRESS balance ($balance_eth ETH) is above $BALANCE_THRESHOLD ETH"
+    message="🟩 INFO: $WALLET_NAME ($NETWORK) Wallet $WALLET_ADDRESS balance ($balance_eth ETH) is above $BALANCE_THRESHOLD ETH"
     printf "$message\n"
     if [ "$balance_alert" = true ]; then
       send_slack_message "$message"

@@ -22,7 +22,7 @@ contract BatcherPaymentService is
     event FundsWithdrawn(address indexed recipient, uint256 amount);
     event BalanceLocked(address indexed user);
     event BalanceUnlocked(address indexed user, uint256 unlockBlockTime);
-    event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
+    event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof, uint256 amountOfProofs);
 
     // ERRORS
     error OnlyBatcherAllowed(address caller); // 152bc288
@@ -132,7 +132,7 @@ contract BatcherPaymentService is
             respondToTaskFeeLimit
         );
 
-        emit TaskCreated(batchMerkleRoot, feePerProof);
+        emit TaskCreated(batchMerkleRoot, feePerProof, proofSubmittersQty);
 
         payable(batcherWallet).transfer(
             (feePerProof * proofSubmittersQty) - feeForAggregator

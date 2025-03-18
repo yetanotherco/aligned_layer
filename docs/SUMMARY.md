@@ -42,6 +42,7 @@
 * [Operator FAQ](operator_guides/1_operator_FAQ.md)
 * [Troubleshooting](operator_guides/2_troubleshooting.md)
 * Upgrading Guides
+    * [Upgrading to v0.14.0](operator_guides/upgrading_guides/v0_14_0.md)
     * [Upgrading to v0.10.2](operator_guides/upgrading_guides/v0_10_2.md)
     * [Upgrading to v0.9.2](operator_guides/upgrading_guides/v0_9_2.md)
 
