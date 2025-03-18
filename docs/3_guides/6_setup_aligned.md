@@ -74,13 +74,13 @@ make bindings
 To start the [Aggregator](../2_architecture/components/5_aggregator.md):
 
 ```bash
-make aggregator_start
+make aggregator_start ENVIRONMENT=devnet
 ```
 
 or with a custom config:
 
 ```bash
-make aggregator_start CONFIG_FILE=<path_to_config_file>
+make aggregator_start ENVIRONMENT=devnet CONFIG_FILE=<path_to_config_file>
 ```
 
 ## Operator
@@ -88,13 +88,13 @@ make aggregator_start CONFIG_FILE=<path_to_config_file>
 To setup an [Operator](../2_architecture/components/4_operator.md) run:
 
 ```bash
-make operator_register_and_start
+make operator_register_and_start ENVIRONMENT=devnet
 ```
 
 or with a custom config:
 
 ```bash
-make operator_register_and_start CONFIG_FILE=<path_to_config_file>
+make operator_register_and_start ENVIRONMENT=devnet CONFIG_FILE=<path_to_config_file>
 ```
 
 Different configs for operators can be found in `config-files/config-operator`.
@@ -111,7 +111,7 @@ make operator_full_registration CONFIG_FILE<path_to_config_file>
 and to start it once it has been registered:
 
 ```bash
-make operator_start CONFIG_FILE=<path_to_config_file>
+make operator_start ENVIRONMENT=devnet CONFIG_FILE=<path_to_config_file>
 ```
 
 </details>

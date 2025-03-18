@@ -1,7 +1,7 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.13.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.13.0)
+> Aligned Operator [v0.14.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.14.0)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
@@ -30,7 +30,7 @@ The list of supported strategies can be found [here](../3_guides/7_contract_addr
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.13.0
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.14.0
 cd aligned_layer
 ```
 
@@ -54,18 +54,30 @@ make install_foundry
 foundryup
 ```
 
-To build the operator binary, run:
+To build the operator binary for **Testnet**, run:
 
 ```bash
-make build_operator
+make build_operator ENVIRONMENT=testnet
+```
+
+To build the operator binary for **Mainnet**, run:
+
+```bash
+make build_operator ENVIRONMENT=mainnet
 ```
 
 ### Upgrading the Operator
 
-If you want to upgrade the operator, run:
+If you want to upgrade the operator in **Testnet**, run:
 
 ```bash
-make update_operator
+make update_operator ENVIRONMENT=testnet
+```
+
+If you want to upgrade the operator in **Mainnet**, run:
+
+```bash
+make update_operator ENVIRONMENT=mainnet
 ```
 
 This will recreate the binaries. You can then proceed to restart the operator.

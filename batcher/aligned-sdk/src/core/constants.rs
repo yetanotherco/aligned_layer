@@ -11,6 +11,15 @@ pub const DEFAULT_MAX_FEE_PER_PROOF: u128 =
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * 100_000_000_000; // gas_price = 100 Gwei = 0.0000001 ether (high gas price)
 pub const CONNECTION_TIMEOUT: u64 = 30; // 30 secs
 
+// According to:
+// - https://www.rfc-editor.org/rfc/rfc8949.html#section-3.1-2.10
+// - https://www.rfc-editor.org/rfc/rfc8949.html#section-3-3.2
+// - https://www.rfc-editor.org/rfc/rfc8949.html#section-3-3.4
+// 9 bytes are the maximum overhead from aggregating data into an array in CBOR
+// (it may be as little as just 1 byte, but it depends on the number of elements
+// and serialization parameters).
+pub const CBOR_ARRAY_MAX_OVERHEAD: usize = 9;
+
 // % modifiers: (100% is x1, 10% is x0.1, 1000% is x10)
 pub const RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER: u128 = 250; // fee_for_aggregator -> respondToTaskFeeLimit modifier
 pub const DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER: u128 = 125; // feeForAggregator modifier
