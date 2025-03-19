@@ -8,25 +8,28 @@ This document serves as a reference for the commands of the Aligned CLI.
 
 1. Download and install Aligned from the Aligned GitHub repo `https://github.com/yetanotherco/aligned_layer`:
 
-```bash
-curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
-```
+    ```bash
+    curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
+    ```
 
 2. A source command will be printed in your terminal after installation. Execute that command to update your shell environment.
 
 3. Verify that the installation was successful:
-```bash
-aligned --version
-```
+
+    ```bash
+    aligned --version
+    ```
 
 ## Help:
 
 To see the available commands, run:
+
 ```bash
 aligned --help
 ```
 
 To see the usage of a command, run:
+
 ```bash
 aligned [COMMAND] --help
 ```
@@ -44,6 +47,7 @@ Submit a proof to the Aligned Layer batcher.
 `submit [OPTIONS] --proving_system <proving_system> --proof <proof_file_path>`
 
 #### Options:
+
 - `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
   - Default: `ws://localhost:8080`  
   - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
@@ -85,6 +89,7 @@ Submit a proof to the Aligned Layer batcher.
 
 
 #### Example:
+
 ```bash
 aligned submit  \
 --proving_system Risc0 \
@@ -111,6 +116,7 @@ Check if a proof was verified by Aligned on Ethereum.
 `verify-proof-onchain [OPTIONS] --aligned-verification-data <aligned_verification_data>`
 
 #### Options:
+
 - `--aligned-verification-data <aligned_verification_data>`: Path to the aligned verification data file.
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
@@ -127,6 +133,7 @@ Check if a proof was verified by Aligned on Ethereum.
     - `--batcher_url <batcher_websocket_url>`
 
 #### Example:
+
 ```bash
 aligned verify-proof-onchain \
 --aligned-verification-data ./aligned_verification_data/<VERIFICATION_DATA_FILE> \
@@ -147,6 +154,7 @@ Computes the verification data commitment from the verification data file.
 `get-vk-commitment [OPTIONS] --verification_key_file <verification_key_file_path> --proving_system <proving_system>`
 
 #### Options:
+
 - `--verification_key_file <path_to_file>`: Path to the verification key file.
 - `--proving_system <proving_system>`: Proof system of the verification data file.  
   - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
@@ -165,6 +173,7 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
 `deposit-to-batcher [OPTIONS] --keystore_path <path_to_local_keystore> --amount <amount_to_deposit>`
 
 #### Options:
+
 - `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
 - `--private_key <private_key>`: User's wallet private key.
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
@@ -183,6 +192,7 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
     - `--batcher_url <batcher_websocket_url>`
   
 #### Example:
+
 ```bash
 aligned deposit-to-batcher \
 --network holesky \
@@ -205,6 +215,7 @@ Retrieves the user's balance in the Aligned Layer's contract.
 
 
 #### Options:
+
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
@@ -218,9 +229,10 @@ Retrieves the user's balance in the Aligned Layer's contract.
   - Mainnet: `https://ethereum-rpc.publicnode.com`
   - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
-- **`--user_addr`**: User's Ethereum address.
+- `--user_addr`: User's Ethereum address.
 
 #### Example:
+
 ```bash
 aligned get-user-balance \
 --user_addr <WALLET_ADDRESS> \
@@ -232,16 +244,48 @@ aligned get-user-balance \
 
 ### **get-user-nonce**
 
-
 #### Description:
 
-Retrieves the user's current nonce from the batcher.
+Retrieves the user's current nonce from the Batcher.
 
 #### Command:
 
 `get-user-nonce [OPTIONS] --user_addr <user_ethereum_address>`
 
 #### Options:
+
+- `--user_addr <user_address>`: User's Ethereum address.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.
+    - Default: `devnet`
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned get-user-nonce \
+--user_addr <USER_ETH_ADDRESS> \
+--network holesky
+```
+
+---
+
+### **get-user-nonce-from-ethereum**
+
+#### Description:
+
+Retrieves the user's current nonce from the Blockhain, in the Batcher Payment Service Contract.
+
+#### Command:
+
+`get-user-nonce-from-ethereum [OPTIONS] --user_addr <user_ethereum_address>`
+
+#### Options:
+
 - `--user_addr <user_address>`: User's Ethereum address.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
@@ -251,10 +295,54 @@ Retrieves the user's current nonce from the batcher.
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
     - `--batcher_url <batcher_websocket_url>`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
 
 #### Example:
+
 ```bash
-aligned get-user-nonce \
+aligned get-user-nonce-from-ethereum \
 --user_addr <USER_ETH_ADDRESS> \
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
+```
+
+---
+
+### **get-user-amount-of-queued-proofs**
+
+#### Description:
+
+Retrieves the user's amount of queued proofs in the Batcher.
+
+#### Command:
+
+`get-user-amount-of-queued-proofs [OPTIONS] --user_addr <user_ethereum_address>`
+
+#### Options:
+
+- `--user_addr <user_address>`: User's Ethereum address.
+- `--network <working_network_name>`: Network name to interact with.  
+  - Default: `devnet`  
+  - Possible values: `devnet`, `holesky`, `mainnet`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
+  - Default: `ws://localhost:8080`  
+  - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
+  - Holesky: `wss://batcher.alignedlayer.com`
+
+#### Example:
+
+```bash
+aligned get-user-amount-of-queued-proofs  \
+--user_addr <USER_ETH_ADDRESS> \
+--network holesky \
 --batcher_url wss://batcher.alignedlayer.com
 ```

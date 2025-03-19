@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/rpc"
@@ -48,6 +49,17 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 		"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
 		"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
 		"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
+
+	if signedTaskResponse.BlsSignature.G1Point == nil {
+		agg.logger.Warn("invalid operator response with nil signature",
+			"BatchMerkleRoot", "0x"+hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
+			"SenderAddress", "0x"+hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
+			"BatchIdentifierHash", "0x"+hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
+			"operatorId", hex.EncodeToString(signedTaskResponse.OperatorId[:]))
+		*reply = 1
+		return errors.New("invalid response: nil signature")
+	}
+
 	taskIndex := uint32(0)
 
 	// The Aggregator may receive the Task Identifier after the operators.
@@ -69,7 +81,7 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	defer cancel() // Ensure the cancel function is called to release resources
 
 	// Create a channel to signal when the task is done
-	done := make(chan struct{})
+	done := make(chan uint8)
 
 	agg.logger.Info("Starting bls signature process")
 	go func() {
@@ -80,9 +92,11 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 		if err != nil {
 			agg.logger.Warnf("BLS aggregation service error: %s", err)
+			done<- 1
 			// todo shouldn't we here close the channel with a reply = 1?
 		} else {
 			agg.logger.Info("BLS process succeeded")
+			done<- 0
 		}
 
 		close(done)
@@ -94,10 +108,10 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 	case <-ctx.Done():
 		// The context's deadline was exceeded or it was canceled
 		agg.logger.Info("Bls process timed out, operator signature will be lost. Batch may not reach quorum")
-	case <-done:
+	case res := <-done:
 		// The task completed successfully
-		agg.logger.Info("Bls context finished correctly")
-		*reply = 0
+		agg.logger.Info("Bls context finished on time")
+		*reply = res
 	}
 
 	return nil

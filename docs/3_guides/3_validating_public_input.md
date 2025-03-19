@@ -175,7 +175,7 @@ This command will log the address of the deployed contract like so:
 
 ```
 == Return ==
-0: address 0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f
+0: address 0xFE5aBfb5E754e4AeFE1e8eC413ca6D2CCF99d5Ed
 ```
 
 Make sure to save this address, as you'll need it for the next step.
@@ -183,11 +183,13 @@ Make sure to save this address, as you'll need it for the next step.
 Now, to call our verifier contract and check the inclusion of the proof along with the validation of the public inputs, use the following command based on the verifier you used:
 
 - For Risc0:
+
   ```bash
   make verify_risc0_batch_inclusion FIBONACCI_VALIDATOR_ADDRESS=<FIBONACCI_VALIDATOR_ADDRESS> DATA_FILE_NAME=<DATA_FILE_NAME>
   ```
 
 - For SP1:
+
   ```bash
   make verify_sp1_batch_inclusion FIBONACCI_VALIDATOR_ADDRESS=<FIBONACCI_VALIDATOR_ADDRESS> DATA_FILE_NAME=<DATA_FILE_NAME>
   ```

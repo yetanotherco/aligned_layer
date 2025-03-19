@@ -1,4 +1,6 @@
 defmodule TelemetryApi.Utils do
+  require Logger
+  
   @moduledoc """
   Some utility functions
   """
@@ -15,6 +17,7 @@ defmodule TelemetryApi.Utils do
       {:error, message}
   """
   def fetch_json_data(url) do
+    Logger.info("Fetching data from #{url}")
     with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
       Jason.decode(body)
     else
