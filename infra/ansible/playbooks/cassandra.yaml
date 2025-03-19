@@ -1,0 +1,73 @@
+- name: Cassandra Setup
+  hosts: "{{ host }}"
+  become: true
+  vars:
+    ansible_ssh_user: "{{ admin_user }}"
+
+  tasks:
+  - name: Check if cassandra is installed
+    stat:
+      path: /opt/cassandra/bin/cassandra
+    register: cassandra_exists
+
+  - name: Install java
+    apt:
+      pkg: openjdk-17-jre
+
+  - name: Create cassandra group
+    group:
+      name: cassandra
+      system: yes
+
+  - name: Create cassandra user
+    user:
+      name: cassandra
+      group: cassandra
+      shell: /sbin/nologin
+      system: yes
+
+  - name: Download cassandra
+    when: not cassandra_exists.stat.exists
+    get_url:
+      url: "https://dlcdn.apache.org/cassandra/{{ cassandra_version }}/apache-cassandra-{{ cassandra_version }}-bin.tar.gz "
+      dest: "/tmp/cassandra-{{ cassandra_version }}.tar.gz"
+      mode: '0644'
+
+  - name: Ensure /opt/cassandra directory exists
+    file:
+      path: /opt/cassandra
+      owner: "cassandra"
+      group: "cassandra"
+      state: directory
+
+  - name: Extract cassandra
+    when: not cassandra_exists.stat.exists
+    unarchive:
+      src: "/tmp/cassandra-{{ cassandra_version }}.tar.gz"
+      dest: /opt/cassandra/
+      remote_src: yes
+      owner: "cassandra"
+      group: "cassandra"
+      extra_opts:
+        - --strip-components=1
+
+  - name: Add /opt/cassandra/bin to PATH
+    lineinfile:
+      path: /home/{{ ansible_user }}/.bashrc
+      line: PATH=/opt/cassandra/bin:$PATH
+      state: present
+
+  - name: Create Cassandra systemd service
+    template:
+      src: services/cassandra.service.j2
+      dest: /etc/systemd/system/cassandra.service
+    vars:
+      cassandra_telemetry_user: "{{ lookup('ini', 'cassandra_telemetry_user', file=ini_file) }}"
+      cassandra_telemetry_pass: "{{ lookup('ini', 'cassandra_telemetry_pass', file=ini_file) }}"
+
+  - name: Start Cassandra
+    systemd_service:
+      name: cassandra
+      state: started
+      daemon_reload: true
+      enabled: true
