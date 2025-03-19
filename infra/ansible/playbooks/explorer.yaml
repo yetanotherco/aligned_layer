@@ -68,10 +68,12 @@
         src: explorer/explorer_env.j2
         dest: /home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer/.env
       vars:
+        MIX_ENV: prod
         RPC_URL: "{{ lookup('ini', 'RPC_URL file=ini/config-explorer.ini') }}"
         ENVIRONMENT: "{{ lookup('ini', 'ENVIRONMENT file=ini/config-explorer.ini') }}"
         ALIGNED_CONFIG_FILE: "{{ lookup('ini', 'ALIGNED_CONFIG_FILE file=ini/config-explorer.ini') }}"
         PHX_HOST: "{{ lookup('ini', 'PHX_HOST file=ini/config-explorer.ini') }}"
+        PHX_SERVER: true
         ELIXIR_HOSTNAME: "{{ lookup('ini', 'ELIXIR_HOSTNAME file=ini/config-explorer.ini') }}"
         DB_NAME: "{{ lookup('ini', 'DB_NAME file=ini/config-explorer.ini') }}"
         DB_USER: "{{ lookup('ini', 'DB_USER file=ini/config-explorer.ini') }}"
@@ -83,6 +85,7 @@
         CERTFILE_PATH: "{{ lookup('ini', 'CERTFILE_PATH file=ini/config-explorer.ini') }}"
         BATCH_TTL_MINUTES: "{{ lookup('ini', 'BATCH_TTL_MINUTES file=ini/config-explorer.ini') }}"
         SCHEDULED_BATCH_INTERVAL_MINUTES: "{{ lookup('ini', 'SCHEDULED_BATCH_INTERVAL_MINUTES file=ini/config-explorer.ini') }}"
+        LATEST_RELEASE: "{{ lookup('ini', 'LATEST_RELEASE file=ini/config-explorer.ini') }}"
 
     - name: Build the explorer release
       args:
@@ -102,6 +105,7 @@
           mix phx.digest
           mix assets.deploy
           mix release --overwrite
+          mix ecto.migrate
 
     - name: Set CAP_NET_BIND_SERVICE to beam
       shell:
