@@ -75,10 +75,19 @@ contract BatcherPaymentService is
         alignedLayerServiceManager = _alignedLayerServiceManager;
         batcherWallet = _batcherWallet;
     }
-
+    
     // PAYABLE FUNCTIONS
+    /**
+     * @notice Fallback function to receive ETH payments
+     * @dev This function handles two scenarios:
+     *      1. Direct user deposits: Updates the user's balance and emits an event
+     *      2. Batcher withdrawals from ServiceManager: Ignores balance updates since they don't apply
+     */
+
     receive() external payable {
-        if (msg.sender != address(alignedLayerServiceManager)) { // `alignedLayerServiceManager.withdraw()` triggers `receive()` (and with only 2300 gas)
+        // Skip balance updates when receiving funds from ServiceManager withdrawals
+        if (msg.sender != address(alignedLayerServiceManager)) { 
+            // Only update balances for direct user deposits
             userData[msg.sender].balance += msg.value;
             userData[msg.sender].unlockBlockTime = 0;
             emit PaymentReceived(msg.sender, msg.value);
