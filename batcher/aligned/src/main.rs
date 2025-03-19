@@ -14,6 +14,7 @@ use aligned_sdk::core::{
 use aligned_sdk::sdk::estimate_fee;
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
+use aligned_sdk::sdk::get_nonce_from_ethereum;
 use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
 use clap::Args;
@@ -25,13 +26,16 @@ use ethers::prelude::*;
 use ethers::utils::format_ether;
 use ethers::utils::hex;
 use ethers::utils::parse_ether;
+use futures_util::future;
 use log::warn;
 use log::{error, info};
 use transaction::eip2718::TypedTransaction;
 
 use crate::AlignedCommands::DepositToBatcher;
+use crate::AlignedCommands::GetUserAmountOfQueuedProofs;
 use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetUserNonce;
+use crate::AlignedCommands::GetUserNonceFromEthereum;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -59,8 +63,21 @@ pub enum AlignedCommands {
     DepositToBatcher(DepositToBatcherArgs),
     #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
     GetUserBalance(GetUserBalanceArgs),
-    #[clap(about = "Get user nonce from the batcher", name = "get-user-nonce")]
+    #[clap(
+        about = "Gets user current nonce from the batcher. This is the nonce you should send in your next proof.",
+        name = "get-user-nonce"
+    )]
     GetUserNonce(GetUserNonceArgs),
+    #[clap(
+        about = "Gets the user nonce directly from the BatcherPaymentService contract. Useful for validating the on-chain state and check if your transactions are pending in the batcher.",
+        name = "get-user-nonce-from-ethereum"
+    )]
+    GetUserNonceFromEthereum(GetUserNonceFromEthereumArgs),
+    #[clap(
+        about = "Gets the number of proofs a user has queued in the Batcher.",
+        name = "get-user-amount-of-queued-proofs"
+    )]
+    GetUserAmountOfQueuedProofs(GetUserAmountOfQueuedProofsArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -225,8 +242,46 @@ pub struct GetUserNonceArgs {
     address: String,
 }
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserNonceFromEthereumArgs {
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
+    #[clap(flatten)]
+    network: NetworkArg,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserAmountOfQueuedProofsArgs {
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "The user's Ethereum address",
+        long = "user_addr",
+        required = true
+    )]
+    address: String,
+    #[clap(flatten)]
+    network: NetworkArg,
+}
+
 #[derive(Args, Debug)]
-#[group(required = true, multiple = false)]
+#[group(multiple = false)]
 pub struct PrivateKeyType {
     #[arg(name = "path_to_keystore", long = "keystore_path")]
     keystore_path: Option<PathBuf>,
@@ -641,6 +696,40 @@ async fn main() -> Result<(), AlignedError> {
                     return Ok(());
                 }
             }
+        }
+        GetUserNonceFromEthereum(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            let network = args.network.into();
+            match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
+                Ok(nonce) => {
+                    info!(
+                        "Nonce for address {} in BatcherPaymentService contract is {}",
+                        address, nonce
+                    );
+                }
+                Err(e) => {
+                    error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            }
+        }
+        GetUserAmountOfQueuedProofs(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            let network: Network = args.network.into();
+            let Ok((ethereum_nonce, batcher_nonce)) = future::try_join(
+                get_nonce_from_ethereum(&args.eth_rpc_url, address, network.clone()),
+                get_nonce_from_batcher(network, address),
+            )
+            .await
+            .map_err(|e| error!("Error while getting nonce: {:?}", e)) else {
+                return Ok(());
+            };
+            info!(
+                "User {} has {} proofs in the batcher queue",
+                address,
+                batcher_nonce - ethereum_nonce
+            );
+            return Ok(());
         }
     }
 

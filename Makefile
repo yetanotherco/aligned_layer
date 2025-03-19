@@ -7,7 +7,9 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.13.0
+OPERATOR_VERSION=v0.14.0
+EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
+EIGEN_SDK_GO_VERSION_MAINNET=v0.1.13
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -28,6 +30,16 @@ endif
 
 ifeq ($(OS),Darwin)
 	BUILD_OPERATOR = $(MAKE) build_operator_macos
+endif
+
+ifeq ($(ENVIRONMENT), devnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_devnet
+else ifeq ($(ENVIRONMENT), testnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_testnet
+else ifeq ($(ENVIRONMENT), mainnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_mainnet
+else
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_error
 endif
 
 
@@ -140,7 +152,13 @@ anvil_start_with_block_time_with_more_prefunded_accounts:
 
 _AGGREGATOR_:
 
+build_aggregator:
+	$(GET_SDK_VERSION)
+	@echo "Building aggregator"
+	@go build -o ./build/aligned-aggregator ./aggregator/cmd/main.go
+
 aggregator_start:
+	$(GET_SDK_VERSION)
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
 	2>&1 | zap-pretty
@@ -156,15 +174,31 @@ test_go_retries:
 __OPERATOR__:
 
 operator_start:
+	$(GET_SDK_VERSION)
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
+
+operator_set_eigen_sdk_go_version_testnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_TESTNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_TESTNET)
+
+operator_set_eigen_sdk_go_version_devnet: operator_set_eigen_sdk_go_version_mainnet
+
+operator_set_eigen_sdk_go_version_mainnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_MAINNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_MAINNET)
+
+operator_set_eigen_sdk_go_version_error:
+	@echo "Error setting Eigen SDK version, missing ENVIRONMENT. Possible values for ENVIRONMENT=<devnet|testnet|mainnet>"
+	exit 1
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
 operator_register_and_start: operator_full_registration operator_start
 
 build_operator: deps
+	$(GET_SDK_VERSION)
 	$(BUILD_OPERATOR)
 
 build_operator_macos:
@@ -178,6 +212,7 @@ build_operator_linux:
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
+	$(GET_SDK_VERSION)
 	@echo "Updating Operator..."
 	@./scripts/fetch_latest_release.sh
 	@make build_operator
